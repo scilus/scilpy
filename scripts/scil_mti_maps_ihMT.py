@@ -231,6 +231,11 @@ def main():
         assert_output_dirs_exist_and_empty(parser, args, outut_dir,
                                            create_dir=True)
 
+    if args.out_prefix:
+        out_prefix = args.out_prefix + "_"
+    else:
+        out_prefix = ""
+
     # Merge all echos path into a list
     input_maps = [args.in_altnp, args.in_altpn, args.in_negative,
                   args.in_positive, args.in_mtoff_pd]
@@ -293,7 +298,7 @@ def main():
             flip_angles[1] *= B1_map
         if args.extended:
             nib.save(nib.Nifti1Image(B1_map, affine),
-                     os.path.join(extended_dir, "B1_map.nii.gz"))
+                     os.path.join(extended_dir, out_prefix + "B1_map.nii.gz"))
 
     # Define contrasts maps names
     contrast_names = ['altnp', 'altpn', 'negative', 'positive', 'mtoff_PD',
@@ -305,7 +310,7 @@ def main():
         contrast_names = [curr_name + '_single_echo'
                           for curr_name in contrast_names]
     if args.out_prefix:
-        contrast_names = [args.out_prefix + '_' + curr_name
+        contrast_names = [out_prefix + curr_name
                           for curr_name in contrast_names]
 
 # Compute contrasts maps
@@ -350,13 +355,15 @@ def main():
         R1app = 1000 / T1app  # convert 1/ms to 1/s
         if args.extended:
             nib.save(nib.Nifti1Image(MTsat_sp, affine),
-                     os.path.join(extended_dir, "MTsat_sp.nii.gz"))
+                     os.path.join(extended_dir,
+                                  out_prefix + "MTsat_sp.nii.gz"))
             nib.save(nib.Nifti1Image(MTsat_sn, affine),
-                     os.path.join(extended_dir, "MTsat_sn.nii.gz"))
+                     os.path.join(extended_dir,
+                                  out_prefix + "MTsat_sn.nii.gz"))
             nib.save(nib.Nifti1Image(MTsat_d, affine),
-                     os.path.join(extended_dir, "MTsat_d.nii.gz"))
+                     os.path.join(extended_dir, out_prefix + "MTsat_d.nii.gz"))
             nib.save(nib.Nifti1Image(R1app, affine),
-                     os.path.join(extended_dir, "R1app.nii.gz"))
+                     os.path.join(extended_dir, out_prefix + "R1app.nii.gz"))
 
         MTsat_maps = [MTsat_sp, MTsat_sn, MTsat_d]
 
