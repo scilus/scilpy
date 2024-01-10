@@ -64,8 +64,8 @@ def parallel_transport_streamline(streamline, nb_streamlines, radius, rng=None):
 
     # Placeholder for the normal vector at each point
     V = np.zeros_like(T)
-    # Set the normal vector at the first point to be [0, 1, 0]
-    # (arbitrary choice)
+    # Set the normal vector at the first point to kind of perpendicular to
+    # the first direction vector
     V[0] = np.roll(streamline[0] - streamline[1], 1)
     V[0] = V[0] / np.linalg.norm(V[0])
     # For each point

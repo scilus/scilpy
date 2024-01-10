@@ -22,11 +22,9 @@ Downsampling:
     ensure that all clusters are represented in the final tractogram.
 
 Example usage:
-$ scil_resample_tractogram.py input.trk 1000 output.trk \
+$ scil_tractogram_resample.py input.trk 1000 output.trk \
 --point_wise_std 0.5 --gaussian 5 --keep_invalid_streamlines
 $ scil_visualize_bundles.py output.trk --local_coloring --width=0.1
-
-Formerly: scil_resample_tractogram.py
 """
 
 import argparse
@@ -142,9 +140,9 @@ def main():
 
     if args.nb_streamlines > original_number or args.tube_radius:
         # Check is done here because it is not required if downsampling
-        if not args.point_wise_std and not args.streamline_wise_std:
+        if not args.point_wise_std and not args.tube_radius:
             parser.error("one of the arguments --point_wise_std " +
-                         "--streamline_wise_std is required")
+                         "--tube_radius is required")
         sft = upsample_tractogram(
             sft, args.nb_streamlines,
             args.point_wise_std, args.tube_radius,
