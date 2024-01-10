@@ -290,9 +290,9 @@ def main():
         B1_map = smooth_B1_map(B1_map, wdims=args.B1_smooth_dims)
         if args.B1_correction_method == 'model_based':
             # Apply shift to the B1 map for better correction
-            shift = 0.05
-            expt = 1.3
-            B1_map = (B1_map + shift) ** expt
+            # shift = 0.05
+            # expt = 1.3
+            # B1_map = (B1_map + shift) ** expt
             # Apply the B1 map to the flip angles for model-based correction
             flip_angles[0] *= B1_map
             flip_angles[1] *= B1_map
