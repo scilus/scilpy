@@ -666,7 +666,7 @@ def upsample_tractogram(sft, nb, point_wise_std=None, tube_radius=None,
 
         # Generate smooth noise_factor
         noise = rng.normal(loc=0, scale=point_wise_std,
-                                 size=len(s))
+                           size=len(s))
 
         x = np.arange(len(noise))
         poly_coeffs = np.polyfit(x, noise, 3)
