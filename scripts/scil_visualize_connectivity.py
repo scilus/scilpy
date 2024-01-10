@@ -3,8 +3,8 @@
 
 """
 Script to display a connectivity matrix and adjust the desired visualization.
-Made to work with scil_decompose_connectivity.py and
-scil_reorder_connectivity.py.
+Made to work with scil_tractogram_segment_bundles_for_connectivity.py and
+scil_connectivity_reorder_rois.py.
 
 This script can either display the axis labels as:
 - Coordinates (0..N)
@@ -13,16 +13,18 @@ This script can either display the axis labels as:
 Examples of labels_list.txt and lookup_table.json can be found in the
 freesurfer_flow output (https://github.com/scilus/freesurfer_flow)
 
-If the matrix was made from a bigger matrix using scil_reorder_connectivity.py,
-provide the text file(s), using --labels_list and/or --reorder_txt.
+If the matrix was made from a bigger matrix using
+scil_connectivity_reorder_rois.py, provide the text file(s), using
+--labels_list and/or --reorder_txt.
 
 The chord chart is always displaying parting in the order they are defined
 (clockwise), the color is attributed in that order following a colormap. The
 thickness of the line represent the 'size/intensity', the greater the value is
 the thicker the line will be. In order to hide the low values, two options are
 available:
-- Angle threshold + alpha, any connections with a small angle on the chord chart
-    will be slightly transparent to increase the focus on bigger connections.
+- Angle threshold + alpha, any connections with a small angle on the chord
+    chart will be slightly transparent to increase the focus on bigger
+    connections.
 - Percentile, hide any connections with a value below that percentile
 """
 
@@ -38,7 +40,8 @@ import numpy as np
 
 from scilpy.image.volume_math import EPSILON
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
-                             assert_outputs_exist, load_matrix_in_any_format)
+                             assert_outputs_exist, add_verbose_arg,
+                             load_matrix_in_any_format)
 from scilpy.viz.chord_chart import chordDiagram, polar2xy
 from scilpy.viz.utils import get_colormap
 
@@ -81,7 +84,8 @@ def _build_arg_parser():
     g2.add_argument('--legend_min_max', nargs=2, metavar=('MIN', 'MAX'),
                     type=float, default=None,
                     help='Manually define the min/max of the legend.')
-    g2.add_argument('--write_values', nargs=2, metavar=('FONT_SIZE', 'DECIMAL'),
+    g2.add_argument('--write_values', nargs=2, metavar=('FONT_SIZE',
+                                                        'DECIMAL'),
                     default=None, type=int,
                     help='Write the values at the center of each node.\n'
                          'The font size and the rouding parameters can be '
@@ -89,7 +93,8 @@ def _build_arg_parser():
 
     histo = p.add_argument_group(title='Histogram options')
     histo.add_argument('--histogram', metavar='FILENAME',
-                       help='Compute and display/save an histogram of weights.')
+                       help='Compute and display/save an histogram of weights.'
+                       )
     histo.add_argument('--nb_bins', type=int,
                        help='Number of bins to use for the histogram.')
     histo.add_argument('--exclude_zeros', action='store_true',
@@ -97,7 +102,8 @@ def _build_arg_parser():
 
     chord = p.add_argument_group(title='Chord chart options')
     chord.add_argument('--chord_chart', metavar='FILENAME',
-                       help='Compute and display/save a chord chart of weigth.')
+                       help='Compute and display/save a chord chart of weigth.'
+                       )
     chord.add_argument('--percentile_threshold', type=int, default=0,
                        help='Discard connections below that percentile.'
                             '[%(default)s]')
@@ -106,8 +112,8 @@ def _build_arg_parser():
                             'Use --alpha to set opacity. Value typically'
                             'between 0.1 and 5 degrees. [%(default)s]')
     chord.add_argument('--alpha', type=float, default=0.9,
-                       help='Opacity for the smaller angle on the chord (0-1). '
-                            '[%(default)s]')
+                       help='Opacity for the smaller angle on the chord (0-1).'
+                            ' [%(default)s]')
     chord.add_argument('--text_size', default=10, type=float,
                        help='Size of the font for the parcels name/number '
                             '[%(default)s].')
@@ -121,6 +127,7 @@ def _build_arg_parser():
     p.add_argument('--show_only', action='store_true',
                    help='Do not save the figure, simply display it.')
 
+    add_verbose_arg(p)
     add_overwrite_arg(p)
 
     return p

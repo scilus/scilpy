@@ -94,10 +94,13 @@ def get_testing_files_dict():
              'a2f982b8d84833f5ccfe709b725307d2'],
             'surface_vtk_fib.zip':
             ['1c9KMNFeSkyYDgu3SH_aMf0kduIlpt7cN',
-             '946beb4271b905a2bd69ad2d80136ca9'],
+             'bf131869a6722778a234869bf585520a'],
             'tracking.zip':
             ['1QSekZYDoMvv-An6FRMSt_s_qPeB3BHfw',
              '6d88910403fb4d9b79604f11100d8915'],
+            'tractograms.zip':
+            ['1f98s0TP-862KtB_xsSmRNrmi2nrqRaNU',
+             '911bc59dfdcee3656564f212ae8ed3a1'],
             'tractometry.zip':
             ['130mxBo4IJWPnDFyOELSYDif1puRLGHMX',
              '3e27625a1e7f2484b7fa5028c95324cc'],
