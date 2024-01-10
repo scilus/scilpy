@@ -3,5 +3,5 @@
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_convert_fdf.py', '--help')
+    ret = script_runner.run('scil_dwi_convert_FDF.py', '--help')
     assert ret.success

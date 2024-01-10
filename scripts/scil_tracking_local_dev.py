@@ -39,6 +39,8 @@ A few notes on Runge-Kutta integration.
 References: [1] Girard, G., Whittingstall K., Deriche, R., and
             Descoteaux, M. (2014). Towards quantitative connectivity analysis:
             reducing tractography biases. Neuroimage, 98, 266-278.
+
+Formerly: scil_compute_local_tracking_dev.py
 """
 import argparse
 import logging
@@ -276,7 +278,7 @@ def main():
     # typically produces a lot of outputs!
     set_sft_logger_level('WARNING')
 
-    # Compared with scil_compute_local_tracking, using sft rather than
+    # Compared with scil_tracking_local, using sft rather than
     # LazyTractogram to deal with space.
     # Contrary to scilpy or dipy, where space after tracking is vox, here
     # space after tracking is voxmm.

@@ -36,6 +36,8 @@ Exemple config file:
     "gt_mask": "PATH/bundle0.nii.gz",
   }
 }
+
+Formerly: scil_score_bundles.py
 """
 import argparse
 import glob

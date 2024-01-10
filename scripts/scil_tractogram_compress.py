@@ -6,6 +6,8 @@ Compress tractogram by removing collinear (or almost) points.
 
 The compression threshold represents the maximum distance (in mm) to the
 original position of the point.
+
+Formerly: scil_compress_streamlines.py
 """
 
 import argparse
