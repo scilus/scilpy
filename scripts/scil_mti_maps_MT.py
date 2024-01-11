@@ -32,7 +32,6 @@ Input Data recommendation:
   - ANTs can be used for the registration steps (http://stnava.github.io/ANTs/)
 
 
-<<<<<<< HEAD
 The output consists of a MT_native_maps folder containing the 2 myelin maps:
     - MTR.nii.gz : Magnetization Transfer Ratio map
     The MT ratio is a measure reflecting the amount of bound protons.
@@ -74,28 +73,6 @@ For both methods, the nominal value of the B1 map can be set with
 By default, the script uses all the echoes available in the input folder.
 If you want to use a single echo, replace the * with the specific number of
 the echo.
-=======
-The output consist in two types of images in two folders :
-  1. Contrasts_MT_maps which contains the 2 contrast images
-      - MT-off.nii.gz : pulses applied at positive frequency
-      - MT-on.nii.gz : pulses applied at negative frequency
-      - T1w.nii.gz : anatomical T1 reference images
-
-
-  2. MT_native_maps which contains the 4 myelin maps
-      - MTR.nii.gz : Magnetization Transfer Ratio map
-      The MT ratio is a measure reflecting the amount of bound protons.
-
-      - MTsat.nii.gz : Magnetization Transfer saturation map
-      The MT saturation is a pseudo-quantitative maps representing
-      the signal change between the bound and free water pools.
-
->>> scil_mti_maps_MT.py path/to/output/directory path/to/mask_bin.nii.gz
-    --in_mtoff path/to/echo*mtoff.nii.gz --in_mton path/to/echo*mton.nii.gz
-    --in_t1w path/to/echo*T1w.nii.gz
-
-Formerly: scil_compute_MT_maps.py
->>>>>>> 1cf787ec0f00b368aed641c090d183b8ff3b1165
 """
 
 import argparse

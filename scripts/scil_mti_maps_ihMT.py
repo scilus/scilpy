@@ -78,15 +78,8 @@ For both methods, the nominal value of the B1 map can be set with
     --in_mtoff_t1 path/to/echo*T1w.nii.gz --mask path/to/mask_bin.nii.gz
 
 By default, the script uses all the echoes available in the input folder.
-<<<<<<< HEAD
 If you want to use a single echo, replace the * with the specific number of
 the echo.
-=======
-If you want to use a single echo add --single_echo to the command line and
-replace the * with the specific number of the echo.
-
-Formerly: scil_compute_ihMT_maps.py
->>>>>>> 1cf787ec0f00b368aed641c090d183b8ff3b1165
 """
 
 import argparse
