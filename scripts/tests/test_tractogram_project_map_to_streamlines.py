@@ -10,6 +10,7 @@ from scilpy.io.fetcher import fetch_data, get_home, get_testing_files_dict
 fetch_data(get_testing_files_dict(), keys=['others.zip'])
 tmp_dir = tempfile.TemporaryDirectory()
 
+
 def test_help_option(script_runner):
     ret = script_runner.run(
             'scil_tractogram_project_map_to_streamlines.py', '--help')

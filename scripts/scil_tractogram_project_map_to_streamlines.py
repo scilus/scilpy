@@ -25,6 +25,7 @@ from scilpy.image.volume_space_management import DataVolume
 
 from dipy.io.streamline import save_tractogram, StatefulTractogram
 
+
 def _build_arg_parser():
     p = argparse.ArgumentParser(
         description=__doc__,

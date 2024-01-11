@@ -391,7 +391,7 @@ def smooth_line_spline(streamline, smoothing_parameter, nb_ctrl_points):
 
 
 def perform_streamline_operation_per_point(op_name, sft, dpp_name='metric',
-                                            endpoints_only=False):
+                                           endpoints_only=False):
     """Peforms an operation per point for all streamlines.
 
     Parameters
@@ -438,7 +438,7 @@ def perform_streamline_operation_per_point(op_name, sft, dpp_name='metric',
 
 
 def perform_operation_per_streamline(op_name, sft, dpp_name='metric',
-                                    endpoints_only=False):
+                                     endpoints_only=False):
     """Peforms an operation across points for each streamline.
 
     Parameters

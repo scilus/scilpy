@@ -126,7 +126,7 @@ def main():
         if args.operation == 'correlation':
             logging.info('Performing {} across endpoint data.'.format(
                 args.operation))
-            new_dps= perform_streamline_operation_on_endpoints(
+            new_dps = perform_streamline_operation_on_endpoints(
                 args.operation, sft, args.dpp_name)
 
             # Adding data per streamline to new_sft
