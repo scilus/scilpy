@@ -13,7 +13,8 @@ import logging
 
 from scilpy.io.image import load_img
 from scilpy.io.streamlines import load_tractogram_with_reference
-from scilpy.tractograms.streamline_operations import project_metric_to_streamlines
+from scilpy.tractograms.streamline_operations import (
+    project_metric_to_streamlines)
 from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist,
                              assert_outputs_exist,

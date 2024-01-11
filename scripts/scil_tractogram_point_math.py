@@ -42,9 +42,11 @@ from scilpy.io.utils import (add_bbox_arg,
                              assert_inputs_exist,
                              assert_outputs_exist)
 
-from scilpy.tractograms.streamline_operations import (perform_streamline_operation_on_endpoints,
-     perform_streamline_operation_per_point,
-     perform_operation_per_streamline)
+from scilpy.tractograms.streamline_operations import (
+        perform_streamline_operation_on_endpoints,
+        perform_streamline_operation_per_point,
+        perform_operation_per_streamline)
+
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(
@@ -124,7 +126,7 @@ def main():
         if args.operation == 'correlation':
             logging.info('Performing {} across endpoint data.'.format(
                 args.operation))
-            new_data_per_streamline = perform_streamline_operation_on_endpoints(
+            new_dps= perform_streamline_operation_on_endpoints(
                 args.operation, sft, args.dpp_name)
 
             # Adding data per streamline to new_sft
@@ -133,13 +135,13 @@ def main():
                                          sft.space, sft.origin,
                                          data_per_streamline={
                                              args.output_dpp_name:
-                                             new_data_per_streamline})
+                                             new_dps})
         else:
             # Results in new data per point
             logging.info(
                 'Performing {} on data from each streamine point.'.format(
                     args.operation))
-            new_data_per_point = perform_streamline_operation_per_point(
+            new_dpp = perform_streamline_operation_per_point(
                 args.operation, sft, args.dpp_name, args.endpoints_only)
 
             # Adding data per point to new_sft
@@ -148,7 +150,7 @@ def main():
                                          sft.space, sft.origin,
                                          data_per_point={
                                              args.output_dpp_name:
-                                             new_data_per_point})
+                                             new_dpp})
     else:
         # Results in new data per streamline
         logging.info(
