@@ -21,6 +21,11 @@ def test_execution_MT_no_option(script_runner):
 
     in_mask = os.path.join(get_home(), 'MT', 'mask.nii.gz')
 
+    in_mtoff_json = os.path.join(get_home(),
+                                 'MT', 'sub-001_echo-1_acq-mtoff_mtsat.json')
+    in_t1w_json = os.path.join(get_home(),
+                               'MT', 'sub-001_echo-1_acq-t1w_mtsat.json')
+
     in_e1_mtoff = os.path.join(get_home(),
                                'MT', 'sub-001_echo-1_acq-mtoff_mtsat.nii.gz')
     in_e2_mtoff = os.path.join(get_home(),
@@ -56,13 +61,14 @@ def test_execution_MT_no_option(script_runner):
 
     # no option
     ret = script_runner.run('scil_mti_maps_MT.py', tmp_dir.name,
-                            in_mask,
-                            '--in_mtoff', in_e1_mtoff, in_e2_mtoff,
+                            '--mask', in_mask,
+                            '--in_mtoff_pd', in_e1_mtoff, in_e2_mtoff,
                             in_e3_mtoff, in_e4_mtoff, in_e5_mtoff,
-                            '--in_mton', in_e1_mton, in_e2_mton, in_e3_mton,
-                            in_e4_mton, in_e5_mton,
-                            '--in_t1w', in_e1_t1w, in_e2_t1w, in_e3_t1w,
+                            '--in_positive', in_e1_mton, in_e2_mton,
+                            in_e3_mton, in_e4_mton, in_e5_mton,
+                            '--in_mtoff_t1', in_e1_t1w, in_e2_t1w, in_e3_t1w,
                             in_e4_t1w, in_e5_t1w,
+                            '--in_jsons', in_mtoff_json, in_t1w_json,
                             '-f')
     assert ret.success
 
@@ -71,6 +77,11 @@ def test_execution_MT_prefix(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
 
     in_mask = os.path.join(get_home(), 'MT', 'mask.nii.gz')
+
+    in_mtoff_json = os.path.join(get_home(),
+                                 'MT', 'sub-001_echo-1_acq-mtoff_mtsat.json')
+    in_t1w_json = os.path.join(get_home(),
+                               'MT', 'sub-001_echo-1_acq-t1w_mtsat.json')
 
     in_e1_mtoff = os.path.join(get_home(),
                                'MT', 'sub-001_echo-1_acq-mtoff_mtsat.nii.gz')
@@ -107,13 +118,14 @@ def test_execution_MT_prefix(script_runner):
 
     # --out_prefix
     ret = script_runner.run('scil_mti_maps_MT.py', tmp_dir.name,
-                            in_mask,
-                            '--in_mtoff', in_e1_mtoff, in_e2_mtoff,
+                            '--mask', in_mask,
+                            '--in_mtoff_pd', in_e1_mtoff, in_e2_mtoff,
                             in_e3_mtoff, in_e4_mtoff, in_e5_mtoff,
-                            '--in_mton', in_e1_mton, in_e2_mton, in_e3_mton,
-                            in_e4_mton, in_e5_mton,
-                            '--in_t1w', in_e1_t1w, in_e2_t1w, in_e3_t1w,
+                            '--in_positive', in_e1_mton, in_e2_mton,
+                            in_e3_mton, in_e4_mton, in_e5_mton,
+                            '--in_mtoff_t1', in_e1_t1w, in_e2_t1w, in_e3_t1w,
                             in_e4_t1w, in_e5_t1w,
+                            '--in_jsons', in_mtoff_json, in_t1w_json,
                             '--out_prefix', 'sub_01',
                             '-f')
     assert ret.success
@@ -123,6 +135,11 @@ def test_execution_MT_B1_map(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
 
     in_mask = os.path.join(get_home(), 'MT', 'mask.nii.gz')
+
+    in_mtoff_json = os.path.join(get_home(),
+                                 'MT', 'sub-001_echo-1_acq-mtoff_mtsat.json')
+    in_t1w_json = os.path.join(get_home(),
+                               'MT', 'sub-001_echo-1_acq-t1w_mtsat.json')
 
     in_e1_mtoff = os.path.join(get_home(),
                                'MT', 'sub-001_echo-1_acq-mtoff_mtsat.nii.gz')
@@ -156,19 +173,29 @@ def test_execution_MT_B1_map(script_runner):
                              'MT', 'sub-001_echo-4_acq-t1w_mtsat.nii.gz')
     in_e5_t1w = os.path.join(get_home(),
                              'MT', 'sub-001_echo-5_acq-t1w_mtsat.nii.gz')
+
     in_b1_map = os.path.join(get_home(),
                              'MT', 'sub-001_run-01_B1map.nii.gz')
+    in_b1_json = os.path.join(get_home(),
+                              'MT', 'sub-001_run-01_B1map.json')
+    out_b1_map = tmp_dir.name + '/B1map.nii.gz'
+
+    # Temporary trick to have the B1 map with proper header.
+    ret = script_runner.run('scil_mti_adjust_B1_header.py', in_b1_map,
+                            out_b1_map, in_b1_json, '-f')
 
     # --in_B1_map
     ret = script_runner.run('scil_mti_maps_MT.py', tmp_dir.name,
-                            in_mask,
-                            '--in_mtoff', in_e1_mtoff, in_e2_mtoff,
+                            '--mask', in_mask,
+                            '--in_mtoff_pd', in_e1_mtoff, in_e2_mtoff,
                             in_e3_mtoff, in_e4_mtoff, in_e5_mtoff,
-                            '--in_mton', in_e1_mton, in_e2_mton, in_e3_mton,
-                            in_e4_mton, in_e5_mton,
-                            '--in_t1w', in_e1_t1w, in_e2_t1w, in_e3_t1w,
+                            '--in_positive', in_e1_mton, in_e2_mton,
+                            in_e3_mton, in_e4_mton, in_e5_mton,
+                            '--in_mtoff_t1', in_e1_t1w, in_e2_t1w, in_e3_t1w,
                             in_e4_t1w, in_e5_t1w,
-                            '--in_B1_map', in_b1_map,
+                            '--in_jsons', in_mtoff_json, in_t1w_json,
+                            '--in_B1_map', out_b1_map,
+                            '--B1_correction_method', 'empiric',
                             '--out_prefix', 'sub-01',
                             '-f')
     assert ret.success
