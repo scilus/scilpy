@@ -6,9 +6,10 @@ Reshape / reslice / resample *.nii or *.nii.gz using a reference.
 This script can be used to align freesurfer/civet output, as .mgz,
 to the original input image.
 
-
->>> scil_reshape_to_reference.py wmparc.mgz t1.nii.gz wmparc_t1.nii.gz \\
+>>> scil_volume_reshape_to_reference.py wmparc.mgz t1.nii.gz wmparc_t1.nii.gz\\
     --interpolation nearest
+
+Formerly: scil_reshape_to_reference.py
 """
 
 import argparse
@@ -18,7 +19,7 @@ import numpy as np
 
 from scilpy.image.volume_operations import apply_transform
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
-                             assert_outputs_exist)
+                             add_verbose_arg, assert_outputs_exist)
 
 
 def _build_arg_parser():
@@ -40,7 +41,9 @@ def _build_arg_parser():
                    help='If True, keeps the data_type of the input image '
                         '(in_file) when saving the output image (out_file).')
 
+    add_verbose_arg(p)
     add_overwrite_arg(p)
+
     return p
 
 

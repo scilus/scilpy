@@ -17,6 +17,8 @@ Output
 -Case 1: 3D image, in Trackvis format where each voxel contains a
          tuple of 3 elements, one for each value (uint8).
 -Case 2: 4D image where the 4th dimension contains 3 values (uint8).
+
+Formerly: scil_convert_rgb.py
 """
 
 import argparse
@@ -26,7 +28,7 @@ import nibabel as nib
 import numpy as np
 
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
-                             assert_outputs_exist)
+                             assert_outputs_exist, add_verbose_arg)
 
 
 def _build_arg_parser():
@@ -40,6 +42,8 @@ def _build_arg_parser():
     p.add_argument('out_image',
                    help='name of output RGB image.\n' +
                         'Either 3D or 4D image.')
+
+    add_verbose_arg(p)
     add_overwrite_arg(p)
 
     return p
@@ -67,7 +71,8 @@ def main():
     elif original_im.ndim == 3:
         converted_im_float = decfa_to_float(original_im)
 
-        converted_data_int = np.asanyarray(converted_im_float.dataobj).astype(np.uint8)
+        converted_data_int = \
+            np.asanyarray(converted_im_float.dataobj).astype(np.uint8)
         converted_im = nib.Nifti1Image(converted_data_int,
                                        converted_im_float.affine)
 

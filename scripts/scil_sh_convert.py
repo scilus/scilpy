@@ -2,11 +2,13 @@
 # -*- coding: utf-8 -*-
 
 """
-    Convert a SH file between the two commonly used bases
-    ('descoteaux07' or 'tournier07'). The specified basis corresponds to the
-    input data basis. Note that by default, both legacy 'descoteaux07' and
-    legacy 'tournier07' bases will be assumed. For more information, see
-    https://dipy.org/documentation/1.4.0./theory/sh_basis/.
+Convert a SH file between the two commonly used bases
+('descoteaux07' or 'tournier07'). The specified basis corresponds to the
+input data basis. Note that by default, both legacy 'descoteaux07' and
+legacy 'tournier07' bases will be assumed. For more information, see
+https://dipy.org/documentation/1.4.0./theory/sh_basis/.
+
+Formerly: scil_convert_sh_basis.py
 """
 
 import argparse
@@ -17,7 +19,7 @@ import numpy as np
 
 from scilpy.reconst.sh import convert_sh_basis
 from scilpy.io.utils import (add_overwrite_arg, add_sh_basis_args,
-                             add_processes_arg,
+                             add_processes_arg, add_verbose_arg,
                              assert_inputs_exist, assert_outputs_exist)
 
 
@@ -29,7 +31,7 @@ def _build_arg_parser():
                    help='Input SH filename. (nii or nii.gz)')
     p.add_argument('out_sh',
                    help='Output SH filename. (nii or nii.gz)')
-    
+
     p.add_argument('--in_sh_is_not_legacy', action='store_true',
                    help='If set, this means that the input SH are not encoded '
                         'with the legacy version of their SH basis.')
@@ -39,7 +41,9 @@ def _build_arg_parser():
 
     add_sh_basis_args(p, mandatory=True)
     add_processes_arg(p)
+    add_verbose_arg(p)
     add_overwrite_arg(p)
+
     return p
 
 

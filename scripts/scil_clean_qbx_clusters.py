@@ -6,7 +6,7 @@
     visual inspection. Useful for cleaning bundles for RBx, BST or for figures.
     The VTK window does not handle well opacity of streamlines, this is a
     normal rendering behavior.
-    Often use in pair with scil_compute_qbx.py.
+    Often use in pair with scil_tractogram_qbx.py.
 
     Key mapping:
     - a/A: accept displayed clusters
@@ -59,14 +59,15 @@ def _build_arg_parser():
                    help='Opacity of the background streamlines.'
                         'Keep low between 0 and 0.5 [%(default)s].')
     p.add_argument('--background_linewidth', type=float, default=1,
-                   help='Linewidth of the background streamlines [%(default)s].')
+                   help='Linewidth of the background streamlines [%(default)s]'
+                   '.')
     p.add_argument('--clusters_linewidth', type=float, default=1,
                    help='Linewidth of the current cluster [%(default)s].')
 
     add_reference_arg(p)
-    add_overwrite_arg(p)
-    add_verbose_arg(p)
     add_bbox_arg(p)
+    add_verbose_arg(p)
+    add_overwrite_arg(p)
 
     return p
 

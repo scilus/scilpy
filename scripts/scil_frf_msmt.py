@@ -24,6 +24,8 @@ are (15,4,4)x10^-4 mm^2/s and the mean b0 is 700.
 Based on B. Jeurissen et al., Multi-tissue constrained spherical
 deconvolution for improved analysis of multi-shell diffusion
 MRI data. Neuroimage (2014)
+
+Formerly: scil_compute_msmt_frf.py
 """
 
 import argparse
@@ -147,9 +149,9 @@ def buildArgsParser():
                    help='Path to the output CSF frf mask file, the voxels '
                         'used to compute the CSF frf.')
 
+    add_verbose_arg(p)
     add_force_b0_arg(p)
     add_overwrite_arg(p)
-    add_verbose_arg(p)
 
     return p
 

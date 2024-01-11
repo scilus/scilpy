@@ -10,6 +10,8 @@ Can be used to merge fODFs computed from different shells into 1, while
 conserving the most relevant information.
 
 Based on [1] and [2].
+
+Formerly: scil_merge_sh.py
 """
 
 import argparse
@@ -19,7 +21,7 @@ import numpy as np
 
 from scilpy.io.image import assert_same_resolution
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
-                             assert_outputs_exist)
+                             assert_outputs_exist, add_verbose_arg)
 
 
 EPILOG = """
@@ -45,6 +47,7 @@ def _build_arg_parser():
     p.add_argument('out_sh',
                    help='output SH file.')
 
+    add_verbose_arg(p)
     add_overwrite_arg(p)
 
     return p

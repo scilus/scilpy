@@ -6,6 +6,8 @@ Evaluate pair-wise similarity measures of connectivity matrix.
 
 The computed similarity measures are:
 sum of square difference and pearson correlation coefficent
+
+Formerly: scil_evaluate_connectivity_pairwaise_agreement_measures.py
 """
 
 import argparse
@@ -15,6 +17,7 @@ import json
 import numpy as np
 
 from scilpy.io.utils import (add_json_args,
+                             add_verbose_arg,
                              add_overwrite_arg,
                              assert_inputs_exist,
                              assert_outputs_exist,
@@ -38,6 +41,7 @@ def _build_arg_parser():
                         'one.')
 
     add_json_args(p)
+    add_verbose_arg(p)
     add_overwrite_arg(p)
 
     return p

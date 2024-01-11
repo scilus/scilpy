@@ -3,6 +3,8 @@
 
 """
 Script to filter streamlines based on their lengths.
+
+Formerly: scil_filter_streamlines_by_length.py
 """
 
 import argparse
@@ -19,7 +21,8 @@ from scilpy.io.utils import (add_json_args,
                              add_verbose_arg,
                              assert_inputs_exist,
                              assert_outputs_exist)
-from scilpy.tractograms.streamline_operations import filter_streamlines_by_length
+from scilpy.tractograms.streamline_operations import \
+    filter_streamlines_by_length
 
 
 def _build_arg_parser():
@@ -39,10 +42,10 @@ def _build_arg_parser():
     p.add_argument('--display_counts', action='store_true',
                    help='Print streamline count before and after filtering')
 
-    add_reference_arg(p)
-    add_overwrite_arg(p)
-    add_verbose_arg(p)
     add_json_args(p)
+    add_reference_arg(p)
+    add_verbose_arg(p)
+    add_overwrite_arg(p)
 
     return p
 

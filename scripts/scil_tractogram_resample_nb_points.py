@@ -4,6 +4,8 @@
 """
 Script to resample a set of streamlines to either a new number of points per
 streamline or to a fixed step size. WARNING: data_per_point is not carried.
+
+Formerly: scil_resample_streamlines.py
 """
 import argparse
 
@@ -12,6 +14,7 @@ from dipy.io.streamline import save_tractogram
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg,
                              add_reference_arg,
+                             add_verbose_arg,
                              assert_inputs_exist,
                              assert_outputs_exist)
 from scilpy.tractograms.streamline_operations import \
@@ -34,6 +37,7 @@ def _build_arg_parser():
                    help='Step size in the output (in mm).')
 
     add_reference_arg(p)
+    add_verbose_arg(p)
     add_overwrite_arg(p)
 
     return p

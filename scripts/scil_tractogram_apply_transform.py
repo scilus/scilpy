@@ -12,7 +12,7 @@ Applying transformation to tractogram can lead to invalid streamlines (out of
 the bounding box), three strategies are available:
 1) default, crash at saving if invalid streamlines are present
 2) --keep_invalid, save invalid streamlines. Leave it to the user to run
-    scil_remove_invalid_streamlines.py if needed.
+    scil_tractogram_remove_invalid.py if needed.
 3) --remove_invalid, automatically remove invalid streamlines before saving.
     Should not remove more than a few streamlines.
 4) --cut_invalid, automatically cut invalid streamlines before saving.
@@ -31,6 +31,8 @@ scil_tractogram_apply_transform.py ${MOVING_FILE} ${REFERENCE_FILE}
                                    0GenericAffine.mat ${OUTPUT_NAME}
                                    --in_deformation 1Warp.nii.gz
                                    --reverse_operation
+
+Formerly: scil_apply_transform_to_tractogram.py
 """
 
 import argparse
@@ -88,9 +90,10 @@ def _build_arg_parser():
                    help='Do not write file if there is no streamline.\n'
                         'You may save an empty file if you use '
                         'remove_invalid.')
+
     add_reference_arg(p)
-    add_overwrite_arg(p)
     add_verbose_arg(p)
+    add_overwrite_arg(p)
 
     return p
 

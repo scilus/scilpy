@@ -3,11 +3,14 @@
 
 """
 Script to sample SF values from a Spherical Harmonics signal. Outputs a Nifti
-file with the SF values and an associated .bvec file with the chosen directions.
+file with the SF values and an associated .bvec file with the chosen
+directions.
 
 If converting from SH to a DWI-like SF volume, --in_bval and --in_b0 need
 to be provided to concatenate the b0 image to the SF, and to generate the new
 bvals file. Otherwise, no .bval file will be created.
+
+Formerly: scil_compute_sf_from_sh.py
 """
 
 import argparse
@@ -21,7 +24,7 @@ from dipy.io import read_bvals_bvecs
 
 from scilpy.io.utils import (add_force_b0_arg, add_overwrite_arg,
                              add_processes_arg, add_sh_basis_args,
-                             assert_inputs_exist,
+                             assert_inputs_exist, add_verbose_arg,
                              assert_outputs_exist, validate_nbr_processes)
 from scilpy.reconst.sh import convert_sh_to_sf
 from scilpy.gradients.bvec_bval_tools import (check_b0_threshold)
@@ -42,7 +45,8 @@ def _build_arg_parser():
                             choices=sorted(SPHERE_FILES.keys()),
                             help='Sphere used for the SH to SF projection. ')
     directions.add_argument('--in_bvec',
-                            help="Directions used for the SH to SF projection.")
+                            help="Directions used for the SH to SF "
+                            "projection.")
 
     p.add_argument('--dtype', default="float32",
                    choices=["float32", "float64"],
@@ -71,9 +75,9 @@ def _build_arg_parser():
                         "coefficients.")
 
     add_processes_arg(p)
-
-    add_overwrite_arg(p)
+    add_verbose_arg(p)
     add_force_b0_arg(p)
+    add_overwrite_arg(p)
 
     return p
 

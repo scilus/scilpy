@@ -1,4 +1,11 @@
 pipeline {
+    options {
+        disableConcurrentBuilds(abortPrevious: true)
+        throttleJobProperty(categories: ['ci_all_builds'],
+                            throttleEnabled: true,
+                            throttleOption: 'category')
+    }
+
     agent any
 
     stages {
@@ -24,15 +31,22 @@ pipeline {
             steps {
                 withPythonEnv('CPython-3.10') {
                     sh '''
+                        pip3 install pytest-cov pytest-html
                         pip3 install wheel==0.38.*
                         pip3 install numpy==1.23.*
                         pip3 install packaging==23.*
                         pip3 install -e .
                         export MPLBACKEND="agg"
                         export OPENBLAS_NUM_THREADS=1
-                        pytest -v
+                        pytest --cov-report term-missing:skip-covered
                     '''
                 }
+                discoverGitReferenceBuild()
+                recordCoverage(
+                    name: 'Scilpy Coverage Report',
+                    sourceCodeRetention: 'MODIFIED',
+                    tools: [[parser: 'COBERTURA',
+                    pattern: '**/.test_reports/coverage.xml']])
             }
         }
 
@@ -56,6 +70,13 @@ pipeline {
                         pullRequest.createReviewRequests(['frheault'])
                     }
                 }
+                xunit(
+                    checksName: '',
+                    tools: [JUnit(excludesPattern: '', failIfNotNew: false,
+                            pattern: '**/.test_reports/junit.xml',
+                            skipNoTestFiles: true,
+                            stopProcessingIfError: true)]
+                )
             }
         }
         failure {

@@ -7,6 +7,8 @@ Flip streamlines locally around specific axes.
 IMPORTANT: this script should only be used in case of absolute necessity.
 It's better to fix the real tools than to force flipping streamlines to
 have them fit in the tools.
+
+Formerly: scil_flip_streamlines.py
 """
 
 import argparse
@@ -15,6 +17,7 @@ from dipy.io.streamline import save_tractogram
 
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_reference_arg,
+                             add_verbose_arg,
                              add_overwrite_arg,
                              assert_inputs_exist,
                              assert_outputs_exist)
@@ -36,7 +39,9 @@ def _build_arg_parser():
                         'and y axes use: x y.')
 
     add_reference_arg(p)
+    add_verbose_arg(p)
     add_overwrite_arg(p)
+    
     return p
 
 

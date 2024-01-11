@@ -2,10 +2,15 @@
 # -*- coding: utf-8 -*-
 
 """
-Script to convert a surface (FreeSurfer or VTK supported).
+Script to convert surface formats
+
+Supported formats:
     ".vtk", ".vtp", ".ply", ".stl", ".xml", ".obj"
+    and FreeSurfer surfaces
 
 > scil_surface_convert.py surf.vtk converted_surf.ply
+
+Formerly: scil_convert_surface.py
 """
 import argparse
 import os
@@ -18,6 +23,7 @@ from scilpy.surfaces.utils import (convert_freesurfer_into_polydata,
                                    flip_LPS)
 
 from scilpy.io.utils import (add_overwrite_arg,
+                             add_verbose_arg,
                              assert_inputs_exist,
                              assert_outputs_exist)
 
@@ -36,7 +42,7 @@ def _build_arg_parser():
                    help='Input a surface (FreeSurfer or supported by VTK).')
 
     p.add_argument('out_surface',
-                   help='Output flipped surface (formats supported by VTK).')
+                   help='Output surface (formats supported by VTK).')
 
     p.add_argument('--xform',
                    help='Path of the copy-paste output from mri_info \n'
@@ -46,6 +52,7 @@ def _build_arg_parser():
     p.add_argument('--to_lps', action='store_true',
                    help='Flip for Surface/MI-Brain LPS')
 
+    add_verbose_arg(p)
     add_overwrite_arg(p)
 
     return p

@@ -13,6 +13,8 @@ will be output.
 
 See [Descoteaux et al MRM 2007, Aganj et al MRM 2009] for details and
 [Cote et al MEDIA 2013] for quantitative comparisons.
+
+Formerly: scil_compute_qball_metrics.py
 """
 import argparse
 import logging
@@ -29,9 +31,10 @@ from dipy.reconst.shm import QballModel, CsaOdfModel, anisotropic_power
 from scilpy.io.utils import (add_overwrite_arg, add_processes_arg,
                              add_sh_basis_args, assert_inputs_exist,
                              assert_outputs_exist, add_force_b0_arg,
-                             validate_nbr_processes)
+                             validate_nbr_processes, add_verbose_arg)
 from scilpy.io.image import get_data_as_mask
-from scilpy.gradients.bvec_bval_tools import (normalize_bvecs, is_normalized_bvecs,
+from scilpy.gradients.bvec_bval_tools import (normalize_bvecs,
+                                              is_normalized_bvecs,
                                               check_b0_threshold)
 
 
@@ -82,9 +85,10 @@ def _build_arg_parser():
                    help='Output filename for the anisotropic power map'
                         '[anisotropic_power.nii.gz].')
 
-    add_force_b0_arg(p)
     add_sh_basis_args(p)
     add_processes_arg(p)
+    add_verbose_arg(p)
+    add_force_b0_arg(p)
 
     return p
 

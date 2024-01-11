@@ -9,6 +9,8 @@ bundles of a given population.
 If streamlines originate from the same tractogram (ex, to compare various
 bundle clustering techniques), streamline-wise vote is available to find the
 streamlines most often included in the bundle.
+
+Formerly: scil_perform_majority_vote.py
 """
 
 
@@ -24,6 +26,7 @@ from scipy.sparse import dok_matrix
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg,
                              add_reference_arg,
+                             add_verbose_arg,
                              assert_inputs_exist,
                              assert_outputs_exist)
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
@@ -55,6 +58,7 @@ def _build_arg_parser():
                         'as part of the \'gold standard\'. [0.5]')
 
     add_reference_arg(p)
+    add_verbose_arg(p)
     add_overwrite_arg(p)
 
     return p
