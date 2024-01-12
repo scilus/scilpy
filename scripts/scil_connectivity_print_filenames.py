@@ -15,6 +15,8 @@ scil_connectivity_print_filenames.py filtering_mask.npy
 for file in $(cat pass.txt);
     do mv ${SOMEWHERE}/${FILE} ${SOMEWHERE_ELSE}/;
 done
+
+Formerly: scil_print_connectivity_filenames.py
 """
 
 import argparse
@@ -61,7 +63,8 @@ def main():
         in_label = labels_list[pos_1]
         out_label = labels_list[pos_2]
 
-        # scil_decompose_connectivity.py only save the lower triangular files
+        # scil_tractogram_segment_bundles_for_connectivity.py only save the
+        # lower triangular files
         if out_label < in_label:
             continue
         text_file.write('{}_{}.trk\n'.format(in_label, out_label))

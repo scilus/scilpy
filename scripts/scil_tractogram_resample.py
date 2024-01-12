@@ -25,6 +25,8 @@ Example usage:
 $ scil_tractogram_resample.py input.trk 1000 output.trk \
 --point_wise_std 0.5 --spline 5 10 --keep_invalid_streamlines
 $ scil_visualize_bundles.py output.trk --local_coloring --width=0.1
+
+Formerly: scil_resample_tractogram.py
 """
 
 import argparse

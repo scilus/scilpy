@@ -3,6 +3,8 @@
 
 """
 Shuffle the ordering of streamlines.
+
+Formerly: scil_shuffle_streamlines.py
 """
 
 import argparse

@@ -17,6 +17,8 @@ to the highest eigenvalue at each voxel.
 It is also possible to use a file containing multiple principal directions per
 voxel, given that the amplitude of each direction is also given with the
 argument --peaks_vals.
+
+Formerly: scil_validate_and_correct_bvecs.py
 """
 
 import argparse

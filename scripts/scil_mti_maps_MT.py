@@ -52,6 +52,7 @@ The output consist in two types of images in two folders :
     --in_mtoff path/to/echo*mtoff.nii.gz --in_mton path/to/echo*mton.nii.gz
     --in_t1w path/to/echo*T1w.nii.gz
 
+Formerly: scil_compute_MT_maps.py
 """
 
 import argparse

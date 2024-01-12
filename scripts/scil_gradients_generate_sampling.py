@@ -9,6 +9,8 @@ Multi-shell gradient sampling is generated as in [1]. The bvecs are then
 flipped to maximize spread for eddy current correction, b0s are interleaved at
 equal spacing and the non-b0 samples are finally shuffled to minimize the total
 diffusion gradient amplitude over a few TR.
+
+Formerly: scil_generate_gradient_sampling.py
 """
 
 import argparse
@@ -157,9 +159,9 @@ def main():
     if add_at_least_a_b0:
         bvals.append(args.b0_value)
         bvecs, shell_idx, nb_b0s = add_b0s_to_bvecs(bvecs, shell_idx,
-                                                     start_b0=b0_start,
-                                                     b0_every=args.b0_every,
-                                                     finish_b0=args.b0_end)
+                                                    start_b0=b0_start,
+                                                    b0_every=args.b0_every,
+                                                    finish_b0=args.b0_end)
         logging.info('   Interleaved {} b0s'.format(nb_b0s))
     else:
         logging.info("   Careful! No b0 added!")

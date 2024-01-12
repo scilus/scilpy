@@ -15,6 +15,8 @@ The metadata need to be uniform across all participants/sessions/runs
 
 Mandatory entity: IntendedFor
 Sensitive entities: PhaseEncodingDirection, TotalReadoutTime, direction
+
+Formerly: scil_validate_bids.py
 """
 
 import os
