@@ -10,7 +10,9 @@ streamlines start/end in the cortex).
 
 Note: If the streamlines are not ordered the head/tail are random and not
 really two coherent groups. Use the following script to order streamlines:
-scil_uniformize_streamlines_endpoints.py
+scil_tractogram_uniformize_endpoints.py
+
+Formerly: scil_compute_endpoints_map.py
 """
 
 import argparse
@@ -23,6 +25,7 @@ import numpy as np
 
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_json_args,
+                             add_verbose_arg,
                              add_overwrite_arg,
                              add_reference_arg,
                              assert_inputs_exist,
@@ -53,6 +56,7 @@ def _build_arg_parser():
 
     add_json_args(p)
     add_reference_arg(p)
+    add_verbose_arg(p)
     add_overwrite_arg(p)
 
     return p

@@ -4,6 +4,8 @@
 """
 Prepare a typical command for topup and create the necessary files.
 The reversed b0 must be in a different file.
+
+Formerly: scil_prepare_topup_command.py
 """
 
 import argparse
@@ -64,8 +66,8 @@ def _build_arg_parser():
                         'Add these options using quotes (i.e. "--fwhm=6'
                         ' --miter=4").')
 
-    add_overwrite_arg(p)
     add_verbose_arg(p)
+    add_overwrite_arg(p)
 
     return p
 

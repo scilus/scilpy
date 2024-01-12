@@ -11,6 +11,8 @@ SH of maximum order 8).
 
 Using 12 threads, the execution takes approximately 30 minutes for a brain with
 1mm isotropic resolution.
+
+Formerly: scil_fit_bingham_to_fodf.py
 """
 
 import nibabel as nib
@@ -70,9 +72,10 @@ def _build_arg_parser():
                    help='Optional mask file. Only SH inside'
                         ' the mask are fitted.')
 
-    add_overwrite_arg(p)
     add_verbose_arg(p)
     add_processes_arg(p)
+    add_overwrite_arg(p)
+
     return p
 
 

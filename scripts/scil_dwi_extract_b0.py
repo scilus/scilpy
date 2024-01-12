@@ -5,6 +5,8 @@
 Extract B0s from DWI, based on the bval and bvec information.
 
 The default behavior is to save the first b0 of the series.
+
+Formerly: scil_extract_b0.py
 """
 
 import argparse
@@ -19,7 +21,7 @@ import numpy as np
 
 from scilpy.dwi.utils import extract_b0
 from scilpy.io.utils import (assert_inputs_exist, add_force_b0_arg,
-                             add_verbose_arg)
+                             add_verbose_arg, add_overwrite_arg)
 from scilpy.gradients.bvec_bval_tools import (check_b0_threshold,
                                               B0ExtractionStrategy)
 from scilpy.utils.filenames import split_name_with_nii
@@ -65,8 +67,9 @@ def _build_arg_parser():
                         'outputs a single image instead of a numbered series '
                         'of images.')
 
-    add_force_b0_arg(p)
     add_verbose_arg(p)
+    add_force_b0_arg(p)
+    add_overwrite_arg(p)
 
     return p
 

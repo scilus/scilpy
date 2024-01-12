@@ -38,6 +38,8 @@ order to fix the missing information in the header of the trk.
 WARNING: This script is still experimental, DSI-Studio and Startrack
 evolve quickly and results may vary depending on the data itself
 as well as DSI-studio/Startrack version.
+
+Formerly: scil_fix_dsi_studio_trk.py
 """
 
 import argparse
@@ -55,6 +57,7 @@ import numpy as np
 
 from scilpy.image.volume_operations import crop_data_with_default_cube
 from scilpy.io.utils import (add_bbox_arg,
+                             add_verbose_arg,
                              add_overwrite_arg,
                              assert_inputs_exist,
                              assert_outputs_exist)
@@ -114,6 +117,7 @@ def _build_arg_parser():
                     help='Reference anatomy (.nii or .nii.gz).')
 
     add_bbox_arg(p)
+    add_verbose_arg(p)
     add_overwrite_arg(p)
 
     return p

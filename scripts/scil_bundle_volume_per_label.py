@@ -6,12 +6,14 @@ Compute bundle volume per label in mm3. This script supports anisotropic voxels
 resolution. Volume is estimated by counting the number of voxel occupied by
 each label and multiplying it by the volume of a single voxel.
 
-The labels can be obtained by scil_bundle_compute_voxel_label_map.py
+The labels can be obtained by scil_bundle_label_map.py.
 
 This estimation is typically performed at resolution around 1mm3.
 
 To get the volume and other measures directly from the (whole) bundle, use
 scil_bundle_shape_measures.py.
+
+Formerly: scil_compute_bundle_volume_per_label.py
 """
 
 import argparse
@@ -22,6 +24,7 @@ import numpy as np
 
 from scilpy.image.labels import get_data_as_labels
 from scilpy.io.utils import (add_json_args,
+                             add_verbose_arg,
                              add_overwrite_arg,
                              assert_inputs_exist)
 
@@ -36,6 +39,7 @@ def _build_arg_parser():
                    help='Bundle name.')
 
     add_json_args(p)
+    add_verbose_arg(p)
     add_overwrite_arg(p)
 
     return p

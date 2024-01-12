@@ -17,6 +17,8 @@ Each RISH feature will be saved as a separate file.
 [1] Mirzaalian, Hengameh, et al. "Harmonizing diffusion MRI data across
 multiple sites and scanners." MICCAI 2015.
 https://scholar.harvard.edu/files/hengameh/files/miccai2015.pdf
+
+Formerly: scil_compute_rish_from_sh.py
 """
 import argparse
 
@@ -26,7 +28,7 @@ import numpy as np
 
 from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
-                             assert_outputs_exist)
+                             assert_outputs_exist, add_verbose_arg)
 from scilpy.reconst.sh import compute_rish
 
 
@@ -43,6 +45,7 @@ def _build_arg_parser():
                    help='Path to a binary mask.\nOnly data inside the mask '
                         'will be used for computation.')
 
+    add_verbose_arg(p)
     add_overwrite_arg(p)
 
     return p

@@ -28,6 +28,7 @@ import numpy as np
 from scilpy.io.image import assert_same_resolution
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg,
+                             add_verbose_arg,
                              assert_inputs_exist,
                              assert_output_dirs_exist_and_empty,
                              add_reference_arg,
@@ -65,8 +66,11 @@ def _build_arg_parser():
                    help='Project metrics from whole streamlines coverage.')
     p.add_argument('--to_wm', action='store_true',
                    help='Project metrics into streamlines coverage.')
+
     add_reference_arg(p)
+    add_verbose_arg(p)
     add_overwrite_arg(p)
+
     return p
 
 

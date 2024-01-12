@@ -12,6 +12,8 @@ overwrite them based on the input order.
     >>> scil_labels_combine.py slf_labels.nii.gz
             --volume_ids a2009s_aseg.nii.gz all
             --volume_ids clean/s1__DKT.nii.gz 1028 2028
+
+Formerly: scil_combine_labels.py.
 """
 
 
@@ -23,7 +25,7 @@ import numpy as np
 
 from scilpy.image.labels import get_data_as_labels, combine_labels
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
-                             assert_outputs_exist)
+                             add_verbose_arg, assert_outputs_exist)
 
 
 EPILOG = """
@@ -64,7 +66,10 @@ def _build_arg_parser():
     p.add_argument('--merge_groups', action='store_true',
                    help='Each group from the --volume_ids option will be '
                         'merged as a single labels.')
+    
+    add_verbose_arg(p)
     add_overwrite_arg(p)
+    
     return p
 
 

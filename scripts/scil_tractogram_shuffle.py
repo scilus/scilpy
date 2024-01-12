@@ -3,6 +3,8 @@
 
 """
 Shuffle the ordering of streamlines.
+
+Formerly: scil_shuffle_streamlines.py
 """
 
 import argparse
@@ -11,7 +13,7 @@ from dipy.io.streamline import save_tractogram
 
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg, add_reference_arg,
-                             assert_inputs_exist,
+                             assert_inputs_exist, add_verbose_arg,
                              assert_outputs_exist)
 from scilpy.tractograms.tractogram_operations import shuffle_streamlines
 
@@ -27,7 +29,9 @@ def _build_arg_parser():
                    help='Output tractography file.')
     p.add_argument('--seed', type=int, default=None,
                    help='Random number generator seed [%(default)s].')
+
     add_reference_arg(p)
+    add_verbose_arg(p)
     add_overwrite_arg(p)
 
     return p

@@ -3,6 +3,8 @@
 
 """
 Transform bvecs using an affine/rigid transformation.
+
+Formerly: scil_apply_transform_to_bvecs.py.
 """
 
 import argparse
@@ -11,7 +13,8 @@ from dipy.io.gradients import read_bvals_bvecs
 import numpy as np
 
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
-                             assert_outputs_exist, load_matrix_in_any_format)
+                             assert_outputs_exist, add_verbose_arg,
+                             load_matrix_in_any_format)
 
 
 def _build_arg_parser():
@@ -29,6 +32,7 @@ def _build_arg_parser():
     p.add_argument('--inverse', action='store_true',
                    help='Apply the inverse transformation.')
 
+    add_verbose_arg(p)
     add_overwrite_arg(p)
 
     return p

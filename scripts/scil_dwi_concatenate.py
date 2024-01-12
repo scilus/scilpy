@@ -4,6 +4,8 @@
 """
 Concatenate DWI, bval and bvecs together. File must be specified in matching
 order. Default data type will be the same as the first input DWI.
+
+Formerly: scil_concatenate_dwi.py
 """
 
 import argparse
@@ -14,6 +16,7 @@ import nibabel as nib
 import numpy as np
 
 from scilpy.io.utils import (add_overwrite_arg,
+                             add_verbose_arg,
                              assert_inputs_exist,
                              assert_outputs_exist)
 
@@ -41,6 +44,7 @@ def _build_arg_parser():
                    help='Data type of the output image. Use the format: '
                         'uint8, int16, int/float32, int/float64.')
 
+    add_verbose_arg(p)
     add_overwrite_arg(p)
 
     return p

@@ -6,6 +6,8 @@ Compress tractogram by removing collinear (or almost) points.
 
 The compression threshold represents the maximum distance (in mm) to the
 original position of the point.
+
+Formerly: scil_compress_streamlines.py
 """
 
 import argparse
@@ -18,6 +20,7 @@ import numpy as np
 
 from scilpy.io.streamlines import check_tracts_same_format
 from scilpy.io.utils import (add_overwrite_arg,
+                             add_verbose_arg,
                              assert_inputs_exist,
                              assert_outputs_exist)
 
@@ -32,6 +35,8 @@ def _build_arg_parser():
 
     p.add_argument('-e', dest='error_rate', type=float, default=0.1,
                    help='Maximum compression distance in mm [%(default)s].')
+
+    add_verbose_arg(p)
     add_overwrite_arg(p)
 
     return p

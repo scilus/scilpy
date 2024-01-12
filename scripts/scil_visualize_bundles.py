@@ -32,7 +32,9 @@ import random
 from dipy.tracking.streamline import set_number_of_points
 from fury import window, actor, colormap
 
-from scilpy.io.utils import assert_inputs_exist, parser_color_type
+from scilpy.io.utils import (assert_inputs_exist,
+                             add_verbose_arg,
+                             parser_color_type)
 
 
 streamline_actor = {'tube': actor.streamtube,
@@ -85,6 +87,9 @@ def _build_arg_parser():
                    default=[0, 0, 0], type=parser_color_type,
                    help='RBG values [0, 255] of the color of the background.'
                    '\n[Default: %(default)s]')
+    
+    add_verbose_arg(p)
+    
     return p
 
 

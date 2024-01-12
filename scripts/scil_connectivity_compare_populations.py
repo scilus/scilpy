@@ -16,6 +16,8 @@ control group and you want to investiguate differences in their connectomes:
 --filtering_mask will simply multiply the binary mask to all input
 matrices before performing the statistical comparison. Reduces the number of
 statistical tests, useful when using --fdr or --bonferroni.
+
+Formerly: scil_compare_connectivity.py
 """
 
 import argparse
@@ -60,8 +62,8 @@ def _build_arg_parser():
                         'right: mean of g2 < mean of g1,\n'
                         'both: both means are not equal (default).')
     p.add_argument('--paired', action='store_true',
-                   help='Use paired sample t-test instead of population t-test.\n'
-                        '--in_g1 and --in_g2 must be ordered the same way.')
+                   help='Use paired sample t-test instead of population t-test'
+                        '.\n--in_g1 and --in_g2 must be ordered the same way.')
 
     fwe = p.add_mutually_exclusive_group()
     fwe.add_argument('--fdr', action='store_true',

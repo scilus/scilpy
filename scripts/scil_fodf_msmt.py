@@ -15,6 +15,8 @@ will be output.
 Based on B. Jeurissen et al., Multi-tissue constrained spherical
 deconvolution for improved analysis of multi-shell diffusion
 MRI data. Neuroimage (2014)
+
+Formerly: scil_compute_msmt_fodf.py
 """
 
 import argparse
@@ -64,12 +66,16 @@ def _build_arg_parser():
         '--mask', metavar='',
         help='Path to a binary mask. Only the data inside the '
              'mask will be used for computations and reconstruction.')
+    p.add_argument(
+        '--tolerance', type=int, default=20,
+        help='The tolerated gap between the b-values to '
+             'extract and the current b-value. [%(default)s]')
 
     add_force_b0_arg(p)
     add_sh_basis_args(p)
     add_processes_arg(p)
-    add_overwrite_arg(p)
     add_verbose_arg(p)
+    add_overwrite_arg(p)
 
     p.add_argument(
         '--not_all', action='store_true',
@@ -136,6 +142,7 @@ def main():
         if mask.shape != data.shape[:-1]:
             raise ValueError("Mask is not the same shape as data.")
 
+    tol = args.tolerance
     sh_order = args.sh_order
 
     # Checking data and sh_order
@@ -165,9 +172,10 @@ def main():
     if not csf_frf.shape[1] == 4:
         raise ValueError('CSF frf file did not contain 4 elements. '
                          'Invalid or deprecated FRF format')
-    ubvals = unique_bvals_tolerance(bvals, tol=20)
+    ubvals = unique_bvals_tolerance(bvals, tol=tol)
     msmt_response = multi_shell_fiber_response(sh_order, ubvals,
-                                               wm_frf, gm_frf, csf_frf)
+                                               wm_frf, gm_frf, csf_frf,
+                                               tol=tol)
 
     # Loading spheres
     reg_sphere = get_sphere('symmetric362')

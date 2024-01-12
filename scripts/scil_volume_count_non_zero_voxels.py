@@ -8,6 +8,8 @@ If you give it an image with more than 3 dimensions, it will summarize the 4th
 (or more) dimension to one voxel, and then find non-zero voxels over this.
 This means that if there is at least one non-zero voxel in the 4th dimension,
 this voxel of the 3D volume will be considered as non-zero.
+
+Formerly: scil_count_non_zero_voxels.py
 """
 
 import argparse
@@ -17,7 +19,7 @@ import nibabel as nib
 import numpy as np
 
 from scilpy.image.volume_operations import count_non_zero_voxels
-from scilpy.io.utils import assert_inputs_exist
+from scilpy.io.utils import assert_inputs_exist, add_verbose_arg
 
 
 def _build_arg_parser():
@@ -40,6 +42,9 @@ def _build_arg_parser():
         help='Id of the current count. If used, the value of this argument '
              'will be\noutput (followed by a ":") before the count value.\n'
              'Mostly useful with --stats.')
+
+    add_verbose_arg(p)
+
     return p
 
 
