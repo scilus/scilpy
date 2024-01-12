@@ -71,6 +71,11 @@ def add_tracking_options(p):
                          type=float, default=0.1,
                          help='Spherical function relative threshold. '
                               '[%(default)s]')
+    track_g.add_argument('--sh_to_pmf', dest='sh_to_pmf',
+                         type=bool, default=False,
+                         help='If true, map sherical harmonics to spherical '
+                              'function (pmf) before tracking (faster, '
+                              'requires more memory) [%(default)s]')
     add_sh_basis_args(track_g)
 
     return track_g
@@ -247,9 +252,8 @@ def save_tractogram(
     nib.streamlines.save(tractogram, out_tractogram, header=header)
 
 
-def get_direction_getter(
-    in_img, algo, sphere, sub_sphere, theta, sh_basis, voxel_size, sf_threshold
-):
+def get_direction_getter(in_img, algo, sphere, sub_sphere, theta, sh_basis,
+                         voxel_size, sf_threshold, sh_to_pmf):
     """ Return the direction getter object.
 
     Parameters
@@ -270,6 +274,9 @@ def get_direction_getter(
         Voxel size of the input data.
     sf_threshold: float
         Spherical function-amplitude threshold for tracking.
+    sh_to_pmf: bool
+        Map sherical harmonics to spherical function (pmf) before tracking
+        (faster, requires more memory).
 
     Return
     ------
@@ -310,7 +317,7 @@ def get_direction_getter(
             dg_class = ProbabilisticDirectionGetter
         return dg_class.from_shcoeff(
             shcoeff=img_data, max_angle=theta, sphere=sphere,
-            basis_type=sh_basis,
+            basis_type=sh_basis, sh_to_pmf=sh_to_pmf,
             relative_peak_threshold=sf_threshold, **kwargs)
     elif algo == 'eudx':
         # Code for algo EUDX. We don't use peaks_from_model
