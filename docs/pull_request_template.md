@@ -1,6 +1,6 @@
 # Quick description
 
-Please include a summary of the changes and the related issue or the improvement. 
+Please include a summary of the changes and the related issue(s) or improvement(s).
 Please also include relevant motivation and context. List any dependencies that are required for this change if needed.
 
 ...
@@ -20,7 +20,8 @@ Please delete options that are not relevant.
 
 # Checklist:
 
-- [ ] My code follows the style guidelines of this project (mostly pep8 compliant)
+- [ ] My code follows the style guidelines of this project (run [autopep8](https://pypi.org/project/autopep8/))
+- [ ] I added relevant citations to scripts, modules and functions docstrings and descriptions
 - [ ] I have performed a self-review of my code
 - [ ] I have commented my code, particularly in hard-to-understand areas
 - [ ] I have made corresponding changes to the documentation
