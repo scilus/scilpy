@@ -167,11 +167,11 @@ def prepare_filtering_list(parser, args):
             else:
                 roi_opt_list.append(roi_opt.strip().split())
 
-    if (len(roi_opt_list[-1]) < 4 or len(roi_opt_list) > 5) and \
+    if (len(roi_opt_list[-1]) < 4 or len(roi_opt_list[-1]) > 5) and \
             roi_opt_list[-1][0] != 'atlas_roi':
         logging.error("Please specify 3 or 4 values "
                       "for {} filtering.".format(roi_opt_list[-1][0]))
-    elif (len(roi_opt_list[-1]) < 5 or len(roi_opt_list) > 6) and \
+    elif (len(roi_opt_list[-1]) < 5 or len(roi_opt_list[-1]) > 6) and \
             roi_opt_list[-1][0] == 'atlas_roi':
         logging.error("Please specify 4 or 5 values"
                       " for {} filtering.".format(roi_opt_list[-1][0]))
