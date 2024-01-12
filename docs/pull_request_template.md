@@ -7,18 +7,18 @@ Please also include relevant motivation and context. List any dependencies that 
 
 ## Type of change
 
-Please delete options that are not relevant.
+Check the relevant options.
 
 - [ ] Bug fix (non-breaking change which fixes an issue)
 - [ ] New feature (non-breaking change which adds functionality)
 - [ ] Breaking change (fix or feature that would cause existing functionality to not work as expected)
 - [ ] This change requires a documentation update
 
-## Provide data and command line to test
+## Provide data, screenshots, command line to test (if relevant)
 
 ...
 
-# Checklist:
+# Checklist
 
 - [ ] My code follows the style guidelines of this project (run [autopep8](https://pypi.org/project/autopep8/))
 - [ ] I added relevant citations to scripts, modules and functions docstrings and descriptions
