@@ -212,7 +212,8 @@ def test_cut_up_cube_with_known_output():
                                     [0,  0,  0]]])
 
     # Asserting that the output shape matches the expected shape
-    assert result.shape == expected_shape, f"Expected shape {expected_shape}, got {result.shape}"
+    assert result.shape == expected_shape, \
+        f"Expected shape {expected_shape}, got {result.shape}"
 
     # Asserting that the first block matches the expected first block
     assert_array_equal(result[0, 0, 0, :, :, :], expected_first_block)
@@ -422,6 +423,7 @@ def test_subtraction():
     img2 = nib.Nifti1Image(img_data_2, affine)
     expected_output = img_data_1 - img_data_2
     output_data = subtraction([img1, img2], img1)
+    assert_array_almost_equal(output_data, expected_output)
 
 
 def test_multiplication():
