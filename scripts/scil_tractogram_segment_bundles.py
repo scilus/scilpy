@@ -8,8 +8,8 @@ Transform should come from ANTs: (using the --inverse flag)
 AntsRegistrationSyNQuick.sh -d 3 -m MODEL_REF -f SUBJ_REF
 
 If you are not sure about the transformation 'direction' you can try
-scil_recognize_single_bundle.py (with the -v option), a warning will popup if
-the provided transformation is not used correctly.
+scil_tractogram_segment_bundles.py (with the -v option), a warning will popup
+if the provided transformation is not used correctly.
 
 The number of folders inside 'models_directories' will increase the number of
 runs. Each folder is considered like an atlas and bundles inside will initiate
@@ -25,6 +25,8 @@ For RAM usage, it is recommanded to use this heuristic:
     (size of inputs tractogram (GB) * number of processes) < RAM (GB)
 This is important because many instances of data structures are initialized
 in parallel and can lead to a RAM overflow.
+
+Formerly: scil_recognize_multi_bundles.py
 """
 
 import argparse
@@ -96,7 +98,8 @@ def main():
     args = parser.parse_args()
     args.in_models_directories = [os.path.join(args.in_directory, x)
                                   for x in os.listdir(args.in_directory)
-                                  if os.path.isdir(os.path.join(args.in_directory, x))]
+                                  if os.path.isdir(os.path.join(
+                                                    args.in_directory, x))]
 
     assert_inputs_exist(parser, args.in_tractograms +
                         [args.in_config_file,
@@ -115,8 +118,9 @@ def main():
 
     file_handler = logging.FileHandler(filename=os.path.join(args.out_dir,
                                                              'logfile.txt'))
-    formatter = logging.Formatter(fmt='%(asctime)s, %(name)s %(levelname)s %(message)s',
-                                  datefmt='%H:%M:%S')
+    formatter = logging.Formatter(
+        fmt='%(asctime)s, %(name)s %(levelname)s %(message)s',
+        datefmt='%H:%M:%S')
     file_handler.setFormatter(formatter)
     logging.getLogger().setLevel(args.log_level)
     logging.getLogger().addHandler(file_handler)

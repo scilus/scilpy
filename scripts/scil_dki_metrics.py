@@ -9,9 +9,9 @@ to be multi-shell, i.e. multi-bvalued.
 Since the diffusion kurtosis model involves the estimation of a large number
 of parameters and since the non-Gaussian components of the diffusion signal
 are more sensitive to artefacts, you should really denoise your DWI volume
-before using this DKI script (e.g. scil_run_nlmeans.py). Moreover, to remove
-biases due to fiber dispersion, fiber crossings and other mesoscopic properties
-of the underlying tissue, MSDKI does a powder-average of DWI for all
+before using this DKI script (e.g. scil_denoising_nlmeans.py). Moreover, to
+remove biases due to fiber dispersion, fiber crossings and other mesoscopic
+properties of the underlying tissue, MSDKI does a powder-average of DWI for all
 directions, thus removing the orientational dependencies and creating an
 alternative mean kurtosis map.
 
@@ -38,6 +38,8 @@ This script directly comes from the DIPY example gallery and references
 therein.
 [1] examples_built/reconst_dki/#example-reconst-dki
 [2] examples_built/reconst_msdki/#example-reconst-msdki
+
+Formerly: scil_compute_kurtosis_metrics.py
 """
 
 import argparse
@@ -58,7 +60,8 @@ from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              assert_outputs_exist, add_force_b0_arg,
                              add_verbose_arg)
-from scilpy.gradients.bvec_bval_tools import (normalize_bvecs, is_normalized_bvecs,
+from scilpy.gradients.bvec_bval_tools import (normalize_bvecs,
+                                              is_normalized_bvecs,
                                               check_b0_threshold,
                                               identify_shells)
 

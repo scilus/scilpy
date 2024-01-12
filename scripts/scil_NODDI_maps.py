@@ -4,6 +4,8 @@
 """
 Compute NODDI [1] maps using AMICO.
 Multi-shell DWI necessary.
+
+Formerly: scil_compute_NODDI.py
 """
 
 import argparse

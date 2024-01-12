@@ -4,6 +4,8 @@
 """
 Compute the mean Fiber Response Function from a set of individually
 computed Response Functions.
+
+Formerly: scil_compute_mean_frf.py
 """
 
 import argparse

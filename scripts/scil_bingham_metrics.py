@@ -15,6 +15,8 @@ FF is the ratio of its FD on the total FD in the voxel.
 
 Using 12 threads, the execution takes 10 minutes for FD estimation for a brain
 with 1mm isotropic resolution. Other metrics take less than a second.
+
+Formerly: scil_compute_lobe_specific_fodf_metrics.py
 """
 
 import nibabel as nib
