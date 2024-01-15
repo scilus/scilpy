@@ -13,17 +13,15 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_merge_json.py', '--help')
+    ret = script_runner.run('scil_json_convert_entries_to_xlsx.py', '--help')
     assert ret.success
 
 
 def test_execution_tractometry(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    in_json_1 = os.path.join(get_home(), 'tractometry',
+    in_json = os.path.join(get_home(), 'tractometry',
                            'length_stats_1.json')
-    in_json_2 = os.path.join(get_home(), 'tractometry',
-                           'length_stats_2.json')
-    ret = script_runner.run('scil_merge_json.py', in_json_1,
-                            in_json_2, 'merge.json', '--keep_separate')
+    ret = script_runner.run('scil_json_convert_entries_to_xlsx.py', in_json,
+                            'length_stats.xlsx')
 
     assert ret.success

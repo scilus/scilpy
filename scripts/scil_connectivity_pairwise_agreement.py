@@ -6,6 +6,8 @@ Evaluate pair-wise similarity measures of connectivity matrix.
 
 The computed similarity measures are:
 sum of square difference and pearson correlation coefficent
+
+Formerly: scil_evaluate_connectivity_pairwaise_agreement_measures.py
 """
 
 import argparse

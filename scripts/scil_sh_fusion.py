@@ -10,6 +10,8 @@ Can be used to merge fODFs computed from different shells into 1, while
 conserving the most relevant information.
 
 Based on [1] and [2].
+
+Formerly: scil_merge_sh.py
 """
 
 import argparse
