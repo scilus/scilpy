@@ -74,9 +74,10 @@ def _build_arg_parser():
                    help='Name of the data_per_point for operation to be '
                         'performed on. (Default: %(default)s)')
 
-    p.add_argument('--output_dpp_name', default='metric_math',
-                   help='Name of the resulting data_per_point to be saved \n'
-                   'in the output tractogram. (Default: %(default)s)')
+    p.add_argument('--output_name', default='metric_math',
+                   help='Name of the resulting data_per_point or '
+                   'data_per_streamline to be saved in the output '
+                   'tractogram. (Default: %(default)s)')
 
     add_reference_arg(p)
     add_verbose_arg(p)
@@ -134,7 +135,7 @@ def main():
                                          sft.space_attributes,
                                          sft.space, sft.origin,
                                          data_per_streamline={
-                                             args.output_dpp_name:
+                                             args.output_name:
                                              new_dps})
         else:
             # Results in new data per point
@@ -149,7 +150,7 @@ def main():
                                          sft.space_attributes,
                                          sft.space, sft.origin,
                                          data_per_point={
-                                             args.output_dpp_name:
+                                             args.output_name:
                                              new_dpp})
     else:
         # Results in new data per streamline
@@ -162,7 +163,7 @@ def main():
         new_sft = StatefulTractogram(sft.streamlines, sft.space_attributes,
                                      sft.space, sft.origin,
                                      data_per_streamline={
-                                         args.output_dpp_name:
+                                         args.output_name:
                                          new_data_per_streamline})
 
     if len(new_sft) == 0 and not args.save_empty:
