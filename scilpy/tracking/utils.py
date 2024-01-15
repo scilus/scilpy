@@ -71,11 +71,10 @@ def add_tracking_options(p):
                          type=float, default=0.1,
                          help='Spherical function relative threshold. '
                               '[%(default)s]')
-    track_g.add_argument('--sh_to_pmf', dest='sh_to_pmf',
-                         type=bool, default=False,
-                         help='If true, map sherical harmonics to spherical '
+    track_g.add_argument('--sh_to_pmf', action='store_true',
+                         help='If set, map sherical harmonics to spherical '
                               'function (pmf) before tracking (faster, '
-                              'requires more memory) [%(default)s]')
+                              'requires more memory)')
     add_sh_basis_args(track_g)
 
     return track_g
