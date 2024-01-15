@@ -38,8 +38,7 @@ def test_asym_basis_output(script_runner, in_fodf, expected_results,
                             '--sigma_angular', '1.0',
                             '--sigma_spatial', '1.0',
                             '--sigma_range', '1.0',
-                            '--sh_basis', 'descoteaux07',
-                            '--processes', '1', '-f',
+                            '--sh_basis', 'descoteaux07', '-f',
                             print_result=True, shell=True)
 
     assert ret.success
@@ -70,8 +69,7 @@ def test_sym_basis_output(script_runner, in_fodf, expected_results, sym_fodf,
                             '--sigma_angular', '1.0',
                             '--sigma_spatial', '1.0',
                             '--sigma_range', '1.0',
-                            '--sh_basis', 'descoteaux07',
-                            '--processes', '1', '-f',
+                            '--sh_basis', 'descoteaux07', '-f',
                             print_result=True, shell=True)
 
     assert ret.success
@@ -98,8 +96,7 @@ def test_asym_input(script_runner, in_fodf, expected_results, mock_collector):
                             '--sigma_angular', '1.0',
                             '--sigma_spatial', '1.0',
                             '--sigma_range', '1.0',
-                            '--sh_basis', 'descoteaux07',
-                            '--processes', '1', '-f',
+                            '--sh_basis', 'descoteaux07', '-f',
                             print_result=True, shell=True)
 
     assert ret.success
@@ -123,8 +120,7 @@ def test_cosine_method(script_runner, in_fodf, expected_results):
                             in_fodf, 'out_fodf1.nii.gz',
                             '--sphere', 'repulsion100',
                             '--method', 'cosine',
-                            '--sh_basis', 'descoteaux07',
-                            '--processes', '1', '-f',
+                            '--sh_basis', 'descoteaux07', '-f',
                             print_result=True, shell=True)
 
     assert ret.success
