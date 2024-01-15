@@ -29,7 +29,9 @@ def test_execution_tractogram_point_math_mean_3D_defaults(script_runner):
     script_runner.run('scil_tractogram_project_map_to_streamlines.py',
                       in_bundle, in_t1, t1_on_bundle)
 
-    ret = script_runner.run('scil_tractogram_point_math.py', 'mean', t1_on_bundle,
+    ret = script_runner.run('scil_tractogram_point_math.py',
+                            'mean',
+                            t1_on_bundle,
                             't1_mean_on_streamlines.trk')
 
     assert ret.success
