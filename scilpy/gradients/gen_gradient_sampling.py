@@ -30,7 +30,7 @@ def generate_gradient_sampling(nb_samples_per_shell, verbose=1):
 
     Parameters
     ----------
-    nb_samples_per_shell: list
+    nb_samples_per_shell: list[int]
         Number of samples for each shell, starting from lowest.
     verbose: int
         0 = silent, 1 = summary upon completion, 2 = print iterations
@@ -38,10 +38,10 @@ def generate_gradient_sampling(nb_samples_per_shell, verbose=1):
 
     Return
     ------
-    points: numpy.array
+    bvecs: numpy.array of shape [n, 3]
         bvecs normalized to 1.
     shell_idx: numpy.array
-        Shell index for bvecs in points.
+        Shell index for each bvec.
     """
 
     nb_shells = len(nb_samples_per_shell)
@@ -58,13 +58,13 @@ def generate_gradient_sampling(nb_samples_per_shell, verbose=1):
 
     # Where the optimized gradient sampling is computed
     # max_iter hardcoded to fit default Caruyer's value
-    points = _generate_gradient_sampling_with_weights(
+    bvecs = _generate_gradient_sampling_with_weights(
         nb_shells, nb_samples_per_shell, weights, max_iter=100,
         verbose=verbose)
 
     shell_idx = np.repeat(range(nb_shells), nb_samples_per_shell)
 
-    return points, shell_idx
+    return bvecs, shell_idx
 
 
 def _compute_weights(nb_shells, nb_points_per_shell, shell_groups, alphas):
@@ -143,9 +143,9 @@ def _generate_gradient_sampling_with_weights(
 def _multiple_shell_energy(bvecs, nb_shells, nb_points_per_shell, weights):
     """
     Objective function (cost function) for multiple-shell energy.
+
     This is the main function called during optimization, used as
-    func(x, *args) with
-    args = (nb_shells, nb_points_per_shell, weights)
+    func(x, *args) with args = (nb_shells, nb_points_per_shell, weights)
 
     Parameters
     ----------
@@ -162,7 +162,7 @@ def _multiple_shell_energy(bvecs, nb_shells, nb_points_per_shell, weights):
     Returns
     -------
     electrostatic_repulsion: float
-        sum of all interactions between any two vectors.
+        Sum of all interactions between any two vectors.
     """
     nb_points_total = np.sum(nb_points_per_shell)
     indices = np.cumsum(nb_points_per_shell).tolist()
@@ -210,9 +210,11 @@ def _electrostatic_repulsion_energy(bvecs, weight_matrix, alpha=1.0):
 def _constraint_is_bvec_on_sphere(bvecs, *args):
     """
     Spherical equality constraint. Returns 0 if bvecs lies on the unit sphere.
+
     This is used as f_eqcons(x, *args), where
     args = (nb_shells, nb_points_per_shell, weights)
-    We do not need args here, but it is sent by scipy and must be kept here.
+
+    (We do not need args here, but it is sent by scipy and must be kept here.)
 
     Parameters
     ----------
@@ -232,6 +234,7 @@ def _grad_multiple_shell_energy(bvecs, nb_shells, nb_points_per_shell,
                                 weights):
     """
     Gradient of the objective function for multiple shells sampling.
+
     This is called as fprime(x, *args) during optimization, with
     args = (nb_shells, nb_points_per_shell, weights)
 
@@ -244,13 +247,13 @@ def _grad_multiple_shell_energy(bvecs, nb_shells, nb_points_per_shell,
     nb_points_per_shell : list of ints
         Number of points per shell.
     weights : array-like, shape (S, S)
-        weighting parameter, control coupling between shells and how this
+        Weighting parameter, control coupling between shells and how this
         balances.
 
     Returns
     -------
     grad_electrostatic_repulsion: float
-        gradient of the objective function
+        Gradient of the objective function.
     """
     nb_bvecs = int(bvecs.shape[0] / 3)
     indices = np.cumsum(nb_points_per_shell).tolist()
@@ -273,7 +276,7 @@ def _grad_electrostatic_repulsion_energy(bvecs, weight_matrix, alpha=1.0):
     bvecs : array-like shape (N * 3,)
         Vectors.
     weight_matrix: array-like, shape (N, N)
-        The contribution weight of each pair of points.
+        The contribution weight of each pair of bvec.
     alpha : float
         Controls the power of the repulsion. Default is 1.0
 

@@ -46,6 +46,19 @@ def shuffle_streamlines(sft, rng_seed=None):
 
 
 def _get_axis_flip_vector(flip_axes):
+    """
+    Create a flip vector from a list of axes
+
+    Parameters
+    ----------
+    flip_axis: list
+        List of axis you want to flip
+
+    Returns
+    -------
+    shift_vector: list[3,]
+        Vector with flipped axes
+    """
     flip_vector = np.ones(3)
     if 'x' in flip_axes:
         flip_vector[0] = -1.0
@@ -217,7 +230,8 @@ def perform_tractogram_operation_on_sft(op_name, sft_list, precision,
     return new_sft, indices_per_sft
 
 
-def perform_tractogram_operation_on_lines(operation, streamlines, precision=None):
+def perform_tractogram_operation_on_lines(operation, streamlines,
+                                          precision=None):
     """Peforms an operation on a list of list of streamlines.
 
     Given a list of list of streamlines, this function applies the operation

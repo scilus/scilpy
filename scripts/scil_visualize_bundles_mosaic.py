@@ -24,6 +24,7 @@ from scilpy.io.image import get_data_as_mask
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg,
                              add_reference_arg,
+                             add_verbose_arg,
                              assert_inputs_exist,
                              assert_outputs_exist,
                              assert_output_dirs_exist_and_empty)
@@ -76,8 +77,11 @@ def _build_arg_parser():
     p.add_argument('--no_streamline_number', action='store_true',
                    help='Don\'t display bundle streamlines number '
                         '[%(default)s].')
+
     add_reference_arg(p)
+    add_verbose_arg(p)
     add_overwrite_arg(p)
+
     return p
 
 
@@ -123,7 +127,8 @@ def draw_column_with_names(draw, output_names, text_pos_x,
         # Name splited in two lines
         draw.text((i + text_pos_x, j + text_pos_y),
                   name[:name.find('_')], font=font)
-        draw.text((i + text_pos_x, j + text_pos_y + font.getsize(' ')[1]*1.5),
+        h = font.getbbox(' ')[3] - font.getbbox(' ')[1]
+        draw.text((i + text_pos_x, j + text_pos_y + h*1.5),
                   name[1+name.find('_'):], font=font)
 
     # First column, last row: description of the information to show
@@ -131,7 +136,8 @@ def draw_column_with_names(draw, output_names, text_pos_x,
     i = 0
     draw.text((i + text_pos_x, j + text_pos_y),
               ('Bundle'), font=font)
-    draw.text((i + text_pos_x, j + text_pos_y + font.getsize(' ')[1]*1.5),
+    h = font.getbbox(' ')[3] - font.getbbox(' ')[1]
+    draw.text((i + text_pos_x, j + text_pos_y + h*1.5),
               ('Elements'), font=font)
 
 
@@ -142,7 +148,8 @@ def draw_bundle_information(draw, bundle_file_name, nbr_of_elem,
         draw.text((pos_x, pos_y),
                   (bundle_file_name), font=font)
     if nbr_of_elem is not None:
-        draw.text((pos_x, pos_y + font.getsize(' ')[1]*1.5),
+        h = font.getbbox(' ')[3] - font.getbbox(' ')[1]
+        draw.text((pos_x, pos_y + h*1.5),
                   ('{}'.format(nbr_of_elem)), font=font)
 
 

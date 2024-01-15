@@ -1,10 +1,34 @@
 scilpy.reconst package
 ======================
 
-scilpy.reconst.afd\_along\_streamlines module
+scilpy.reconst.aodf module
 ---------------------------------------------
 
-.. automodule:: scilpy.reconst.afd_along_streamlines
+.. automodule:: scilpy.reconst.aodf
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+scilpy.reconst.bingham module
+---------------------------------------------
+
+.. automodule:: scilpy.reconst.bingham
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+scilpy.reconst.divide module
+---------------------------------------------
+
+.. automodule:: scilpy.reconst.divide
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+scilpy.reconst.fiber\_coherence module
+---------------------------------------------
+
+.. automodule:: scilpy.reconst.fiber_coherence
    :members:
    :undoc-members:
    :show-inheritance:
@@ -25,10 +49,18 @@ scilpy.reconst.frf module
    :undoc-members:
    :show-inheritance:
 
-scilpy.reconst.raw\_signal module
----------------------------------
+scilpy.reconst.mti module
+---------------------------------------------
 
-.. automodule:: scilpy.reconst.raw_signal
+.. automodule:: scilpy.reconst.mti
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+scilpy.reconst.sh module
+---------------------------------------------
+
+.. automodule:: scilpy.reconst.sh
    :members:
    :undoc-members:
    :show-inheritance:

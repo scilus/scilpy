@@ -10,8 +10,7 @@ from dipy.reconst.shm import sh_to_sf_matrix
 
 from scilpy.reconst.utils import (get_sphere_neighbours,
                                   get_sh_order_and_fullness)
-from scilpy.tracking.tools import sample_distribution
-from scilpy.tracking.utils import TrackingDirection
+from scilpy.tracking.utils import sample_distribution, TrackingDirection
 
 
 class PropagationStatus(Enum):
@@ -67,6 +66,8 @@ class AbstractPropagator(object):
         # By default, normalizing directions. Adding option for child classes.
         self.normalize_directions = True
 
+        self.line_rng_generator = None   # Will be reset at each new streamline.
+
     def reset_data(self, new_data=None):
         """
         Reset data before starting a new process. In current implementation,
@@ -81,7 +82,7 @@ class AbstractPropagator(object):
         """
         self.datavolume.data = new_data
 
-    def prepare_forward(self, seeding_pos):
+    def prepare_forward(self, seeding_pos, random_generator):
         """
         Prepare information necessary at the first point of the
         streamline for forward propagation: v_in and any other information
@@ -92,6 +93,7 @@ class AbstractPropagator(object):
         seeding_pos: tuple(x,y,z)
             The seeding position. Important, position must be in the same space
             and origin as self.space, self.origin!
+        random_generator: numpy Generator.
 
         Returns
         -------
@@ -100,6 +102,8 @@ class AbstractPropagator(object):
             Return PropagationStatus.ERROR if no good tracking direction can be
             set at current seeding position.
         """
+        # To be defined by child classes.
+        # Should set self.line_rng_generator = random_generator
         raise NotImplementedError
 
     def prepare_backward(self, line, forward_dir):
@@ -421,7 +425,7 @@ class ODFPropagator(PropagatorOnSphere):
             sf /= sf_max
         return sf
 
-    def prepare_forward(self, seeding_pos):
+    def prepare_forward(self, seeding_pos, random_generator):
         """
         Prepare information necessary at the first point of the
         streamline for forward propagation: v_in and any other information
@@ -437,6 +441,7 @@ class ODFPropagator(PropagatorOnSphere):
         seeding_pos: tuple(x,y,z)
             The seeding position. Important, position must be in the same space
             and origin as self.space, self.origin!
+        random_generator: numpy Generator
 
         Returns
         -------
@@ -452,9 +457,10 @@ class ODFPropagator(PropagatorOnSphere):
         # "more probable" peak.
         sf = self._get_sf(seeding_pos)
         sf[sf < self.sf_threshold_init] = 0
+        self.line_rng_generator = random_generator
 
         if np.sum(sf) > 0:
-            ind = sample_distribution(sf)
+            ind = sample_distribution(sf, self.line_rng_generator)
             return TrackingDirection(self.dirs[ind], ind)
 
         # Else: sf at current position is smaller than acceptable threshold in
@@ -485,7 +491,8 @@ class ODFPropagator(PropagatorOnSphere):
 
             # Sampling one.
             if np.sum(sf) > 0:
-                v_out = directions[sample_distribution(sf)]
+                v_out = directions[sample_distribution(sf,
+                                                       self.line_rng_generator)]
             else:
                 return None
         elif self.algo == 'det':
