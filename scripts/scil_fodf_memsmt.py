@@ -204,7 +204,7 @@ def main():
         raise ValueError('CSF frf file did not contain 4 elements. '
                          'Invalid or deprecated FRF format')
 
-    ubshapes= convert_bdelta_to_bshape(ubdeltas)
+    ubshapes = convert_bdelta_to_bshape(ubdeltas)
     memsmt_response = multi_shell_fiber_response(sh_order,
                                                  ubvals,
                                                  wm_frf, gm_frf, csf_frf,
