@@ -42,7 +42,8 @@ import nibabel as nib
 import numpy as np
 
 from scilpy.image.utils import extract_affine
-from scilpy.io.btensor import generate_btensor_input
+from scilpy.io.btensor import (generate_btensor_input,
+                               convert_bdelta_to_bshape)
 from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              assert_outputs_exist, add_sh_basis_args,
