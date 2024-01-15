@@ -19,12 +19,12 @@ def test_help_option(script_runner):
 
 def test_execution_3D_map(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    in_fa = os.path.join(get_home(), 'others', 'fa.nii.gz')
+    in_t1 = os.path.join(get_home(), 'tractometry', 'mni_masked.nii.gz')
     in_tracto_1 = os.path.join(get_home(), 'others',
                                'IFGWM_sub.trk')
 
     ret = script_runner.run('scil_tractogram_project_map_to_streamlines.py',
-                            in_tracto_1, in_fa, 'fa_on_streamlines.trk')
+                            in_tracto_1, in_t1, 't1_on_streamlines.trk')
     assert ret.success
 
 
@@ -41,12 +41,12 @@ def test_execution_4D_map(script_runner):
 
 def test_execution_3D_map_endpoints_only(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    in_fa = os.path.join(get_home(), 'others', 'fa.nii.gz')
+    in_t1 = os.path.join(get_home(), 'tractometry', 'mni_masked.nii.gz')
     in_tracto_1 = os.path.join(get_home(), 'others',
                                'IFGWM_sub.trk')
 
     ret = script_runner.run('scil_tractogram_project_map_to_streamlines.py',
-                            in_tracto_1, in_fa, 'fa_on_streamlines.trk',
+                            in_tracto_1, in_t1, 't1_on_streamlines_endpoints.trk',
                             '--endpoints_only')
     assert ret.success
 
@@ -58,30 +58,30 @@ def test_execution_4D_map_endpoints_only(script_runner):
                                'IFGWM_sub.trk')
 
     ret = script_runner.run('scil_tractogram_project_map_to_streamlines.py',
-                            in_tracto_1, in_rgb, 'rgb_on_streamlines.trk',
+                            in_tracto_1, in_rgb, 'rgb_on_streamlines_endpoints.trk',
                             '--endpoints_only')
     assert ret.success
 
 
 def test_execution_3D_map_dpp_name(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    in_fa = os.path.join(get_home(), 'others', 'fa.nii.gz')
+    in_t1 = os.path.join(get_home(), 'tractometry', 'mni_masked.nii.gz')
     in_tracto_1 = os.path.join(get_home(), 'others',
                                'IFGWM_sub.trk')
 
     ret = script_runner.run('scil_tractogram_project_map_to_streamlines.py',
-                            in_tracto_1, in_fa, 'fa_on_streamlines.trk',
-                            '--dpp_name', 'fa')
+                            in_tracto_1, in_t1, 't1_on_streamlines_dpp_name.trk',
+                            '--dpp_name', 't1')
     assert ret.success
 
 
 def test_execution_3D_map_trilinear(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    in_fa = os.path.join(get_home(), 'others', 'fa.nii.gz')
+    in_t1 = os.path.join(get_home(), 'tractometry', 'mni_masked.nii.gz')
     in_tracto_1 = os.path.join(get_home(), 'others',
                                'IFGWM_sub.trk')
 
     ret = script_runner.run('scil_tractogram_project_map_to_streamlines.py',
-                            in_tracto_1, in_fa, 'fa_on_streamlines.trk',
+                            in_tracto_1, in_t1, 't1_on_streamlines_trilinear.trk',
                             '--trilinear')
     assert ret.success
