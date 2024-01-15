@@ -27,16 +27,6 @@ pip install --upgrade pip
 
 The library's structure is mostly aligned on that of [DIPY].
 
-⚠️ Breaking changes alert - scilpy 1.6.0 ⚠️
-
-scilpy 1.6.0 is based on [hot_dipy](https://github.com/scilus/hot_dipy) a fork of dipy locked before release v1.8.0.
-In order to install the library and scripts flawlessly (we hope), please follow these instructions:
-```
-pip install packaging>=19.0
-pip install numpy==1.23.*
-pip install Cython==0.29.*
-```
-
 The library and scripts can be installed locally by using:
 ```
 pip install -e .
