@@ -82,8 +82,10 @@ def test_dilate_labels_with_mask():
     in_mask = deepcopy(ref_in_labels)
     in_mask[in_mask > 0] = 1
     out_labels = dilate_labels(in_labels, 1, 2, 1,
-                               labels_to_dilate=[1, 6], labels_not_to_dilate=[3, 4],
-                               labels_to_fill=[0, 2, 5], mask=in_mask)
+                               labels_to_dilate=[1, 6],
+                               labels_not_to_dilate=[3, 4],
+                               labels_to_fill=[0, 2, 5],
+                               mask=in_mask)
 
     exp_labels = deepcopy(ref_in_labels)
     exp_labels[exp_labels == 2] = 1
@@ -105,7 +107,7 @@ def test_dilate_labels_without_mask():
 
 def test_get_data_as_labels_int():
     data = np.zeros((2, 2, 2), dtype=np.int64)
-    img = nib.Nifti1Image(data, np.eye(4))
+    img = nib.Nifti1Image(data, np.eye(4), dtype=np.int64)
     img.set_filename('test.nii.gz')
 
     _ = get_data_as_labels(img)

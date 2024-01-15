@@ -3,6 +3,8 @@
 
 """
 Modify PFT maps to allow PFT tracking in given mask (e.g edema).
+
+Formerly: scil_add_tracking_mask_to_pft_maps.py.
 """
 
 import argparse

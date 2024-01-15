@@ -17,6 +17,8 @@ This script can be used to remove loops in two types of streamline datasets:
 Reference:
 QuickBundles based on [Garyfallidis12] Frontiers in Neuroscience, 2012.
 ----------------------------------------------------------------------------
+
+Formerly: scil_detect_streamlines_loops.py
 """
 
 import argparse

@@ -325,7 +325,7 @@ def compare_jsons(json_output, test_dir):
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_validate_bids.py', '--help')
+    ret = script_runner.run('scil_bids_validate.py', '--help')
     assert ret.success
 
 
@@ -344,7 +344,7 @@ def test_bids_epi(tmpdir, script_runner, dwi_is_complex, json_output):
         complex_dwi=dwi_is_complex)
 
     ret = script_runner.run(
-        'scil_validate_bids.py',
+        'scil_bids_validate.py',
         test_dir,
         os.path.join(test_dir, json_output),
         '-f', '-v')
@@ -371,7 +371,7 @@ def test_bids_sbref(
         complex_sbref=sbref_is_complex)
 
     ret = script_runner.run(
-        'scil_validate_bids.py',
+        'scil_bids_validate.py',
         test_dir,
         os.path.join(test_dir, json_output),
         '-f', '-v')
@@ -397,7 +397,7 @@ def test_bids_rev_dwi(
         complex_rev_dwi=rev_is_complex)
 
     ret = script_runner.run(
-        'scil_validate_bids.py',
+        'scil_bids_validate.py',
         test_dir,
         os.path.join(test_dir, json_output),
         '-f', '-v')
@@ -425,7 +425,7 @@ def test_bids_rev_dwi_sbref(
         complex_rev_dwi=rev_is_complex)
 
     ret = script_runner.run(
-        'scil_validate_bids.py',
+        'scil_bids_validate.py',
         test_dir,
         os.path.join(test_dir, json_output),
         '-f', '-v')

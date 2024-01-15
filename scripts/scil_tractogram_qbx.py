@@ -2,8 +2,10 @@
 # -*- coding: utf-8 -*-
 
 """
-    Compute clusters using QuickBundlesX and save them separately.
-    We cannot know the number of clusters in advance.
+Compute clusters using QuickBundlesX and save them separately.
+We cannot know the number of clusters in advance.
+
+Formerly: scil_compute_qbx.py
 """
 
 import argparse

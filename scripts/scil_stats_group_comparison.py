@@ -32,6 +32,8 @@ https://en.wikipedia.org/wiki/Kruskal%E2%80%93Wallis_one-way_analysis_of_varianc
    2, test the group difference two by two.
 
 6) Generate the result for all metrics and bundles
+
+Formerly: scil_group_comparison.py
 """
 
 import argparse

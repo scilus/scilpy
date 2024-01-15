@@ -3,6 +3,8 @@
 
 """
 Compute a density map of seeds saved in .trk file.
+
+Formerly: scil_compute_seed_density_map.py
 """
 
 import argparse
@@ -33,8 +35,9 @@ def _build_arg_parser():
                    metavar='FIXED_VALUE', type=int, nargs='?', const=1,
                    help='If set, will store the same value for all intersected'
                         ' voxels, creating a binary map.\n'
-                        'When set without a value, 1 is used (and dtype uint8).\n'
-                        'If a value is given, will be used as the stored value.')
+                        'When set without a value, 1 is used (and dtype '
+                        'uint8).\nIf a value is given, will be used as the '
+                        'stored value.')
 
     add_bbox_arg(p)
     add_verbose_arg(p)

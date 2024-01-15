@@ -6,8 +6,8 @@ from scripts.scil_tractogram_uniformize_endpoints import main as new_main
 
 
 DEPRECATION_MSG = """
-This script has been renamed scil_tractogram_uniformize_endpoints.py. Please change
-your existing pipelines accordingly.
+This script has been renamed scil_tractogram_uniformize_endpoints.py. Please
+change your existing pipelines accordingly.
 """
 
 

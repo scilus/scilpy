@@ -2,10 +2,12 @@
 # -*- coding: utf-8 -*-
 
 """
-Plot all mean/std per point for a subject or population json file from 
+Plot all mean/std per point for a subject or population json file from
 tractometry-flow.
 WARNING: For population, the displayed STDs is only showing the variation
 of the means. It does not account intra-subject STDs.
+
+Formerly: scil_plot_mean_std_per_point.py
 """
 
 import argparse
@@ -39,8 +41,8 @@ def _build_arg_parser():
                         'Avoid unequal plots across datasets, replace missing '
                         'data with zeros.')
     p.add_argument('--display_means', action='store_true',
-                   help='Display the subjects means as semi-transparent line.\n'
-                        'Poor results when the number of subject is high.')
+                   help='Display the subjects means as semi-transparent line.'
+                        '\nPoor results when the number of subject is high.')
 
     p1 = p.add_mutually_exclusive_group()
     p1.add_argument('--fill_color',

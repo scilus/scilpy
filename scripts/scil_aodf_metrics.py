@@ -22,6 +22,8 @@ The odd-power map is also in the range [0..1], with 0 corresponding to a
 perfectly symmetric signal and 1 to a perfectly anti-symmetric signal. It is
 given as the ratio of the L2-norm of odd SH coefficients on the L2-norm of all
 SH coefficients.
+
+Formerly: scil_compute_asym_odf_metrics.py
 """
 
 

@@ -12,6 +12,8 @@ overwrite them based on the input order.
     >>> scil_labels_combine.py slf_labels.nii.gz
             --volume_ids a2009s_aseg.nii.gz all
             --volume_ids clean/s1__DKT.nii.gz 1028 2028
+
+Formerly: scil_combine_labels.py.
 """
 
 
