@@ -1,16 +1,15 @@
 # -*- coding: utf-8 -*-
 
-from dipy.io.stateful_tractogram import StatefulTractogram
 import numpy as np
 from scilpy.reconst.bingham import bingham_to_peak_direction
 from scilpy.tractanalysis.grid_intersections import grid_intersections
 
 
-def lobe_specific_metric_map_along_streamlines(sft, bingham_coeffs,
-                                               metric, max_theta,
-                                               length_weighting):
+def bingham_metric_map_along_streamlines(sft, bingham_coeffs,
+                                         metric, max_theta,
+                                         length_weighting):
     """
-    Compute mean map for a given lobe-specific metric along streamlines.
+    Compute mean map for a given Bingham metric along streamlines.
 
     Parameters
     ----------
@@ -20,8 +19,7 @@ def lobe_specific_metric_map_along_streamlines(sft, bingham_coeffs,
         Array of shape (X, Y, Z, N_LOBES, NB_PARAMS) containing
         the Bingham distributions parameters.
     metric : ndarray
-        Array of shape (X, Y, Z) containing the lobe-specific
-        metric of interest.
+        Array of shape (X, Y, Z) containing the Bingham metric of interest.
     max_theta : float
         Maximum angle in degrees between the fiber direction and the
         Bingham peak direction.
@@ -30,9 +28,9 @@ def lobe_specific_metric_map_along_streamlines(sft, bingham_coeffs,
     """
 
     fd_sum, weights = \
-        lobe_metric_sum_along_streamlines(sft, bingham_coeffs,
-                                          metric, max_theta,
-                                          length_weighting)
+        bingham_metric_sum_along_streamlines(sft, bingham_coeffs,
+                                             metric, max_theta,
+                                             length_weighting)
 
     non_zeros = np.nonzero(fd_sum)
     weights_nz = weights[non_zeros]
@@ -41,10 +39,10 @@ def lobe_specific_metric_map_along_streamlines(sft, bingham_coeffs,
     return fd_sum
 
 
-def lobe_metric_sum_along_streamlines(sft, bingham_coeffs, metric,
-                                      max_theta, length_weighting):
+def bingham_metric_sum_along_streamlines(sft, bingham_coeffs, metric,
+                                         max_theta, length_weighting):
     """
-    Compute a sum map along a bundle for a given lobe-specific metric.
+    Compute a sum map along a bundle for a given Bingham metric.
 
     Parameters
     ----------
@@ -53,7 +51,7 @@ def lobe_metric_sum_along_streamlines(sft, bingham_coeffs, metric,
     bingham_coeffs : ndarray (X, Y, Z, N_LOBES, NB_PARAMS)
         Bingham distributions parameters volume.
     metric : ndarray (X, Y, Z)
-        The lobe-specific metric of interest.
+        The Bingham metric of interest.
     max_theta : float
         Maximum angle in degrees between the fiber direction and the
         Bingham peak direction.
@@ -63,7 +61,7 @@ def lobe_metric_sum_along_streamlines(sft, bingham_coeffs, metric,
     Returns
     -------
     metric_sum_map : np.array
-        Lobe-specific metric sum map.
+        Bingham metric sum map.
     weight_map : np.array
         Segment lengths.
     """

@@ -17,6 +17,8 @@ Each RISH feature will be saved as a separate file.
 [1] Mirzaalian, Hengameh, et al. "Harmonizing diffusion MRI data across
 multiple sites and scanners." MICCAI 2015.
 https://scholar.harvard.edu/files/hengameh/files/miccai2015.pdf
+
+Formerly: scil_compute_rish_from_sh.py
 """
 import argparse
 

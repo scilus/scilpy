@@ -6,6 +6,8 @@ Will compare all input files against the first one for the compatibility
 of their spatial attributes.
 
 Spatial attributes are: affine, dimensions, voxel sizes and voxel order.
+
+Formerly: scil_verify_space_attributes_compatibility.py
 """
 
 import argparse

@@ -7,6 +7,8 @@ is not provided, all labels of the image are extracted. The label 0 is
 considered as the background and is ignored.
 
 IMPORTANT: your label image must be of an integer type.
+
+Formerly: scil_split_volume_by_ids.py
 """
 
 import argparse

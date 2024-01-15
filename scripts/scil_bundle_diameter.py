@@ -8,8 +8,8 @@ the diameter (volume / length). The computation here is more complex and done
 for each section of the bundle.
 
 The script expects:
-- bundles with coherent endpoints from scil_uniformize_streamlines_endpoints.py
-- labels maps with around 5-50 points scil_compute_bundle_voxel_label_map.py
+- bundles with coherent endpoints from scil_tractogram_uniformize_endpoints.py
+- labels maps with around 5-50 points scil_bundle_label_map.py
     <5 is not enough, high risk of bad fit
     >50 is too much, high risk of bad fit
 - bundles that are close to a tube
@@ -23,6 +23,8 @@ Since the estimation and fit quality is not always intuitive for some bundles
 and the tube with varying diameter is not easy to color/visualize,
 the script comes with its own VTK rendering to allow exploration of the data.
 (optional).
+
+Formerly: scil_estimate_bundles_diameter.py
 """
 
 import argparse
@@ -284,9 +286,10 @@ def main():
         stats[bundle_name] = {'diameter': tmp_dict}
 
         if args.show_rendering or args.save_rendering:
-            tube_actor = create_tube_with_radii(centroid_smooth, radius, error,
-                                                wireframe=args.wireframe,
-                                                error_coloring=args.error_coloring)
+            tube_actor = create_tube_with_radii(
+                            centroid_smooth, radius, error,
+                            wireframe=args.wireframe,
+                            error_coloring=args.error_coloring)
             scene.add(tube_actor)
             cmap = get_colormap('jet')
             coloring = cmap(pts_labels / np.max(pts_labels))[:, 0:3]

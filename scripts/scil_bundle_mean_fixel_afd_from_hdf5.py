@@ -3,12 +3,14 @@
 
 """
 Compute the mean Apparent Fiber Density (AFD) and mean Radial fODF (radfODF)
-maps along a bundle.
+maps for every connections within a hdf5 (.h5) file.
 
 This is the "real" fixel-based fODF amplitude along every streamline
-of the bundle provided, averaged at every voxel.
+of each connection, averaged at every voxel.
 
-Please use a bundle file rather than a whole tractogram.
+Please use a hdf5 (.h5) file containing decomposed connections
+
+Formerly: scil_compute_fixel_afd_from_hdf5.py
 """
 
 import argparse

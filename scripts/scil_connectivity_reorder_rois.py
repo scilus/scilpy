@@ -10,7 +10,7 @@ x and y).
 The values refer to the coordinates (starting at 0) in the matrix, but if the
 --labels_list parameter is used, the values will refer to the label which will
 be converted to the appropriate coordinates. This file must be the same as the
-one provided to the scil_decompose_connectivity.py
+one provided to the scil_tractogram_segment_bundles_for_connectivity.py.
 
 To subsequently use scil_visualize_connectivity.py with a lookup table, you
 must use a label-based reording json and use --labels_list.
@@ -19,6 +19,8 @@ You can also use the Optimal Leaf Ordering(OLO) algorithm to transform a
 sparse matrix into an ordering that reduces the matrix bandwidth. The output
 file can then be re-used with --in_ordering. Only one input can be used with
 this option, we recommand an average streamline count or volume matrix.
+
+Formerly: scil_reorder_connectivity.py
 """
 
 import argparse
