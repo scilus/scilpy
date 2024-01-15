@@ -499,32 +499,32 @@ def perform_streamline_operation_on_endpoints(op_name, sft, dpp_name='metric'):
     return new_data_per_streamline
 
 
-def mean(array):
+def stream_mean(array):
     return np.mean(array)
 
 
-def sum(array):
+def stream_sum(array):
     return np.sum(array)
 
 
-def min(array):
+def stream_min(array):
     return np.min(array)
 
 
-def max(array):
+def stream_max(array):
     return np.max(array)
 
 
-def correlation(array1, array2):
+def stream_correlation(array1, array2):
     return np.corrcoef(array1, array2)
 
 
 OPERATIONS = {
-    'mean': mean,
-    'sum': sum,
-    'min': min,
-    'max': max,
-    'correlation': correlation,
+    'mean': stream_mean,
+    'sum': stream_sum,
+    'min': stream_min,
+    'max': stream_max,
+    'correlation': stream_correlation,
 }
 
 
