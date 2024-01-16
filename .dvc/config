@@ -1,0 +1,4 @@
+[cache]
+    dir = /home/scil/.scilpy/dvc-cache/
+    shared = group
+    type = symlink
