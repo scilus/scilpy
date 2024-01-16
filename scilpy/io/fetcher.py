@@ -6,7 +6,7 @@ import pathlib
 import requests
 import zipfile
 
-GOOGLE_URL = "https://drive.google.com/uc?"
+GOOGLE_URL = "https://drive.usercontent.google.com/download?"
 
 
 def download_file_from_google_drive(id, destination):
