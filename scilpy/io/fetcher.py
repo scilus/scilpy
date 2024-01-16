@@ -151,6 +151,11 @@ def fetch_data(files_dict, keys=None):
                     data = file_to_check.read()
                     md5_returned = hashlib.md5(data).hexdigest()
                 if md5_returned != md5:
+                    try:
+                        zipfile.ZipFile(full_path)
+                    except zipfile.BadZipFile:
+                        raise RuntimeError("Could not fetch valid archive for "
+                                           "file {}".format(f))
                     raise ValueError('MD5 mismatch for file {}.'.format(f))
 
                 try:
