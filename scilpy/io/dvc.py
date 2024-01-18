@@ -34,7 +34,8 @@ def pull_package_from_dvc_repository(package_name, output_dir, revision="main",
     trivial valid configuration is a data storage located at the registry
     root and named store.
     """
-    return pull_from_dvc_repository(f"store/{package_name}", output_dir,
+    return pull_from_dvc_repository(f"store/{package_name}",
+                                    f"{output_dir}/{package_name}",
                                     revision, remote_url, remote_name,
                                     dvc_config_root)
 
