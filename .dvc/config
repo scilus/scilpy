@@ -2,3 +2,7 @@
     dir = /home/scil/.scilpy/dvc-cache/
     shared = group
     type = symlink
+[core]
+    remote = scil-data
+['remote "scil-data"']
+    url = https://scil.usherbrooke.ca/scil_test_data/dvc-store
