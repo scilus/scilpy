@@ -12,7 +12,7 @@ DVC_REPOSITORY = "https://github.com/AlexVCaron/scil_data.git"
 
 
 def pull_test_case_package(package_name):
-    with open(f"{SCILPY_ROOT}/data/test_descriptors.yml", 'r') as f:
+    with open(f"{SCILPY_ROOT}/.dvc/test_descriptors.yml", 'r') as f:
         test_descriptors = yaml.safe_load(f)
 
         if package_name not in test_descriptors:
