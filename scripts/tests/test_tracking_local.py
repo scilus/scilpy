@@ -156,3 +156,16 @@ def test_execution_tracking_peaks(script_runner):
                             '--min_length', '20', '--max_length', '200',
                             '--algo', 'eudx')
     assert ret.success
+
+
+def test_execution_tracking_fodf_prob_pmf_mapping(script_runner):
+    os.chdir(os.path.expanduser(tmp_dir.name))
+    in_fodf = os.path.join(get_home(), 'tracking', 'fodf.nii.gz')
+    in_mask = os.path.join(get_home(), 'tracking', 'seeding_mask.nii.gz')
+
+    ret = script_runner.run('scil_tracking_local.py', in_fodf,
+                            in_mask, in_mask, 'local_prob.trk', '--nt', '100',
+                            '--compress', '0.1', '--sh_basis', 'descoteaux07',
+                            '--min_length', '20', '--max_length', '200',
+                            '--sh_to_pmf')
+    assert ret.success
