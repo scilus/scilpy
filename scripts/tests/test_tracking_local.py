@@ -164,7 +164,7 @@ def test_execution_tracking_fodf_prob_pmf_mapping(script_runner):
     in_mask = os.path.join(get_home(), 'tracking', 'seeding_mask.nii.gz')
 
     ret = script_runner.run('scil_tracking_local.py', in_fodf,
-                            in_mask, in_mask, 'local_prob.trk', '--nt', '100',
+                            in_mask, in_mask, 'local_prob3.trk', '--nt', '100',
                             '--compress', '0.1', '--sh_basis', 'descoteaux07',
                             '--min_length', '20', '--max_length', '200',
                             '--sh_to_pmf')
