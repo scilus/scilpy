@@ -84,6 +84,15 @@ def test_inputs_check(script_runner):
                             '--processes', '1', '-f')
     assert (not ret.success)
 
+    ret = script_runner.run('scil_btensor_metrics.py', '--in_dwis',
+                            in_dwi_lin, in_dwi_plan, '--in_bvals',
+                            in_bval_lin, in_bval_plan, '--in_bvecs',
+                            in_bvec_lin, in_bvec_plan, '--in_bdeltas', '1',
+                            '-0.5', '--op', fa, '--do_weight_bvals',
+                            '--do_weight_pa', '--do_multiple_s0',
+                            '--processes', '1', '-f')
+    assert (not ret.success)
+
 
 def test_execution_processing(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
