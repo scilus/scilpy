@@ -273,7 +273,7 @@ def main():
     #         method .fit().
     # 2) But we do use this information below, with options p_i_signal,
     #    pulsation and residual.
-    check_b0_threshold(bvals.min(), args)
+    args.b0_threshold = check_b0_threshold(bvals.min(), args)
     gtab = gradient_table(bvals, bvecs, b0_threshold=args.b0_threshold)
 
     # Processing
