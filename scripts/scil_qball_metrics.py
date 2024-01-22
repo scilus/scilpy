@@ -28,14 +28,16 @@ from dipy.io import read_bvals_bvecs
 from dipy.direction.peaks import (peaks_from_model,
                                   reshape_peaks_for_visualization)
 from dipy.reconst.shm import QballModel, CsaOdfModel, anisotropic_power
-from scilpy.io.utils import (add_overwrite_arg, add_processes_arg,
-                             add_sh_basis_args, assert_inputs_exist,
-                             assert_outputs_exist, add_force_b0_arg,
-                             validate_nbr_processes, add_verbose_arg)
-from scilpy.io.image import get_data_as_mask
-from scilpy.gradients.bvec_bval_tools import (normalize_bvecs,
+
+from scilpy.gradients.bvec_bval_tools import (check_b0_threshold,
                                               is_normalized_bvecs,
-                                              check_b0_threshold)
+                                              normalize_bvecs)
+from scilpy.io.utils import (add_b0_thresh_arg, add_overwrite_arg,
+                             add_processes_arg, add_sh_basis_args,
+                             add_skip_b0_validation_arg, add_verbose_arg,
+                             assert_inputs_exist, assert_outputs_exist,
+                             validate_nbr_processes)
+from scilpy.io.image import get_data_as_mask
 
 
 DEFAULT_SMOOTH = 0.006
@@ -85,10 +87,11 @@ def _build_arg_parser():
                    help='Output filename for the anisotropic power map'
                         '[anisotropic_power.nii.gz].')
 
+    add_b0_thresh_arg(p)
+    add_skip_b0_validation_arg(p)
     add_sh_basis_args(p)
     add_processes_arg(p)
     add_verbose_arg(p)
-    add_force_b0_arg(p)
 
     return p
 
@@ -129,8 +132,10 @@ def main():
         logging.warning('Your b-vectors do not seem normalized...')
         bvecs = normalize_bvecs(bvecs)
 
-    check_b0_threshold(args, bvals.min())
-    gtab = gradient_table(bvals, bvecs, b0_threshold=bvals.min())
+    # Usage of gtab.b0s_mask in dipy's models is not very well documented, but
+    # we can see that it is indeed used.
+    args.b0_threshold = check_b0_threshold(bvals.min(), args)
+    gtab = gradient_table(bvals, bvecs, b0_threshold=args.b0_threshold)
 
     sphere = get_sphere('symmetric724')
 
