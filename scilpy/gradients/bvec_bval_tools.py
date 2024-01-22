@@ -55,7 +55,7 @@ def normalize_bvecs(bvecs):
     return bvecs
 
 
-def check_b0_threshold(min_bval, args, b0_thr=None):
+def check_b0_threshold(min_bval, args):
     """
     Check if the minimal bvalue is under the threshold. If not, raise an
     error to ask user to update the b0_thr.
@@ -74,9 +74,6 @@ def check_b0_threshold(min_bval, args, b0_thr=None):
                 an error.
             args.b0_threshold: float
                 Maximum bvalue considered as a b0.
-    b0_thr: float
-        If set, we will use this value instead of args.b0_threshold as a
-        threshold.
 
     Raises
     ------
@@ -84,8 +81,7 @@ def check_b0_threshold(min_bval, args, b0_thr=None):
         If the minimal bvalue is over the threshold (and skip_b0_validation is
         False).
     """
-    b0_thr = b0_thr or args.b0_threshold
-
+    b0_thr = args.b0_threshold
     if b0_thr > DEFAULT_B0_THRESHOLD:
         logging.warning(
             'Warning: Your defined b0 threshold (option --{}) is {}. This is '

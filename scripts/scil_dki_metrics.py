@@ -57,13 +57,12 @@ from dipy.core.gradients import gradient_table
 from scilpy.dwi.operations import compute_residuals
 from scilpy.image.volume_operations import smooth_to_fwhm
 from scilpy.io.image import get_data_as_mask
-from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
-                             assert_outputs_exist, add_force_b0_arg,
-                             add_verbose_arg)
-from scilpy.gradients.bvec_bval_tools import (normalize_bvecs,
-                                              is_normalized_bvecs,
-                                              check_b0_threshold,
-                                              identify_shells)
+from scilpy.io.utils import (add_overwrite_arg, add_skip_b0_validation_arg,
+                             add_verbose_arg, assert_inputs_exist,
+                             assert_outputs_exist, )
+from scilpy.gradients.bvec_bval_tools import (is_normalized_bvecs,
+                                              identify_shells,
+                                              normalize_bvecs, check_b0_threshold)
 
 
 def _build_arg_parser():
@@ -78,37 +77,42 @@ def _build_arg_parser():
                    help='Path of the b-vector file, in FSL format.')
 
     p.add_argument('--mask',
-                   help='Path to a binary mask.' +
-                   '\nOnly data inside the mask will be used '
-                   'for computations and reconstruction. ' +
-                   '\n[Default: None]')
+                   help='Path to a binary mask.\n'
+                        'Only data inside the mask will be used for '
+                        'computations and reconstruction.\n[Default: None]')
 
     p.add_argument('--tolerance', '-t',
                    metavar='INT', type=int, default=20,
                    help='The tolerated distance between the b-values to '
-                   'extract\nand the actual b-values [Default: %(default)s].')
+                   'extract\nand the actual b-values.\n'
+                   'We would expect to find at least one b-value in the range '
+                   '[0, tolerance], acting as a b0.\n'
+                   'To skip this check, use --skip_b0_validation.\n'
+                   '[Default: %(default)s]')
+    add_skip_b0_validation_arg(p, b0_tol_name='--tolerance')
+
     p.add_argument('--min_k', type=float, default=0.0,
-                   help='Minimum kurtosis value in the output maps ' +
-                   '\n(ak, mk, rk). In theory, -3/7 is the min kurtosis ' +
-                   '\nlimit for regions that consist of water confined ' +
-                   '\nto spherical pores (see DIPY example and ' +
+                   help='Minimum kurtosis value in the output maps '
+                   '\n(ak, mk, rk). In theory, -3/7 is the min kurtosis '
+                   '\nlimit for regions that consist of water confined '
+                   '\nto spherical pores (see DIPY example and '
                    '\ndocumentation) [Default: %(default)s].')
     p.add_argument('--max_k', type=float, default=3.0,
-                   help='Maximum kurtosis value in the output maps ' +
-                   '\n(ak, mk, rk). In theory, 10 is the max kurtosis' +
-                   '\nlimit for regions that consist of water confined' +
-                   '\nto spherical pores (see DIPY example and ' +
+                   help='Maximum kurtosis value in the output maps '
+                   '\n(ak, mk, rk). In theory, 10 is the max kurtosis'
+                   '\nlimit for regions that consist of water confined'
+                   '\nto spherical pores (see DIPY example and '
                    '\ndocumentation) [Default: %(default)s].')
     p.add_argument('--smooth', type=float, default=2.5,
-                   help='Smooth input DWI with a 3D Gaussian filter with ' +
-                   '\nfull-width-half-max (fwhm). Kurtosis fitting is ' +
-                   '\nsensitive and outliers occur easily. According to' +
-                   '\ntests on HCP, CB_Brain, Penthera3T, this smoothing' +
-                   '\nis thus turned ON by default with fwhm=2.5. ' +
+                   help='Smooth input DWI with a 3D Gaussian filter with '
+                   '\nfull-width-half-max (fwhm). Kurtosis fitting is '
+                   '\nsensitive and outliers occur easily. According to'
+                   '\ntests on HCP, CB_Brain, Penthera3T, this smoothing'
+                   '\nis thus turned ON by default with fwhm=2.5. '
                    '\n[Default: %(default)s].')
     p.add_argument('--not_all', action='store_true',
-                   help='If set, will only save the metrics explicitly ' +
-                   '\nspecified using the other metrics flags. ' +
+                   help='If set, will only save the metrics explicitly '
+                   '\nspecified using the other metrics flags. '
                    '\n[Default: not set].')
 
     g = p.add_argument_group(title='Metrics files flags')
@@ -141,7 +145,6 @@ def _build_arg_parser():
                    '(powder-average).')
 
     add_verbose_arg(p)
-    add_force_b0_arg(p)
     add_overwrite_arg(p)
 
     return p
@@ -192,6 +195,18 @@ def main():
         logging.warning('Your b-vectors do not seem normalized...')
         bvecs = normalize_bvecs(bvecs)
 
+    # Note. This script does not currently allow using a separate b0_threshold
+    # for the b0s. Using the tolerance. To change this, we would have to
+    # change our identify_shells method.
+    # Also, usage of gtab.b0s_mask unclear in dipy. An issue has been added in
+    # dipy to ask them to clarify the usage of gtab.b0s_mask. See here:
+    #  https://github.com/dipy/dipy/issues/3015
+    # b0_threshold option in gradient_table probably unused, except below with
+    # option dki_residual.
+    args.b0_threshold = args.tolerance
+    args.b0_threshold = check_b0_threshold(bvals.min(), args)
+    gtab = gradient_table(bvals, bvecs, b0_threshold=args.b0_threshold)
+
     # Processing
 
     # Find the volume indices that correspond to the shells to extract.
@@ -203,9 +218,6 @@ def main():
     if (shells > 2500).any():
         logging.warning('You seem to be using b > 2500 s/mm2 DWI data. '
                         'In theory, this is beyond the optimal range for DKI')
-
-    b0_thr = check_b0_threshold(args, bvals.min(), bvals.min())
-    gtab = gradient_table(bvals, bvecs, b0_threshold=b0_thr)
 
     # Smooth to FWHM
     data = smooth_to_fwhm(data, fwhm=args.smooth)
