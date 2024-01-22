@@ -50,8 +50,8 @@ from scilpy.image.utils import extract_affine
 from scilpy.io.btensor import generate_btensor_input
 from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
-                             assert_outputs_exist, add_force_b0_arg,
-                             add_processes_arg, add_verbose_arg)
+                             assert_outputs_exist, add_processes_arg,
+                             add_verbose_arg)
 from scilpy.reconst.divide import fit_gamma, gamma_fit2metrics
 
 
@@ -110,7 +110,6 @@ def _build_arg_parser():
         '--fa',
         help='Path to a FA map. Needed for calculating the OP.')
 
-    add_force_b0_arg(p)
     add_processes_arg(p)
     add_verbose_arg(p)
     add_overwrite_arg(p)
@@ -181,6 +180,10 @@ def main():
     # Loading
     affine = extract_affine(args.in_dwis)
 
+    # Note. This script does not currently allow using a separate b0_threshold
+    # for the b0s. Using the tolerance. To change this, we would have to
+    # change generate_btensor_input. Not doing any verification on the
+    # bvals. Typically, we would use check_b0_threshold(bvals.min(), args)
     data, gtab_infos = generate_btensor_input(args.in_dwis,
                                               args.in_bvals,
                                               args.in_bvecs,
