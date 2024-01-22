@@ -85,7 +85,6 @@ def main():
             dot_product = np.clip(np.tensordot(shell, vec, axes=1), -1, 1)
             angle = np.arccos(dot_product) * 180 / math.pi
             angle[np.isnan(angle)] = 0
-
             idx = np.argpartition(angle, 4).tolist()
             idx.remove(i)
 
