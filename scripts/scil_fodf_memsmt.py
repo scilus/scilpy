@@ -49,9 +49,9 @@ from scilpy.image.utils import extract_affine
 from scilpy.io.btensor import (generate_btensor_input,
                                convert_bdelta_to_bshape)
 from scilpy.io.image import get_data_as_mask
-from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
-                             assert_outputs_exist, add_sh_basis_args,
-                             add_processes_arg, add_verbose_arg)
+from scilpy.io.utils import (add_overwrite_arg, add_processes_arg,
+                             add_sh_basis_args, add_verbose_arg,
+                             assert_inputs_exist, assert_outputs_exist)
 from scilpy.reconst.fodf import fit_from_model
 from scilpy.reconst.sh import convert_sh_basis
 
@@ -156,17 +156,19 @@ def main():
 
     affine = extract_affine(args.in_dwis)
 
-    tol = args.tolerance
-
     wm_frf = np.loadtxt(args.in_wm_frf)
     gm_frf = np.loadtxt(args.in_gm_frf)
     csf_frf = np.loadtxt(args.in_csf_frf)
 
+    # Note. This script does not currently allow using a separate b0_threshold
+    # for the b0s. Using the tolerance. To change this, we would have to
+    # change generate_btensor_input. Not doing any verification on the
+    # bvals. Typically, we would use check_b0_threshold(bvals.min(), args)
     gtab, data, ubvals, ubdeltas = generate_btensor_input(args.in_dwis,
                                                           args.in_bvals,
                                                           args.in_bvecs,
                                                           args.in_bdeltas,
-                                                          tol=tol)
+                                                          tol=args.tolerance)
 
     # Checking mask
     if args.mask is None:
@@ -208,7 +210,7 @@ def main():
     memsmt_response = multi_shell_fiber_response(sh_order,
                                                  ubvals,
                                                  wm_frf, gm_frf, csf_frf,
-                                                 tol=tol,
+                                                 tol=args.tolerance,
                                                  btens=ubshapes)
 
     reg_sphere = get_sphere('symmetric362')
