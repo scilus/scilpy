@@ -54,6 +54,7 @@ def generate_btensor_input(in_dwis, in_bvals, in_bvecs, in_bdeltas,
     """Generate b-tensor input from an ensemble of data, bvals and bvecs files.
     This generated input is mandatory for all scripts using b-tensor encoding
     data. Also generate the powder-averaged (PA) data if set.
+    toDo. Add a way to include a different b0_threshold than the tolerance.
 
     Parameters
     ----------
@@ -156,7 +157,7 @@ def generate_btensor_input(in_dwis, in_bvals, in_bvecs, in_bdeltas,
         gtab_infos[3] = acq_index_full
         if np.sum([ubvals_full < tol]) < acq_index - 1:
             gtab_infos[3] *= 0
-        return(pa_signals, gtab_infos)
+        return pa_signals, gtab_infos
     # Removing the duplicate b0s from ubvals_full
     duplicate_b0_ind = np.union1d(np.argwhere(ubvals_full == min(ubvals_full)),
                                   np.argwhere(ubvals_full > tol))
@@ -185,4 +186,4 @@ def generate_btensor_input(in_dwis, in_bvals, in_bvecs, in_bdeltas,
                                b0_threshold=bvals_full.min(),
                                btens=b_shapes)
 
-    return(gtab_full, data_full, ubvals_full, ub_deltas_full)
+    return gtab_full, data_full, ubvals_full, ub_deltas_full

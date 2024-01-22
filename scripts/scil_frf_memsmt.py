@@ -50,8 +50,7 @@ from scilpy.dwi.utils import extract_dwi_shell
 from scilpy.image.utils import extract_affine
 from scilpy.io.btensor import generate_btensor_input
 from scilpy.io.image import get_data_as_mask
-from scilpy.io.utils import (add_force_b0_arg,
-                             add_overwrite_arg, add_verbose_arg,
+from scilpy.io.utils import (add_overwrite_arg, add_verbose_arg,
                              assert_inputs_exist, assert_outputs_exist,
                              assert_roi_radii_format)
 from scilpy.reconst.frf import compute_msmt_frf
@@ -170,7 +169,6 @@ def _build_arg_parser():
                         'used to compute the CSF frf.')
 
     add_verbose_arg(p)
-    add_force_b0_arg(p)
     add_overwrite_arg(p)
 
     return p
@@ -198,17 +196,17 @@ def main():
 
     roi_radii = assert_roi_radii_format(parser)
 
-    tol = args.tolerance
-    dti_lim = args.dti_bval_limit
-    force_b0_thr = args.force_b0_threshold
-
+    # Note. This script does not currently allow using a separate b0_threshold
+    # for the b0s. Using the tolerance. To change this, we would have to
+    # change generate_btensor_input. Not doing any verification on the
+    # bvals. Typically, we would use check_b0_threshold(bvals.min(), args)
     gtab, data, ubvals, ubdeltas = generate_btensor_input(args.in_dwis,
                                                           args.in_bvals,
                                                           args.in_bvecs,
                                                           args.in_bdeltas,
-                                                          tol=tol)
+                                                          tol=args.tolerance)
 
-    if not np.all(ubvals <= dti_lim):
+    if not np.all(ubvals <= args.dti_bval_limit):
         if np.sum(ubdeltas == 1) > 0:
             dti_ubvals = ubvals[ubdeltas == 1]
         elif np.sum(ubdeltas == -0.5) > 0:
@@ -218,12 +216,11 @@ def main():
         else:
             raise ValueError("No encoding available for DTI.")
         vol = nib.Nifti1Image(data, affine)
-        outputs = extract_dwi_shell(vol, gtab.bvals, gtab.bvecs,
-                                    dti_ubvals[dti_ubvals <= dti_lim],
-                                    tol=1)
-        indices_dti, data_dti, bvals_dti, bvecs_dti = outputs
-        # gtab_dti = gradient_table(np.squeeze(bvals_dti), bvecs_dti,
-        #                           btens=gtab.btens[indices_dti])
+        bvals_to_extract = dti_ubvals[dti_ubvals <= args.dti_bval_limit]
+        indices_dti, data_dti, bvals_dti, bvecs_dti = \
+            extract_dwi_shell(vol, gtab.bvals, gtab.bvecs,
+                              bvals_to_extract, tol=1)
+
         bvals_dti = np.squeeze(bvals_dti)
         btens_dti = gtab.btens[indices_dti]
     else:
@@ -263,8 +260,7 @@ def main():
                                             min_nvox=args.min_nvox,
                                             roi_radii=roi_radii,
                                             roi_center=args.roi_center,
-                                            tol=0,
-                                            force_b0_threshold=force_b0_thr)
+                                            tol=0)
 
     masks_files = [args.wm_frf_mask, args.gm_frf_mask, args.csf_frf_mask]
     for mask, mask_file in zip(frf_masks, masks_files):
