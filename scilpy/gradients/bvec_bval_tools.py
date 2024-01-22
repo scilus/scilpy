@@ -81,7 +81,7 @@ def check_b0_threshold(min_bval, args, b0_arg='b0_threshold'):
         If the minimal bvalue is over the threshold (and skip_b0_validation is
         False).
     """
-    b0_thr = args[b0_arg]
+    b0_thr = vars(args)[b0_arg]  # Converting Namespace to dict to allow access
 
     if b0_thr > DEFAULT_B0_THRESHOLD:
         logging.warning(
@@ -96,6 +96,7 @@ def check_b0_threshold(min_bval, args, b0_arg='b0_threshold'):
 
     if min_bval > b0_thr:
         if args.skip_b0_validation:
+            logging.warning("GOT {} > {}".format(min_bval, b0_thr))
             logging.warning(
                 'Warning: Your minimal bvalue ({}), is above the threshold '
                 'defined with --{}: {}.\n'
@@ -103,14 +104,14 @@ def check_b0_threshold(min_bval, args, b0_arg='b0_threshold'):
                 'proceed with a b0 threshold of {}.'
                 .format(min_bval, b0_arg, b0_thr, min_bval))
             return min_bval
-    else:
-        raise ValueError(
-            'The minimal bvalue ({}) is is above the threshold '
-            'defined with --{}: {}.\n. '
-            'No b0 volumes can be found.\n'
-            'Please check your data to ensure everything is correct.\n'
-            'You may also increase the threshold or use --skip_b0_validation'
-            .format(min_bval, b0_arg, b0_thr, min_bval))
+        else:
+            raise ValueError(
+                'The minimal bvalue ({}) is is above the threshold '
+                'defined with --{}: {}.\n.No b0 volumes can be found.\n'
+                'Please check your data to ensure everything is correct.\n'
+                'You may also increase the threshold or use '
+                '--skip_b0_validation'
+                .format(min_bval, b0_arg, b0_thr, min_bval))
     return b0_thr
 
 
