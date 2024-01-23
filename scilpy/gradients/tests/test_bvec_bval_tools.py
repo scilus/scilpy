@@ -3,7 +3,7 @@ import numpy as np
 
 from scilpy.gradients.bvec_bval_tools import (
     check_b0_threshold, is_normalized_bvecs, normalize_bvecs,
-    round_bvals_to_shell)
+    round_bvals_to_shell, identify_shells)
 
 bvecs = np.asarray([[1.0, 1.0, 1.0],
                     [1.0, 0.0, 1.0],
@@ -26,8 +26,39 @@ def test_check_b0_threshold():
 
 
 def test_identify_shells():
-    # toDo
-    pass
+    def _subtest_identify_shells(bvals, threshold,
+                                 expected_raw_centroids, expected_raw_shells,
+                                 expected_round_sorted_centroids,
+                                 expected_round_sorted_shells):
+        bvals = np.asarray(bvals)
+
+        # 1) Not rounded, not sorted
+        c, s = identify_shells(bvals, threshold)
+        assert np.array_equal(c, expected_raw_centroids)
+        assert np.array_equal(s, expected_raw_shells)
+
+        # 2) Rounded, sorted
+        c, s = identify_shells(bvals, threshold, round_centroids=True,
+                               sort=True)
+        assert np.array_equal(c, expected_round_sorted_centroids)
+        assert np.array_equal(s, expected_round_sorted_shells)
+
+    # Test 1. All easy. Over the limit for 0, 5, 15. Clear difference for
+    # 100, 2000.
+    _subtest_identify_shells(bvals=[0, 0, 5, 15, 2000, 100], threshold=50,
+                             expected_raw_centroids=[0, 2000, 100],
+                             expected_raw_shells=[0, 0, 0, 0, 1, 2],
+                             expected_round_sorted_centroids=[0, 100, 2000],
+                             expected_round_sorted_shells=[0, 0, 0, 0, 2, 1])
+
+    # Test 2. Threshold on the limit.
+    # Additional difficulty with option rounded: two shells with the same
+    # value, but a warning is printed. Should it raise an error?
+    _subtest_identify_shells(bvals=[0, 0, 5, 2000, 100], threshold=5,
+                             expected_raw_centroids=[0, 5, 2000, 100],
+                             expected_raw_shells=[0, 0, 1, 2, 3],
+                             expected_round_sorted_centroids=[0, 0, 100, 2000],
+                             expected_round_sorted_shells=[0, 0, 1, 3, 2])
 
 
 def test_str_to_axis_index():

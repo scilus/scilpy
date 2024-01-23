@@ -111,7 +111,7 @@ def check_b0_threshold(
     return b0_thr
 
 
-def identify_shells(bvals, threshold=40.0, roundCentroids=False, sort=False):
+def identify_shells(bvals, tol=40.0, round_centroids=False, sort=False):
     """
     Guessing the shells from the b-values. Returns the list of shells and, for
     each b-value, the associated shell.
@@ -128,10 +128,11 @@ def identify_shells(bvals, threshold=40.0, roundCentroids=False, sort=False):
     ----------
     bvals: array (N,)
         Array of bvals
-    threshold: float
-        Limit value to consider that a b-value is on an existing shell. Above
-        this limit, the b-value is placed on a new shell.
-    roundCentroids: bool
+    tol: float
+        Limit difference to centroid to consider that a b-value is on an
+        existing shell. On or above this limit, the b-value is placed on a new
+        shell.
+    round_centroids: bool
         If true will round shell values to the nearest 10.
     sort: bool
         Sort centroids and shell_indices associated.
@@ -151,7 +152,7 @@ def identify_shells(bvals, threshold=40.0, roundCentroids=False, sort=False):
     bval_centroids = [bvals[0]]
     for bval in bvals[1:]:
         diffs = np.abs(np.asarray(bval_centroids, dtype=float) - bval)
-        if not len(np.where(diffs < threshold)[0]):
+        if not len(np.where(diffs < tol)[0]):
             # Found no bval in bval centroids close enough to the current one.
             # Create new centroid (i.e. new shell)
             bval_centroids.append(bval)
@@ -163,15 +164,23 @@ def identify_shells(bvals, threshold=40.0, roundCentroids=False, sort=False):
 
     shell_indices = np.argmin(np.abs(bvals_for_diffs - centroids), axis=1)
 
-    if roundCentroids:
+    if round_centroids:
         centroids = np.round(centroids, decimals=-1)
+
+        # Ex: with bvals [0, 5], threshold 5, we get centroids 0, 5.
+        # Rounded, we get centroids 0, 0.
+        if len(np.unique(centroids)) != len(centroids):
+            logging.warning("With option to round the centroids to the "
+                            "nearest 10, with tolerance {}, we get unclear "
+                            "division of the shells. Use this data carefully."
+                            .format(tol))
 
     if sort:
         sort_index = np.argsort(centroids)
-        sorted_centroids = np.zeros(centroids.shape)
-        sorted_indices = np.zeros(shell_indices.shape)
+        sorted_centroids = centroids[sort_index]
+
+        sorted_indices = np.zeros(shell_indices.shape, dtype=int)
         for i in range(len(centroids)):
-            sorted_centroids[i] = centroids[sort_index[i]]
             sorted_indices[shell_indices == i] = sort_index[i]
         return sorted_centroids, sorted_indices
 
