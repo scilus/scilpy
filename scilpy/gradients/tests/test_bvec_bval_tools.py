@@ -3,11 +3,13 @@ import numpy as np
 
 from scilpy.gradients.bvec_bval_tools import (
     check_b0_threshold, is_normalized_bvecs, normalize_bvecs,
-    round_bvals_to_shell, identify_shells)
+    round_bvals_to_shell, identify_shells, str_to_axis_index, flip_gradient_sampling,
+    swap_gradient_axis)
 
 bvecs = np.asarray([[1.0, 1.0, 1.0],
                     [1.0, 0.0, 1.0],
-                    [0.0, 1.0, 0.0]])
+                    [0.0, 1.0, 0.0],
+                    [8.0, 1.0, 1.0]])
 
 
 def test_is_normalized_bvecs():
@@ -63,17 +65,26 @@ def test_identify_shells():
 
 def test_str_to_axis_index():
     # Very simple, nothing to do
-    pass
+    assert str_to_axis_index('x') == 0
 
 
 def test_flip_gradient_sampling():
-    # toDo
-    pass
+    fsl_bvecs = bvecs.T
+    b = flip_gradient_sampling(fsl_bvecs, axes=[0], sampling_type='fsl')
+    assert np.array_equal(b, np.asarray([[-1.0, 1.0, 1.0],
+                                         [-1.0, 0.0, 1.0],
+                                         [-0.0, 1.0, 0.0],
+                                         [-8.0, 1.0, 1.0]]).T)
 
 
 def test_swap_gradient_axis():
-    # toDo
-    pass
+    fsl_bvecs = bvecs.T
+    final_order = [1, 0, 2]
+    b = swap_gradient_axis(fsl_bvecs, final_order, sampling_type='fsl')
+    assert np.array_equal(b, np.asarray([[1.0, 1.0, 1.0],
+                                         [0.0, 1.0, 1.0],
+                                         [1.0, 0.0, 0.0],
+                                         [1.0, 8.0, 1.0]]).T)
 
 
 def test_round_bvals_to_shell():

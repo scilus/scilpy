@@ -28,7 +28,6 @@ def is_normalized_bvecs(bvecs):
     -------
     True/False
     """
-
     bvecs_norm = np.linalg.norm(bvecs, axis=1)
     return np.all(np.logical_or(np.abs(bvecs_norm - 1) < 1e-3,
                                 bvecs_norm == 0))
@@ -48,7 +47,7 @@ def normalize_bvecs(bvecs):
     bvecs : (N, 3)
        normalized b-vectors
     """
-
+    bvecs = bvecs.copy()  # Avoid in-place modification.
     bvecs_norm = np.linalg.norm(bvecs, axis=1)
     idx = bvecs_norm != 0
     bvecs[idx] /= bvecs_norm[idx, None]
@@ -217,12 +216,13 @@ def flip_gradient_sampling(bvecs, axes, sampling_type):
     Parameters
     ----------
     bvecs: np.ndarray
-        Loaded bvecs. In the case 'mrtrix' the bvecs actually also contain the
-        bvals.
+        bvecs loaded directly, not re-formatted. Careful! Must respect the
+        format (not verified here).
     axes: list of int
-        List of axes to flip (e.g. [0, 1])
+        List of axes to flip (e.g. [0, 1]). See str_to_axis_index.
     sampling_type: str
-        Either 'mrtrix' or 'fsl'.
+        Either 'mrtrix': bvecs are of shape (N, 4) or
+               'fsl': bvecs are of shape (3, N)
 
     Returns
     -------
@@ -230,6 +230,8 @@ def flip_gradient_sampling(bvecs, axes, sampling_type):
         The final bvecs.
     """
     assert sampling_type in ['mrtrix', 'fsl']
+
+    bvecs = bvecs.copy()  # Avoid in-place modification.
     if sampling_type == 'mrtrix':
         for axis in axes:
             bvecs[:, axis] *= -1
@@ -246,12 +248,13 @@ def swap_gradient_axis(bvecs, final_order, sampling_type):
     Parameters
     ----------
     bvecs: np.array
-        Loaded bvecs. In the case 'mrtrix' the bvecs actually also contain the
-        bvals.
+        bvecs loaded directly, not re-formatted. Careful! Must respect the
+        format (not verified here).
     final_order: new order
         Final order (ex, 2 1 0)
     sampling_type: str
-        Either 'mrtrix' or 'fsl'.
+        Either 'mrtrix': bvecs are of shape (N, 4) or
+               'fsl': bvecs are of shape (3, N)
 
     Returns
     -------
