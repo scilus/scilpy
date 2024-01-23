@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 
-from scilpy.gradients.bvec_bval_tools import (is_normalized_bvecs,
-                                              round_bvals_to_shell, normalize_bvecs)
+from scilpy.gradients.bvec_bval_tools import (
+    check_b0_threshold, is_normalized_bvecs, normalize_bvecs,
+    round_bvals_to_shell)
 
 bvecs = np.asarray([[1.0, 1.0, 1.0],
                     [1.0, 0.0, 1.0],
@@ -20,17 +21,7 @@ def test_normalize_bvecs():
 
 
 def test_check_b0_threshold():
-    # toDo
-    pass
-
-
-def test_fsl2mrtrix():
-    # toDo
-    pass
-
-
-def test_mrtrix2fsl():
-    # toDo
+    # toDo To be modified (see PR#867).
     pass
 
 
