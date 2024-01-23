@@ -60,9 +60,10 @@ from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_overwrite_arg, add_skip_b0_validation_arg,
                              add_verbose_arg, assert_inputs_exist,
                              assert_outputs_exist, )
-from scilpy.gradients.bvec_bval_tools import (is_normalized_bvecs,
+from scilpy.gradients.bvec_bval_tools import (check_b0_threshold,
+                                              is_normalized_bvecs,
                                               identify_shells,
-                                              normalize_bvecs, check_b0_threshold)
+                                              normalize_bvecs)
 
 
 def _build_arg_parser():

@@ -46,12 +46,12 @@ from scilpy.dwi.operations import compute_residuals, \
 from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_b0_thresh_arg, add_overwrite_arg,
                              add_skip_b0_validation_arg, add_verbose_arg,
-                             assert_inputs_exist,assert_outputs_exist)
+                             assert_inputs_exist, assert_outputs_exist)
 from scilpy.io.tensor import convert_tensor_from_dipy_format, \
     supported_tensor_formats, tensor_format_description
-from scilpy.gradients.bvec_bval_tools import (normalize_bvecs,
+from scilpy.gradients.bvec_bval_tools import (check_b0_threshold,
                                               is_normalized_bvecs,
-                                              check_b0_threshold)
+                                              normalize_bvecs)
 from scilpy.utils.filenames import add_filename_suffix, split_name_with_nii
 
 logger = logging.getLogger("DTI_Metrics")
