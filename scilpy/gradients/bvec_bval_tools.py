@@ -84,33 +84,33 @@ def check_b0_threshold(min_bval, args):
     b0_thr = args.b0_threshold
     if b0_thr > DEFAULT_B0_THRESHOLD:
         logging.warning(
-            'Warning: Your defined b0 threshold (option --{}) is {}. This is '
-            'suspicious. We recommend using volumes with bvalues no higher '
-            'than {} as b0s.'.format(b0_thr, b0_thr, DEFAULT_B0_THRESHOLD))
+            'Your defined b0 threshold is {}. This is suspicious. We '
+            'recommend using volumes with bvalues no higher than {} as b0s'
+            .format(b0_thr, DEFAULT_B0_THRESHOLD))
 
     if min_bval < 0:
         logging.warning(
             'Warning: Your dataset contains negative b-values (minimal bvalue '
-            'of {}). This is suspicious. We recommend you check your data.')
+            'of {}). This is suspicious. We recommend you check your data.'
+            .format(min_bval))
 
     if min_bval > b0_thr:
         if args.skip_b0_validation:
             logging.warning("GOT {} > {}".format(min_bval, b0_thr))
             logging.warning(
-                'Warning: Your minimal bvalue ({}), is above the threshold '
-                'defined with --{}: {}.\n'
-                'Since --skip_b0_validation was specified, the script will'
+                'Your minimal bvalue ({}), is above the threshold ({})\n'
+                'Since --skip_b0_validation was specified, the script will '
                 'proceed with a b0 threshold of {}.'
-                .format(min_bval, b0_thr, b0_thr, min_bval))
+                .format(min_bval, b0_thr, min_bval))
             return min_bval
         else:
             raise ValueError(
-                'The minimal bvalue ({}) is is above the threshold '
-                'defined with --{}: {}.\n.No b0 volumes can be found.\n'
+                'The minimal bvalue ({}) is is above the threshold ({})\n'
+                'No b0 volumes can be found.\n'
                 'Please check your data to ensure everything is correct.\n'
                 'You may also increase the threshold or use '
                 '--skip_b0_validation'
-                .format(min_bval, b0_thr, b0_thr, min_bval))
+                .format(min_bval, b0_thr))
     return b0_thr
 
 

@@ -54,7 +54,9 @@ def generate_btensor_input(in_dwis, in_bvals, in_bvecs, in_bdeltas,
     """Generate b-tensor input from an ensemble of data, bvals and bvecs files.
     This generated input is mandatory for all scripts using b-tensor encoding
     data. Also generate the powder-averaged (PA) data if set.
-    toDo. Add a way to include a different b0_threshold than the tolerance.
+
+    For the moment, this does not enable the use of a b0_threshold different
+    than the tolerance.
 
     Parameters
     ----------

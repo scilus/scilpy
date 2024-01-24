@@ -150,9 +150,14 @@ def compute_msmt_frf(data, bvals, bvecs, btens=None, data_dti=None,
         1D bvals array with shape (N,)
     bvecs : ndarray
         2D bvecs array with shape (N, 3)
-    btens: ?
-    data_dti: ?
-    bvals_dti: ?
+    btens: ndarray 1D
+	btens array with shape (N,), describing the btensor shape of every
+        pair of bval/bvec.
+    data_dti: ndarray 4D
+        Input diffusion volume with shape (X, Y, Z, M), where M is the number
+        of DTI directions.
+    bvals_dti: ndarray 1D
+        bvals array with shape (M,)
     bvecs_dti: ?
     btens_dti: ?
     mask : ndarray, optional
