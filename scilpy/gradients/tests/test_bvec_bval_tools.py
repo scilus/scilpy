@@ -66,6 +66,9 @@ def test_identify_shells():
 def test_str_to_axis_index():
     # Very simple, nothing to do
     assert str_to_axis_index('x') == 0
+    assert str_to_axis_index('y') == 1
+    assert str_to_axis_index('z') == 2
+
 
 
 def test_flip_gradient_sampling():
