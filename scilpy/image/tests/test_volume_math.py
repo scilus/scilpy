@@ -19,6 +19,7 @@ from scilpy.image.volume_math import (_validate_imgs,
                                       cut_up_cube,
                                       lower_threshold_eq, upper_threshold_eq,
                                       lower_threshold, upper_threshold,
+                                      lower_threshold_otsu, upper_threshold_otsu,
                                       lower_clip, upper_clip,
                                       absolute_value,
                                       around, ceil, floor,
@@ -296,6 +297,36 @@ def test_upper_threshold():
     output_data = upper_threshold([img, threshold], img)
 
     # Assert that the output matches the expected output
+    assert_array_equal(output_data, expected_output)
+
+
+def test_lower_threshold_otsu():
+    # Create a sample nib.Nifti1Image object
+    img_data = np.array([0, 1, 1, 50, 60, 60]).astype(float)
+    affine = np.eye(4)
+    img = nib.Nifti1Image(img_data, affine)
+
+    # Otsu is expected to separate foreground and background
+    expected_output = np.array([0, 0, 0, 1, 1, 1]).astype(float)
+
+    output_data = lower_threshold_otsu([img], img)
+
+    # compare output and expected arrays
+    assert_array_equal(output_data, expected_output)
+
+
+def test_upper_threshold_otsu():
+    # Create a sample nib.Nifti1Image object
+    img_data = np.array([0, 1, 1, 50, 60, 60]).astype(float)
+    affine = np.eye(4)
+    img = nib.Nifti1Image(img_data, affine)
+
+    # Otsu is expected to separate foreground and background
+    expected_output = np.array([1, 1, 1, 0, 0, 0]).astype(float)
+
+    output_data = upper_threshold_otsu([img], img)
+
+    # compare output and expected arrays
     assert_array_equal(output_data, expected_output)
 
 
