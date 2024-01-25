@@ -52,6 +52,7 @@ The output consist in two types of images in two folders :
     --in_mtoff path/to/echo*mtoff.nii.gz --in_mton path/to/echo*mton.nii.gz
     --in_t1w path/to/echo*T1w.nii.gz
 
+Formerly: scil_compute_MT_maps.py
 """
 
 import argparse
@@ -61,7 +62,7 @@ import nibabel as nib
 import numpy as np
 
 from scilpy.io.utils import (get_acq_parameters, add_overwrite_arg,
-                             assert_inputs_exist,
+                             assert_inputs_exist, add_verbose_arg,
                              assert_output_dirs_exist_and_empty)
 from scilpy.io.image import load_img
 from scilpy.image.volume_math import concatenate
@@ -109,6 +110,7 @@ def _build_arg_parser():
                    help='Path to all echoes corresponding to the '
                         'T1-weigthed.')
 
+    add_verbose_arg(p)
     add_overwrite_arg(p)
 
     return p

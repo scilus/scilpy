@@ -6,6 +6,8 @@ Compute a single Fiber Response Function from a DWI.
 
 A DTI fit is made, and voxels containing a single fiber population are
 found using a threshold on the FA.
+
+Formerly: scil_compute_ssst_frf.py
 """
 
 import argparse
@@ -80,8 +82,8 @@ def _build_arg_parser():
                    help='If supplied, use this center to span the roi of size '
                         'roi_radius. [center of the 3D volume]')
 
-    add_overwrite_arg(p)
     add_verbose_arg(p)
+    add_overwrite_arg(p)
 
     return p
 

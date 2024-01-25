@@ -36,6 +36,8 @@ are kept in the output will be preserved. This requires that all input files
 share the same type of metadata. If this is not the case, use the option
 --no_metadata to strip the metadata from the output. Or --fake_metadata to
 initialize dummy metadata in the file missing them.
+
+Formerly: scil_streamlines_math.py
 """
 
 import argparse
@@ -97,11 +99,11 @@ def _build_arg_parser():
                    help="If set, we will save all results, even if tractogram "
                         "if empty.")
 
+    add_bbox_arg(p)
     add_json_args(p)
     add_reference_arg(p)
     add_verbose_arg(p)
     add_overwrite_arg(p)
-    add_bbox_arg(p)
 
     return p
 

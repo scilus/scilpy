@@ -10,6 +10,8 @@ Optionally, you can split streamlines...
     - sequentially (the first n/nb_chunks streamlines in the first chunk and so
      on).
     - randomly, but per Quickbundles clusters.
+
+Formerly: scil_split_tractogram.py
 """
 import argparse
 import logging
@@ -70,9 +72,10 @@ def _build_arg_parser():
 
     p.add_argument('--seed', default=None, type=int,
                    help='Use a specific random seed for the subsampling.')
+
     add_reference_arg(p)
-    add_overwrite_arg(p)
     add_verbose_arg(p)
+    add_overwrite_arg(p)
 
     return p
 

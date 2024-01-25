@@ -11,6 +11,7 @@ This script can be useful for splitting images at places where a b-value
 extraction does not work. For instance, if one wants to split the x first
 b-1500s from the rest of the b-1500s in an image, simply put x as an index.
 
+Formerly: scil_split_image.py
 """
 
 import argparse

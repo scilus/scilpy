@@ -9,6 +9,8 @@ and the affine fixed accordingly.
 Warning: This works well on masked images (like with FSL-Bet) volumes since
 it's looking for non-zero data. Therefore, you should validate the results on
 other types of images that haven't been masked.
+
+Formerly: scil_crop_volume.py
 """
 
 import argparse
@@ -18,6 +20,7 @@ import nibabel as nib
 import numpy as np
 
 from scilpy.io.utils import (add_overwrite_arg,
+                             add_verbose_arg,
                              assert_inputs_exist,
                              assert_outputs_exist)
 from scilpy.utils.util import compute_nifti_bounding_box
@@ -36,6 +39,8 @@ def _build_arg_parser():
                    help='Ignore voxel size compatibility test between input '
                         'bounding box and data. Warning, use only if you '
                         'know what you are doing.')
+
+    add_verbose_arg(p)
     add_overwrite_arg(p)
 
     g1 = p.add_mutually_exclusive_group()

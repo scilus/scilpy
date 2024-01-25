@@ -25,6 +25,8 @@ Example usage:
 $ scil_tractogram_resample.py input.trk 1000 output.trk \
 --point_wise_std 0.5 --spline 5 10 --keep_invalid_streamlines
 $ scil_visualize_bundles.py output.trk --local_coloring --width=0.1
+
+Formerly: scil_resample_tractogram.py
 """
 
 import argparse
@@ -103,9 +105,10 @@ def _build_arg_parser():
     # General
     p.add_argument('--seed', default=None, type=int,
                    help='Use a specific random seed for the resampling.')
+
     add_reference_arg(p)
-    add_overwrite_arg(p)
     add_verbose_arg(p)
+    add_overwrite_arg(p)
 
     return p
 

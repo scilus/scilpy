@@ -16,6 +16,7 @@ from dipy.io.streamline import save_tractogram
 
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_json_args,
+                             add_verbose_arg,
                              add_overwrite_arg,
                              add_reference_arg,
                              assert_inputs_exist,
@@ -38,9 +39,11 @@ def _build_arg_parser():
                    'of individual streamlines will be pruned. [%(default)s]')
     p.add_argument('--display_counts', action='store_true',
                    help='Print streamline count before and after filtering')
-    add_reference_arg(p)
-    add_overwrite_arg(p)
+
     add_json_args(p)
+    add_reference_arg(p)
+    add_verbose_arg(p)
+    add_overwrite_arg(p)
 
     return p
 

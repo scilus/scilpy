@@ -12,10 +12,44 @@ from scilpy.gradients.bvec_bval_tools import (normalize_bvecs,
 
 
 bshapes = {0: "STE", 1: "LTE", -0.5: "PTE", 0.5: "CTE"}
+bdeltas = {"STE": 0, "LTE": 1, "PTE": -0.5, "CTE": 0.5}
 
 
-def generate_btensor_input(in_dwis, in_bvals, in_bvecs,
-                           in_bdeltas, force_b0_threshold,
+def convert_bshape_to_bdelta(b_shapes):
+    """Convert an array of b_shapes to an array of b_deltas.
+
+    Parameters
+    ----------
+    b_shapes: array of strings
+        b_shapes to convert. Strings can only be LTE, PTE, STE or CTE.
+
+    Returns
+    -------
+    b_deltas: array of floats
+        Converted b_deltas, such that LTE = 1, STE = 0, PTE = -0.5, CTE = 0.5.
+    """
+    b_deltas = np.vectorize(bdeltas.get)(b_shapes)
+    return b_deltas
+
+
+def convert_bdelta_to_bshape(b_deltas):
+    """Convert an array of b_deltas to an array of b_shapes.
+
+    Parameters
+    ----------
+    b_deltas: array of floats
+        b_deltas to convert. Floats can only be 1, 0, -0.5 or 0.5.
+
+    Returns
+    -------
+    b_shapes: array of strings
+        Converted b_shapes, such that LTE = 1, STE = 0, PTE = -0.5, CTE = 0.5.
+    """
+    b_shapes = np.vectorize(bshapes.get)(b_deltas)
+    return b_shapes
+
+
+def generate_btensor_input(in_dwis, in_bvals, in_bvecs, in_bdeltas,
                            do_pa_signals=False, tol=20):
     """Generate b-tensor input from an ensemble of data, bvals and bvecs files.
     This generated input is mandatory for all scripts using b-tensor encoding
@@ -31,8 +65,6 @@ def generate_btensor_input(in_dwis, in_bvals, in_bvecs,
         All of the bvecs files associated.
     in_bdeltas : list of floats
         All of the b_deltas (describing the type of encoding) files associated.
-    force_b0_threshold : bool, optional
-        If set, will continue even if the minimum bvalue is suspiciously high.
     do_pa_signals : bool, optional
         If set, will compute the powder_averaged input instead of the regular
         one. This means that the signal is averaged over all directions for

@@ -29,9 +29,15 @@ In the gm (or csf), we compute the response function in each voxels where
 the FA is below at threshold_fa_gm (or threshold_fa_csf) and where
 the MD is below threshold_md_gm (or threshold_md_csf).
 
+>>> scil_frf_memsmt.py wm_frf.txt gm_frf.txt csf_frf.txt --in_dwis LTE.nii.gz
+    PTE.nii.gz STE.nii.gz --in_bvals LTE.bval PTE.bval STE.bval --in_bvecs
+    LTE.bvec PTE.bvec STE.bvec --in_bdeltas 1 -0.5 0 --mask mask.nii.gz
+
 Based on P. Karan et al., Bridging the gap between constrained spherical
 deconvolution and diffusional variance decomposition via tensor-valued
 diffusion MRI. Medical Image Analysis (2022)
+
+Formerly: scil_compute_memsmt_frf.py
 """
 
 import argparse
@@ -163,9 +169,9 @@ def buildArgsParser():
                    help='Path to the output CSF frf mask file, the voxels '
                         'used to compute the CSF frf.')
 
+    add_verbose_arg(p)
     add_force_b0_arg(p)
     add_overwrite_arg(p)
-    add_verbose_arg(p)
 
     return p
 
@@ -204,7 +210,6 @@ def main():
                                                           args.in_bvals,
                                                           args.in_bvecs,
                                                           args.in_bdeltas,
-                                                          force_b0_thr,
                                                           tol=tol)
 
     if not np.all(ubvals <= dti_lim):

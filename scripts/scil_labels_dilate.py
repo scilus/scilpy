@@ -13,6 +13,8 @@ Dilate regions (with or without masking) from a labeled volume:
 >>> scil_labels_dilate.py wmparc_t1.nii.gz wmparc_dil.nii.gz \\
     --label_to_fill 0 5001 5002 \\
     --label_not_to_dilate 4 43 10 11 12 49 50 51
+
+Formerly: scil_dilate_labels.py
 """
 
 import argparse
@@ -24,7 +26,8 @@ import numpy as np
 from scilpy.image.labels import get_data_as_labels, dilate_labels
 from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_overwrite_arg, add_processes_arg,
-                             assert_inputs_exist, assert_outputs_exist)
+                             assert_inputs_exist, add_verbose_arg,
+                             assert_outputs_exist)
 
 EPILOG = """
     References:
@@ -58,6 +61,7 @@ def _build_arg_parser():
                    help='Only dilate values inside the mask.')
 
     add_processes_arg(p)
+    add_verbose_arg(p)
     add_overwrite_arg(p)
 
     return p

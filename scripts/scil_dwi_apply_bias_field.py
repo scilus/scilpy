@@ -5,6 +5,8 @@
 Apply bias field correction to DWI. This script doesn't compute the bias
 field itself. It ONLY applies an existing bias field. Use the ANTs
 N4BiasFieldCorrection executable to compute the bias field.
+
+Formerly: scil_apply_bias_field_on_dwi.py
 """
 
 import argparse
@@ -15,6 +17,7 @@ import numpy as np
 from scilpy.dwi.operations import apply_bias_field
 from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_overwrite_arg,
+                             add_verbose_arg,
                              assert_inputs_exist,
                              assert_outputs_exist)
 
@@ -35,7 +38,10 @@ def _build_arg_parser():
                         'If this is not given, the bias field is still only '
                         'applied only in non-background data \n(i.e. where '
                         'the dwi is not 0).')
+    
+    add_verbose_arg(p)
     add_overwrite_arg(p)
+    
     return p
 
 

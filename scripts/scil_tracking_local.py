@@ -6,13 +6,18 @@ Local streamline HARDI tractography.
 The tracking direction is chosen in the aperture cone defined by the
 previous tracking direction and the angular constraint.
 
-Algo 'eudx': the peak from the spherical function (SF) most closely aligned
-to the previous direction.
-Algo 'det': the maxima of the spherical function (SF) the most closely aligned
-to the previous direction.
-Algo 'prob': a direction drawn from the empirical distribution function defined
-from the SF.
-Algo 'ptt': Parallel-Transport Tractography. See [1] for more details.
+Algo 'eudx': select the peak from the spherical function (SF) most closely
+aligned to the previous direction, and follow an average of it and the previous
+direction [1].
+
+Algo 'det': select the orientation corresponding to the maximum of the
+spherical function.
+
+Algo 'prob': select a direction drawn from the empirical distribution function
+defined from the SF.
+
+Algo 'ptt': select the propagation direction using Parallel-Transport
+Tractography (PTT) framework, see [2] for more details.
 
 NOTE: eudx can be used with pre-computed peaks from fodf as well as
 evecs_v1.nii.gz from scil_dti_metrics.py (experimental).
@@ -38,11 +43,16 @@ implementations:
 
 All the input nifti files must be in isotropic resolution.
 
+
 References
 ----------
+[1]: Garyfallidis, E. (2012). Towards an accurate brain tractography
+[PhD thesis]. University of Cambridge. United Kingdom.
 
-[1]: Aydogan, D. B., & Shi, Y. (2020). Parallel transport tractography.
+[2]: Aydogan, D. B., & Shi, Y. (2020). Parallel transport tractography.
 IEEE transactions on medical imaging, 40(2), 635-647.
+
+Formerly: scil_compute_local_tracking.py
 """
 
 import argparse
@@ -218,7 +228,7 @@ def main():
             get_direction_getter(
                 args.in_odf, args.algo, args.sphere,
                 args.sub_sphere, args.theta, args.sh_basis,
-                voxel_size, args.sf_threshold),
+                voxel_size, args.sf_threshold, args.sh_to_pmf),
             BinaryStoppingCriterion(mask_data),
             seeds, np.eye(4),
             step_size=vox_step_size, max_cross=1,

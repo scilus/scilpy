@@ -45,7 +45,8 @@ streamlines that have non-zero weight and that contribute to explain the DWI
 signal. Streamlines with 0 weight are essentially not necessary according to
 COMMIT.
 
-COMMIT2 is available only for HDF5 data from scil_decompose_connectivity.py and
+COMMIT2 is available only for HDF5 data from
+scil_tractogram_segment_bundles_for_connectivity.py and
 with the --ball_stick option. Use the --commit2 option to activite it, slightly
 longer computation time. This wrapper offers a simplify way to call COMMIT,
 but does not allow to use (or fine-tune) every parameters. If you want to use
@@ -58,6 +59,8 @@ When tunning parameters, such as --iso_diff, --para_diff, --perp_diff or
     - Confirm the quality of WM bundles reconstruction (essential tractogram)
     - Inspect the (N)RMSE map and look for peaks or anomalies
     - Compare the density map before and after (essential tractogram)
+
+Formerly: scil_run_commit.py
 """
 
 import argparse
@@ -178,9 +181,10 @@ def _build_arg_parser():
                            'located.')
     g2.add_argument('--compute_only', action='store_true',
                     help='Compute kernels only, --save_kernels must be used.')
+
     add_processes_arg(p)
-    add_overwrite_arg(p)
     add_verbose_arg(p)
+    add_overwrite_arg(p)
 
     return p
 
@@ -376,7 +380,7 @@ def main():
         args.in_tractogram = tmp_tractogram_filename
 
     # Writing the scheme file with proper shells
-    tmp_scheme_filename = os.path.join(tmp_dir.name, 'gradients.scheme')
+    tmp_scheme_filename = os.path.join(tmp_dir.name, 'gradients.b')
     tmp_bval_filename = os.path.join(tmp_dir.name, 'bval')
     bvals, _ = read_bvals_bvecs(args.in_bval, args.in_bvec)
     shells_centroids, indices_shells = identify_shells(bvals, args.b_thr,
@@ -402,7 +406,7 @@ def main():
                            path_out=tmp_dir.name)
 
         # Preparation for fitting
-        commit.core.setup(ndirs=args.nbr_dir)
+        commit.core.setup()
         mit = commit.Evaluation('.', '.')
 
         # FIX for very small values during HCP processing

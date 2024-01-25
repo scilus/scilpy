@@ -3,6 +3,8 @@
 
 """
 Compute the axial (para_diff) and mean (iso_diff) diffusivity priors for NODDI.
+
+Formerly: scil_compute_NODDI_priors.py
 """
 
 import argparse
@@ -66,21 +68,21 @@ def _build_arg_parser():
     g3 = p.add_argument_group('Outputs')
     g3.add_argument('--out_txt_1fiber', metavar='FILE',
                     help='Output path for the text file containing the single '
-                         'fiber average value of AD.\nIf not set, the file will not '
-                         'be saved.')
+                         'fiber average value of AD.\nIf not set, the file '
+                         'will not be saved.')
     g3.add_argument('--out_mask_1fiber', metavar='FILE',
                     help='Output path for single fiber mask. If not set, the '
                          'mask will not be saved.')
     g3.add_argument('--out_txt_ventricles', metavar='FILE',
                     help='Output path for the text file containing the '
-                         'ventricles average value of MD.\nIf not set, the file '
-                         'will not be saved.')
+                         'ventricles average value of MD.\nIf not set, the '
+                         'file will not be saved.')
     g3.add_argument('--out_mask_ventricles', metavar='FILE',
                     help='Output path for the ventricule mask.\nIf not set, '
                          'the mask will not be saved.')
 
-    add_overwrite_arg(p)
     add_verbose_arg(p)
+    add_overwrite_arg(p)
 
     return p
 
