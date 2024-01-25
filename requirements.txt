@@ -23,7 +23,7 @@ nilearn==0.9.*
 numpy==1.23.*
 openpyxl==3.0.*
 packaging == 23.2.*
-Pillow==10.0.*
+Pillow==10.2.*
 pybids==0.16.*
 pyparsing==3.0.*
 PySocks==1.7.*
