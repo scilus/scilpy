@@ -24,7 +24,9 @@ def test_execution_3D_map(script_runner):
                                'IFGWM_sub.trk')
 
     ret = script_runner.run('scil_tractogram_project_map_to_streamlines.py',
-                            in_tracto_1, in_t1, 't1_on_streamlines.trk')
+                            in_tracto_1, 't1_on_streamlines.trk',
+                            '--in_metric', in_t1,
+                            '--out_dpp_name', 't1')
     assert ret.success
 
 
@@ -35,7 +37,9 @@ def test_execution_4D_map(script_runner):
                                'IFGWM_sub.trk')
 
     ret = script_runner.run('scil_tractogram_project_map_to_streamlines.py',
-                            in_tracto_1, in_rgb, 'rgb_on_streamlines.trk')
+                            in_tracto_1, 'rgb_on_streamlines.trk',
+                            '--in_metric', in_rgb,
+                            '--out_dpp_name', 'rgb')
     assert ret.success
 
 
@@ -46,8 +50,10 @@ def test_execution_3D_map_endpoints_only(script_runner):
                                'IFGWM_sub.trk')
 
     ret = script_runner.run('scil_tractogram_project_map_to_streamlines.py',
-                            in_tracto_1, in_t1,
+                            in_tracto_1,
                             't1_on_streamlines_endpoints.trk',
+                            '--in_metric', in_t1,
+                            '--out_dpp_name', 't1',
                             '--endpoints_only')
     assert ret.success
 
@@ -59,24 +65,12 @@ def test_execution_4D_map_endpoints_only(script_runner):
                                'IFGWM_sub.trk')
 
     ret = script_runner.run('scil_tractogram_project_map_to_streamlines.py',
-                            in_tracto_1, in_rgb,
+                            in_tracto_1,
                             'rgb_on_streamlines_endpoints.trk',
+                            '--in_metric', in_rgb,
+                            '--out_dpp_name', 'rgb',
                             '--endpoints_only')
     assert ret.success
-
-
-def test_execution_3D_map_dpp_name(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
-    in_t1 = os.path.join(get_home(), 'tractometry', 'mni_masked.nii.gz')
-    in_tracto_1 = os.path.join(get_home(), 'others',
-                               'IFGWM_sub.trk')
-
-    ret = script_runner.run('scil_tractogram_project_map_to_streamlines.py',
-                            in_tracto_1, in_t1,
-                            't1_on_streamlines_dpp_name.trk',
-                            '--dpp_name', 't1')
-    assert ret.success
-
 
 def test_execution_3D_map_trilinear(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
@@ -85,7 +79,9 @@ def test_execution_3D_map_trilinear(script_runner):
                                'IFGWM_sub.trk')
 
     ret = script_runner.run('scil_tractogram_project_map_to_streamlines.py',
-                            in_tracto_1, in_t1,
+                            in_tracto_1,
                             't1_on_streamlines_trilinear.trk',
+                            '--in_metric', in_t1,
+                            '--out_dpp_name', 't1',
                             '--trilinear')
     assert ret.success
