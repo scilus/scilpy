@@ -62,6 +62,15 @@ def _build_arg_parser():
     p.add_argument('in_tractogram', metavar='INPUT_FILE',
                    help='Input tractogram containing streamlines and '
                         'metadata.')
+    p.add_argument('--in_dpp_name',  nargs='+', action='append',
+                   required=True,
+                   help='Name of the data_per_point for operation to be '
+                        'performed on.')
+    p.add_argument('--out_name', nargs='+', action='append',
+                   required=True,
+                   help='Name of the resulting data_per_point or '
+                   'data_per_streamline to be saved in the output '
+                   'tractogram. (Default: %(default)s)')
     p.add_argument('out_tractogram', metavar='OUTPUT_FILE',
                    help='The file where the remaining streamlines '
                         'are saved.')
@@ -70,14 +79,7 @@ def _build_arg_parser():
                    help='If set, will only perform operation on endpoints \n'
                    'If not set, will perform operation on all streamline \n'
                    'points.')
-    p.add_argument('--dpp_name', default='metric',
-                   help='Name of the data_per_point for operation to be '
-                        'performed on. (Default: %(default)s)')
 
-    p.add_argument('--output_name', default='metric_math',
-                   help='Name of the resulting data_per_point or '
-                   'data_per_streamline to be saved in the output '
-                   'tractogram. (Default: %(default)s)')
 
     add_reference_arg(p)
     add_verbose_arg(p)
@@ -105,66 +107,66 @@ def main():
         logging.info("Input tractogram contains no streamlines. Exiting.")
         return
 
-    # Check to see if the data per point exists.
-    if args.dpp_name not in sft.data_per_point:
-        logging.info('Data per point {} not found in input tractogram.'
-                     .format(args.dpp_name))
-        return
+    if len(args.in_dpp_name[0]) != len(args.out_name[0]):
+        parser.error('The number of in_dpp_names and out_names must be '
+                     'the same.')
 
-    # check size of first streamline data_per_point
-    if sft.data_per_point[args.dpp_name][0].shape[1] == 1:
-        is_singular = True
-    else:
-        is_singular = False
+    data_per_point = {}
+    data_per_streamline = {}
+    for in_dpp_name, out_name in zip(args.in_dpp_name[0],
+                                           args.out_name[0]):
+        # Check to see if the data per point exists.
+        if in_dpp_name not in sft.data_per_point:
+            logging.info('Data per point {} not found in input tractogram.'
+                        .format(in_dpp_name))
+            return
 
-    if args.operation == 'correlation' and is_singular:
-        logging.info('Correlation operation requires multivalued data per '
-                     'point. Exiting.')
-        return
+        # check size of first streamline data_per_point
+        if sft.data_per_point[in_dpp_name][0].shape[1] == 1:
+            is_singular = True
+        else:
+            is_singular = False
 
-    # Perform the requested operation.
-    if not is_singular:
-        if args.operation == 'correlation':
-            logging.info('Performing {} across endpoint data.'.format(
-                args.operation))
-            new_dps = perform_streamline_operation_on_endpoints(
-                args.operation, sft, args.dpp_name)
+        if args.operation == 'correlation' and is_singular:
+            logging.info('Correlation operation requires multivalued data per '
+                        'point. Exiting.')
+            return
+
+        # Perform the requested operation.
+        if not is_singular:
+            if args.operation == 'correlation':
+                logging.info('Performing {} across endpoint data.'.format(
+                    args.operation))
+                new_dps = perform_streamline_operation_on_endpoints(
+                    args.operation, sft, in_dpp_name)
+
+                # Adding data per streamline to new_sft
+                data_per_streamline[out_name] = new_dps
+            else:
+                # Results in new data per point
+                logging.info(
+                    'Performing {} on data from each streamine point.'.format(
+                        args.operation))
+                new_dpp = perform_streamline_operation_per_point(
+                    args.operation, sft, in_dpp_name, args.endpoints_only)
+
+                # Adding data per point to new_sft
+                data_per_point[out_name] = new_dpp
+        else:
+            # Results in new data per streamline
+            logging.info(
+                'Performing {} across each streamline.'.format(args.operation))
+            new_data_per_streamline = perform_operation_per_streamline(
+                args.operation, sft, in_dpp_name, args.endpoints_only)
 
             # Adding data per streamline to new_sft
-            new_sft = StatefulTractogram(sft.streamlines,
-                                         sft.space_attributes,
-                                         sft.space, sft.origin,
-                                         data_per_streamline={
-                                             args.output_name:
-                                             new_dps})
-        else:
-            # Results in new data per point
-            logging.info(
-                'Performing {} on data from each streamine point.'.format(
-                    args.operation))
-            new_dpp = perform_streamline_operation_per_point(
-                args.operation, sft, args.dpp_name, args.endpoints_only)
+            data_per_streamline[out_name] = new_data_per_streamline
 
-            # Adding data per point to new_sft
-            new_sft = StatefulTractogram(sft.streamlines,
-                                         sft.space_attributes,
-                                         sft.space, sft.origin,
-                                         data_per_point={
-                                             args.output_name:
-                                             new_dpp})
-    else:
-        # Results in new data per streamline
-        logging.info(
-            'Performing {} across each streamline.'.format(args.operation))
-        new_data_per_streamline = perform_operation_per_streamline(
-            args.operation, sft, args.dpp_name, args.endpoints_only)
-
-        # Adding data per streamline to new_sft
-        new_sft = StatefulTractogram(sft.streamlines, sft.space_attributes,
-                                     sft.space, sft.origin,
-                                     data_per_streamline={
-                                         args.output_name:
-                                         new_data_per_streamline})
+    new_sft = StatefulTractogram(sft.streamlines,
+                                 sft.space_attributes,
+                                 sft.space, sft.origin,
+                                 data_per_point=data_per_point,
+                                 data_per_streamline=data_per_streamline)
 
     if len(new_sft) == 0 and not args.save_empty:
         logging.info("Empty resulting tractogram. Not saving results.")

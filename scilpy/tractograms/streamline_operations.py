@@ -417,9 +417,7 @@ def perform_streamline_operation_per_point(op_name, sft, dpp_name='metric',
     if endpoints_only:
         new_data_per_point = []
         for s in sft.data_per_point[dpp_name]:
-            this_data_per_point = []
-            for p in s:
-                this_data_per_point.append(np.asarray(0.))
+            this_data_per_point = np.nan * np.ones((len(s), 1))
             this_data_per_point[0] = call_op(s[0])
             this_data_per_point[-1] = call_op(s[-1])
             new_data_per_point.append(
@@ -566,12 +564,10 @@ def project_metric_to_streamlines(sft, metric, endpoints_only=False):
                 s[-1][0], s[-1][1], s[-1][2],
                 space=sft.space, origin=sft.origin)
             thisstreamline_data = []
-            for p in s:
-                if dimension == 1:
-                    thisstreamline_data.append(0)
-                else:
-                    thisstreamline_data.append(
-                        np.asarray(np.repeat(0, p1_data.shape[0])))
+            if dimension == 1:
+                thisstreamline_data = np.ones((len(s), 1)) * np.nan
+            else:
+                thisstreamline_data = np.ones((len(s), p1_data.shape[0])) * np.nan
 
             thisstreamline_data[0] = p1_data
             thisstreamline_data[-1] = p2_data
