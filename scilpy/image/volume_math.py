@@ -33,7 +33,7 @@ def get_array_ops():
         ('lower_threshold_eq', lower_threshold_eq),
         ('upper_threshold_eq', upper_threshold_eq),
         ('lower_threshold_otsu', lower_threshold_otsu),
-        ('upper_threshold_otsu', upper_threshold_otsu)
+        ('upper_threshold_otsu', upper_threshold_otsu),
         ('lower_clip', lower_clip),
         ('upper_clip', upper_clip),
         ('absolute_value', absolute_value),
@@ -170,7 +170,7 @@ def lower_threshold_otsu(input_list, ref_img):
 
 def upper_threshold_otsu(input_list, ref_img):
     """
-    upper_threshold_otsu
+    upper_threshold_otsu: IMG
         All values below the Otsu threshold will be set to one.
         All values above or equal to the Otsu threshold will be set to zero.
         Equivalent to lower_threshold_otsu followed by an inversion.
