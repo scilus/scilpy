@@ -24,6 +24,7 @@ from scilpy.image.volume_space_management import DataVolume
 from scilpy.tractograms.streamline_operations import (
     project_metric_to_streamlines)
 
+
 def _build_arg_parser():
     p = argparse.ArgumentParser(
         description=__doc__,

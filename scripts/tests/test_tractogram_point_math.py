@@ -48,7 +48,7 @@ def test_execution_tractogram_point_math_mean_4D_correlation(script_runner):
                              'local_split_0.trk')
 
     in_fodf = os.path.join(get_home(), 'tracking',
-                          'fodf.nii.gz')
+                           'fodf.nii.gz')
     fodf_on_bundle = 'fodf_on_streamlines.trk'
 
     script_runner.run('scil_tractogram_project_map_to_streamlines.py',

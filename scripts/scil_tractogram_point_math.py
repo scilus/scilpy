@@ -80,7 +80,6 @@ def _build_arg_parser():
                    'If not set, will perform operation on all streamline \n'
                    'points.')
 
-
     add_reference_arg(p)
     add_verbose_arg(p)
     add_overwrite_arg(p)
@@ -114,11 +113,11 @@ def main():
     data_per_point = {}
     data_per_streamline = {}
     for in_dpp_name, out_name in zip(args.in_dpp_name[0],
-                                           args.out_name[0]):
+                                     args.out_name[0]):
         # Check to see if the data per point exists.
         if in_dpp_name not in sft.data_per_point:
             logging.info('Data per point {} not found in input tractogram.'
-                        .format(in_dpp_name))
+                         .format(in_dpp_name))
             return
 
         # check size of first streamline data_per_point
@@ -129,7 +128,7 @@ def main():
 
         if args.operation == 'correlation' and is_singular:
             logging.info('Correlation operation requires multivalued data per '
-                        'point. Exiting.')
+                         'point. Exiting.')
             return
 
         # Perform the requested operation.
