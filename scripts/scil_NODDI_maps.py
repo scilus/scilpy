@@ -16,7 +16,6 @@ import os
 import sys
 import tempfile
 
-import amico
 from dipy.io.gradients import read_bvals_bvecs
 import numpy as np
 
@@ -27,6 +26,7 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_output_dirs_exist_and_empty,
                              redirect_stdout_c)
 from scilpy.gradients.bvec_bval_tools import fsl2mrtrix, identify_shells
+from scilpy.reconst.noddi import get_evaluator
 
 EPILOG = """
 Reference:
@@ -126,48 +126,33 @@ def main():
                   'at {}.'.format(len(shells_centroids), shells_centroids))
 
     with redirected_stdout:
-        # Load the data
-        amico.core.setup()
-        ae = amico.Evaluation('.', '.')
-        ae.load_data(args.in_dwi,
-                     tmp_scheme_filename,
-                     mask_filename=args.mask)
-        # Compute the response functions
-        ae.set_model("NODDI")
-
         intra_vol_frac = np.linspace(0.1, 0.99, 12)
         intra_orient_distr = np.hstack((np.array([0.03, 0.06]),
                                         np.linspace(0.09, 0.99, 10)))
 
-        ae.model.set(args.para_diff, args.iso_diff,
-                     intra_vol_frac, intra_orient_distr,
-                     False)
-        ae.set_solver(lambda1=args.lambda1, lambda2=args.lambda2)
+        # One of those is going to be None, or have a value.If it is a valid
+        # kernels path, then everything will work in get_evaluator.
+        kernels_dir = (args.save_kernels or
+                       args.load_kernels or
+                       os.path.join(tmp_dir.name, 'kernels'))
 
-        # The kernels are, by default, set to be in the current directory
-        # Depending on the choice, manually change the saving location
-        if args.save_kernels:
-            kernels_dir = os.path.join(args.save_kernels)
-            regenerate_kernels = True
-        elif args.load_kernels:
-            kernels_dir = os.path.join(args.load_kernels)
-            regenerate_kernels = False
-        else:
-            kernels_dir = os.path.join(tmp_dir.name, 'kernels', ae.model.id)
-            regenerate_kernels = True
+        # Load the data
+        amico = get_evaluator(args.in_dwi, tmp_scheme_filename, args.mask,
+                              args.para_diff, args.iso_diff,
+                              args.lambda1, args.lambda2,
+                              intra_vol_frac, intra_orient_distr,
+                              kernels_dir=kernels_dir)
 
-        ae.set_config('ATOMS_path', kernels_dir)
-        ae.set_config('OUTPUT_path', args.out_dir)
-        ae.generate_kernels(regenerate=regenerate_kernels)
         if args.compute_only:
             return
 
-        ae.load_kernels()
+        amico.load_kernels()
 
         # Model fit
-        ae.fit()
+        amico.fit()
+
         # Save the results
-        ae.save_results()
+        amico.save_results()
 
     tmp_dir.cleanup()
 

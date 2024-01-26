@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 
 dict_to_average = {
     "sub-01": {

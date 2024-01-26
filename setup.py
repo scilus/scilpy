@@ -70,11 +70,17 @@ ver_file = os.path.join('scilpy', 'version.py')
 with open(ver_file) as f:
     exec(f.read())
 
-entry_point_legacy = []
+
+def _format_entry_point(_script, _base):
+    return "{}={}.{}:main".format(os.path.basename(_script), _base,
+                                  os.path.basename(_script).split(".")[0])
+
+
+entry_points = [_format_entry_point(s, "scripts") for s in SCRIPTS]
+
 if os.getenv('SCILPY_LEGACY') != 'False':
-    entry_point_legacy = ["{}=scripts.legacy.{}:main".format(
-                          os.path.basename(s),
-                          os.path.basename(s).split(".")[0]) for s in LEGACY_SCRIPTS]
+    entry_points += [_format_entry_point(s, "scripts.legacy")
+                     for s in LEGACY_SCRIPTS]
 
 opts = dict(name=NAME,
             maintainer=MAINTAINER,
@@ -98,10 +104,8 @@ opts = dict(name=NAME,
             setup_requires=['cython', 'numpy'],
             install_requires=external_dependencies,
             entry_points={
-                'console_scripts': ["{}=scripts.{}:main".format(
-                    os.path.basename(s),
-                    os.path.basename(s).split(".")[0]) for s in SCRIPTS] +
-                entry_point_legacy
+                'console_scripts': entry_points,
+                'pytest11': ["scilpy-test=scilpy.tests.plugin"]
             },
             data_files=[('data/LUT',
                          ["data/LUT/freesurfer_desikan_killiany.json",

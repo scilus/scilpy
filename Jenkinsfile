@@ -41,7 +41,7 @@ pipeline {
                         pip3 install -e .
                         export MPLBACKEND="agg"
                         export OPENBLAS_NUM_THREADS=1
-                        pytest --cov-report term-missing:skip-covered
+                        pytest --cov-report term-missing:skip-covered --mocks all
                     '''
                 }
                 discoverGitReferenceBuild()
