@@ -60,7 +60,9 @@ pipeline {
                     shasum -a 256 -c codecov.SHA256SUM
 
                     chmod +x codecov
-                    ./codecov -t ${CODECOV_TOKEN} -f .test_reports/coverage.xml
+                    ./codecov -t ${CODECOV_TOKEN} \
+                        -f .test_reports/coverage.xml \
+                        -C ${GIT_PREVIOUS_COMMIT}
                 '''
             }
         }
