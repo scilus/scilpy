@@ -45,11 +45,6 @@ pipeline {
                     '''
                 }
                 discoverGitReferenceBuild()
-                recordCoverage(
-                    name: 'Scilpy Coverage Report',
-                    sourceCodeRetention: 'MODIFIED',
-                    tools: [[parser: 'COBERTURA',
-                    pattern: '**/.test_reports/coverage.xml']])
                 sh '''
                     curl https://keybase.io/codecovsecurity/pgp_keys.asc | gpg --no-default-keyring --import # One-time step
                     curl -Os https://uploader.codecov.io/latest/linux/codecov
