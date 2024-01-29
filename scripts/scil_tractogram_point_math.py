@@ -86,7 +86,10 @@ def _build_arg_parser():
                    help='If set, will only perform operation on endpoints \n'
                    'If not set, will perform operation on all streamline \n'
                    'points.')
-
+    p.add_argument('--overwrite_data', action='store_true', default=False,
+                   help='If set, will overwrite the data_per_point or '
+                   'data_per_streamline in the output tractogram, otherwise '
+                   'previous data will be preserved in the output tractogram.')
     add_reference_arg(p)
     add_verbose_arg(p)
     add_overwrite_arg(p)
@@ -139,6 +142,13 @@ def main():
             logging.info('Correlation operation requires dps mode. Exiting.')
             return
 
+        if args.overwrite_data:
+            if in_dpp_name in args.out_name[0]:
+                logging.info('out_name {} already exists in input tractogram. '
+                             'Unset overwrite_data or choose a different '
+                             'out_name. Exiting.'.format(in_dpp_name))
+                return
+
     data_per_point = {}
     data_per_streamline = {}
     for in_dpp_name, out_name in zip(args.in_dpp_name[0],
@@ -172,18 +182,47 @@ def main():
                 args.operation, sft, in_dpp_name, args.endpoints_only)
             data_per_streamline[out_name] = new_data_per_streamline
 
-    new_sft = StatefulTractogram(sft.streamlines,
-                                 sft.space_attributes,
-                                 sft.space, sft.origin,
-                                 data_per_point=data_per_point,
-                                 data_per_streamline=data_per_streamline)
+
+    if args.overwrite_data:
+        new_sft = sft.from_sft(sft.streamlines, sft,
+                               data_per_point=data_per_point,
+                               data_per_streamline=data_per_streamline)
+    else:
+        old_data_per_streamline = {}
+        for key, value in sft.data_per_streamline.items():
+            old_data_per_streamline[key] = value
+
+        old_data_per_point = {}
+        for key, value in sft.data_per_point.items():
+            old_data_per_point[key] = value
+
+        if data_per_point is not None:
+            for key, value in data_per_point.items():
+                old_data_per_point[key] = value
+
+        if data_per_streamline is not None:
+            for key, value in data_per_streamline.items():
+                old_data_per_streamline[key] = value
+
+        new_sft = sft.from_sft(sft.streamlines, sft,
+                               data_per_point=old_data_per_point,
+                               data_per_streamline=old_data_per_streamline)
+
+    # Print DPP names
+    logging.info('New data per point names:')
+    for key in new_sft.data_per_point.keys():
+        logging.info(key)
+
+    # Print DPS names
+    logging.info('New data per streamline names:')
+    for key in new_sft.data_per_streamline.keys():
+        logging.info(key)
 
     # Save the new streamlines (and metadata)
     logging.info('Saving {} streamlines to {}.'.format(len(new_sft),
                                                        args.out_tractogram))
     save_tractogram(new_sft, args.out_tractogram,
                     bbox_valid_check=args.bbox_check)
-
 
 if __name__ == "__main__":
     main()
