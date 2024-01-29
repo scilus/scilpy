@@ -47,6 +47,7 @@ pipeline {
                 }
                 script {
                     GIT_COMMIT = sh(returnStdout: true, script: 'git rev-parse $GIT_BRANCH').trim()
+                    GIT_PREVIOUS_COMMIT = sh(returnStdout: true, script: 'git merge-base origin/master $GIT_BRANCH').trim()
                 }
                 discoverGitReferenceBuild()
                 sh '''
@@ -60,7 +61,9 @@ pipeline {
 
                     chmod +x codecov
                     ./codecov -v -t ${CODECOV_TOKEN} \
-                        -f .test_reports/coverage.xml
+                        -f .test_reports/coverage.xml \
+                        -C ${GIT_COMMIT} \
+                        -N ${GIT_PREVIOUS_COMMIT}
                 '''
             }
         }
