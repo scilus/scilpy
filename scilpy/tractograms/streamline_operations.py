@@ -389,3 +389,32 @@ def smooth_line_spline(streamline, smoothing_parameter, nb_ctrl_points):
     smoothed_streamline[-1] = streamline[-1]
 
     return smoothed_streamline
+
+
+def generate_matched_points(sft):
+    """
+    Generate an array where each element i is set to the index of the
+    streamline that contributes the ith point.
+
+    Parameters:
+    -----------
+    sft : StatefulTractogram
+        The stateful tractogram containing the streamlines.
+
+    Returns:
+    --------
+    matched_points : ndarray
+        An array where each element is set to the index of the streamline
+        that contributes that point.
+    """
+    total_points = sft.streamlines._data.shape[0]
+    offsets = sft.streamlines._offsets
+
+    matched_points = np.zeros(total_points, dtype=np.uint64)
+
+    for i in range(len(offsets) - 1):
+        matched_points[offsets[i]:offsets[i+1]] = i
+
+    matched_points[offsets[-1]:] = len(offsets) - 1
+
+    return matched_points
