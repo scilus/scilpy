@@ -15,6 +15,7 @@ before launching pre-processing.
 """
 
 import argparse
+import pprint
 
 from dipy.io.gradients import read_bvals_bvecs
 import nibabel as nib
@@ -23,7 +24,10 @@ import numpy as np
 from scilpy.io.utils import (assert_inputs_exist,
                              add_force_b0_arg,
                              add_verbose_arg)
-from scilpy.gradients.bvec_bval_tools import check_b0_threshold, normalize_bvecs
+from scilpy.gradients.bvec_bval_tools import (check_b0_threshold,
+                                              identify_shells,
+                                              normalize_bvecs,
+                                              round_bvals_to_shell)
 import math
 
 
@@ -68,7 +72,9 @@ def main():
     bvecs = normalize_bvecs(bvecs)
 
     results_dict = {}
-    for bval in np.unique(bvals[bvals > b0_thr]):
+    shells_to_extract = identify_shells(bvals, b0_thr, sort=True)[0]
+    bvals = round_bvals_to_shell(bvals, shells_to_extract)
+    for bval in shells_to_extract[shells_to_extract > args.b0_thr]:
         shell_idx = np.where(bvals == bval)[0]
         shell = bvecs[shell_idx]
         results_dict[bval] = np.ones((len(shell), 3)) * -1
@@ -77,10 +83,8 @@ def main():
                 continue
 
             dot_product = np.clip(np.tensordot(shell, vec, axes=1), -1, 1)
-            # print(dot_product)
             angle = np.arccos(dot_product) * 180 / math.pi
             angle[np.isnan(angle)] = 0
-
             idx = np.argpartition(angle, 4).tolist()
             idx.remove(i)
 
@@ -122,11 +126,11 @@ def main():
                 print(results_dict[key][i, :][0][0::2])
         else:
             print('No outliers detected.')
-        print()
 
         if args.verbose:
-            print()
-            print(results_dict)
+            print('Shell with b-value {}'.format(key))
+            pprint.pprint(results_dict[key])
+        print()
 
 
 if __name__ == "__main__":
