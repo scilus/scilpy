@@ -1,20 +1,7 @@
 codecov:
   allow_coverage_offsets: True
-  
-  comment:
-    layout: "header, diff, flags, components"
 
-  component_management:
-    individual_components:
-      - component_id: scilpy_scripts
-        name: Scripts
-        paths:
-          - scripts/
-      - component_id: scilpy_library
-        name: Library
-        paths:
-          - scilpy/
-
+coverage:
   status:
     project:
       default:
@@ -32,3 +19,16 @@ codecov:
         if_ci_failed: error
         only_pulls: false
 
+component_management:
+  individual_components:
+    - component_id: scilpy_scripts
+      name: Scripts
+      paths:
+        - scripts/
+    - component_id: scilpy_library
+      name: Library
+      paths:
+        - scilpy/
+
+comment:
+  layout: "condensed_header, diff, components"
