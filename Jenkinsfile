@@ -31,6 +31,14 @@ pipeline {
         stage('Test') {
             environment {
                 CODECOV_TOKEN = credentials('scilpy-codecov-token')
+                CODECOV_GIT_COMMIT = """${sh(
+                    returnStdout: true,
+                    script: 'git rev-parse $GIT_BRANCH'
+                ).trim()}"""
+                CODECOV_PARENT_COMMIT = """${sh(
+                    returnStdout: true,
+                    script: 'git merge-base origin/master $GIT_BRANCH'
+                ).trim()}"""
             }
             steps {
                 withPythonEnv('CPython-3.10') {
@@ -45,10 +53,6 @@ pipeline {
                         pytest --cov-report term-missing:skip-covered
                     '''
                 }
-                script {
-                    GIT_COMMIT = sh(returnStdout: true, script: 'git rev-parse $GIT_BRANCH').trim()
-                    GIT_PREVIOUS_COMMIT = sh(returnStdout: true, script: 'git merge-base origin/master $GIT_BRANCH').trim()
-                }
                 discoverGitReferenceBuild()
                 sh '''
                     curl https://keybase.io/codecovsecurity/pgp_keys.asc | gpg --no-default-keyring --import # One-time step
@@ -62,8 +66,8 @@ pipeline {
                     chmod +x codecov
                     ./codecov -v -t ${CODECOV_TOKEN} \
                         -f .test_reports/coverage.xml \
-                        -C ${GIT_COMMIT} \
-                        -N ${GIT_PREVIOUS_COMMIT}
+                        -C ${CODECOV_GIT_COMMIT} \
+                        -N ${CODECOV_PARENT_COMMIT}
                 '''
             }
         }
