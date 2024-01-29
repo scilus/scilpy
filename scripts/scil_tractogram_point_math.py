@@ -2,32 +2,29 @@
 # -*- coding: utf-8 -*-
 
 """
-Performs an operation on data per point from streamlines
-resulting in data per streamline.  The supported
-operations are:
+Performs an operation on data per point from input streamlines.
 
-If the chosen dpp key refers to numerical values (one single number per point):
-mean: mean across points per streamline
-sum: sum across points per streamline
-min: min value across points per streamline
-max: max value across points per streamline
+Two modes of operation are supported: data per streamline (dps) and data per
+point (dpp).
 
-if endpoints_only is set, min/max/mean/sum will only
-be calculated using the streamline endpoints
+In dps mode, the operation is performed across all dimensions of the data
+resulting in a single value per streamline.
 
-If the chosen dpp key refers to data stored as arrays (multiple numbers per point):
-mean: mean calculated per point for each streamline
-sum: sum calculated per point for each streamline
-min: min value calculated per point for each streamline
-max: max value calculated per point for each streamline
+In dpp mode the operation is performed on each point separately, resulting in
+a single value per point.
 
-if endpoints_only is set, min/max/mean/sum will only
+If endpoints_only and dpp mode is set operation will only
 be calculated at the streamline endpoints the rest of the
 values along the streamline will be NaN
 
-Endpoint only operations:
+If endpoints_only and dps mode is set operation will be calculated
+across the data at the endpoints and stored as a
+single value per streamline.
+
+Endpoint only operation:
 correlation: correlation calculated between arrays extracted from
-streamline endpoints (data must be multivalued per point)
+streamline endpoints (data must be multivalued per point) and dps
+mode must be set.
 """
 
 import argparse
@@ -43,7 +40,7 @@ from scilpy.io.utils import (add_bbox_arg,
                              assert_inputs_exist,
                              assert_outputs_exist)
 from scilpy.tractograms.streamline_operations import (
-        perform_streamline_operation_on_endpoints,
+        perform_pairwise_streamline_operation_on_endpoints,
         perform_streamline_operation_per_point,
         perform_operation_per_streamline)
 
@@ -59,6 +56,13 @@ def _build_arg_parser():
                    help='The type of operation to be performed on the '
                         'streamlines. Must\nbe one of the following: '
                         '%(choices)s.')
+    p.add_argument('dpp_or_dps', metavar='DPP_OR_DPS',
+                   choices=['dpp', 'dps'],
+                   help='Set to dps if the operation is to be performed '
+                   'across all dimensions resulting in a single value per '
+                   'streamline. Set to dpp if the operation is to be '
+                   'performed on each point separately resulting in a single '
+                   'value per point.')
     p.add_argument('in_tractogram', metavar='INPUT_FILE',
                    help='Input tractogram containing streamlines and '
                         'metadata.')
@@ -117,46 +121,49 @@ def main():
     if len(args.out_name[0]) != len(set(args.out_name[0])):
         parser.error('The output names (out_names) must be unique.')
 
-    data_per_point = {}
-    data_per_streamline = {}
-    for in_dpp_name, out_name in zip(args.in_dpp_name[0],
-                                     args.out_name[0]):
+    # Input name checks
+    for in_dpp_name in args.in_dpp_name[0]:
         # Check to see if the data per point exists.
         if in_dpp_name not in sft.data_per_point:
             logging.info('Data per point {} not found in input tractogram.'
                          .format(in_dpp_name))
             return
 
-        # check size of first streamline data_per_point
-        if sft.data_per_point[in_dpp_name][0].shape[1] == 1:
-            is_singular = True
-        else:
-            is_singular = False
-
-        if args.operation == 'correlation' and is_singular:
+        data_shape = sft.data_per_point[in_dpp_name][0].shape
+        if args.operation == 'correlation' and len(data_shape) == 1:
             logging.info('Correlation operation requires multivalued data per '
                          'point. Exiting.')
             return
 
-        # Perform the requested operation.
-        if not is_singular:
-            if args.operation == 'correlation':
-                logging.info('Performing {} across endpoint data and saving as new dpp {}'.format(
-                    args.operation, out_name))
-                new_dps = perform_streamline_operation_on_endpoints(
-                    args.operation, sft, in_dpp_name)
+        if args.operation == 'correlation' and args.dpp_or_dps == 'dpp':
+            logging.info('Correlation operation requires dps mode. Exiting.')
+            return
 
-                data_per_streamline[out_name] = new_dps
-            else:
-                # Results in new data per point
-                logging.info(
-                    'Performing {} on data from each streamine point '
-                    'and saving as new dpp {}'.format(
-                        args.operation, out_name))
-                new_dpp = perform_streamline_operation_per_point(
-                    args.operation, sft, in_dpp_name, args.endpoints_only)
-                data_per_point[out_name] = new_dpp
-        else:
+    data_per_point = {}
+    data_per_streamline = {}
+    for in_dpp_name, out_name in zip(args.in_dpp_name[0],
+                                     args.out_name[0]):
+
+
+        # Perform the requested operation.
+        if args.operation == 'correlation':
+            logging.info('Performing {} across endpoint data and saving as '
+                         'new dpp {}'.format(
+                args.operation, out_name))
+            new_dps = perform_pairwise_streamline_operation_on_endpoints(
+                args.operation, sft, in_dpp_name)
+
+            data_per_streamline[out_name] = new_dps
+        elif args.dpp_or_dps == 'dpp':
+            # Results in new data per point
+            logging.info(
+                'Performing {} on data from each streamine point '
+                'and saving as new dpp {}'.format(
+                    args.operation, out_name))
+            new_dpp = perform_streamline_operation_per_point(
+                args.operation, sft, in_dpp_name, args.endpoints_only)
+            data_per_point[out_name] = new_dpp
+        elif args.dpp_or_dps == 'dps':
             # Results in new data per streamline
             logging.info(
                 'Performing {} across each streamline and saving resulting '

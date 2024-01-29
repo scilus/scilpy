@@ -437,7 +437,7 @@ def perform_streamline_operation_per_point(op_name, sft, dpp_name='metric',
 
 def perform_operation_per_streamline(op_name, sft, dpp_name='metric',
                                      endpoints_only=False):
-    """Peforms an operation across points for each streamline.
+    """Performs an operation across all data points for each streamline.
 
     Parameters
     ----------
@@ -461,16 +461,19 @@ def perform_operation_per_streamline(op_name, sft, dpp_name='metric',
     if endpoints_only:
         new_data_per_streamline = []
         for s in sft.data_per_point[dpp_name]:
-            new_data_per_streamline.append(call_op([s[0], s[-1]]))
+            start = s[0]
+            end = s[-1]
+            concat = np.concatenate((start[:], end[:]), axis=0)
+            new_data_per_streamline.append(call_op(concat))
     else:
         new_data_per_streamline = []
         for s in sft.data_per_point[dpp_name]:
-            new_data_per_streamline.append(call_op(s))
+            new_data_per_streamline.append(call_op(s[:]))
 
     return new_data_per_streamline
 
 
-def perform_streamline_operation_on_endpoints(op_name, sft, dpp_name='metric'):
+def perform_pairwise_streamline_operation_on_endpoints(op_name, sft, dpp_name='metric'):
     """Peforms an operation across endpoints for each streamline.
 
     Parameters
