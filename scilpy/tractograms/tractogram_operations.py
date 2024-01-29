@@ -927,7 +927,7 @@ def _compute_difference_for_voxel(chunk_indices,
     return results
 
 
-def compare_tractogram_wrapper(mask, nbr_cpu, skip_streamlines_distance):
+def _compare_tractogram_wrapper(mask, nbr_cpu, skip_streamlines_distance):
     """
     Wrapper for the comparison of two tractograms. This function uses
     multiprocessing to compute the difference between two sets of streamlines
@@ -1083,8 +1083,8 @@ def tractogram_pairwise_comparison(sft_one, sft_two, mask, nbr_cpu=1,
     global B
     B, _ = sh_to_sf_matrix(get_sphere('repulsion724'), 8, 'descoteaux07')
 
-    diff_data, acc_data = compare_tractogram_wrapper(mask, nbr_cpu,
-                                                     skip_streamlines_distance)
+    diff_data, acc_data = _compare_tractogram_wrapper(mask, nbr_cpu,
+                                                      skip_streamlines_distance)
 
     # Normalize metrics
     acc_norm = normalize_metric(acc_data)
