@@ -215,14 +215,47 @@ def add_overwrite_arg(parser):
         help='Force overwriting of the output files.')
 
 
-def add_skip_b0_check_arg(parser, will_overwrite_with_min: bool,
+def add_tolerance_arg(parser):
+    parser.add_argument(
+        '--tolerance', type=int, default=20,
+        help='The tolerated gap between the b-values to extract and the '
+             'current b-value.\n'
+             'We would expect to find at least one b-value in the range '
+             '[0, tolerance], acting as a b0.\n'
+             'To skip this check, use --skip_b0_check.\n'
+             '[Default: %(default)s]')
+
+
+def add_b0_thresh_arg(parser):
+    parser.add_argument(
+        '--b0_threshold', type=float, default=DEFAULT_B0_THRESHOLD,
+        help='Threshold under which b-values are considered to be b0s.\n'
+             'We would expect to find at least one b-value in the range '
+             '[0, b0_threshold], acting as a b0.\n'
+             'To skip this check, use --skip_b0_check.\n'
+             'Default if not set is {}.'.format(DEFAULT_B0_THRESHOLD))
+
+
+def add_skip_b0_check_arg(parser, will_overwrite_with_min,
                           b0_tol_name='--b0_threshold'):
+    """
+    Parameters
+    ----------
+    parser: argparse.ArgumentParser object
+        Parser.
+    will_overwrite_with_min: bool
+        If true, the help message will explain that b0_threshold could be
+        overwritten.
+    b0_tol_name: str
+        Name of the argparse parameter acting as b0_threshold. Should probably
+        be either '--b0_threshold' or '--tolerance'.
+    """
     msg = ('By default, we supervise that at least one b0 exists in your '
            'data\n'
            '(i.e. b-values below the default {}). Use this option to '
-          'allow continuing \n'
+           'allow continuing \n'
            'even if the minimum b-value is suspiciously high.\n'
-          .format(b0_tol_name))
+           .format(b0_tol_name))
     if will_overwrite_with_min:
         msg += ('If no b-value is found below the threshold, the script will '
                 'continue \nwith your minimal b-value as new {}.\n'
@@ -231,13 +264,6 @@ def add_skip_b0_check_arg(parser, will_overwrite_with_min: bool,
 
     parser.add_argument(
         '--skip_b0_check', action='store_true', help=msg)
-
-
-def add_b0_thresh_arg(parser):
-    parser.add_argument(
-        '--b0_threshold', type=float, default=DEFAULT_B0_THRESHOLD,
-        help='Threshold under which b-values are considered to be b0s.\n'
-             'Default if not set is {}.'.format(DEFAULT_B0_THRESHOLD))
 
 
 def add_verbose_arg(parser):

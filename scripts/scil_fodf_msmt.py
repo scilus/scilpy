@@ -37,7 +37,7 @@ from scilpy.io.utils import (add_overwrite_arg, add_processes_arg,
                              add_sh_basis_args, add_skip_b0_check_arg,
                              assert_inputs_exist, assert_outputs_exist,
 
-                             add_verbose_arg)
+                             add_verbose_arg, add_tolerance_arg)
 from scilpy.reconst.fodf import fit_from_model
 from scilpy.reconst.sh import convert_sh_basis
 
@@ -67,14 +67,7 @@ def _build_arg_parser():
         '--mask', metavar='',
         help='Path to a binary mask. Only the data inside the '
              'mask will be used for computations and reconstruction.')
-    p.add_argument(
-        '--tolerance', type=int, default=20,
-        help='The tolerated gap between the b-values to extract and the '
-             'current b-value.\n'
-             'We would expect to find at least one b-value in the range '
-             '[0, tolerance], acting as a b0.\n'
-             'To skip this check, use --skip_b0_check.\n'
-             '[Default: %(default)s]')
+    add_tolerance_arg(p)
     add_skip_b0_check_arg(p, will_overwrite_with_min=False,
                           b0_tol_name='--tolerance')
     add_sh_basis_args(p)

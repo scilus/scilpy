@@ -59,7 +59,7 @@ from scilpy.image.volume_operations import smooth_to_fwhm
 from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_overwrite_arg, add_skip_b0_check_arg,
                              add_verbose_arg, assert_inputs_exist,
-                             assert_outputs_exist, )
+                             assert_outputs_exist, add_tolerance_arg, )
 from scilpy.gradients.bvec_bval_tools import (check_b0_threshold,
                                               is_normalized_bvecs,
                                               identify_shells,
@@ -82,14 +82,7 @@ def _build_arg_parser():
                         'Only data inside the mask will be used for '
                         'computations and reconstruction.\n[Default: None]')
 
-    p.add_argument('--tolerance', '-t',
-                   metavar='INT', type=int, default=20,
-                   help='The tolerated distance between the b-values to '
-                   'extract\nand the actual b-values.\n'
-                   'We would expect to find at least one b-value in the range '
-                   '[0, tolerance], acting as a b0.\n'
-                   'To skip this check, use --skip_b0_validation.\n'
-                   '[Default: %(default)s]')
+    add_tolerance_arg(p)
     add_skip_b0_check_arg(p, will_overwrite_with_min=False,
                           b0_tol_name='--tolerance')
 
