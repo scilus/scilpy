@@ -28,3 +28,12 @@ def test_execution_processing(script_runner):
                             'sf_724.bval', '--out_bvec', 'sf_724.bvec',
                             '--sphere', 'symmetric724', '--dtype', 'float32')
     assert ret.success
+
+    # Test wrong b0. Current minimal b-val is 5
+    ret = script_runner.run('scil_sh_to_sf.py', in_sh,
+                            'sf_724.nii.gz', '--in_bval',
+                            in_bval, '--in_b0', in_b0, '--out_bval',
+                            'sf_724.bval', '--out_bvec', 'sf_724.bvec',
+                            '--sphere', 'symmetric724', '--dtype', 'float32',
+                            '--b0_threshold', '1', '-f')
+    assert not ret.success

@@ -72,7 +72,7 @@ def main():
 
     # gtab.b0s_mask in used in compute_sh_coefficients to get the b0s.
     args.b0_threshold = check_b0_threshold(bvals.min(),
-                                           b0_threshold=args.b0_threshold,
+                                           b0_thr=args.b0_threshold,
                                            skip_b0_check=args.skip_b0_check)
     gtab = gradient_table(bvals, bvecs, b0_threshold=args.b0_threshold)
 

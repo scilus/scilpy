@@ -161,7 +161,7 @@ def main():
     # ask them to clarify the usage of gtab.b0s_mask. See here:
     #  https://github.com/dipy/dipy/issues/3015
     # b0_threshold option in gradient_table probably unused.
-    _ = check_b0_threshold(bvals.min(), b0_threshold=args.tolerance,
+    _ = check_b0_threshold(bvals.min(), b0_thr=args.tolerance,
                            skip_b0_check=args.skip_b0_check)
     gtab = gradient_table(bvals, bvecs, b0_threshold=args.tolerance)
 

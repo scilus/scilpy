@@ -55,7 +55,7 @@ def normalize_bvecs(bvecs):
     return bvecs
 
 
-def check_b0_threshold(min_bval, b0_threshold, skip_b0_check):
+def check_b0_threshold(min_bval, b0_thr, skip_b0_check):
     """
     Check if the minimal bvalue is under the threshold. If not, raise an
     error to ask user to update the b0_thr.
@@ -67,7 +67,7 @@ def check_b0_threshold(min_bval, b0_threshold, skip_b0_check):
     ----------
     min_bval : float
         Minimum bvalue.
-    b0_threshold: float
+    b0_thr: float
         Maximum bvalue considered as a b0.
     skip_b0_check: bool
         If True, and no b0 is found, only print a warning, do not raise
@@ -76,10 +76,9 @@ def check_b0_threshold(min_bval, b0_threshold, skip_b0_check):
     Raises
     ------
     ValueError
-        If the minimal bvalue is over the threshold (and skip_b0_validation is
+        If the minimal bvalue is over the threshold (and skip_b0_check is
         False).
     """
-    b0_thr = args.b0_threshold
     if b0_thr > DEFAULT_B0_THRESHOLD:
         logging.warning(
             'Your defined b0 threshold is {}. This is suspicious. We '
@@ -93,11 +92,11 @@ def check_b0_threshold(min_bval, b0_threshold, skip_b0_check):
             .format(min_bval))
 
     if min_bval > b0_thr:
-        if args.skip_b0_validation:
+        if skip_b0_check:
             logging.warning("GOT {} > {}".format(min_bval, b0_thr))
             logging.warning(
                 'Your minimal bvalue ({}), is above the threshold ({})\n'
-                'Since --skip_b0_validation was specified, the script will '
+                'Since --skip_b0_check was specified, the script will '
                 'proceed with a b0 threshold of {}.'
                 .format(min_bval, b0_thr, min_bval))
             return min_bval
@@ -107,7 +106,7 @@ def check_b0_threshold(min_bval, b0_threshold, skip_b0_check):
                 'No b0 volumes can be found.\n'
                 'Please check your data to ensure everything is correct.\n'
                 'You may also increase the threshold or use '
-                '--skip_b0_validation'
+                '--skip_b0_check'
                 .format(min_bval, b0_thr))
     return b0_thr
 

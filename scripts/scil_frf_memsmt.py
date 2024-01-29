@@ -52,7 +52,8 @@ from scilpy.io.btensor import generate_btensor_input
 from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_overwrite_arg, add_verbose_arg,
                              assert_inputs_exist, assert_outputs_exist,
-                             assert_roi_radii_format, add_skip_b0_check_arg)
+                             assert_roi_radii_format, add_skip_b0_check_arg,
+                             add_tolerance_arg)
 from scilpy.reconst.frf import compute_msmt_frf
 
 
@@ -132,10 +133,7 @@ def _build_arg_parser():
                    help='Minimal number of voxels needed for each tissue masks'
                         ' in order to \nproceed to frf estimation. '
                         '[%(default)s]')
-    p.add_argument('--tolerance',
-                   type=int, default=20,
-                   help='The tolerated gap between the b-values to '
-                        'extract and the current b-value. [%(default)s]')
+    add_tolerance_arg(p)
     add_skip_b0_check_arg(p, will_overwrite_with_min=False,
                           b0_tol_name='--tolerance')
     p.add_argument('--dti_bval_limit',

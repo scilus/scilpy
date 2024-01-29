@@ -29,7 +29,7 @@ from scilpy.reconst.frf import compute_ssst_frf
 def _build_arg_parser():
     p = argparse.ArgumentParser(
         description=__doc__,
-        formatter_class=argparse.RawDescriptionHelpFormatter,
+        formatter_class=argparse.RawTextHelpFormatter,
         epilog="References: [1] Tournier et al. NeuroImage 2007")
 
     p.add_argument('in_dwi',
@@ -44,28 +44,28 @@ def _build_arg_parser():
 
     p.add_argument('--mask',
                    help='Path to a binary mask. Only the data inside the '
-                        'mask will be used for computations and '
-                        'reconstruction. Useful if no white matter mask '
+                        'mask will be used \nfor computations and '
+                        'reconstruction. Useful if no white matter mask \n'
                         'is available.')
     p.add_argument('--mask_wm',
                    help='Path to a binary white matter mask. Only the data '
-                        'inside this mask and above the threshold defined '
-                        'by --fa will be used to estimate the fiber response '
-                        'function.')
+                        'inside this mask \nand above the threshold defined '
+                        'by --fa will be used to estimate the \nfiber '
+                        'response function.')
     p.add_argument('--fa', dest='fa_thresh',
                    default=0.7, type=float,
                    help='If supplied, use this threshold as the initial '
-                        'threshold to select single fiber voxels. '
+                        'threshold to select \nsingle fiber voxels. '
                         '[%(default)s]')
     p.add_argument('--min_fa', dest='min_fa_thresh',
                    default=0.5, type=float,
                    help='If supplied, this is the minimal value that will be '
-                        'tried when looking for single fiber '
+                        'tried when looking \nfor single fiber '
                         'voxels. [%(default)s]')
     p.add_argument('--min_nvox',
                    default=300, type=int,
                    help='Minimal number of voxels needing to be identified '
-                        'as single fiber voxels in the automatic '
+                        'as single fiber voxels \nin the automatic '
                         'estimation. [%(default)s]')
 
     p.add_argument('--roi_radii',
@@ -104,7 +104,7 @@ def main():
 
     bvals, bvecs = read_bvals_bvecs(args.in_bval, args.in_bvec)
     args.b0_threshold = check_b0_threshold(bvals.min(),
-                                           b0_threshold=args.b0_threshold,
+                                           b0_thr=args.b0_threshold,
                                            skip_b0_check=args.skip_b0_check)
     mask = None
     if args.mask:

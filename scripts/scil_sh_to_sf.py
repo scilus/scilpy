@@ -79,6 +79,7 @@ def _build_arg_parser():
     # explanation in the text.
     p.add_argument(
         '--b0_threshold', type=float, default=DEFAULT_B0_THRESHOLD,
+        metavar='thr',
         help='Threshold under which b-values are considered to be b0s.\n'
              'Default if not set is {}.\n'
              'This value is used with options --in_bvec or --in_bval only.'
@@ -124,7 +125,7 @@ def main():
     elif args.in_bval:
         bvals, _ = read_bvals_bvecs(args.in_bval, None)
     args.b0_threshold = check_b0_threshold(bvals.min(),
-                                           b0_threshold=args.b0_threshold,
+                                           b0_thr=args.b0_threshold,
                                            skip_b0_check=args.skip_b0_check)
     # Load SH
     vol_sh = nib.load(args.in_sh)

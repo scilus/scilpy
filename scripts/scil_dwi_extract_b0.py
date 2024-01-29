@@ -61,8 +61,8 @@ def _build_arg_parser():
 
     p.add_argument('--single-image', action='store_true',
                    help='If output b0 volume has multiple time points, only '
-                        'outputs a single image instead of a numbered series '
-                        'of images.')
+                        'outputs a single \nimage instead of a numbered '
+                        'series of images.')
 
     add_b0_thresh_arg(p)
     add_skip_b0_check_arg(p, will_overwrite_with_min=True)
@@ -96,7 +96,7 @@ def main():
     bvals, bvecs = read_bvals_bvecs(args.in_bval, args.in_bvec)
 
     args.b0_threshold = check_b0_threshold(bvals.min(),
-                                           b0_threshold=args.b0_threshold,
+                                           b0_thr=args.b0_threshold,
                                            skip_b0_check=args.skip_b0_check)
     gtab = gradient_table(bvals, bvecs, b0_threshold=args.b0_threshold)
     b0_idx = np.where(gtab.b0s_mask)[0]

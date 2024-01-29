@@ -177,7 +177,7 @@ def main():
     # Note. This script does not currently allow using a separate b0_threshold
     # for the b0s. Using the tolerance. To fix this, we would need to change
     # the unique_bvals_tolerance and extract_dwi_shell methods.
-    _ = check_b0_threshold(bvals.min(), b0_threshold=args.tolerance,
+    _ = check_b0_threshold(bvals.min(), b0_thr=args.tolerance,
                            skip_b0_check=args.skip_b0_check)
     list_bvals = unique_bvals_tolerance(bvals, tol=args.tolerance)
     if not np.all(list_bvals <= dti_lim):

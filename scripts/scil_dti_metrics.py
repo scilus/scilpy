@@ -274,7 +274,7 @@ def main():
     # 2) But we do use this information below, with options p_i_signal,
     #    pulsation and residual.
     args.b0_threshold = check_b0_threshold(bvals.min(),
-                                           b0_threshold=args.b0_threshold,
+                                           b0_thr=args.b0_threshold,
                                            skip_b0_check=args.skip_b0_check)
     gtab = gradient_table(bvals, bvecs, b0_threshold=args.b0_threshold)
 

@@ -52,7 +52,7 @@ def _build_arg_parser():
     p.add_argument(
         '--mask', metavar='',
         help='Path to a binary mask. Only the data inside the mask will be '
-             'used for computations and reconstruction.')
+             'used \nfor computations and reconstruction.')
 
     add_b0_thresh_arg(p)
     add_skip_b0_check_arg(p, will_overwrite_with_min=True)
@@ -104,7 +104,7 @@ def main():
 
     # gtab.b0s_mask is used in dipy's csdeconv class.
     args.b0_threshold = check_b0_threshold(bvals.min(),
-                                           b0_threshold=args.b0_threshold,
+                                           b0_thr=args.b0_threshold,
                                            skip_b0_check=args.skip_b0_check)
     gtab = gradient_table(bvals, bvecs, b0_threshold=args.b0_threshold)
 

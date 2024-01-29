@@ -113,7 +113,7 @@ def generate_btensor_input(in_dwis, in_bvals, in_bvecs, in_bdeltas,
         if inputf:  # verifies if the input file exists
             vol = nib.load(inputf)
             bvals, bvecs = read_bvals_bvecs(bvalsf, bvecsf)
-            _ = check_b0_threshold(bvals.min(), b0_threshold=tol,
+            _ = check_b0_threshold(bvals.min(), b0_thr=tol,
                                    skip_b0_check=skip_b0_check)
             if np.sum([bvals > tol]) != 0:
                 bvals = np.round(bvals)
