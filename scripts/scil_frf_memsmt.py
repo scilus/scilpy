@@ -52,7 +52,7 @@ from scilpy.io.btensor import generate_btensor_input
 from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_overwrite_arg, add_verbose_arg,
                              assert_inputs_exist, assert_outputs_exist,
-                             assert_roi_radii_format)
+                             assert_roi_radii_format, add_skip_b0_check_arg)
 from scilpy.reconst.frf import compute_msmt_frf
 
 
@@ -136,6 +136,8 @@ def _build_arg_parser():
                    type=int, default=20,
                    help='The tolerated gap between the b-values to '
                         'extract and the current b-value. [%(default)s]')
+    add_skip_b0_check_arg(p, will_overwrite_with_min=False,
+                          b0_tol_name='--tolerance')
     p.add_argument('--dti_bval_limit',
                    type=int, default=1200,
                    help='The highest b-value taken for the DTI model. '
@@ -200,11 +202,9 @@ def main():
     # for the b0s. Using the tolerance. To change this, we would have to
     # change generate_btensor_input. Not doing any verification on the
     # bvals. Typically, we would use check_b0_threshold(bvals.min(), args)
-    gtab, data, ubvals, ubdeltas = generate_btensor_input(args.in_dwis,
-                                                          args.in_bvals,
-                                                          args.in_bvecs,
-                                                          args.in_bdeltas,
-                                                          tol=args.tolerance)
+    gtab, data, ubvals, ubdeltas = generate_btensor_input(
+        args.in_dwis, args.in_bvals, args.in_bvecs, args.in_bdeltas,
+        tol=args.tolerance, skip_b0_check=args.skip_b0_check)
 
     if not np.all(ubvals <= args.dti_bval_limit):
         if np.sum(ubdeltas == 1) > 0:

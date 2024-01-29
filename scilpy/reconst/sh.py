@@ -12,11 +12,13 @@ from dipy.reconst.shm import (sh_to_sf_matrix, order_from_ncoef, sf_to_sh,
 
 from scilpy.gradients.bvec_bval_tools import (identify_shells,
                                               is_normalized_bvecs,
-                                              normalize_bvecs)
+                                              normalize_bvecs,
+                                              DEFAULT_B0_THRESHOLD)
 from scilpy.dwi.operations import compute_dwi_attenuation
 
 
-def compute_sh_coefficients(dwi, gradient_table, b0_threshold, sh_order=4,
+def compute_sh_coefficients(dwi, gradient_table,
+                            b0_threshold=DEFAULT_B0_THRESHOLD, sh_order=4,
                             basis_type='descoteaux07', smooth=0.006,
                             use_attenuation=False, mask=None, sphere=None):
     """Fit a diffusion signal with spherical harmonics coefficients.

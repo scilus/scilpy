@@ -51,7 +51,8 @@ from scilpy.io.btensor import (generate_btensor_input,
 from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_overwrite_arg, add_processes_arg,
                              add_sh_basis_args, add_verbose_arg,
-                             assert_inputs_exist, assert_outputs_exist)
+                             assert_inputs_exist, assert_outputs_exist,
+                             add_skip_b0_check_arg)
 from scilpy.reconst.fodf import fit_from_model
 from scilpy.reconst.sh import convert_sh_basis
 
@@ -92,6 +93,8 @@ def _build_arg_parser():
         '--tolerance', type=int, default=20,
         help='The tolerated gap between the b-values to '
              'extract\nand the current b-value. [%(default)s]')
+    add_skip_b0_check_arg(p, will_overwrite_with_min=False,
+                          b0_tol_name='--tolerance')
 
     add_sh_basis_args(p)
     add_processes_arg(p)
@@ -164,11 +167,9 @@ def main():
     # for the b0s. Using the tolerance. To change this, we would have to
     # change generate_btensor_input. Not doing any verification on the
     # bvals. Typically, we would use check_b0_threshold(bvals.min(), args)
-    gtab, data, ubvals, ubdeltas = generate_btensor_input(args.in_dwis,
-                                                          args.in_bvals,
-                                                          args.in_bvecs,
-                                                          args.in_bdeltas,
-                                                          tol=args.tolerance)
+    gtab, data, ubvals, ubdeltas = generate_btensor_input(
+        args.in_dwis, args.in_bvals, args.in_bvecs, args.in_bdeltas,
+        tol=args.tolerance, skip_b0_check=args.skip_b0_check)
 
     # Checking mask
     if args.mask is None:

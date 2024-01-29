@@ -11,10 +11,11 @@ import numpy as np
 
 from scilpy.gradients.bvec_bval_tools import (check_b0_threshold,
                                               is_normalized_bvecs,
-                                              normalize_bvecs)
+                                              normalize_bvecs,
+                                              DEFAULT_B0_THRESHOLD)
 
 
-def compute_ssst_frf(data, bvals, bvecs, b0_threshold,
+def compute_ssst_frf(data, bvals, bvecs, b0_threshold=DEFAULT_B0_THRESHOLD,
                      mask=None, mask_wm=None, fa_thresh=0.7, min_fa_thresh=0.5,
                      min_nvox=300, roi_radii=10, roi_center=None):
     """Compute a single-shell (under b=1500), single-tissue single Fiber
@@ -151,8 +152,8 @@ def compute_msmt_frf(data, bvals, bvecs, btens=None, data_dti=None,
     bvecs : ndarray
         2D bvecs array with shape (N, 3)
     btens: ndarray 1D
-	btens array with shape (N,), describing the btensor shape of every
-        pair of bval/bvec.
+        btens array with shape (N,), describing the btensor shape of every
+            pair of bval/bvec.
     data_dti: ndarray 4D
         Input diffusion volume with shape (X, Y, Z, M), where M is the number
         of DTI directions.
@@ -227,10 +228,10 @@ def compute_msmt_frf(data, bvals, bvecs, btens=None, data_dti=None,
         logging.warning('Your b-vectors do not seem normalized...')
         bvecs = normalize_bvecs(bvecs)
 
-    # toDo. Using a fake b0_threshold here because currently, the
-    #  gtab.b0s_mask is not used. Below, we use the tolerance only in dipy.
-    #  An issue has been added in dipy too.
-    gtab = gradient_table(bvals, bvecs, btens=btens, b0_threshold=bvals.min())
+    # Note. Using the tolerance here because currently, the gtab.b0s_mask is
+    # not used. Below, we use the tolerance only (in dipy).
+    # An issue has been added in dipy too.
+    gtab = gradient_table(bvals, bvecs, btens=btens, b0_threshold=tol)
 
     if data_dti is None and bvals_dti is None and bvecs_dti is None:
         logging.warning(
