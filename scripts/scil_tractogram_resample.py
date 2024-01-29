@@ -80,10 +80,10 @@ def _build_arg_parser():
                                   help='Maximum compression distance in mm '
                                        '[%(default)s].')
 
-    upsampling_group.add_argument(
-        '--keep_invalid_streamlines', action='store_true',
-        help='Keep invalid newly generated streamlines that may '
-             'go out of the \nbounding box.')
+    upsampling_group.add_argument('--keep_invalid_streamlines',
+                                  action='store_true',
+                                  help='Keep invalid newly generated streamlines'
+                                       ' that may go out of the \nbounding box.')
 
     # For downsampling:
     downsampling_group = p.add_argument_group('Downsampling params')
@@ -95,7 +95,6 @@ def _build_arg_parser():
              '(default).')
     downsampling_group.add_argument(
         '--qbx_thresholds', nargs='+', type=float, default=[40, 30, 20],
-        metavar='t',
         help="If you chose option '--downsample_per_cluster', you may set \n"
              "the QBx threshold value(s) here. Default: %(default)s")
 
@@ -114,10 +113,10 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    if (args.point_wise_std is not None and args.point_wise_std <= 0) or \
-            (args.tube_radius is not None and
-             args.tube_radius <= 0):
-        parser.error('STD needs to be above 0.')
+    if (args.point_wise_std is not None and args.point_wise_std <= 0):
+        parser.error('argument --point_wise_std: must be > 0')
+    if (args.tube_radius is not None and args.tube_radius <= 0):
+        parser.error('argument --tube_radius: must be > 0')
 
     assert_inputs_exist(parser, args.in_tractogram)
     assert_outputs_exist(parser, args, args.out_tractogram)
@@ -143,10 +142,9 @@ def main():
         if not args.point_wise_std and not args.tube_radius:
             parser.error("one of the arguments --point_wise_std " +
                          "--tube_radius is required")
-        sft = upsample_tractogram(
-            sft, args.nb_streamlines,
-            args.point_wise_std, args.tube_radius,
-            args.gaussian, args.error_rate, args.seed)
+        sft = upsample_tractogram(sft, args.nb_streamlines,
+                                  args.point_wise_std, args.tube_radius,
+                                  args.gaussian, args.error_rate, args.seed)
     elif args.nb_streamlines < original_number:
         if args.downsample_per_cluster:
             # output contains rejected streamlines, we don't use them.
