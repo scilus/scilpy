@@ -20,7 +20,7 @@ import numpy as np
 from scilpy.gradients.bvec_bval_tools import check_b0_threshold
 from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_b0_thresh_arg, add_overwrite_arg,
-                             add_skip_b0_validation_arg, add_verbose_arg,
+                             add_skip_b0_check_arg, add_verbose_arg,
                              assert_inputs_exist, assert_outputs_exist,
                              assert_roi_radii_format)
 from scilpy.reconst.frf import compute_ssst_frf
@@ -82,7 +82,7 @@ def _build_arg_parser():
                         'roi_radius. [center of the 3D volume]')
 
     add_b0_thresh_arg(p)
-    add_skip_b0_validation_arg(p)
+    add_skip_b0_check_arg(p, will_overwrite_with_min=True)
     add_verbose_arg(p)
     add_overwrite_arg(p)
 
@@ -103,8 +103,9 @@ def main():
     data = vol.get_fdata(dtype=np.float32)
 
     bvals, bvecs = read_bvals_bvecs(args.in_bval, args.in_bvec)
-    args.b0_threshold = check_b0_threshold(bvals.min(), args)
-
+    args.b0_threshold = check_b0_threshold(bvals.min(),
+                                           b0_threshold=args.b0_threshold,
+                                           skip_b0_check=args.skip_b0_check)
     mask = None
     if args.mask:
         mask = get_data_as_mask(nib.load(args.mask), dtype=bool)

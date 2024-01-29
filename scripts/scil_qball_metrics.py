@@ -34,7 +34,7 @@ from scilpy.gradients.bvec_bval_tools import (check_b0_threshold,
                                               normalize_bvecs)
 from scilpy.io.utils import (add_b0_thresh_arg, add_overwrite_arg,
                              add_processes_arg, add_sh_basis_args,
-                             add_skip_b0_validation_arg, add_verbose_arg,
+                             add_skip_b0_check_arg, add_verbose_arg,
                              assert_inputs_exist, assert_outputs_exist,
                              validate_nbr_processes)
 from scilpy.io.image import get_data_as_mask
@@ -88,7 +88,7 @@ def _build_arg_parser():
                         '[anisotropic_power.nii.gz].')
 
     add_b0_thresh_arg(p)
-    add_skip_b0_validation_arg(p)
+    add_skip_b0_check_arg(p, will_overwrite_with_min=True)
     add_sh_basis_args(p)
     add_processes_arg(p)
     add_verbose_arg(p)
@@ -134,7 +134,9 @@ def main():
 
     # Usage of gtab.b0s_mask in dipy's models is not very well documented, but
     # we can see that it is indeed used.
-    args.b0_threshold = check_b0_threshold(bvals.min(), args)
+    args.b0_threshold = check_b0_threshold(bvals.min(),
+                                           b0_threshold=args.b0_threshold,
+                                           skip_b0_check=args.skip_b0_check)
     gtab = gradient_table(bvals, bvecs, b0_threshold=args.b0_threshold)
 
     sphere = get_sphere('symmetric724')

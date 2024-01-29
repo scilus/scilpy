@@ -26,7 +26,7 @@ from dipy.io import read_bvals_bvecs
 from scilpy.gradients.bvec_bval_tools import (check_b0_threshold,
                                               DEFAULT_B0_THRESHOLD)
 from scilpy.io.utils import (add_overwrite_arg, add_processes_arg,
-                             add_skip_b0_validation_arg, add_sh_basis_args,
+                             add_skip_b0_check_arg, add_sh_basis_args,
                              assert_inputs_exist, add_verbose_arg,
                              assert_outputs_exist, validate_nbr_processes)
 from scilpy.reconst.sh import convert_sh_to_sf
@@ -83,7 +83,7 @@ def _build_arg_parser():
              'Default if not set is {}.\n'
              'This value is used with options --in_bvec or --in_bval only.'
              .format(DEFAULT_B0_THRESHOLD))
-    add_skip_b0_validation_arg(p)
+    add_skip_b0_check_arg(p, will_overwrite_with_min=True)
 
     add_processes_arg(p)
     add_verbose_arg(p)
@@ -123,8 +123,9 @@ def main():
         bvals, bvecs = read_bvals_bvecs(args.in_bval, args.in_bvec)
     elif args.in_bval:
         bvals, _ = read_bvals_bvecs(args.in_bval, None)
-    args.b0_treshold = check_b0_threshold(bvals.min(), args)
-
+    args.b0_threshold = check_b0_threshold(bvals.min(),
+                                           b0_threshold=args.b0_threshold,
+                                           skip_b0_check=args.skip_b0_check)
     # Load SH
     vol_sh = nib.load(args.in_sh)
     data_sh = vol_sh.get_fdata(dtype=np.float32)

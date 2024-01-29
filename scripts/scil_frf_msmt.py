@@ -39,7 +39,7 @@ import numpy as np
 from scilpy.dwi.utils import extract_dwi_shell
 from scilpy.gradients.bvec_bval_tools import check_b0_threshold
 from scilpy.io.image import get_data_as_mask
-from scilpy.io.utils import (add_overwrite_arg, add_skip_b0_validation_arg,
+from scilpy.io.utils import (add_overwrite_arg, add_skip_b0_check_arg,
                              add_verbose_arg, assert_inputs_exist,
                              assert_outputs_exist, assert_roi_radii_format)
 from scilpy.reconst.frf import compute_msmt_frf
@@ -118,7 +118,8 @@ def _build_arg_parser():
                    type=int, default=20,
                    help='The tolerated gap between the b-values to '
                         'extract and the current b-value. [%(default)s]')
-    add_skip_b0_validation_arg(p, b0_tol_name='--tolerance')
+    add_skip_b0_check_arg(p, will_overwrite_with_min=False,
+                          b0_tol_name='--tolerance')
     p.add_argument('--dti_bval_limit',
                    type=int, default=1200,
                    help='The highest b-value taken for the DTI model. '
@@ -176,9 +177,8 @@ def main():
     # Note. This script does not currently allow using a separate b0_threshold
     # for the b0s. Using the tolerance. To fix this, we would need to change
     # the unique_bvals_tolerance and extract_dwi_shell methods.
-    args.b0_threshold = args.tolerance
-    _ = check_b0_threshold(bvals.min(), args)
-
+    _ = check_b0_threshold(bvals.min(), b0_threshold=args.tolerance,
+                           skip_b0_check=args.skip_b0_check)
     list_bvals = unique_bvals_tolerance(bvals, tol=args.tolerance)
     if not np.all(list_bvals <= dti_lim):
         outputs = extract_dwi_shell(vol, bvals, bvecs,

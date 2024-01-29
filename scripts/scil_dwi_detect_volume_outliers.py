@@ -8,7 +8,7 @@ If the angles or correlations to neighbors are below the shell average (by
 args.std_scale x STD) it will flag the volume as a potential outlier.
 
 This script supports multi-shells, but each shell is independant and detected
-using the args.b0_threshold parameter.
+using the --b0_threshold parameter.
 
 This script can be run before any processing to identify potential problem
 before launching pre-processing.
@@ -20,9 +20,10 @@ import logging
 from dipy.io.gradients import read_bvals_bvecs
 import nibabel as nib
 
+
 from scilpy.dwi.operations import detect_volume_outliers
-from scilpy.io.utils import (add_b0_thresh_arg, add_skip_b0_validation_arg,
-                             add_verbose_arg, assert_inputs_exist,)
+from scilpy.io.utils import (add_b0_thresh_arg, add_skip_b0_check_arg,
+                             add_verbose_arg, assert_inputs_exist, )
 from scilpy.gradients.bvec_bval_tools import (check_b0_threshold,
                                               normalize_bvecs)
 
@@ -44,7 +45,7 @@ def _build_arg_parser():
                         'considered an outlier. [%(default)s]')
 
     add_b0_thresh_arg(p)
-    add_skip_b0_validation_arg(p)
+    add_skip_b0_check_arg(p, will_overwrite_with_min=True)
     add_verbose_arg(p)
 
     return p
@@ -63,7 +64,9 @@ def main():
     bvals, bvecs = read_bvals_bvecs(args.in_bval, args.in_bvec)
     data = nib.load(args.in_dwi).get_fdata()
 
-    args.b0_threshold = check_b0_threshold(bvals.min(), args)
+    args.b0_threshold = check_b0_threshold(bvals.min(),
+                                           b0_threshold=args.b0_threshold,
+                                           skip_b0_check=args.skip_b0_check)
     bvecs = normalize_bvecs(bvecs)
 
     # Not using the result. Only printing on screen. This is why the logging

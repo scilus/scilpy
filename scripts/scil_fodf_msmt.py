@@ -34,7 +34,7 @@ from scilpy.gradients.bvec_bval_tools import (check_b0_threshold,
                                               is_normalized_bvecs)
 from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_overwrite_arg, add_processes_arg,
-                             add_sh_basis_args,  add_skip_b0_validation_arg,
+                             add_sh_basis_args, add_skip_b0_check_arg,
                              assert_inputs_exist, assert_outputs_exist,
 
                              add_verbose_arg)
@@ -73,9 +73,10 @@ def _build_arg_parser():
              'current b-value.\n'
              'We would expect to find at least one b-value in the range '
              '[0, tolerance], acting as a b0.\n'
-             'To skip this check, use --skip_b0_validation.\n'
+             'To skip this check, use --skip_b0_check.\n'
              '[Default: %(default)s]')
-    add_skip_b0_validation_arg(p, b0_tol_name='--tolerance')
+    add_skip_b0_check_arg(p, will_overwrite_with_min=False,
+                          b0_tol_name='--tolerance')
     add_sh_basis_args(p)
     add_processes_arg(p)
 
@@ -167,9 +168,9 @@ def main():
     # ask them to clarify the usage of gtab.b0s_mask. See here:
     #  https://github.com/dipy/dipy/issues/3015
     # b0_threshold option in gradient_table probably unused.
-    args.b0_threshold = args.tolerance
-    args.b0_threshold = check_b0_threshold(bvals.min(), args)
-    gtab = gradient_table(bvals, bvecs, b0_threshold=args.b0_threshold)
+    _ = check_b0_threshold(bvals.min(), b0_threshold=args.tolerance,
+                           skip_b0_check=args.skip_b0_check)
+    gtab = gradient_table(bvals, bvecs, b0_threshold=args.tolerance)
 
     # Checking response functions and computing msmt response function
     if not wm_frf.shape[1] == 4:

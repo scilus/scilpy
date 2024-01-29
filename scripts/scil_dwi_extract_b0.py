@@ -21,7 +21,7 @@ import numpy as np
 
 from scilpy.dwi.utils import extract_b0
 from scilpy.io.utils import (add_b0_thresh_arg, add_overwrite_arg,
-                             add_skip_b0_validation_arg, add_verbose_arg,
+                             add_skip_b0_check_arg, add_verbose_arg,
                              assert_inputs_exist)
 from scilpy.gradients.bvec_bval_tools import (check_b0_threshold,
                                               B0ExtractionStrategy)
@@ -65,7 +65,7 @@ def _build_arg_parser():
                         'of images.')
 
     add_b0_thresh_arg(p)
-    add_skip_b0_validation_arg(p)
+    add_skip_b0_check_arg(p, will_overwrite_with_min=True)
     add_verbose_arg(p)
     add_overwrite_arg(p)
 
@@ -95,7 +95,9 @@ def main():
 
     bvals, bvecs = read_bvals_bvecs(args.in_bval, args.in_bvec)
 
-    check_b0_threshold(bvals.min(), args)
+    args.b0_threshold = check_b0_threshold(bvals.min(),
+                                           b0_threshold=args.b0_threshold,
+                                           skip_b0_check=args.skip_b0_check)
     gtab = gradient_table(bvals, bvecs, b0_threshold=args.b0_threshold)
     b0_idx = np.where(gtab.b0s_mask)[0]
 

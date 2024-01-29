@@ -57,7 +57,7 @@ from dipy.core.gradients import gradient_table
 from scilpy.dwi.operations import compute_residuals
 from scilpy.image.volume_operations import smooth_to_fwhm
 from scilpy.io.image import get_data_as_mask
-from scilpy.io.utils import (add_overwrite_arg, add_skip_b0_validation_arg,
+from scilpy.io.utils import (add_overwrite_arg, add_skip_b0_check_arg,
                              add_verbose_arg, assert_inputs_exist,
                              assert_outputs_exist, )
 from scilpy.gradients.bvec_bval_tools import (check_b0_threshold,
@@ -90,7 +90,8 @@ def _build_arg_parser():
                    '[0, tolerance], acting as a b0.\n'
                    'To skip this check, use --skip_b0_validation.\n'
                    '[Default: %(default)s]')
-    add_skip_b0_validation_arg(p, b0_tol_name='--tolerance')
+    add_skip_b0_check_arg(p, will_overwrite_with_min=False,
+                          b0_tol_name='--tolerance')
 
     p.add_argument('--min_k', type=float, default=0.0,
                    help='Minimum kurtosis value in the output maps '
@@ -204,9 +205,9 @@ def main():
     #  https://github.com/dipy/dipy/issues/3015
     # b0_threshold option in gradient_table probably unused, except below with
     # option dki_residual.
-    args.b0_threshold = args.tolerance
-    args.b0_threshold = check_b0_threshold(bvals.min(), args)
-    gtab = gradient_table(bvals, bvecs, b0_threshold=args.b0_threshold)
+    _ = check_b0_threshold(bvals.min(), b0_threshold=args.tolerance,
+                           skip_b0_check=args.skip_b0_check)
+    gtab = gradient_table(bvals, bvecs, b0_threshold=args.tolerance)
 
     # Processing
 

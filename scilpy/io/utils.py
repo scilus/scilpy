@@ -215,14 +215,22 @@ def add_overwrite_arg(parser):
         help='Force overwriting of the output files.')
 
 
-def add_skip_b0_validation_arg(parser, b0_tol_name='--b0_threshold'):
+def add_skip_b0_check_arg(parser, will_overwrite_with_min: bool,
+                          b0_tol_name='--b0_threshold'):
+    msg = ('By default, we supervise that at least one b0 exists in your '
+           'data\n'
+           '(i.e. b-values below the default {}). Use this option to '
+          'allow continuing \n'
+           'even if the minimum b-value is suspiciously high.\n'
+          .format(b0_tol_name))
+    if will_overwrite_with_min:
+        msg += ('If no b-value is found below the threshold, the script will '
+                'continue \nwith your minimal b-value as new {}.\n'
+                .format(b0_tol_name))
+    msg += 'Use with care, and only if you understand your data.'
+
     parser.add_argument(
-        '--skip_b0_validation', action='store_true',
-        help='By default, we supervise that at least one b0 exists in your '
-             'data \n(i.e. b-values below the default {}). Use this option to '
-             'allow continuing even if the minimum \nbvalue is suspiciously '
-             'high.\nUse with care, and only if you understand your data.'
-             .format(b0_tol_name))
+        '--skip_b0_check', action='store_true', help=msg)
 
 
 def add_b0_thresh_arg(parser):

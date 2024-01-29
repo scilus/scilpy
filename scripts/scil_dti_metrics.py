@@ -45,7 +45,7 @@ from scilpy.dwi.operations import compute_residuals, \
     compute_residuals_statistics
 from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_b0_thresh_arg, add_overwrite_arg,
-                             add_skip_b0_validation_arg, add_verbose_arg,
+                             add_skip_b0_check_arg, add_verbose_arg,
                              assert_inputs_exist, assert_outputs_exist)
 from scilpy.io.tensor import convert_tensor_from_dipy_format, \
     supported_tensor_formats, tensor_format_description
@@ -142,7 +142,7 @@ def _build_arg_parser():
         help='Output filename for the map of the residual of the tensor fit.')
 
     add_b0_thresh_arg(p)
-    add_skip_b0_validation_arg(p)
+    add_skip_b0_check_arg(p, will_overwrite_with_min=True)
     add_verbose_arg(p)
 
     return p
@@ -273,7 +273,9 @@ def main():
     #         method .fit().
     # 2) But we do use this information below, with options p_i_signal,
     #    pulsation and residual.
-    args.b0_threshold = check_b0_threshold(bvals.min(), args)
+    args.b0_threshold = check_b0_threshold(bvals.min(),
+                                           b0_threshold=args.b0_threshold,
+                                           skip_b0_check=args.skip_b0_check)
     gtab = gradient_table(bvals, bvecs, b0_threshold=args.b0_threshold)
 
     # Processing
