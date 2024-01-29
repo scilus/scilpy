@@ -22,6 +22,7 @@ pipeline {
                                 pip3 install -e .
                             '''
                         }
+
                     }
                 }
             }
@@ -30,6 +31,14 @@ pipeline {
         stage('Test') {
             environment {
                 CODECOV_TOKEN = credentials('scilpy-codecov-token')
+                CODECOV_GIT_COMMIT = """${sh(
+                    returnStdout: true,
+                    script: 'git rev-parse $GIT_BRANCH'
+                ).trim()}"""
+                CODECOV_PARENT_COMMIT = """${sh(
+                    returnStdout: true,
+                    script: 'git merge-base origin/master $GIT_BRANCH'
+                ).trim()}"""
             }
             steps {
                 withPythonEnv('CPython-3.10') {
@@ -45,11 +54,6 @@ pipeline {
                     '''
                 }
                 discoverGitReferenceBuild()
-                recordCoverage(
-                    name: 'Scilpy Coverage Report',
-                    sourceCodeRetention: 'MODIFIED',
-                    tools: [[parser: 'COBERTURA',
-                    pattern: '**/.test_reports/coverage.xml']])
                 sh '''
                     curl https://keybase.io/codecovsecurity/pgp_keys.asc | gpg --no-default-keyring --import # One-time step
                     curl -Os https://uploader.codecov.io/latest/linux/codecov
@@ -60,7 +64,10 @@ pipeline {
                     shasum -a 256 -c codecov.SHA256SUM
 
                     chmod +x codecov
-                    ./codecov -t ${CODECOV_TOKEN} -f .test_reports/coverage.xml
+                    ./codecov -v -t ${CODECOV_TOKEN} \
+                        -f .test_reports/coverage.xml \
+                        -C ${CODECOV_GIT_COMMIT} \
+                        -N ${CODECOV_PARENT_COMMIT}
                 '''
             }
         }
