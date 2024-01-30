@@ -66,14 +66,12 @@ def _build_arg_parser():
     p.add_argument('in_tractogram', metavar='INPUT_FILE',
                    help='Input tractogram containing streamlines and '
                         'metadata.')
-    p.add_argument('--in_dpp_name',  nargs='+',
-                   required=True,
+    p.add_argument('--in_dpp_name',  nargs='+', required=True,
                    help='Name or list of names of the data_per_point for '
                         'operation to be performed on. If more than one dpp '
                         'is selected, the same operation will be applied '
                         'separately to each one.')
-    p.add_argument('--out_name', nargs='+',
-                   required=True,
+    p.add_argument('--out_name', nargs='+', required=True,
                    help='Name of the resulting data_per_point or '
                    'data_per_streamline to be saved in the output '
                    'tractogram. If more than one --in_dpp_name was used, '
@@ -90,6 +88,7 @@ def _build_arg_parser():
                    help='If set, will overwrite the data_per_point or '
                    'data_per_streamline in the output tractogram, otherwise '
                    'previous data will be preserved in the output tractogram.')
+
     add_reference_arg(p)
     add_verbose_arg(p)
     add_overwrite_arg(p)
@@ -116,22 +115,23 @@ def main():
         logging.info("Input tractogram contains no streamlines. Exiting.")
         return
 
-    if len(args.in_dpp_name[0]) != len(args.out_name[0]):
+    if len(args.in_dpp_name) != len(args.out_name):
         parser.error('The number of in_dpp_names and out_names must be '
                      'the same.')
 
     # Check to see if there are duplicates in the out_names
-    if len(args.out_name[0]) != len(set(args.out_name[0])):
+    if len(args.out_name) != len(set(args.out_name)):
         parser.error('The output names (out_names) must be unique.')
 
     # Input name checks
-    for in_dpp_name in args.in_dpp_name[0]:
+    for in_dpp_name in args.in_dpp_name:
         # Check to see if the data per point exists.
         if in_dpp_name not in sft.data_per_point:
             logging.info('Data per point {} not found in input tractogram.'
                          .format(in_dpp_name))
             return
 
+        # Check if first data_per_point is multivalued
         data_shape = sft.data_per_point[in_dpp_name][0].shape
         if args.operation == 'correlation' and len(data_shape) == 1:
             logging.info('Correlation operation requires multivalued data per '
@@ -142,17 +142,17 @@ def main():
             logging.info('Correlation operation requires dps mode. Exiting.')
             return
 
-        if args.overwrite_data:
-            if in_dpp_name in args.out_name[0]:
+        if not args.overwrite_data:
+            if in_dpp_name in args.out_name:
                 logging.info('out_name {} already exists in input tractogram. '
-                             'Unset overwrite_data or choose a different '
+                             'Set overwrite_data or choose a different '
                              'out_name. Exiting.'.format(in_dpp_name))
                 return
 
     data_per_point = {}
     data_per_streamline = {}
-    for in_dpp_name, out_name in zip(args.in_dpp_name[0],
-                                     args.out_name[0]):
+    for in_dpp_name, out_name in zip(args.in_dpp_name,
+                                     args.out_name):
 
 
         # Perform the requested operation.

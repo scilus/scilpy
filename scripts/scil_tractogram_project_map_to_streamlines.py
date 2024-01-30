@@ -5,7 +5,7 @@
 Projects metrics extracted from a map onto the endpoints of streamlines.
 
 The default options will take data from a nifti image (3D or ND) and
-project it onto the endpoints of streamlines.
+project it onto the points of streamlines.
 """
 
 import argparse
@@ -35,7 +35,7 @@ def _build_arg_parser():
                    help='Fiber bundle file.')
     p.add_argument('out_tractogram',
                    help='Output file.')
-    p.add_argument('--in_metric', nargs='+', required=True,
+    p.add_argument('--in_maps', nargs='+', required=True,
                    help='Nifti metric to project onto streamlines.')
     p.add_argument('--out_dpp_name', nargs='+', required=True,
                    help='Name of the data_per_point to be saved in the \n'
@@ -46,12 +46,15 @@ def _build_arg_parser():
                    help='If set, will use trilinear interpolation \n'
                         'else will use nearest neighbor interpolation \n'
                         'by default.')
-
     p.add_argument('--endpoints_only', action='store_true',
                    help='If set, will only project the metric onto the \n'
                    'endpoints of the streamlines (all other values along \n'
                    ' streamlines will be NaN). If not set, will project \n'
                    ' the metric onto all points of the streamlines.')
+    p.add_argument('--overwrite_data', action='store_true', default=False,
+                   help='If set, will overwrite data_per_point in the '
+                   'output tractogram, otherwise previous data will be '
+                   'preserved in the output tractogram.')
 
     add_reference_arg(p)
     add_overwrite_arg(p)
@@ -63,10 +66,7 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    input_file_list = [args.in_tractogram]
-    for fmetric in args.in_metric:
-        input_file_list += fmetric
-    assert_inputs_exist(parser, input_file_list)
+    assert_inputs_exist(parser, [args.in_tractogram] + args.in_maps)
 
     assert_outputs_exist(parser, args, [args.out_tractogram])
 
@@ -76,15 +76,28 @@ def main():
     sft.to_corner()
 
     if len(sft.streamlines) == 0:
-        logging.warning('Empty bundle file {}. Skipping'.format(args.bundle))
+        logging.warning('Empty bundle file {}. Skipping'.format(args.in_tractogram))
         return
 
     # Check to see if the number of metrics and dpp_names are the same
-    if len(args.in_metric) != len(args.out_dpp_name):
+    if len(args.in_maps) != len(args.out_dpp_name):
         parser.error('The number of metrics and dpp_names must be the same.')
 
+    # Check to see if there are duplicates in the out_dpp_names
+    if len(args.out_dpp_name) != len(set(args.out_dpp_name)):
+        parser.error('The output names (out_dpp_names) must be unique.')
+
+    # Check to see if the output names already exist in the input tractogram
+    if not args.overwrite_data:
+        for out_dpp_name in args.out_dpp_name:
+            if out_dpp_name in sft.data_per_point:
+                logging.info('out_name {} already exists in input tractogram. '
+                             'Set overwrite_data or choose a different '
+                             'out_name. Exiting.'.format(out_dpp_name))
+                return
+
     data_per_point = {}
-    for fmetric, dpp_name in zip(args.in_metric[0], args.out_dpp_name[0]):
+    for fmetric, dpp_name in zip(args.in_maps, args.out_dpp_name):
         logging.debug("Loading the metric...")
         metric_img, metric_dtype = load_img(fmetric)
         metric_data = metric_img.get_fdata(caching='unchanged', dtype=float)
@@ -106,9 +119,17 @@ def main():
 
         data_per_point[dpp_name] = streamline_data
 
-    out_sft = StatefulTractogram(sft.streamlines, metric_img,
-                                 sft.space, sft.origin,
-                                 data_per_point=data_per_point)
+    if args.overwrite_data:
+        out_sft = sft.from_sft(sft.streamlines, sft,
+                               data_per_point=data_per_point)
+    else:
+        old_data_per_point = sft.data_per_point
+        for dpp_name in data_per_point:
+            old_data_per_point[dpp_name] = data_per_point[dpp_name]
+        out_sft = sft.from_sft(sft.streamlines, sft,
+                               data_per_point=old_data_per_point)
+
+    print(out_sft.data_per_point)
     save_tractogram(out_sft, args.out_tractogram)
 
 
