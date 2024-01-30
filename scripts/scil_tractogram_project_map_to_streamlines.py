@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-Projects metrics extracted from a map onto the endpoints of streamlines.
+Projects metrics extracted from a map onto the points of streamlines.
 
 The default options will take data from a nifti image (3D or ND) and
 project it onto the points of streamlines.
