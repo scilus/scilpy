@@ -22,12 +22,13 @@ autodoc_mock_imports = ['numpy', 'dipy', 'fury', 'nibabel', "scipy", "h5py",
                         "scilpy.tractanalysis.grid_intersections",
                         "scilpy.tractanalysis.quick_tools",
                         "sklearn", "scilpy.tractanalysis.streamlines_metrics",
-                        "scilpy.tractograms.uncompress", "matplotlib"]
+                        "scilpy.tractograms.uncompress", "matplotlib",
+                        "skimage"]
 
 # -- Project information -----------------------------------------------------
 
 project = 'scilpy'
-copyright = '2020, The SCIL developers'
+copyright = '2024, The SCIL developers'
 author = 'The SCIL developers'
 
 # The short X.Y version
@@ -45,9 +46,9 @@ release = u''
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
+    'sphinx.ext.napoleon',
     'sphinx.ext.autodoc',
     'sphinx.ext.coverage',
-    'sphinx.ext.napoleon',
     'sphinx.ext.viewcode',
     'sphinx.ext.mathjax'
 ]
@@ -204,7 +205,7 @@ def setup(app):
         shutil.copyfile(join(path_src, "fake_files", f),
                         join(path_script, "../scilpy/tractanalysis/", f))
 
-    commit_scripts = ["scil_run_commit.py"]
+    commit_scripts = ["scil_tractogram_commit.py"]
 
     amico_scripts = ["scil_NODDI_maps.py",
                      "scil_freewater_maps.py"]
@@ -248,7 +249,7 @@ def setup(app):
                     with open(join(path_src, "scripts", "{}.rst".format(name)),
                               "w") as s:
                         s.write(i + "\n")
-                        s.write("==============\n\n")
+                        s.write("=" * len(i) + "\n\n")
                         help_text = script._build_arg_parser().format_help() \
                             .replace("sphinx-build", i)
                         s.write("::\n\n\t")
