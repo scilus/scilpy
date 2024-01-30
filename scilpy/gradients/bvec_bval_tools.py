@@ -102,7 +102,7 @@ def check_b0_threshold(min_bval, b0_thr, skip_b0_check):
             return min_bval
         else:
             raise ValueError(
-                'The minimal bvalue ({}) is is above the threshold ({})\n'
+                'The minimal bvalue ({}) is above the threshold ({})\n'
                 'No b0 volumes can be found.\n'
                 'Please check your data to ensure everything is correct.\n'
                 'You may also increase the threshold or use '

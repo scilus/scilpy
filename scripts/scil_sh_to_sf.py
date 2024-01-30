@@ -23,12 +23,11 @@ from dipy.core.sphere import Sphere
 from dipy.data import SPHERE_FILES, get_sphere
 from dipy.io import read_bvals_bvecs
 
-from scilpy.gradients.bvec_bval_tools import (check_b0_threshold,
-                                              DEFAULT_B0_THRESHOLD)
+from scilpy.gradients.bvec_bval_tools import DEFAULT_B0_THRESHOLD
 from scilpy.io.utils import (add_overwrite_arg, add_processes_arg,
-                             add_skip_b0_check_arg, add_sh_basis_args,
-                             assert_inputs_exist, add_verbose_arg,
-                             assert_outputs_exist, validate_nbr_processes)
+                             add_sh_basis_args, add_verbose_arg,
+                             assert_inputs_exist, assert_outputs_exist,
+                             validate_nbr_processes)
 from scilpy.reconst.sh import convert_sh_to_sf
 
 
@@ -60,7 +59,17 @@ def _build_arg_parser():
     p.add_argument('--in_bval',
                    help='b-value file, in FSL format, used to assign a '
                         'b-value to the \noutput SF and generate a `.bval` '
-                        'file.')
+                        'file.\n'
+                        '- If used, --out_bval is required.\n'
+                        '- The output bval will contain one b-value per point '
+                        'in the SF \n  output (i.e. one per point on the '
+                        '--sphere or one per --in_bvec.)\n'
+                        '- The values of the output bval will all be set to '
+                        'the same b-value:\n  the average of your in_bval. '
+                        '(Any b0 found in this file, i.e \n  b-values under '
+                        '--b0_threshold, will be removed beforehand.)\n'
+                        '- To add b0s to both the SF volume and the '
+                        '--out_bval file, use --in_b0.')
     p.add_argument('--in_b0',
                    help='b0 volume to concatenate to the final SF volume.')
     p.add_argument('--out_bval',
@@ -69,7 +78,8 @@ def _build_arg_parser():
                    help="Optional output bvec file.")
 
     p.add_argument('--b0_scaling', action="store_true",
-                   help="Scale resulting SF by the b0 image.")
+                   help="Scale resulting SF by the b0 image (--in_b0 must"
+                        "be given).")
 
     add_sh_basis_args(p)
     p.add_argument('--full_basis', action="store_true",
@@ -83,9 +93,9 @@ def _build_arg_parser():
         metavar='thr',
         help='Threshold under which b-values are considered to be b0s.\n'
              'Default if not set is {}.\n'
-             'This value is used with options --in_bvec or --in_bval only.'
+             'This value is used with option --in_bval only: any b0 found in '
+             'the in_bval will be removed.'
              .format(DEFAULT_B0_THRESHOLD))
-    add_skip_b0_check_arg(p, will_overwrite_with_min=True)
 
     add_processes_arg(p)
     add_verbose_arg(p)
@@ -103,6 +113,13 @@ def main():
                         optional=[args.in_bvec, args.in_bval, args.in_b0])
     assert_outputs_exist(parser, args, args.out_sf,
                          optional=[args.out_bvec, args.out_bval])
+
+    if args.in_bval:
+        if args.b0_threshold > DEFAULT_B0_THRESHOLD:
+            logging.warning(
+                'Your defined b0 threshold is {}. This is suspicious. '
+                'Typical b0_thresholds are no higher than {}.'
+                .format(args.b0_threshold, DEFAULT_B0_THRESHOLD))
 
     if (args.in_bval and not args.out_bval) or (
             args.out_bval and not args.in_bval):
@@ -125,11 +142,6 @@ def main():
         bvals, bvecs = read_bvals_bvecs(args.in_bval, args.in_bvec)
     elif args.in_bval:
         bvals, _ = read_bvals_bvecs(args.in_bval, None)
-
-    if bvals is not None:
-        args.b0_threshold = check_b0_threshold(
-            bvals.min(), b0_thr=args.b0_threshold,
-            skip_b0_check=args.skip_b0_check)
 
     # Load SH
     vol_sh = nib.load(args.in_sh)
@@ -154,8 +166,7 @@ def main():
     # Assign bval to SF if --in_bval was provided
     new_bvals = []
     if args.in_bval:
-        # Compute average bval in case in_bvec is None.
-        # (If --in_bvec, this is already loaded in gtab.b0_masks)
+        # Compute average bval (except b0s), and create n out_bvals.
         b0s_mask = bvals <= args.b0_threshold
         avg_bval = np.mean(bvals[np.logical_not(b0s_mask)])
 
@@ -169,7 +180,8 @@ def main():
         if data_b0.ndim == 3:
             data_b0 = data_b0[..., np.newaxis]
 
-        new_bvals = ([0] * data_b0.shape[-1]) + new_bvals
+        if args.in_bval:
+            new_bvals = ([0] * data_b0.shape[-1]) + new_bvals
 
         # Append zeros to bvecs
         new_bvecs = np.concatenate(
