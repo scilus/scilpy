@@ -14,7 +14,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_tractogram_point_math.py', '--help')
+    ret = script_runner.run('scil_tractogram_dpp_math.py', '--help')
     assert ret.success
 
 
@@ -32,7 +32,7 @@ def test_execution_tractogram_point_math_mean_3D_defaults(script_runner):
                       '--in_maps', in_t1,
                       '--out_dpp_name', 't1')
 
-    ret = script_runner.run('scil_tractogram_point_math.py',
+    ret = script_runner.run('scil_tractogram_dpp_math.py',
                             'mean',
                             'dps',
                             t1_on_bundle,
@@ -57,7 +57,7 @@ def test_execution_tractogram_point_math_mean_4D_correlation(script_runner):
                       '--in_maps', in_fodf, in_fodf,
                       '--out_dpp_name', 'fodf', 'fodf2')
 
-    ret = script_runner.run('scil_tractogram_point_math.py',
+    ret = script_runner.run('scil_tractogram_dpp_math.py',
                             'correlation',
                             'dps',
                             fodf_on_bundle,
