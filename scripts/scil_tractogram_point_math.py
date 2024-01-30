@@ -188,13 +188,8 @@ def main():
                                data_per_point=data_per_point,
                                data_per_streamline=data_per_streamline)
     else:
-        old_data_per_streamline = {}
-        for key, value in sft.data_per_streamline.items():
-            old_data_per_streamline[key] = value
-
-        old_data_per_point = {}
-        for key, value in sft.data_per_point.items():
-            old_data_per_point[key] = value
+        old_data_per_streamline = sft.data_per_streamline
+        old_data_per_point = sft.data_per_point
 
         if data_per_point is not None:
             for key, value in data_per_point.items():
