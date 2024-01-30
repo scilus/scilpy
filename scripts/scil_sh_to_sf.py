@@ -48,7 +48,8 @@ def _build_arg_parser():
                             help='Sphere used for the SH to SF projection. ')
     directions.add_argument('--in_bvec',
                             help="Directions used for the SH to SF "
-                            "projection.")
+                            "projection. \nIf given, --in_bval must also be "
+                            "provided.")
 
     p.add_argument('--dtype', default="float32",
                    choices=["float32", "float64"],
@@ -124,9 +125,12 @@ def main():
         bvals, bvecs = read_bvals_bvecs(args.in_bval, args.in_bvec)
     elif args.in_bval:
         bvals, _ = read_bvals_bvecs(args.in_bval, None)
-    args.b0_threshold = check_b0_threshold(bvals.min(),
-                                           b0_thr=args.b0_threshold,
-                                           skip_b0_check=args.skip_b0_check)
+
+    if bvals is not None:
+        args.b0_threshold = check_b0_threshold(
+            bvals.min(), b0_thr=args.b0_threshold,
+            skip_b0_check=args.skip_b0_check)
+
     # Load SH
     vol_sh = nib.load(args.in_sh)
     data_sh = vol_sh.get_fdata(dtype=np.float32)
@@ -135,7 +139,7 @@ def main():
     if args.sphere:
         sphere = get_sphere(args.sphere)
     elif args.in_bvec:
-        gtab = gradient_table(bvals, bvecs, b0_threshold=args.b0_treshold)
+        gtab = gradient_table(bvals, bvecs, b0_threshold=args.b0_threshold)
         # Remove bvecs corresponding to b0 images
         bvecs = bvecs[np.logical_not(gtab.b0s_mask)]
         sphere = Sphere(xyz=bvecs)

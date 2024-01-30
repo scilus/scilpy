@@ -16,12 +16,13 @@ def test_help_option(script_runner):
     assert ret.success
 
 
-def test_execution_processing(script_runner):
+def test_execution_in_sphere(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
     in_sh = os.path.join(get_home(), 'processing', 'sh_1000.nii.gz')
     in_b0 = os.path.join(get_home(), 'processing', 'fa.nii.gz')
     in_bval = os.path.join(get_home(), 'processing', '1000.bval')
 
+    # Required: either --sphere or --in_bvec. Here, --sphere
     ret = script_runner.run('scil_sh_to_sf.py', in_sh,
                             'sf_724.nii.gz', '--in_bval',
                             in_bval, '--in_b0', in_b0, '--out_bval',
@@ -37,3 +38,39 @@ def test_execution_processing(script_runner):
                             '--sphere', 'symmetric724', '--dtype', 'float32',
                             '--b0_threshold', '1', '-f')
     assert not ret.success
+
+
+def test_execution_in_bvec(script_runner):
+    os.chdir(os.path.expanduser(tmp_dir.name))
+    in_sh = os.path.join(get_home(), 'processing', 'sh_1000.nii.gz')
+    in_bval = os.path.join(get_home(), 'processing', '1000.bval')
+    in_bvec = os.path.join(get_home(), 'processing', '1000.bvec')
+
+    # --in_bvec: in_bval is required.
+    ret = script_runner.run('scil_sh_to_sf.py', in_sh,
+                            'sf_724.nii.gz', '--in_bval', in_bval,
+                            '--out_bval', 'sf_724.bval',
+                            '--out_bvec', 'sf_724.bvec',
+                            '--in_bvec', in_bvec, '--dtype', 'float32', '-f')
+    assert ret.success
+
+    # Test that fails if no bvals is given.
+    ret = script_runner.run('scil_sh_to_sf.py', in_sh,
+                            'sf_724.nii.gz',
+                            '--out_bvec', 'sf_724.bvec',
+                            '--in_bvec', in_bvec, '--dtype', 'float32', '-f')
+    assert not ret.success
+
+
+def test_execution_no_bval(script_runner):
+    os.chdir(os.path.expanduser(tmp_dir.name))
+    in_sh = os.path.join(get_home(), 'processing', 'sh_1000.nii.gz')
+    in_b0 = os.path.join(get_home(), 'processing', 'fa.nii.gz')
+
+    # --sphere but no --bval
+    ret = script_runner.run('scil_sh_to_sf.py', in_sh,
+                            'sf_724.nii.gz', '--in_b0', in_b0,
+                            '--out_bvec', 'sf_724.bvec',
+                            '--sphere', 'symmetric724', '--dtype', 'float32',
+                            '-f')
+    assert ret.success
