@@ -35,9 +35,9 @@ def _build_arg_parser():
                    help='Fiber bundle file.')
     p.add_argument('out_tractogram',
                    help='Output file.')
-    p.add_argument('--in_metric', nargs='+', action='append', required=True,
+    p.add_argument('--in_metric', nargs='+', required=True,
                    help='Nifti metric to project onto streamlines.')
-    p.add_argument('--out_dpp_name', nargs='+', action='append', required=True,
+    p.add_argument('--out_dpp_name', nargs='+', required=True,
                    help='Name of the data_per_point to be saved in the \n'
                    'output tractogram.')
 

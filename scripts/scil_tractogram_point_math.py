@@ -66,13 +66,13 @@ def _build_arg_parser():
     p.add_argument('in_tractogram', metavar='INPUT_FILE',
                    help='Input tractogram containing streamlines and '
                         'metadata.')
-    p.add_argument('--in_dpp_name',  nargs='+', action='append',
+    p.add_argument('--in_dpp_name',  nargs='+',
                    required=True,
                    help='Name or list of names of the data_per_point for '
                         'operation to be performed on. If more than one dpp '
                         'is selected, the same operation will be applied '
                         'separately to each one.')
-    p.add_argument('--out_name', nargs='+', action='append',
+    p.add_argument('--out_name', nargs='+',
                    required=True,
                    help='Name of the resulting data_per_point or '
                    'data_per_streamline to be saved in the output '
