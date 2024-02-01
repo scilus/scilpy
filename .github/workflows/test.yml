@@ -40,7 +40,9 @@ jobs:
             python${{ steps.python-selector.outputs.python-version }}-tk \
             libblas-dev \
             liblapack-dev \
-            libfreetype6-dev
+            libfreetype6-dev \
+            libgl1-mesa-dev \
+            libgl1-mesa-dri
 
       - name: Install Scilpy
         run: |
