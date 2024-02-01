@@ -9,9 +9,13 @@ on:
       - master
   workflow_dispatch:
 
+env:
+  MPLBACKEND: agg
+  OPENBLAS_NUM_THREADS: 1
+
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: scilus-runners
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4.1.1
@@ -44,8 +48,6 @@ jobs:
 
       - name: Run tests
         run: |
-          export MPLBACKEND="agg"
-          export OPENBLAS_NUM_THREADS=1
           pytest --cov-report term-missing:skip-covered
 
       - name: Upload test reports and coverage to artifacts
