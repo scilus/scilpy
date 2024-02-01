@@ -34,15 +34,16 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y \
             build-essential \
-            python${{ steps.python-selector.outputs.python-version }}-dev \
-            python${{ steps.python-selector.outputs.python-version }}-venv \
-            python${{ steps.python-selector.outputs.python-version }}-minimal \
-            python${{ steps.python-selector.outputs.python-version }}-tk \
+            git \
             libblas-dev \
             liblapack-dev \
             libfreetype6-dev \
             libgl1-mesa-dev \
-            libgl1-mesa-dri
+            libgl1-mesa-dri \
+            python${{ steps.python-selector.outputs.python-version }}-dev \
+            python${{ steps.python-selector.outputs.python-version }}-venv \
+            python${{ steps.python-selector.outputs.python-version }}-minimal \
+            python${{ steps.python-selector.outputs.python-version }}-tk
 
       - name: Install Scilpy
         run: |
