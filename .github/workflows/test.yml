@@ -1,0 +1,64 @@
+name: Scilpy test suite
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: action/checkout@v4
+
+      - name: Fetch python version from repository
+        id: python-selector
+        run: echo ::set-output name=python-version::$(cat .python-version)
+
+      - name: Set up Python for Scilpy
+        uses: actions/setup-python@v5.0.0
+        with:
+          python-version: python${{ steps.python-selector.outputs.python-version }}
+
+      - name: Install non-python dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            python${{ steps.python-selector.outputs.python-version }}-dev \
+            python${{ steps.python-selector.outputs.python-version }}-venv \
+            python${{ steps.python-selector.outputs.python-version }}-minimal \
+            python${{ steps.python-selector.outputs.python-version }}-tk \
+            libblas-dev \
+            liblapack-dev \
+            libfreetype6-dev
+
+      - name: Install Scilpy
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e .
+
+      - name: Run tests
+        run: |
+          export MPLBACKEND="agg"
+          export OPENBLAS_NUM_THREADS=1
+          pytest --cov-report term-missing:skip-covered
+
+      - name: Upload test reports and coverage to artifacts
+        uses: echapmanFromBunnings/upload-artifact@3.0.0
+        with:
+          name: test-reports
+          path: |
+            .test_reports/*
+
+      - name: Upload coverage to codecov
+        uses: codecov/codecov-action@v4.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          file: .test_reports/coverage.xml
+          flags: unittests
+          fail_ci_if_error: true
