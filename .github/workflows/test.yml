@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: action/checkout@v4
+        uses: actions/checkout@v4.1.1
 
       - name: Fetch python version from repository
         id: python-selector
