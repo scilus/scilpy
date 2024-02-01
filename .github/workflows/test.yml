@@ -23,7 +23,7 @@ jobs:
       - name: Set up Python for Scilpy
         uses: actions/setup-python@v5.0.0
         with:
-          python-version: python${{ steps.python-selector.outputs.python-version }}
+          python-version: ${{ steps.python-selector.outputs.python-version }}
 
       - name: Install non-python dependencies
         run: |
