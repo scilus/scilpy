@@ -7,12 +7,12 @@ two tractograms. This can be especially useful in studies where multiple
 tractograms from different algorithms or parameters need to be compared.
 
 A similar script (scil_bundle_pairwise_comparison.py) is available for bundles,
-with metrics more adapted to bundles (and spatial aggrement).
+with metrics more adapted to bundles (and spatial agreement).
 
 The difference is computed in terms of
 - A voxel-wise spatial distance between streamlines crossing each voxel.
     This can help to see if both tractography reconstructions at each voxel
-    looks similar (out_diff.nii.gz)
+    look similar (out_diff.nii.gz)
 - An angular correlation (ACC) between streamline orientation from TODI.
     This compares the local orientation of streamlines at each voxel
     (out_acc.nii.gz)
