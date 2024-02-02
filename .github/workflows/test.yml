@@ -39,11 +39,7 @@ jobs:
             liblapack-dev \
             libfreetype6-dev \
             libgl1-mesa-dev \
-            libgl1-mesa-dri \
-            python${{ steps.python-selector.outputs.python-version }}-dev \
-            python${{ steps.python-selector.outputs.python-version }}-venv \
-            python${{ steps.python-selector.outputs.python-version }}-minimal \
-            python${{ steps.python-selector.outputs.python-version }}-tk
+            libgl1-mesa-dri
 
       - name: Install Scilpy
         run: |
