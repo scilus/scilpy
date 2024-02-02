@@ -37,9 +37,7 @@ jobs:
             git \
             libblas-dev \
             liblapack-dev \
-            libfreetype6-dev \
-            libgl1-mesa-dev \
-            libxrender1
+            libfreetype6-dev
 
       - name: Install Scilpy
         run: |
