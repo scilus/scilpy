@@ -896,7 +896,7 @@ def _compute_difference_for_voxel(chunk_indices,
             results.append([-1, corr])
             continue
 
-        # Get the streamlines in the neighborhood (i.e., 2mm away)
+        # Get the streamlines in the neighborhood (i.e., 1.5mm away)
         pts_ind_1 = tree_1.query_ball_point(vox_ind, 1.5)
         if not pts_ind_1:
             results.append([-1, -1])
@@ -904,7 +904,7 @@ def _compute_difference_for_voxel(chunk_indices,
         strs_ind_1 = np.unique(matched_points_1[pts_ind_1])
         neighb_streamlines_1 = sft_1.streamlines[strs_ind_1]
 
-        # Get the streamlines in the neighborhood (i.e., 1mm away)
+        # Get the streamlines in the neighborhood (i.e., 1.5mm away)
         pts_ind_2 = tree_2.query_ball_point(vox_ind, 1.5)
         if not pts_ind_2:
             results.append([-1, -1])
@@ -912,6 +912,9 @@ def _compute_difference_for_voxel(chunk_indices,
         strs_ind_2 = np.unique(matched_points_2[pts_ind_2])
         neighb_streamlines_2 = sft_2.streamlines[strs_ind_2]
 
+        # Using neighb_streamlines (all streamlines in the neighborhood of our
+        # voxel), we can compute the distance between the two sets of
+        # streamlines using FSS (FastStreamlineSearch).
         with warnings.catch_warnings(record=True) as _:
             fss = FastStreamlineSearch(neighb_streamlines_1, 10, resampling=12)
             dist_mat = fss.radius_search(neighb_streamlines_2, 10)
@@ -921,6 +924,8 @@ def _compute_difference_for_voxel(chunk_indices,
             sparse_ma_dist_vec = np.squeeze(np.min(sparse_ma_dist_mat,
                                                    axis=0))
 
+            # dists will represent the average distance between the two sets of
+            # streamlines in the neighborhood of the voxel.
             dist = np.average(sparse_ma_dist_vec)
             results.append([dist, corr])
 

@@ -3,13 +3,24 @@
 
 """
 This script is designed to compare and help visualize differences between
-two tractograms. Which can be especially useful in studies where multiple
+two tractograms. This can be especially useful in studies where multiple
 tractograms from different algorithms or parameters need to be compared.
 
+A similar script (scil_bundle_pairwise_comparison.py) is available for bundles,
+with metrics more adapted to bundles (and spatial aggrement).
+
 The difference is computed in terms of
-- A voxel-wise spatial distance between streamlines, out_diff.nii.gz
-- A correlation (ACC) between streamline orientation (TODI), out_acc.nii.gz
-- A correlation between streamline density, out_corr.nii.gz
+- A voxel-wise spatial distance between streamlines crossing each voxel.
+    This can help to see if both tractography reconstructions at each voxel
+    looks similar (out_diff.nii.gz)
+- An angular correlation (ACC) between streamline orientation from TODI.
+    This compares the local orientation of streamlines at each voxel
+    (out_acc.nii.gz)
+- A patch-wise correlation between streamline density maps from both
+    tractograms. This compares where the high/low density regions agree or not
+    (out_corr.nii.gz)
+- A heatmap combining all the previous metrics using an harmonic means of the
+    normalized metrics to summarize general agreement (out_heatmap.nii.gz)
 """
 
 import argparse
@@ -47,7 +58,7 @@ def _build_arg_parser():
                         'current directory.')
     p.add_argument('--out_prefix', default='out',
                    help='Prefix for output files. Useful for distinguishing '
-                        'between different runs.')
+                        'between different runs [%(default)s].')
 
     p.add_argument('--in_mask', metavar='IN_FILE',
                    help='Optional input mask.')
