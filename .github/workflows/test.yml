@@ -38,8 +38,7 @@ jobs:
             libblas-dev \
             liblapack-dev \
             libfreetype6-dev \
-            libgl1-mesa-dev \
-            libgl1-mesa-dri
+            libgl1-mesa-dev
 
       - name: Install Scilpy
         run: |
