@@ -463,12 +463,13 @@ def perform_operation_per_streamline(op_name, sft, dpp_name='metric',
         for s in sft.data_per_point[dpp_name]:
             start = s[0]
             end = s[-1]
-            concat = np.concatenate((start[:], end[:]), axis=0)
+            concat = np.concatenate((start[:], end[:]))
             new_data_per_streamline.append(call_op(concat))
     else:
         new_data_per_streamline = []
         for s in sft.data_per_point[dpp_name]:
-            new_data_per_streamline.append(call_op(s[:]))
+            s_np = np.asarray(s)
+            new_data_per_streamline.append(call_op(s_np))
 
     return new_data_per_streamline
 
@@ -501,19 +502,18 @@ def perform_pairwise_streamline_operation_on_endpoints(op_name, sft, dpp_name='m
 
 
 def stream_mean(array):
-    return np.mean(array)
+    return np.squeeze(np.mean(array,axis=0))
 
 
 def stream_sum(array):
-    return np.sum(array)
+    return np.squeeze(np.sum(array,axis=0))
 
 
 def stream_min(array):
-    return np.min(array)
-
+    return np.squeeze(np.min(array,axis=0))
 
 def stream_max(array):
-    return np.max(array)
+    return np.squeeze(np.max(array,axis=0))
 
 
 def stream_correlation(array1, array2):

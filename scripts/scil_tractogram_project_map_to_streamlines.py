@@ -130,7 +130,7 @@ def main():
             old_data_per_point[dpp_name] = data_per_point[dpp_name]
         out_sft = sft.from_sft(sft.streamlines, sft,
                                data_per_point=old_data_per_point)
-
+    
     save_tractogram(out_sft, args.out_tractogram)
 
 
