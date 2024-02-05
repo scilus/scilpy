@@ -2,8 +2,8 @@ include README.md
 include LICENSE
 include requirements.txt
 include .python-version
-include data/
 
+recursive-include data *
 recursive-include scilpy *.c
 recursive-include scilpy *.cpp
 recursive-include scilpy *.pyx
