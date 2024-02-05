@@ -1,5 +1,6 @@
 import numpy as np
 
+
 def project_map_to_streamlines(sft, map, endpoints_only=False):
     """
     Projects a map onto the points of streamlines.

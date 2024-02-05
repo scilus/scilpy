@@ -153,13 +153,11 @@ def main():
     data_per_streamline = {}
     for in_dpp_name, out_name in zip(args.in_dpp_name,
                                      args.out_name):
-
-
         # Perform the requested operation.
         if args.operation == 'correlation':
             logging.info('Performing {} across endpoint data and saving as '
                          'new dpp {}'.format(
-                args.operation, out_name))
+                         args.operation, out_name))
             new_dps = perform_pairwise_streamline_operation_on_endpoints(
                 args.operation, sft, in_dpp_name)
 
@@ -181,7 +179,6 @@ def main():
             new_data_per_streamline = perform_operation_per_streamline(
                 args.operation, sft, in_dpp_name, args.endpoints_only)
             data_per_streamline[out_name] = new_data_per_streamline
-
 
     if args.overwrite_data:
         new_sft = sft.from_sft(sft.streamlines, sft,
@@ -218,6 +215,7 @@ def main():
                                                        args.out_tractogram))
     save_tractogram(new_sft, args.out_tractogram,
                     bbox_valid_check=args.bbox_check)
+
 
 if __name__ == "__main__":
     main()

@@ -6,8 +6,8 @@ Projects maps extracted from a map onto the points of streamlines.
 
 The default options will take data from a nifti image (3D or 4D) and
 project it onto the points of streamlines. If the image is 4D, the data
-is stored as a list of 1D arrays per streamline. If the image is 3D, the data is stored
-as a list of values per streamline.
+is stored as a list of 1D arrays per streamline. If the image is 3D,
+the data is stored as a list of values per streamline.
 """
 
 import argparse
@@ -78,7 +78,8 @@ def main():
     sft.to_corner()
 
     if len(sft.streamlines) == 0:
-        logging.warning('Empty bundle file {}. Skipping'.format(args.in_tractogram))
+        logging.warning('Empty bundle file {}. Skipping'.format(
+            args.in_tractogram))
         return
 
     # Check to see if the number of maps and dpp_names are the same
@@ -130,7 +131,7 @@ def main():
             old_data_per_point[dpp_name] = data_per_point[dpp_name]
         out_sft = sft.from_sft(sft.streamlines, sft,
                                data_per_point=old_data_per_point)
-    
+
     save_tractogram(out_sft, args.out_tractogram)
 
 

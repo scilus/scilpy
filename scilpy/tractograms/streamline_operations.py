@@ -474,7 +474,8 @@ def perform_operation_per_streamline(op_name, sft, dpp_name='metric',
     return new_data_per_streamline
 
 
-def perform_pairwise_streamline_operation_on_endpoints(op_name, sft, dpp_name='metric'):
+def perform_pairwise_streamline_operation_on_endpoints(op_name, sft,
+                                                       dpp_name='metric'):
     """Peforms an operation across endpoints for each streamline.
 
     Parameters
