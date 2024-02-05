@@ -163,7 +163,9 @@ def _build_arg_parser():
                     metavar=('PD_json', 'T1_json'),
                     help='Path to MToff PD json file and MToff T1 json file, '
                          'in that order. \nThe acquisition parameters will be '
-                         'extracted from these files.')
+                         'extracted from these files. Must come from a '
+                         'Philips acquisition, otherwise, use '
+                         'in_acq_parameters.')
     a1.add_argument('--in_acq_parameters', nargs=4, type=float,
                     metavar=('PD flip angle', 'T1 flip angle',
                              'PD repetition time', 'T1 repetition time'),
