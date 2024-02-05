@@ -163,7 +163,7 @@ def _build_arg_parser():
                     metavar=('PD_json', 'T1_json'),
                     help='Path to MToff PD json file and MToff T1 json file, '
                          'in that order. \nThe acquisition parameters will be '
-                         'extracted from these files. Must come from a '
+                         'extracted from these files. \nMust come from a '
                          'Philips acquisition, otherwise, use '
                          'in_acq_parameters.')
     a1.add_argument('--in_acq_parameters', nargs=4, type=float,
@@ -254,12 +254,20 @@ def main():
     if args.in_acq_parameters:
         flip_angles = np.asarray(args.in_acq_parameters[:2]) * np.pi / 180.
         rep_times = np.asarray(args.in_acq_parameters[2:]) * 1000
+        if rep_times[0] > 10000 or rep_times[1] > 10000:
+                logging.warning('Given repetition times do not seem to '
+                                'be given in seconds. MTsat results might be '
+                                'affected.')
     elif args.in_jsons:
         rep_times = []
         flip_angles = []
         for curr_json in args.in_jsons:
             acq_parameter = get_acq_parameters(curr_json,
                                                ['RepetitionTime', 'FlipAngle'])
+            if acq_parameter[0] > 10:
+                logging.warning('Repetition time found in {} does not seem to '
+                                'be given in seconds. MTsat results might be '
+                                'affected.'.format(curr_json))
             rep_times.append(acq_parameter[0] * 1000)  # convert ms.
             flip_angles.append(acq_parameter[1] * np.pi / 180.)  # convert rad.
 
