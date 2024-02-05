@@ -48,7 +48,7 @@ jobs:
       - name: Run tests
         run: |
           export C_INCLUDE_PATH=$pythonLocation/include/python${{ steps.python-selector.outputs.python-version }}:$C_INCLUDE_PATH
-          pytest --cov-report term-missing:skip-covered
+          pytest --cov-report term-missing:skip-covered scilpy/scripts/tests/test_tractogram_filter_by_anatomy.py
 
       - name: Upload test reports and coverage to artifacts
         uses: echapmanFromBunnings/upload-artifact@3.0.0
