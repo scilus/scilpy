@@ -76,6 +76,7 @@ For both methods, the nominal value of the B1 map can be set with
     --in_mtoff_pd path/to/echo*mtoff.nii.gz
     --in_negative path/to/echo*neg.nii.gz --in_positive path/to/echo*pos.nii.gz
     --in_mtoff_t1 path/to/echo*T1w.nii.gz --mask path/to/mask_bin.nii.gz
+    --in_jsons path/to/echo*mtoff.json path/to/echo*T1w.json
 
 By default, the script uses all the echoes available in the input folder.
 If you want to use a single echo, replace the * with the specific number of
