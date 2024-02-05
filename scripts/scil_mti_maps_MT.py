@@ -341,12 +341,12 @@ def main():
         if args.extended:
             if 'positive' in contrast_names_og:
                 nib.save(nib.Nifti1Image(MTsat_sp, affine),
-                         os.path.join(extended_dir, "MTsat_sp.nii.gz"))
+                         os.path.join(extended_dir, "MTsat_positive.nii.gz"))
             if 'negative' in contrast_names_og:
                 nib.save(nib.Nifti1Image(MTsat_sn, affine),
-                         os.path.join(extended_dir, "MTsat_sn.nii.gz"))
+                         os.path.join(extended_dir, "MTsat_negative.nii.gz"))
             nib.save(nib.Nifti1Image(R1app, affine),
-                     os.path.join(extended_dir, "R1app.nii.gz"))
+                     os.path.join(extended_dir, "apparent_R1.nii.gz"))
 
         # Apply model-based B1 correction
         if args.in_B1_map and args.B1_correction_method == 'model_based':

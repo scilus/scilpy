@@ -360,14 +360,16 @@ def main():
         if args.extended:
             nib.save(nib.Nifti1Image(MTsat_sp, affine),
                      os.path.join(extended_dir,
-                                  out_prefix + "MTsat_sp.nii.gz"))
+                                  out_prefix + "MTsat_single_positive.nii.gz"))
             nib.save(nib.Nifti1Image(MTsat_sn, affine),
                      os.path.join(extended_dir,
-                                  out_prefix + "MTsat_sn.nii.gz"))
+                                  out_prefix + "MTsat_single_negative.nii.gz"))
             nib.save(nib.Nifti1Image(MTsat_d, affine),
-                     os.path.join(extended_dir, out_prefix + "MTsat_d.nii.gz"))
+                     os.path.join(extended_dir,
+                                  out_prefix + "MTsat_dual.nii.gz"))
             nib.save(nib.Nifti1Image(R1app, affine),
-                     os.path.join(extended_dir, out_prefix + "R1app.nii.gz"))
+                     os.path.join(extended_dir,
+                                  out_prefix + "apparent_R1.nii.gz"))
 
         MTsat_maps = [MTsat_sp, MTsat_sn, MTsat_d]
 
