@@ -1,40 +1,40 @@
 import numpy as np
 
-def project_metric_to_streamlines(sft, metric, endpoints_only=False):
+def project_map_to_streamlines(sft, map, endpoints_only=False):
     """
-    Projects a metric onto the points of streamlines.
+    Projects a map onto the points of streamlines.
 
     Parameters
     ----------
     sft: StatefulTractogram
         Input tractogram.
-    metric: DataVolume
-        Input metric.
+    map: DataVolume
+        Input map.
 
     Optional:
     ---------
     endpoints_only: bool
-        If True, will only project the metric onto the endpoints of the
+        If True, will only project the map onto the endpoints of the
         streamlines (all values along streamlines set to zero). If False,
-        will project the metric onto all points of the streamlines.
+        will project the map onto all points of the streamlines.
 
     Returns
     -------
     streamline_data:
-        metric projected to each point of the streamlines.
+        map projected to each point of the streamlines.
     """
-    if len(metric.data.shape) == 4:
-        dimension = metric.data.shape[3]
+    if len(map.data.shape) == 4:
+        dimension = map.data.shape[3]
     else:
         dimension = 1
 
     streamline_data = []
     if endpoints_only:
         for s in sft.streamlines:
-            p1_data = metric.get_value_at_coordinate(
+            p1_data = map.get_value_at_coordinate(
                 s[0][0], s[0][1], s[0][2],
                 space=sft.space, origin=sft.origin)
-            p2_data = metric.get_value_at_coordinate(
+            p2_data = map.get_value_at_coordinate(
                 s[-1][0], s[-1][1], s[-1][2],
                 space=sft.space, origin=sft.origin)
             thisstreamline_data = []
@@ -55,7 +55,7 @@ def project_metric_to_streamlines(sft, metric, endpoints_only=False):
         for s in sft.streamlines:
             thisstreamline_data = []
             for p in s:
-                thisstreamline_data.append(metric.get_value_at_coordinate(
+                thisstreamline_data.append(map.get_value_at_coordinate(
                     p[0], p[1], p[2], space=sft.space, origin=sft.origin))
 
             streamline_data.append(
