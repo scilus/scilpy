@@ -369,11 +369,6 @@ def test_smooth_line_spline():
     assert dist_1 < dist_2
 
 
-def test_project_metric_to_streamlines():
-    # toDo
-    pass
-
-
 def test_perform_streamline_operation_per_point():
     # toDo
     pass
