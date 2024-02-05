@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-Projects metrics extracted from a map onto the points of streamlines.
+Projects maps extracted from a map onto the points of streamlines.
 
 The default options will take data from a nifti image (3D or 4D) and
 project it onto the points of streamlines. If the image is 4D, the data
@@ -24,7 +24,7 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_outputs_exist)
 from scilpy.image.volume_space_management import DataVolume
 from scilpy.tractograms.dps_and_dpp_management import (
-    project_metric_to_streamlines)
+    project_map_to_streamlines)
 
 
 def _build_arg_parser():
@@ -38,7 +38,7 @@ def _build_arg_parser():
     p.add_argument('out_tractogram',
                    help='Output file.')
     p.add_argument('--in_maps', nargs='+', required=True,
-                   help='Nifti metric to project onto streamlines.')
+                   help='Nifti map to project onto streamlines.')
     p.add_argument('--out_dpp_name', nargs='+', required=True,
                    help='Name of the data_per_point to be saved in the \n'
                    'output tractogram.')
@@ -49,10 +49,10 @@ def _build_arg_parser():
                         'else will use nearest neighbor interpolation \n'
                         'by default.')
     p.add_argument('--endpoints_only', action='store_true',
-                   help='If set, will only project the metric onto the \n'
+                   help='If set, will only project the map onto the \n'
                    'endpoints of the streamlines (all other values along \n'
                    ' streamlines will be NaN). If not set, will project \n'
-                   ' the metric onto all points of the streamlines.')
+                   ' the map onto all points of the streamlines.')
     p.add_argument('--overwrite_data', action='store_true', default=False,
                    help='If set, will overwrite data_per_point in the '
                    'output tractogram, otherwise previous data will be '
@@ -81,9 +81,9 @@ def main():
         logging.warning('Empty bundle file {}. Skipping'.format(args.in_tractogram))
         return
 
-    # Check to see if the number of metrics and dpp_names are the same
+    # Check to see if the number of maps and dpp_names are the same
     if len(args.in_maps) != len(args.out_dpp_name):
-        parser.error('The number of metrics and dpp_names must be the same.')
+        parser.error('The number of maps and dpp_names must be the same.')
 
     # Check to see if there are duplicates in the out_dpp_names
     if len(args.out_dpp_name) != len(set(args.out_dpp_name)):
@@ -99,22 +99,22 @@ def main():
                 return
 
     data_per_point = {}
-    for fmetric, dpp_name in zip(args.in_maps, args.out_dpp_name):
-        logging.debug("Loading the metric...")
-        metric_img, metric_dtype = load_img(fmetric)
-        metric_data = metric_img.get_fdata(caching='unchanged', dtype=float)
-        metric_res = metric_img.header.get_zooms()[:3]
+    for fmap, dpp_name in zip(args.in_maps, args.out_dpp_name):
+        logging.debug("Loading the map...")
+        map_img, map_dtype = load_img(fmap)
+        map_data = map_img.get_fdata(caching='unchanged', dtype=float)
+        map_res = map_img.header.get_zooms()[:3]
 
         if args.trilinear:
             interp = "trilinear"
         else:
             interp = "nearest"
 
-        metric = DataVolume(metric_data, metric_res, interp)
+        map = DataVolume(map_data, map_res, interp)
 
-        logging.debug("Projecting metric onto streamlines")
-        streamline_data = project_metric_to_streamlines(
-            sft, metric,
+        logging.debug("Projecting map onto streamlines")
+        streamline_data = project_map_to_streamlines(
+            sft, map,
             endpoints_only=args.endpoints_only)
 
         logging.debug("Saving the tractogram...")
