@@ -42,8 +42,10 @@ jobs:
 
       - name: Install Scilpy
         run: |
+          python --version
           python -m pip install --upgrade pip setuptools wheel
-          python -m pip install -e .
+          python -m pip install -e . -v
+          python -m pip list
 
       - name: Run tests
         run: |

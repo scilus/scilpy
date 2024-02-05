@@ -103,6 +103,7 @@ opts = dict(name=NAME,
                     os.path.basename(s).split(".")[0]) for s in SCRIPTS] +
                 entry_point_legacy
             },
+            package_data={'': ['*.json', 'data/LUT/*.json']},
             include_package_data=True)
 
 setup(**opts)
