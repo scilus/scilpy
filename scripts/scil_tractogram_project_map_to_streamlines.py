@@ -23,7 +23,7 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist,
                              assert_outputs_exist)
 from scilpy.image.volume_space_management import DataVolume
-from scilpy.tractograms.streamline_operations import (
+from scilpy.tractograms.dps_and_dpp_management import (
     project_metric_to_streamlines)
 
 
