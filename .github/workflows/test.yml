@@ -52,7 +52,7 @@ jobs:
           pytest --cov-report term-missing:skip-covered
 
       - name: Upload coverage to codecov
-        uses: codecov/codecov-action@v4.0.0
+        uses: codecov/codecov-action@v4.0.1
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           directory: .test_reports/
