@@ -142,9 +142,8 @@ def load_wmparc_labels():
     Load labels dictionary of different parcellations from the
     Desikan-Killiany atlas
     """
-    resource_package = resources.path('scilpy', 'data')
-    labels_path = os.path.join(
-        resource_package, 'LUT/dk_aggregate_structures.json')
+    lut_package = os.path.join(resources.files('data'), 'LUT')
+    labels_path = os.path.join(lut_package, 'dk_aggregate_structures.json')
     with open(labels_path) as labels_file:
         labels = json.load(labels_file)
     return labels
