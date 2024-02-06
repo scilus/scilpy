@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - master
-  pull_request:
+  pull_request_target:
     branches:
       - master
   workflow_dispatch:
@@ -52,14 +52,21 @@ jobs:
           pytest --cov-report term-missing:skip-covered
 
       - name: Upload coverage to codecov
-        uses: codecov/codecov-action@v4.0.1
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          directory: .test_reports/
-          file: ./coverage.xml
-          flags: unittests
-          fail_ci_if_error: true
-          verbose: true
+        run: |
+          curl https://keybase.io/codecovsecurity/pgp_keys.asc | gpg --no-default-keyring --keyring trustedkeys.gpg --import
+          curl -Os https://cli.codecov.io/latest/linux/codecov
+          curl -Os https://cli.codecov.io/latest/linux/codecov.SHA256SUM
+          curl -Os https://cli.codecov.io/latest/linux/codecov.SHA256SUM.sig
+          gpgv codecov.SHA256SUM.sig codecov.SHA256SUM
+
+          shasum -a 256 -c codecov.SHA256SUM
+          chmod +x codecov
+          ./codecov --verbose upload-process \
+            --fail-on-error \
+            -t ${{ secrets.CODECOV_TOKEN }} \
+            -n 'scilpy-unittests'-${{ github.run_id }} \
+            -F scilpy-unittests -f .test_reports/coverage.xml
+
 
       - name: Upload test reports and coverage to artifacts
         uses: actions/upload-artifact@v4.3.1
