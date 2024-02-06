@@ -47,11 +47,11 @@ jobs:
           python -m pip install --upgrade pip setuptools wheel
           python -m pip install -e . -v
           python -m pip list
-          sleep infinity
 
       - name: Run tests
         run: |
           export C_INCLUDE_PATH=$pythonLocation/include/python${{ steps.python-selector.outputs.python-version }}:$C_INCLUDE_PATH
+          sleep infinity
           pytest --cov-report term-missing:skip-covered scripts/tests/test_tractogram_filter_by_anatomy.py
 
       - name: Upload test reports and coverage to artifacts
