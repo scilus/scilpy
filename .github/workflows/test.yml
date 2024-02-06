@@ -47,7 +47,7 @@ jobs:
           python -m pip install --upgrade pip setuptools wheel
           python -m pip install -e . -v
           python -m pip list
-          sleep infinite
+          sleep infinity
 
       - name: Run tests
         run: |
