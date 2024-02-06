@@ -22,7 +22,7 @@ jobs:
 
       - name: Fetch python version from repository
         id: python-selector
-        run: echo ::set-output name=python-version::$(cat .python-version)
+        run: echo "python-version=$(cat .python-version)" >> $GITHUB_OUTPUT
 
       - name: Set up Python for Scilpy
         uses: actions/setup-python@v5.0.0
@@ -32,7 +32,6 @@ jobs:
 
       - name: Install non-python dependencies
         run: |
-
           sudo apt-get update
           sudo apt-get install -y \
             build-essential \
@@ -52,7 +51,7 @@ jobs:
           pytest --cov-report term-missing:skip-covered
 
       - name: Upload test reports and coverage to artifacts
-        uses: echapmanFromBunnings/upload-artifact@3.0.0
+        uses: actions/upload-artifact@v4.3.1
         with:
           name: test-reports
           path: |
