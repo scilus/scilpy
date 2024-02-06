@@ -48,14 +48,8 @@ jobs:
       - name: Run tests
         run: |
           export C_INCLUDE_PATH=$pythonLocation/include/python${{ steps.python-selector.outputs.python-version }}:$C_INCLUDE_PATH
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
           pytest --cov-report term-missing:skip-covered
-
-      - name: Upload test reports and coverage to artifacts
-        uses: actions/upload-artifact@v4.3.1
-        with:
-          name: test-reports
-          path: |
-            .test_reports/*
 
       - name: Upload coverage to codecov
         uses: codecov/codecov-action@v4.0.0
@@ -66,3 +60,10 @@ jobs:
           flags: unittests
           fail_ci_if_error: true
           verbose: true
+
+      - name: Upload test reports and coverage to artifacts
+        uses: actions/upload-artifact@v4.3.1
+        with:
+          name: test-reports
+          path: |
+            .test_reports/*
