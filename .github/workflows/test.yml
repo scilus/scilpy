@@ -61,9 +61,8 @@ jobs:
           name: scilpy-unittests-${{ github.run_id }}
           verbose: true
           directory: .test_reports/
-          file: ./coverage.xml
           fail_ci_if_error: true
-          root_dir: $GITHUB_WORKSPACE/scilpy
+          root_dir: $GITHUB_WORKSPACE/scilpy/
 
       - name: Upload test reports and coverage to artifacts
         uses: actions/upload-artifact@v4.3.1
