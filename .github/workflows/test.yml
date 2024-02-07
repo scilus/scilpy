@@ -7,7 +7,6 @@ on:
   pull_request_target:
     branches:
       - master
-  workflow_dispatch:
 
 env:
   MPLBACKEND: agg
@@ -49,8 +48,7 @@ jobs:
       - name: Run tests
         run: |
           export C_INCLUDE_PATH=$pythonLocation/include/python${{ steps.python-selector.outputs.python-version }}:$C_INCLUDE_PATH
-          git config --global --add safe.directory "$GITHUB_WORKSPACE"
-          pytest --cov-report term-missing:skip-covered scripts/tests/test_bids_validate.py
+          pytest --cov-report term-missing:skip-covered
 
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v3
