@@ -64,6 +64,7 @@ jobs:
           chmod +x codecov
           ./codecov --verbose upload-process \
             --fail-on-error \
+            --git-service github \
             -t ${{ secrets.CODECOV_TOKEN }} \
             -n 'scilpy-unittests'-${{ github.run_id }} \
             -F scilpy-unittests -f .test_reports/coverage.xml
