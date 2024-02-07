@@ -503,18 +503,19 @@ def perform_pairwise_streamline_operation_on_endpoints(op_name, sft,
 
 
 def stream_mean(array):
-    return np.squeeze(np.mean(array,axis=0))
+    return np.squeeze(np.mean(array, axis=0))
 
 
 def stream_sum(array):
-    return np.squeeze(np.sum(array,axis=0))
+    return np.squeeze(np.sum(array, axis=0))
 
 
 def stream_min(array):
-    return np.squeeze(np.min(array,axis=0))
+    return np.squeeze(np.min(array, axis=0))
+
 
 def stream_max(array):
-    return np.squeeze(np.max(array,axis=0))
+    return np.squeeze(np.max(array, axis=0))
 
 
 def stream_correlation(array1, array2):
