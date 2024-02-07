@@ -17,6 +17,7 @@ from numpy.lib import stride_tricks
 from scipy.ndimage import (binary_closing, binary_dilation,
                            binary_erosion, binary_opening,
                            gaussian_filter)
+from skimage.filters import threshold_otsu
 
 from scilpy.utils.util import is_float
 
@@ -31,6 +32,8 @@ def get_array_ops():
         ('upper_threshold', upper_threshold),
         ('lower_threshold_eq', lower_threshold_eq),
         ('upper_threshold_eq', upper_threshold_eq),
+        ('lower_threshold_otsu', lower_threshold_otsu),
+        ('upper_threshold_otsu', upper_threshold_otsu),
         ('lower_clip', lower_clip),
         ('upper_clip', upper_clip),
         ('absolute_value', absolute_value),
@@ -144,6 +147,45 @@ def cut_up_cube(data, blck):
     data = stride_tricks.as_strided(data, strides=strides, shape=dims)
 
     return data
+
+
+def lower_threshold_otsu(input_list, ref_img):
+    """
+    lower_threshold_otsu: IMG
+        All values below or equal to the Otsu threshold will be set to zero.
+        All values above the Otsu threshold will be set to one.
+    """
+    _validate_length(input_list, 1)
+    _validate_type(input_list[0], nib.Nifti1Image)
+
+    output_data = np.zeros(ref_img.header.get_data_shape(), dtype=np.float64)
+    data = input_list[0].get_fdata(dtype=np.float64)
+    threshold = threshold_otsu(data)
+
+    output_data[data <= threshold] = 0
+    output_data[data > threshold] = 1
+
+    return output_data
+
+
+def upper_threshold_otsu(input_list, ref_img):
+    """
+    upper_threshold_otsu: IMG
+        All values below the Otsu threshold will be set to one.
+        All values above or equal to the Otsu threshold will be set to zero.
+        Equivalent to lower_threshold_otsu followed by an inversion.
+    """
+    _validate_length(input_list, 1)
+    _validate_type(input_list[0], nib.Nifti1Image)
+
+    output_data = np.zeros(ref_img.header.get_data_shape(), dtype=np.float64)
+    data = input_list[0].get_fdata(dtype=np.float64)
+    threshold = threshold_otsu(data)
+
+    output_data[data < threshold] = 1
+    output_data[data >= threshold] = 0
+
+    return output_data
 
 
 def lower_threshold_eq(input_list, ref_img):

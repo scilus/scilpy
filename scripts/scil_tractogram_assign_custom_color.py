@@ -200,7 +200,9 @@ def main():
                 data = np.clip(data, np.quantile(data, 0.05),
                                np.quantile(data, 0.95))
         elif args.use_dpp:
-            data = np.squeeze(sft.data_per_point[args.use_dpp]._data)
+            tmp = [np.squeeze(sft.data_per_point[args.use_dpp][s]) for s in
+                   range(len(sft))]
+            data = np.hstack(tmp)
         elif args.load_dps:
             data = np.squeeze(load_matrix_in_any_format(args.load_dps))
             if len(data) != len(sft):
