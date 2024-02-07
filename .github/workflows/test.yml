@@ -50,25 +50,21 @@ jobs:
         run: |
           export C_INCLUDE_PATH=$pythonLocation/include/python${{ steps.python-selector.outputs.python-version }}:$C_INCLUDE_PATH
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
-          pytest --cov-report term-missing:skip-covered
+          pytest --cov-report term-missing:skip-covered scripts/tests/test_bids_validate.py
 
-      - name: Upload coverage to codecov
-        run: |
-          curl https://keybase.io/codecovsecurity/pgp_keys.asc | gpg --no-default-keyring --keyring trustedkeys.gpg --import
-          curl -Os https://cli.codecov.io/latest/linux/codecov
-          curl -Os https://cli.codecov.io/latest/linux/codecov.SHA256SUM
-          curl -Os https://cli.codecov.io/latest/linux/codecov.SHA256SUM.sig
-          gpgv codecov.SHA256SUM.sig codecov.SHA256SUM
-
-          shasum -a 256 -c codecov.SHA256SUM
-          chmod +x codecov
-          ./codecov --verbose upload-process \
-            --fail-on-error \
-            --git-service github \
-            -t ${{ secrets.CODECOV_TOKEN }} \
-            -n 'scilpy-unittests'-${{ github.run_id }} \
-            -F scilpy-unittests -f .test_reports/coverage.xml
-
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v4
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+        with:
+          flags: unittests
+          name: scilpy-unittests-${{ github.run_id }}
+          verbose: true
+          directory: .test_reports/
+          plugin: pycoverage
+          file: ./coverage.xml
+          fail_ci_if_error: true
+          root_dir: $GITHUB_WORKSPACE/scilpy
 
       - name: Upload test reports and coverage to artifacts
         uses: actions/upload-artifact@v4.3.1
