@@ -463,7 +463,7 @@ def test_execution_MT_B1_no_fit(script_runner):
 
     in_e1_mton = os.path.join(get_home(),
                               'MT', 'sub-001_echo-1_acq-mton_mtsat.nii.gz')
-    
+
     in_e1_t1w = os.path.join(get_home(),
                              'MT', 'sub-001_echo-1_acq-t1w_mtsat.nii.gz')
 
