@@ -864,6 +864,8 @@ def _compute_difference_for_voxel(chunk_indices,
     chunk of voxels.
 
     Use the function tractogram_pairwise_comparison() as an entry point.
+    To differentiate empty voxels from voxels with no data, the function
+    returns NaN if no data is found.
 
     Parameters
     ----------
@@ -888,18 +890,18 @@ def _compute_difference_for_voxel(chunk_indices,
         if has_data:
             sf_1 = np.dot(sh_data_1[vox_ind], B)
             sf_2 = np.dot(sh_data_2[vox_ind], B)
-            corr = np.corrcoef(sf_1, sf_2)[0, 1]
+            acc = np.corrcoef(sf_1, sf_2)[0, 1]
         else:
-            corr = -1
+            acc = np.nan
 
-        if skip_streamlines_distance or not has_data:
-            results.append([-1, corr])
+        if skip_streamlines_distance:
+            results.append([np.nan, acc])
             continue
 
         # Get the streamlines in the neighborhood (i.e., 1.5mm away)
         pts_ind_1 = tree_1.query_ball_point(vox_ind, 1.5)
         if not pts_ind_1:
-            results.append([-1, -1])
+            results.append([np.nan, acc])
             continue
         strs_ind_1 = np.unique(matched_points_1[pts_ind_1])
         neighb_streamlines_1 = sft_1.streamlines[strs_ind_1]
@@ -907,7 +909,7 @@ def _compute_difference_for_voxel(chunk_indices,
         # Get the streamlines in the neighborhood (i.e., 1.5mm away)
         pts_ind_2 = tree_2.query_ball_point(vox_ind, 1.5)
         if not pts_ind_2:
-            results.append([-1, -1])
+            results.append([np.nan, acc])
             continue
         strs_ind_2 = np.unique(matched_points_2[pts_ind_2])
         neighb_streamlines_2 = sft_2.streamlines[strs_ind_2]
@@ -927,7 +929,7 @@ def _compute_difference_for_voxel(chunk_indices,
             # dists will represent the average distance between the two sets of
             # streamlines in the neighborhood of the voxel.
             dist = np.average(sparse_ma_dist_vec)
-            results.append([dist, corr])
+            results.append([dist, acc])
 
     return results
 
@@ -1052,7 +1054,7 @@ def tractogram_pairwise_comparison(sft_one, sft_two, mask, nbr_cpu=1,
     tree_2 = cKDTree(sft_2.streamlines._data)
 
     # Limits computation to mask AND streamlines (using density)
-    if not mask:
+    if mask is None:
         mask = np.ones(dimensions)
 
     logging.info('Computing density maps...')
@@ -1095,10 +1097,8 @@ def tractogram_pairwise_comparison(sft_one, sft_two, mask, nbr_cpu=1,
     acc_norm = normalize_metric(acc_data)
     corr_norm = normalize_metric(corr_data)
     diff_norm = normalize_metric(diff_data, reverse=True)
-    indices_minus_one = np.where((acc_data == -1) | (corr_data == -1) |
-                                 (diff_data == -1))
+
     # Merge into a single heatmap
     heatmap = merge_metrics(acc_norm, corr_norm, diff_norm)
-    heatmap[indices_minus_one] = np.nan
 
     return acc_norm, corr_norm, diff_norm, heatmap

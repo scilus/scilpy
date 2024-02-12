@@ -532,4 +532,4 @@ def merge_metrics(*arrays, beta=1.0):
     geometric_mean = np.power(array_product, 1 / len(arrays))
     boosted_mean = geometric_mean ** beta
 
-    return ma.filled(boosted_mean, fill_value=np.nan)
+    return ma.filled(boosted_mean, fill_value=-2)
