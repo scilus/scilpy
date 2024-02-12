@@ -1067,6 +1067,7 @@ def tractogram_pairwise_comparison(sft_one, sft_two, mask, nbr_cpu=1,
 
     logging.info('Computing correlation map...')
     corr_data = correlation([density_1, density_2], None) * mask
+    corr_data[mask == 0] = np.nan
 
     logging.info('Computing TODI #1...')
     global sh_data_1, sh_data_2
@@ -1093,12 +1094,8 @@ def tractogram_pairwise_comparison(sft_one, sft_two, mask, nbr_cpu=1,
     diff_data, acc_data = _compare_tractogram_wrapper(mask, nbr_cpu,
                                                       skip_streamlines_distance)
 
-    # Normalize metrics
-    acc_norm = normalize_metric(acc_data)
-    corr_norm = normalize_metric(corr_data)
+    # Normalize metrics and merge into a single heatmap
     diff_norm = normalize_metric(diff_data, reverse=True)
+    heatmap = merge_metrics(acc_data, corr_data, diff_norm)
 
-    # Merge into a single heatmap
-    heatmap = merge_metrics(acc_norm, corr_norm, diff_norm)
-
-    return acc_norm, corr_norm, diff_norm, heatmap
+    return acc_data, corr_data, diff_norm, heatmap
