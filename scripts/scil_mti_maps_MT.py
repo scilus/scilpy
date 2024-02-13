@@ -255,9 +255,8 @@ def main():
         flip_angles = np.asarray(args.in_acq_parameters[:2]) * np.pi / 180.
         rep_times = np.asarray(args.in_acq_parameters[2:]) * 1000
         if rep_times[0] > 10000 or rep_times[1] > 10000:
-                logging.warning('Given repetition times do not seem to '
-                                'be given in seconds. MTsat results might be '
-                                'affected.')
+            logging.warning('Given repetition times do not seem to be given '
+                            'in seconds. MTsat results might be affected.')
     elif args.in_jsons:
         rep_times = []
         flip_angles = []
