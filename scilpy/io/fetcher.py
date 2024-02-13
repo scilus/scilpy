@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-import io
 import logging
 import hashlib
 import os
@@ -22,13 +21,6 @@ def download_file_from_google_drive(url, destination):
     destination: str
         path to destination file with its name and extension
     """
-    def get_confirm_token(response):
-        for key, value in response.cookies.items():
-            if key.startswith('download_warning'):
-                return value
-
-        return None
-
     def save_response_content(response, destination):
         CHUNK_SIZE = 32768
 
@@ -38,8 +30,6 @@ def download_file_from_google_drive(url, destination):
 
     session = requests.Session()
     response = session.get(url, stream=True)
-    print(response.headers)
-    print(response.content)
 
     save_response_content(response, destination)
 
