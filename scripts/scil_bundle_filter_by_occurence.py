@@ -15,6 +15,7 @@ Formerly: scil_perform_majority_vote.py
 
 
 import argparse
+import logging
 
 from dipy.io.stateful_tractogram import StatefulTractogram
 from dipy.io.streamline import save_tractogram
@@ -67,6 +68,8 @@ def _build_arg_parser():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
+    if args.verbose:
+        logging.getLogger().setLevel(logging.DEBUG)
 
     assert_inputs_exist(parser, args.in_bundles)
     output_streamlines_filename = '{}streamlines.trk'.format(

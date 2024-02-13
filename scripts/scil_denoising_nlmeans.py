@@ -75,16 +75,14 @@ def _get_basic_sigma(data):
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
-
-    assert_inputs_exist(parser, args.in_image)
-    assert_outputs_exist(parser, args, args.out_image, args.logfile)
-
-    log_level = logging.INFO if args.verbose else logging.WARNING
-    logging.getLogger().setLevel(log_level)
+    logging.getLogger().setLevel(logging.INFO)
 
     if args.logfile is not None:
         logging.getLogger().addHandler(logging.FileHandler(args.logfile,
                                                            mode='w'))
+
+    assert_inputs_exist(parser, args.in_image)
+    assert_outputs_exist(parser, args, args.out_image, args.logfile)
 
     vol = nib.load(args.in_image)
     data = vol.get_fdata(dtype=np.float32)

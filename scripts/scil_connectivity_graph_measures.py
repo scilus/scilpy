@@ -85,19 +85,18 @@ def _build_arg_parser():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
+    if args.verbose:
+        logging.getLogger().setLevel(logging.INFO)
 
     assert_inputs_exist(parser, [args.in_length_matrix,
                                  args.in_conn_matrix])
 
-    if args.verbose:
-        logging.getLogger().setLevel(logging.DEBUG)
-
     if not args.append_json:
         assert_outputs_exist(parser, args, args.out_json)
     else:
-        logging.debug('Using --append_json, make sure to delete {} '
-                      'before re-launching a group analysis.'.format(
-                          args.out_json))
+        logging.info('Using --append_json, make sure to delete {} '
+                     'before re-launching a group analysis.'.format(
+            args.out_json))
 
     if args.append_json and args.overwrite:
         parser.error('Cannot use the append option at the same time as '

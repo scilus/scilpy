@@ -9,6 +9,7 @@ Formerly: scil_concatenate_dwi.py
 """
 
 import argparse
+import logging
 
 from dipy.io.gradients import read_bvals_bvecs
 from dipy.io.utils import is_header_compatible
@@ -53,6 +54,8 @@ def _build_arg_parser():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
+    if args.verbose:
+        logging.getLogger().setLevel(logging.INFO)
 
     if len(args.in_dwis) != len(args.in_bvals) \
             or len(args.in_dwis) != len(args.in_bvecs):

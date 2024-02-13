@@ -81,14 +81,13 @@ def _build_arg_parser():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
+    if args.verbose:
+        logging.getLogger().setLevel(logging.INFO)
 
     assert_outputs_exist(parser, args, args.out_matrix_mask)
 
     if not args.lower_than and not args.greater_than:
         parser.error('At least one of the two options is required.')
-
-    if args.verbose:
-        logging.getLogger().setLevel(logging.DEBUG)
 
     conditions_list = []
     if args.lower_than:
@@ -120,8 +119,8 @@ def main():
 
         population_score = np.sum(empty_matrices, axis=2)
 
-        logging.debug('Condition {}_than (#{}) resulted in {} filtered '
-                      'elements out of {}.'.format(
+        logging.info('Condition {}_than (#{}) resulted in {} filtered '
+                     'elements out of {}.'.format(
                           condition,
                           condition_counter,
                           len(np.where(population_score <
@@ -149,9 +148,9 @@ def main():
                         'filtering.\nApply threshold manually to binarize the '
                         'output matrix.')
     else:
-        logging.debug('All condition resulted in {} filtered '
-                      'elements out of {}.'.format(filtered_elem,
-                                                   np.prod(shape)))
+        logging.info('All condition resulted in {} filtered '
+                     'elements out of {}.'.format(filtered_elem,
+                                                  np.prod(shape)))
 
     save_matrix_in_any_format(args.out_matrix_mask,
                               output_mask.astype(np.uint8))

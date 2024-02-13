@@ -234,9 +234,8 @@ def read_config_file(args):
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
-
     if args.verbose:
-        logging.getLogger().setLevel(logging.INFO)
+        logging.getLogger().setLevel(logging.DEBUG)
 
     (bundle_names, gt_masks, dimensions,
      vb_sft_list, wpc_sft_list, ib_sft_list, nc_sft,

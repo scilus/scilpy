@@ -285,13 +285,12 @@ def _build_arg_parser():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
+    if args.verbose:
+        logging.getLogger().setLevel(logging.INFO)
+        coloredlogs.install(level=logging.INFO)
 
     assert_inputs_exist(parser, [args.in_hdf5, args.in_labels],
                         args.force_labels_list)
-
-    log_level = logging.INFO if args.verbose else logging.WARNING
-    logging.getLogger().setLevel(log_level)
-    coloredlogs.install(level=log_level)
 
     # Summarizing all options chosen by user in measures_to_compute.
     measures_to_compute = []

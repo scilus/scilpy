@@ -197,6 +197,9 @@ def compute_span(streamline_coords):
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
+    if args.verbose:
+        logging.getLogger().setLevel(logging.DEBUG)
+
     assert_inputs_exist(parser, args.in_bundles)
     assert_outputs_exist(parser, args, [], args.out_json)
 

@@ -29,6 +29,7 @@ Formerly: scil_estimate_bundles_diameter.py
 
 import argparse
 import json
+import logging
 import os
 
 from dipy.io.utils import is_header_compatible
@@ -206,6 +207,8 @@ def fit_circle_in_space(positions, directions, dist_w=None):
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
+    if args.verbose:
+        logging.getLogger().setLevel(logging.DEBUG)
 
     # The number of labels maps must be equal to the number of bundles
     tmp = args.in_bundles + args.in_labels

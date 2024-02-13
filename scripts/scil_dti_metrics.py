@@ -52,9 +52,6 @@ from scilpy.gradients.bvec_bval_tools import (normalize_bvecs,
                                               check_b0_threshold)
 from scilpy.utils.filenames import add_filename_suffix, split_name_with_nii
 
-logger = logging.getLogger("DTI_Metrics")
-logger.setLevel(logging.INFO)
-
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(
@@ -148,6 +145,8 @@ def _build_arg_parser():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
+    if args.verbose:
+        logging.getLogger().setLevel(logging.INFO)
 
     if not args.not_all:
         args.fa = args.fa or 'fa.nii.gz'

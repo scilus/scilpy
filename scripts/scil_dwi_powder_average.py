@@ -75,15 +75,15 @@ def _build_arg_parser():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
+    if args.verbose:
+        logging.getLogger().setLevel(logging.INFO)
+
     inputs = [args.in_dwi, args.in_bval]
     if args.mask:
         inputs.append(args.mask)
 
     assert_inputs_exist(parser, inputs)
     assert_outputs_exist(parser, args, args.out_avg)
-
-    if args.verbose:
-        logging.getLogger().setLevel(logging.DEBUG)
 
     img = nib.load(args.in_dwi)
     data = img.get_fdata(dtype=np.float32)
@@ -103,12 +103,12 @@ def main():
     if not (args.shells):
         # If no shell given, average all diffusion weighted images
         pwd_avg_idx = np.squeeze(np.where(bvals > 0 + args.b0_thr))
-        logging.debug('Calculating powder average from all diffusion'
+        logging.info('Calculating powder average from all diffusion'
                       '-weighted volumes, {} volumes '
                       'included.'.format(len(pwd_avg_idx)))
     else:
         pwd_avg_idx = []
-        logging.debug('Calculating powder average from {} '
+        logging.info('Calculating powder average from {} '
                       'shells {}'.format(len(args.shells), args.shells))
 
         for shell in args.shells:
@@ -117,12 +117,12 @@ def main():
                                 get_bval_indices(bvals,
                                                  shell,
                                                  tol=args.shell_thr))))
-            logging.debug('{} b{} volumes detected and included'.format(
+            logging.info('{} b{} volumes detected and included'.format(
                 len(pwd_avg_idx), shell))
 
         # remove b0 indices
         b0_idx = get_bval_indices(bvals, 0, args.b0_thr)
-        logging.debug('{} b0 volumes detected and not included'.format(
+        logging.info('{} b0 volumes detected and not included'.format(
             len(b0_idx)))
         for val in b0_idx:
             pwd_avg_idx = pwd_avg_idx[pwd_avg_idx != val]

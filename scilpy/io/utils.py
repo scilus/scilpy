@@ -232,6 +232,7 @@ def add_verbose_arg(parser):
 
     logging.getLogger().setLevel(logging.INFO)
     logging.info("Scilpy version: {}".format(version))
+    logging.getLogger().setLevel(logging.WARNING)
 
 
 def add_bbox_arg(parser):
@@ -878,5 +879,4 @@ def get_default_screenshotting_data(args):
         labelmap_img, \
         mask_imgs, \
         masks_colors
-
 

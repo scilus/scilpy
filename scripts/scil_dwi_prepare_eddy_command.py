@@ -117,6 +117,8 @@ def _build_arg_parser():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
+    if args.verbose:
+        logging.getLogger().setLevel(logging.INFO)
 
     try:
         devnull = open(os.devnull)
@@ -126,9 +128,6 @@ def main():
             "{} not found. If executing locally, please install "
             "the command from the FSL library and make sure it is "
             "available in your path.".format(args.eddy_cmd))
-
-    if args.verbose:
-        logging.getLogger().setLevel(logging.INFO)
 
     required_args = [args.in_dwi, args.in_bvals, args.in_bvecs, args.in_mask]
 

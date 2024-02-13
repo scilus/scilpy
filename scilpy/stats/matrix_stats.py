@@ -67,8 +67,8 @@ def ttest_two_matrices(matrices_g1, matrices_g2, paired, tail, fdr,
     sum_both_groups = np.sum(matrices_g1, axis=2) + np.sum(matrices_g2, axis=2)
     nbr_non_zeros = np.count_nonzero(np.triu(sum_both_groups))
 
-    logging.debug('The provided matrices contain {} non zeros elements.'
-                  .format(nbr_non_zeros))
+    logging.info('The provided matrices contain {} non zeros elements.'
+                 .format(nbr_non_zeros))
 
     matrices_g1 = matrices_g1.reshape((np.prod(matrix_shape), nb_group_g1))
     matrices_g2 = matrices_g2.reshape((np.prod(matrix_shape), nb_group_g2))
@@ -76,11 +76,11 @@ def ttest_two_matrices(matrices_g1, matrices_g2, paired, tail, fdr,
     matrix_pval = np.ones(np.prod(matrix_shape)) * -0.000001
 
     text = ' paired' if paired else ''
-    logging.debug('Performing{} t-test with "{}" hypothesis.'
-                  .format(text, tail))
-    logging.debug('Data has dimensions {}x{} with {} and {} observations.'
-                  .format(matrix_shape[0], matrix_shape[1],
-                          nb_group_g1, nb_group_g2))
+    logging.info('Performing{} t-test with "{}" hypothesis.'
+                 .format(text, tail))
+    logging.info('Data has dimensions {}x{} with {} and {} observations.'
+                 .format(matrix_shape[0], matrix_shape[1],
+                         nb_group_g1, nb_group_g2))
 
     # For conversion to p-values
     if paired:
@@ -105,7 +105,7 @@ def ttest_two_matrices(matrices_g1, matrices_g2, paired, tail, fdr,
 
     corr_matrix_pval = matrix_pval.reshape(matrix_shape)
     if fdr:
-        logging.debug('Using FDR, the results will be q-values.')
+        logging.info('Using FDR, the results will be q-values.')
         corr_matrix_pval = np.triu(corr_matrix_pval)
         corr_matrix_pval[corr_matrix_pval > 0] = multipletests(
             corr_matrix_pval[corr_matrix_pval > 0], 0, method='fdr_bh')[1]
@@ -158,8 +158,8 @@ def omega_sigma(matrix):
     transitivity_latt_list = []
     path_length_rand_list = []
     for i in range(10):
-        logging.debug('Generating random and lattice matrices, '
-                      'iteration #{}.'.format(i))
+        logging.info('Generating random and lattice matrices, '
+                     'iteration #{}.'.format(i))
         random = bct.randmio_und(matrix, 10)[0]
         lattice = bct.latmio_und(matrix, 10)[1]
 

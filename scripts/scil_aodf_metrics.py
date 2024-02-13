@@ -28,6 +28,7 @@ Formerly: scil_compute_asym_odf_metrics.py
 
 
 import argparse
+import logging
 import nibabel as nib
 import numpy as np
 
@@ -117,6 +118,8 @@ def _build_arg_parser():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
+    if args.verbose:
+        logging.getLogger().setLevel(logging.INFO)
 
     if not args.not_all:
         args.asi_map = args.asi_map or 'asi_map.nii.gz'
