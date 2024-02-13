@@ -38,6 +38,8 @@ def download_file_from_google_drive(url, destination):
 
     session = requests.Session()
     response = session.get(url, stream=True)
+    print(response.headers)
+    print(response.content)
 
     save_response_content(response, destination)
 
