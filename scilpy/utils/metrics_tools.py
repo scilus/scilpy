@@ -157,9 +157,9 @@ def weighted_mean_std(weights, data):
         a tuple containing the mean and standard deviation of the data
     """
 
-    masked_data = np.ma.masked_array(data, np.isnan(data))
-    mean = np.average(masked_data, weights=weights)
-    variance = np.average((masked_data-mean)**2, weights=weights)
+    masked_data = np.ma.masked_array(data, np.logical_or(np.isnan(a), np.isinf(a)))
+    mean = np.ma.average(masked_data, weights=weights)
+    variance = np.ma.average((masked_data-mean)**2, weights=weights)
 
     return mean, np.sqrt(variance)
 
