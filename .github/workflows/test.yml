@@ -4,10 +4,14 @@ on:
   push:
     branches:
       - master
-  pull_request_target:
+  pull_request:
     branches:
       - master
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+  
 env:
   MPLBACKEND: agg
   OPENBLAS_NUM_THREADS: 1
@@ -16,7 +20,7 @@ jobs:
   test:
     runs-on: scilus-runners
     steps:
-      - name: Checkout repository
+      - name: Checkout repository for merge
         uses: actions/checkout@v4.1.1
 
       - name: Fetch python version from repository
