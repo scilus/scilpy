@@ -20,7 +20,7 @@ jobs:
   test:
     runs-on: scilus-runners
     steps:
-      - name: Checkout repository
+      - name: Checkout repository for merge
         uses: actions/checkout@v4.1.1
 
       - name: Fetch python version from repository
