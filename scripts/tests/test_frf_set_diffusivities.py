@@ -25,6 +25,7 @@ def test_execution_processing_ssst(script_runner):
                             '15,4,4', 'new_frf.txt', '-f')
     assert ret.success
 
+
 def test_execution_processing_msmt(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
     in_frf = os.path.join(get_home(), 'commit_amico',
@@ -32,6 +33,7 @@ def test_execution_processing_msmt(script_runner):
     ret = script_runner.run('scil_frf_set_diffusivities.py', in_frf,
                             '15,4,4,13,4,4,12,5,5', 'new_frf.txt', '-f')
     assert ret.success
+
 
 def test_execution_processing__wrong_input(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
