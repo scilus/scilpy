@@ -99,12 +99,12 @@ def prepare_data_for_actors(bundle_filename, reference_filename,
         target_template_affine = target_template_img.affine
 
         # Register the DWI data to the template
-        logging.debug('Starting registration...')
+        logging.info('Starting registration...')
         transformed_reference, transformation = register_image(target_template_data,
                                                                target_template_affine,
                                                                reference_data,
                                                                reference_affine)
-        logging.debug('Transforming streamlines...')
+        logging.info('Transforming streamlines...')
         streamlines = transform_streamlines(streamlines,
                                             np.linalg.inv(transformation),
                                             in_place=True)
@@ -154,11 +154,11 @@ def plot_glass_brain(args, sft, img, output_filenames):
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
-    required = [args.in_bundle, args.in_anat]
-    assert_inputs_exist(parser, required, args.target_template)
-
     if args.verbose:
         logging.getLogger().setLevel(logging.DEBUG)
+
+    required = [args.in_bundle, args.in_anat]
+    assert_inputs_exist(parser, required, args.target_template)
 
     output_filenames_3d = []
     output_filenames_glass = []

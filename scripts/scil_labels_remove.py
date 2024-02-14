@@ -11,6 +11,7 @@ Formerly: scil_remove_labels.py
 
 
 import argparse
+import logging
 
 import nibabel as nib
 
@@ -48,6 +49,8 @@ def _build_arg_parser():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
+    if args.verbose:
+        logging.getLogger().setLevel(logging.INFO)
 
     assert_inputs_exist(parser, args.in_labels)
     assert_outputs_exist(parser, args, args.out_labels)

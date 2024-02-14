@@ -51,6 +51,8 @@ def _build_arg_parser():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
+    if args.verbose:
+        logging.getLogger().setLevel(logging.INFO)
 
     assert_inputs_exist(parser, args.in_image)
     assert_outputs_exist(parser, args, args.out_image)
@@ -64,9 +66,6 @@ def main():
     if args.fit_thr <= 0:
         parser.error('--fit_thr should be greater than 0. Current value: {}'
                      .format(args.fit_thr))
-
-    if args.verbose:
-        logging.getLogger().setLevel(logging.DEBUG)
 
     in_img = nib.load(args.in_image)
     in_data = in_img.get_fdata(dtype=np.float32)

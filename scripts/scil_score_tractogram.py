@@ -401,7 +401,6 @@ def read_config_file(args):
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
-
     if args.verbose:
         logging.getLogger().setLevel(logging.INFO)
 

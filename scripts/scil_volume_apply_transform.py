@@ -11,7 +11,7 @@ Formerly: scil_apply_transform_to_image.py.
 """
 
 import argparse
-import warnings
+import logging
 
 import nibabel as nib
 import numpy as np
@@ -51,6 +51,8 @@ def _build_arg_parser():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
+    if args.verbose:
+        logging.getLogger().setLevel(logging.INFO)
 
     assert_inputs_exist(parser, [args.in_file, args.in_target_file,
                                  args.in_transfo])
@@ -72,7 +74,7 @@ def main():
     moving = nib.load(args.in_file)
 
     if moving.get_fdata().ndim == 4:
-        warnings.warn('You are applying a transform to a 4D dwi volume, '
+        logging.warning('You are applying a transform to a 4D dwi volume, '
                       'make sure to rotate your bvecs with '
                       'scil_gradients_apply_transform.py')
 

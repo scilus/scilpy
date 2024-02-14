@@ -14,6 +14,7 @@ Formerly: scil_split_volume_by_labels.py
 
 import argparse
 import json
+import logging
 import os
 
 import nibabel as nib
@@ -56,6 +57,8 @@ def _build_arg_parser():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
+    if args.verbose:
+        logging.getLogger().setLevel(logging.INFO)
 
     assert_inputs_exist(parser, args.in_label)
 

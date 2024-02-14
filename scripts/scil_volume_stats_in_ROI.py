@@ -67,6 +67,8 @@ def _build_arg_parser():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
+    if args.verbose:
+        logging.getLogger().setLevel(logging.INFO)
 
     if args.metrics_dir and os.path.exists(args.metrics_dir):
         list_metrics_files = glob.glob(os.path.join(args.metrics_dir,

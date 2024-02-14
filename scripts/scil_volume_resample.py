@@ -61,15 +61,14 @@ def _build_arg_parser():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
+    if args.verbose:
+        logging.getLogger().setLevel(logging.INFO)
 
     # Checking args
     assert_inputs_exist(parser, args.in_image, args.ref)
     assert_outputs_exist(parser, args, args.out_image)
     if args.enforce_dimensions and not args.ref:
         parser.error("Cannot enforce dimensions without a reference image")
-
-    if args.verbose:
-        logging.getLogger().setLevel(logging.DEBUG)
 
     if args.volume_size and (not len(args.volume_size) == 1 and
                              not len(args.volume_size) == 3):
@@ -79,7 +78,7 @@ def main():
                             not len(args.voxel_size) == 3):
         parser.error('Invalid dimensions for --voxel_size.')
 
-    logging.debug('Loading raw data from %s', args.in_image)
+    logging.info('Loading raw data from %s', args.in_image)
 
     img = nib.load(args.in_image)
 
@@ -90,7 +89,7 @@ def main():
                                     enforce_dimensions=args.enforce_dimensions)
 
     # Saving results
-    logging.debug('Saving resampled data to %s', args.out_image)
+    logging.info('Saving resampled data to %s', args.out_image)
     nib.save(resampled_img, args.out_image)
 
 

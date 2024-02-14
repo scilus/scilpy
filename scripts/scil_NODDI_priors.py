@@ -90,6 +90,8 @@ def _build_arg_parser():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
+    if args.verbose:
+        logging.getLogger().setLevel(logging.DEBUG)
 
     assert_inputs_exist(parser, [args.in_AD, args.in_FA, args.in_MD])
     assert_outputs_exist(parser, args, [],
@@ -99,9 +101,6 @@ def main():
                           args.out_txt_1fiber])
 
     assert_same_resolution([args.in_AD, args.in_FA, args.in_MD])
-
-    log_level = logging.DEBUG if args.verbose else logging.INFO
-    logging.getLogger().setLevel(log_level)
 
     fa_img = nib.load(args.in_FA)
     fa_data = fa_img.get_fdata(dtype=np.float32)
