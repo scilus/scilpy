@@ -19,9 +19,10 @@ env:
 jobs:
   test:
     runs-on: scilus-runners
+    if: github.repository == 'scilus/scilpy'
     steps:
       - name: Checkout repository for merge
-        uses: actions/checkout@v4.1.1
+        uses: actions/checkout@v4
 
       - name: Fetch python version from repository
         id: python-selector
