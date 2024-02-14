@@ -23,11 +23,21 @@ If --not_all is set, only the files specified explicitly by the flags
 will be output. The order parameter can also be computed from the uFA and a
 precomputed FA, using separate input parameters.
 
+>>> scil_btensor_metrics.py --in_dwis LTE.nii.gz PTE.nii.gz STE.nii.gz
+    --in_bvals LTE.bval PTE.bval STE.bval --in_bvecs LTE.bvec PTE.bvec STE.bvec
+    --in_bdeltas 1 -0.5 0 --mask mask.nii.gz
+
+IMPORTANT: If the script does not converge to a solution, it is probably due to
+noise outside the brain. Thus, it is strongly recommanded to provide a brain
+mask with --mask.
+
 Based on Markus Nilsson, Filip Szczepankiewicz, Björn Lampinen, André Ahlgren,
 João P. de Almeida Martins, Samo Lasic, Carl-Fredrik Westin,
 and Daniel Topgaard. An open-source framework for analysis of multidimensional
 diffusion MRI data implemented in MATLAB.
 Proc. Intl. Soc. Mag. Reson. Med. (26), Paris, France, 2018.
+
+Formerly: scil_compute_divide.py
 """
 
 import argparse
@@ -176,13 +186,11 @@ def main():
     affine = extract_affine(args.in_dwis)
 
     tol = args.tolerance
-    force_b0_thr = args.force_b0_threshold
 
     data, gtab_infos = generate_btensor_input(args.in_dwis,
                                               args.in_bvals,
                                               args.in_bvecs,
                                               args.in_bdeltas,
-                                              force_b0_thr,
                                               do_pa_signals=True,
                                               tol=tol)
 
@@ -190,6 +198,9 @@ def main():
 
     if args.mask is None:
         mask = None
+        logging.warning(
+            'No mask provided. The fit might not converge due to noise. '
+            'Please provide a mask if it is the case.')
     else:
         mask = get_data_as_mask(nib.load(args.mask), dtype=bool)
         if mask.shape != data.shape[:-1]:

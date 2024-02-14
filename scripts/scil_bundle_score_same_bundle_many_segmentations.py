@@ -25,6 +25,8 @@ algorighm to generate the gold standard tractogram.
 The computed binary classification measures are:
 sensitivity, specificity, precision, accuracy, dice, kappa, youden for both
 the streamline and voxel representation (if provided).
+
+Formerly: scil_evaluate_bundles_binary_classification_measures.py
 """
 
 import argparse
@@ -63,10 +65,12 @@ def _build_arg_parser():
                    help='Path of the output json.')
     p.add_argument('--streamlines_measures', nargs=2,
                    metavar=('GOLD_STANDARD_STREAMLINES', 'TRACTOGRAM'),
-                   help='The gold standard bundle and the original tractogram.')
+                   help='The gold standard bundle and the original '
+                   'tractogram.')
     p.add_argument('--voxels_measures', nargs=2,
                    metavar=('GOLD_STANDARD_MASK', 'TRACKING MASK'),
-                   help='The gold standard mask and the original tracking mask.')
+                   help='The gold standard mask and the original tracking '
+                   'mask.')
 
     add_processes_arg(p)
     add_reference_arg(p)
@@ -98,10 +102,11 @@ def compute_voxel_measures(args):
     binary_3d_indices = np.where(binary_3d.flatten() > 0)[0]
     gs_binary_3d_indices = np.where(gs_binary_3d.flatten() > 0)[0]
 
-    voxels_binary = binary_classification(binary_3d_indices,
-                                          gs_binary_3d_indices,
-                                          int(np.prod(tracking_mask.shape)),
-                                          mask_count=np.count_nonzero(tracking_mask))
+    voxels_binary = binary_classification(
+                            binary_3d_indices,
+                            gs_binary_3d_indices,
+                            int(np.prod(tracking_mask.shape)),
+                            mask_count=np.count_nonzero(tracking_mask))
 
     return dict(zip(['sensitivity_voxels',
                      'specificity_voxels',
@@ -132,7 +137,8 @@ def compute_streamlines_measures(args):
         logging.info('{} is empty'.format(bundle_filename))
         return None
 
-    _, streamlines_indices = intersection_robust([wb_streamlines, bundle_streamlines])
+    _, streamlines_indices = intersection_robust([wb_streamlines,
+                                                  bundle_streamlines])
 
     streamlines_binary = binary_classification(streamlines_indices,
                                                gs_streamlines_indices,
@@ -183,7 +189,8 @@ def main():
         _, gs_dimensions, _, _ = gs_sft.space_attributes
 
         # Prepare the gold standard only once
-        _, gs_streamlines_indices = intersection_robust([wb_streamlines, gs_streamlines])
+        _, gs_streamlines_indices = intersection_robust([wb_streamlines,
+                                                         gs_streamlines])
 
         if nbr_cpu == 1:
             streamlines_dict = []
@@ -212,7 +219,8 @@ def main():
     else:
         gs_binary_3d = get_data_as_mask(nib.load(args.voxels_measures[0]))
         gs_binary_3d[gs_binary_3d > 0] = 1
-        tracking_mask_data = get_data_as_mask(nib.load(args.voxels_measures[1]))
+        tracking_mask_data = get_data_as_mask(nib.load(
+                                                args.voxels_measures[1]))
         tracking_mask_data[tracking_mask_data > 0] = 1
 
     if nbr_cpu == 1:

@@ -51,6 +51,8 @@ References
 
 [2]: Aydogan, D. B., & Shi, Y. (2020). Parallel transport tractography.
 IEEE transactions on medical imaging, 40(2), 635-647.
+
+Formerly: scil_compute_local_tracking.py
 """
 
 import argparse
@@ -226,7 +228,7 @@ def main():
             get_direction_getter(
                 args.in_odf, args.algo, args.sphere,
                 args.sub_sphere, args.theta, args.sh_basis,
-                voxel_size, args.sf_threshold),
+                voxel_size, args.sf_threshold, args.sh_to_pmf),
             BinaryStoppingCriterion(mask_data),
             seeds, np.eye(4),
             step_size=vox_step_size, max_cross=1,

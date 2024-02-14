@@ -3,6 +3,8 @@
 
 """
 Transform bvecs using an affine/rigid transformation.
+
+Formerly: scil_apply_transform_to_bvecs.py.
 """
 
 import argparse

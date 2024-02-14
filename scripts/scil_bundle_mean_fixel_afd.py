@@ -9,6 +9,8 @@ This is the "real" fixel-based fODF amplitude along every streamline
 of the bundle provided, averaged at every voxel.
 
 Please use a bundle file rather than a whole tractogram.
+
+Formerly: scil_compute_fixel_afd_from_bundles.py
 """
 
 import argparse
@@ -28,7 +30,8 @@ Reference:
     [1] Raffelt, D., Tournier, JD., Rose, S., Ridgway, GR., Henderson, R.,
         Crozier, S., Salvado, O., & Connelly, A. (2012).
         Apparent Fibre Density: a novel measure for the analysis of
-        diffusion-weighted magnetic resonance images. NeuroImage, 59(4), 3976--3994.
+        diffusion-weighted magnetic resonance images. NeuroImage, 59(4),
+        3976--3994.
 """
 
 
@@ -63,14 +66,14 @@ def main():
     sft = load_tractogram_with_reference(parser, args, args.in_bundle)
     fodf_img = nib.load(args.in_fodf)
 
-    afd_mean_map, rd_mean_map = afd_map_along_streamlines(sft,
-                                                          fodf_img,
-                                                          args.sh_basis,
-                                                          args.length_weighting)
+    afd_mean_map, rd_mean_map = afd_map_along_streamlines(
+                                                sft,
+                                                fodf_img,
+                                                args.sh_basis,
+                                                args.length_weighting)
 
     nib.Nifti1Image(afd_mean_map.astype(np.float32),
                     fodf_img.affine).to_filename(args.afd_mean_map)
-
 
 
 if __name__ == '__main__':

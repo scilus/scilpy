@@ -19,6 +19,8 @@ from scilpy.image.volume_math import (_validate_imgs,
                                       cut_up_cube,
                                       lower_threshold_eq, upper_threshold_eq,
                                       lower_threshold, upper_threshold,
+                                      lower_threshold_otsu,
+                                      upper_threshold_otsu,
                                       lower_clip, upper_clip,
                                       absolute_value,
                                       around, ceil, floor,
@@ -212,7 +214,8 @@ def test_cut_up_cube_with_known_output():
                                     [0,  0,  0]]])
 
     # Asserting that the output shape matches the expected shape
-    assert result.shape == expected_shape, f"Expected shape {expected_shape}, got {result.shape}"
+    assert result.shape == expected_shape, \
+        f"Expected shape {expected_shape}, got {result.shape}"
 
     # Asserting that the first block matches the expected first block
     assert_array_equal(result[0, 0, 0, :, :, :], expected_first_block)
@@ -295,6 +298,36 @@ def test_upper_threshold():
     output_data = upper_threshold([img, threshold], img)
 
     # Assert that the output matches the expected output
+    assert_array_equal(output_data, expected_output)
+
+
+def test_lower_threshold_otsu():
+    # Create a sample nib.Nifti1Image object
+    img_data = np.array([0, 1, 1, 50, 60, 60]).astype(float)
+    affine = np.eye(4)
+    img = nib.Nifti1Image(img_data, affine)
+
+    # Otsu is expected to separate foreground and background
+    expected_output = np.array([0, 0, 0, 1, 1, 1]).astype(float)
+
+    output_data = lower_threshold_otsu([img], img)
+
+    # compare output and expected arrays
+    assert_array_equal(output_data, expected_output)
+
+
+def test_upper_threshold_otsu():
+    # Create a sample nib.Nifti1Image object
+    img_data = np.array([0, 1, 1, 50, 60, 60]).astype(float)
+    affine = np.eye(4)
+    img = nib.Nifti1Image(img_data, affine)
+
+    # Otsu is expected to separate foreground and background
+    expected_output = np.array([1, 1, 1, 0, 0, 0]).astype(float)
+
+    output_data = upper_threshold_otsu([img], img)
+
+    # compare output and expected arrays
     assert_array_equal(output_data, expected_output)
 
 
@@ -422,6 +455,7 @@ def test_subtraction():
     img2 = nib.Nifti1Image(img_data_2, affine)
     expected_output = img_data_1 - img_data_2
     output_data = subtraction([img1, img2], img1)
+    assert_array_almost_equal(output_data, expected_output)
 
 
 def test_multiplication():
