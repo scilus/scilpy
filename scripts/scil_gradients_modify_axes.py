@@ -83,14 +83,24 @@ def main():
     if len(np.unique(swapped_order)) != 3:
         parser.error("final_order should contain the three axis.")
 
+    # Could use io.gradients method, but we don't have a bvals file here, only
+    # treating with the bvecs. Loading directly.
     bvecs = np.loadtxt(args.in_gradient_sampling_file)
     if ext_in == '.bvec':
-        # Supposing FSL format
+        # Supposing FSL format: Per columns
+        if bvecs.shape[0] != 3:
+            parser.error("b-vectors format for a .b file should be FSL, "
+                         "and contain 3 lines (x, y, z), but got {}"
+                         .format(bvecs.shape[0]))
         bvecs = flip_gradient_sampling(bvecs, axes_to_flip, 'fsl')
         bvecs = swap_gradient_axis(bvecs, swapped_order, 'fsl')
         np.savetxt(args.out_gradient_sampling_file, bvecs, "%.8f")
     else:  # ext == '.b':
         # Supposing mrtrix format
+        if bvecs.shape[1] != 4:
+            parser.error("b-vectors format for a .b file should be mrtrix, "
+                         "and contain 4 columns (x, y, z, bval), but got {}"
+                         .format(bvecs.shape[1]))
         bvecs = flip_gradient_sampling(bvecs, axes_to_flip, 'mrtrix')
         bvecs = swap_gradient_axis(bvecs, swapped_order, 'mrtrix')
         np.savetxt(args.out_gradient_sampling_file, bvecs,

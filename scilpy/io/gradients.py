@@ -6,6 +6,69 @@ import os
 import numpy as np
 
 
+def fsl2mrtrix(fsl_bval_filename, fsl_bvec_filename, mrtrix_filename):
+    """
+    Convert a fsl dir_grad.bvec/.bval files to mrtrix encoding.b file.
+    Saves the result.
+
+    Parameters
+    ----------
+    fsl_bval_filename: str
+        path to input fsl bval file.
+    fsl_bvec_filename: str
+        path to input fsl bvec file.
+    mrtrix_filename : str
+        path to output mrtrix encoding.b file.
+    """
+    shells = np.loadtxt(fsl_bval_filename)
+    points = np.loadtxt(fsl_bvec_filename)
+    bvals = np.unique(shells).tolist()
+
+    # Remove .bval and .bvec if present
+    mrtrix_filename = mrtrix_filename.replace('.b', '')
+
+    if not points.shape[0] == 3:
+        points = points.transpose()
+        logging.warning('WARNING: Your bvecs seem transposed. ' +
+                        'Transposing them.')
+
+    shell_idx = [int(np.where(bval == bvals)[0]) for bval in shells]
+    save_gradient_sampling_mrtrix(points, shell_idx, bvals,
+                                  mrtrix_filename + '.b')
+
+
+def mrtrix2fsl(mrtrix_filename, fsl_filename):
+    """
+    Convert a mrtrix encoding.b file to fsl dir_grad.bvec/.bval files.
+    Saves the result.
+
+    Parameters
+    ----------
+    mrtrix_filename : str
+        path to mrtrix encoding.b file.
+    fsl_filename: str
+        path to the output fsl files. Files will be named
+        fsl_bval_filename.bval and fsl_bval_filename.bvec.
+    """
+    # Remove .bval and .bvec if present
+    fsl_filename = fsl_filename.replace('.bval', '')
+    fsl_filename = fsl_filename.replace('.bvec', '')
+
+    mrtrix_b = np.loadtxt(mrtrix_filename)
+    if not len(mrtrix_b.shape) == 2 or not mrtrix_b.shape[1] == 4:
+        raise ValueError('mrtrix file must have 4 columns')
+
+    points = np.array([mrtrix_b[:, 0], mrtrix_b[:, 1], mrtrix_b[:, 2]])
+    shells = np.array(mrtrix_b[:, 3])
+
+    bvals = np.unique(shells).tolist()
+    shell_idx = [int(np.where(bval == bvals)[0]) for bval in shells]
+
+    save_gradient_sampling_fsl(points, shell_idx, bvals,
+                               filename_bval=fsl_filename + '.bval',
+                               filename_bvec=fsl_filename + '.bvec')
+
+
 def save_gradient_sampling_mrtrix(bvecs, shell_idx, bvals, filename):
     """
     Save table gradient (MRtrix format)
