@@ -2,8 +2,8 @@
 import numpy as np
 
 from scilpy.gradients.bvec_bval_tools import (
-    check_b0_threshold, is_normalized_bvecs, normalize_bvecs,
-    round_bvals_to_shell, identify_shells, str_to_axis_index, flip_gradient_sampling,
+    identify_shells, is_normalized_bvecs, flip_gradient_sampling,
+    normalize_bvecs, round_bvals_to_shell, str_to_axis_index,
     swap_gradient_axis)
 
 bvecs = np.asarray([[1.0, 1.0, 1.0],
@@ -68,7 +68,7 @@ def test_str_to_axis_index():
     assert str_to_axis_index('x') == 0
     assert str_to_axis_index('y') == 1
     assert str_to_axis_index('z') == 2
-
+    assert str_to_axis_index('v') is None
 
 
 def test_flip_gradient_sampling():
