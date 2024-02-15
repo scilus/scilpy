@@ -13,7 +13,7 @@ The code was reorganized, but general process is kept the same.
 import numpy as np
 from scipy import optimize
 
-from scilpy.gradients.utils import random_uniform_on_sphere
+from scilpy.gradients.utils import random_uniform_on_half_sphere
 
 
 def generate_gradient_sampling(nb_samples_per_shell, verbose=1):
@@ -125,7 +125,7 @@ def _generate_gradient_sampling_with_weights(
     nb_point_total = np.sum(nb_points_per_shell)
 
     # Initialized with random directions
-    bvecs = random_uniform_on_sphere(nb_point_total)
+    bvecs = random_uniform_on_half_sphere(nb_point_total)
     bvecs = bvecs.reshape(nb_point_total * 3)
 
     bvecs = optimize.fmin_slsqp(_multiple_shell_energy, bvecs,
