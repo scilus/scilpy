@@ -107,7 +107,7 @@ def compute_ssst_frf(data, bvals, bvecs, mask=None, mask_wm=None,
         nvox = np.sum(mask)
         response, ratio = response_from_mask_ssst(gtab, data, mask)
 
-        logging.debug(
+        logging.info(
             "Number of indices is {:d} with threshold of {:.2f}".format(
                 nvox, fa_thresh))
         fa_thresh -= 0.05
@@ -117,14 +117,14 @@ def compute_ssst_frf(data, bvals, bvecs, mask=None, mask_wm=None,
             "Could not find at least {:d} voxels with sufficient FA "
             "to estimate the FRF!".format(min_nvox))
 
-    logging.debug(
+    logging.info(
         "Found {:d} voxels with FA threshold {:.2f} for "
         "FRF estimation".format(nvox, fa_thresh + 0.05))
-    logging.debug("FRF eigenvalues: {}".format(str(response[0])))
-    logging.debug("Ratio for smallest to largest eigen value "
-                  "is {:.3f}".format(ratio))
-    logging.debug("Mean of the b=0 signal for voxels used "
-                  "for FRF: {}".format(response[1]))
+    logging.info("FRF eigenvalues: {}".format(str(response[0])))
+    logging.info("Ratio for smallest to largest eigen value "
+                 "is {:.3f}".format(ratio))
+    logging.info("Mean of the b=0 signal for voxels used "
+                 "for FRF: {}".format(response[1]))
 
     full_response = np.array([response[0][0], response[0][1],
                               response[0][2], response[1]])

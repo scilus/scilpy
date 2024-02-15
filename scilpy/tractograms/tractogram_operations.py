@@ -798,12 +798,12 @@ def split_sft_randomly_per_cluster(orig_sft, chunk_sizes, seed, thresholds):
     nb_chunks = len(chunk_sizes)
     percent_kept_per_chunk = [nb / len(orig_sft) for nb in chunk_sizes]
 
-    logging.debug("Computing QBx")
+    logging.info("Computing QBx")
     clusters = qbx_and_merge(orig_sft.streamlines, thresholds, nb_pts=20,
                              verbose=False)
 
-    logging.debug("Done. Now getting list of indices in each of the {} "
-                  "cluster.".format(len(clusters)))
+    logging.info("Done. Now getting list of indices in each of the {} "
+                 "cluster.".format(len(clusters)))
     total_indices = [[] for _ in range(nb_chunks + 1)]
     for cluster in clusters:
         if len(cluster.indices) > 1:

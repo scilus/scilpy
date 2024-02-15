@@ -51,8 +51,8 @@ class data_for_stat(object):
                     self.data_dictionnary[participant['participant_id']]\
                         [variable] = participant[variable]
 
-        logging.debug('Data_dictionnary')
-        logging.debug(self.data_dictionnary[self.get_first_participant()])
+        logging.info('Data_dictionnary')
+        logging.info(self.data_dictionnary[self.get_first_participant()])
 
         with open('data.json', 'w') as fp:
             json.dump(self.data_dictionnary, fp, indent=4)
@@ -64,15 +64,15 @@ class data_for_stat(object):
         # Create the list of participants id from the json dictionnary
 
         participants_from_json = list(json_info.keys())
-        logging.debug('participant list from json dictionnary:')
-        logging.debug(participants_from_json)
+        logging.info('participant list from json dictionnary:')
+        logging.info(participants_from_json)
 
         # Create the list of participants id from the tsv list of dictionnary
         participants_from_tsv = []
         for participant in participants_info:
             participants_from_tsv.append(participant['participant_id'])
-        logging.debug('participant list from tsv file:')
-        logging.debug(participants_from_tsv)
+        logging.info('participant list from tsv file:')
+        logging.info(participants_from_tsv)
 
         # Compare the two list
         participants_from_json.sort()
@@ -80,15 +80,17 @@ class data_for_stat(object):
 
         if not participants_from_json == participants_from_tsv:
             if not len(participants_from_json) == len(participants_from_tsv):
-                logging.debug('The number of participants from json file is not the same '
-                              'as the one in the tsv file.')
+                logging.info('The number of participants from json file is '
+                             'not the same as the one in the tsv file.')
             is_in_tsv = np.in1d(participants_from_json, participants_from_tsv)
             is_in_json = np.in1d(participants_from_tsv, participants_from_json)
 
-            logging.debug('participants list from json file missing in tsv file :')
-            logging.debug(np.asarray(participants_from_json)[~is_in_tsv])
-            logging.debug('participants list from tsv file missing in json file :')
-            logging.debug(np.asarray(participants_from_tsv)[~is_in_json])
+            logging.info('participants list from json file missing in tsv '
+                         'file :')
+            logging.info(np.asarray(participants_from_json)[~is_in_tsv])
+            logging.info('participants list from tsv file missing in json '
+                         'file :')
+            logging.info(np.asarray(participants_from_tsv)[~is_in_json])
 
             logging.error('The subjects from the json file does not fit '
                           'with the subjects of the tsv file. '
@@ -97,7 +99,7 @@ class data_for_stat(object):
                                 'with the subjects of the tsv file. '
                                 'Impossible to build the data_for_stat object')
         else:
-            logging.debug('The json and the tsv are compatible')
+            logging.info('The json and the tsv are compatible')
 
     def get_participants_list(self):
         # Construct the list of participant_id from the data_dictionnary
@@ -492,6 +494,6 @@ def visualise_distribution(data_by_group, participants_id, bundle, metric,
 
     fig.savefig(os.path.join(oFolder, 'Graph', bundle, metric))
 
-    logging.debug('outliers:[(id, group)]')
-    logging.debug(outliers)
+    logging.info('outliers:[(id, group)]')
+    logging.info(outliers)
     return outliers

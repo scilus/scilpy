@@ -241,7 +241,7 @@ def register_image(static, static_grid2world, moving, moving_grid2world,
 def compute_snr(dwi, bval, bvec, b0_thr, mask,
                 noise_mask=None, noise_map=None,
                 split_shells=False,
-                basename=None, verbose=False):
+                basename=None):
     """
     Compute snr
 
@@ -264,16 +264,10 @@ def compute_snr(dwi, bval, bvec, b0_thr, mask,
     basename: string
         Basename used for naming all output files.
 
-    verbose: boolean
-        Set to use logging
-
     Return
     ------
     Dictionary of values (bvec, bval, mean, std, snr) for all volumes.
     """
-    if verbose:
-        logging.getLogger().setLevel(logging.INFO)
-
     data = dwi.get_fdata(dtype=np.float32)
     affine = dwi.affine
     mask = get_data_as_mask(mask, dtype=bool)
@@ -416,17 +410,17 @@ def resample_volume(img, ref=None, res=None, iso_min=False, zoom=None,
     if interp not in interp_choices:
         raise ValueError("interp must be one of 'nn', 'lin', 'quad', 'cubic'.")
 
-    logging.debug('Data shape: %s', data.shape)
-    logging.debug('Data affine: %s', affine)
-    logging.debug('Data affine setup: %s', nib.aff2axcodes(affine))
-    logging.debug('Resampling data to %s with mode %s', new_zooms, interp)
+    logging.info('Data shape: %s', data.shape)
+    logging.info('Data affine: %s', affine)
+    logging.info('Data affine setup: %s', nib.aff2axcodes(affine))
+    logging.info('Resampling data to %s with mode %s', new_zooms, interp)
 
     data2, affine2 = reslice(data, affine, original_zooms, new_zooms,
                              _interp_code_to_order(interp))
 
-    logging.debug('Resampled data shape: %s', data2.shape)
-    logging.debug('Resampled data affine: %s', affine2)
-    logging.debug('Resampled data affine setup: %s', nib.aff2axcodes(affine2))
+    logging.info('Resampled data shape: %s', data2.shape)
+    logging.info('Resampled data affine: %s', affine2)
+    logging.info('Resampled data affine setup: %s', nib.aff2axcodes(affine2))
 
     if enforce_dimensions:
         if ref is None:

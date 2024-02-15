@@ -122,8 +122,7 @@ def main():
                          noise_mask=noise_mask,
                          noise_map=noise_map,
                          split_shells=args.split_shells,
-                         basename=basename,
-                         verbose=args.verbose)
+                         basename=basename)
 
     df = pd.DataFrame.from_dict(values).T
 
