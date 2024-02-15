@@ -56,16 +56,15 @@ jobs:
           pytest --cov-report term-missing:skip-covered scripts/tests/test_bids_validate.py
 
       - name: Upload coverage reports to Codecov
-        uses: codecov/codecov-action@v3
-        env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+        uses: codecov/codecov-action@v4
         with:
+          token: ${{ secrets.CODECOV_TOKEN }}
           flags: unittests
           name: scilpy-unittests-${{ github.run_id }}
           verbose: true
           directory: .test_reports/
           fail_ci_if_error: true
-          root_dir: $GITHUB_WORKSPACE/scilpy/
+          plugin: pycoverage
 
       - name: Upload test reports and coverage to artifacts
         uses: actions/upload-artifact@v4.3.1
