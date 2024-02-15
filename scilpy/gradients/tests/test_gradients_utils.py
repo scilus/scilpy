@@ -28,9 +28,9 @@ def test_random_uniform_on_sphere():
 def test_get_new_order_philips():
     # Using N=4 vectors
     philips_table = np.asarray([[1, 1, 1, 1],
-                          [2, 2, 2, 2],
-                          [3, 3, 3, 3],
-                          [4, 4, 4, 4]])
+                                [2, 2, 2, 2],
+                                [3, 3, 3, 3],
+                                [4, 4, 4, 4]])
     dwi = np.ones((10, 10, 10, 4))
     bvecs = np.asarray([[3, 3, 3],
                         [4, 4, 4],

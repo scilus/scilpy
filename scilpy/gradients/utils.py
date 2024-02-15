@@ -27,7 +27,8 @@ def random_uniform_on_half_sphere(nb_vectors):
     r = 2 * np.sqrt(np.random.rand(nb_vectors))
     theta = 2 * np.arcsin(r / 2)
 
-    # See here: https://www.bogotobogo.com/Algorithms/uniform_distribution_sphere.php
+    # See here:
+    # https://www.bogotobogo.com/Algorithms/uniform_distribution_sphere.php
     # They seem to be using something like this instead:
     # theta = np.arccos(2 * np.random.rand(nb_vectors) - 1.0)
 
