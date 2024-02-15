@@ -424,7 +424,9 @@ def correct_procpar_intensity(dwi_data, dwi_path, b0_path):
 
             P1 = 10**(Ldb/20)
     """
-
+    # Not really an io function: does not load and save! But it is the only
+    # method we have concerning varian_fdf. Kept here, as decided by guru
+    # Arnaud.
     dwi_gain = get_gain(dwi_path)
     b0_gain = get_gain(b0_path)
 

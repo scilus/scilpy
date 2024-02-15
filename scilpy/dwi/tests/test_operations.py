@@ -7,3 +7,7 @@ def test_apply_bias_field():
 
 def test_compute_dwi_attenuation():
     pass
+
+
+def test_detect_volume_outliers():
+    pass
