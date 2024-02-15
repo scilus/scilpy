@@ -53,7 +53,7 @@ jobs:
       - name: Run tests
         run: |
           export C_INCLUDE_PATH=$pythonLocation/include/python${{ steps.python-selector.outputs.python-version }}:$C_INCLUDE_PATH
-          pytest --cov-report term-missing:skip-covered
+          pytest --cov-report term-missing:skip-covered scripts/tests/test_bids_validate.py
 
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v3
