@@ -3,9 +3,9 @@ branch = True
 concurrency = multiprocessing
 data_file = .test_reports/.coverage
 relative_files = True
-source =
-    scilpy/
-    scripts/
+source_pkgs =
+    scilpy
+    scripts
 omit =
     scripts/tests/*.py
     scilpy/tests/**/*.py
