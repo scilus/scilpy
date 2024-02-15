@@ -73,6 +73,13 @@ def check_b0_threshold(min_bval, b0_thr, skip_b0_check):
         If True, and no b0 is found, only print a warning, do not raise
         an error.
 
+    Returns
+    -------
+    b0_thr: float
+        Either the unmodified b0_thr, or, in the case where the minimal b-value
+        is larger than b0_thr, and skip_b0_check is set to True, then returns
+        min_bval.
+
     Raises
     ------
     ValueError
@@ -93,7 +100,6 @@ def check_b0_threshold(min_bval, b0_thr, skip_b0_check):
 
     if min_bval > b0_thr:
         if skip_b0_check:
-            logging.warning("GOT {} > {}".format(min_bval, b0_thr))
             logging.warning(
                 'Your minimal bvalue ({}), is above the threshold ({})\n'
                 'Since --skip_b0_check was specified, the script will '
