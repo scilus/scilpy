@@ -65,7 +65,6 @@ jobs:
           directory: .test_reports/
           fail_ci_if_error: true
           plugin: pycoverage
-          commit_parent: ${{ github.event.pull_request.base.sha || github.event.before }}
 
       - name: Upload test reports and coverage to artifacts
         uses: actions/upload-artifact@v4.3.1
