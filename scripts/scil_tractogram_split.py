@@ -83,6 +83,8 @@ def _build_arg_parser():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
+    logging.getLogger().setLevel(logging.getLevelName(args.verbose))
+    set_sft_logger_level(args.verbose)
 
     assert_inputs_exist(parser, args.in_tractogram)
     _, out_extension = os.path.splitext(args.in_tractogram)
@@ -93,13 +95,7 @@ def main():
     assert_outputs_exist(parser, args, os.path.join(
         args.out_dir, '{}_0{}'.format(args.out_prefix, out_extension)))
 
-    log_level = logging.WARNING
-    if args.verbose:
-        log_level = logging.DEBUG
-        set_sft_logger_level('INFO')
-    logging.getLogger().setLevel(log_level)
-
-    logging.debug("Loading sft.")
+    logging.info("Loading sft.")
     sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
     streamlines_count = len(sft.streamlines)
 

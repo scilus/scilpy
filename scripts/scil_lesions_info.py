@@ -15,6 +15,7 @@ Formerly: scil_analyse_lesions_load.py
 
 import argparse
 import json
+import logging
 import os
 
 import nibabel as nib
@@ -72,6 +73,7 @@ def _build_arg_parser():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
+    logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     if (not args.bundle) and (not args.bundle_mask) \
             and (not args.bundle_labels_map):

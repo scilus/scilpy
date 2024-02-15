@@ -15,6 +15,7 @@ before launching pre-processing.
 """
 
 import argparse
+import logging
 import pprint
 
 from dipy.io.gradients import read_bvals_bvecs
@@ -60,6 +61,7 @@ def _build_arg_parser():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
+    logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     assert_inputs_exist(parser, [args.in_dwi, args.in_bval, args.in_bvec])
 

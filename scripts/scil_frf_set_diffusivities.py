@@ -14,6 +14,7 @@ Formerly: scil_set_response_function.py
 
 import argparse
 from ast import literal_eval
+import logging
 import numpy as np
 
 from scilpy.io.utils import (add_overwrite_arg,
@@ -50,6 +51,7 @@ def _build_arg_parser():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
+    logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     assert_inputs_exist(parser, args.frf_file)
     assert_outputs_exist(parser, args, args.output_frf_file)

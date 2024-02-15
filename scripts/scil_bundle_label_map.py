@@ -15,6 +15,7 @@ Formerly: scil_compute_bundle_voxel_label_map.py
 """
 
 import argparse
+import logging
 import os
 
 from dipy.align.streamlinear import StreamlineLinearRegistration
@@ -85,6 +86,7 @@ def _build_arg_parser():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
+    logging.getLogger().setLevel(logging.getLevelName(args.verbose))
     set_sft_logger_level('ERROR')
     assert_inputs_exist(parser, args.in_bundles + [args.in_centroid],
                         optional=args.reference)

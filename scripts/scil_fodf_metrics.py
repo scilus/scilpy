@@ -34,6 +34,7 @@ Formerly: scil_compute_fodf_metrics.py
 """
 
 import argparse
+import logging
 import numpy as np
 import nibabel as nib
 
@@ -111,6 +112,7 @@ def _build_arg_parser():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
+    logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     if not args.not_all:
         args.afd_max = args.afd_max or 'afd_max.nii.gz'

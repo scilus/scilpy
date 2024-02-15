@@ -14,6 +14,7 @@ Formerly: scil_crop_volume.py
 """
 
 import argparse
+import logging
 import pickle
 
 import nibabel as nib
@@ -56,6 +57,7 @@ def _build_arg_parser():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
+    logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     assert_inputs_exist(parser, args.in_image, args.input_bbox)
     assert_outputs_exist(parser, args, args.out_image, args.output_bbox)

@@ -65,6 +65,7 @@ Formerly: scil_compute_ihMT_maps.py
 """
 
 import argparse
+import logging
 import os
 
 import nibabel as nib
@@ -151,6 +152,7 @@ def _build_arg_parser():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
+    logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     assert_output_dirs_exist_and_empty(parser, args,
                                        os.path.join(args.out_dir,
