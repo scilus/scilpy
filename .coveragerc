@@ -2,6 +2,7 @@
 branch = True
 concurrency = multiprocessing
 data_file = .test_reports/.coverage
+relative_files = True
 source =
     scilpy/
     scripts/
