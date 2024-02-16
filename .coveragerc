@@ -1,11 +1,11 @@
 [run]
 branch = True
 concurrency = multiprocessing
-data_file = .test_reports/.coverage
-relative_files = True
-source_pkgs =
+data_file = .coverage
+source_pkgs = 
     scilpy
     scripts
+relative_files = True
 omit =
     scripts/tests/*.py
     scilpy/tests/**/*.py
@@ -16,6 +16,11 @@ omit =
 
 [report]
 skip_empty = True
+skip_covered = True
 
 [html]
 title = Scilpy Coverage Report
+directory = .test_reports/coverage.html
+
+[xml]
+output = .test_reports/coverage.xml
