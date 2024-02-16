@@ -54,8 +54,7 @@ import dipy.reconst.msdki as msdki
 from dipy.io.gradients import read_bvals_bvecs
 from dipy.core.gradients import gradient_table
 
-from scipy.ndimage import gaussian_filter
-
+from scilpy.dwi.operations import compute_residuals
 from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              assert_outputs_exist, add_force_b0_arg,
@@ -64,6 +63,7 @@ from scilpy.gradients.bvec_bval_tools import (normalize_bvecs,
                                               is_normalized_bvecs,
                                               check_b0_threshold,
                                               identify_shells)
+from scilpy.preprocessing.utils import smooth_to_fwhm
 
 
 def _build_arg_parser():
@@ -150,6 +150,7 @@ def main():
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
+    # Verifications
     if not args.not_all:
         args.dki_fa = args.dki_fa or 'dki_fa.nii.gz'
         args.dki_md = args.dki_md or 'dki_md.nii.gz'
@@ -174,6 +175,7 @@ def main():
         parser, [args.in_dwi, args.in_bval, args.in_bvec], args.mask)
     assert_outputs_exist(parser, args, outputs)
 
+    # Loading
     img = nib.load(args.in_dwi)
     data = img.get_fdata(dtype=np.float32)
     affine = img.affine
@@ -183,35 +185,28 @@ def main():
         mask_img = nib.load(args.mask)
         mask = get_data_as_mask(mask_img, dtype=bool)
 
-    # Validate bvals and bvecs
     bvals, bvecs = read_bvals_bvecs(args.in_bval, args.in_bvec)
     if not is_normalized_bvecs(bvecs):
         logging.warning('Your b-vectors do not seem normalized...')
         bvecs = normalize_bvecs(bvecs)
 
+    # Processing
+
     # Find the volume indices that correspond to the shells to extract.
-    tol = args.tolerance
-    shells, _ = identify_shells(bvals, tol)
+    shells, _ = identify_shells(bvals, args.tolerance)
     if not len(shells) >= 3:
-        parser.error('Data is not multi-shell. You need at least 2 non-zero' +
+        parser.error('Data is not multi-shell. You need at least 2 non-zero'
                      ' b-values')
 
     if (shells > 2500).any():
-        logging.warning('You seem to be using b > 2500 s/mm2 DWI data. ' +
+        logging.warning('You seem to be using b > 2500 s/mm2 DWI data. '
                         'In theory, this is beyond the optimal range for DKI')
 
     b0_thr = check_b0_threshold(args, bvals.min(), bvals.min())
     gtab = gradient_table(bvals, bvecs, b0_threshold=b0_thr)
 
-    fwhm = args.smooth
-    if fwhm > 0:
-        # converting fwhm to Gaussian std
-        gauss_std = fwhm / np.sqrt(8 * np.log(2))
-        data_smooth = np.zeros(data.shape)
-        for v in range(data.shape[-1]):
-            data_smooth[..., v] = gaussian_filter(data[..., v],
-                                                  sigma=gauss_std)
-        data = data_smooth
+    # Smooth to FWHM
+    smooth_to_fwhm(data, fwhm=args.smooth)
 
     # Compute DKI
     dkimodel = dki.DiffusionKurtosisModel(gtab)
@@ -220,6 +215,7 @@ def main():
     min_k = args.min_k
     max_k = args.max_k
 
+    # Save all metrics.
     if args.dki_fa:
         FA = dkifit.fa
         FA[np.isnan(FA)] = 0
@@ -279,16 +275,8 @@ def main():
     if args.dki_residual:
         S0 = np.mean(data[..., gtab.b0s_mask], axis=-1)
         data_p = dkifit.predict(gtab, S0)
-        R = np.mean(np.abs(data_p[..., ~gtab.b0s_mask] -
-                           data[..., ~gtab.b0s_mask]), axis=-1)
 
-        norm = np.linalg.norm(R)
-        if norm != 0:
-            R = R / norm
-
-        if args.mask is not None:
-            R *= mask
-
+        R = compute_residuals(data_p, data, gtab.b0s_mask, args.mask)
         R_img = nib.Nifti1Image(R.astype(np.float32), affine)
         nib.save(R_img, args.dki_residual)
 
