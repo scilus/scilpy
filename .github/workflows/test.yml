@@ -62,7 +62,6 @@ jobs:
           flags: unittests
           name: scilpy-unittests-${{ github.run_id }}
           verbose: true
-          directory: .test_reports/
           fail_ci_if_error: true
           plugin: pycoverage
 
