@@ -99,7 +99,7 @@ def main():
         parser.error('The output names (out_dpp_names) must be unique.')
 
     # Check to see if the output names already exist in the input tractogram
-    if not args.overwrite_data:
+    if not args.overwrite_dpp:
         for out_dpp_name in args.out_dpp_name:
             if out_dpp_name in sft.data_per_point:
                 logging.info('out_name {} already exists in input tractogram. '

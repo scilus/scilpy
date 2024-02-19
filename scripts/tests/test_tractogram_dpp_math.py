@@ -34,9 +34,9 @@ def test_execution_tractogram_point_math_mean_3D_defaults(script_runner):
 
     ret = script_runner.run('scil_tractogram_dpp_math.py',
                             'mean',
-                            'dps',
                             t1_on_bundle,
                             't1_mean_on_streamlines.trk',
+                            '--mode', 'dps',
                             '--in_dpp_name', 't1',
                             '--out_name', 't1_mean')
 
@@ -59,9 +59,9 @@ def test_execution_tractogram_point_math_mean_4D_correlation(script_runner):
 
     ret = script_runner.run('scil_tractogram_dpp_math.py',
                             'correlation',
-                            'dps',
                             fodf_on_bundle,
                             'fodf_correlation_on_streamlines.trk',
+                            '--mode', 'dpp',
                             '--in_dpp_name', 'fodf',
                             '--out_name', 'fodf_correlation')
 

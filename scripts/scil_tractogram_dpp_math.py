@@ -56,8 +56,7 @@ def _build_arg_parser():
                    help='The type of operation to be performed on the \n'
                         'streamlines. Must\nbe one of the following: \n'
                         '%(choices)s.')
-    p.add_argument('dpp_or_dps', metavar='DPP_OR_DPS',
-                   choices=['dpp', 'dps'],
+    p.add_argument('--mode', required=True, choices=['dpp', 'dps'],
                    help='Set to dps if the operation is to be performed \n'
                    'across all dimensions resulting in a single value per \n'
                    'streamline. Set to dpp if the operation is to be \n'
@@ -138,7 +137,7 @@ def main():
                          'point. Exiting.')
             return
 
-        if args.operation == 'correlation' and args.dpp_or_dps == 'dpp':
+        if args.operation == 'correlation' and args.mode == 'dpp':
             logging.info('Correlation operation requires dps mode. Exiting.')
             return
 
@@ -161,7 +160,7 @@ def main():
                 args.operation, sft, in_dpp_name)
 
             data_per_streamline[out_name] = new_dps
-        elif args.dpp_or_dps == 'dpp':
+        elif args.mode == 'dpp':
             # Results in new data per point
             logging.info(
                 'Performing {} on data from each streamine point '
@@ -170,7 +169,7 @@ def main():
             new_dpp = perform_streamline_operation_per_point(
                 args.operation, sft, in_dpp_name, args.endpoints_only)
             data_per_point[out_name] = new_dpp
-        elif args.dpp_or_dps == 'dps':
+        elif args.mode == 'dps':
             # Results in new data per streamline
             logging.info(
                 'Performing {} across each streamline and saving resulting '
