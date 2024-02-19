@@ -40,11 +40,7 @@ def project_map_to_streamlines(sft, map_volume, endpoints_only=False):
                 s[-1][0], s[-1][1], s[-1][2],
                 space=sft.space, origin=sft.origin)
 
-            if dimension == 1:
-                thisstreamline_data = np.ones((len(s), 1)) * np.nan
-            else:
-                thisstreamline_data = np.ones(
-                    (len(s), p1_data.shape[0])) * np.nan
+            thisstreamline_data = np.ones((len(s), dimension)) * np.nan
 
             thisstreamline_data[0] = p1_data
             thisstreamline_data[-1] = p2_data

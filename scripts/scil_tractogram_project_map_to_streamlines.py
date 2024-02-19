@@ -137,6 +137,11 @@ def main():
         out_sft = sft.from_sft(sft.streamlines, sft,
                                data_per_point=data_per_point)
 
+    print("New data_per_point keys are: ")
+    for key in args.out_dpp_name:
+        print("  - {} with shape per point {}"
+              .format(key, out_sft.data_per_point[key][0].shape[1:]))
+
     save_tractogram(out_sft, args.out_tractogram)
 
 
