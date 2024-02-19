@@ -218,7 +218,7 @@ def detect_volume_outliers(data, bvecs, bvals, std_scale,
         print()
 
 
-def compute_residuals(prediced_data, real_data, b0s_mask=None,
+def compute_residuals(predicted_data, real_data, b0s_mask=None,
                       normalize=True, mask=None):
     """
     Compare the predicted data and the real data, on their last axis.
@@ -226,7 +226,7 @@ def compute_residuals(prediced_data, real_data, b0s_mask=None,
 
     Parameters
     ----------
-    prediced_data: np.ndarray
+    predicted_data: np.ndarray
         4D dwi volume.
     real_data: np.ndarray
         4D dwi volume.
@@ -239,12 +239,12 @@ def compute_residuals(prediced_data, real_data, b0s_mask=None,
     mask: np.ndaray, optional
         3D volume. If given, residual is set to 0 outside the mask.
     """
-    diff_data = np.abs(prediced_data - real_data)
+    diff_data = np.abs(predicted_data - real_data)
 
     if b0s_mask is not None:
-        res = np.mean(diff_data[..., ~b0s_mask], axis=-1, dtype=np.float32)
+        res = np.mean(diff_data[..., ~b0s_mask], axis=-1)
     else:
-        res = np.mean(diff_data, axis=-1, dtype=np.float32)
+        res = np.mean(diff_data, axis=-1)
 
     if normalize:
         norm = np.linalg.norm(res)

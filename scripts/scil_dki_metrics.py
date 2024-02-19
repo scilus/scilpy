@@ -206,7 +206,7 @@ def main():
     gtab = gradient_table(bvals, bvecs, b0_threshold=b0_thr)
 
     # Smooth to FWHM
-    smooth_to_fwhm(data, fwhm=args.smooth)
+    data = smooth_to_fwhm(data, fwhm=args.smooth)
 
     # Compute DKI
     dkimodel = dki.DiffusionKurtosisModel(gtab)
@@ -224,35 +224,49 @@ def main():
         fa_img = nib.Nifti1Image(FA.astype(np.float32), affine)
         nib.save(fa_img, args.dki_fa)
 
+        del FA, fa_img
+
     if args.dki_md:
         MD = dkifit.md
         md_img = nib.Nifti1Image(MD.astype(np.float32), affine)
         nib.save(md_img, args.dki_md)
+
+        del MD, md_img
 
     if args.dki_ad:
         AD = dkifit.ad
         ad_img = nib.Nifti1Image(AD.astype(np.float32), affine)
         nib.save(ad_img, args.dki_ad)
 
+        del AD, ad_img
+
     if args.dki_rd:
         RD = dkifit.rd
         rd_img = nib.Nifti1Image(RD.astype(np.float32), affine)
         nib.save(rd_img, args.dki_rd)
+
+        del RD, rd_img
 
     if args.mk:
         MK = dkifit.mk(min_k, max_k)
         mk_img = nib.Nifti1Image(MK.astype(np.float32), affine)
         nib.save(mk_img, args.mk)
 
+        del MK, mk_img
+
     if args.ak:
         AK = dkifit.ak(min_k, max_k)
         ak_img = nib.Nifti1Image(AK.astype(np.float32), affine)
         nib.save(ak_img, args.ak)
 
+        del AK, ak_img
+
     if args.rk:
         RK = dkifit.rk(min_k, max_k)
         rk_img = nib.Nifti1Image(RK.astype(np.float32), affine)
         nib.save(rk_img, args.rk)
+
+        del RK, rk_img
 
     if args.msk or args.msd:
         # Compute MSDKI
@@ -267,16 +281,22 @@ def main():
             msk_img = nib.Nifti1Image(MSK.astype(np.float32), affine)
             nib.save(msk_img, args.msk)
 
+            del MSK, msk_img
+
         if args.msd:
             MSD = msdki_fit.msd
             msd_img = nib.Nifti1Image(MSD.astype(np.float32), affine)
             nib.save(msd_img, args.msd)
 
+            del MSD, msd_img
+
     if args.dki_residual:
         S0 = np.mean(data[..., gtab.b0s_mask], axis=-1)
-        data_p = dkifit.predict(gtab, S0)
+        data_p = dkifit.predict(gtab=gtab, S0=S0)
 
-        R = compute_residuals(data_p, data, gtab.b0s_mask, args.mask)
+        R, _ = compute_residuals(data_p, data,
+                                 b0s_mask=gtab.b0s_mask, normalize=True,
+                                 mask=mask)
         R_img = nib.Nifti1Image(R.astype(np.float32), affine)
         nib.save(R_img, args.dki_residual)
 
