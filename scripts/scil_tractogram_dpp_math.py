@@ -56,15 +56,15 @@ def _build_arg_parser():
                    help='The type of operation to be performed on the \n'
                         'streamlines. Must\nbe one of the following: \n'
                         '%(choices)s.')
+    p.add_argument('in_tractogram', metavar='INPUT_FILE',
+                   help='Input tractogram containing streamlines and \n'
+                        'metadata.')
     p.add_argument('--mode', required=True, choices=['dpp', 'dps'],
                    help='Set to dps if the operation is to be performed \n'
                    'across all dimensions resulting in a single value per \n'
                    'streamline. Set to dpp if the operation is to be \n'
                    'performed on each point separately resulting in a single \n'
                    'value per point.')
-    p.add_argument('in_tractogram', metavar='INPUT_FILE',
-                   help='Input tractogram containing streamlines and \n'
-                        'metadata.')
     p.add_argument('--in_dpp_name',  nargs='+', required=True,
                    help='Name or list of names of the data_per_point for \n'
                         'operation to be performed on. If more than one dpp \n'
@@ -78,15 +78,19 @@ def _build_arg_parser():
     p.add_argument('out_tractogram', metavar='OUTPUT_FILE',
                    help='The file where the remaining streamlines \n'
                         'are saved.')
-
     p.add_argument('--endpoints_only', action='store_true', default=False,
                    help='If set, will only perform operation on endpoints \n'
                    'If not set, will perform operation on all streamline \n'
                    'points.')
-    p.add_argument('--overwrite_data', action='store_true', default=False,
-                   help='If set, will overwrite the data_per_point or \n'
-                   'data_per_streamline in the output tractogram, otherwise \n'
-                   'previous data will be preserved in the output tractogram.')
+    p.add_argument('--keep_all_dpp_dps', action='store_true',
+                   help='If set, previous data_per_point will be preserved \n'
+                   'in the output tractogram. Else, only --out_dpp_name \n'
+                   'keys will be saved.')
+    p.add_argument('--overwrite_dpp_dps', action='store_true',
+                   help='If set, if --keep_all_dpp_dps is set and some \n'
+                   '--out_dpp_name keys already existed in your \n'
+                   ' data_per_point or data_per_streamline, allow \n'
+                   ' overwriting old data_per_point.')
 
     add_reference_arg(p)
     add_verbose_arg(p)
@@ -141,10 +145,10 @@ def main():
             logging.info('Correlation operation requires dps mode. Exiting.')
             return
 
-        if not args.overwrite_data:
+        if not args.overwrite_dpp_dps:
             if in_dpp_name in args.out_name:
                 logging.info('out_name {} already exists in input tractogram. '
-                             'Set overwrite_data or choose a different '
+                             'Set overwrite_dpp_dps or choose a different '
                              'out_name. Exiting.'.format(in_dpp_name))
                 return
 
@@ -178,25 +182,15 @@ def main():
                 args.operation, sft, in_dpp_name, args.endpoints_only)
             data_per_streamline[out_name] = new_data_per_streamline
 
-    if args.overwrite_data:
+    if args.keep_all_dpp_dps:
+        sft.data_per_streamline.update(data_per_streamline)
+        sft.data_per_point.update(data_per_point)
+
+        new_sft = sft
+    else:
         new_sft = sft.from_sft(sft.streamlines, sft,
                                data_per_point=data_per_point,
                                data_per_streamline=data_per_streamline)
-    else:
-        old_data_per_streamline = sft.data_per_streamline
-        old_data_per_point = sft.data_per_point
-
-        if data_per_point is not None:
-            for key, value in data_per_point.items():
-                old_data_per_point[key] = value
-
-        if data_per_streamline is not None:
-            for key, value in data_per_streamline.items():
-                old_data_per_streamline[key] = value
-
-        new_sft = sft.from_sft(sft.streamlines, sft,
-                               data_per_point=old_data_per_point,
-                               data_per_streamline=old_data_per_streamline)
 
     # Print DPP names
     logging.info('New data per point names:')
