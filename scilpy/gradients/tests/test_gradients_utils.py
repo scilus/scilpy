@@ -2,12 +2,12 @@
 import numpy as np
 
 from scilpy.gradients.bvec_bval_tools import is_normalized_bvecs
-from scilpy.gradients.utils import random_uniform_on_half_sphere, \
+from scilpy.gradients.utils import random_uniform_on_sphere, \
     get_new_order_philips
 
 
 def test_random_uniform_on_sphere():
-    bvecs = random_uniform_on_half_sphere(10)
+    bvecs = random_uniform_on_sphere(10)
 
     # Confirm that they are unit vectors.
     assert is_normalized_bvecs(bvecs)

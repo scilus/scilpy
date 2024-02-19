@@ -3,10 +3,10 @@
 import numpy as np
 
 
-def random_uniform_on_half_sphere(nb_vectors):
+def random_uniform_on_sphere(nb_vectors):
     """
     Creates a set of K pseudo-random unit vectors, following a uniform
-    distribution on the half sphere. Reference: Emmanuel Caruyer's code
+    distribution on the sphere. Reference: Emmanuel Caruyer's code
     (https://github.com/ecaruyer).
 
     This is not intended to create a perfect result. It's usually the
@@ -19,9 +19,11 @@ def random_uniform_on_half_sphere(nb_vectors):
 
     Returns
     -------
-    bvecs: nd.array
-        pseudo-random unit vector
+    bvecs: nd.array of shape (nb_vectors, 3)
+        Pseudo-random unit vectors
     """
+    # Note. Caruyer's docstring says it's a uniform on the half-sphere, but
+    # plotted a few results: it is one the whole sphere.
     phi = 2 * np.pi * np.random.rand(nb_vectors)
 
     r = 2 * np.sqrt(np.random.rand(nb_vectors))
