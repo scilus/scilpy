@@ -41,6 +41,7 @@ from dipy.reconst.dti import (TensorModel, color_fa, fractional_anisotropy,
 # Aliased to avoid clashes with images called mode.
 from dipy.reconst.dti import mode as dipy_mode
 
+from scilpy.dwi.operations import compute_residuals
 from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              assert_outputs_exist, add_verbose_arg,
@@ -150,6 +151,7 @@ def main():
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
+    # Verifications
     if not args.not_all:
         args.fa = args.fa or 'fa.nii.gz'
         args.ga = args.ga or 'ga.nii.gz'
@@ -178,6 +180,7 @@ def main():
         parser, [args.in_dwi, args.in_bval, args.in_bvec], args.mask)
     assert_outputs_exist(parser, args, outputs)
 
+    # Loading
     img = nib.load(args.in_dwi)
     data = img.get_fdata(dtype=np.float32)
     affine = img.affine
@@ -186,7 +189,6 @@ def main():
     else:
         mask = get_data_as_mask(nib.load(args.mask), dtype=bool)
 
-    # Validate bvals and bvecs
     logging.info('Tensor estimation with the {} method...'.format(args.method))
     bvals, bvecs = read_bvals_bvecs(args.in_bval, args.in_bvec)
 
@@ -197,6 +199,8 @@ def main():
     b0_thr = check_b0_threshold(
         args.force_b0_threshold, bvals.min(), bvals.min())
     gtab = gradient_table(bvals, bvecs, b0_threshold=b0_thr)
+
+    # Processing
 
     # Get tensors
     if args.method == 'restore':
@@ -209,10 +213,7 @@ def main():
 
     tenfit = tenmodel.fit(data, mask)
 
-    FA = fractional_anisotropy(tenfit.evals)
-    FA[np.isnan(FA)] = 0
-    FA = np.clip(FA, 0, 1)
-
+    # Save all metrics.
     if args.tensor:
         # Get the Tensor values
         # Format them for visualization in various software.
@@ -226,11 +227,22 @@ def main():
 
         del tensor_vals, fiber_tensors, tensor_vals_reordered
 
-    if args.fa:
-        fa_img = nib.Nifti1Image(FA.astype(np.float32), affine)
-        nib.save(fa_img, args.fa)
+    if args.fa or args.RGB:
+        FA = fractional_anisotropy(tenfit.evals)
+        FA[np.isnan(FA)] = 0
+        FA = np.clip(FA, 0, 1)
+        if args.fa:
+            fa_img = nib.Nifti1Image(FA.astype(np.float32), affine)
+            nib.save(fa_img, args.fa)
 
-        del fa_img
+            del fa_img
+
+        if args.rgb:
+            RGB = color_fa(FA, tenfit.evecs)
+            rgb_img = nib.Nifti1Image(np.array(255 * RGB, 'uint8'), affine)
+            nib.save(rgb_img, args.rgb)
+
+            del FA, RGB, rgb_img
 
     if args.ga:
         GA = geodesic_anisotropy(tenfit.evals)
@@ -240,13 +252,6 @@ def main():
         nib.save(ga_img, args.ga)
 
         del GA, ga_img
-
-    if args.rgb:
-        RGB = color_fa(FA, tenfit.evecs)
-        rgb_img = nib.Nifti1Image(np.array(255 * RGB, 'uint8'), affine)
-        nib.save(rgb_img, args.rgb)
-
-        del RGB, rgb_img
 
     if args.md:
         MD = mean_diffusivity(tenfit.evals)
@@ -360,7 +365,7 @@ def main():
     if args.residual:
         # Mean residual image
         S0 = np.mean(data[..., gtab.b0s_mask], axis=-1)
-        data_diff = np.zeros(data.shape, dtype=np.float32)
+        tenfit2_predict = np.zeros(data.shape, dtype=np.float32)
 
         for i in range(data.shape[0]):
             if args.mask is not None:
@@ -368,15 +373,11 @@ def main():
             else:
                 tenfit2 = tenmodel.fit(data[i, :, :, :])
 
-            data_diff[i, :, :, :] = np.abs(
-                tenfit2.predict(gtab, S0[i, :, :]).astype(
-                    np.float32) - data[i, :, :])
+            tenfit2_predict[i, :, :, :] = tenfit2.predict(gtab, S0[i, :, :])
 
-        R = np.mean(data_diff[..., ~gtab.b0s_mask], axis=-1, dtype=np.float32)
-
-        if args.mask is not None:
-            R *= mask
-
+        R, data_diff = compute_residuals(
+            prediced_data=tenfit2_predict.astype(np.float32),
+            real_data=data, b0s_mask=gtab.b0s_mask, normalize=False, mask=mask)
         R_img = nib.Nifti1Image(R.astype(np.float32), affine)
         nib.save(R_img, args.residual)
 

@@ -218,7 +218,8 @@ def detect_volume_outliers(data, bvecs, bvals, std_scale,
         print()
 
 
-def compute_residuals(prediced_data, real_data, b0s_mask=None, mask=None):
+def compute_residuals(prediced_data, real_data, b0s_mask=None,
+                      normalize=True, mask=None):
     """
     Compare the predicted data and the real data, on their last axis.
     Computes the normalized residuals.
@@ -233,20 +234,24 @@ def compute_residuals(prediced_data, real_data, b0s_mask=None, mask=None):
         Vector of booleans containing True at indices where the dwi data was a
         b0 (on last dimension). If given, the b0s are rejected from the data
         before computing the residuals.
+    normalize: bool,
+        If True, the residuals are normalized.
     mask: np.ndaray, optional
-        3D volume. If given, residual is computed inside the mask.
+        3D volume. If given, residual is set to 0 outside the mask.
     """
+    diff_data = np.abs(prediced_data - real_data)
+
     if b0s_mask is not None:
-        prediced_data = prediced_data[..., ~b0s_mask]
-        real_data = real_data[..., ~b0s_mask]
+        res = np.mean(diff_data[..., ~b0s_mask], axis=-1, dtype=np.float32)
+    else:
+        res = np.mean(diff_data, axis=-1, dtype=np.float32)
 
-    res = np.mean(np.abs(prediced_data - real_data), axis=-1)
-
-    norm = np.linalg.norm(res)
-    if norm != 0:
-        res = res / norm
+    if normalize:
+        norm = np.linalg.norm(res)
+        if norm != 0:
+            res = res / norm
 
     if mask is not None:
         res *= mask
 
-    return res
+    return res, diff_data
