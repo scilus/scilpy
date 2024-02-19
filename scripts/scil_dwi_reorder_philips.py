@@ -18,7 +18,7 @@ from dipy.io.gradients import read_bvals_bvecs
 import nibabel as nib
 import numpy as np
 
-from scilpy.gradients.utils import get_new_order_philips
+from scilpy.gradients.utils import get_new_order_table
 from scilpy.io.utils import (add_overwrite_arg,
                              add_verbose_arg,
                              assert_inputs_exist,
@@ -90,7 +90,7 @@ def main():
     bvals, bvecs = read_bvals_bvecs(args.in_bval, args.in_bvec)
     dwi = nib.load(args.in_dwi)
 
-    new_index = get_new_order_philips(philips_table, dwi, bvals, bvecs)
+    new_index = get_new_order_table(philips_table, dwi, bvals, bvecs)
     bvecs = bvecs[new_index]
     bvals = bvals[new_index]
 

@@ -42,52 +42,54 @@ def random_uniform_on_sphere(nb_vectors):
     return bvecs
 
 
-def get_new_order_philips(philips_table, dwi, bvals, bvecs):
+def get_new_order_table(ref_gradients_table, dwi, bvals, bvecs):
     """
     Find the sorting order that could be applied to the bval and bvec files to
-    obtain the same order as in the philips table.
+    obtain the same order as in the reference gradient table.
+
+    This is mostly useful to reorder bval and bvec files in the order they were
+    acquired by the Philips scanner (before version 5.6).
 
     Parameters
     ----------
-    philips_table: nd.array
-        Philips gradient table, of shape (N, 4), coming from a Philips machine
-        with SoftwareVersions < 5.6.
+    ref_gradients_table: nd.array
+        Gradient table, of shape (N, 4). It will use as reference for the
+        ordering of b-vectors.
+        Ex: Could be the result of scil_gradients_generate_sampling.py
     dwi: nibabel image
         dwi of shape (x, y, z, N). Only used to confirm the dwi's shape.
     bvals : array, (N,)
-        bvals
+        bvals that need to be reordered.
     bvecs : array, (N, 3)
-        bvecs
+        bvecs that need to be reorered.
 
     Returns
     -------
     new_index: nd.array
         New index to reorder bvals/bvec
     """
-    # Check number of gradients, bvecs, bvals, dwi and oTable
-    if not (len(bvecs) == dwi.shape[3] == len(bvals) == len(philips_table)):
-        raise ValueError('bvec/bval/dwi and original table do not contain '
+    if not (len(bvecs) == dwi.shape[3] == len(bvals) ==
+            len(ref_gradients_table)):
+        raise ValueError('bvec/bval/dwi and reference table do not contain '
                          'the same number of gradients.')
 
-    # Check bvals
-    philips_bval = np.unique(philips_table[:, 3])
-
-    philips_dwi_shells = philips_bval[philips_bval > 1]
-    philips_b0s = philips_bval[philips_bval < 1]
+    ref_bval = np.unique(ref_gradients_table[:, 3])
+    ref_dwi_shells = ref_bval[ref_bval > 1]
+    ref_b0s = ref_bval[ref_bval < 1]
 
     dwi_shells = np.unique(bvals[bvals > 1])
     b0s = np.unique(bvals[bvals < 1])
 
-    if len(philips_dwi_shells) != len(dwi_shells) or \
-       len(philips_b0s) != len(b0s):
-        raise ValueError('bvec/bval/dwi and original table do not contain '
+    if len(ref_dwi_shells) != len(dwi_shells) or \
+       len(ref_b0s) != len(b0s):
+        raise ValueError('bvec/bval/dwi and reference table do not contain '
                          'the same shells.')
 
     new_index = np.zeros(bvals.shape)
 
-    for nbval in philips_bval:
+    for nbval in ref_bval:
         curr_bval = np.where(bvals == nbval)[0]
-        curr_bval_table = np.where(philips_table[:, 3] == nbval)[0]
+        curr_bval_table = np.where(ref_gradients_table[:, 3] == nbval)[0]
 
         if len(curr_bval) != len(curr_bval_table):
             raise ValueError('bval/bvec and orginal table do not contain '
