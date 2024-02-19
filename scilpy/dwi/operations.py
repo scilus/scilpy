@@ -193,25 +193,26 @@ def detect_volume_outliers(data, bvecs, bvals, std_scale,
         outliers_corr = np.argwhere(
             results_dict[key][:, 2] < avg_corr - (std_scale * std_corr))
 
-        print('Results for shell {} with {} directions:'
-              .format(key, len(results_dict[key])))
-        print('AVG and STD of angles: {} +/- {}'
-              .format(avg_angle, std_angle))
-        print('AVG and STD of correlations: {} +/- {}'
-              .format(avg_corr, std_corr))
+        logging.info('Results for shell {} with {} directions:'
+                     .format(key, len(results_dict[key])))
+        logging.info('AVG and STD of angles: {} +/- {}'
+                     .format(avg_angle, std_angle))
+        logging.info('AVG and STD of correlations: {} +/- {}'
+                     .format(avg_corr, std_corr))
 
         if len(outliers_angle) or len(outliers_corr):
-            print('Possible outliers ({} STD below or above average):'
+            logging.info('Possible outliers ({} STD below or above average):'
                   .format(std_scale))
-            print('Outliers based on angle [position (4D), value]')
+            logging.info('Outliers based on angle [position (4D), value]')
             for i in outliers_angle:
-                print(results_dict[key][i, :][0][0:2])
-            print('Outliers based on correlation [position (4D), value]')
+                logging.info(results_dict[key][i, :][0][0:2])
+            logging.info('Outliers based on correlation [position (4D), ' +
+                         'value]')
             for i in outliers_corr:
-                print(results_dict[key][i, :][0][0::2])
+                logging.info(results_dict[key][i, :][0][0::2])
         else:
-            print('No outliers detected.')
+            logging.info('No outliers detected.')
 
-        logging.info('Shell with b-value {}'.format(key))
-        logging.info("\n" + pprint.pformat(results_dict[key]))
+        logging.debug('Shell with b-value {}'.format(key))
+        logging.debug("\n" + pprint.pformat(results_dict[key]))
         print()
