@@ -20,7 +20,18 @@ jobs:
   test:
     runs-on: scilus-runners
     if: github.repository == 'scilus/scilpy'
+
     steps:
+      # If this runs and does not fails, its because the workflow was relaunched
+      # with no resuming and we need to delete the artifact since we 
+      # re-executed the tests. Else, it'll fail the job (silently) and the 
+      # remaining workflow will continue
+      - name: Delete tests and coverage artifact
+        uses: geekyeggo/delete-artifact@v4
+        with:
+          name: test-coverage-${{ github.run_id }}
+          failOnError: false
+
       - name: Checkout repository for merge
         uses: actions/checkout@v4
 
@@ -55,6 +66,29 @@ jobs:
           export C_INCLUDE_PATH=$pythonLocation/include/python${{ steps.python-selector.outputs.python-version }}:$C_INCLUDE_PATH
           pytest --cov-report term-missing:skip-covered
 
+      - name: Save test results and coverage
+        uses: actions/upload-artifact@v4
+        id: test-coverage-results
+        with:
+          name: test-coverage-${{ github.run_id }}
+          path: |
+            .coverage
+            .test_data/
+
+  coverage:
+    runs-on: scilus-runners
+    if: github.repository == 'scilus/scilpy'
+    needs: test
+
+    steps:
+      - name: Checkout repository for merge
+        uses: actions/checkout@v4
+
+      - name: Download test results and coverage
+        uses: actions/download-artifact@v4
+        with:
+          name: test-coverage-${{ github.run_id }}
+
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v4
         with:
@@ -65,9 +99,9 @@ jobs:
           fail_ci_if_error: true
           plugin: pycoverage
 
-      - name: Upload test reports and coverage to artifacts
-        uses: actions/upload-artifact@v4.3.1
+      - name: Delete tests and coverage artifact
+        uses: geekyeggo/delete-artifact@v4
+        if: success()
         with:
-          name: test-reports
-          path: |
-            .test_reports/*
+          name: test-coverage-${{ github.run_id }}
+          failOnError: false
