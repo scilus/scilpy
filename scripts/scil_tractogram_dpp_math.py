@@ -40,9 +40,9 @@ from scilpy.io.utils import (add_bbox_arg,
                              assert_inputs_exist,
                              assert_outputs_exist)
 from scilpy.tractograms.dps_and_dpp_management import (
-        perform_pairwise_streamline_operation_on_endpoints,
-        perform_streamline_operation_per_point,
-        perform_operation_per_streamline)
+    perform_pairwise_streamline_operation_on_endpoints,
+    perform_streamline_operation_per_point,
+    perform_operation_per_streamline)
 
 
 def _build_arg_parser():
@@ -134,16 +134,15 @@ def main():
                          .format(in_dpp_name))
             return
 
-        if args.dpp_or_dps == 'dpp' and (len(data_shape) == 1 or
-                                         data_shape[1] == 1):
+        # warning if dpp mode and data in single number per point
+        data_shape = sft.data_per_point[in_dpp_name][0].shape
+        if args.mode == 'dpp' and data_shape[0] == 1:
             logging.warning('dpp from key {} is a single number per point. '
                             'Performing a dpp-mode operation on this data '
                             'will not do anything. Continuing.')
 
         # Check if first data_per_point is multivalued
-        data_shape = sft.data_per_point[in_dpp_name][0].shape
-        if args.operation == 'correlation' and len(data_shape) == 2 \
-                                                and data_shape[1] > 1:
+        if args.operation == 'correlation' and data_shape > 1:
             logging.info('Correlation operation requires multivalued data per '
                          'point. Exiting.')
             return
