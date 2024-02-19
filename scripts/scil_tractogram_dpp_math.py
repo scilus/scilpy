@@ -2,24 +2,24 @@
 # -*- coding: utf-8 -*-
 
 """
-Performs an operation on data per point from input streamlines.
+Performs an operation on data per point (dpp) from input streamlines.
 
-Two modes of operation are supported: data per streamline (dps) and data per
-point (dpp).
+Although the input data always comes from the dpp, the output can be either
+a dpp or a data_per_streamline (dps), depending on the chosen options.
+Two modes of operation are supported: dpp and dps.
+   - In dps mode, the operation is performed on dpp across the dimension of
+   the streamlines resulting in a single value (or array in the 4D case)
+   per streamline, stored as dps.
+   - In dpp mode, the operation is performed on each point separately, resulting in
+   a new dpp.
 
-In dps mode, the operation is performed across all dimensions of the data
-resulting in a single value per streamline.
-
-In dpp mode the operation is performed on each point separately, resulting in
-a single value per point.
-
-If endpoints_only and dpp mode is set operation will only
+If endpoints_only and dpp mode is set the operation will only
 be calculated at the streamline endpoints the rest of the
 values along the streamline will be NaN
 
 If endpoints_only and dps mode is set operation will be calculated
 across the data at the endpoints and stored as a
-single value per streamline.
+single value (or array in the 4D case) per streamline.
 
 Endpoint only operation:
 correlation: correlation calculated between arrays extracted from
@@ -53,31 +53,31 @@ def _build_arg_parser():
     p.add_argument('operation', metavar='OPERATION',
                    choices=['mean', 'sum', 'min',
                             'max', 'correlation'],
-                   help='The type of operation to be performed on the '
-                        'streamlines. Must\nbe one of the following: '
+                   help='The type of operation to be performed on the \n'
+                        'streamlines. Must\nbe one of the following: \n'
                         '%(choices)s.')
     p.add_argument('dpp_or_dps', metavar='DPP_OR_DPS',
                    choices=['dpp', 'dps'],
-                   help='Set to dps if the operation is to be performed '
-                   'across all dimensions resulting in a single value per '
-                   'streamline. Set to dpp if the operation is to be '
-                   'performed on each point separately resulting in a single '
+                   help='Set to dps if the operation is to be performed \n'
+                   'across all dimensions resulting in a single value per \n'
+                   'streamline. Set to dpp if the operation is to be \n'
+                   'performed on each point separately resulting in a single \n'
                    'value per point.')
     p.add_argument('in_tractogram', metavar='INPUT_FILE',
-                   help='Input tractogram containing streamlines and '
+                   help='Input tractogram containing streamlines and \n'
                         'metadata.')
     p.add_argument('--in_dpp_name',  nargs='+', required=True,
-                   help='Name or list of names of the data_per_point for '
-                        'operation to be performed on. If more than one dpp '
-                        'is selected, the same operation will be applied '
+                   help='Name or list of names of the data_per_point for \n'
+                        'operation to be performed on. If more than one dpp \n'
+                        'is selected, the same operation will be applied \n'
                         'separately to each one.')
     p.add_argument('--out_name', nargs='+', required=True,
-                   help='Name of the resulting data_per_point or '
-                   'data_per_streamline to be saved in the output '
-                   'tractogram. If more than one --in_dpp_name was used, '
+                   help='Name of the resulting data_per_point or \n'
+                   'data_per_streamline to be saved in the output \n'
+                   'tractogram. If more than one --in_dpp_name was used, \n'
                    'enter the same number of --out_name values.')
     p.add_argument('out_tractogram', metavar='OUTPUT_FILE',
-                   help='The file where the remaining streamlines '
+                   help='The file where the remaining streamlines \n'
                         'are saved.')
 
     p.add_argument('--endpoints_only', action='store_true', default=False,
@@ -85,8 +85,8 @@ def _build_arg_parser():
                    'If not set, will perform operation on all streamline \n'
                    'points.')
     p.add_argument('--overwrite_data', action='store_true', default=False,
-                   help='If set, will overwrite the data_per_point or '
-                   'data_per_streamline in the output tractogram, otherwise '
+                   help='If set, will overwrite the data_per_point or \n'
+                   'data_per_streamline in the output tractogram, otherwise \n'
                    'previous data will be preserved in the output tractogram.')
 
     add_reference_arg(p)
