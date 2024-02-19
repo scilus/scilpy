@@ -13,9 +13,9 @@ the data is stored as a list of values per streamline.
 import argparse
 import logging
 
+import nibabel as nib
 from dipy.io.streamline import save_tractogram
 
-from scilpy.io.image import load_img
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg,
                              add_reference_arg,
@@ -53,10 +53,15 @@ def _build_arg_parser():
                    'endpoints of the streamlines (all other values along \n'
                    'streamlines will be NaN). If not set, will project \n'
                    'the map onto all points of the streamlines.')
-    p.add_argument('--overwrite_data', action='store_true',
-                   help='If set, will overwrite data_per_point in the '
-                   'output tractogram, otherwise previous data will be '
-                   'preserved in the output tractogram.')
+
+    p.add_argument('--keep_all_dpp', action='store_true',
+                   help='If set, previous data_per_point will be preserved '
+                   'in the output tractogram. Else, only --out_dpp_name '
+                   'keys will be saved.')
+    p.add_argument('--overwrite_dpp', action='store_true', default=False,
+                   help='If set, if --keep_all_dpp is set and some --out_dpp_name '
+                   'keys already existed in your data_per_point, allow overwriting '
+                   'old data_per_point.')
 
     add_reference_arg(p)
     add_overwrite_arg(p)
@@ -102,7 +107,7 @@ def main():
     data_per_point = {}
     for fmap, dpp_name in zip(args.in_maps, args.out_dpp_name):
         logging.debug("Loading the map...")
-        map_img, map_dtype = load_img(fmap)
+        map_img = nib.load(fmap)
         map_data = map_img.get_fdata(caching='unchanged', dtype=float)
         map_res = map_img.header.get_zooms()[:3]
 
@@ -126,11 +131,8 @@ def main():
         out_sft = sft.from_sft(sft.streamlines, sft,
                                data_per_point=data_per_point)
     else:
-        old_data_per_point = sft.data_per_point
-        for dpp_name in data_per_point:
-            old_data_per_point[dpp_name] = data_per_point[dpp_name]
-        out_sft = sft.from_sft(sft.streamlines, sft,
-                               data_per_point=old_data_per_point)
+        sft.data_per_point.update(data_per_point)
+        out_sft = sft
 
     save_tractogram(out_sft, args.out_tractogram)
 
