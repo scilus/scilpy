@@ -58,7 +58,7 @@ def _build_arg_parser():
                    help='If set, previous data_per_point will be preserved '
                    'in the output tractogram. Else, only --out_dpp_name '
                    'keys will be saved.')
-    p.add_argument('--overwrite_dpp', action='store_true', default=False,
+    p.add_argument('--overwrite_dpp', action='store_true',
                    help='If set, if --keep_all_dpp is set and some --out_dpp_name '
                    'keys already existed in your data_per_point, allow overwriting '
                    'old data_per_point.')
@@ -127,12 +127,12 @@ def main():
 
         data_per_point[dpp_name] = streamline_data
 
-    if args.overwrite_data:
-        out_sft = sft.from_sft(sft.streamlines, sft,
-                               data_per_point=data_per_point)
-    else:
+    if args.keep_all_dpp:
         sft.data_per_point.update(data_per_point)
         out_sft = sft
+    else:
+        out_sft = sft.from_sft(sft.streamlines, sft,
+                               data_per_point=data_per_point)
 
     save_tractogram(out_sft, args.out_tractogram)
 
