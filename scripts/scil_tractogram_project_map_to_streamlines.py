@@ -13,7 +13,7 @@ the data is stored as a list of values per streamline.
 import argparse
 import logging
 
-from dipy.io.streamline import save_tractogram, StatefulTractogram
+from dipy.io.streamline import save_tractogram
 
 from scilpy.io.image import load_img
 from scilpy.io.streamlines import load_tractogram_with_reference
