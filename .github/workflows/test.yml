@@ -73,7 +73,7 @@ jobs:
           name: test-coverage-${{ github.run_id }}
           path: |
             .coverage
-            .test_data/
+            .test_reports/
 
   coverage:
     runs-on: scilus-runners
@@ -88,6 +88,16 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: test-coverage-${{ github.run_id }}
+
+      - name: Show the content of the workspace where we upload
+        run: |
+          echo "what is here : $(pwd)"
+          ls .
+          echo "what is in GITHUB_WORKSPACE : $GITHUB_WORKSPACE"
+          ls $GITHUB_WORKSPACE
+          echo "what is in github.workspace : ${{ github.workspace }}"
+          ls ${{ github.workspace }}
+          exit 1
 
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v4
