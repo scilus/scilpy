@@ -23,9 +23,9 @@ jobs:
 
     steps:
       # If this runs and does not fails, its because the workflow was relaunched
-      # with no resuming and we need to delete the artifact since we 
-      # re-executed the tests. Else, it'll fail the job (silently) and the 
-      # remaining workflow will continue
+      # with no resuming and we need to delete the artifact since we
+      # re-executed the tests. Else, if nothing to do, it'll fail the job
+      # (silently) and the remaining workflow will continue
       - name: Delete tests and coverage artifact
         uses: geekyeggo/delete-artifact@v4
         with:
