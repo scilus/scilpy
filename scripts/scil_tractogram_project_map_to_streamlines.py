@@ -55,13 +55,13 @@ def _build_arg_parser():
                    'the map onto all points of the streamlines.')
 
     p.add_argument('--keep_all_dpp', action='store_true',
-                   help='If set, previous data_per_point will be preserved '
-                   'in the output tractogram. Else, only --out_dpp_name '
+                   help='If set, previous data_per_point will be preserved \n'
+                   'in the output tractogram. Else, only --out_dpp_name \n'
                    'keys will be saved.')
     p.add_argument('--overwrite_dpp', action='store_true',
-                   help='If set, if --keep_all_dpp is set and some --out_dpp_name '
-                   'keys already existed in your data_per_point, allow overwriting '
-                   'old data_per_point.')
+                   help='If set, if --keep_all_dpp is set and some \n'
+                   '--out_dpp_name keys already existed in your \n'
+                   'data_per_point, allow overwriting old data_per_point.')
 
     add_reference_arg(p)
     add_overwrite_arg(p)

@@ -10,8 +10,8 @@ Two modes of operation are supported: dpp and dps.
    - In dps mode, the operation is performed on dpp across the dimension of
    the streamlines resulting in a single value (or array in the 4D case)
    per streamline, stored as dps.
-   - In dpp mode, the operation is performed on each point separately, resulting in
-   a new dpp.
+   - In dpp mode, the operation is performed on each point separately,
+   resulting in a new dpp.
 
 If endpoints_only and dpp mode is set the operation will only
 be calculated at the streamline endpoints the rest of the
@@ -44,6 +44,7 @@ from scilpy.tractograms.dps_and_dpp_management import (
         perform_streamline_operation_per_point,
         perform_operation_per_streamline)
 
+
 def _build_arg_parser():
     p = argparse.ArgumentParser(
         formatter_class=argparse.RawTextHelpFormatter,
@@ -62,8 +63,8 @@ def _build_arg_parser():
                    help='Set to dps if the operation is to be performed \n'
                    'across all dimensions resulting in a single value per \n'
                    'streamline. Set to dpp if the operation is to be \n'
-                   'performed on each point separately resulting in a single \n'
-                   'value per point.')
+                   'performed on each point separately resulting in a \n'
+                   'single value per point.')
     p.add_argument('--in_dpp_name',  nargs='+', required=True,
                    help='Name or list of names of the data_per_point for \n'
                         'operation to be performed on. If more than one dpp \n'
@@ -141,7 +142,8 @@ def main():
 
         # Check if first data_per_point is multivalued
         data_shape = sft.data_per_point[in_dpp_name][0].shape
-        if args.operation == 'correlation' and len(data_shape) == 2 and data_shape[1] > 1:
+        if args.operation == 'correlation' and len(data_shape) == 2 \
+                                                and data_shape[1] > 1:
             logging.info('Correlation operation requires multivalued data per '
                          'point. Exiting.')
             return
@@ -202,14 +204,14 @@ def main():
         print("New data_per_point keys are: ")
         for key in args.out_name:
             print("  - {} with shape per point {}"
-                .format(key, new_sft.data_per_point[key][0].shape[1:]))
+                  .format(key, new_sft.data_per_point[key][0].shape[1:]))
 
     # Print DPS names
     if data_per_streamline not in [None, {}]:
         print("New data_per_streamline keys are: ")
         for key in args.out_name:
             print("  - {} with shape per streamline {}"
-                .format(key, new_sft.data_per_streamline[key].shape[1:]))
+                  .format(key, new_sft.data_per_streamline[key].shape[1:]))
 
     # Save the new streamlines (and metadata)
     logging.info('Saving {} streamlines to {}.'.format(len(new_sft),
