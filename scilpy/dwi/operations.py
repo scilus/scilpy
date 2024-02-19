@@ -1,5 +1,11 @@
 import logging
+import math
+import pprint
+
 import numpy as np
+
+from scilpy.gradients.bvec_bval_tools import identify_shells, \
+    round_bvals_to_shell, DEFAULT_B0_THRESHOLD
 
 
 def apply_bias_field(dwi_data, bias_field_data, mask_data):
@@ -131,3 +137,84 @@ def compute_dwi_attenuation(dwi_weights: np.ndarray, b0: np.ndarray):
     dwi_attenuation[np.logical_not(np.isfinite(dwi_attenuation))] = 0.
 
     return dwi_attenuation
+
+
+def detect_volume_outliers(data, bvecs, bvals, std_scale, verbose,
+                           b0_thr=DEFAULT_B0_THRESHOLD):
+    """
+    Parameters
+    ----------
+    data: np.ndarray
+        The dwi data.
+    bvecs: np.ndarray
+        The bvecs
+    bvals: np.array
+        The b-values vector.
+    std_scale: float
+        How many deviation from the mean are required to be considered an
+        outlier.
+    verbose: bool
+        If True, print even more stuff.
+    b0_thr: float
+        Value below which b-values are considered as b0.
+    """
+    results_dict = {}
+    shells_to_extract = identify_shells(bvals, b0_thr, sort=True)[0]
+    bvals = round_bvals_to_shell(bvals, shells_to_extract)
+    for bval in shells_to_extract[shells_to_extract > b0_thr]:
+        shell_idx = np.where(bvals == bval)[0]
+        shell = bvecs[shell_idx]
+        results_dict[bval] = np.ones((len(shell), 3)) * -1
+        for i, vec in enumerate(shell):
+            if np.linalg.norm(vec) < 0.001:
+                continue
+
+            dot_product = np.clip(np.tensordot(shell, vec, axes=1), -1, 1)
+            angle = np.arccos(dot_product) * 180 / math.pi
+            angle[np.isnan(angle)] = 0
+            idx = np.argpartition(angle, 4).tolist()
+            idx.remove(i)
+
+            avg_angle = np.average(angle[idx[:3]])
+            corr = np.corrcoef([data[..., shell_idx[i]].ravel(),
+                                data[..., shell_idx[idx[0]]].ravel(),
+                                data[..., shell_idx[idx[1]]].ravel(),
+                                data[..., shell_idx[idx[2]]].ravel()])
+            results_dict[bval][i] = [shell_idx[i], avg_angle,
+                                     np.average(corr[0, 1:])]
+
+    for key in results_dict.keys():
+        avg_angle = np.round(np.average(results_dict[key][:, 1]), 4)
+        std_angle = np.round(np.std(results_dict[key][:, 1]), 4)
+
+        avg_corr = np.round(np.average(results_dict[key][:, 2]), 4)
+        std_corr = np.round(np.std(results_dict[key][:, 2]), 4)
+
+        outliers_angle = np.argwhere(
+            results_dict[key][:, 1] < avg_angle - (std_scale * std_angle))
+        outliers_corr = np.argwhere(
+            results_dict[key][:, 2] < avg_corr - (std_scale * std_corr))
+
+        print('Results for shell {} with {} directions:'
+              .format(key, len(results_dict[key])))
+        print('AVG and STD of angles: {} +/- {}'
+              .format(avg_angle, std_angle))
+        print('AVG and STD of correlations: {} +/- {}'
+              .format(avg_corr, std_corr))
+
+        if len(outliers_angle) or len(outliers_corr):
+            print('Possible outliers ({} STD below or above average):'
+                  .format(std_scale))
+            print('Outliers based on angle [position (4D), value]')
+            for i in outliers_angle:
+                print(results_dict[key][i, :][0][0:2])
+            print('Outliers based on correlation [position (4D), value]')
+            for i in outliers_corr:
+                print(results_dict[key][i, :][0][0::2])
+        else:
+            print('No outliers detected.')
+
+        if verbose:
+            print('Shell with b-value {}'.format(key))
+            pprint.pprint(results_dict[key])
+        print()
