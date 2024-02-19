@@ -139,7 +139,7 @@ def compute_dwi_attenuation(dwi_weights: np.ndarray, b0: np.ndarray):
     return dwi_attenuation
 
 
-def detect_volume_outliers(data, bvecs, bvals, std_scale, verbose,
+def detect_volume_outliers(data, bvecs, bvals, std_scale,
                            b0_thr=DEFAULT_B0_THRESHOLD):
     """
     Parameters
@@ -153,8 +153,6 @@ def detect_volume_outliers(data, bvecs, bvals, std_scale, verbose,
     std_scale: float
         How many deviation from the mean are required to be considered an
         outlier.
-    verbose: bool
-        If True, print even more stuff.
     b0_thr: float
         Value below which b-values are considered as b0.
     """
@@ -214,7 +212,6 @@ def detect_volume_outliers(data, bvecs, bvals, std_scale, verbose,
         else:
             print('No outliers detected.')
 
-        if verbose:
-            print('Shell with b-value {}'.format(key))
-            pprint.pprint(results_dict[key])
+        logging.info('Shell with b-value {}'.format(key))
+        logging.info("\n" + pprint.pformat(results_dict[key]))
         print()

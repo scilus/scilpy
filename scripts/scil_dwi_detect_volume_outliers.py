@@ -16,7 +16,6 @@ before launching pre-processing.
 
 import argparse
 import logging
-import pprint
 
 from dipy.io.gradients import read_bvals_bvecs
 import nibabel as nib
@@ -69,8 +68,7 @@ def main():
                                 bvals.min(), args.b0_thr)
     bvecs = normalize_bvecs(bvecs)
 
-    detect_volume_outliers(data, bvecs, bvals, args.std_scale,
-                           args.verbose, b0_thr)
+    detect_volume_outliers(data, bvecs, bvals, args.std_scale, b0_thr)
 
 
 if __name__ == "__main__":
