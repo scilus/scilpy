@@ -77,7 +77,10 @@ def main():
 
     assert_outputs_exist(parser, args, [args.out_tractogram])
 
-    logging.debug("Loading the tractogram...")
+    if args.verbose:
+        logging.getLogger().setLevel(logging.INFO)
+
+    logging.info("Loading the tractogram...")
     sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
     sft.to_voxmm()
     sft.to_corner()
@@ -106,7 +109,7 @@ def main():
 
     data_per_point = {}
     for fmap, dpp_name in zip(args.in_maps, args.out_dpp_name):
-        logging.debug("Loading the map...")
+        logging.info("Loading the map...")
         map_img = nib.load(fmap)
         map_data = map_img.get_fdata(caching='unchanged', dtype=float)
         map_res = map_img.header.get_zooms()[:3]
@@ -118,12 +121,12 @@ def main():
 
         map_volume = DataVolume(map_data, map_res, interp)
 
-        logging.debug("Projecting map onto streamlines")
+        logging.info("Projecting map onto streamlines")
         streamline_data = project_map_to_streamlines(
             sft, map_volume,
             endpoints_only=args.endpoints_only)
 
-        logging.debug("Saving the tractogram...")
+        logging.info("Saving the tractogram...")
 
         data_per_point[dpp_name] = streamline_data
 
