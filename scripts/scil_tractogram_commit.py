@@ -84,6 +84,7 @@ import h5py
 import numpy as np
 import nibabel as nib
 
+from scilpy.io.gradients import fsl2mrtrix
 from scilpy.io.streamlines import (reconstruct_streamlines,
                                    reconstruct_streamlines_from_hdf5)
 from scilpy.io.utils import (add_overwrite_arg,
@@ -92,7 +93,7 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist,
                              assert_output_dirs_exist_and_empty,
                              redirect_stdout_c)
-from scilpy.gradients.bvec_bval_tools import fsl2mrtrix, identify_shells
+from scilpy.gradients.bvec_bval_tools import identify_shells
 
 
 EPILOG = """
@@ -384,7 +385,7 @@ def main():
     tmp_bval_filename = os.path.join(tmp_dir.name, 'bval')
     bvals, _ = read_bvals_bvecs(args.in_bval, args.in_bvec)
     shells_centroids, indices_shells = identify_shells(bvals, args.b_thr,
-                                                       roundCentroids=True)
+                                                       round_centroids=True)
     np.savetxt(tmp_bval_filename, shells_centroids[indices_shells],
                newline=' ', fmt='%i')
     fsl2mrtrix(tmp_bval_filename, args.in_bvec, tmp_scheme_filename)

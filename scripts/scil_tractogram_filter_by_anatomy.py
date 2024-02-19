@@ -49,7 +49,7 @@ from copy import deepcopy
 import json
 import logging
 import os
-import pkg_resources
+import importlib.resources as resources
 
 from dipy.io.streamline import save_tractogram
 from dipy.io.utils import is_header_compatible
@@ -142,9 +142,8 @@ def load_wmparc_labels():
     Load labels dictionary of different parcellations from the
     Desikan-Killiany atlas
     """
-    resource_package = pkg_resources.get_distribution('scilpy').location
-    labels_path = os.path.join(
-        resource_package, 'data/LUT/dk_aggregate_structures.json')
+    lut_package = resources.files('data').joinpath('LUT')
+    labels_path = lut_package.joinpath('dk_aggregate_structures.json')
     with open(labels_path) as labels_file:
         labels = json.load(labels_file)
     return labels
