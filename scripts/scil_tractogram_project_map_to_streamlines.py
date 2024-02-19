@@ -116,11 +116,11 @@ def main():
         else:
             interp = "nearest"
 
-        map = DataVolume(map_data, map_res, interp)
+        map_volume = DataVolume(map_data, map_res, interp)
 
         logging.debug("Projecting map onto streamlines")
         streamline_data = project_map_to_streamlines(
-            sft, map,
+            sft, map_volume,
             endpoints_only=args.endpoints_only)
 
         logging.debug("Saving the tractogram...")
