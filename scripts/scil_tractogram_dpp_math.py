@@ -39,11 +39,10 @@ from scilpy.io.utils import (add_bbox_arg,
                              add_verbose_arg,
                              assert_inputs_exist,
                              assert_outputs_exist)
-from scilpy.tractograms.streamline_operations import (
+from scilpy.tractograms.dps_and_dpp_management import (
         perform_pairwise_streamline_operation_on_endpoints,
         perform_streamline_operation_per_point,
         perform_operation_per_streamline)
-
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(
@@ -134,9 +133,15 @@ def main():
                          .format(in_dpp_name))
             return
 
+        if args.dpp_or_dps == 'dpp' and (len(data_shape) == 1 or
+                                         data_shape[1] == 1):
+            logging.warning('dpp from key {} is a single number per point. '
+                            'Performing a dpp-mode operation on this data '
+                            'will not do anything. Continuing.')
+
         # Check if first data_per_point is multivalued
         data_shape = sft.data_per_point[in_dpp_name][0].shape
-        if args.operation == 'correlation' and len(data_shape) == 1:
+        if args.operation == 'correlation' and len(data_shape) == 2 and data_shape[1] > 1:
             logging.info('Correlation operation requires multivalued data per '
                          'point. Exiting.')
             return
@@ -193,14 +198,18 @@ def main():
                                data_per_streamline=data_per_streamline)
 
     # Print DPP names
-    logging.info('New data per point names:')
-    for key in new_sft.data_per_point.keys():
-        logging.info(key)
+    if data_per_point not in [None, {}]:
+        print("New data_per_point keys are: ")
+        for key in args.out_name:
+            print("  - {} with shape per point {}"
+                .format(key, new_sft.data_per_point[key][0].shape[1:]))
 
     # Print DPS names
-    logging.info('New data per streamline names:')
-    for key in new_sft.data_per_streamline.keys():
-        logging.info(key)
+    if data_per_streamline not in [None, {}]:
+        print("New data_per_streamline keys are: ")
+        for key in args.out_name:
+            print("  - {} with shape per streamline {}"
+                .format(key, new_sft.data_per_streamline[key].shape[1:]))
 
     # Save the new streamlines (and metadata)
     logging.info('Saving {} streamlines to {}.'.format(len(new_sft),
