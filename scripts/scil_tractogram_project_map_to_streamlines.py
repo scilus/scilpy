@@ -53,7 +53,7 @@ def _build_arg_parser():
                    'endpoints of the streamlines (all other values along \n'
                    'streamlines will be NaN). If not set, will project \n'
                    'the map onto all points of the streamlines.')
-    p.add_argument('--overwrite_data', action='store_true', default=False,
+    p.add_argument('--overwrite_data', action='store_true',
                    help='If set, will overwrite data_per_point in the '
                    'output tractogram, otherwise previous data will be '
                    'preserved in the output tractogram.')
