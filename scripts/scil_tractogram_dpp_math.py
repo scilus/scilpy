@@ -142,7 +142,7 @@ def main():
                             'will not do anything. Continuing.')
 
         # Check if first data_per_point is multivalued
-        if args.operation == 'correlation' and data_shape > 1:
+        if args.operation == 'correlation' and data_shape[0] > 1:
             logging.info('Correlation operation requires multivalued data per '
                          'point. Exiting.')
             return
