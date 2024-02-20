@@ -22,7 +22,6 @@ import argparse
 import json
 import logging
 
-from dipy.io.stateful_tractogram import set_sft_logger_level
 from dipy.io.streamline import save_tractogram
 import numpy as np
 
@@ -88,9 +87,6 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
-    # Silencing SFT's logger if our logging is in DEBUG mode, because it
-    # typically produces a lot of outputs!
-    set_sft_logger_level('WARNING')
 
     assert_inputs_exist(parser, args.in_tractogram)
     assert_outputs_exist(parser, args, args.out_tractogram, args.save_rejected)

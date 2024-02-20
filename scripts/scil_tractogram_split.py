@@ -17,7 +17,6 @@ import argparse
 import logging
 import os
 
-from dipy.io.stateful_tractogram import set_sft_logger_level
 from dipy.io.streamline import save_tractogram
 import numpy as np
 
@@ -84,7 +83,6 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
-    set_sft_logger_level(args.verbose)
 
     assert_inputs_exist(parser, args.in_tractogram)
     _, out_extension = os.path.splitext(args.in_tractogram)

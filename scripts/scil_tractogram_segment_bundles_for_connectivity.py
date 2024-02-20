@@ -37,8 +37,7 @@ import os
 import time
 
 import coloredlogs
-from dipy.io.stateful_tractogram import (StatefulTractogram,
-                                         set_sft_logger_level)
+from dipy.io.stateful_tractogram import StatefulTractogram
 from dipy.io.streamline import save_tractogram
 from dipy.io.utils import get_reference_info, is_header_compatible
 from dipy.tracking.streamlinespeed import length
@@ -245,7 +244,6 @@ def main():
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
     coloredlogs.install(level=logging.getLevelName(args.verbose))
-    set_sft_logger_level('WARNING')
 
     assert_inputs_exist(parser, args.in_tractograms+[args.in_labels],
                         args.reference)

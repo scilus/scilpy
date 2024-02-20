@@ -553,7 +553,7 @@ def main():
                      out_sft_name) + step + ' filtering')
         save_tractogram(new_sft, out_sft_name)
 
-    if args.verbose:
+    if args.verbose == "INFO" or args.verbose == "DEBUG":
         display_count(o_dict, args.indent, args.sort_keys)
     if args.save_counts:
         save_count(o_dict, args.out_path, args.indent, args.sort_keys)

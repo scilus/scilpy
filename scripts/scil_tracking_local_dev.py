@@ -50,8 +50,7 @@ import dipy.core.geometry as gm
 import nibabel as nib
 import numpy as np
 
-from dipy.io.stateful_tractogram import StatefulTractogram, Space, \
-    set_sft_logger_level
+from dipy.io.stateful_tractogram import StatefulTractogram, Space
 from dipy.io.stateful_tractogram import Origin
 from dipy.io.streamline import save_tractogram
 from nibabel.streamlines import detect_format, TrkFile
@@ -271,10 +270,6 @@ def main():
         data_per_streamline = {'seeds': seeds}
     else:
         data_per_streamline = {}
-
-    # Silencing SFT's logger if our logging is in DEBUG mode, because it
-    # typically produces a lot of outputs!
-    set_sft_logger_level('WARNING')
 
     # Compared with scil_tracking_local, using sft rather than
     # LazyTractogram to deal with space.

@@ -32,7 +32,6 @@ Formerly: scil_resample_tractogram.py
 import argparse
 import logging
 
-from dipy.io.stateful_tractogram import set_sft_logger_level
 from dipy.io.streamline import save_tractogram
 
 from scilpy.io.streamlines import load_tractogram_with_reference
@@ -117,7 +116,6 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
-    set_sft_logger_level(args.verbose)
 
     if (args.point_wise_std is not None and args.point_wise_std <= 0) or \
             (args.streamline_wise_std is not None and

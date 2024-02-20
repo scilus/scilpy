@@ -42,7 +42,6 @@ import logging
 import os
 from copy import deepcopy
 
-from dipy.io.stateful_tractogram import set_sft_logger_level
 from dipy.io.streamline import save_tractogram
 from dipy.io.utils import is_header_compatible
 import nibabel as nib
@@ -238,7 +237,6 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
-    set_sft_logger_level('WARNING')
 
     overwrite_distance = check_overwrite_distance(parser, args)
 
