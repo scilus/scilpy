@@ -13,6 +13,8 @@ really two coherent groups. Use the following script to order streamlines:
 scil_tractogram_uniformize_endpoints.py
 
 Formerly: scil_compute_endpoints_map.py
+
+See also: scil_tractogram_endpoints_map.py
 """
 
 import argparse
