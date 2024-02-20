@@ -144,11 +144,7 @@ def _build_arg_parser():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
-
-    if args.verbose:
-        logging.basicConfig(level=logging.DEBUG)
-    else:
-        logging.basicConfig(level=logging.INFO)
+    logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     if not args.not_all:
         args.md = args.md or 'md.nii.gz'

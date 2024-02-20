@@ -115,9 +115,9 @@ def remove_loops_and_sharp_turns(streamlines,
                 if tm.mean_curvature(clusters.centroids[i]) <= mean_curvature:
                     ids.extend(clusters[i].indices)
         else:
-            logging.debug("Impossible to use the use_qb option because " +
-                          "not more than one streamline left from the\n" +
-                          "input file.")
+            logging.info("Impossible to use the use_qb option because " +
+                         "not more than one streamline left from the\n" +
+                         "input file.")
     return ids
 
 

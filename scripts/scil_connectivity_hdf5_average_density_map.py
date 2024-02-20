@@ -21,6 +21,7 @@ Formerly: scil_compute_hdf5_average_density_map.py
 
 import argparse
 import itertools
+import logging
 import multiprocessing
 import os
 
@@ -95,6 +96,7 @@ def _average_wrapper(args):
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
+    logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     assert_inputs_exist(parser, args.in_hdf5)
     assert_output_dirs_exist_and_empty(parser, args, args.out_dir,

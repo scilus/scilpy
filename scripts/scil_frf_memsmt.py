@@ -179,11 +179,7 @@ def buildArgsParser():
 def main():
     parser = buildArgsParser()
     args = parser.parse_args()
-
-    if args.verbose:
-        logging.basicConfig(level=logging.DEBUG)
-    else:
-        logging.basicConfig(level=logging.INFO)
+    logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     assert_inputs_exist(parser, [],
                         optional=list(np.concatenate((args.in_dwis,

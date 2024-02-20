@@ -179,8 +179,8 @@ class Tracker(object):
 
         if nbr_processes > self.nbr_seeds:
             nbr_processes = self.nbr_seeds
-            logging.debug("Setting number of processes to {} since there were "
-                          "less seeds than processes.".format(nbr_processes))
+            logging.info("Setting number of processes to {} since there were "
+                         "less seeds than processes.".format(nbr_processes))
         return nbr_processes
 
     def _prepare_multiprocessing_pool(self, tmpdir):

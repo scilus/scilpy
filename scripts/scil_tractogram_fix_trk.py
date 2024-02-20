@@ -126,8 +126,8 @@ def _build_arg_parser():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
+    logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
-    logging.getLogger().setLevel(logging.INFO)
     warning_msg = """
         # This script is still experimental, DSI-Studio and Startrack
         # evolve quickly and results may vary depending on the data itself

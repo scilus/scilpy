@@ -13,6 +13,7 @@ Formerly: scil_plot_mean_std_per_point.py
 import argparse
 import itertools
 import json
+import logging
 import os
 
 import numpy as np
@@ -62,6 +63,7 @@ def _build_arg_parser():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
+    logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     assert_inputs_exist(parser, args.in_json)
     assert_output_dirs_exist_and_empty(parser, args, args.out_dir,

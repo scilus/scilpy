@@ -77,12 +77,10 @@ def _build_arg_parser():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
+    logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     assert_inputs_exist(parser, args.in_tractogram)
     assert_outputs_exist(parser, args, args.out_tractogram)
-
-    log_level = logging.INFO if args.verbose else logging.WARNING
-    logging.getLogger().setLevel(log_level)
 
     sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
     smoothed_streamlines = []

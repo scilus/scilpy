@@ -15,6 +15,7 @@ before launching pre-processing.
 """
 
 import argparse
+import logging
 
 from dipy.io.gradients import read_bvals_bvecs
 import nibabel as nib
@@ -56,6 +57,10 @@ def _build_arg_parser():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
+    if args.verbose == "WARNING":
+        logging.getLogger().setLevel(logging.INFO)
+    else:
+        logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     assert_inputs_exist(parser, [args.in_dwi, args.in_bval, args.in_bvec])
 
@@ -66,8 +71,7 @@ def main():
                                 bvals.min(), args.b0_thr)
     bvecs = normalize_bvecs(bvecs)
 
-    detect_volume_outliers(data, bvecs, bvals, args.std_scale,
-                           args.verbose, b0_thr)
+    detect_volume_outliers(data, bvecs, bvals, args.std_scale, b0_thr)
 
 
 if __name__ == "__main__":

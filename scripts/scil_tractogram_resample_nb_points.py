@@ -8,6 +8,7 @@ streamline or to a fixed step size. WARNING: data_per_point is not carried.
 Formerly: scil_resample_streamlines.py
 """
 import argparse
+import logging
 
 from dipy.io.streamline import save_tractogram
 
@@ -44,9 +45,9 @@ def _build_arg_parser():
 
 
 def main():
-
     parser = _build_arg_parser()
     args = parser.parse_args()
+    logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     assert_inputs_exist(parser, args.in_tractogram)
     assert_outputs_exist(parser, args, args.out_tractogram)

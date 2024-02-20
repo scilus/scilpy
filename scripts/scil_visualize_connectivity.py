@@ -148,6 +148,7 @@ def write_values(ax, matrix, properties):
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
+    logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     assert_inputs_exist(parser, args.in_matrix)
     if not args.show_only:

@@ -10,6 +10,7 @@ Formerly: scil_count_streamlines.py
 
 import argparse
 import json
+import logging
 import os
 
 from scilpy.io.utils import (add_json_args,
@@ -38,6 +39,7 @@ def _build_arg_parser():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
+    logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     assert_inputs_exist(parser, args.in_tractogram)
 

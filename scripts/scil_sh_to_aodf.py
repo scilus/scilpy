@@ -97,9 +97,7 @@ def _build_arg_parser():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
-
-    if args.verbose:
-        logging.getLogger().setLevel(logging.INFO)
+    logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     if args.use_gpu and args.method == 'cosine':
         parser.error('Option --use_gpu is not supported for cosine filtering.')

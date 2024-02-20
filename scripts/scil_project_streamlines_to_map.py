@@ -171,6 +171,7 @@ def _pick_data(args, sft):
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
+    logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     assert_inputs_exist(parser, [args.in_bundle], args.in_metrics +
                         args.load_dps + args.load_dpp)
