@@ -54,7 +54,7 @@ jobs:
       - name: Run tests
         run: |
           export C_INCLUDE_PATH=$pythonLocation/include/python${{ steps.python-selector.outputs.python-version }}:$C_INCLUDE_PATH
-          pytest --cov-report term-missing:skip-covered scripts/tests/test_bids_validate.py
+          pytest --cov-report term-missing:skip-covered
 
       - name: Save test results and coverage
         uses: actions/upload-artifact@v4
