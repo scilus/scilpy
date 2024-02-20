@@ -12,6 +12,7 @@ import logging
 import nibabel as nib
 
 from scilpy.io.utils import (add_overwrite_arg,
+                             add_verbose_arg,
                              assert_inputs_exist,
                              assert_outputs_exist)
 from scilpy.reconst.mti import (adjust_B1_map_header)
@@ -27,6 +28,7 @@ def _build_arg_parser():
     p.add_argument('in_B1_json',
                    help='Json file of the B1 map.')
 
+    add_verbose_arg(p)
     add_overwrite_arg(p)
 
     return p
