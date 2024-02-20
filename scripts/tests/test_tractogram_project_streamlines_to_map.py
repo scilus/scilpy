@@ -21,14 +21,14 @@ def test_help_option(script_runner):
 def test_execution_dpp(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
     in_bundle = os.path.join(get_home(), 'tractometry', 'IFGWM_uni.trk')
-    in_ref = os.path.join(get_home(), 'tractometry', 'mni_masked.nii.gz')
+    in_mni = os.path.join(get_home(), 'tractometry', 'mni_masked.nii.gz')
     in_bundle_with_dpp = 'IFGWM_uni_with_dpp.trk'
 
     # Create our test data with dpp: add metrics as dpp.
     # Or get a tractogram that already as some dpp in the test data.
     script_runner.run('scil_tractogram_project_map_to_streamlines.py',
-                      in_bundle, in_ref, in_bundle_with_dpp,
-                      '--dpp_name', 'some_metric')
+                      in_bundle, in_bundle_with_dpp, '-f',
+                      '--in_maps', in_mni, '--out_dpp_name', 'some_metric')
 
     # Tests with dpp.
     ret = script_runner.run('scil_tractogram_project_streamlines_to_map.py',
@@ -53,34 +53,23 @@ def test_execution_dpp(script_runner):
 def test_execution_dps(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
     in_bundle = os.path.join(get_home(), 'tractometry', 'IFGWM_uni.trk')
-    in_ref = os.path.join(get_home(), 'tractometry', 'mni_masked.nii.gz')
+    in_mni = os.path.join(get_home(), 'tractometry', 'mni_masked.nii.gz')
     in_bundle_with_dpp = 'IFGWM_uni_with_dpp.trk'
     in_bundle_with_dps = 'IFGWM_uni_with_dps.trk'
 
-    # Create our test data with dps: add metrics as dpp.
+    # Create our test data with dps: add metrics as dps.
     # Or get a tractogram that already as some dps in the test data.
     script_runner.run('scil_tractogram_project_map_to_streamlines.py',
-                      in_bundle, in_ref, in_bundle_with_dpp,
-                      '--dpp_name', 'some_metric', '-f')
-    script_runner.run('scil_tractogram_dpp_math.py', in_bundle_with_dpp,
-                      in_ref, in_bundle_with_dpp, '--dpp_name', 'some_metric',
-                      '-f')
+                      in_bundle, in_bundle_with_dpp, '-f',
+                      '--in_maps', in_mni, '--out_dpp_name', 'some_metric')
+    script_runner.run('scil_tractogram_dpp_math.py', 'min', in_bundle_with_dpp,
+                      in_bundle_with_dps, '--in_dpp_name', 'some_metric',
+                      '--out_name', 'some_metric_dps', '--mode', 'dps',
+                      '--keep_all')
 
-    # Tests with dpp.
+    # Tests with dps.
     ret = script_runner.run('scil_tractogram_project_streamlines_to_map.py',
-                            in_bundle_with_dpp, 'project_dpp_',
-                            '--use_dpp', 'some_metric', '--point_by_point',
-                            '--to_endpoints')
-    assert ret.success
-
-    ret = script_runner.run('scil_tractogram_project_streamlines_to_map.py',
-                            in_bundle_with_dpp, 'project_mean_to_endpoints_',
-                            '--use_dpp', 'some_metric', '--mean_streamline',
-                            '--to_endpoints')
-    assert ret.success
-
-    ret = script_runner.run('scil_tractogram_project_streamlines_to_map.py',
-                            in_bundle_with_dpp, 'project_end_to_wm',
-                            '--use_dpp', 'some_metric', '--mean_endpoints',
+                            in_bundle_with_dps, 'project_dps_',
+                            '--use_dps', 'some_metric_dps', '--point_by_point',
                             '--to_wm')
     assert ret.success

@@ -20,7 +20,7 @@ your streamlines first.
 * Hint: The streamlines themselves are not modified here, only their dpp. To
 avoid multiplying data on disk, you could use the following arguments to save
 the new dpp in your current tractogram:
->> scil_tractogram_project_map_to_streamlines.py $in_bundle $in_bundle \
+>> scil_tractogram_project_map_to_streamlines.py $in_bundle $in_bundle
        --keep_all_dpp -f
 """
 

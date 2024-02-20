@@ -57,7 +57,7 @@ def _build_arg_parser():
                    help='Fiber bundle file.')
     p.add_argument('out_prefix',
                    help='Folder + prefix to save endpoints metric(s). We will '
-                        'save one nifti \nfile per per dpp/dps key given.\n'
+                        'save \none nifti file per per dpp/dps key given.\n'
                         'Ex: my_path/subjX_bundleY_ with --use_dpp key1 '
                         'will output \nmy_path/subjX_bundleY_key1.nii.gz')
 
@@ -77,11 +77,11 @@ def _build_arg_parser():
                     help='Load data per point (scalar) from .txt or .npy.\n'
                          'Must load an array with the right shape.')
 
-    p2 = p.add_argument_group(description='Processing choice')
+    p2 = p.add_argument_group(description='Processing choices. (Choose one)')
     p2 = p2.add_mutually_exclusive_group(required=True)
     p2.add_argument('--mean_endpoints', action='store_true',
                     help="Uses one single value per streamline: the mean "
-                         "of the two endpoints.")
+                         "of the two \nendpoints.")
     p2.add_argument('--mean_streamline', action='store_true',
                     help='Use one single value per streamline: '
                          'the mean of all \npoints of the streamline.')
@@ -144,22 +144,22 @@ def _load_dpp_dps(args, parser, sft):
     all_keys = list(sft.data_per_point.keys())
     for key in all_keys:
         if dpp_to_use is not None and key in dpp_to_use:
-            if len(sft.data_per_point[key][0].squeeze().shape) > 1:
+            d0 = sft.data_per_point[key][0][0]
+            if len(d0) > 1:
                 raise ValueError(
-                    "Expecting scalar values as data_per_point.  Got data of "
-                    "shape {}.".format(sft.data_per_point[key][0].shape[1]))
+                    "Expecting scalar values as data_per_point. Got data of "
+                    "shape {} for key {}".format(d0.shape, key))
         else:
             del sft.data_per_point[key]
 
     all_keys = list(sft.data_per_streamline.keys())
     for key in all_keys:
         if dps_to_use is not None and key in dps_to_use:
-            if not np.array_equal(
-                    sft.data_per_streamline[key][0].squeeze().shape, [1, ]):
+            d0 = sft.data_per_streamline[key][0]
+            if len(d0) > 1:
                 raise ValueError(
                     "Expecting scalar values as data_per_streamline. Got data "
-                    "of shape {}."
-                    .format(sft.data_per_streamline[key][0].shape))
+                    "of shape {} for key {}.".format(d0.shape, key))
         else:
             del sft.data_per_streamline[key]
 
@@ -225,8 +225,7 @@ def main():
     # -------- Projection and saving ----------
     for key in all_keys:
         logging.info("Projecting streamlines metric {} to a map".format(key))
-        the_map = project_dpp_to_map(sft, key,
-                                     endpoints_only=args.to_endpoints)
+        the_map = project_dpp_to_map(sft, key, to_endpoints=args.to_endpoints)
 
         out_file = args.out_prefix + key + '.nii.gz'
         logging.info("Saving file {}".format(out_file))
