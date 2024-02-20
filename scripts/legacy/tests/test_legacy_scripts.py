@@ -123,7 +123,7 @@ legacy_scripts_list_tag_1_6_0 = [
     "scil_prepare_topup_command.py",
     "scil_print_connectivity_filenames.py",
     "scil_print_header.py",
-    "scil_project_streamlines_to_map.py",
+    "scil_tractogram_project_streamlines_to_map.py",
     "scil_recognize_multi_bundles.py",
     "scil_recognize_single_bundle.py",
     "scil_register_tractogram.py",

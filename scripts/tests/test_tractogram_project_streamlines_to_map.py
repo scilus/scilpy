@@ -13,7 +13,8 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_project_streamlines_to_map.py', '--help')
+    ret = script_runner.run('scil_tractogram_project_streamlines_to_map.py',
+                            '--help')
     assert ret.success
 
 
@@ -23,8 +24,8 @@ def test_execution_tractometry_default(script_runner):
                              'IFGWM_uni.trk')
     in_ref = os.path.join(get_home(), 'tractometry',
                           'mni_masked.nii.gz')
-    ret = script_runner.run('scil_project_streamlines_to_map.py', in_bundle,
-                            'out_def/', '--in_metrics', in_ref)
+    ret = script_runner.run('scil_tractogram_project_streamlines_to_map.py',
+                            in_bundle, 'out_def/', '--in_metrics', in_ref)
 
     assert ret.success
 
@@ -35,8 +36,8 @@ def test_execution_tractometry_wm(script_runner):
                              'IFGWM_uni.trk')
     in_ref = os.path.join(get_home(), 'tractometry',
                           'mni_masked.nii.gz')
-    ret = script_runner.run('scil_project_streamlines_to_map.py', in_bundle,
-                            'out_wm/', '--in_metrics', in_ref,
+    ret = script_runner.run('scil_tractogram_project_streamlines_to_map.py',
+                            in_bundle, 'out_wm/', '--in_metrics', in_ref,
                             '--to_wm', '--from_wm')
 
     assert ret.success
