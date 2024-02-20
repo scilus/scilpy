@@ -50,7 +50,10 @@ def _build_arg_parser():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
-    logging.getLogger().setLevel(logging.getLevelName(args.verbose))
+    if args.verbose == "WARNING":
+        logging.getLogger().setLevel(logging.INFO)
+    else:
+        logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     # Use directory of this script, should work with most installation setups
     script_dir = pathlib.Path(__file__).parent
