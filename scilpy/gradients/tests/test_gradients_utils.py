@@ -3,7 +3,7 @@ import numpy as np
 
 from scilpy.gradients.bvec_bval_tools import is_normalized_bvecs
 from scilpy.gradients.utils import random_uniform_on_sphere, \
-    get_new_order_table
+    get_new_gtab_order
 
 
 def test_random_uniform_on_sphere():
@@ -25,7 +25,7 @@ def test_random_uniform_on_sphere():
     assert np.all(np.asarray(smallests) > min_expected_angle)
 
 
-def test_get_new_order_table():
+def test_get_new_gtab_order():
     # Using N=4 vectors
     philips_table = np.asarray([[1, 1, 1, 1],
                                 [2, 2, 2, 2],
@@ -38,7 +38,7 @@ def test_get_new_order_table():
                         [1, 1, 1]])
     bvals = np.asarray([3, 4, 2, 1])
 
-    order = get_new_order_table(philips_table, dwi, bvals, bvecs)
+    order = get_new_gtab_order(philips_table, dwi, bvals, bvecs)
 
     assert np.array_equal(bvecs[order, :], philips_table[:, 0:3])
     assert np.array_equal(bvals[order], philips_table[:, 3])

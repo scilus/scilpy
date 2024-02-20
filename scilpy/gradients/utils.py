@@ -42,7 +42,7 @@ def random_uniform_on_sphere(nb_vectors):
     return bvecs
 
 
-def get_new_order_table(ref_gradients_table, dwi, bvals, bvecs):
+def get_new_gtab_order(ref_gradient_table, dwi, bvals, bvecs):
     """
     Find the sorting order that could be applied to the bval and bvec files to
     obtain the same order as in the reference gradient table.
@@ -52,7 +52,7 @@ def get_new_order_table(ref_gradients_table, dwi, bvals, bvecs):
 
     Parameters
     ----------
-    ref_gradients_table: nd.array
+    ref_gradient_table: nd.array
         Gradient table, of shape (N, 4). It will use as reference for the
         ordering of b-vectors.
         Ex: Could be the result of scil_gradients_generate_sampling.py
@@ -61,7 +61,7 @@ def get_new_order_table(ref_gradients_table, dwi, bvals, bvecs):
     bvals : array, (N,)
         bvals that need to be reordered.
     bvecs : array, (N, 3)
-        bvecs that need to be reorered.
+        bvecs that need to be reordered.
 
     Returns
     -------
@@ -69,11 +69,11 @@ def get_new_order_table(ref_gradients_table, dwi, bvals, bvecs):
         New index to reorder bvals/bvec
     """
     if not (len(bvecs) == dwi.shape[3] == len(bvals) ==
-            len(ref_gradients_table)):
+            len(ref_gradient_table)):
         raise ValueError('bvec/bval/dwi and reference table do not contain '
                          'the same number of gradients.')
 
-    ref_bval = np.unique(ref_gradients_table[:, 3])
+    ref_bval = np.unique(ref_gradient_table[:, 3])
     ref_dwi_shells = ref_bval[ref_bval > 1]
     ref_b0s = ref_bval[ref_bval < 1]
 
@@ -89,7 +89,7 @@ def get_new_order_table(ref_gradients_table, dwi, bvals, bvecs):
 
     for nbval in ref_bval:
         curr_bval = np.where(bvals == nbval)[0]
-        curr_bval_table = np.where(ref_gradients_table[:, 3] == nbval)[0]
+        curr_bval_table = np.where(ref_gradient_table[:, 3] == nbval)[0]
 
         if len(curr_bval) != len(curr_bval_table):
             raise ValueError('bval/bvec and orginal table do not contain '
