@@ -35,18 +35,15 @@ import nibabel as nib
 from nibabel.streamlines import ArraySequence
 import numpy as np
 
-from scilpy.io.image import assert_same_resolution
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg,
                              add_verbose_arg,
                              assert_inputs_exist,
-                             assert_output_dirs_exist_and_empty,
                              add_reference_arg,
-                             load_matrix_in_any_format)
+                             load_matrix_in_any_format, assert_outputs_exist)
 from scilpy.utils.filenames import split_name_with_nii
 from scilpy.tractanalysis.streamlines_metrics import \
     compute_tract_counts_map
-from scilpy.tractograms.uncompress import uncompress
 
 
 def _build_arg_parser():
@@ -105,55 +102,6 @@ def _build_arg_parser():
     return p
 
 
-def _compute_streamline_mean(cur_ind, cur_min, cur_max, data):
-    # From the precomputed indices, compute the binary map
-    # and use it to weight the metric data for this specific streamline.
-    cur_range = tuple(cur_max - cur_min)
-
-    if len(cur_ind) == 2:
-        streamline_density = np.zeros(cur_range, dtype=int)
-        streamline_density[cur_ind[:, 0], cur_ind[:, 1]] = 1
-    else:
-        streamline_density = compute_tract_counts_map(ArraySequence([cur_ind]),
-                                                      cur_range)
-    streamline_data = data[cur_min[0]:cur_max[0],
-                           cur_min[1]:cur_max[1],
-                           cur_min[2]:cur_max[2]]
-    streamline_average = np.average(streamline_data,
-                                    weights=streamline_density)
-    return streamline_average
-
-
-def _process_streamlines(streamlines, just_endpoints):
-    # Compute the bounding boxes and indices for all streamlines.
-    # just_endpoints will get the indices of the endpoints only for the
-    # usecase of projecting GM metrics into the WM.
-    mins = []
-    maxs = []
-    offset_streamlines = []
-
-    # Offset the streamlines to compute the indices only in the bounding box.
-    # Reduces memory use later on.
-    for idx, s in enumerate(streamlines):
-        mins.append(np.min(s.astype(int), 0))
-        maxs.append(np.max(s.astype(int), 0) + 1)
-        if just_endpoints:
-            s = np.stack((s[0, :], s[-1, :]), axis=0)
-        offset_streamlines.append((s - mins[-1]).astype(np.float32))
-
-    offset_streamlines = ArraySequence(offset_streamlines)
-
-    if not just_endpoints:
-        indices = uncompress(offset_streamlines)
-    else:
-        indices = ArraySequence()
-        indices._offsets = offset_streamlines._offsets
-        indices._lengths = offset_streamlines._lengths
-        indices._data = np.floor(offset_streamlines._data).astype(int)
-
-    return mins, maxs, indices
-
-
 def _project_metrics(curr_metric_map, count, orig_s, streamline_mean,
                      just_endpoints):
     if just_endpoints:
@@ -204,11 +152,23 @@ def main():
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
-    assert_inputs_exist(parser, [args.in_bundle], args.in_metrics +
+    # -------- General checks ----------
+    assert_inputs_exist(parser, [args.in_bundle],
                         args.load_dps + args.load_dpp)
-    assert_output_dirs_exist_and_empty(parser, args,
-                                       args.out_folder,
-                                       create_dir=True)
+
+    # Find all final output files (one per metric).
+    if args.load_dps or args.load_dpp:
+        files = args.load_dps or args.load_dpp
+        metrics_names = []
+        for file in files:
+            # Prepare dpp key from filename.
+            name = os.path.basename(file)
+            name, ext = split_name_with_nii(name)
+            metrics_names.append(name)
+    else:
+        metrics_names = args.use_dpp or args.use_dps
+    out_files = [args.out_prefix + m + '.nii.gz' for m in metrics_names]
+    assert_outputs_exist(parser, args, out_files)
 
     sft = load_tractogram_with_reference(parser, args, args.in_bundle)
     sft.to_vox()
@@ -218,62 +178,34 @@ def main():
         logging.warning('Empty bundle file {}. Skipping'.format(args.bundle))
         return
 
-    mins, maxs, indices = _process_streamlines(sft.streamlines,
-                                               not args.from_wm)
+    for fname, data in _pick_data(args, sft):
+        curr_metric_map = np.zeros(sft.dimensions)
+        count = np.zeros(sft.dimensions)
 
-    if args.in_metrics:
-        assert_same_resolution(args.in_metrics)
-        metrics = [nib.load(metric) for metric in args.in_metrics]
-        for metric in metrics:
-            data = metric.get_fdata(dtype=np.float32)
-            curr_metric_map = np.zeros(metric.shape)
-            count = np.zeros(metric.shape)
-            for cur_min, cur_max, cur_ind, orig_s in zip(mins, maxs, indices,
-                                                         sft.streamlines):
-                streamline_mean = _compute_streamline_mean(cur_ind,
-                                                           cur_min,
-                                                           cur_max,
-                                                           data)
+        for j in range(len(sft.streamlines)):
+            if args.use_dps or args.load_dps:
+                streamline_mean = np.mean(data[j])
+            else:
+                tmp_data = ArraySequence()
+                tmp_data._data = data
+                tmp_data._offsets = sft.streamlines._offsets
+                tmp_data._lengths = sft.streamlines._lengths
 
-                _project_metrics(curr_metric_map, count, orig_s,
-                                 streamline_mean, not args.to_wm)
-            curr_metric_map[count != 0] /= count[count != 0]
-            metric_fname, ext = split_name_with_nii(
-                os.path.basename(metric.get_filename()))
-            nib.save(nib.Nifti1Image(curr_metric_map, metric.affine,
-                                     metric.header),
-                     os.path.join(args.out_folder,
-                                  '{}_endpoints_metric{}'.format(metric_fname,
-                                                                 ext)))
-    else:
-        for fname, data in _pick_data(args, sft):
-            curr_metric_map = np.zeros(sft.dimensions)
-            count = np.zeros(sft.dimensions)
-
-            for j in range(len(sft.streamlines)):
-                if args.use_dps or args.load_dps:
-                    streamline_mean = np.mean(data[j])
+                if not args.to_wm:
+                    streamline_mean = (np.mean(tmp_data[j][-1])
+                                       + np.mean(tmp_data[j][0])) / 2
                 else:
-                    tmp_data = ArraySequence()
-                    tmp_data._data = data
-                    tmp_data._offsets = sft.streamlines._offsets
-                    tmp_data._lengths = sft.streamlines._lengths
+                    streamline_mean = np.mean(tmp_data[j])
 
-                    if not args.to_wm:
-                        streamline_mean = (np.mean(tmp_data[j][-1])
-                                           + np.mean(tmp_data[j][0])) / 2
-                    else:
-                        streamline_mean = np.mean(tmp_data[j])
+            _project_metrics(curr_metric_map, count, sft.streamlines[j],
+                             streamline_mean, not args.to_wm)
 
-                _project_metrics(curr_metric_map, count, sft.streamlines[j],
-                                 streamline_mean, not args.to_wm)
-
-            curr_metric_map[count != 0] /= count[count != 0]
-            metric_fname, _ = os.path.splitext(os.path.basename(fname))
-            nib.save(nib.Nifti1Image(curr_metric_map, sft.affine),
-                     os.path.join(args.out_folder,
-                                  '{}_endpoints_metric{}'.format(metric_fname,
-                                                                 '.nii.gz')))
+        curr_metric_map[count != 0] /= count[count != 0]
+        metric_fname, _ = os.path.splitext(os.path.basename(fname))
+        nib.save(nib.Nifti1Image(curr_metric_map, sft.affine),
+                 os.path.join(args.out_folder,
+                              '{}_endpoints_metric{}'.format(metric_fname,
+                                                             '.nii.gz')))
 
 
 if __name__ == '__main__':
