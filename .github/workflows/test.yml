@@ -16,25 +16,12 @@ env:
   MPLBACKEND: agg
   OPENBLAS_NUM_THREADS: 1
 
-permissions:
-  actions: write
-
 jobs:
   test:
     runs-on: scilus-runners
     if: github.repository == 'scilus/scilpy'
 
     steps:
-      # If this runs and does not fails, its because the workflow was relaunched
-      # with no resuming and we need to delete the artifact since we
-      # re-executed the tests. Else, if nothing to do, it'll fail the job
-      # (silently) and the remaining workflow will continue
-      - name: Delete tests and coverage artifact
-        uses: geekyeggo/delete-artifact@v4
-        with:
-          name: test-coverage-${{ github.run_id }}
-          failOnError: false
-
       - name: Checkout repository at merge
         uses: actions/checkout@v4
 
@@ -74,6 +61,7 @@ jobs:
         id: test-coverage-results
         with:
           name: test-coverage-${{ github.run_id }}
+          retention-days: 1
           path: |
             .coverage
             .test_reports/
@@ -106,14 +94,8 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           flags: unittests
-          name: scilpy-unittests-${{ github.run_id }}
+          name: scilpy-unittests-${{ github.run_id }}-${{ github.run_attempt }}
           verbose: true
           fail_ci_if_error: true
           plugin: pycoverage
 
-      - name: Delete tests and coverage artifact
-        uses: geekyeggo/delete-artifact@v4
-        if: success()
-        with:
-          name: test-coverage-${{ github.run_id }}
-          failOnError: false

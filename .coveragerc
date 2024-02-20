@@ -2,7 +2,7 @@
 branch = True
 concurrency = multiprocessing
 data_file = .coverage
-source_pkgs = 
+source_pkgs =
     scilpy
     scripts
 relative_files = True
@@ -17,6 +17,9 @@ omit =
 [report]
 skip_empty = True
 skip_covered = True
+exclude_also =
+    if __name__ == "__main__":
+    main()
 
 [html]
 title = Scilpy Coverage Report
