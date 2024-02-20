@@ -61,7 +61,7 @@ def test_execution_tractogram_point_math_mean_4D_correlation(script_runner):
                             'correlation',
                             fodf_on_bundle,
                             'fodf_correlation_on_streamlines.trk',
-                            '--mode', 'dpp',
+                            '--mode', 'dps',
                             '--in_dpp_name', 'fodf',
                             '--out_name', 'fodf_correlation')
 
