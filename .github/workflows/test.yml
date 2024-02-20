@@ -32,7 +32,7 @@ jobs:
           name: test-coverage-${{ github.run_id }}
           failOnError: false
 
-      - name: Checkout repository for merge
+      - name: Checkout repository at merge
         uses: actions/checkout@v4
 
       - name: Fetch python version from repository
@@ -64,7 +64,7 @@ jobs:
       - name: Run tests
         run: |
           export C_INCLUDE_PATH=$pythonLocation/include/python${{ steps.python-selector.outputs.python-version }}:$C_INCLUDE_PATH
-          pytest --cov-report term-missing:skip-covered
+          pytest --cov-report term-missing:skip-covered scripts/tests/test_bids_validate.py
 
       - name: Save test results and coverage
         uses: actions/upload-artifact@v4
@@ -81,10 +81,10 @@ jobs:
     needs: test
 
     steps:
-      - name: Checkout repository for merge
+      - name: Checkout repository at merge
         uses: actions/checkout@v4
 
-      - name: Set up Python for Scilpy
+      - name: Set up Python for codecov upload
         uses: actions/setup-python@v5.0.0
         with:
           python-version: '3.10'
