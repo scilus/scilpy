@@ -88,16 +88,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: test-coverage-${{ github.run_id }}
-
-      - name: Show the content of the workspace where we upload
-        run: |
-          echo "what is here : $(pwd)"
-          ls -lha .
-          echo "what is in GITHUB_WORKSPACE : $GITHUB_WORKSPACE"
-          ls -lha $GITHUB_WORKSPACE
-          echo "what is in github.workspace : ${{ github.workspace }}"
-          ls -lha ${{ github.workspace }}
-          exit 1
+          path: ${{ github.workspace }}/scilpy
 
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v4
