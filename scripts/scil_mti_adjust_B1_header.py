@@ -7,6 +7,7 @@ Correct B1 map header problem.
 
 import argparse
 import json
+import logging
 
 import nibabel as nib
 
@@ -34,9 +35,9 @@ def _build_arg_parser():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
+    logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     assert_outputs_exist(parser, args, args.out_B1_map)
-
     assert_inputs_exist(parser, (args.in_B1_map, args.in_B1_json))
 
     with open(args.in_B1_json) as curr_json:
