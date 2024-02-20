@@ -16,6 +16,9 @@ env:
   MPLBACKEND: agg
   OPENBLAS_NUM_THREADS: 1
 
+permissions:
+  actions: write
+
 jobs:
   test:
     runs-on: scilus-runners
