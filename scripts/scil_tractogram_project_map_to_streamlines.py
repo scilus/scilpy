@@ -8,6 +8,8 @@ The default options will take data from a nifti image (3D or 4D) and
 project it onto the points of streamlines. If the image is 4D, the data
 is stored as a list of 1D arrays per streamline. If the image is 3D,
 the data is stored as a list of values per streamline.
+
+See also scil_tractogram_project_streamlines_to_map.py for the reverse action.
 """
 
 import argparse

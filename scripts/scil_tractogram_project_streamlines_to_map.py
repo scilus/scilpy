@@ -2,19 +2,29 @@
 # -*- coding: utf-8 -*-
 
 """
-Projects metrics onto the endpoints of streamlines. The idea is to visualize
-the cortical areas affected by metrics (assuming streamlines start/end in
-the cortex).
+Projects metrics onto the underlying voxels of a streamlines. This script can
+project data from data_per_point (dpp) or data_per_streamline (dps) to maps.
 
-This script can project data from maps (--in_metrics), from data_per_point
-(dpp) or data_per_streamline (dps): --load_dpp and --load_dps require an array
-from a file (must be the right shape), --use_dpp and --use_dps work only for
-.trk file and the key must exist in the metadata.
+You choose to project data from all points of the streamlines, or from the
+endpoints only. The idea then is to visualize the cortical areas affected by
+metrics (assuming streamlines start/end in the cortex).
 
-The default options will take data from endpoints and project it to endpoints.
---from_wm will use data from whole streamlines.
---to_wm will project the data to whole streamline coverage.
-This creates 4 combinations of data source and projection.
+See also scil_tractogram_project_map_to_streamlines.py for the reverse action.
+
+How to the data is loaded:
+    - From dps: uses the same value for each point of the streamline.
+    - From dpp: one value per point.
+
+How the data is used:
+    1. Average all points of the streamline to get a mean value, set this value
+       to all points.
+    2. Average the two endpoints and get their mean value, set this value to
+       all points.
+    3. Keep each point individually.
+
+How the data is projected to a map:
+    A. Using each point.
+    B. Using the endpoints only.
 """
 
 import argparse
@@ -46,26 +56,47 @@ def _build_arg_parser():
 
     p.add_argument('in_bundle',
                    help='Fiber bundle file.')
-    p.add_argument('out_folder',
-                   help='Folder where to save endpoints metric.')
+    p.add_argument('out_prefix',
+                   help='Folder + prefix to save endpoints metric(s). We will '
+                        'save one nifti \nfile per per dpp/dps key given.\n'
+                        'Ex: my_path/subjX_bundleY_ with --use_dpp key1 '
+                        'will output \nmy_path/subjX_bundleY_key1.nii.gz')
 
-    p1 = p.add_mutually_exclusive_group(required=True)
-    p1.add_argument('--in_metrics', nargs='+', default=[],
-                    help='Nifti metric(s) to compute statistics on.')
-    p1.add_argument('--use_dps', metavar='DPS_KEY', nargs='+',
-                    help='Use the data_per_streamline (scalar) from file, '
-                         'e.g. commit_weights.')
-    p1.add_argument('--use_dpp', metavar='DPP_KEY', nargs='+', default=[],
-                    help='Use the data_per_point (scalar) from file.')
-    p1.add_argument('--load_dps', metavar='DPS_KEY', nargs='+', default=[],
-                    help='Load data per streamline (scalar) .txt or .npy.')
-    p1.add_argument('--load_dpp', metavar='DPP_KEY', nargs='+', default=[],
-                    help='Load data per point (scalar) from .txt or .npy.')
+    p1 = p.add_argument_group(
+        description='Where to get the statistics from. (Choose one)')
+    p1 = p1.add_mutually_exclusive_group(required=True)
+    p1.add_argument('--use_dps', metavar='key', nargs='+',
+                    help='Use the data_per_streamline from the tractogram.\n'
+                         'It must be a .trk')
+    p1.add_argument('--use_dpp', metavar='key', nargs='+', default=[],
+                    help='Use the data_per_point from the tractogram. \n'
+                         'It must be a trk.')
+    p1.add_argument('--load_dps', metavar='file', nargs='+', default=[],
+                    help='Load data per streamline (scalar) .txt or .npy.\n'
+                         'Must load an array with the right shape.')
+    p1.add_argument('--load_dpp', metavar='file', nargs='+', default=[],
+                    help='Load data per point (scalar) from .txt or .npy.\n'
+                         'Must load an array with the right shape.')
 
-    p.add_argument('--from_wm', action='store_true',
-                   help='Project metrics from whole streamlines coverage.')
-    p.add_argument('--to_wm', action='store_true',
-                   help='Project metrics into streamlines coverage.')
+    p2 = p.add_argument_group(description='Processing choice')
+    p2 = p2.add_mutually_exclusive_group(required=True)
+    p2.add_argument('--mean_endpoints', action='store_true',
+                    help="Uses one single value per streamline: the mean "
+                         "of the two endpoints.")
+    p2.add_argument('--mean_streamline', action='store_true',
+                    help='Use one single value per streamline: '
+                         'the mean of all \npoints of the streamline.')
+    p2.add_argument('--point_by_point', action='store_true',
+                    help="Directly project the streamlines values onto the "
+                         "map.\n")
+
+    p3 = p.add_argument_group(
+        description='Where to send the statistics. (Choose one)')
+    p3 = p3.add_mutually_exclusive_group(required=True)
+    p3.add_argument('--to_endpoints', action='store_true',
+                    help="Project metrics onto a mask of the endpoints.")
+    p3.add_argument('--to_wm', action='store_true',
+                    help='Project metrics into streamlines coverage.')
 
     add_reference_arg(p)
     add_verbose_arg(p)
