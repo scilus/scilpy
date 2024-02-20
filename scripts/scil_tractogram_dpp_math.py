@@ -30,7 +30,7 @@ mode must be set.
 import argparse
 import logging
 
-from dipy.io.streamline import save_tractogram, StatefulTractogram
+from dipy.io.streamline import save_tractogram
 
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_bbox_arg,
@@ -41,8 +41,8 @@ from scilpy.io.utils import (add_bbox_arg,
                              assert_outputs_exist)
 from scilpy.tractograms.dps_and_dpp_management import (
     perform_pairwise_streamline_operation_on_endpoints,
-    perform_streamline_operation_per_point,
-    perform_operation_per_streamline)
+    perform_operation_on_dpp,
+    perform_operation_dpp_to_dps)
 
 
 def _build_arg_parser():
@@ -176,7 +176,7 @@ def main():
                 'Performing {} on data from each streamine point '
                 'and saving as new dpp {}'.format(
                     args.operation, out_name))
-            new_dpp = perform_streamline_operation_per_point(
+            new_dpp = perform_operation_on_dpp(
                 args.operation, sft, in_dpp_name, args.endpoints_only)
             data_per_point[out_name] = new_dpp
         elif args.mode == 'dps':
@@ -184,7 +184,7 @@ def main():
             logging.info(
                 'Performing {} across each streamline and saving resulting '
                 'data per streamline {}'.format(args.operation, out_name))
-            new_data_per_streamline = perform_operation_per_streamline(
+            new_data_per_streamline = perform_operation_dpp_to_dps(
                 args.operation, sft, in_dpp_name, args.endpoints_only)
             data_per_streamline[out_name] = new_data_per_streamline
 

@@ -25,6 +25,9 @@ How the data is used:
 How the data is projected to a map:
     A. Using each point.
     B. Using the endpoints only.
+
+For more complex operations than the average per streamline, see
+scil_tractogram_dpp_math.py.
 """
 
 import argparse
@@ -32,18 +35,17 @@ import logging
 import os
 
 import nibabel as nib
-from nibabel.streamlines import ArraySequence
 import numpy as np
 
-from scilpy.io.streamlines import load_tractogram_with_reference
-from scilpy.io.utils import (add_overwrite_arg,
-                             add_verbose_arg,
-                             assert_inputs_exist,
-                             add_reference_arg,
-                             load_matrix_in_any_format, assert_outputs_exist)
+from scilpy.io.streamlines import (load_dpp_files_as_dpp,
+                                   load_dps_files_as_dps,
+                                   load_tractogram_with_reference)
+from scilpy.io.utils import (add_overwrite_arg, add_reference_arg,
+                             add_verbose_arg, assert_inputs_exist,
+                             assert_outputs_exist)
+from scilpy.tractograms.dps_and_dpp_management import (
+    copy_dps_as_dpp, perform_operation_dpp_to_dps, project_dpp_to_map)
 from scilpy.utils.filenames import split_name_with_nii
-from scilpy.tractanalysis.streamlines_metrics import \
-    compute_tract_counts_map
 
 
 def _build_arg_parser():
@@ -102,49 +104,66 @@ def _build_arg_parser():
     return p
 
 
-def _project_metrics(curr_metric_map, count, orig_s, streamline_mean,
-                     just_endpoints):
-    if just_endpoints:
-        xyz = orig_s[0, :].astype(int)
-        curr_metric_map[xyz[0], xyz[1], xyz[2]] += streamline_mean
-        count[xyz[0], xyz[1], xyz[2]] += 1
+def _load_dpp_dps(args, parser, sft):
+    # In call cases: only one of the values below can be set at the time.
+    dps_to_use = None
+    dpp_to_use = None
 
-        xyz = orig_s[-1, :].astype(int)
-        curr_metric_map[xyz[0], xyz[1], xyz[2]] += streamline_mean
-        count[xyz[0], xyz[1], xyz[2]] += 1
-    else:
-        for x, y, z in orig_s[:].astype(int):
-            curr_metric_map[x, y, z] += streamline_mean
-            count[x, y, z] += 1
+    # 1. With options --use_dps, --use_dpp: check that dps / dpp key is found.
+    # 2. With options --load_dps, --load_dpp: Load them now to SFT, check that
+    #    they fit with the data.
+    if args.use_dps:
+        dps_to_use = args.use_dps
+        possible_dps = list(sft.data_per_streamline.keys())
+        for key in args.use_dps:
+            if key not in possible_dps:
+                parser.error('DPS key not ({}) not found in your tractogram!'
+                             .format(key))
+    elif args.use_dpp:
+        dpp_to_use = args.use_dpp
+        possible_dpp = list(sft.data_per_point.keys())
+        for key in args.use_dpp:
+            if key not in possible_dpp:
+                parser.error('DPP key ({}) not found in your tractogram!'
+                             .format(key))
+    elif args.load_dps:
+        logging.info("Loading dps from file.")
 
+        # It does not matter if we overwrite: Not saving the result sft.
+        sft, dps_to_use = load_dps_files_as_dps(parser, args.load_dps, sft,
+                                                overwrite=True)
+    else:  # args.load_dpp:
+        # Loading dpp for all points even if we won't use them all to make
+        # sure that the loaded files have the correct shape.
+        logging.info("Loading dpp from file")
+        sft, dpp_to_use = load_dpp_files_as_dpp(parser, args.load_dpp, sft,
+                                                overwrite=True)
 
-def _pick_data(args, sft):
-    if args.use_dps or args.load_dps:
-        if args.use_dps:
-            for dps in args.use_dps:
-                if dps not in sft.data_per_streamline:
-                    raise IOError('DPS key not in the sft: {}'.format(dps))
-            name = args.use_dps
-            data = [sft.data_per_streamline[dps] for dps in args.use_dps]
+    # Verify that we have singular values. (Ex, not colors)
+    # Remove unused keys to save memory.
+    all_keys = list(sft.data_per_point.keys())
+    for key in all_keys:
+        if dpp_to_use is not None and key in dpp_to_use:
+            if len(sft.data_per_point[key][0].squeeze().shape) > 1:
+                raise ValueError(
+                    "Expecting scalar values as data_per_point.  Got data of "
+                    "shape {}.".format(sft.data_per_point[key][0].shape[1]))
         else:
-            name = args.load_dps
-            data = [load_matrix_in_any_format(dps) for dps in args.load_dps]
-        for i in range(len(data)):
-            if len(data[i]) != len(sft):
-                raise IOError('DPS length does not match the SFT: {}'
-                              .format(name[i]))
-    elif args.use_dpp or args.load_dpp:
-        if args.use_dpp:
-            name = args.use_dpp
-            data = [sft.data_per_point[dpp]._data for dpp in args.use_dpp]
+            del sft.data_per_point[key]
+
+    all_keys = list(sft.data_per_streamline.keys())
+    for key in all_keys:
+        if dps_to_use is not None and key in dps_to_use:
+            if not np.array_equal(
+                    sft.data_per_streamline[key][0].squeeze().shape, [1, ]):
+                raise ValueError(
+                    "Expecting scalar values as data_per_streamline. Got data "
+                    "of shape {}."
+                    .format(sft.data_per_streamline[key][0].shape))
         else:
-            name = args.load_dpp
-            data = [load_matrix_in_any_format(dpp) for dpp in args.load_dpp]
-        for i in range(len(data)):
-            if len(data[i]) != len(sft.streamlines._data):
-                raise IOError('DPP length does not match the SFT: {}'
-                              .format(name[i]))
-    return zip(name, data)
+            del sft.data_per_streamline[key]
+
+    return sft, dps_to_use, dpp_to_use
 
 
 def main():
@@ -170,6 +189,8 @@ def main():
     out_files = [args.out_prefix + m + '.nii.gz' for m in metrics_names]
     assert_outputs_exist(parser, args, out_files)
 
+    # -------- Load streamlines and checking compatibility ----------
+    logging.info("Loading tractogram {}".format(args.in_bundle))
     sft = load_tractogram_with_reference(parser, args, args.in_bundle)
     sft.to_vox()
     sft.to_corner()
@@ -178,34 +199,38 @@ def main():
         logging.warning('Empty bundle file {}. Skipping'.format(args.bundle))
         return
 
-    for fname, data in _pick_data(args, sft):
-        curr_metric_map = np.zeros(sft.dimensions)
-        count = np.zeros(sft.dimensions)
+    # -------- Load dps / dpp. ----------
+    sft, dps_to_use, dpp_to_use = _load_dpp_dps(args, parser, sft)
 
-        for j in range(len(sft.streamlines)):
-            if args.use_dps or args.load_dps:
-                streamline_mean = np.mean(data[j])
-            else:
-                tmp_data = ArraySequence()
-                tmp_data._data = data
-                tmp_data._offsets = sft.streamlines._offsets
-                tmp_data._lengths = sft.streamlines._lengths
+    # Convert dps to dpp. Easier to manage all the remaining options without
+    # multiplying if - else calls.
+    if dps_to_use is not None:
+        # Then dpp_to_use is None, and the sft contains no dpp key.
+        # Can overwrite.
+        sft = copy_dps_as_dpp(sft, dps_to_use, overwrite=True)
+        all_keys = dps_to_use
+    else:
+        all_keys = dpp_to_use
 
-                if not args.to_wm:
-                    streamline_mean = (np.mean(tmp_data[j][-1])
-                                       + np.mean(tmp_data[j][0])) / 2
-                else:
-                    streamline_mean = np.mean(tmp_data[j])
+    # -------- Format values  ----------
+    # In case where we average the dpp, average it now and pretend it's a dps,
+    # then re-copy to all dpp.
+    if args.mean_streamline or args.mean_endpoints:
+        logging.info("Averaging values for all streamlines.")
+        for key in all_keys:
+            sft.data_per_streamline[key] = perform_operation_dpp_to_dps(
+                'mean', sft, key, endpoints_only=args.mean_endpoints)
+        sft = copy_dps_as_dpp(sft, all_keys, overwrite=True)
 
-            _project_metrics(curr_metric_map, count, sft.streamlines[j],
-                             streamline_mean, not args.to_wm)
+    # -------- Projection and saving ----------
+    for key in all_keys:
+        logging.info("Projecting streamlines metric {} to a map".format(key))
+        the_map = project_dpp_to_map(sft, key,
+                                     endpoints_only=args.to_endpoints)
 
-        curr_metric_map[count != 0] /= count[count != 0]
-        metric_fname, _ = os.path.splitext(os.path.basename(fname))
-        nib.save(nib.Nifti1Image(curr_metric_map, sft.affine),
-                 os.path.join(args.out_folder,
-                              '{}_endpoints_metric{}'.format(metric_fname,
-                                                             '.nii.gz')))
+        out_file = args.out_prefix + key + '.nii.gz'
+        logging.info("Saving file {}".format(out_file))
+        nib.save(nib.Nifti1Image(the_map, sft.affine), out_file)
 
 
 if __name__ == '__main__':
