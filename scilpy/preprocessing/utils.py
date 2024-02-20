@@ -21,7 +21,7 @@ def smooth_to_fwhm(data, fwhm):
 
         if len(data.shape) == 3:
             data_smooth = gaussian_filter(data, sigma=gauss_std)
-        elif  len(data.shape) == 4:
+        elif len(data.shape) == 4:
             data_smooth = np.zeros(data.shape)
             for v in range(data.shape[-1]):
                 data_smooth[..., v] = gaussian_filter(data[..., v],
