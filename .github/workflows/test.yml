@@ -84,11 +84,19 @@ jobs:
       - name: Checkout repository for merge
         uses: actions/checkout@v4
 
+      - name: Set up Python for Scilpy
+        uses: actions/setup-python@v5.0.0
+        with:
+          python-version: 3.10
+          cache: 'pip'
+
+      - name: Install pycoverage
+        run: pip install coverage
+
       - name: Download test results and coverage
         uses: actions/download-artifact@v4
         with:
           name: test-coverage-${{ github.run_id }}
-          path: ${{ github.workspace }}/scilpy
 
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v4
