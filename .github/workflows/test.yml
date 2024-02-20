@@ -92,11 +92,11 @@ jobs:
       - name: Show the content of the workspace where we upload
         run: |
           echo "what is here : $(pwd)"
-          ls .
+          ls -lha .
           echo "what is in GITHUB_WORKSPACE : $GITHUB_WORKSPACE"
-          ls $GITHUB_WORKSPACE
+          ls -lha $GITHUB_WORKSPACE
           echo "what is in github.workspace : ${{ github.workspace }}"
-          ls ${{ github.workspace }}
+          ls -lha ${{ github.workspace }}
           exit 1
 
       - name: Upload coverage reports to Codecov
