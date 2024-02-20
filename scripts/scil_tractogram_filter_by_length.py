@@ -54,16 +54,14 @@ def main():
 
     parser = _build_arg_parser()
     args = parser.parse_args()
+    logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     assert_inputs_exist(parser, args.in_tractogram)
     assert_outputs_exist(parser, args, args.out_tractogram)
 
-    if args.verbose:
-        logging.getLogger().setLevel(logging.DEBUG)
-
     if args.minL == 0 and np.isinf(args.maxL):
-        logging.debug("You have not specified minL nor maxL. Output will "
-                      "simply be a copy of your input!")
+        logging.info("You have not specified minL nor maxL. Output will "
+                     "simply be a copy of your input!")
 
     sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
 
@@ -78,13 +76,13 @@ def main():
 
     if len(new_sft.streamlines) == 0:
         if args.no_empty:
-            logging.debug("The file {} won't be written "
-                          "(0 streamline).".format(args.out_tractogram))
+            logging.info("The file {} won't be written "
+                         "(0 streamline).".format(args.out_tractogram))
 
             return
 
-        logging.debug('The file {} contains 0 streamline'.format(
-            args.out_tractogram))
+        logging.info('The file {} contains 0 streamline'.format(
+                     args.out_tractogram))
 
     save_tractogram(new_sft, args.out_tractogram)
 

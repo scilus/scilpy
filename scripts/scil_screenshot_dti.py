@@ -10,6 +10,7 @@ Axial, coronal and sagittal slices are captured.
 """
 
 import argparse
+import logging
 import os
 
 from dipy.core.gradients import gradient_table, get_bval_indices
@@ -143,6 +144,8 @@ def prepare_slices_mask(mask_data, x_slice, y_slice, z_slice):
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
+    logging.getLogger().setLevel(logging.getLevelName(args.verbose))
+
     required = [args.in_dwi, args.in_bval, args.in_bvec, args.in_template]
     assert_inputs_exist(parser, required)
 

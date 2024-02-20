@@ -225,13 +225,17 @@ def add_force_b0_arg(parser):
 
 
 def add_verbose_arg(parser):
-    parser.add_argument('-v', action='store_true', dest='verbose',
-                        help='If set, produces verbose output.')
+    parser.add_argument('-v', default="WARNING", const='INFO', nargs='?',
+                        choices=['DEBUG', 'INFO', 'WARNING'], dest='verbose',
+                        help='Produces verbose output depending on '
+                             'the provided level. \nDefault level is warning, '
+                             'default when using -v is info.')
 
     version = importlib.metadata.version('scilpy')
 
     logging.getLogger().setLevel(logging.INFO)
     logging.info("Scilpy version: {}".format(version))
+    logging.getLogger().setLevel(logging.WARNING)
 
 
 def add_bbox_arg(parser):

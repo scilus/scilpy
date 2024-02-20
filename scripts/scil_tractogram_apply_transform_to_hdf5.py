@@ -12,6 +12,7 @@ Formerly: scil_apply_transform_to_hdf5.py
 """
 
 import argparse
+import logging
 import os
 
 from dipy.io.stateful_tractogram import Space, Origin, StatefulTractogram
@@ -67,6 +68,7 @@ def _build_arg_parser():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
+    logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     assert_inputs_exist(parser, [args.in_hdf5, args.in_target_file,
                                  args.in_transfo], args.in_deformation)

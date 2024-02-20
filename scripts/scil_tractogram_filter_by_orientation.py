@@ -22,7 +22,6 @@ import argparse
 import json
 import logging
 
-from dipy.io.stateful_tractogram import set_sft_logger_level
 from dipy.io.streamline import save_tractogram
 import numpy as np
 
@@ -85,18 +84,12 @@ def _build_arg_parser():
 
 
 def main():
-
     parser = _build_arg_parser()
     args = parser.parse_args()
+    logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     assert_inputs_exist(parser, args.in_tractogram)
     assert_outputs_exist(parser, args, args.out_tractogram, args.save_rejected)
-
-    if args.verbose:
-        logging.getLogger().setLevel(logging.DEBUG)
-        # Silencing SFT's logger if our logging is in DEBUG mode, because it
-        # typically produces a lot of outputs!
-        set_sft_logger_level('WARNING')
 
     if args.min_x == 0 and np.isinf(args.max_x) and \
        args.min_y == 0 and np.isinf(args.max_y) and \
@@ -120,11 +113,11 @@ def main():
 
     if len(new_sft.streamlines) == 0:
         if args.no_empty:
-            logging.debug("The file {} won't be written "
-                          "(0 streamline).".format(args.out_tractogram))
+            logging.info("The file {} won't be written "
+                         "(0 streamline).".format(args.out_tractogram))
         else:
-            logging.debug('The file {} contains 0 streamline'.format(
-                args.out_tractogram))
+            logging.info('The file {} contains 0 streamline'.format(
+                         args.out_tractogram))
 
     save_tractogram(new_sft, args.out_tractogram)
 

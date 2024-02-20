@@ -134,9 +134,7 @@ def main():
     t_init = perf_counter()
     parser = _build_arg_parser()
     args = parser.parse_args()
-
-    if args.verbose:
-        logging.getLogger().setLevel(logging.DEBUG)
+    logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     if args.use_gpu:
         batch_size = args.batch_size or DEFAULT_BATCH_SIZE

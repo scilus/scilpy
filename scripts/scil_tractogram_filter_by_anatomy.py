@@ -212,16 +212,16 @@ def save_intermediate_sft(sft, outliers_sft, new_path, in_sft_name,
 
     if len(sft.streamlines) == 0:
         if no_empty:
-            logging.debug("The file" + sft_name +
-                          " won't be written (0 streamlines)")
+            logging.info("The file" + sft_name +
+                         " won't be written (0 streamlines)")
         save_tractogram(sft, sft_name)
     else:
         save_tractogram(sft, sft_name)
 
     if len(outliers_sft.streamlines):
         if no_empty:
-            logging.debug("The file" + outliers_sft_name +
-                          " won't be written (0 streamlines)")
+            logging.info("The file" + outliers_sft_name +
+                         " won't be written (0 streamlines)")
         save_tractogram(outliers_sft, outliers_sft_name)
     else:
         save_tractogram(outliers_sft, outliers_sft_name)
@@ -248,8 +248,8 @@ def save_rejected(sft, new_sft, rejected_sft_name, no_empty):
 
     if len(rejected_sft.streamlines) == 0:
         if no_empty:
-            logging.debug("The file" + rejected_sft_name +
-                          " won't be written (0 streamlines)")
+            logging.info("The file" + rejected_sft_name +
+                         " won't be written (0 streamlines)")
             return
 
     save_tractogram(rejected_sft, rejected_sft_name)
@@ -260,7 +260,7 @@ def display_count(o_dict, indent, sort_keys):
     Display the streamline count.
     """
     o_dict_str = json.dumps(o_dict, indent=indent, sort_keys=sort_keys)
-    logging.debug("Streamline count:\n{}".format(o_dict_str))
+    logging.info("Streamline count:\n{}".format(o_dict_str))
 
 
 def save_count(o_dict, out_path, indent, sort_keys):
@@ -275,6 +275,7 @@ def save_count(o_dict, out_path, indent, sort_keys):
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
+    logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     assert_inputs_exist(parser, args.in_tractogram)
     assert_inputs_exist(parser, args.in_wmparc)
@@ -283,9 +284,6 @@ def main():
                                        create_dir=True)
 
     nbr_cpu = validate_nbr_processes(parser, args)
-
-    if args.verbose:
-        logging.getLogger().setLevel(logging.DEBUG)
 
     if args.angle <= 0:
         parser.error('Angle "{}" '.format(args.angle) +
@@ -308,14 +306,14 @@ def main():
                          'not compatible.')
 
     if args.minL == 0 and np.isinf(args.maxL):
-        logging.debug("You have not specified minL nor maxL. Output will "
-                      "not be filtered according to length!")
+        logging.info("You have not specified minL nor maxL. Output will "
+                     "not be filtered according to length!")
     if np.isinf(args.angle):
-        logging.debug("You have not specified the angle. Loops will "
-                      "not be filtered!")
+        logging.info("You have not specified the angle. Loops will "
+                     "not be filtered!")
     if args.ctx_dilation_radius == 0:
-        logging.debug("You have not specified the cortex dilation radius. "
-                      "The wmparc atlas will not be dilated!")
+        logging.info("You have not specified the cortex dilation radius. "
+                     "The wmparc atlas will not be dilated!")
 
     o_dict = {}
     step_dict = ['length', 'no_csf', 'end_in_atlas', 'no_loops']
@@ -353,9 +351,9 @@ def main():
 
     if len(new_sft.streamlines) == 0:
         if args.no_empty:
-            logging.debug("The file {} won't be written".format(
-                          out_sft_name) + "(0 streamlines after "
-                          + step + " filtering).")
+            logging.info("The file {} won't be written".format(
+                         out_sft_name) + "(0 streamlines after "
+                         + step + " filtering).")
 
             if args.verbose:
                 display_count(o_dict, args.indent, args.sort_keys)
@@ -365,8 +363,8 @@ def main():
                 save_tractogram(initial_sft, rejected_sft_name)
             return
 
-        logging.debug('The file {} contains 0 streamlines after '.format(
-                      out_sft_name) + step + ' filtering')
+        logging.info('The file {} contains 0 streamlines after '.format(
+                     out_sft_name) + step + ' filtering')
         save_tractogram(new_sft, out_sft_name)
 
         if args.save_rejected:
@@ -414,9 +412,9 @@ def main():
 
     if len(new_sft.streamlines) == 0:
         if args.no_empty:
-            logging.debug("The file {} won't be written".format(
-                          out_sft_name) + "(0 streamlines after "
-                          + step + " filtering).")
+            logging.info("The file {} won't be written".format(
+                         out_sft_name) + "(0 streamlines after "
+                         + step + " filtering).")
 
             if args.verbose:
                 display_count(o_dict, args.indent, args.sort_keys)
@@ -426,8 +424,8 @@ def main():
                 save_tractogram(sft, rejected_sft_name)
             return
 
-        logging.debug('The file {} contains 0 streamlines after '.format(
-                      out_sft_name) + step + ' filtering')
+        logging.info('The file {} contains 0 streamlines after '.format(
+                     out_sft_name) + step + ' filtering')
         save_tractogram(new_sft, out_sft_name)
 
         if args.save_rejected:
@@ -487,9 +485,9 @@ def main():
 
     if len(new_sft.streamlines) == 0:
         if args.no_empty:
-            logging.debug("The file {} won't be written".format(
-                          out_sft_name) + "(0 streamlines after "
-                          + step + " filtering).")
+            logging.info("The file {} won't be written".format(
+                         out_sft_name) + "(0 streamlines after "
+                         + step + " filtering).")
 
             if args.verbose:
                 display_count(o_dict, args.indent, args.sort_keys)
@@ -499,8 +497,8 @@ def main():
                 save_tractogram(sft, rejected_sft_name)
             return
 
-        logging.debug('The file {} contains 0 streamlines after '.format(
-                      out_sft_name) + step + ' filtering')
+        logging.info('The file {} contains 0 streamlines after '.format(
+                     out_sft_name) + step + ' filtering')
         save_tractogram(new_sft, out_sft_name)
 
         if args.save_rejected:
@@ -539,9 +537,9 @@ def main():
 
     if len(new_sft.streamlines) == 0:
         if args.no_empty:
-            logging.debug("The file {} won't be written".format(
-                          out_sft_name) + "(0 streamlines after "
-                          + step + " filtering).")
+            logging.info("The file {} won't be written".format(
+                         out_sft_name) + "(0 streamlines after "
+                         + step + " filtering).")
 
             if args.verbose:
                 display_count(o_dict, args.indent, args.sort_keys)
@@ -551,11 +549,11 @@ def main():
                 save_tractogram(sft, rejected_sft_name)
             return
 
-        logging.debug('The file {} contains 0 streamlines after '.format(
-            out_sft_name) + step + ' filtering')
+        logging.info('The file {} contains 0 streamlines after '.format(
+                     out_sft_name) + step + ' filtering')
         save_tractogram(new_sft, out_sft_name)
 
-    if args.verbose:
+    if args.verbose == "INFO" or args.verbose == "DEBUG":
         display_count(o_dict, args.indent, args.sort_keys)
     if args.save_counts:
         save_count(o_dict, args.out_path, args.indent, args.sort_keys)

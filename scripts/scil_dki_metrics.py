@@ -146,11 +146,9 @@ def _build_arg_parser():
 
 
 def main():
-    logger = logging.getLogger("Compute_DKI_Metrics")
-    logger.setLevel(logging.INFO)
-
     parser = _build_arg_parser()
     args = parser.parse_args()
+    logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     if not args.not_all:
         args.dki_fa = args.dki_fa or 'dki_fa.nii.gz'
