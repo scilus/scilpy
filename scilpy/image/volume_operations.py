@@ -279,8 +279,8 @@ def compute_snr(dwi, bval, bvec, b0_thr, mask,
     mask = get_data_as_mask(mask, dtype=bool)
 
     if split_shells:
-        centroids, shell_indices = identify_shells(bval, threshold=40.0,
-                                                   roundCentroids=False,
+        centroids, shell_indices = identify_shells(bval, tol=40.0,
+                                                   round_centroids=False,
                                                    sort=False)
         bval = centroids[shell_indices]
 

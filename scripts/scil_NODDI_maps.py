@@ -20,13 +20,14 @@ import amico
 from dipy.io.gradients import read_bvals_bvecs
 import numpy as np
 
+from scilpy.io.gradients import fsl2mrtrix
 from scilpy.io.utils import (add_overwrite_arg,
                              add_processes_arg,
                              add_verbose_arg,
                              assert_inputs_exist,
                              assert_output_dirs_exist_and_empty,
                              redirect_stdout_c)
-from scilpy.gradients.bvec_bval_tools import fsl2mrtrix, identify_shells
+from scilpy.gradients.bvec_bval_tools import identify_shells
 
 EPILOG = """
 Reference:
@@ -118,7 +119,7 @@ def main():
     bvals, _ = read_bvals_bvecs(args.in_bval, args.in_bvec)
     shells_centroids, indices_shells = identify_shells(bvals,
                                                        args.b_thr,
-                                                       roundCentroids=True)
+                                                       round_centroids=True)
     np.savetxt(tmp_bval_filename, shells_centroids[indices_shells],
                newline=' ', fmt='%i')
     fsl2mrtrix(tmp_bval_filename, args.in_bvec, tmp_scheme_filename)
