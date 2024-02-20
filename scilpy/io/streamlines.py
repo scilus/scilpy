@@ -7,6 +7,7 @@ import tempfile
 
 from dipy.io.streamline import load_tractogram
 import nibabel as nib
+from dipy.io.utils import is_header_compatible
 from nibabel.streamlines.array_sequence import ArraySequence
 import numpy as np
 
@@ -115,6 +116,46 @@ def load_tractogram_with_reference(parser, args, filepath, arg_name=None):
         parser.error('{} is an unsupported file format'.format(filepath))
 
     return sft
+
+
+def verify_compatibility_with_reference_sft(ref_sft, files_to_verify,
+                                            parser, args):
+    """
+    Verifies the compatibility of a reference sft with a list of files.
+
+    Params
+    ------
+    ref_sft: StatefulTractogram
+        A tractogram to be used as reference.
+    files_to_verify: List[str]
+        List of files that should be compatible with the reference sft. Files
+        can be either other tractograms or nifti files (ex: masks).
+    parser: argument parser
+        Will raise an error if a file is not compatible.
+    args: Namespace
+        Should contain a args.reference if any file is a .tck, and possibly a
+        args.bbox_check (set to True by default).
+    """
+    save_ref = args.reference
+
+    for file in files_to_verify:
+        if file is not None:
+            _, ext = os.path.splitext(file)
+            if ext in ['.trk', '.tck', '.fib', '.vtk', '.dpy']:
+                # Cheating ref because it may send a lot of warning if loading
+                # many trk with ref (reference was maybe added only for some
+                # of these files)
+                if ext == '.trk':
+                    args.reference = None
+                else:
+                    args.reference = save_ref
+                mask = load_tractogram_with_reference(parser, args, file)
+            else:  # should be a nifti file.
+                mask = file
+            compatible = is_header_compatible(ref_sft, mask)
+            if not compatible:
+                parser.error("Reference tractogram incompatible with {}"
+                             .format(file))
 
 
 def load_dps_files_as_dps(parser, dps_files, sft, keys=None, overwrite=False):

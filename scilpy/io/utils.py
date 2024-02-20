@@ -20,7 +20,6 @@ from scipy.io import loadmat
 import six
 import importlib.metadata
 
-from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.gradients.bvec_bval_tools import DEFAULT_B0_THRESHOLD
 from scilpy.utils.filenames import split_name_with_nii
 
@@ -594,46 +593,6 @@ def assert_roi_radii_format(parser):
         parser.error('Wrong size for --roi_radii, can only be a scalar' +
                      'or an array of size (3,)')
     return roi_radii
-
-
-def verify_compatibility_with_reference_sft(ref_sft, files_to_verify,
-                                            parser, args):
-    """
-    Verifies the compatibility of a reference sft with a list of files.
-
-    Params
-    ------
-    ref_sft: StatefulTractogram
-        A tractogram to be used as reference.
-    files_to_verify: List[str]
-        List of files that should be compatible with the reference sft. Files
-        can be either other tractograms or nifti files (ex: masks).
-    parser: argument parser
-        Will raise an error if a file is not compatible.
-    args: Namespace
-        Should contain a args.reference if any file is a .tck, and possibly a
-        args.bbox_check (set to True by default).
-    """
-    save_ref = args.reference
-
-    for file in files_to_verify:
-        if file is not None:
-            _, ext = os.path.splitext(file)
-            if ext in ['.trk', '.tck', '.fib', '.vtk', '.dpy']:
-                # Cheating ref because it may send a lot of warning if loading
-                # many trk with ref (reference was maybe added only for some
-                # of these files)
-                if ext == '.trk':
-                    args.reference = None
-                else:
-                    args.reference = save_ref
-                mask = load_tractogram_with_reference(parser, args, file)
-            else:  # should be a nifti file.
-                mask = file
-            compatible = is_header_compatible(ref_sft, mask)
-            if not compatible:
-                parser.error("Reference tractogram incompatible with {}"
-                             .format(file))
 
 
 def is_header_compatible_multiple_files(parser, list_files,
