@@ -63,6 +63,7 @@ def _build_arg_parser():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
+    logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     assert_inputs_exist(parser, args.in_tractogram)
     assert_outputs_exist(parser, args, args.out_tractogram,
@@ -81,11 +82,11 @@ def main():
 
     if len(ids_c) == 0:
         if args.no_empty:
-            logging.debug("The file {} won't be written "
-                          "(0 streamline).".format(args.out_tractogram))
+            logging.info("The file {} won't be written "
+                         "(0 streamline).".format(args.out_tractogram))
             return
 
-        logging.debug('The file {} contains 0 streamline.'.format(
+        logging.info('The file {} contains 0 streamline.'.format(
             args.out_tractogram))
 
     save_tractogram(sft[ids_c], args.out_tractogram)
@@ -100,8 +101,8 @@ def main():
     if args.remaining_tractogram:
         if len(ids_l) == 0:
             if args.no_empty:
-                logging.debug("The file {} won't be written (0 streamline"
-                              ").".format(args.remaining_tractogram))
+                logging.info("The file {} won't be written (0 streamline"
+                             ").".format(args.remaining_tractogram))
                 return
 
             logging.warning('No remaining streamlines.')

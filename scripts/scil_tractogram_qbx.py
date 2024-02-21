@@ -56,15 +56,13 @@ def _build_arg_parser():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
+    logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     assert_inputs_exist(parser, args.in_tractogram)
     assert_outputs_exist(parser, args, [], optional=args.out_centroids)
     assert_output_dirs_exist_and_empty(parser, args,
                                        args.out_clusters_dir,
                                        create_dir=True)
-
-    if args.verbose:
-        logging.getLogger().setLevel(logging.INFO)
 
     sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
     streamlines = sft.streamlines

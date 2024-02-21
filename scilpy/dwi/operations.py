@@ -139,7 +139,7 @@ def compute_dwi_attenuation(dwi_weights: np.ndarray, b0: np.ndarray):
     return dwi_attenuation
 
 
-def detect_volume_outliers(data, bvecs, bvals, std_scale, verbose,
+def detect_volume_outliers(data, bvecs, bvals, std_scale,
                            b0_thr=DEFAULT_B0_THRESHOLD):
     """
     Parameters
@@ -153,8 +153,6 @@ def detect_volume_outliers(data, bvecs, bvals, std_scale, verbose,
     std_scale: float
         How many deviation from the mean are required to be considered an
         outlier.
-    verbose: bool
-        If True, print even more stuff.
     b0_thr: float
         Value below which b-values are considered as b0.
     """
@@ -195,26 +193,26 @@ def detect_volume_outliers(data, bvecs, bvals, std_scale, verbose,
         outliers_corr = np.argwhere(
             results_dict[key][:, 2] < avg_corr - (std_scale * std_corr))
 
-        print('Results for shell {} with {} directions:'
-              .format(key, len(results_dict[key])))
-        print('AVG and STD of angles: {} +/- {}'
-              .format(avg_angle, std_angle))
-        print('AVG and STD of correlations: {} +/- {}'
-              .format(avg_corr, std_corr))
+        logging.info('Results for shell {} with {} directions:'
+                     .format(key, len(results_dict[key])))
+        logging.info('AVG and STD of angles: {} +/- {}'
+                     .format(avg_angle, std_angle))
+        logging.info('AVG and STD of correlations: {} +/- {}'
+                     .format(avg_corr, std_corr))
 
         if len(outliers_angle) or len(outliers_corr):
-            print('Possible outliers ({} STD below or above average):'
+            logging.info('Possible outliers ({} STD below or above average):'
                   .format(std_scale))
-            print('Outliers based on angle [position (4D), value]')
+            logging.info('Outliers based on angle [position (4D), value]')
             for i in outliers_angle:
-                print(results_dict[key][i, :][0][0:2])
-            print('Outliers based on correlation [position (4D), value]')
+                logging.info(results_dict[key][i, :][0][0:2])
+            logging.info('Outliers based on correlation [position (4D), ' +
+                         'value]')
             for i in outliers_corr:
-                print(results_dict[key][i, :][0][0::2])
+                logging.info(results_dict[key][i, :][0][0::2])
         else:
-            print('No outliers detected.')
+            logging.info('No outliers detected.')
 
-        if verbose:
-            print('Shell with b-value {}'.format(key))
-            pprint.pprint(results_dict[key])
+        logging.debug('Shell with b-value {}'.format(key))
+        logging.debug("\n" + pprint.pformat(results_dict[key]))
         print()

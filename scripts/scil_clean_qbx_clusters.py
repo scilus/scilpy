@@ -149,6 +149,7 @@ def main():
 
     parser = _build_arg_parser()
     args = parser.parse_args()
+    logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     assert_inputs_exist(parser, args.in_bundles)
     assert_outputs_exist(parser, args, [args.out_accepted, args.out_rejected])
@@ -161,9 +162,6 @@ def main():
         assert_output_dirs_exist_and_empty(parser, args,
                                            args.out_rejected_dir,
                                            create_dir=True)
-
-    if args.verbose:
-        logging.getLogger().setLevel(logging.INFO)
 
     if args.min_cluster_size < 1:
         parser.error('Minimum cluster size must be at least 1.')

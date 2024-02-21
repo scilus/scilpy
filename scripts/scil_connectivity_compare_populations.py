@@ -92,13 +92,11 @@ def _build_arg_parser():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
+    logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     assert_inputs_exist(parser, args.in_g1+args.in_g2,
                         args.filtering_mask)
     assert_outputs_exist(parser, args, args.out_pval_matrix)
-
-    if args.verbose:
-        logging.getLogger().setLevel(logging.DEBUG)
 
     if args.filtering_mask:
         filtering_mask = load_matrix_in_any_format(args.filtering_mask)
@@ -131,7 +129,7 @@ def main():
         p_thresh = float(args.p_threshold[0])
         matrix_shape = matrices_g1.shape[0:2]
         masked_pval_matrix = np.zeros(matrix_shape)
-        logging.debug('Threshold the p-values at {}'.format(p_thresh))
+        logging.info('Threshold the p-values at {}'.format(p_thresh))
         masked_pval_matrix[matrix_pval < p_thresh] = 1
         masked_pval_matrix[matrix_pval < 0] = 0
 

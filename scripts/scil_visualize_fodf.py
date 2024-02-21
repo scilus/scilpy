@@ -14,6 +14,7 @@ mask non-zero values are set to full transparency in the saved scene.
 """
 
 import argparse
+import logging
 
 import nibabel as nib
 import numpy as np
@@ -265,6 +266,7 @@ def main():
     data = _get_data_from_inputs(args)
     sph = get_sphere(args.sphere)
     sh_order, full_basis = get_sh_order_and_fullness(data['fodf'].shape[-1])
+    logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     actors = []
 

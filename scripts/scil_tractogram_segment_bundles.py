@@ -73,9 +73,6 @@ def _build_arg_parser():
 
     p.add_argument('--out_dir', default='voting_results',
                    help='Path for the output directory [%(default)s].')
-    p.add_argument('--log_level', default='INFO',
-                   choices=['DEBUG', 'INFO', 'WARNING', 'ERROR'],
-                   help='Log level of the logging class.')
     p.add_argument('--minimal_vote_ratio', type=float, default=0.5,
                    help='Streamlines will only be considered for saving if\n'
                         'recognized often enough [%(default)s].')
@@ -96,6 +93,8 @@ def _build_arg_parser():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
+    logging.getLogger().setLevel(logging.getLevelName(args.verbose))
+
     args.in_models_directories = [os.path.join(args.in_directory, x)
                                   for x in os.listdir(args.in_directory)
                                   if os.path.isdir(os.path.join(
@@ -122,9 +121,8 @@ def main():
         fmt='%(asctime)s, %(name)s %(levelname)s %(message)s',
         datefmt='%H:%M:%S')
     file_handler.setFormatter(formatter)
-    logging.getLogger().setLevel(args.log_level)
     logging.getLogger().addHandler(file_handler)
-    coloredlogs.install(level=args.log_level)
+    coloredlogs.install(level=logging.getLevelName(args.verbose))
 
     transfo = load_matrix_in_any_format(args.in_transfo)
     if args.inverse:
