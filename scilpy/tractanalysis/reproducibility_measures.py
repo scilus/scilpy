@@ -1,17 +1,29 @@
 # -*- coding: utf-8 -*-
 
+from concurrent.futures import ProcessPoolExecutor, as_completed
+from copy import deepcopy
+import logging
+import warnings
 
+from dipy.data import get_sphere
+from dipy.reconst.shm import sh_to_sf_matrix
 from dipy.segment.clustering import qbx_and_merge
+from dipy.segment.fss import FastStreamlineSearch
 from dipy.tracking.distances import bundles_distances_mdf
 import numpy as np
 from numpy.random import RandomState
 from scipy.spatial import cKDTree
 from sklearn.metrics import cohen_kappa_score
-from sklearn.neighbors import KDTree
+from tqdm import tqdm
 
+from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
+from scilpy.tractanalysis.todi import TrackOrientationDensityImaging
+from scilpy.tractograms.streamline_operations import generate_matched_points
 from scilpy.tractograms.tractogram_operations import (difference_robust,
                                                       intersection_robust,
                                                       union_robust)
+from scilpy.image.volume_operations import (normalize_metric, merge_metrics)
+from scilpy.image.volume_math import correlation
 
 
 def binary_classification(segmentation_indices,
@@ -104,9 +116,9 @@ def approximate_surface_node(roi):
     int: the number of surface voxels
     """
     ind = np.argwhere(roi > 0)
-    tree = KDTree(ind)
-    count = np.sum(7 - tree.query_radius(ind, r=1.0,
-                                         count_only=True))
+    tree = cKDTree(ind)
+    neighbors = np.sum(7 - tree.query_radius(ind, r=1.0))
+    count = [len(neighbor) for neighbor in neighbors]
 
     return count
 
@@ -382,3 +394,248 @@ def compute_dice_streamlines(bundle_1, bundle_2):
         dice = np.nan
 
     return dice, streamlines_intersect, streamlines_union_robust
+
+
+def _compute_difference_for_voxel(chunk_indices,
+                                  skip_streamlines_distance=False):
+    """
+    Compute the difference between two sets of streamlines for a given voxel.
+    This function uses global variable to avoid duplicating the data for each
+    chunk of voxels.
+
+    Use the function tractogram_pairwise_comparison() as an entry point.
+    To differentiate empty voxels from voxels with no data, the function
+    returns NaN if no data is found.
+
+    Parameters
+    ----------
+    chunk_indices: list
+        List of indices of the voxel to process.
+    skip_streamlines_distance: bool
+        If true, skip the computation of the distance between streamlines.
+
+    Returns
+    -------
+    results: list
+        List of the computed differences in the same order as the input voxels.
+    """
+    global sft_1, sft_2, matched_points_1, matched_points_2, tree_1, tree_2, \
+        sh_data_1, sh_data_2
+    results = []
+    for vox_ind in chunk_indices:
+        vox_ind = tuple(vox_ind)
+
+        global B
+        has_data = sh_data_1[vox_ind].any() and sh_data_2[vox_ind].any()
+        if has_data:
+            sf_1 = np.dot(sh_data_1[vox_ind], B)
+            sf_2 = np.dot(sh_data_2[vox_ind], B)
+            acc = np.corrcoef(sf_1, sf_2)[0, 1]
+        else:
+            acc = np.nan
+
+        if skip_streamlines_distance:
+            results.append([np.nan, acc])
+            continue
+
+        # Get the streamlines in the neighborhood (i.e., 1.5mm away)
+        pts_ind_1 = tree_1.query_ball_point(vox_ind, 1.5)
+        if not pts_ind_1:
+            results.append([np.nan, acc])
+            continue
+        strs_ind_1 = np.unique(matched_points_1[pts_ind_1])
+        neighb_streamlines_1 = sft_1.streamlines[strs_ind_1]
+
+        # Get the streamlines in the neighborhood (i.e., 1.5mm away)
+        pts_ind_2 = tree_2.query_ball_point(vox_ind, 1.5)
+        if not pts_ind_2:
+            results.append([np.nan, acc])
+            continue
+        strs_ind_2 = np.unique(matched_points_2[pts_ind_2])
+        neighb_streamlines_2 = sft_2.streamlines[strs_ind_2]
+
+        # Using neighb_streamlines (all streamlines in the neighborhood of our
+        # voxel), we can compute the distance between the two sets of
+        # streamlines using FSS (FastStreamlineSearch).
+        with warnings.catch_warnings(record=True) as _:
+            fss = FastStreamlineSearch(neighb_streamlines_1, 10, resampling=12)
+            dist_mat = fss.radius_search(neighb_streamlines_2, 10)
+            sparse_dist_mat = np.abs(dist_mat.tocsr()).toarray()
+            sparse_ma_dist_mat = np.ma.masked_where(sparse_dist_mat < 1e-3,
+                                                    sparse_dist_mat)
+            sparse_ma_dist_vec = np.squeeze(np.min(sparse_ma_dist_mat,
+                                                   axis=0))
+
+            # dists will represent the average distance between the two sets of
+            # streamlines in the neighborhood of the voxel.
+            dist = np.average(sparse_ma_dist_vec)
+            results.append([dist, acc])
+
+    return results
+
+
+def _compare_tractogram_wrapper(mask, nbr_cpu, skip_streamlines_distance):
+    """
+    Wrapper for the comparison of two tractograms. This function uses
+    multiprocessing to compute the difference between two sets of streamlines
+    for each voxel.
+
+    This function simply calls the function _compute_difference_for_voxel(),
+    which expect chunks of indices to process and use global variables to avoid
+    duplicating the data for each chunk of voxels.
+
+    Use the function tractogram_pairwise_comparison() as an entry point.
+
+    Parameters
+    ----------
+    mask: np.ndarray
+        Mask of the data to compare.
+    nbr_cpu: int
+        Number of CPU to use.
+    skip_streamlines_distance: bool
+        If true, skip the computation of the distance between streamlines.
+
+    Returns
+    -------
+    Tuple of np.ndarray
+        diff_data: np.ndarray
+            Array containing the computed differences (mm).
+        acc_data: np.ndarray
+            Array containing the computed angular correlation.
+    """
+    dimensions = mask.shape
+
+    # Initialize multiprocessing
+    indices = np.argwhere(mask > 0)
+    diff_data = np.zeros(dimensions)
+    diff_data[:] = np.nan
+    acc_data = np.zeros(dimensions)
+    acc_data[:] = np.nan
+
+    def chunked_indices(indices, chunk_size=1000):
+        """Yield successive chunk_size chunks from indices."""
+        for i in range(0, len(indices), chunk_size):
+            yield indices[i:i + chunk_size]
+
+    # Initialize tqdm progress bar
+    progress_bar = tqdm(total=len(indices))
+
+    # Create chunks of indices
+    np.random.shuffle(indices)
+    index_chunks = list(chunked_indices(indices))
+
+    with ProcessPoolExecutor(max_workers=nbr_cpu) as executor:
+        futures = {executor.submit(
+            _compute_difference_for_voxel, chunk,
+            skip_streamlines_distance): chunk for chunk in index_chunks}
+
+        for future in as_completed(futures):
+            chunk = futures[future]
+            try:
+                results = future.result()
+            except Exception as exc:
+                print(f'Generated an exception: {exc}')
+            else:
+                results = np.array(results)
+                diff_data[tuple(chunk.T)] = results[:, 0]
+                acc_data[tuple(chunk.T)] = results[:, 1]
+
+            # Update tqdm progress bar
+            progress_bar.update(len(chunk))
+
+    return diff_data, acc_data
+
+
+def tractogram_pairwise_comparison(sft_one, sft_two, mask, nbr_cpu=1,
+                                   skip_streamlines_distance=True):
+    """
+    Compute the difference between two sets of streamlines for each voxel in
+    the mask. This function uses multiprocessing to compute the difference
+    between two sets of streamlines for each voxel.
+
+    Parameters
+    ----------
+    sft_one: StatefulTractogram
+        First tractogram to compare.
+    sft_two: StatefulTractogram
+        Second tractogram to compare.
+    mask: np.ndarray
+        Mask of the data to compare (optional).
+    nbr_cpu: int
+        Number of CPU to use (default: 1).
+    skip_streamlines_distance: bool
+        If true, skip the computation of the distance between streamlines.
+        (default: True)
+
+    Returns
+    -------
+    List of np.ndarray
+        acc_norm: Angular correlation coefficient.
+        corr_norm: Correlation coefficient of density maps.
+        diff_norm: Voxelwise distance between sets of streamlines.
+        heatmap: Merged heatmap of the three metrics using harmonic mean.
+    """
+    global sft_1, sft_2
+    sft_1, sft_2 = sft_one, sft_two
+
+    sft_1.to_vox()
+    sft_2.to_vox()
+    sft_1.streamlines._data = sft_1.streamlines._data.astype(np.float16)
+    sft_2.streamlines._data = sft_2.streamlines._data.astype(np.float16)
+    dimensions = tuple(sft_1.dimensions)
+
+    global matched_points_1, matched_points_2
+    matched_points_1 = generate_matched_points(sft_1)
+    matched_points_2 = generate_matched_points(sft_2)
+
+    logging.info('Computing KDTree...')
+    global tree_1, tree_2
+    tree_1 = cKDTree(sft_1.streamlines._data)
+    tree_2 = cKDTree(sft_2.streamlines._data)
+
+    # Limits computation to mask AND streamlines (using density)
+    if mask is None:
+        mask = np.ones(dimensions)
+
+    logging.info('Computing density maps...')
+    density_1 = compute_tract_counts_map(sft_1.streamlines,
+                                         dimensions).astype(float)
+    density_2 = compute_tract_counts_map(sft_2.streamlines,
+                                         dimensions).astype(float)
+    mask = density_1 * density_2 * mask
+    mask[mask > 0] = 1
+
+    logging.info('Computing correlation map...')
+    corr_data = correlation([density_1, density_2], None) * mask
+    corr_data[mask == 0] = np.nan
+
+    logging.info('Computing TODI from tractogram #1...')
+    global sh_data_1, sh_data_2
+    sft_1.to_corner()
+    todi_obj = TrackOrientationDensityImaging(dimensions, 'repulsion724')
+    todi_obj.compute_todi(deepcopy(sft_1.streamlines), length_weights=True)
+    todi_obj.mask_todi(mask)
+    sh_data_1 = todi_obj.get_sh('descoteaux07', 8)
+    sh_data_1 = todi_obj.reshape_to_3d(sh_data_1)
+    sft_1.to_center()
+
+    logging.info('Computing TODI from tractogram #2...')
+    sft_2.to_corner()
+    todi_obj = TrackOrientationDensityImaging(dimensions, 'repulsion724')
+    todi_obj.compute_todi(deepcopy(sft_2.streamlines), length_weights=True)
+    todi_obj.mask_todi(mask)
+    sh_data_2 = todi_obj.get_sh('descoteaux07', 8)
+    sh_data_2 = todi_obj.reshape_to_3d(sh_data_2)
+    sft_2.to_center()
+
+    global B
+    B, _ = sh_to_sf_matrix(get_sphere('repulsion724'), 8, 'descoteaux07')
+
+    diff_data, acc_data = _compare_tractogram_wrapper(mask, nbr_cpu,
+                                                      skip_streamlines_distance)
+
+    # Normalize metrics and merge into a single heatmap
+    diff_data_norm = normalize_metric(diff_data, reverse=True)
+    heatmap = merge_metrics(acc_data, corr_data, diff_data_norm)
+
+    return acc_data, corr_data, diff_data_norm, heatmap

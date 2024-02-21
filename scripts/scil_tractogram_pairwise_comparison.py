@@ -38,7 +38,7 @@ from scilpy.io.utils import (add_overwrite_arg, add_reference_arg,
                              is_header_compatible_multiple_files,
                              load_tractogram_with_reference,
                              validate_nbr_processes)
-from scilpy.tractograms.tractogram_operations import tractogram_pairwise_comparison
+from scilpy.tractanalysis.reproducibility_measures import tractogram_pairwise_comparison
 
 
 def _build_arg_parser():
@@ -64,7 +64,7 @@ def _build_arg_parser():
                    help='Optional input mask.')
     p.add_argument('--skip_streamlines_distance', action='store_true',
                    help='Skip computation of the spatial distance between '
-                        'streamlines.')
+                        'streamlines. Slowest part of the computation.')
     add_processes_arg(p)
     add_reference_arg(p)
     add_verbose_arg(p)
@@ -77,8 +77,7 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    if args.verbose:
-        logging.basicConfig(level=logging.INFO)
+    logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     assert_inputs_exist(parser, [args.in_tractogram_1, args.in_tractogram_2],
                         [args.in_mask, args.reference])

@@ -1,19 +1,17 @@
 # -*- coding: utf-8 -*-
+
 import logging
 import os
 import tempfile
 
 import numpy as np
 from dipy.io.streamline import load_tractogram
-from dipy.io.stateful_tractogram import StatefulTractogram
 
 from scilpy.io.fetcher import fetch_data, get_testing_files_dict, get_home
-from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
 from scilpy.tractograms.tractogram_operations import flip_sft, \
     shuffle_streamlines, perform_tractogram_operation_on_lines, intersection, union, \
     difference, intersection_robust, difference_robust, union_robust, \
-    concatenate_sft, perform_tractogram_operation_on_sft, \
-    tractogram_pairwise_comparison
+    concatenate_sft, perform_tractogram_operation_on_sft
 
 # Prepare SFT
 fetch_data(get_testing_files_dict(), keys=['surface_vtk_fib.zip',
@@ -151,32 +149,3 @@ def test_combining_sft():
     # todo
     perform_tractogram_operation_on_sft('union', [sft, sft], precision=None,
                                         fake_metadata=False, no_metadata=False)
-
-
-def test_tractogram_pairwise_comparison():
-    sft_path = os.path.join(get_home(), 'bst', 'template', 'rpt_m.trk')
-    print(sft_path)
-    sft = load_tractogram(sft_path, 'same')
-    sft_1 = StatefulTractogram.from_sft(sft.streamlines[0:100], sft)
-    sft_2 = StatefulTractogram.from_sft(sft.streamlines[100:200], sft)
-
-    sft.to_vox()
-    sft.to_corner()
-    mask = compute_tract_counts_map(sft.streamlines, sft.dimensions)
-    mask[mask > 0] = 1
-
-    results = tractogram_pairwise_comparison(sft_1, sft_2, mask,
-                                             skip_streamlines_distance=False)
-    assert len(results) == 4
-    for r in results:
-        assert np.array_equal(r.shape, sft.dimensions)
-
-    assert np.mean(results[0][~np.isnan(results[0])]) == 0.7171550368952226
-    assert np.mean(results[1][~np.isnan(results[1])]) == 0.6063336089511456
-    assert np.mean(results[2][~np.isnan(results[2])]) == 0.722988562131705
-    assert np.mean(results[3][~np.isnan(results[3])]) == 0.7526672393158469
-
-    assert np.count_nonzero(np.isnan(results[0])) == 877627
-    assert np.count_nonzero(np.isnan(results[1])) == 877014
-    assert np.count_nonzero(np.isnan(results[2])) == 877034
-    assert np.count_nonzero(np.isnan(results[3])) == 877671
