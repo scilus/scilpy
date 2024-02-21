@@ -84,6 +84,7 @@ def _get_point_on_line(first_point, second_point, vox_lower_corner):
 
     return first_point + ray * (t0 + t1) / 2.
 
+
 def filter_streamlines_by_length(sft, min_length=0., max_length=np.inf):
     """
     Filter streamlines using minimum and max length.
@@ -392,8 +393,8 @@ def smooth_line_spline(streamline, smoothing_parameter, nb_ctrl_points):
 
 def generate_matched_points(sft):
     """
-    Generate an array where each element i is set to the index of the
-    streamline that contributes the ith point.
+    Generates an array where each element i is set to the index of the
+    streamline to which it belongs
 
     Parameters:
     -----------
@@ -404,7 +405,9 @@ def generate_matched_points(sft):
     --------
     matched_points : ndarray
         An array where each element is set to the index of the streamline
-        that contributes that point.
+        to which it belongs
+
+
     """
     total_points = sft.streamlines._data.shape[0]
     offsets = sft.streamlines._offsets

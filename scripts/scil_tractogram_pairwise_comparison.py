@@ -80,8 +80,8 @@ def main():
     if args.verbose:
         logging.basicConfig(level=logging.INFO)
 
-    assert_inputs_exist(parser, [args.in_tractogram_1,
-                                 args.in_tractogram_2])
+    assert_inputs_exist(parser, [args.in_tractogram_1, args.in_tractogram_2],
+                        [args.in_mask, args.reference])
     to_verify = [args.in_tractogram_1, args.in_tractogram_2]
     if args.in_mask:
         to_verify.append(args.in_mask)
@@ -102,8 +102,8 @@ def main():
     assert_output_dirs_exist_and_empty(parser, args, [], optional=args.out_dir)
     assert_outputs_exist(parser, args, [out_corr_filename,
                                         out_acc_filename,
-                                        out_diff_filename,
-                                        out_merge_filename])
+                                        out_merge_filename],
+                         out_diff_filename)
     nbr_cpu = validate_nbr_processes(parser, args)
 
     logging.info('Loading tractograms...')
@@ -118,7 +118,8 @@ def main():
     logging.info('Saving results...')
     nib.save(nib.Nifti1Image(acc_data, sft_1.affine), out_acc_filename)
     nib.save(nib.Nifti1Image(corr_data, sft_1.affine), out_corr_filename)
-    nib.save(nib.Nifti1Image(diff_data, sft_1.affine), out_diff_filename)
+    if not args.skip_streamlines_distance:
+        nib.save(nib.Nifti1Image(diff_data, sft_1.affine), out_diff_filename)
     nib.save(nib.Nifti1Image(heatmap, sft_1.affine), out_merge_filename)
 
 

@@ -877,7 +877,7 @@ def _compute_difference_for_voxel(chunk_indices,
     Returns
     -------
     results: list
-        List of the computed differences in the same order as the input voxel.
+        List of the computed differences in the same order as the input voxels.
     """
     global sft_1, sft_2, matched_points_1, matched_points_2, tree_1, tree_2, \
         sh_data_1, sh_data_2
@@ -940,7 +940,7 @@ def _compare_tractogram_wrapper(mask, nbr_cpu, skip_streamlines_distance):
     multiprocessing to compute the difference between two sets of streamlines
     for each voxel.
 
-    This function simple calls the function _compute_difference_for_voxel(),
+    This function simply calls the function _compute_difference_for_voxel(),
     which expect chunks of indices to process and use global variables to avoid
     duplicating the data for each chunk of voxels.
 
@@ -1069,7 +1069,7 @@ def tractogram_pairwise_comparison(sft_one, sft_two, mask, nbr_cpu=1,
     corr_data = correlation([density_1, density_2], None) * mask
     corr_data[mask == 0] = np.nan
 
-    logging.info('Computing TODI #1...')
+    logging.info('Computing TODI from tractogram #1...')
     global sh_data_1, sh_data_2
     sft_1.to_corner()
     todi_obj = TrackOrientationDensityImaging(dimensions, 'repulsion724')
@@ -1079,7 +1079,7 @@ def tractogram_pairwise_comparison(sft_one, sft_two, mask, nbr_cpu=1,
     sh_data_1 = todi_obj.reshape_to_3d(sh_data_1)
     sft_1.to_center()
 
-    logging.info('Computing TODI #2...')
+    logging.info('Computing TODI from tractogram #2...')
     sft_2.to_corner()
     todi_obj = TrackOrientationDensityImaging(dimensions, 'repulsion724')
     todi_obj.compute_todi(deepcopy(sft_2.streamlines), length_weights=True)
