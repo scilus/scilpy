@@ -227,13 +227,13 @@ def main():
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
-    outut_dir = os.path.join(args.out_dir, 'ihMT_native_maps')
+    output_dir = os.path.join(args.out_dir, 'ihMT_native_maps')
     if args.extended:
         extended_dir = os.path.join(args.out_dir, 'Complementary_maps')
         assert_output_dirs_exist_and_empty(parser, args, extended_dir,
-                                           outut_dir, create_dir=True)
+                                           output_dir, create_dir=True)
     else:
-        assert_output_dirs_exist_and_empty(parser, args, outut_dir,
+        assert_output_dirs_exist_and_empty(parser, args, output_dir,
                                            create_dir=True)
 
     if args.out_prefix:
@@ -427,7 +427,7 @@ def main():
     for img_to_save, name in zip(img_data, img_name):
         nib.save(nib.Nifti1Image(img_to_save.astype(np.float32),
                                  affine),
-                 os.path.join(outut_dir, name + '.nii.gz'))
+                 os.path.join(output_dir, name + '.nii.gz'))
 
 
 if __name__ == '__main__':
