@@ -17,7 +17,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_synthesize_b0.py', '--help')
+    ret = script_runner.run('scil_volume_b0_synthesis.py', '--help')
     assert ret.success
 
 
@@ -40,7 +40,7 @@ def test_synthesis(script_runner):
     nib.save(nib.Nifti1Image(b0_data.astype(np.uint8), b0_img.affine),
              'b0_mask.nii.gz')
 
-    ret = script_runner.run('scil_synthesize_b0.py',
+    ret = script_runner.run('scil_volume_b0_synthesis.py',
                             in_t1, 't1_mask.nii.gz',
                             in_b0, 'b0_mask.nii.gz',
                             'b0_synthesized.nii.gz', '-v')
