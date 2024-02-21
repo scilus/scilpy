@@ -18,7 +18,7 @@ def apply_bias_field(dwi_data, bias_field_data, mask_data):
     dwi_data: np.ndarray
         The 4D dwi data.
     bias_field_data: np.ndarray
-        The 3D bias field.
+        The 3D bias field. Typically comes from ANTS'S N4BiasFieldCorrection.
     mask_data: np.ndarray
         The mask where to apply the bias field.
 
@@ -94,12 +94,12 @@ def _rescale_dwi(in_data, bc_data):
 
     chunk = np.arange(0, len(in_data), 100000)
     chunk = np.append(chunk, len(in_data))
-    for i in range(len(chunk)-1):
-        nz_bc_data = bc_data[chunk[i]:chunk[i+1]]
+    for i in range(len(chunk) - 1):
+        nz_bc_data = bc_data[chunk[i]:chunk[i + 1]]
         rescale_func = np.vectorize(_rescale_intensity, otypes=[np.float32])
 
         rescaled_data = rescale_func(nz_bc_data, slope, in_max, bc_max)
-        bc_data[chunk[i]:chunk[i+1]] = rescaled_data
+        bc_data[chunk[i]:chunk[i + 1]] = rescaled_data
 
     return bc_data
 
@@ -119,22 +119,27 @@ def compute_dwi_attenuation(dwi_weights: np.ndarray, b0: np.ndarray):
     dwi_attenuation : np.ndarray
         Signal attenuation (Diffusion weights normalized by the B0).
     """
+    # Avoid division by 0. Remember coordinates where the b0 was 0. We will set
+    # those voxels to 0 in the final result.
+    zeros_mask = b0 == 0
+
     b0 = b0[..., None]  # Easier to work if it is a 4D array.
 
-    # Make sure that, in every voxels, weights are lower in the b0. Should
-    # always be the case, but with the noise we never know!
+    # Make sure that, in every voxel, weights are lower in the dwi than in the
+    # b0. Should always be the case, but with the noise we never know!
     erroneous_voxels = np.any(dwi_weights > b0, axis=3)
     nb_erroneous_voxels = np.sum(erroneous_voxels)
     if nb_erroneous_voxels != 0:
         logging.info("# of voxels where `dwi_signal > b0` in any direction: "
-                     "{}".format(nb_erroneous_voxels))
+                     "{}. They were set to the b0 value to allow computing "
+                     "signal attenuation."
+                     .format(nb_erroneous_voxels))
         dwi_weights = np.minimum(dwi_weights, b0)
 
     # Compute attenuation
+    b0[zeros_mask] = 1e-6
     dwi_attenuation = dwi_weights / b0
-
-    # Make sure we didn't divide by 0.
-    dwi_attenuation[np.logical_not(np.isfinite(dwi_attenuation))] = 0.
+    dwi_attenuation *= ~zeros_mask[:, :, :, None]
 
     return dwi_attenuation
 
@@ -202,7 +207,7 @@ def detect_volume_outliers(data, bvecs, bvals, std_scale,
 
         if len(outliers_angle) or len(outliers_corr):
             logging.info('Possible outliers ({} STD below or above average):'
-                  .format(std_scale))
+                         .format(std_scale))
             logging.info('Outliers based on angle [position (4D), value]')
             for i in outliers_angle:
                 logging.info(results_dict[key][i, :][0][0:2])
