@@ -32,10 +32,10 @@ def verify_normality(data, alpha=0.05):
     # First, we verify if sample pass Shapiro-Wilk test
     W, p_value = scipy.stats.shapiro(data)
     if p_value < alpha and len(data) < 30:
-        logging.debug('The data sample can not be considered normal')
+        logging.info('The data sample can not be considered normal')
         normality = False
     else:
-        logging.debug('The data sample pass the normality assumption.')
+        logging.info('The data sample pass the normality assumption.')
         normality = True
     return normality, p_value
 
@@ -76,12 +76,12 @@ def verify_homoscedasticity(data_by_group, normality=False, alpha=0.05):
     else:
         test = 'Levene'
         W, p_value = scipy.stats.levene(*data_by_group)
-    logging.debug('Test name: {}'.format(test))
+    logging.info('Test name: {}'.format(test))
     if p_value < alpha and mean_nb < 30:
-        logging.debug('The sample didnt pass the equal variance assumption')
+        logging.info('The sample didnt pass the equal variance assumption')
         homoscedasticity = False
     else:
-        logging.debug('The sample pass the equal variance assumption')
+        logging.info('The sample pass the equal variance assumption')
         homoscedasticity = True
 
     return test, homoscedasticity, p_value
@@ -145,12 +145,12 @@ def verify_group_difference(data_by_group, normality=False,
             test = 'Kruskalwallis'
             T, p_value = scipy.stats.kruskal(*data_by_group)
 
-    logging.debug('Test name: {}'.format(test))
+    logging.info('Test name: {}'.format(test))
     if p_value < alpha:
-        logging.debug('There is a difference between groups')
+        logging.info('There is a difference between groups')
         difference = True
     else:
-        logging.debug('We are not able to detect difference between the groups.')
+        logging.info('We are not able to detect difference between the groups.')
         difference = False
 
     return test, difference, p_value
@@ -191,9 +191,9 @@ def verify_post_hoc(data_by_group, groups_list, test,
     test : string
         Name of the test done to verify group difference
     """
-    logging.debug('We need to do a post-hoc analysis since '
-                  'there is a difference')
-    logging.debug('Post-hoc: {} pairwise'.format(test))
+    logging.info('We need to do a post-hoc analysis since '
+                 'there is a difference')
+    logging.info('Post-hoc: {} pairwise'.format(test))
     differences = []
     nb_group = len(groups_list)
 
@@ -214,7 +214,7 @@ def verify_post_hoc(data_by_group, groups_list, test,
                 data_by_group[x], data_by_group[y])
         differences.append((groups_list[x], groups_list[y],
                             p_value < alpha, p_value))
-    logging.debug('Result:')
-    logging.debug(differences)
+    logging.info('Result:')
+    logging.info(differences)
 
     return test, differences

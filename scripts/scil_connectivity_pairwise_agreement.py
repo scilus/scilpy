@@ -13,6 +13,7 @@ Formerly: scil_evaluate_connectivity_pairwaise_agreement_measures.py
 import argparse
 import itertools
 import json
+import logging
 
 import numpy as np
 
@@ -50,6 +51,7 @@ def _build_arg_parser():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
+    logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     assert_inputs_exist(parser, args.in_matrices)
     assert_outputs_exist(parser, args, args.out_json)

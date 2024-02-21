@@ -26,6 +26,7 @@ Formerly: scil_compute_mean_fixel_obe_metric_from_bundles.py
 """
 
 import argparse
+import logging
 
 import nibabel as nib
 import numpy as np
@@ -70,6 +71,7 @@ def _build_arg_parser():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
+    logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     assert_inputs_exist(parser, [args.in_bundle,
                                  args.in_bingham,

@@ -42,7 +42,6 @@ import logging
 import os
 from copy import deepcopy
 
-from dipy.io.stateful_tractogram import set_sft_logger_level
 from dipy.io.streamline import save_tractogram
 from dipy.io.utils import is_header_compatible
 import nibabel as nib
@@ -237,24 +236,21 @@ def check_overwrite_distance(parser, args):
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
+    logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     overwrite_distance = check_overwrite_distance(parser, args)
 
     assert_inputs_exist(parser, args.in_tractogram)
     assert_outputs_exist(parser, args, args.out_tractogram, args.save_rejected)
 
-    if args.verbose:
-        logging.getLogger().setLevel(logging.DEBUG)
-        set_sft_logger_level('WARNING')
-
     if overwrite_distance:
-        logging.debug('Overwrite distance dictionnary {}'.format(
+        logging.info('Overwrite distance dictionnary {}'.format(
                                                         overwrite_distance))
 
     roi_opt_list, only_filtering_list = prepare_filtering_list(parser, args)
     o_dict = {}
 
-    logging.debug("Loading the tractogram...")
+    logging.info("Loading the tractogram...")
     sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
     if args.save_rejected:
         initial_sft = deepcopy(sft)
@@ -266,7 +262,7 @@ def main():
 
     total_kept_ids = np.arange(len(sft.streamlines))
     for i, roi_opt in enumerate(roi_opt_list):
-        logging.debug("Preparing filtering from option: {}".format(roi_opt))
+        logging.info("Preparing filtering from option: {}".format(roi_opt))
         curr_dict = {}
         # Atlas needs an extra argument (value in the LUT)
         if roi_opt[0] == 'atlas_roi':
@@ -365,8 +361,8 @@ def main():
         else:
             raise ValueError("Unexpected filter type.")
 
-        logging.debug('The filtering options {0} resulted in '
-                      '{1} streamlines'.format(roi_opt, len(filtered_sft)))
+        logging.info('The filtering options {0} resulted in '
+                     '{1} streamlines'.format(roi_opt, len(filtered_sft)))
 
         sft = filtered_sft
 
@@ -385,12 +381,12 @@ def main():
 
     if not filtered_sft:
         if args.no_empty:
-            logging.debug("The file {} won't be written (0 streamline)".format(
+            logging.info("The file {} won't be written (0 streamline)".format(
                 args.out_tractogram))
 
             return
 
-        logging.debug('The file {} contains 0 streamline'.format(
+        logging.info('The file {} contains 0 streamline'.format(
             args.out_tractogram))
 
     save_tractogram(sft, args.out_tractogram)
@@ -400,8 +396,8 @@ def main():
                                     total_kept_ids)
 
         if len(rejected_ids) == 0 and args.no_empty:
-            logging.debug("Rejected streamlines file won't be written (0 "
-                          "streamline).")
+            logging.info("Rejected streamlines file won't be written (0 "
+                         "streamline).")
             return
 
         sft = initial_sft[rejected_ids]

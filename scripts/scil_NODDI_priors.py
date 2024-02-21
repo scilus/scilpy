@@ -97,6 +97,7 @@ def _build_arg_parser():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
+    logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     assert_inputs_exist(parser, [args.in_AD, args.in_FA, args.in_MD,
                                  args.in_RD])
@@ -108,9 +109,6 @@ def main():
                           args.out_txt_1fiber_perp])
 
     assert_same_resolution([args.in_AD, args.in_FA, args.in_MD, args.in_RD])
-
-    log_level = logging.DEBUG if args.verbose else logging.INFO
-    logging.getLogger().setLevel(log_level)
 
     fa_img = nib.load(args.in_FA)
     fa_data = fa_img.get_fdata(dtype=np.float32)
@@ -149,13 +147,13 @@ def main():
                      max(int(cj - w), 0): min(int(cj + w), fa_shape[1]),
                      max(int(ck - w), 0): min(int(ck + w), fa_shape[2])]
 
-    logging.debug('fa_min, fa_max, md_min: {}, {}, {}'.format(
+    logging.info('fa_min, fa_max, md_min: {}, {}, {}'.format(
         args.fa_min, args.fa_max, args.md_min))
 
     indices = np.where((roi_fa > args.fa_min) & (roi_fa < 0.95))
     N = roi_ad[indices].shape[0]
 
-    logging.debug('Number of voxels found in single fiber area: {}'.format(N))
+    logging.info('Number of voxels found in single fiber area: {}'.format(N))
 
     cc_avg_para = np.mean(roi_ad[indices])
     cc_std_para = np.std(roi_ad[indices])
@@ -171,7 +169,7 @@ def main():
     indices = np.where((roi_md > args.md_min) & (roi_fa < args.fa_max))
     N = roi_md[indices].shape[0]
 
-    logging.debug('Number of voxels found in ventricles: {}'.format(N))
+    logging.info('Number of voxels found in ventricles: {}'.format(N))
 
     vent_avg = np.mean(roi_md[indices])
     vent_std = np.std(roi_md[indices])
