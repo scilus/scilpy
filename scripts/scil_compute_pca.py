@@ -180,9 +180,7 @@ def apply_binary_mask(dictionary, mask):
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
-
-    if args.verbose:
-        logging.getLogger().setLevel(logging.INFO)
+    logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     assert_output_dirs_exist_and_empty(parser, args, args.out_folder, create_dir=True)
 

@@ -30,7 +30,6 @@ $ scil_visualize_bundles.py output.trk --local_coloring --width=0.1
 import argparse
 import logging
 
-from dipy.io.stateful_tractogram import set_sft_logger_level
 from dipy.io.streamline import save_tractogram
 
 from scilpy.io.streamlines import load_tractogram_with_reference
@@ -112,6 +111,7 @@ def _build_arg_parser():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
+    logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     if (args.point_wise_std is not None and args.point_wise_std <= 0):
         parser.error('argument --point_wise_std: must be > 0')
@@ -121,21 +121,15 @@ def main():
     assert_inputs_exist(parser, args.in_tractogram)
     assert_outputs_exist(parser, args, args.out_tractogram)
 
-    log_level = logging.WARNING
-    if args.verbose:
-        log_level = logging.DEBUG
-        set_sft_logger_level('INFO')
-    logging.getLogger().setLevel(log_level)
-
-    logging.debug("Loading sft.")
+    logging.info("Loading sft.")
     sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
     original_number = len(sft.streamlines)
 
     if args.never_upsample and args.nb_streamlines > original_number:
         args.nb_streamlines = original_number
 
-    logging.debug("Done. Now getting {} streamlines."
-                  .format(args.nb_streamlines))
+    logging.info("Done. Now getting {} streamlines."
+                 .format(args.nb_streamlines))
 
     if args.nb_streamlines > original_number or args.tube_radius:
         # Check is done here because it is not required if downsampling
@@ -150,8 +144,8 @@ def main():
             # output contains rejected streamlines, we don't use them.
             sft, _ = split_sft_randomly_per_cluster(
                 sft, [args.nb_streamlines], args.seed, args.qbx_thresholds)
-            logging.debug("Kept {} out of {} expected streamlines."
-                          .format(len(sft), args.nb_streamlines))
+            logging.info("Kept {} out of {} expected streamlines."
+                         .format(len(sft), args.nb_streamlines))
         else:
             # output is a list of two: kept and rejected.
             sft = split_sft_randomly(sft, args.nb_streamlines, args.seed)[0]

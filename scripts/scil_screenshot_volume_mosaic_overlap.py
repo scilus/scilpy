@@ -63,6 +63,7 @@ python scil_screenshot_volume_mosaic_overlap.py \
 """
 
 import argparse
+import logging
 
 import numpy as np
 
@@ -147,6 +148,7 @@ def _parse_args(parser):
 def main():
     parser = _build_arg_parser()
     args = _parse_args(parser)
+    logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     vol_img, t_mask_img, labelmap_img, mask_imgs, mask_colors = \
         get_default_screenshotting_data(args)

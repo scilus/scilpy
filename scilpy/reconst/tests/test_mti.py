@@ -6,36 +6,46 @@ def test_py_fspecial_gauss():
     pass
 
 
-def test_compute_contrasts_maps():
+def test_process_contrast_map():
     # toDO
     pass
 
 
-def test_compute_saturation():
+def test_compute_saturation_map():
     # toDO
     pass
 
 
-def test_compute_ihMT_maps():
+def test_compute_ratio_map():
     # toDO
     pass
 
 
-def test_compute_MT_maps_from_ihMT():
+def test_threshold_map():
     # toDO
     pass
 
 
-def test_compute_MT_maps():
+def test_adjust_B1_map_intensities():
     # toDO
     pass
 
 
-def test_threshold_maps():
+def test_smooth_B1_map():
     # toDO
     pass
 
 
-def test_apply_B1_correction():
+def test_apply_B1_corr_empiric():
+    # toDO
+    pass
+
+
+def test_apply_B1_corr_model_based():
+    # toDO
+    pass
+
+
+def test_adjust_B1_map_header():
     # toDO
     pass

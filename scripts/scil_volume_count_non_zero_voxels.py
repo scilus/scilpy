@@ -13,6 +13,7 @@ Formerly: scil_count_non_zero_voxels.py
 """
 
 import argparse
+import logging
 import os
 
 import nibabel as nib
@@ -51,6 +52,7 @@ def _build_arg_parser():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
+    logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     assert_inputs_exist(parser, args.in_image)
     # out_filename can exist or not

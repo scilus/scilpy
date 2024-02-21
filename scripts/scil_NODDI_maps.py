@@ -91,6 +91,15 @@ def _build_arg_parser():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
+    # COMMIT has some c-level stdout and non-logging print that cannot
+    # be easily stopped. Manual redirection of all printed output
+    if args.verbose == "WARNING":
+        f = io.StringIO()
+        redirected_stdout = redirect_stdout(f)
+        redirect_stdout_c() 
+    else:
+        logging.getLogger().setLevel(logging.getLevelName(args.verbose))
+        redirected_stdout = redirect_stdout(sys.stdout)
 
     if args.compute_only and not args.save_kernels:
         parser.error('--compute_only must be used with --save_kernels.')
@@ -101,16 +110,6 @@ def main():
     assert_output_dirs_exist_and_empty(parser, args,
                                        args.out_dir,
                                        optional=args.save_kernels)
-
-    # COMMIT has some c-level stdout and non-logging print that cannot
-    # be easily stopped. Manual redirection of all printed output
-    if args.verbose:
-        logging.getLogger().setLevel(logging.DEBUG)
-        redirected_stdout = redirect_stdout(sys.stdout)
-    else:
-        f = io.StringIO()
-        redirected_stdout = redirect_stdout(f)
-        redirect_stdout_c()
 
     # Generage a scheme file from the bvals and bvecs files
     tmp_dir = tempfile.TemporaryDirectory()
@@ -123,8 +122,8 @@ def main():
     np.savetxt(tmp_bval_filename, shells_centroids[indices_shells],
                newline=' ', fmt='%i')
     fsl2mrtrix(tmp_bval_filename, args.in_bvec, tmp_scheme_filename)
-    logging.debug('Compute NODDI with AMICO on {} shells at found '
-                  'at {}.'.format(len(shells_centroids), shells_centroids))
+    logging.info('Compute NODDI with AMICO on {} shells at found '
+                 'at {}.'.format(len(shells_centroids), shells_centroids))
 
     with redirected_stdout:
         # Load the data

@@ -453,13 +453,11 @@ def associate_dwis(layout, nSub):
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
+    logging.getLogger().setLevel(logging.getLevelName(args.verbose))
+    coloredlogs.install(level=logging.getLevelName(args.verbose))
 
     assert_inputs_exist(parser, [], args.bids_ignore)
     assert_outputs_exist(parser, args, args.out_json)
-
-    if args.verbose:
-        logging.getLogger().setLevel(logging.INFO)
-    coloredlogs.install(level=logging.INFO)
 
     data = []
     bids_indexer = BIDSLayoutIndexer(validate=False,

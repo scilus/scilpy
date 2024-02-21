@@ -30,9 +30,6 @@ from scilpy.io.image import (get_data_as_mask, assert_same_resolution)
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              assert_outputs_exist, add_verbose_arg)
 
-logger = logging.getLogger("Compute_Powder_Average")
-logger.setLevel(logging.INFO)
-
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(
@@ -75,15 +72,14 @@ def _build_arg_parser():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
+    logging.getLogger().setLevel(logging.getLevelName(args.verbose))
+
     inputs = [args.in_dwi, args.in_bval]
     if args.mask:
         inputs.append(args.mask)
 
     assert_inputs_exist(parser, inputs)
     assert_outputs_exist(parser, args, args.out_avg)
-
-    if args.verbose:
-        logging.getLogger().setLevel(logging.DEBUG)
 
     img = nib.load(args.in_dwi)
     data = img.get_fdata(dtype=np.float32)

@@ -11,6 +11,7 @@ This script correctly handles compressed streamlines.
 Formerly: scil_compute_streamlines_density_map.py
 """
 import argparse
+import logging
 
 import numpy as np
 import nibabel as nib
@@ -46,6 +47,7 @@ def _build_arg_parser():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
+    logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     assert_inputs_exist(parser, args.in_bundle, optional=args.reference)
     assert_outputs_exist(parser, args, args.out_img)

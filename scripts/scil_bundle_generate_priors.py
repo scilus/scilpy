@@ -71,9 +71,9 @@ def _build_arg_parser():
 
 
 def main():
-    logging.getLogger().setLevel(logging.INFO)
     parser = _build_arg_parser()
     args = parser.parse_args()
+    logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     required = [args.in_bundle, args.in_fodf, args.in_mask]
     assert_inputs_exist(parser, required)

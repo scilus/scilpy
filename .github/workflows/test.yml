@@ -20,8 +20,9 @@ jobs:
   test:
     runs-on: scilus-runners
     if: github.repository == 'scilus/scilpy'
+
     steps:
-      - name: Checkout repository for merge
+      - name: Checkout repository at merge
         uses: actions/checkout@v4
 
       - name: Fetch python version from repository
@@ -55,19 +56,46 @@ jobs:
           export C_INCLUDE_PATH=$pythonLocation/include/python${{ steps.python-selector.outputs.python-version }}:$C_INCLUDE_PATH
           pytest --cov-report term-missing:skip-covered
 
+      - name: Save test results and coverage
+        uses: actions/upload-artifact@v4
+        id: test-coverage-results
+        with:
+          name: test-coverage-${{ github.run_id }}
+          retention-days: 1
+          path: |
+            .coverage
+            .test_reports/
+
+  coverage:
+    runs-on: scilus-runners
+    if: github.repository == 'scilus/scilpy'
+    needs: test
+
+    steps:
+      - name: Checkout repository at merge
+        uses: actions/checkout@v4
+
+      - name: Set up Python for codecov upload
+        uses: actions/setup-python@v5.0.0
+        with:
+          python-version: '3.10'
+          cache: 'pip'
+
+      - name: Install pycoverage
+        run: pip install coverage
+
+      - name: Download test results and coverage
+        uses: actions/download-artifact@v4
+        with:
+          name: test-coverage-${{ github.run_id }}
+
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v4
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           flags: unittests
-          name: scilpy-unittests-${{ github.run_id }}
+          name: scilpy-unittests-${{ github.run_id }}-${{ github.run_attempt }}
           verbose: true
           fail_ci_if_error: true
           plugin: pycoverage
 
-      - name: Upload test reports and coverage to artifacts
-        uses: actions/upload-artifact@v4.3.1
-        with:
-          name: test-reports
-          path: |
-            .test_reports/*

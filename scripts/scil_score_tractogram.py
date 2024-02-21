@@ -401,9 +401,7 @@ def read_config_file(args):
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
-
-    if args.verbose:
-        logging.getLogger().setLevel(logging.INFO)
+    logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     # Load
     (gt_tails, gt_heads, sft, bundle_names, list_rois, bundle_lengths, angles,

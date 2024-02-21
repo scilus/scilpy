@@ -21,6 +21,7 @@ https://scholar.harvard.edu/files/hengameh/files/miccai2015.pdf
 Formerly: scil_compute_rish_from_sh.py
 """
 import argparse
+import logging
 
 from dipy.reconst.shm import order_from_ncoef, sph_harm_ind_list
 import nibabel as nib
@@ -54,6 +55,7 @@ def _build_arg_parser():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
+    logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     assert_inputs_exist(parser, args.in_sh, optional=args.mask)
 

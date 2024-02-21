@@ -96,12 +96,10 @@ def _build_arg_parser():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
+    logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     assert_inputs_exist(parser, [args.in_tractogram, args.in_transfo])
     assert_outputs_exist(parser, args, args.out_tractogram)
-
-    log_level = logging.INFO if args.verbose else logging.WARNING
-    logging.getLogger().setLevel(log_level)
 
     wb_file = load_tractogram_with_reference(parser, args, args.in_tractogram)
     wb_streamlines = wb_file.streamlines

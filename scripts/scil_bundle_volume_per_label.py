@@ -18,6 +18,7 @@ Formerly: scil_compute_bundle_volume_per_label.py
 
 import argparse
 import json
+import logging
 
 import nibabel as nib
 import numpy as np
@@ -48,6 +49,7 @@ def _build_arg_parser():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
+    logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     assert_inputs_exist(parser, args.voxel_label_map)
 
