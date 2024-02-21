@@ -69,11 +69,7 @@ def main():
     assert_inputs_exist(parser, [args.in_b0, args.in_t1])
     assert_outputs_exist(parser, args, args.out_b0)
 
-    if not args.verbose:
-        sys.stdout = open(os.devnull, 'w')
-    else:
-        logging.getLogger().setLevel(logging.INFO)
-
+    logging.getLogger().setLevel(logging.getLevelName(args.verbose))
     logging.info('The usage of synthetic b0 is not fully tested.'
                  'Be careful when using it.')
 

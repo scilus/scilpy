@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 
-import inspect
 import logging
-import os
 
 from dipy.align.imaffine import (AffineMap,
                                  AffineRegistration,
