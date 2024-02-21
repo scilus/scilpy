@@ -133,7 +133,9 @@ def _build_arg_parser():
     g = p.add_argument_group(title='Quality control files flags')
     g.add_argument('--dki_residual', metavar='file', default='',
                    help='Output filename for the map of the residual ' +
-                   'of the tensor fit.')
+                   'of the tensor fit.\n'
+                   'Note. In previous versions, the resulting map was '
+                   'normalized. \nIt is not anymore.')
     g.add_argument('--msd', metavar='file', default='',
                    help='Output filename for the mean signal diffusion ' +
                    '(powder-average).')
@@ -295,8 +297,7 @@ def main():
         data_p = dkifit.predict(gtab=gtab, S0=S0)
 
         R, _ = compute_residuals(data_p, data,
-                                 b0s_mask=gtab.b0s_mask, normalize=True,
-                                 mask=mask)
+                                 b0s_mask=gtab.b0s_mask, mask=mask)
         R_img = nib.Nifti1Image(R.astype(np.float32), affine)
         nib.save(R_img, args.dki_residual)
 

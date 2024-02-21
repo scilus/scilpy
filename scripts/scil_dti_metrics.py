@@ -377,7 +377,7 @@ def main():
 
         R, data_diff = compute_residuals(
             predicted_data=tenfit2_predict.astype(np.float32),
-            real_data=data, b0s_mask=gtab.b0s_mask, normalize=False, mask=mask)
+            real_data=data, b0s_mask=gtab.b0s_mask, mask=mask)
         R_img = nib.Nifti1Image(R.astype(np.float32), affine)
         nib.save(R_img, args.residual)
 

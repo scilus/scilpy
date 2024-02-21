@@ -218,11 +218,15 @@ def detect_volume_outliers(data, bvecs, bvals, std_scale,
         print()
 
 
-def compute_residuals(predicted_data, real_data, b0s_mask=None,
-                      normalize=True, mask=None):
+def compute_residuals(predicted_data, real_data, b0s_mask=None, mask=None):
     """
-    Compare the predicted data and the real data, on their last axis.
-    Computes the normalized residuals.
+    Computes the residuals, a 3D map allowing comparison between the predicted
+    data and the real data. The result is the average of differences for each
+    feature of the data, on the last axis.
+
+    If data is a tensor, the residuals computation was introduced in:
+    [J-D Tournier, S. Mori, A. Leemans. Diffusion Tensor Imaging and Beyond.
+     MRM 2011].
 
     Parameters
     ----------
@@ -234,8 +238,6 @@ def compute_residuals(predicted_data, real_data, b0s_mask=None,
         Vector of booleans containing True at indices where the dwi data was a
         b0 (on last dimension). If given, the b0s are rejected from the data
         before computing the residuals.
-    normalize: bool,
-        If True, the residuals are normalized.
     mask: np.ndaray, optional
         3D volume. If given, residual is set to 0 outside the mask.
     """
@@ -246,10 +248,9 @@ def compute_residuals(predicted_data, real_data, b0s_mask=None,
     else:
         res = np.mean(diff_data, axis=-1)
 
-    if normalize:
-        norm = np.linalg.norm(res)
-        if norm != 0:
-            res = res / norm
+    # See in dipy.reconst.dti: They offer various weighting techniques, not
+    # offered here. We also previously offered to normalize the results (to
+    # avoid large values), but this option has been removed.
 
     if mask is not None:
         res *= mask
