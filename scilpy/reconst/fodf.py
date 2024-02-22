@@ -91,13 +91,13 @@ def get_ventricles_max_fodf(data, fa, md, zoom, args):
                     count += 1
                     mask[i, j, k] = 1
 
-    logging.debug('Number of voxels detected: {}'.format(count))
+    logging.info('Number of voxels detected: {}'.format(count))
     if count == 0:
         logging.warning('No voxels found for evaluation! Change your fa '
                         'and/or md thresholds')
         return 0, mask
 
-    logging.debug('Average max fodf value: {}'.format(sum_of_max / count))
+    logging.info('Average max fodf value: {}'.format(sum_of_max / count))
     return sum_of_max / count, mask
 
 

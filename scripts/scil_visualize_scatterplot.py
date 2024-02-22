@@ -41,6 +41,7 @@ For scatter plot using atlas:
 import argparse
 import copy
 import json
+import logging
 import os
 
 import matplotlib.pyplot as plt
@@ -140,6 +141,7 @@ def _build_arg_parser():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
+    logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     assert_inputs_exist(parser, [args.in_x_map, args.in_y_map])
 

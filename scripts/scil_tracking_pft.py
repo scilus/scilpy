@@ -138,8 +138,7 @@ def _build_arg_parser():
                        help='If set, save the seeds used for the tracking \n '
                             'in the data_per_streamline property.')
 
-    log_g = p.add_argument_group('Logging options')
-    add_verbose_arg(log_g)
+    add_verbose_arg(p)
 
     return p
 
@@ -147,9 +146,7 @@ def _build_arg_parser():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
-
-    if args.verbose:
-        logging.getLogger().setLevel(logging.DEBUG)
+    logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     assert_inputs_exist(parser, [args.in_sh, args.in_seed,
                                  args.in_map_include,

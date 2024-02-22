@@ -84,6 +84,7 @@ import h5py
 import numpy as np
 import nibabel as nib
 
+from scilpy.io.gradients import fsl2mrtrix
 from scilpy.io.streamlines import (reconstruct_streamlines,
                                    reconstruct_streamlines_from_hdf5)
 from scilpy.io.utils import (add_overwrite_arg,
@@ -92,7 +93,7 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist,
                              assert_output_dirs_exist_and_empty,
                              redirect_stdout_c)
-from scilpy.gradients.bvec_bval_tools import fsl2mrtrix, identify_shells
+from scilpy.gradients.bvec_bval_tools import identify_shells
 
 
 EPILOG = """
@@ -217,7 +218,7 @@ def _save_results_wrapper(args, tmp_dir, ext, hdf5_file, offsets_list,
             new_hdf5_file.attrs['voxel_order'] = sft.voxel_order
             # Assign the weights into the hdf5, while respecting
             # the ordering of connections/streamlines
-            logging.debug('Adding commit weights to {}.'.format(new_filename))
+            logging.info('Adding commit weights to {}.'.format(new_filename))
             for i, key in enumerate(list(hdf5_file.keys())):
                 new_group = new_hdf5_file.create_group(key)
                 old_group = hdf5_file[key]
@@ -274,9 +275,9 @@ def _save_results_wrapper(args, tmp_dir, ext, hdf5_file, offsets_list,
 
     essential_ind = np.where(streamline_weights > 0)[0]
     nonessential_ind = np.where(streamline_weights <= 0)[0]
-    logging.debug('{} essential streamlines were kept at'.format(
+    logging.info('{} essential streamlines were kept at'.format(
         len(essential_ind)))
-    logging.debug('{} nonessential streamlines were kept'.format(
+    logging.info('{} nonessential streamlines were kept'.format(
         len(nonessential_ind)))
 
     save_tractogram(sft[essential_ind],
@@ -287,7 +288,7 @@ def _save_results_wrapper(args, tmp_dir, ext, hdf5_file, offsets_list,
                     'nonessential_tractogram.trk'))
     if args.keep_whole_tractogram:
         output_filename = os.path.join(out_dir, 'tractogram.trk')
-        logging.debug('Saving tractogram with weights as {}'.format(
+        logging.info('Saving tractogram with weights as {}'.format(
             output_filename))
         save_tractogram(sft, output_filename)
 
@@ -295,6 +296,15 @@ def _save_results_wrapper(args, tmp_dir, ext, hdf5_file, offsets_list,
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
+    # COMMIT has some c-level stdout and non-logging print that cannot
+    # be easily stopped. Manual redirection of all printed output
+    if args.verbose == "WARNING":
+        f = io.StringIO()
+        redirected_stdout = redirect_stdout(f)
+        redirect_stdout_c() 
+    else:
+        logging.getLogger().setLevel(logging.getLevelName(args.verbose))
+        redirected_stdout = redirect_stdout(sys.stdout)
 
     assert_inputs_exist(parser, [args.in_tractogram, args.in_dwi,
                                  args.in_bval, args.in_bvec],
@@ -334,21 +344,11 @@ def main():
         parser.error('{} does not have a compatible header with {}'.format(
             args.in_tractogram, args.in_dwi))
 
-    # COMMIT has some c-level stdout and non-logging print that cannot
-    # be easily stopped. Manual redirection of all printed output
-    if args.verbose:
-        logging.getLogger().setLevel(logging.DEBUG)
-        redirected_stdout = redirect_stdout(sys.stdout)
-    else:
-        f = io.StringIO()
-        redirected_stdout = redirect_stdout(f)
-        redirect_stdout_c()
-
     tmp_dir = tempfile.TemporaryDirectory()
     hdf5_file = None
     offsets_list = None
     if ext == '.h5':
-        logging.debug('Reconstructing {} into a tractogram for COMMIT.'.format(
+        logging.info('Reconstructing {} into a tractogram for COMMIT.'.format(
             args.in_tractogram))
 
         hdf5_file = h5py.File(args.in_tractogram, 'r')
@@ -384,11 +384,11 @@ def main():
     tmp_bval_filename = os.path.join(tmp_dir.name, 'bval')
     bvals, _ = read_bvals_bvecs(args.in_bval, args.in_bvec)
     shells_centroids, indices_shells = identify_shells(bvals, args.b_thr,
-                                                       roundCentroids=True)
+                                                       round_centroids=True)
     np.savetxt(tmp_bval_filename, shells_centroids[indices_shells],
                newline=' ', fmt='%i')
     fsl2mrtrix(tmp_bval_filename, args.in_bvec, tmp_scheme_filename)
-    logging.debug('Lauching COMMIT on {} shells at found at {}.'.format(
+    logging.info('Lauching COMMIT on {} shells at found at {}.'.format(
         len(shells_centroids),
         shells_centroids))
 
@@ -423,13 +423,13 @@ def main():
         mit.set_model('StickZeppelinBall')
 
         if args.ball_stick:
-            logging.debug('Disabled zeppelin, using the Ball & Stick model.')
+            logging.info('Disabled zeppelin, using the Ball & Stick model.')
             para_diff = args.para_diff or 1.7E-3
             perp_diff = []
             isotropc_diff = args.iso_diff or [2.0E-3]
             mit.model.set(para_diff, perp_diff, isotropc_diff)
         else:
-            logging.debug('Using the Stick Zeppelin Ball model.')
+            logging.info('Using the Stick Zeppelin Ball model.')
             para_diff = args.para_diff or 1.7E-3
             perp_diff = args.perp_diff or [0.85E-3, 0.51E-3]
             isotropc_diff = args.iso_diff or [1.7E-3, 3.0E-3]

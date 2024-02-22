@@ -104,6 +104,7 @@ def _build_arg_parser():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
+    logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     # ---- Checks
     out_basename, _ = os.path.splitext(args.out_basename)
@@ -123,9 +124,6 @@ def main():
                          'but {} unique bvals.'.format(len(unique_bvals)))
     if args.b0_every is not None and args.b0_every <= 0:
         parser.error("--b0_every must be an integer > 0.")
-
-    log_level = logging.DEBUG if args.verbose else logging.INFO
-    logging.getLogger().setLevel(log_level)
 
     # ---- b-vectors generation
     # Non-b0 samples: gradient sampling generation

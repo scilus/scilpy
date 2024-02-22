@@ -14,7 +14,7 @@ import logging
 from scilpy.io.utils import (assert_gradients_filenames_valid,
                              assert_inputs_exist, assert_outputs_exist,
                              add_overwrite_arg, add_verbose_arg)
-from scilpy.gradients.bvec_bval_tools import fsl2mrtrix, mrtrix2fsl
+from scilpy.io.gradients import fsl2mrtrix, mrtrix2fsl
 
 
 def _build_arg_parser():
@@ -45,9 +45,7 @@ def _build_arg_parser():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
-
-    if args.verbose:
-        logging.getLogger().setLevel(logging.INFO)
+    logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     input_is_fsl = args.input_fsl
 

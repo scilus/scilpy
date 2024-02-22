@@ -148,6 +148,7 @@ def _build_arg_parser():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
+    logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     if not args.not_all:
         args.fa = args.fa or 'fa.nii.gz'

@@ -148,6 +148,7 @@ def write_values(ax, matrix, properties):
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
+    logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     assert_inputs_exist(parser, args.in_matrix)
     if not args.show_only:
@@ -238,11 +239,13 @@ def main():
             logging.warning('Legend is not the same size as the data.'
                             'Make sure you are using the same reordering '
                             'json.')
+
         plt.xticks(x_ticks, x_legend,
-                   rotation=args.axis_text_angle[0],
+                   rotation=int(args.axis_text_angle[0]),
+                   ha='right',
                    fontsize=args.axis_text_size[0])
         plt.yticks(y_ticks, y_legend,
-                   rotation=args.axis_text_angle[1],
+                   rotation=int(args.axis_text_angle[1]),
                    fontsize=args.axis_text_size[1])
 
     if args.show_only:

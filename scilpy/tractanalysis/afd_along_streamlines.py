@@ -33,7 +33,6 @@ def afd_map_along_streamlines(sft, fodf, fodf_basis, length_weighting):
         rdAFD map (weighted if length_weighting)
     """
 
-
     afd_sum, rd_sum, weights = \
         afd_and_rd_sums_along_streamlines(sft, fodf, fodf_basis,
                                           length_weighting)
@@ -112,7 +111,8 @@ def afd_and_rd_sums_along_streamlines(sft, fodf, fodf_basis,
 
         normalization_weights = np.ones_like(seg_lengths)
         if length_weighting:
-            normalization_weights = seg_lengths / np.linalg.norm(fodf.header.get_zooms()[:3])
+            normalization_weights = seg_lengths / \
+                np.linalg.norm(fodf.header.get_zooms()[:3])
 
         for vox_idx, closest_vertex_index, norm_weight in zip(vox_indices,
                                                               closest_vertex_indices,
@@ -130,5 +130,4 @@ def afd_and_rd_sums_along_streamlines(sft, fodf, fodf_basis,
             weight_map[vox_idx] += norm_weight
 
     rd_sum_map[rd_sum_map < 0.] = 0.
-
     return afd_sum_map, rd_sum_map, weight_map
