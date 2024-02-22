@@ -11,3 +11,7 @@ def test_compute_dwi_attenuation():
 
 def test_detect_volume_outliers():
     pass
+
+
+def test_compute_residuals():
+    pass
