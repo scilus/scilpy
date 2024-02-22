@@ -256,3 +256,33 @@ def compute_residuals(predicted_data, real_data, b0s_mask=None, mask=None):
         res *= mask
 
     return res, diff_data
+
+
+def compute_residuals_statistics(diff_data):
+    """
+    Compute statistics on the residuals for each gradient.
+
+    Parameters
+    ----------
+    diff_data: np.ndarray
+        The 4D residuals between the DWI and predicted data.
+    """
+    # mean residual per DWI
+    R_k = np.zeros(diff_data.shape[-1], dtype=np.float32)
+    # std residual per DWI
+    std = np.zeros(diff_data.shape[-1], dtype=np.float32)
+    # first quartile per DWI
+    q1 = np.zeros(diff_data.shape[-1], dtype=np.float32)
+    # third quartile per DWI
+    q3 = np.zeros(diff_data.shape[-1], dtype=np.float32)
+    # interquartile per DWI
+    iqr = np.zeros(diff_data.shape[-1], dtype=np.float32)
+
+    for k in range(diff_data.shape[-1]):
+        x = diff_data[..., k]
+        R_k[k] = np.mean(x)
+        std[k] = np.std(x)
+        q3[k], q1[k] = np.percentile(x, [75, 25])
+        iqr[k] = q3[k] - q1[k]
+
+    return R_k, q1, q3, iqr, std

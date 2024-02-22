@@ -15,3 +15,8 @@ def test_detect_volume_outliers():
 
 def test_compute_residuals():
     pass
+
+
+def test_compute_residuals_statistics():
+    # Simply calling numpy methods. Nothing to test.
+    pass
