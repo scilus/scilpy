@@ -222,53 +222,31 @@ def main():
         FA = dkifit.fa
         FA[np.isnan(FA)] = 0
         FA = np.clip(FA, 0, 1)
-
-        fa_img = nib.Nifti1Image(FA.astype(np.float32), affine)
-        nib.save(fa_img, args.dki_fa)
-
-        del FA, fa_img
+        nib.save(nib.Nifti1Image(FA.astype(np.float32), affine), args.dki_fa)
 
     if args.dki_md:
         MD = dkifit.md
-        md_img = nib.Nifti1Image(MD.astype(np.float32), affine)
-        nib.save(md_img, args.dki_md)
-
-        del MD, md_img
+        nib.save(nib.Nifti1Image(MD.astype(np.float32), affine), args.dki_md)
 
     if args.dki_ad:
         AD = dkifit.ad
-        ad_img = nib.Nifti1Image(AD.astype(np.float32), affine)
-        nib.save(ad_img, args.dki_ad)
-
-        del AD, ad_img
+        nib.save(nib.Nifti1Image(AD.astype(np.float32), affine), args.dki_ad)
 
     if args.dki_rd:
         RD = dkifit.rd
-        rd_img = nib.Nifti1Image(RD.astype(np.float32), affine)
-        nib.save(rd_img, args.dki_rd)
-
-        del RD, rd_img
+        nib.save(nib.Nifti1Image(RD.astype(np.float32), affine), args.dki_rd)
 
     if args.mk:
         MK = dkifit.mk(min_k, max_k)
-        mk_img = nib.Nifti1Image(MK.astype(np.float32), affine)
-        nib.save(mk_img, args.mk)
-
-        del MK, mk_img
+        nib.save(nib.Nifti1Image(MK.astype(np.float32), affine), args.mk)
 
     if args.ak:
         AK = dkifit.ak(min_k, max_k)
-        ak_img = nib.Nifti1Image(AK.astype(np.float32), affine)
-        nib.save(ak_img, args.ak)
-
-        del AK, ak_img
+        nib.save(nib.Nifti1Image(AK.astype(np.float32), affine), args.ak)
 
     if args.rk:
         RK = dkifit.rk(min_k, max_k)
-        rk_img = nib.Nifti1Image(RK.astype(np.float32), affine)
-        nib.save(rk_img, args.rk)
-
-        del RK, rk_img
+        nib.save(nib.Nifti1Image(RK.astype(np.float32), affine), args.rk)
 
     if args.msk or args.msd:
         # Compute MSDKI
@@ -279,18 +257,11 @@ def main():
             MSK = msdki_fit.msk
             MSK[np.isnan(MSK)] = 0
             MSK = np.clip(MSK, min_k, max_k)
-
-            msk_img = nib.Nifti1Image(MSK.astype(np.float32), affine)
-            nib.save(msk_img, args.msk)
-
-            del MSK, msk_img
+            nib.save(nib.Nifti1Image(MSK.astype(np.float32), affine), args.msk)
 
         if args.msd:
             MSD = msdki_fit.msd
-            msd_img = nib.Nifti1Image(MSD.astype(np.float32), affine)
-            nib.save(msd_img, args.msd)
-
-            del MSD, msd_img
+            nib.save(nib.Nifti1Image(MSD.astype(np.float32), affine), args.msd)
 
     if args.dki_residual:
         S0 = np.mean(data[..., gtab.b0s_mask], axis=-1)
@@ -298,8 +269,8 @@ def main():
 
         R, _ = compute_residuals(data_p, data,
                                  b0s_mask=gtab.b0s_mask, mask=mask)
-        R_img = nib.Nifti1Image(R.astype(np.float32), affine)
-        nib.save(R_img, args.dki_residual)
+        nib.save(nib.Nifti1Image(R.astype(np.float32), affine),
+                 args.dki_residual)
 
 
 if __name__ == "__main__":

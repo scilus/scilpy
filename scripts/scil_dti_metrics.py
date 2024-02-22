@@ -232,47 +232,29 @@ def main():
         FA[np.isnan(FA)] = 0
         FA = np.clip(FA, 0, 1)
         if args.fa:
-            fa_img = nib.Nifti1Image(FA.astype(np.float32), affine)
-            nib.save(fa_img, args.fa)
-
-            del fa_img
+            nib.save(nib.Nifti1Image(FA.astype(np.float32), affine), args.fa)
 
         if args.rgb:
             RGB = color_fa(FA, tenfit.evecs)
-            rgb_img = nib.Nifti1Image(np.array(255 * RGB, 'uint8'), affine)
-            nib.save(rgb_img, args.rgb)
-
-            del FA, RGB, rgb_img
+            nib.save(nib.Nifti1Image(np.array(255 * RGB, 'uint8'), affine),
+                     args.rgb)
 
     if args.ga:
         GA = geodesic_anisotropy(tenfit.evals)
         GA[np.isnan(GA)] = 0
-
-        ga_img = nib.Nifti1Image(GA.astype(np.float32), affine)
-        nib.save(ga_img, args.ga)
-
-        del GA, ga_img
+        nib.save(nib.Nifti1Image(GA.astype(np.float32), affine), args.ga)
 
     if args.md:
         MD = mean_diffusivity(tenfit.evals)
-        md_img = nib.Nifti1Image(MD.astype(np.float32), affine)
-        nib.save(md_img, args.md)
-
-        del MD, md_img
+        nib.save(nib.Nifti1Image(MD.astype(np.float32), affine), args.md)
 
     if args.ad:
         AD = axial_diffusivity(tenfit.evals)
-        ad_img = nib.Nifti1Image(AD.astype(np.float32), affine)
-        nib.save(ad_img, args.ad)
-
-        del AD, ad_img
+        nib.save(nib.Nifti1Image(AD.astype(np.float32), affine), args.ad)
 
     if args.rd:
         RD = radial_diffusivity(tenfit.evals)
-        rd_img = nib.Nifti1Image(RD.astype(np.float32), affine)
-        nib.save(rd_img, args.rd)
-
-        del RD, rd_img
+        nib.save(nib.Nifti1Image(RD.astype(np.float32), affine), args.rd)
 
     if args.mode:
         # Compute tensor mode
@@ -283,44 +265,29 @@ def main():
         non_nan_indices = np.isfinite(inter_mode)
         mode = np.zeros(inter_mode.shape)
         mode[non_nan_indices] = inter_mode[non_nan_indices]
-
-        mode_img = nib.Nifti1Image(mode.astype(np.float32), affine)
-        nib.save(mode_img, args.mode)
-
-        del inter_mode, mode_img, mode
+        nib.save(nib.Nifti1Image(mode.astype(np.float32), affine), args.mode)
 
     if args.norm:
         NORM = norm(tenfit.quadratic_form)
-        norm_img = nib.Nifti1Image(NORM.astype(np.float32), affine)
-        nib.save(norm_img, args.norm)
-
-        del NORM, norm_img
+        nib.save(nib.Nifti1Image(NORM.astype(np.float32), affine), args.norm)
 
     if args.evecs:
         evecs = tenfit.evecs.astype(np.float32)
-        evecs_img = nib.Nifti1Image(evecs, affine)
-        nib.save(evecs_img, args.evecs)
+        nib.save(nib.Nifti1Image(evecs, affine), args.evecs)
 
         # save individual e-vectors also
         for i in range(3):
-            e_img = nib.Nifti1Image(evecs[..., i], affine)
-            nib.save(e_img, add_filename_suffix(args.evecs, '_v'+str(i+1)))
-            del e_img
-
-        del evecs, evecs_img
+            nib.save(nib.Nifti1Image(evecs[..., i], affine),
+                     add_filename_suffix(args.evecs, '_v'+str(i+1)))
 
     if args.evals:
         evals = tenfit.evals.astype(np.float32)
-        evals_img = nib.Nifti1Image(evals, affine)
-        nib.save(evals_img, args.evals)
+        nib.save(nib.Nifti1Image(evals, affine), args.evals)
 
         # save individual e-values also
         for i in range(3):
-            e_img = nib.Nifti1Image(evals[..., i], affine)
-            nib.save(e_img, add_filename_suffix(args.evals, '_e' + str(i+1)))
-            del e_img
-
-        del evals, evals_img
+            nib.save(nib.Nifti1Image(evals[..., i], affine),
+                     add_filename_suffix(args.evals, '_e' + str(i+1)))
 
     if args.p_i_signal:
         S0 = np.mean(data[..., gtab.b0s_mask], axis=-1, keepdims=True)
@@ -330,10 +297,8 @@ def main():
         if args.mask is not None:
             pis_mask *= mask
 
-        pis_img = nib.Nifti1Image(pis_mask.astype(np.int16), affine)
-        nib.save(pis_img, args.p_i_signal)
-
-        del pis_img, S0, DWI
+        nib.save(nib.Nifti1Image(pis_mask.astype(np.int16), affine),
+                 args.p_i_signal)
 
     if args.pulsation:
         STD = np.std(data[..., ~gtab.b0s_mask], axis=-1)
@@ -341,8 +306,8 @@ def main():
         if args.mask is not None:
             STD *= mask
 
-        std_img = nib.Nifti1Image(STD.astype(np.float32), affine)
-        nib.save(std_img, add_filename_suffix(args.pulsation, '_std_dwi'))
+        nib.save(nib.Nifti1Image(STD.astype(np.float32), affine),
+                 add_filename_suffix(args.pulsation, '_std_dwi'))
 
         if np.sum(gtab.b0s_mask) <= 1:
             logger.info('Not enough b=0 images to output standard '
@@ -357,10 +322,8 @@ def main():
             if args.mask is not None:
                 STD *= mask
 
-            std_img = nib.Nifti1Image(STD.astype(np.float32), affine)
-            nib.save(std_img, add_filename_suffix(args.pulsation, '_std_b0'))
-
-        del STD, std_img
+            nib.save(nib.Nifti1Image(STD.astype(np.float32), affine),
+                     add_filename_suffix(args.pulsation, '_std_b0'))
 
     if args.residual:
         # Mean residual image
@@ -378,10 +341,7 @@ def main():
         R, data_diff = compute_residuals(
             predicted_data=tenfit2_predict.astype(np.float32),
             real_data=data, b0s_mask=gtab.b0s_mask, mask=mask)
-        R_img = nib.Nifti1Image(R.astype(np.float32), affine)
-        nib.save(R_img, args.residual)
-
-        del R, R_img, S0
+        nib.save(nib.Nifti1Image(R.astype(np.float32), affine), args.residual)
 
         # Each volume's residual statistics
         if args.mask is None:
