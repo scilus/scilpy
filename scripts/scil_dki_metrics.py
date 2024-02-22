@@ -55,6 +55,7 @@ from dipy.io.gradients import read_bvals_bvecs
 from dipy.core.gradients import gradient_table
 
 from scilpy.dwi.operations import compute_residuals
+from scilpy.image.volume_operations import smooth_to_fwhm
 from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              assert_outputs_exist, add_force_b0_arg,
@@ -63,7 +64,6 @@ from scilpy.gradients.bvec_bval_tools import (normalize_bvecs,
                                               is_normalized_bvecs,
                                               check_b0_threshold,
                                               identify_shells)
-from scilpy.preprocessing.utils import smooth_to_fwhm
 
 
 def _build_arg_parser():
