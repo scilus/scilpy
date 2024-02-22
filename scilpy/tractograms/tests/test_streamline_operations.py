@@ -4,6 +4,7 @@ import tempfile
 
 import nibabel as nib
 import numpy as np
+from numpy.testing import assert_almost_equal, assert_array_equal
 import pytest
 
 from dipy.io.streamline import load_tractogram
@@ -16,7 +17,8 @@ from scilpy.tractograms.streamline_operations import (
     resample_streamlines_num_points,
     resample_streamlines_step_size,
     smooth_line_gaussian,
-    smooth_line_spline)
+    smooth_line_spline,
+    rotation_around_vector_matrix)
 from scilpy.tractograms.tractogram_operations import concatenate_sft
 
 fetch_data(get_testing_files_dict(), keys=['tractograms.zip'])
@@ -367,3 +369,50 @@ def test_smooth_line_spline():
     dist_2 = np.linalg.norm(noisy_streamline - smoothed_streamline)
 
     assert dist_1 < dist_2
+
+
+def test_output_shape_and_type():
+    """Test the output shape and type."""
+    vec = np.array([1, 0, 0])
+    theta = np.pi / 4  # 45 degrees
+    rot_matrix = rotation_around_vector_matrix(vec, theta)
+    assert isinstance(rot_matrix, np.ndarray)
+    assert np.array_equal(rot_matrix.shape, (3, 3))
+
+
+def test_magnitude_preservation():
+    """Test if the rotation preserves the magnitude of a vector."""
+    vec = np.array([1, 0, 0])
+    theta = np.pi / 4
+    rot_matrix = rotation_around_vector_matrix(vec, theta)
+    rotated_vec = np.dot(rot_matrix, vec)
+    assert_almost_equal(np.linalg.norm(rotated_vec), np.linalg.norm(vec),
+                        decimal=5)
+
+
+def test_known_rotation():
+    """Test a known rotation case."""
+    vec = np.array([0, 0, 1])  # Rotation around z-axis
+    theta = np.pi / 2  # 90 degrees
+    rot_matrix = rotation_around_vector_matrix(vec, theta)
+    original_vec = np.array([1, 0, 0])
+    expected_rotated_vec = np.array([0, 1, 0])
+    rotated_vec = np.dot(rot_matrix, original_vec)
+    assert_almost_equal(rotated_vec, expected_rotated_vec, decimal=5)
+
+
+def test_zero_rotation():
+    """Test rotation with theta = 0."""
+    vec = np.array([1, 0, 0])
+    theta = 0
+    rot_matrix = rotation_around_vector_matrix(vec, theta)
+    np.array_equal(rot_matrix, np.eye(3))
+
+
+def test_full_rotation():
+    """Test rotation with theta = 2*pi (should be identity)."""
+    vec = np.array([1, 0, 0])
+    theta = 2 * np.pi
+    rot_matrix = rotation_around_vector_matrix(vec, theta)
+    # Allow for minor floating-point errors
+    assert_almost_equal(rot_matrix, np.eye(3), decimal=5)

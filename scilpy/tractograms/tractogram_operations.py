@@ -26,9 +26,8 @@ from scipy.ndimage import map_coordinates
 from scipy.spatial import cKDTree
 
 from scilpy.tractograms.streamline_operations import smooth_line_gaussian, \
-    resample_streamlines_step_size
+    resample_streamlines_step_size, parallel_transport_streamline
 from scilpy.utils.streamlines import cut_invalid_streamlines
-from scilpy.utils.spatial_ops import parallel_transport_streamline
 
 MIN_NB_POINTS = 10
 KEY_INDEX = np.concatenate((range(5), range(-1, -6, -1)))
@@ -634,10 +633,12 @@ def upsample_tractogram(sft, nb, point_wise_std=None, tube_radius=None,
     point_wise_std : float
         The standard deviation of the gaussian to use to generate point-wise
         noise on the streamlines.
-    error_rate : float
-        The maximum distance (in mm) to the original position of any point.
+    tube_radius : float
+        The radius of the tube used to model the streamlines.
     gaussian: float
         The sigma used for smoothing streamlines.
+    error_rate : float
+        The maximum distance (in mm) to the original position of any point.
     spline: (float, int)
         Pair of sigma and number of control points used to model each
         streamline as a spline and smooth it.
@@ -668,6 +669,9 @@ def upsample_tractogram(sft, nb, point_wise_std=None, tube_radius=None,
         noise = rng.normal(loc=0, scale=point_wise_std,
                            size=len(s))
 
+        # Instead of generating random noise, we fit a polynomial to the
+        # noise and use it to generate a spatially smooth noise along the
+        # streamline (simply to avoid sharp changes in the noise factor).
         x = np.arange(len(noise))
         poly_coeffs = np.polyfit(x, noise, 3)
         polynomial = Polynomial(poly_coeffs[::-1])
