@@ -71,6 +71,8 @@ def main():
                                 bvals.min(), args.b0_thr)
     bvecs = normalize_bvecs(bvecs)
 
+    # Not using the result. Only printing on screen. This is why the logging
+    # level can never be set higher than INFO.
     detect_volume_outliers(data, bvecs, bvals, args.std_scale, b0_thr)
 
 

@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 
-from scilpy.dwi.operations import compute_dwi_attenuation
+from scilpy.dwi.operations import compute_dwi_attenuation, \
+    detect_volume_outliers
 
 
 def test_apply_bias_field():
@@ -31,7 +32,46 @@ def test_compute_dwi_attenuation():
 
 
 def test_detect_volume_outliers():
-    pass
+    # For this test: all 90 or 180 degrees on one shell.
+    bvals = 1000 * np.ones(5)
+    bvecs = np.asarray([[1, 0, 0],
+                        [0, 1, 0],
+                        [0, 0, 1],
+                        [-1, 0, 0],  # inverse of first
+                        [0, -1, 0]])  # inverse of second
+
+    # DWI associated with the last bvec is very different. Others are highly
+    # correlated (but not equal, or the correlation is NaN: one voxel
+    # different). One voxel different for the first 4 gradients. Random for
+    # the last.
+    dwi = np.ones((10, 10, 10, 5))
+    dwi[0, 0, 0, 0:4] = np.random.rand(4)
+    dwi[..., -1] = np.random.rand(10, 10, 10)
+
+    res, outliers = detect_volume_outliers(dwi, bvecs, bvals, std_scale=1)
+
+    # Should get one shell
+    keys = list(res.keys())
+    assert len(keys) == 1
+    assert keys[0] == 1000
+    res = res[1000]
+    outliers = outliers[1000]
+
+    # Should get a table 5x3.
+    assert np.array_equal(res.shape, [5, 3])
+
+    # First column: index of the bvecs. They should all be managed.
+    assert np.array_equal(np.sort(res[:, 0]), np.arange(5))
+
+    # Second column = Mean angle. The most different should be the 3rd (#2)
+    # But not an outlier.
+    assert np.argmax(res[:, 1]) == 2
+    assert len(outliers['outliers_angle']) == 0
+
+    # Thirst column = corr. The most uncorrelated should be the 5th (#4)
+    # Should also be an outlier with STD 1
+    assert np.argmin(res[:, 2]) == 4
+    assert outliers['outliers_corr'][0] == 4
 
 
 def test_compute_residuals():

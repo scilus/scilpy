@@ -147,52 +147,104 @@ def compute_dwi_attenuation(dwi_weights: np.ndarray, b0: np.ndarray):
 def detect_volume_outliers(data, bvecs, bvals, std_scale,
                            b0_thr=DEFAULT_B0_THRESHOLD):
     """
+    Detects outliers. Finds the 3 closest angular neighbors of each direction
+    (per shell) and computes the voxel-wise correlation.
+    If the angles or correlations to neighbors are below the shell average (by
+    std_scale x STD) it will flag the volume as a potential outlier.
+
     Parameters
     ----------
     data: np.ndarray
-        The dwi data.
+        The 4D dwi data.
     bvecs: np.ndarray
-        The bvecs
+        The bvecs, of shape (nb_gradients, 3), normalized
     bvals: np.array
-        The b-values vector.
+        The b-values vector, of shape (nb_gradients, )
     std_scale: float
         How many deviation from the mean are required to be considered an
         outlier.
     b0_thr: float
         Value below which b-values are considered as b0.
+
+    Returns
+    -------
+    results_dict: dict
+        The resulting statistics.
+        One key per shell (its b-value). For each key, the associated entry is
+        an array of shape [nb_points, 3] where columns are:
+            - point_idx: int, the index of the bvector in the input bvecs.
+            - mean_angle: float, the mean angles of the 3 closest bvecs, in
+              degree
+            - mean_correlation: float, the mean correlation of the 3D data
+            associated to the 3 closest bvecs.
+    outliers_dict: dict
+        The resulting outliers.
+        One key per shell (its b-value). For each key, the associated entry is
+        a dict {'outliers_angle': list[int],
+                'outliers_corr': list[int]}
+        The indices of outliers (indices in the original bvecs).
     """
     results_dict = {}
     shells_to_extract = identify_shells(bvals, b0_thr, sort=True)[0]
     bvals = round_bvals_to_shell(bvals, shells_to_extract)
     for bval in shells_to_extract[shells_to_extract > b0_thr]:
         shell_idx = np.where(bvals == bval)[0]
-        shell = bvecs[shell_idx]
+
+        # Requires at least 3 values per shell to find 3 closest values!
+        # Requires at least 5 values to use argpartition, below.
+        if len(shell_idx) < 5:
+            raise NotImplementedError(
+                "This outlier detection method is only available with at "
+                "least 5 points per shell. Got {} on shell {}."
+                .format(len(shell_idx), bval))
+
+        shell = bvecs[shell_idx, :]  # All bvecs on that shell
         results_dict[bval] = np.ones((len(shell), 3)) * -1
         for i, vec in enumerate(shell):
-            if np.linalg.norm(vec) < 0.001:
-                continue
-
+            # Supposing that vectors are normalized, cos(angle) = dot
             dot_product = np.clip(np.tensordot(shell, vec, axes=1), -1, 1)
-            angle = np.arccos(dot_product) * 180 / math.pi
-            angle[np.isnan(angle)] = 0
-            idx = np.argpartition(angle, 4).tolist()
+            angles = np.rad2deg(np.arccos(dot_product))
+            angles[np.isnan(angles)] = 0
+
+            # Managing the symmetry between b-vectors:
+            # if angle is > 90, it becomes 180 - x
+            big_angles = angles > 90
+            angles[big_angles] = 180 - angles[big_angles]
+
+            # Using argpartition rather than sort; faster. With kth=4, the 4th
+            # element is correctly positioned, and smaller elements are
+            # placed before. Considering that we will then remove the b-vec
+            # itself (angle 0), we are left with the 3 closest angles in
+            # idx[0:3] (not necessarily sorted, but ok).
+            idx = np.argpartition(angles, 4).tolist()
             idx.remove(i)
 
-            avg_angle = np.average(angle[idx[:3]])
+            avg_angle = np.average(angles[idx[:3]])
+
             corr = np.corrcoef([data[..., shell_idx[i]].ravel(),
                                 data[..., shell_idx[idx[0]]].ravel(),
                                 data[..., shell_idx[idx[1]]].ravel(),
                                 data[..., shell_idx[idx[2]]].ravel()])
+            # Corr is a triangular matrix. The interesting line is the first:
+            # current data vs the 3 others. First value is with itself = 1.
             results_dict[bval][i] = [shell_idx[i], avg_angle,
                                      np.average(corr[0, 1:])]
 
+    # Computation done. Now verifying if above scale.
+    # Loop on shells:
+    logging.info("Analysing, for each bvec, the mean angle of the 3 closest "
+                 "bvecs, and the mean correlation of their associated data.")
+    outliers_dict = {}
     for key in results_dict.keys():
-        avg_angle = np.round(np.average(results_dict[key][:, 1]), 4)
-        std_angle = np.round(np.std(results_dict[key][:, 1]), 4)
+        # Column #1 = The mean_angle for all bvecs
+        avg_angle = np.average(results_dict[key][:, 1])
+        std_angle = np.std(results_dict[key][:, 1])
 
-        avg_corr = np.round(np.average(results_dict[key][:, 2]), 4)
-        std_corr = np.round(np.std(results_dict[key][:, 2]), 4)
+        # Column #2 = The mean_corr for all bvecs
+        avg_corr = np.average(results_dict[key][:, 2])
+        std_corr = np.std(results_dict[key][:, 2])
 
+        # Only looking if some data are *below* the average - n*std.
         outliers_angle = np.argwhere(
             results_dict[key][:, 1] < avg_angle - (std_scale * std_angle))
         outliers_corr = np.argwhere(
@@ -200,27 +252,34 @@ def detect_volume_outliers(data, bvecs, bvals, std_scale,
 
         logging.info('Results for shell {} with {} directions:'
                      .format(key, len(results_dict[key])))
-        logging.info('AVG and STD of angles: {} +/- {}'
+        logging.info('AVG and STD of angles: {:.2f} +/- {:.2f}'
                      .format(avg_angle, std_angle))
-        logging.info('AVG and STD of correlations: {} +/- {}'
+        logging.info('AVG and STD of correlations: {:.4f} +/- {:.4f}'
                      .format(avg_corr, std_corr))
 
         if len(outliers_angle) or len(outliers_corr):
-            logging.info('Possible outliers ({} STD below or above average):'
+            logging.info('Possible outliers ({} STD below average):'
                          .format(std_scale))
-            logging.info('Outliers based on angle [position (4D), value]')
-            for i in outliers_angle:
-                logging.info(results_dict[key][i, :][0][0:2])
-            logging.info('Outliers based on correlation [position (4D), ' +
-                         'value]')
-            for i in outliers_corr:
-                logging.info(results_dict[key][i, :][0][0::2])
+            if len(outliers_angle):
+                logging.info('Outliers based on angle [position (4D), value]')
+                for i in outliers_angle:
+                    logging.info("   {}".format(results_dict[key][i, 0::2]))
+            if len(outliers_corr):
+                logging.info('Outliers based on correlation [position (4D), '
+                             'value]')
+                for i in outliers_corr:
+                    logging.info("   {}".format(results_dict[key][i, 0::2]))
         else:
             logging.info('No outliers detected.')
 
+        outliers_dict[key] = {
+            'outliers_angle': results_dict[key][outliers_angle, 0],
+            'outliers_corr': results_dict[key][outliers_corr, 0]}
         logging.debug('Shell with b-value {}'.format(key))
         logging.debug("\n" + pprint.pformat(results_dict[key]))
         print()
+
+    return results_dict, outliers_dict
 
 
 def compute_residuals(predicted_data, real_data, b0s_mask=None, mask=None):
