@@ -34,18 +34,18 @@ def _build_arg_parser():
 
     p.add_argument('in_dwi',
                    help='Input dwi file.')
-    p.add_argument('in_bvec',
-                   help='Input bvec FSL format.')
     p.add_argument('in_bval',
                    help='Input bval FSL format.')
+    p.add_argument('in_bvec',
+                   help='Input bvec FSL format.')
     p.add_argument('in_table',
                    help='Original philips table - first line is skipped.')
     p.add_argument('out_basename',
                    help='Basename output file.')
 
     p.add_argument('--json',
-                   help='If you json file, it will check if you need'
-                        ' to reorder your Philips dwi.')
+                   help='If you give a json file, it will check if you need '
+                        'to reorder your Philips dwi.')
 
     add_verbose_arg(p)
     add_overwrite_arg(p)
