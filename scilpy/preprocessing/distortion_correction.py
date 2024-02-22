@@ -1,9 +1,12 @@
 # -*- coding: utf-8 -*-
 
+import logging
+
 import numpy as np
 
 
-def create_acqparams(readout, encoding_direction, nb_b0s=1, nb_rev_b0s=1):
+def create_acqparams(readout, encoding_direction, synb0=False,
+                     nb_b0s=1, nb_rev_b0s=1):
     """
     Create acqparams for Topup and Eddy
 
@@ -23,13 +26,18 @@ def create_acqparams(readout, encoding_direction, nb_b0s=1, nb_rev_b0s=1):
     acqparams: np.array
         acqparams
     """
+    if synb0:
+        logging.warning('Using SyNb0, untested feature. Be careful.')
+
     acqparams = np.zeros((nb_b0s + nb_rev_b0s, 4))
     acqparams[:, 3] = readout
 
     enum_direction = {'x': 0, 'y': 1, 'z': 2}
     acqparams[0:nb_b0s, enum_direction[encoding_direction]] = 1
     if nb_rev_b0s > 0:
-        acqparams[nb_b0s:, enum_direction[encoding_direction]] = -1
+        val = -1 if not synb0 else 1
+        acqparams[nb_b0s:, enum_direction[encoding_direction]] = val
+        acqparams[nb_b0s:, 3] = readout if not synb0 else 0
 
     return acqparams
 
