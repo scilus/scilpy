@@ -1144,6 +1144,8 @@ def compose_mosaic(
             labelmap_cmap_name=labelmap_cmap_name,
         )
 
-        annotate_scene(mosaic, slice_number, display_slice_number, display_lr)
+        if display_slice_number or display_lr:
+            annotate_scene(
+                mosaic, slice_number, display_slice_number, display_lr)
 
     return mosaic
