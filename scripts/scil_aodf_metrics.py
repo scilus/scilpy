@@ -178,7 +178,7 @@ def main():
                           # the usual default value (5) of npeaks
                           npeaks=10,
                           sh_basis_type=sh_basis,
-                          is_legacy=is_legacy
+                          is_legacy=is_legacy,
                           nbr_processes=args.nbr_processes,
                           full_basis=full_basis,
                           is_symmetric=False)
