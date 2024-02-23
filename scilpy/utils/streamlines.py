@@ -223,7 +223,7 @@ def get_color_streamlines_along_length(sft, args):
 
 
 def filter_tractogram_data(tractogram, streamline_ids):
-    """ Filter tractogram according to streamline ids and keep the data
+    """Filter tractogram according to streamline ids and keep the data
 
     Parameters:
     -----------
@@ -261,7 +261,8 @@ def filter_tractogram_data(tractogram, streamline_ids):
 
 
 def compress_sft(sft, tol_error=0.01):
-    """ Compress a stateful tractogram. Uses Dipy's compress_streamlines, but
+    """
+    Compress a stateful tractogram. Uses Dipy's compress_streamlines, but
     deals with space better.
 
     Dipy's description:
@@ -269,14 +270,14 @@ def compress_sft(sft, tol_error=0.01):
     nearly collinear. The merging is achieved by removing the point the two
     segments have in common.
 
-    The linearization process [Presseau15]_ ensures that every point being
+    The linearization process [Presseau15] ensures that every point being
     removed are within a certain margin (in mm) of the resulting streamline.
-    Recommendations for setting this margin can be found in [Presseau15]_
+    Recommendations for setting this margin can be found in [Presseau15]
     (in which they called it tolerance error).
 
     The compression also ensures that two consecutive points won't be too far
-    from each other (precisely less or equal than `max_segment_length`mm).
-    This is a tradeoff to speed up the linearization process [Rheault15]_. A
+    from each other (precisely less or equal than *max_segment_length* mm).
+    This is a tradeoff to speed up the linearization process [Rheault15]. A
     low value will result in a faster linearization but low compression,
     whereas a high value will result in a slower linearization but high
     compression.
@@ -295,7 +296,7 @@ def compress_sft(sft, tol_error=0.01):
 
     Returns
     -------
-    compressed_sft : StatefulTractogram
+    compressed_sft: StatefulTractogram
     """
     # Go to world space
     orig_space = sft.space

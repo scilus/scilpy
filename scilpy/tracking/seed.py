@@ -118,8 +118,9 @@ class SeedGenerator:
         """
         Generate the next n seed positions. Intended for GPU usage.
         Equivalent to:
-            for s in range(which_seed_start, which_seed_start + nb_seeds):
-                self.get_next_pos(..., s)
+        >>> for s in range(which_seed_start, which_seed_start + nb_seeds):
+        >>>     self.get_next_pos(..., s)
+
         See description of get_next_pos for more information.
 
         To be used with self.n_repeats, we suppose that sequential

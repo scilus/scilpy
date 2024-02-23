@@ -22,12 +22,13 @@ autodoc_mock_imports = ['numpy', 'dipy', 'fury', 'nibabel', "scipy", "h5py",
                         "scilpy.tractanalysis.grid_intersections",
                         "scilpy.tractanalysis.quick_tools",
                         "sklearn", "scilpy.tractanalysis.streamlines_metrics",
-                        "scilpy.tractograms.uncompress", "matplotlib"]
+                        "scilpy.tractograms.uncompress", "matplotlib",
+                        "skimage"]
 
 # -- Project information -----------------------------------------------------
 
 project = 'scilpy'
-copyright = '2020, The SCIL developers'
+copyright = '2024, The SCIL developers'
 author = 'The SCIL developers'
 
 # The short X.Y version
@@ -100,11 +101,9 @@ html_theme_options = {
 
 # To get full width:
 html_static_path = ['_static']
-html_context = {
-    'css_files': [
-        '_static/my_style.css',  # overrides for width size
-    ],
-}
+html_css_files = [
+    'my_style.css',  # overrides for width size
+]
 
 # Custom sidebar templates, must be a dictionary that maps document names
 # to template names.
@@ -204,7 +203,7 @@ def setup(app):
         shutil.copyfile(join(path_src, "fake_files", f),
                         join(path_script, "../scilpy/tractanalysis/", f))
 
-    commit_scripts = ["scil_run_commit.py"]
+    commit_scripts = ["scil_tractogram_commit.py"]
 
     amico_scripts = ["scil_NODDI_maps.py",
                      "scil_freewater_maps.py"]
@@ -248,7 +247,7 @@ def setup(app):
                     with open(join(path_src, "scripts", "{}.rst".format(name)),
                               "w") as s:
                         s.write(i + "\n")
-                        s.write("==============\n\n")
+                        s.write("=" * len(i) + "\n\n")
                         help_text = script._build_arg_parser().format_help() \
                             .replace("sphinx-build", i)
                         s.write("::\n\n\t")

@@ -187,20 +187,21 @@ def chordDiagram(X, ax, colors=None, width=0.1, pad=2, chordwidth=0.7,
                  angle_threshold=1, alpha=0.1, text_dist=1.1,
                  colormap='plasma'):
     """Plot a chord diagram
+
     Parameters
     ----------
-    X :
+    X:
         flux data, X[i, j] is the flux from i to j
-    ax :
+    ax:
         matplotlib `axes` to show the plot
-    colors : optional
+    colors: optional
         user defined colors in rgb format.
-    width : optional
+    width: optional
         width/thickness of the ideogram arc
-    pad : optional
+    pad: optional
         gap pad between two neighboring ideogram arcs, unit: degree,
         default: 2 degree
-    chordwidth : optional
+    chordwidth: optional
         position of the control points for the chords,
         controlling the shape of the chords
     """

@@ -1,8 +1,11 @@
+@import url("theme.css");
 /*
 "fix screen width.
 */
+
+
 .wy-nav-content {
-    max-width: 100%;
+    max-width: 80%;
 }
 
 .strike {
