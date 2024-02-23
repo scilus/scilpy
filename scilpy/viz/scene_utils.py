@@ -796,7 +796,7 @@ def create_image_from_scene(scene, size, mode=None, cmap_name=None):
     # solved in newer versions of the package.
     image = Image.fromarray(_arr, mode=mode).transpose(Image.FLIP_TOP_BOTTOM)
 
-    return image.resize(size, Image.ANTIALIAS)
+    return image.resize(size, Image.LANCZOS)
 
 
 def create_mask_from_scene(scene, size):
@@ -1147,6 +1147,8 @@ def compose_mosaic(
             labelmap_cmap_name=labelmap_cmap_name,
         )
 
-        annotate_scene(mosaic, slice_number, display_slice_number, display_lr)
+        if display_slice_number or display_lr:
+            annotate_scene(
+                mosaic, slice_number, display_slice_number, display_lr)
 
     return mosaic

@@ -121,6 +121,7 @@ def main():
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
+    # Verifications
     if not args.not_all:
         args.asi_map = args.asi_map or 'asi_map.nii.gz'
         args.odd_power_map = args.odd_power_map or 'odd_power_map.nii.gz'
@@ -142,6 +143,7 @@ def main():
     assert_inputs_exist(parser, inputs)
     assert_outputs_exist(parser, args, arglist)
 
+    # Loading
     sh_img = nib.load(args.in_sh)
     sh = sh_img.get_fdata()
 
@@ -157,6 +159,7 @@ def main():
     else:
         mask = np.sum(np.abs(sh), axis=-1) > 0
 
+    # Processing
     if args.asi_map:
         asi_map = compute_asymmetry_index(sh, sh_order, mask)
         nib.save(nib.Nifti1Image(asi_map, sh_img.affine),
