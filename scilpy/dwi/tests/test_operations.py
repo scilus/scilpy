@@ -6,6 +6,7 @@ from scilpy.dwi.operations import compute_dwi_attenuation, \
 
 
 def test_apply_bias_field():
+    # Possible test, toDo: check that initial range in dwi data is conserved.
     pass
 
 

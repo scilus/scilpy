@@ -10,8 +10,12 @@ from scilpy.gradients.bvec_bval_tools import identify_shells, \
 
 def apply_bias_field(dwi_data, bias_field_data, mask_data):
     """
-    ToDo: Explain formula why applying field = dividing?
-     + why we need to rescale after?
+    To apply a bias field (computed beforehands), we need to
+    1) Divide the dwi by the bias field. This is the correction itself.
+    See the following references:
+    https://simpleitk.readthedocs.io/en/master/link_N4BiasFieldCorrection_docs.html
+    https://mrtrix.readthedocs.io/en/dev/reference/commands/dwibiascorrect.html
+    2) Rescale the dwi, to ensure that the initial min-max range is kept.
 
     Parameters
     ----------
@@ -47,7 +51,7 @@ def _rescale_intensity(val, slope, in_max, bc_max):
     ----------
     val: float
          Value to be scaled
-    scale: float
+    slope: float
          Scaling factor to be applied
     in_max: float
          Max possible value
