@@ -199,8 +199,7 @@ def main():
     if not np.allclose(np.linalg.norm(tracking_sphere.vertices, axis=1), 1.):
         raise RuntimeError('Tracking sphere should be unit normed.')
 
-    sh_basis, _ = interpret_sh_basis(args)
-    # ToDo: Once Dipy adds the legacy option to dgklass, put is_legacy
+    sh_basis, is_legacy = interpret_sh_basis(args)
 
     if args.algo == 'det':
         dgklass = DeterministicMaximumDirectionGetter
@@ -218,6 +217,7 @@ def main():
         max_angle=theta,
         sphere=tracking_sphere,
         basis_type=sh_basis,
+        legacy=is_legacy,
         pmf_threshold=args.sf_threshold,
         relative_peak_threshold=args.sf_threshold_init)
 
