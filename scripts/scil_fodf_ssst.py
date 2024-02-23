@@ -23,7 +23,7 @@ from scilpy.gradients.bvec_bval_tools import (check_b0_threshold,
                                               normalize_bvecs,
                                               is_normalized_bvecs)
 from scilpy.io.image import get_data_as_mask
-from scilpy.io.utils import (add_overwrite_arg,
+from scilpy.io.utils import (add_overwrite_arg, interpret_sh_basis,
                              assert_inputs_exist, add_verbose_arg,
                              assert_outputs_exist, add_force_b0_arg,
                              add_sh_basis_args, add_processes_arg)
@@ -87,6 +87,7 @@ def main():
             raise ValueError("Mask is not the same shape as data.")
 
     sh_order = args.sh_order
+    sh_basis, is_legacy = interpret_sh_basis(args)
 
     # Checking data and sh_order
     b0_thr = check_b0_threshold(
@@ -126,9 +127,12 @@ def main():
 
     # Saving results
     shm_coeff = csd_fit.shm_coeff
-    if args.sh_basis == 'tournier07':
-        shm_coeff = convert_sh_basis(shm_coeff, reg_sphere, mask=mask,
-                                     nbr_processes=args.nbr_processes)
+    shm_coeff = convert_sh_basis(shm_coeff, reg_sphere, mask=mask,
+                                 input_basis='descoteaux07',
+                                 output_basis=sh_basis,
+                                 is_input_legacy=True,
+                                 is_output_legacy=is_legacy,
+                                 nbr_processes=args.nbr_processes)
     nib.save(nib.Nifti1Image(shm_coeff.astype(np.float32),
                              vol.affine), args.out_fODF)
 

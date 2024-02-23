@@ -247,8 +247,9 @@ def add_bbox_arg(parser):
                              'streamlines).')
 
 
-def add_sh_basis_args(parser, mandatory=False):
-    """Add spherical harmonics (SH) bases argument.
+def add_sh_basis_args(parser, mandatory=False, input_output=False):
+    """
+    Add spherical harmonics (SH) bases argument.
 
     Parameters
     ----------
@@ -256,11 +257,25 @@ def add_sh_basis_args(parser, mandatory=False):
         Parser.
     mandatory: bool
         Whether this argument is mandatory.
+    input_output: bool
+        Whether this argument should expect both input and output bases or not.
+        If set, the sh_basis argument will expect first the input basis,
+        followed by the output basis.
     """
-    choices = ['descoteaux07', 'tournier07', 'descoteaux07_legaycy',
+    if input_output:
+        nargs = 2
+        def_val = ['descoteaux07_legacy', 'tournier07']
+        input_output_msg = '\nBoth the input and output bases are ' +\
+                           'required, in that order.'
+    else:
+        nargs = 1
+        def_val = 'descoteaux07_legacy'
+        input_output_msg = ''
+
+    choices = ['descoteaux07', 'tournier07', 'descoteaux07_legacy',
                'tournier07_legacy']
-    def_val = 'descoteaux07'
     help_msg = 'Spherical harmonics basis used for the SH coefficients. ' +\
+               input_output_msg +\
                '\nMust be either \'descoteaux07\', \'tournier07\', \n' +\
                '\'descoteaux07_legacy\' or \'tournier07_legacy\'' +\
                ' [%(default)s]:\n' +\
@@ -279,9 +294,38 @@ def add_sh_basis_args(parser, mandatory=False):
     else:
         arg_name = '--sh_basis'
 
-    parser.add_argument(arg_name,
+    parser.add_argument(arg_name, nargs=nargs,
                         choices=choices, default=def_val,
                         help=help_msg)
+
+
+def interpret_sh_basis(args):
+    """
+    Interpret the input from args.sh_basis. If two SH bases are given,
+    both input/output sh_basis and is_legacy are returned.
+
+    Parameters
+    ----------
+    args : argparser
+        Argparser from a script.
+
+    Returns
+    -------
+    sh_basis : string
+        Spherical harmonic basis name.
+    is_legacy : bool
+        Whether or not the basis is in its legacy form.
+    """
+    if len(args.sh_basis) == 2:
+        in_sh_basis = args.sh_basis[0].split("_")[0]
+        is_in_legacy = len(args.sh_basis[0].split("_")) == 2
+        out_sh_basis = args.sh_basis[1].split("_")[0]
+        is_out_legacy = len(args.sh_basis[1].split("_")) == 2
+        return in_sh_basis, is_in_legacy, out_sh_basis, is_out_legacy
+    else:
+        sh_basis = args.sh_basis[0].split("_")[0]
+        is_legacy = len(args.sh_basis[0].split("_")) == 2
+        return sh_basis, is_legacy
 
 
 def add_nifti_screenshot_default_args(
