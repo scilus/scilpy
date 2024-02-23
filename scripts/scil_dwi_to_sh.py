@@ -70,6 +70,7 @@ def main():
     gtab = gradient_table(args.in_bval, args.in_bvec, b0_threshold=bvals.min())
 
     sh_basis, is_legacy = interpret_sh_basis(args)
+    print(sh_basis)
 
     mask = None
     if args.mask:

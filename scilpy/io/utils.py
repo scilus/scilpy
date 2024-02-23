@@ -269,7 +269,7 @@ def add_sh_basis_args(parser, mandatory=False, input_output=False):
                            'required, in that order.'
     else:
         nargs = 1
-        def_val = 'descoteaux07_legacy'
+        def_val = ['descoteaux07_legacy']
         input_output_msg = ''
 
     choices = ['descoteaux07', 'tournier07', 'descoteaux07_legacy',
