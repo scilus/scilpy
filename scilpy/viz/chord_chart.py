@@ -187,7 +187,7 @@ def chordDiagram(X, ax, colors=None, width=0.1, pad=2, chordwidth=0.7,
                  angle_threshold=1, alpha=0.1, text_dist=1.1,
                  colormap='plasma'):
     """Plot a chord diagram
-    
+
     Parameters
     ----------
     X:

@@ -152,7 +152,8 @@ def verify_group_difference(data_by_group, normality=False,
         logging.info('There is a difference between groups')
         difference = True
     else:
-        logging.info('We are not able to detect difference between the groups.')
+        logging.info('We are not able to detect difference between'
+                     ' the groups.')
         difference = False
 
     return test, difference, p_value
@@ -184,7 +185,7 @@ def verify_post_hoc(data_by_group, groups_list, test,
     -------
     differences: list of (string, string, bool)
         The result of the post-hoc for every groups pairwise combinations.
-        
+
         - 1st, 2nd dimension: Names of the groups chosen.
         - 3rd: Whether or not we detect a pairwise difference on the current
           measurement.

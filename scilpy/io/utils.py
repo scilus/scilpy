@@ -362,7 +362,7 @@ def add_nifti_screenshot_overlays_args(
 def validate_nbr_processes(parser, args):
     """
     Check if the passed number of processes arg is valid.
-    
+
     Valid values are considered to be in the [0, CPU count] range:
         - Raises a parser.error if an invalid value is provided.
         - Returns the maximum number of cores retrieved if no value (or a value
@@ -886,5 +886,3 @@ def get_default_screenshotting_data(args):
         labelmap_img, \
         mask_imgs, \
         masks_colors
-
-

@@ -8,7 +8,6 @@ import numpy as np
 import os
 from scipy.ndimage import binary_dilation
 
-from dipy.io.stateful_tractogram import StatefulTractogram
 from dipy.io.streamline import save_tractogram
 from dipy.tracking.utils import length as compute_length
 
@@ -578,7 +577,7 @@ def segment_tractogram_from_roi(
     -------
     vb_sft_list: list
         The list of valid bundles discovered. These files are also saved
-        in segmented_VB/\*_VS.trk.
+        in segmented_VB/\\*_VS.trk.
     wpc_sft_list: list
         The list of wrong path connections: streamlines connecting the right
         endpoint regions but not included in the ALL mask.

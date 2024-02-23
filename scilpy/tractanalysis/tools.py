@@ -93,8 +93,8 @@ def compute_connectivity(indices, atlas_data, real_labels, segmenting_func):
             real_labels as keys.
 
         - The value of connectivity[1][2] is a list of length n, where n is
-            the number of streamlines ending in 1 and finishing in 2. Each value
-            is a dict of the following shape:
+            the number of streamlines ending in 1 and finishing in 2. Each
+            value is a dict of the following shape:
 
            >>> 'strl_idx': int --> The idex of the streamline in the raw data.
            >>> 'in_idx:    int -->

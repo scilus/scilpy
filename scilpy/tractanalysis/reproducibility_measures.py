@@ -20,7 +20,7 @@ def binary_classification(segmentation_indices,
                           mask_count=0):
     """
     Compute all the binary classification measures using only indices from
-    a dataset and its ground truth in any representation (voxels 
+    a dataset and its ground truth in any representation (voxels
     or streamlines).
 
     Parameters
@@ -375,7 +375,7 @@ def compute_dice_streamlines(bundle_1, bundle_2):
         First set of streamlines.
     bundle_2: list of ndarray
         Second set of streamlines.
-    
+
     Returns
     -------
     A tuple containing

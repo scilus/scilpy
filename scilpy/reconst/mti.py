@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 
-import json
-
 import nibabel as nib
 import numpy as np
 import scipy.io
@@ -39,7 +37,7 @@ def py_fspecial_gauss(shape, sigma):
 
 
 def process_contrast_map(merged_images, single_echo=False,
-                           filtering=False):
+                         filtering=False):
     """
     Average echoes of a contrast map and apply gaussian filter.
 
@@ -161,7 +159,7 @@ def threshold_map(computed_map,  in_mask,
     - maximum and minimum threshold value
     - T1 mask
     - combination of specific contrast maps
-    
+
     idx_contrast_list and contrast_maps are required for
     thresholding of ihMT images.
 
@@ -179,7 +177,7 @@ def threshold_map(computed_map,  in_mask,
                         PD = 4; T1 = 5
     contrast_maps:      List of 3D-Array. File must containing the
                         5 or 6 contrast maps.
-    
+
     Returns
     -------
     Thresholded matrix in 3D-array.

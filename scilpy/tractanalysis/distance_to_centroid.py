@@ -10,13 +10,13 @@ def min_dist_to_centroid(bundle_pts, centroid_pts, nb_pts):
 
     Parameters
     ----------
-    bundles_pts:
-    centroid_pts:
+    bundles_pts: np.array
+    centroid_pts: np.array
     nb_pts: int
 
     Returns
     -------
-    Array 
+    Array:
     """
     tree = KDTree(centroid_pts, copy_data=True)
     dists, labels = tree.query(bundle_pts, k=1)
