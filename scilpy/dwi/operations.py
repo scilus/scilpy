@@ -32,8 +32,7 @@ def apply_bias_field(dwi_data, bias_field_data, mask_data):
         The modified 4D dwi_data.
     """
     nuc_dwi_data = np.divide(
-        dwi_data[mask_data],
-        bias_field_data[mask_data].reshape((len(mask_data[0]), 1)))
+        dwi_data[mask_data, :], bias_field_data[mask_data][:, None])
 
     rescaled_nuc_data = _rescale_dwi(dwi_data[mask_data], nuc_dwi_data)
     dwi_data[mask_data] = rescaled_nuc_data

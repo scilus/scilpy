@@ -2,12 +2,23 @@
 import numpy as np
 
 from scilpy.dwi.operations import compute_dwi_attenuation, \
-    detect_volume_outliers
+    detect_volume_outliers, apply_bias_field
 
 
 def test_apply_bias_field():
-    # Possible test, toDo: check that initial range in dwi data is conserved.
-    pass
+
+    # DWI is 1 everywhere, one voxel at 0.
+    dwi = np.ones((10, 10, 10, 5))
+    dwi[0, 0, 0, :] = 0
+    mask = np.ones((10, 10, 10), dtype=bool)
+
+    # bias field is 2 everywhere
+    bias_field = 2 * np.ones((10, 10, 10))
+
+    # result should be 1/2 everywhere, one voxel at 0. Rescaled to 0-1.
+    out_dwi = apply_bias_field(dwi, bias_field, mask)
+    assert np.max(out_dwi) == 1
+    assert out_dwi[0, 0, 0, 0] == 0
 
 
 def test_compute_dwi_attenuation():
