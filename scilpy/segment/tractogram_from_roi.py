@@ -571,14 +571,14 @@ def segment_tractogram_from_roi(
         list_rois, args):
     """
     Segments valid bundles (VB). Based on args:
-        - args.compute_ic: computes invalid bundles (IB)
-        - args.save_wpc_separately: compute WPC
+    - args.compute_ic: computes invalid bundles (IB)
+    - args.save_wpc_separately: compute WPC
 
     Returns
     -------
     vb_sft_list: list
         The list of valid bundles discovered. These files are also saved
-        in segmented_VB/*_VS.trk.
+        in segmented_VB/\*_VS.trk.
     wpc_sft_list: list
         The list of wrong path connections: streamlines connecting the right
         endpoint regions but not included in the ALL mask.

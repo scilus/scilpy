@@ -9,14 +9,6 @@ scilpy.tractanalysis.afd\_along\_streamlines module
    :undoc-members:
    :show-inheritance:
 
-scilpy.tractanalysis.distance\_to\_centroid module
-------------------------------------------------------
-
-.. automodule:: scilpy.tractanalysis.distance_to_centroid
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 scilpy.tractanalysis.bingham\_metric\_along\_streamlines module
 ---------------------------------------------------------------
 

@@ -20,8 +20,10 @@ def binary_classification(segmentation_indices,
                           mask_count=0):
     """
     Compute all the binary classification measures using only indices from
-    a dataset and its ground truth in any representation (voxels
+    a dataset and its ground truth in any representation (voxels 
     or streamlines).
+
+    Parameters
     ----------
     segmentation_indices: list of int
         Indices of the data that are part of the segmentation.
@@ -34,13 +36,15 @@ def binary_classification(segmentation_indices,
         Number of non-zeros voxels in the original dataset.
         Needed in order to get a valid true positive count for the voxel
         representation.
+
     Returns
     -------
     A tuple containing
-        float: Value between 0 and 1 that represent the spatial aggrement
-            between both bundles.
-        list of ndarray: intersection_robust of streamlines in both bundle
-        list of ndarray: union_robust of streamlines in both bundle
+
+    - float: Value between 0 and 1 that represent the spatial aggrement
+        between both bundles.
+    - list of ndarray: intersection_robust of streamlines in both bundle
+    - list of ndarray: union_robust of streamlines in both bundle
     """
     tp = len(np.intersect1d(segmentation_indices, gold_standard_indices))
     fp = len(np.setdiff1d(segmentation_indices, gold_standard_indices))
@@ -93,6 +97,7 @@ def approximate_surface_node(roi):
     """
     Compute the number of surface voxels (i.e. nodes connected to at least one
     zero-valued neighboring voxel)
+
     Parameters
     ----------
     roi: ndarray
@@ -118,6 +123,8 @@ def compute_fractal_dimension(density, n_steps=10, box_size_min=1.0,
     The code is extracted from https://github.com/FBK-NILab/fractal_dimension
     Parameters. The result is dependent on voxel size and the number of voxels.
     If data comparison is performed, the bundles MUST be in same resolution.
+
+    Parameters
     ----------
     density: ndarray
         A ndarray where voxel values represent the density of a bundle. This
@@ -138,6 +145,7 @@ def compute_fractal_dimension(density, n_steps=10, box_size_min=1.0,
     box_size: ndarray
         A ndarray of different sizes of boxes in a linear space in an ascending
         order.
+
     Returns
     -------
     float: fractal dimension of a bundle
@@ -289,19 +297,22 @@ def compute_dice_voxel(density_1, density_2):
     """
     Compute the overlap (dice coefficient) between two
     density maps (or binary).
+
     Parameters
     ----------
     density_1: ndarray
         Density (or binary) map computed from the first bundle
     density_2: ndarray
         Density (or binary) map computed from the second bundle
+
     Returns
     -------
-    A tuple containing
-        float: Value between 0 and 1 that represent the spatial aggrement
-            between both bundles.
-        float: Value between 0 and 1 that represent the spatial aggrement
-            between both bundles, weighted by streamlines density.
+    A tuple containing:
+
+    - float: Value between 0 and 1 that represent the spatial aggrement
+        between both bundles.
+    - float: Value between 0 and 1 that represent the spatial aggrement
+        between both bundles, weighted by streamlines density.
     """
     overlap_idx = np.nonzero(density_1 * density_2)
     numerator = 2 * len(overlap_idx[0])
@@ -357,19 +368,21 @@ def compute_dice_streamlines(bundle_1, bundle_2):
     """
     Compute the overlap (dice coefficient) between two bundles.
     Both bundles need to come from the exact same tractogram.
+
     Parameters
     ----------
     bundle_1: list of ndarray
         First set of streamlines.
     bundle_2: list of ndarray
         Second set of streamlines.
+    
     Returns
     -------
     A tuple containing
-        float: Value between 0 and 1 that represent the spatial aggrement
-            between both bundles.
-        list of ndarray: intersection_robust of streamlines in both bundle
-        list of ndarray: union_robust of streamlines in both bundle
+    - float: Value between 0 and 1 that represent the spatial aggrement
+        between both bundles.
+    - list of ndarray: intersection_robust of streamlines in both bundle
+    - list of ndarray: union_robust of streamlines in both bundle
     """
     streamlines_intersect, _ = intersection_robust([bundle_1, bundle_2])
     streamlines_union_robust, _ = union_robust([bundle_1, bundle_2])

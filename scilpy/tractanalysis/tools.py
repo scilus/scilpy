@@ -88,14 +88,17 @@ def compute_connectivity(indices, atlas_data, real_labels, segmenting_func):
     -------
     connectivity: dict
         A dict containing one key per real_labels (ex, 1, 2) (starting point).
-        --The value of connectivity[1] is again a dict with again the
-          real_labels as keys.
-          --The value of connectivity[1][2] is a list of length n, where n is
-           the number of streamlines ending in 1 and finishing in 2. Each value
-           is a dict of the following shape:
-           {'strl_idx': int  --> The idex of the streamline in the raw data.
-            'in_idx: int,    -->
-            'out_idx': int}
+
+        - The value of connectivity[1] is again a dict with again the
+            real_labels as keys.
+
+        - The value of connectivity[1][2] is a list of length n, where n is
+            the number of streamlines ending in 1 and finishing in 2. Each value
+            is a dict of the following shape:
+
+           >>> 'strl_idx': int --> The idex of the streamline in the raw data.
+           >>> 'in_idx:    int -->
+           >>> 'out_idx': int  -->
     """
     connectivity = {k: {lab: [] for lab in real_labels} for k in real_labels}
 

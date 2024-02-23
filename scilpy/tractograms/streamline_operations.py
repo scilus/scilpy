@@ -9,10 +9,10 @@ from scipy.interpolate import splev, splprep
 
 
 def _get_streamline_pt_index(points_to_index, vox_index, from_start=True):
-    """ Get the index of the streamline point in the voxel.
+    """Get the index of the streamline point in the voxel.
 
-    Arguments
-    ---------
+    Parameters
+    ----------
     points_to_index: np.ndarray
         The indices of the voxels in the streamline's voxel grid.
     vox_index: int

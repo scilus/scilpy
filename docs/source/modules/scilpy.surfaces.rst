@@ -1,5 +1,5 @@
 scilpy.surfaces package
-======================
+=======================
 
 scilpy.surfaces.surface\_operations module
 ------------------------------------------------------

@@ -154,6 +154,7 @@ def reconstruct_streamlines_from_memmap(memmap_filenames, indices=None,
     Function to reconstruct streamlines from memmaps, mainly to facilitate
     multiprocessing and decrease RAM usage.
 
+    Parameters
     ----------
     memmap_filenames : tuple
         Tuple of 3 filepath to numpy memmap (data, offsets, lengths).
@@ -177,10 +178,12 @@ def reconstruct_streamlines_from_hdf5(hdf5_filename, key=None):
     """
     Function to reconstruct streamlines from hdf5, mainly to facilitate
     decomposition into thousand of connections and decrease I/O usage.
+
+    Parameters
     ----------
-    hdf5_filename : str
+    hdf5_filename: str
         Filepath to the hdf5 file.
-    key : str
+    key: str
         Key of the connection of interest (LABEL1_LABEL2).
 
     Returns
@@ -212,6 +215,7 @@ def reconstruct_streamlines(data, offsets, lengths, indices=None):
     Function to reconstruct streamlines from its data, offsets and lengths
     (from the nibabel tractogram object).
 
+    Parameters
     ----------
     data : np.ndarray
         Nx3 array representing all points of the streamlines.

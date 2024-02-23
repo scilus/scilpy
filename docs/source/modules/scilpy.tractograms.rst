@@ -1,6 +1,15 @@
 scilpy.tractograms package
 ==========================
 
+
+scilpy.tractograms.dps\_and\_dpp\_management module
+-------------------------------------------------------
+
+.. automodule:: scilpy.tractograms.dps_and_dpp_management
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 scilpy.tractograms.lazy\_tractogram\_operations module
 -------------------------------------------------------
 
@@ -11,14 +20,6 @@ scilpy.tractograms.lazy\_tractogram\_operations module
 
 scilpy.tractograms.streamline\_and\_mask\_operations module
 ------------------------------------------------------------
-
-.. automodule:: scilpy.tractograms.streamline_and_mask_operations
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-scilpy.tractograms.streamline\_operations module
-------------------------------------------------------
 
 .. automodule:: scilpy.tractograms.streamline_and_mask_operations
    :members:

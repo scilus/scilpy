@@ -46,9 +46,9 @@ release = u''
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    'sphinx.ext.napoleon',
     'sphinx.ext.autodoc',
     'sphinx.ext.coverage',
+    'sphinx.ext.napoleon',
     'sphinx.ext.viewcode',
     'sphinx.ext.mathjax'
 ]
@@ -101,11 +101,9 @@ html_theme_options = {
 
 # To get full width:
 html_static_path = ['_static']
-html_context = {
-    'css_files': [
-        '_static/my_style.css',  # overrides for width size
-    ],
-}
+html_css_files = [
+    'my_style.css',  # overrides for width size
+]
 
 # Custom sidebar templates, must be a dictionary that maps document names
 # to template names.
