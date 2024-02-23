@@ -127,7 +127,7 @@ def main():
     sf = convert_sh_to_sf(data_sh, sphere,
                           input_basis=sh_basis,
                           input_full_basis=args.full_basis,
-                          is_input_legacy=is_legacy
+                          is_input_legacy=is_legacy,
                           dtype=args.dtype,
                           nbr_processes=nbr_processes)
     new_bvecs = sphere.vertices.astype(np.float32)
