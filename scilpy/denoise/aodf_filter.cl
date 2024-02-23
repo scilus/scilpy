@@ -22,6 +22,8 @@ float range_filter(const float x)
 __kernel void filter(__global const float* sf_data,
                      __global const float* nx_filter,
                      __global const float* uv_filter,
+                     __global const float* uv_weights_offset,
+                     __global const float* v_indices,
                      __global float* out_sf)
 {
     // *output* image dimensions
@@ -57,10 +59,14 @@ __kernel void filter(__global const float* sf_data,
         float w_norm = 0.0f;
         float tilde_psi_xui = 0.0f;
 #if DISABLE_ANGLE
-        const int vi = ui;
+        const int vi_in_image = ui;
 #else
-        for(int vi = 0; vi < N_DIRS; ++vi)
+        const int vi_offset = (int)uv_weights_offset[ui];
+        const int n_ang_neigbrs = (int)uv_weights_offset[ui + 1] - vi_offset;
+        for(int dir_i = 0; dir_i < n_ang_neigbrs; ++dir_i)
         {
+            const int vi_in_filter = vi_offset + dir_i;
+            const int vi_in_image = v_indices[vi_in_filter];
 #endif
             for(int hi = 0; hi < WIN_WIDTH; ++hi)
             {
@@ -68,16 +74,10 @@ __kernel void filter(__global const float* sf_data,
                 {
                     for(int hk = 0; hk < WIN_WIDTH; ++hk)
                     {
-#if EXCLUDE_SELF
-                        if(hi == win_hwidth && hj == win_hwidth && win_hwidth == hk)
-                        {
-                            continue;
-                        }
-#endif
                         const int yvi_flat_ind =
-                            get_flat_index(x_ind + hi, y_ind + hj,
-                                           z_ind + hk, vi, x_pad_len,
-                                           y_pad_len, z_pad_len);
+                            get_flat_index(x_ind + hi, y_ind + hj, z_ind + hk,
+                                           vi_in_image, x_pad_len, y_pad_len,
+                                           z_pad_len);
                         const float psi_yvi = sf_data[yvi_flat_ind];
 #if DISABLE_RANGE
                         const float r_weight = 1.0f;
@@ -90,9 +90,11 @@ __kernel void filter(__global const float* sf_data,
                                                                     WIN_WIDTH);
                         const float nx_weight = nx_filter[y_in_nx_flat_ind];
 
-                        const int uv_flat_ind = get_flat_index(ui, vi, 0, 0, N_DIRS,
-                                                               N_DIRS, 1);
-                        const float uv_weight = uv_filter[uv_flat_ind];
+#if DISABLE_ANGLE
+                        const float uv_weight = 1.0f;
+#else
+                        const float uv_weight = uv_filter[vi_in_filter];
+#endif
 
                         const float res_weight_yvi = nx_weight * r_weight * uv_weight;
                         tilde_psi_xui += res_weight_yvi * psi_yvi;

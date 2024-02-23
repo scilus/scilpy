@@ -1,150 +1,186 @@
 # -*- coding: utf-8 -*-
-
 import numpy as np
+import logging
 from dipy.reconst.shm import sh_to_sf_matrix
 from dipy.data import get_sphere
 from dipy.core.sphere import Sphere
 from scipy.ndimage import correlate
+from itertools import product as iterprod
 from scilpy.gpuparallel.opencl_utils import have_opencl, CLKernel, CLManager
 
 
-def angle_aware_bilateral_filtering(in_sh, sh_order=8,
-                                    sh_basis='descoteaux07',
-                                    in_full_basis=False,
-                                    sphere_str='repulsion724',
-                                    sigma_spatial=1.0, sigma_angular=1.0,
-                                    sigma_range=0.5, use_gpu=True):
-    """
-    Angle-aware bilateral filtering.
+class AsymmetricFilter():
+    def __init__(self, sh_order, sh_basis, legacy, full_basis,
+                 sphere_str, sigma_spatial, sigma_align,
+                 sigma_angle, sigma_range, disable_spatial=False,
+                 disable_align=False, disable_angle=False,
+                 disable_range=False, device_type='gpu',
+                 j_invariance=False):
+        self.sh_order = sh_order
+        self.legacy = legacy
+        self.basis = sh_basis
+        self.full_basis = full_basis
+        self.sphere = get_sphere(sphere_str)
+        self.sigma_spatial = sigma_spatial
+        self.sigma_align = sigma_align
+        self.sigma_angle = sigma_angle
+        self.sigma_range = sigma_range
+        self.disable_range = disable_range
+        self.disable_angle = disable_angle
+        self.device_type = device_type
 
-    Parameters
-    ----------
-    in_sh: ndarray (x, y, z, ncoeffs)
-        Input SH volume.
-    sh_order: int, optional
-        Maximum SH order of input volume.
-    sh_basis: str, optional
-        Name of SH basis used.
-    in_full_basis: bool, optional
-        True if input is expressed in full SH basis.
-    sphere_str: str, optional
-        Name of the DIPY sphere to use for sh to sf projection.
-    sigma_spatial: float, optional
-        Standard deviation for spatial filter.
-    sigma_angular: float, optional
-        Standard deviation for angular filter.
-    sigma_range: float, optional
-        Standard deviation for range filter.
-    use_gpu: bool, optional
-        True if GPU should be used.
+        if device_type == 'gpu' and not have_opencl:
+            raise ValueError('device_type `gpu` requested but pyopencl'
+                             ' is not installed.\nPlease install pyopencl to'
+                             ' enable GPU acceleration.')
 
-    Returns
-    -------
-    out_sh: ndarray (x, y, z, ncoeffs)
-        Output SH coefficient array in full SH basis.
-    """
-    if use_gpu and have_opencl:
-        return angle_aware_bilateral_filtering_gpu(in_sh, sh_order,
-                                                   sh_basis, in_full_basis,
-                                                   sphere_str, sigma_spatial,
-                                                   sigma_angular, sigma_range)
-    elif use_gpu and not have_opencl:
-        raise RuntimeError('Package pyopencl not found. Install pyopencl'
-                           ' or set use_gpu to False.')
-    else:
-        return angle_aware_bilateral_filtering_cpu(in_sh, sh_order,
-                                                   sh_basis, in_full_basis,
-                                                   sphere_str, sigma_spatial,
-                                                   sigma_angular, sigma_range)
+        # won't need this if disable angle
+        self.uv_filter = self._build_uv_filter(self.sphere.vertices,
+                                               self.sigma_angle)
 
+        # sigma still controls the width of the filter
+        self.nx_filter = self._build_nx_filter(self.sphere.vertices, sigma_spatial,
+                                               sigma_align, disable_spatial,
+                                               disable_align, j_invariance)
 
-def angle_aware_bilateral_filtering_gpu(in_sh, sh_order=8,
-                                        sh_basis='descoteaux07',
-                                        in_full_basis=False,
-                                        sphere_str='repulsion724',
-                                        sigma_spatial=1.0,
-                                        sigma_angular=1.0,
-                                        sigma_range=0.5):
-    """
-    Angle-aware bilateral filtering using OpenCL for GPU computing.
+        self.B = sh_to_sf_matrix(self.sphere, self.sh_order,
+                                 self.basis, self.full_basis,
+                                 legacy=self.legacy, return_inv=False)
+        _, self.B_inv = sh_to_sf_matrix(self.sphere, self.sh_order,
+                                        self.basis, True, legacy=self.legacy,
+                                        return_inv=True)
 
-    Parameters
-    ----------
-    in_sh: ndarray (x, y, z, ncoeffs)
-        Input SH volume.
-    sh_order: int, optional
-        Maximum SH order of input volume.
-    sh_basis: str, optional
-        Name of SH basis used.
-    in_full_basis: bool, optional
-        True if input is expressed in full SH basis.
-    sphere_str: str, optional
-        Name of the DIPY sphere to use for sh to sf projection.
-    sigma_spatial: float, optional
-        Standard deviation for spatial filter.
-    sigma_angular: float, optional
-        Standard deviation for angular filter.
-    sigma_range: float, optional
-        Standard deviation for range filter.
+        # initialize gpu
+        self.cl_kernel = None
+        self.cl_manager = None
+        self._prepare_gpu()
 
-    Returns
-    -------
-    out_sh: ndarray (x, y, z, ncoeffs)
-        Output SH coefficient array in full SH basis.
-    """
-    s_weights = _get_spatial_weights(sigma_spatial)
-    h_half_width = len(s_weights) // 2
+    def _prepare_gpu(self):
+        self.cl_kernel = CLKernel('filter', 'filtering', 'aodf_filter.cl')
 
-    sphere = get_sphere(sphere_str)
-    a_weights = _get_angular_weights(s_weights.shape, sphere, sigma_angular)
+        self.cl_kernel.set_define('WIN_WIDTH', self.nx_filter.shape[0])
+        self.cl_kernel.set_define('SIGMA_RANGE',
+                                  '{}f'.format(self.sigma_range))
+        self.cl_kernel.set_define('N_DIRS', len(self.sphere.vertices))
+        self.cl_kernel.set_define('DISABLE_ANGLE', 'true' if self.disable_angle
+                                                   else 'false')
+        self.cl_kernel.set_define('DISABLE_RANGE', 'true' if self.disable_range
+                                                   else 'false')
+        self.cl_manager = CLManager(self.cl_kernel, self.device_type)
 
-    h_weights = s_weights[..., None] * a_weights
-    h_weights /= np.sum(h_weights, axis=(0, 1, 2))
+    def __call__(self, sh_data, patch_size=40):
+        uv_weights_offsets =\
+            np.append([0.0], np.cumsum(np.count_nonzero(self.uv_filter, axis=-1)))
+        v_indices = np.tile(np.arange(self.uv_filter.shape[1]),
+                            (self.uv_filter.shape[0], 1))[self.uv_filter > 0.0]
+        flat_uv = self.uv_filter[self.uv_filter > 0.0]
 
-    sh_to_sf_mat = sh_to_sf_matrix(sphere, sh_order=sh_order,
-                                   basis_type=sh_basis,
-                                   full_basis=in_full_basis,
-                                   return_inv=False)
+        # Prepare GPU buffers
+        self.cl_manager.add_input_buffer("sf_data")  # SF data not initialized
+        self.cl_manager.add_input_buffer("nx_filter", self.nx_filter)
+        self.cl_manager.add_input_buffer("uv_filter", flat_uv)
+        self.cl_manager.add_input_buffer("uv_weights_offsets", uv_weights_offsets)
+        self.cl_manager.add_input_buffer("v_indices", v_indices)
+        self.cl_manager.add_output_buffer("out_sf")  # SF not initialized yet
 
-    _, sf_to_sh_mat = sh_to_sf_matrix(sphere, sh_order=sh_order,
-                                      basis_type=sh_basis,
-                                      full_basis=True,
-                                      return_inv=True)
+        win_width = self.nx_filter.shape[0]
+        win_hwidth = win_width // 2
+        volume_shape = sh_data.shape[:-1]
+        padded_volume_shape = tuple(np.asarray(volume_shape) + win_width - 1)
 
-    out_n_coeffs = sf_to_sh_mat.shape[1]
-    n_dirs = len(sphere.vertices)
-    volume_shape = in_sh.shape
-    in_sh = np.pad(in_sh, ((h_half_width, h_half_width),
-                           (h_half_width, h_half_width),
-                           (h_half_width, h_half_width),
-                           (0, 0)))
+        out_sh = np.zeros(np.append(sh_data.shape[:-1], self.B_inv.shape[-1]))
+        # Pad SH data
+        sh_data = np.pad(sh_data, ((win_hwidth, win_hwidth),
+                                   (win_hwidth, win_hwidth),
+                                   (win_hwidth, win_hwidth),
+                                   (0, 0)))
 
-    cl_kernel = CLKernel('correlate', 'denoise', 'angle_aware_bilateral.cl')
-    cl_kernel.set_define('IM_X_DIM', volume_shape[0])
-    cl_kernel.set_define('IM_Y_DIM', volume_shape[1])
-    cl_kernel.set_define('IM_Z_DIM', volume_shape[2])
+        # process in batches
+        padded_patch_size = patch_size + self.nx_filter.shape[0] - 1
 
-    cl_kernel.set_define('H_X_DIM', h_weights.shape[0])
-    cl_kernel.set_define('H_Y_DIM', h_weights.shape[1])
-    cl_kernel.set_define('H_Z_DIM', h_weights.shape[2])
+        n_splits = np.ceil(np.asarray(volume_shape) / float(patch_size))\
+            .astype(int)
+        splits_prod = iterprod(np.arange(n_splits[0]),
+                               np.arange(n_splits[1]),
+                               np.arange(n_splits[2]))
+        n_splits_prod = np.prod(n_splits)
+        for i, split_offset in enumerate(splits_prod):
+            logging.info('Patch {}/{}'.format(i+1, n_splits_prod))
+            i, j, k = split_offset
+            patch_in = np.array(
+                [[i * patch_size, min((i*patch_size)+padded_patch_size,
+                                      padded_volume_shape[0])],
+                 [j * patch_size, min((j*patch_size)+padded_patch_size,
+                                      padded_volume_shape[1])],
+                 [k * patch_size, min((k*patch_size)+padded_patch_size,
+                                      padded_volume_shape[2])]])
+            patch_out = np.array(
+                [[i * patch_size, min((i+1)*patch_size, volume_shape[0])],
+                 [j * patch_size, min((j+1)*patch_size, volume_shape[1])],
+                 [k * patch_size, min((k+1)*patch_size, volume_shape[2])]])
+            out_shape = tuple(np.append(patch_out[:, 1] - patch_out[:, 0],
+                                        len(self.sphere.vertices)))
 
-    cl_kernel.set_define('SIGMA_RANGE', float(sigma_range))
+            sh_patch = sh_data[patch_in[0, 0]:patch_in[0, 1],
+                               patch_in[1, 0]:patch_in[1, 1],
+                               patch_in[2, 0]:patch_in[2, 1]]
 
-    cl_kernel.set_define('IN_N_COEFFS', volume_shape[-1])
-    cl_kernel.set_define('OUT_N_COEFFS', out_n_coeffs)
-    cl_kernel.set_define('N_DIRS', n_dirs)
+            sf_patch = np.dot(sh_patch, self.B)
+            self.cl_manager.update_input_buffer("sf_data", sf_patch)
+            self.cl_manager.update_output_buffer("out_sf", out_shape)
+            out_sf = self.cl_manager.run(out_shape[:-1])[0]
+            out_sh[patch_out[0, 0]:patch_out[0, 1],
+                   patch_out[1, 0]:patch_out[1, 1],
+                   patch_out[2, 0]:patch_out[2, 1]] = np.dot(out_sf,
+                                                             self.B_inv)
 
-    cl_manager = CLManager(cl_kernel, 4, 1)
-    cl_manager.add_input_buffer(0, in_sh)
-    cl_manager.add_input_buffer(1, h_weights)
-    cl_manager.add_input_buffer(2, sh_to_sf_mat)
-    cl_manager.add_input_buffer(3, sf_to_sh_mat)
+        return out_sh
 
-    cl_manager.add_output_buffer(0, volume_shape[:3] + (out_n_coeffs,),
-                                 np.float32)
+    def _build_uv_filter(directions, sigma_angle):
+        dot = directions.dot(directions.T)
+        x = np.arccos(np.clip(dot, -1.0, 1.0))
+        weights = _evaluate_gaussian_distribution(sigma_angle, x)
 
-    outputs = cl_manager.run(volume_shape[:3])
-    return outputs[0]
+        mask = x > (3.0*sigma_angle)
+        weights[mask] = 0.0
+        weights /= np.sum(weights, axis=-1)
+        return weights
+
+    def _build_nx_filter(directions, sigma_spatial, sigma_align,
+                        disable_spatial=False, disable_align=False,
+                        j_invariance=False):
+        directions = directions.astype(np.float32)
+        half_width = int(round(3*sigma_spatial))
+        filter_shape = (half_width*2+1, half_width*2+1, half_width*2+1)
+
+        grid_directions = _get_window_directions(filter_shape).astype(np.float32)
+        distances = np.linalg.norm(grid_directions, axis=-1)
+        grid_directions[distances > 0] = grid_directions[distances > 0]\
+                                        / distances[distances > 0][..., None]
+
+        if disable_spatial:
+            w_spatial = np.ones(filter_shape)
+        else:
+            w_spatial = _evaluate_gaussian_distribution(sigma_spatial, distances)
+
+        cos_theta = np.clip(grid_directions.dot(directions.T), -1.0, 1.0)
+        theta = np.arccos(cos_theta)
+        theta[half_width, half_width, half_width] = 0.0
+
+        if disable_align:
+            w_align = np.ones(np.append(filter_shape, (len(directions),)))
+        else:
+            w_align = _evaluate_gaussian_distribution(sigma_align, theta)
+
+        w = w_spatial[..., None] * w_align
+
+        if j_invariance:
+            w[half_width, half_width, half_width] = 0.0
+
+        # normalize
+        w /= np.sum(w, axis=(0,1,2), keepdims=True)
+
+        return w
 
 
 def angle_aware_bilateral_filtering_cpu(in_sh, sh_order=8,
@@ -257,74 +293,6 @@ def _get_window_directions(shape):
     grid = np.moveaxis(grid, 0, -1)
     grid = grid - np.asarray(shape) // 2
     return grid
-
-
-def _get_spatial_weights(sigma_spatial):
-    """
-    Compute the spatial filter, which is an isotropic Gaussian filter
-    of standard deviation sigma_spatial forweighting by the distance
-    between voxel positions. The size of the filter is given by
-    6 * sigma_spatial, in order to cover the range
-    [-3*sigma_spatial, 3*sigma_spatial].
-
-    Parameters
-    ----------
-    sigma_spatial: float
-        Standard deviation of spatial filter.
-
-    Returns
-    -------
-    spatial_weights: ndarray
-        Spatial filter.
-    """
-    shape = int(6 * sigma_spatial)
-    if shape % 2 == 0:
-        shape += 1
-    shape = (shape, shape, shape)
-
-    grid = _get_window_directions(shape)
-
-    distances = np.linalg.norm(grid, axis=-1)
-    spatial_weights = _evaluate_gaussian_distribution(distances, sigma_spatial)
-
-    # normalize filter
-    spatial_weights /= np.sum(spatial_weights)
-    return spatial_weights
-
-
-def _get_angular_weights(shape, sphere, sigma_angular):
-    """
-    Compute the angular filter, weighted by the alignment between a
-    sphere direction and the direction to a neighbour. The parameter
-    sigma_angular controls the sharpness of the kernel.
-
-    Parameters
-    ----------
-    shape: tuple
-        Shape of the angular filter.
-    sphere: dipy Sphere
-        Sphere on which the SH coefficeints are projected.
-    sigma_angular: float
-        Standard deviation of Gaussian distribution.
-
-    Returns
-    -------
-    angular_weights: ndarray
-        Angular filter for each position and for each sphere direction.
-    """
-    grid_dirs = _get_window_directions(shape).astype(np.float32)
-    dir_norms = np.linalg.norm(grid_dirs, axis=-1)
-
-    # normalized grid directions
-    grid_dirs[dir_norms > 0] /= dir_norms[dir_norms > 0][:, None]
-    angles = np.arccos(np.dot(grid_dirs, sphere.vertices.T))
-    angles[np.logical_not(dir_norms > 0), :] = 0.0
-
-    angular_weights = _evaluate_gaussian_distribution(angles, sigma_angular)
-
-    # normalize filter per direction
-    angular_weights /= np.sum(angular_weights, axis=(0, 1, 2))
-    return angular_weights
 
 
 def _correlate_spatial(image_u, h_filter, sigma_range):
