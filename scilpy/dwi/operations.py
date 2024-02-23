@@ -216,3 +216,73 @@ def detect_volume_outliers(data, bvecs, bvals, std_scale,
         logging.debug('Shell with b-value {}'.format(key))
         logging.debug("\n" + pprint.pformat(results_dict[key]))
         print()
+
+
+def compute_residuals(predicted_data, real_data, b0s_mask=None, mask=None):
+    """
+    Computes the residuals, a 3D map allowing comparison between the predicted
+    data and the real data. The result is the average of differences for each
+    feature of the data, on the last axis.
+
+    If data is a tensor, the residuals computation was introduced in:
+    [J-D Tournier, S. Mori, A. Leemans. Diffusion Tensor Imaging and Beyond.
+     MRM 2011].
+
+    Parameters
+    ----------
+    predicted_data: np.ndarray
+        4D dwi volume.
+    real_data: np.ndarray
+        4D dwi volume.
+    b0s_mask: np.array, optional
+        Vector of booleans containing True at indices where the dwi data was a
+        b0 (on last dimension). If given, the b0s are rejected from the data
+        before computing the residuals.
+    mask: np.ndaray, optional
+        3D volume. If given, residual is set to 0 outside the mask.
+    """
+    diff_data = np.abs(predicted_data - real_data)
+
+    if b0s_mask is not None:
+        res = np.mean(diff_data[..., ~b0s_mask], axis=-1)
+    else:
+        res = np.mean(diff_data, axis=-1)
+
+    # See in dipy.reconst.dti: They offer various weighting techniques, not
+    # offered here. We also previously offered to normalize the results (to
+    # avoid large values), but this option has been removed.
+
+    if mask is not None:
+        res *= mask
+
+    return res, diff_data
+
+
+def compute_residuals_statistics(diff_data):
+    """
+    Compute statistics on the residuals for each gradient.
+
+    Parameters
+    ----------
+    diff_data: np.ndarray
+        The 4D residuals between the DWI and predicted data.
+    """
+    # mean residual per DWI
+    R_k = np.zeros(diff_data.shape[-1], dtype=np.float32)
+    # std residual per DWI
+    std = np.zeros(diff_data.shape[-1], dtype=np.float32)
+    # first quartile per DWI
+    q1 = np.zeros(diff_data.shape[-1], dtype=np.float32)
+    # third quartile per DWI
+    q3 = np.zeros(diff_data.shape[-1], dtype=np.float32)
+    # interquartile per DWI
+    iqr = np.zeros(diff_data.shape[-1], dtype=np.float32)
+
+    for k in range(diff_data.shape[-1]):
+        x = diff_data[..., k]
+        R_k[k] = np.mean(x)
+        std[k] = np.std(x)
+        q3[k], q1[k] = np.percentile(x, [75, 25])
+        iqr[k] = q3[k] - q1[k]
+
+    return R_k, q1, q3, iqr, std
