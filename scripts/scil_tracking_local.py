@@ -69,7 +69,7 @@ import numpy as np
 from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_sphere_arg, add_verbose_arg,
                              assert_inputs_exist, assert_outputs_exist,
-                             verify_compression_th)
+                             interpret_sh_basis, verify_compression_th)
 from scilpy.tracking.utils import (add_mandatory_options_tracking,
                                    add_out_options, add_seeding_options,
                                    add_tracking_options,
@@ -202,6 +202,8 @@ def main():
     vox_step_size = args.step_size / voxel_size
     seed_img = nib.load(args.in_seed)
 
+    sh_basis, is_legacy = interpret_sh_basis(args)
+
     if np.count_nonzero(seed_img.get_fdata(dtype=np.float32)) == 0:
         raise IOError('The image {} is empty. '
                       'It can\'t be loaded as '
@@ -225,8 +227,9 @@ def main():
         streamlines_generator = LocalTracking(
             get_direction_getter(
                 args.in_odf, args.algo, args.sphere,
-                args.sub_sphere, args.theta, args.sh_basis,
-                voxel_size, args.sf_threshold, args.sh_to_pmf),
+                args.sub_sphere, args.theta, sh_basis,
+                voxel_size, args.sf_threshold, args.sh_to_pmf,
+                is_legacy=is_legacy),
             BinaryStoppingCriterion(mask_data),
             seeds, np.eye(4),
             step_size=vox_step_size, max_cross=1,
@@ -252,7 +255,8 @@ def main():
             theta=get_theta(args.theta, args.algo),
             sf_threshold=args.sf_threshold,
             sh_interp=sh_interp,
-            sh_basis=args.sh_basis,
+            sh_basis=sh_basis,
+            is_legacy=is_legacy,
             batch_size=batch_size,
             forward_only=forward_only,
             rng_seed=args.seed,
@@ -263,7 +267,6 @@ def main():
                     odf_sh_img, total_nb_seeds, args.out_tractogram,
                     args.min_length, args.max_length, args.compress,
                     args.save_seeds, args.verbose)
-
     # Final logging
     logging.info('Saved tractogram to {0}.'.format(args.out_tractogram))
 

@@ -131,7 +131,7 @@ def main():
     else:  # args.method == 'cosine'
         asym_sh = cosine_filtering(
             data, sh_order=sh_order,
-            sh_basis=args.sh_basis,
+            sh_basis=sh_basis,
             in_full_basis=full_basis,
             is_legacy=is_legacy,
             sphere_str=args.sphere,

@@ -252,7 +252,7 @@ def save_tractogram(
 
 
 def get_direction_getter(in_img, algo, sphere, sub_sphere, theta, sh_basis,
-                         voxel_size, sf_threshold, sh_to_pmf):
+                         voxel_size, sf_threshold, sh_to_pmf, is_legacy=True):
     """ Return the direction getter object.
 
     Parameters
@@ -276,13 +276,14 @@ def get_direction_getter(in_img, algo, sphere, sub_sphere, theta, sh_basis,
     sh_to_pmf: bool
         Map sherical harmonics to spherical function (pmf) before tracking
         (faster, requires more memory).
+    is_legacy : bool, optional
+        Whether or not the SH basis is in its legacy form.
 
     Return
     ------
     dg: dipy.direction.DirectionGetter
         The direction getter object.
     """
-
     img_data = nib.load(in_img).get_fdata(dtype=np.float32)
 
     sphere = HemiSphere.from_sphere(
@@ -316,7 +317,7 @@ def get_direction_getter(in_img, algo, sphere, sub_sphere, theta, sh_basis,
             dg_class = ProbabilisticDirectionGetter
         return dg_class.from_shcoeff(
             shcoeff=img_data, max_angle=theta, sphere=sphere,
-            basis_type=sh_basis, sh_to_pmf=sh_to_pmf,
+            basis_type=sh_basis, legacy=is_legacy, sh_to_pmf=sh_to_pmf,
             relative_peak_threshold=sf_threshold, **kwargs)
     elif algo == 'eudx':
         # Code for algo EUDX. We don't use peaks_from_model
@@ -355,7 +356,8 @@ def get_direction_getter(in_img, algo, sphere, sub_sphere, theta, sh_basis,
             peak_indices = np.full((img_shape_3d + (npeaks, )), -1,
                                    dtype='int')
             b_matrix = get_b_matrix(
-                find_order_from_nb_coeff(img_data), sphere, sh_basis)
+                find_order_from_nb_coeff(img_data), sphere, sh_basis,
+                legacy=is_legacy)
 
             for idx in np.argwhere(np.sum(img_data, axis=-1)):
                 idx = tuple(idx)
