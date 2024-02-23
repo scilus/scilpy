@@ -46,12 +46,14 @@ def _honor_authorsnames_sh_basis(sh_basis_type):
     return sh_basis
 
 
-def get_b_matrix(order, sphere, sh_basis_type, return_all=False):
+def get_b_matrix(order, sphere, sh_basis_type, return_all=False,
+                 is_legacy=True):
     sh_basis = _honor_authorsnames_sh_basis(sh_basis_type)
     sph_harm_basis = sph_harm_lookup.get(sh_basis)
     if sph_harm_basis is None:
         raise ValueError("Invalid basis name.")
-    b_matrix, m, n = sph_harm_basis(order, sphere.theta, sphere.phi)
+    b_matrix, m, n = sph_harm_basis(order, sphere.theta, sphere.phi,
+                                    legacy=is_legacy)
     if return_all:
         return b_matrix, m, n
     return b_matrix

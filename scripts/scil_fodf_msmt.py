@@ -36,7 +36,7 @@ from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              assert_outputs_exist, add_force_b0_arg,
                              add_sh_basis_args, add_processes_arg,
-                             add_verbose_arg)
+                             add_verbose_arg, interpret_sh_basis)
 from scilpy.reconst.fodf import fit_from_model
 from scilpy.reconst.sh import convert_sh_basis
 
@@ -144,6 +144,7 @@ def main():
 
     tol = args.tolerance
     sh_order = args.sh_order
+    sh_basis, is_legacy = interpret_sh_basis(args)
 
     # Checking data and sh_order
     b0_thr = check_b0_threshold(
@@ -217,27 +218,36 @@ def main():
     # Saving results
     if args.wm_out_fODF:
         wm_coeff = shm_coeff[..., 2:]
-        if args.sh_basis == 'tournier07':
-            wm_coeff = convert_sh_basis(wm_coeff, reg_sphere, mask=mask,
-                                        nbr_processes=args.nbr_processes)
+        wm_coeff = convert_sh_basis(wm_coeff, reg_sphere, mask=mask,
+                                    input_basis='descoteaux07',
+                                    output_basis=sh_basis,
+                                    is_input_legacy=True,
+                                    is_output_legacy=is_legacy,
+                                    nbr_processes=args.nbr_processes)
         nib.save(nib.Nifti1Image(wm_coeff.astype(np.float32),
                                  vol.affine), args.wm_out_fODF)
 
     if args.gm_out_fODF:
         gm_coeff = shm_coeff[..., 1]
-        if args.sh_basis == 'tournier07':
-            gm_coeff = gm_coeff.reshape(gm_coeff.shape + (1,))
-            gm_coeff = convert_sh_basis(gm_coeff, reg_sphere, mask=mask,
-                                        nbr_processes=args.nbr_processes)
+        gm_coeff = gm_coeff.reshape(gm_coeff.shape + (1,))
+        gm_coeff = convert_sh_basis(gm_coeff, reg_sphere, mask=mask,
+                                    input_basis='descoteaux07',
+                                    output_basis=sh_basis,
+                                    is_input_legacy=True,
+                                    is_output_legacy=is_legacy,
+                                    nbr_processes=args.nbr_processes)
         nib.save(nib.Nifti1Image(gm_coeff.astype(np.float32),
                                  vol.affine), args.gm_out_fODF)
 
     if args.csf_out_fODF:
         csf_coeff = shm_coeff[..., 0]
-        if args.sh_basis == 'tournier07':
-            csf_coeff = csf_coeff.reshape(csf_coeff.shape + (1,))
-            csf_coeff = convert_sh_basis(csf_coeff, reg_sphere, mask=mask,
-                                         nbr_processes=args.nbr_processes)
+        csf_coeff = csf_coeff.reshape(csf_coeff.shape + (1,))
+        csf_coeff = convert_sh_basis(csf_coeff, reg_sphere, mask=mask,
+                                     input_basis='descoteaux07',
+                                     output_basis=sh_basis,
+                                     is_input_legacy=True,
+                                     is_output_legacy=is_legacy,
+                                     nbr_processes=args.nbr_processes)
         nib.save(nib.Nifti1Image(csf_coeff.astype(np.float32),
                                  vol.affine), args.csf_out_fODF)
 

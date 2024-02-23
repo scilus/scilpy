@@ -18,7 +18,8 @@ import numpy as np
 from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_force_b0_arg, add_overwrite_arg,
                              add_sh_basis_args, assert_inputs_exist,
-                             add_verbose_arg, assert_outputs_exist)
+                             add_verbose_arg, assert_outputs_exist,
+                             interpret_sh_basis)
 from scilpy.reconst.sh import compute_sh_coefficients
 
 
@@ -68,14 +69,16 @@ def main():
     bvals, bvecs = read_bvals_bvecs(args.in_bval, args.in_bvec)
     gtab = gradient_table(args.in_bval, args.in_bvec, b0_threshold=bvals.min())
 
+    sh_basis, is_legacy = interpret_sh_basis(args)
+
     mask = None
     if args.mask:
         mask = get_data_as_mask(nib.load(args.mask), dtype=bool)
 
-    sh = compute_sh_coefficients(dwi, gtab, args.sh_order, args.sh_basis,
+    sh = compute_sh_coefficients(dwi, gtab, args.sh_order, sh_basis,
                                  args.smooth,
                                  use_attenuation=args.use_attenuation,
-                                 mask=mask)
+                                 mask=mask, is_legacy=is_legacy)
 
     nib.save(nib.Nifti1Image(sh.astype(np.float32), vol.affine), args.out_sh)
 

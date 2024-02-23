@@ -20,7 +20,7 @@ from scilpy.dwi.operations import compute_dwi_attenuation
 def compute_sh_coefficients(dwi, gradient_table, sh_order=4,
                             basis_type='descoteaux07', smooth=0.006,
                             use_attenuation=False, force_b0_threshold=False,
-                            mask=None, sphere=None):
+                            mask=None, sphere=None, is_legacy=True):
     """Fit a diffusion signal with spherical harmonics coefficients.
 
     Parameters
@@ -44,6 +44,8 @@ def compute_sh_coefficients(dwi, gradient_table, sh_order=4,
         and reconstruction.
     sphere: Sphere
         Dipy object. If not provided, will use Sphere(xyz=bvecs).
+    is_legacy : bool, optional
+        Whether or not the SH basis is in its legacy form.
 
     Returns
     -------
@@ -84,7 +86,8 @@ def compute_sh_coefficients(dwi, gradient_table, sh_order=4,
         sphere = Sphere(xyz=bvecs)
 
     # Fit SH
-    sh = sf_to_sh(weights, sphere, sh_order, basis_type, smooth=smooth)
+    sh = sf_to_sh(weights, sphere, sh_order, basis_type, smooth=smooth,
+                  legacy=is_legacy)
 
     # Apply mask
     if mask is not None:
@@ -599,6 +602,7 @@ def _convert_sh_to_sf_parallel(args):
 
 def convert_sh_to_sf(shm_coeff, sphere, mask=None, dtype="float32",
                      input_basis='descoteaux07', input_full_basis=False,
+                     is_input_legacy=True,
                      nbr_processes=multiprocessing.cpu_count()):
     """Converts spherical harmonic coefficients to an SF sphere
 
@@ -618,9 +622,11 @@ def convert_sh_to_sf(shm_coeff, sphere, mask=None, dtype="float32",
         Type of spherical harmonic basis used for `shm_coeff`. Either
         `descoteaux07` or `tournier07`.
         Default: `descoteaux07`
-    input_full_basis : bool
+    input_full_basis : bool, optional
         If True, use a full SH basis (even and odd orders) for the input SH
         coefficients.
+    is_input_legacy : bool, optional
+        Whether or not the input basis is in its legacy form.
     nbr_processes: int, optional
         The number of subprocesses to use.
         Default: multiprocessing.cpu_count()
@@ -636,7 +642,8 @@ def convert_sh_to_sf(shm_coeff, sphere, mask=None, dtype="float32",
     sh_order = order_from_ncoef(shm_coeff.shape[-1],
                                 full_basis=input_full_basis)
     B_in, _ = sh_to_sf_matrix(sphere, sh_order, basis_type=input_basis,
-                              full_basis=input_full_basis)
+                              full_basis=input_full_basis,
+                              legacy=is_input_legacy)
     B_in = B_in.astype(dtype)
 
     data_shape = shm_coeff.shape

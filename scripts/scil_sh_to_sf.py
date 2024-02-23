@@ -26,7 +26,8 @@ from dipy.io import read_bvals_bvecs
 from scilpy.io.utils import (add_force_b0_arg, add_overwrite_arg,
                              add_processes_arg, add_sh_basis_args,
                              assert_inputs_exist, add_verbose_arg,
-                             assert_outputs_exist, validate_nbr_processes)
+                             assert_outputs_exist, interpret_sh_basis,
+                             validate_nbr_processes)
 from scilpy.reconst.sh import convert_sh_to_sf
 from scilpy.gradients.bvec_bval_tools import (check_b0_threshold)
 
@@ -107,6 +108,7 @@ def main():
         parser.error("--in_b0 is required when using --b0_scaling.")
 
     nbr_processes = validate_nbr_processes(parser, args)
+    sh_basis, is_legacy = interpret_sh_basis(args)
 
     # Load SH
     vol_sh = nib.load(args.in_sh)
@@ -123,8 +125,9 @@ def main():
         sphere = Sphere(xyz=bvecs)
 
     sf = convert_sh_to_sf(data_sh, sphere,
-                          input_basis=args.sh_basis,
+                          input_basis=sh_basis,
                           input_full_basis=args.full_basis,
+                          is_input_legacy=is_legacy
                           dtype=args.dtype,
                           nbr_processes=nbr_processes)
     new_bvecs = sphere.vertices.astype(np.float32)

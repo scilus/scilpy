@@ -314,7 +314,7 @@ def interpret_sh_basis(args):
     sh_basis : string
         Spherical harmonic basis name.
     is_legacy : bool
-        Whether or not the basis is in its legacy form.
+        Whether or not the SH basis is in its legacy form.
     """
     if len(args.sh_basis) == 2:
         in_sh_basis = args.sh_basis[0].split("_")[0]

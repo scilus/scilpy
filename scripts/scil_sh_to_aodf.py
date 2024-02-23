@@ -26,7 +26,7 @@ from dipy.reconst.shm import sph_harm_ind_list
 from scilpy.reconst.utils import get_sh_order_and_fullness
 from scilpy.io.utils import (add_overwrite_arg, add_verbose_arg,
                              assert_inputs_exist, add_sh_basis_args,
-                             assert_outputs_exist)
+                             assert_outputs_exist, interpret_sh_basis)
 from scilpy.denoise.asym_filtering import (cosine_filtering,
                                            angle_aware_bilateral_filtering)
 
@@ -113,14 +113,16 @@ def main():
     data = sh_img.get_fdata(dtype=np.float32)
 
     sh_order, full_basis = get_sh_order_and_fullness(data.shape[-1])
+    sh_basis, is_legacy = interpret_sh_basis(args)
 
     t0 = time.perf_counter()
     logging.info('Filtering SH image.')
     if args.method == 'bilateral':
         asym_sh = angle_aware_bilateral_filtering(
             data, sh_order=sh_order,
-            sh_basis=args.sh_basis,
+            sh_basis=sh_basis,
             in_full_basis=full_basis,
+            is_legacy=is_legacy,
             sphere_str=args.sphere,
             sigma_spatial=args.sigma_spatial,
             sigma_angular=args.sigma_angular,
@@ -131,6 +133,7 @@ def main():
             data, sh_order=sh_order,
             sh_basis=args.sh_basis,
             in_full_basis=full_basis,
+            is_legacy=is_legacy,
             sphere_str=args.sphere,
             dot_sharpness=args.sharpness,
             sigma=args.sigma_spatial)

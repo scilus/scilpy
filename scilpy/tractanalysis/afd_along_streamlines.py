@@ -8,7 +8,8 @@ from scilpy.reconst.utils import find_order_from_nb_coeff, get_b_matrix
 from scilpy.tractanalysis.grid_intersections import grid_intersections
 
 
-def afd_map_along_streamlines(sft, fodf, fodf_basis, length_weighting):
+def afd_map_along_streamlines(sft, fodf, fodf_basis, length_weighting,
+                              is_legacy=True):
     """
     Compute the mean Apparent Fiber Density (AFD) and mean Radial fODF
     (radfODF) maps along a bundle.
@@ -35,7 +36,8 @@ def afd_map_along_streamlines(sft, fodf, fodf_basis, length_weighting):
 
     afd_sum, rd_sum, weights = \
         afd_and_rd_sums_along_streamlines(sft, fodf, fodf_basis,
-                                          length_weighting)
+                                          length_weighting,
+                                          is_legacy=is_legacy)
 
     non_zeros = np.nonzero(afd_sum)
     weights_nz = weights[non_zeros]
@@ -46,7 +48,7 @@ def afd_map_along_streamlines(sft, fodf, fodf_basis, length_weighting):
 
 
 def afd_and_rd_sums_along_streamlines(sft, fodf, fodf_basis,
-                                      length_weighting):
+                                      length_weighting, is_legacy=True):
     """
     Compute the mean Apparent Fiber Density (AFD) and mean Radial fODF (radfODF)
     maps along a bundle.
@@ -62,6 +64,8 @@ def afd_and_rd_sums_along_streamlines(sft, fodf, fodf_basis,
         Has to be descoteaux07 or tournier07.
     length_weighting : bool
         If set, will weigh the AFD values according to segment lengths.
+    is_legacy : bool, optional
+        Whether or not the SH basis is in its legacy form.
 
     Returns
     -------
@@ -79,7 +83,8 @@ def afd_and_rd_sums_along_streamlines(sft, fodf, fodf_basis,
     fodf_data = fodf.get_fdata(dtype=np.float32)
     order = find_order_from_nb_coeff(fodf_data)
     sphere = get_sphere('repulsion724')
-    b_matrix, _, n = get_b_matrix(order, sphere, fodf_basis, return_all=True)
+    b_matrix, _, n = get_b_matrix(order, sphere, fodf_basis, return_all=True,
+                                  is_legacy=is_legacy)
     legendre0_at_n = lpn(order, 0)[0][n]
     sphere_norm = np.linalg.norm(sphere.vertices)
 
