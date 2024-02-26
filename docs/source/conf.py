@@ -18,13 +18,6 @@ import sys
 sys.path.insert(0, os.path.abspath("../.."))
 sys.path.insert(1, os.path.abspath("../../scripts"))
 
-autodoc_mock_imports = ['numpy', 'dipy', 'fury', 'nibabel', "scipy", "h5py",
-                        "scilpy.tractanalysis.grid_intersections",
-                        "scilpy.tractanalysis.quick_tools",
-                        "sklearn", "scilpy.tractanalysis.streamlines_metrics",
-                        "scilpy.tractograms.uncompress", "matplotlib",
-                        "skimage"]
-
 # -- Project information -----------------------------------------------------
 
 project = 'scilpy'
@@ -217,6 +210,8 @@ def setup(app):
 
         # Loop over scripts
         for i in sorted(os.listdir(path_script)):
+            if 'scil' not in i:
+                continue
             if not isdir(join(path_script, i)):
                 name, ext = i.split(".")
 

@@ -18,7 +18,6 @@ from fury import window
 from PIL import Image
 from scipy.io import loadmat
 import six
-import importlib.metadata
 
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.gradients.bvec_bval_tools import DEFAULT_B0_THRESHOLD
@@ -230,12 +229,6 @@ def add_verbose_arg(parser):
                         help='Produces verbose output depending on '
                              'the provided level. \nDefault level is warning, '
                              'default when using -v is info.')
-
-    version = importlib.metadata.version('scilpy')
-
-    logging.getLogger().setLevel(logging.INFO)
-    logging.info("Scilpy version: {}".format(version))
-    logging.getLogger().setLevel(logging.WARNING)
 
 
 def add_bbox_arg(parser):

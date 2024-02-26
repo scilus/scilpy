@@ -226,7 +226,7 @@ def compute_residuals(predicted_data, real_data, b0s_mask=None, mask=None):
 
     If data is a tensor, the residuals computation was introduced in:
     [J-D Tournier, S. Mori, A. Leemans. Diffusion Tensor Imaging and Beyond.
-     MRM 2011].
+    MRM 2011].
 
     Parameters
     ----------
