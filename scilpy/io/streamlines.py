@@ -210,7 +210,7 @@ def load_dps_files_as_dps(parser, dps_files, sft, keys=None, overwrite=False):
 
 def load_dpp_files_as_dpp(parser, dpp_files, sft, keys=None, overwrite=False):
     """
-    Load dps information. They must be scalar values.
+    Load dpp information. They must be scalar values.
 
     Parameters
     ----------

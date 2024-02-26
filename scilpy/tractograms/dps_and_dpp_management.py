@@ -2,10 +2,10 @@
 import numpy as np
 
 
-def copy_dps_as_dpp(sft, keys, overwrite=False):
+def convert_dps_to_dpp(sft, keys, overwrite=False):
     """
-    Multiply the value of the data_per_streamline to each point of the
-    streamline. The dps key is removed and added as dpp key.
+    Copy the value of the data_per_streamline to each point of the
+    streamline, as data_per_point. The dps key is removed and added as dpp key.
 
     Parameters
     ----------
@@ -89,7 +89,7 @@ def project_map_to_streamlines(sft, map_volume, endpoints_only=False):
     return streamline_data
 
 
-def project_dpp_to_map(sft, dpp_key, sum_lines=False, to_endpoints=False):
+def project_dpp_to_map(sft, dpp_key, sum_lines=False, endpoints_only=False):
     """
     Saves the values of data_per_point keys to the underlying voxels. Averages
     the values of various streamlines in each voxel. Returns one map per key.
@@ -104,8 +104,8 @@ def project_dpp_to_map(sft, dpp_key, sum_lines=False, to_endpoints=False):
     sum_lines: bool
         Do not average values of streamlines that cross a same voxel; sum them
         instead.
-    to_endpoints: bool
-        If true, only project to the streamline's endpoints.
+    endpoints_only: bool
+        If true, only project the streamline's endpoints.
 
     Returns
     -------
@@ -122,7 +122,7 @@ def project_dpp_to_map(sft, dpp_key, sum_lines=False, to_endpoints=False):
     count = np.zeros(sft.dimensions)
     the_map = np.zeros(sft.dimensions)
     for s in range(len(sft)):
-        if to_endpoints:
+        if endpoints_only:
             points = [0, -1]
         else:
             points = range(len(sft.streamlines[s]))

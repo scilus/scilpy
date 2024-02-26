@@ -44,7 +44,7 @@ from scilpy.io.utils import (add_overwrite_arg, add_reference_arg,
                              add_verbose_arg, assert_inputs_exist,
                              assert_outputs_exist)
 from scilpy.tractograms.dps_and_dpp_management import (
-    copy_dps_as_dpp, perform_operation_dpp_to_dps, project_dpp_to_map)
+    convert_dps_to_dpp, perform_operation_dpp_to_dps, project_dpp_to_map)
 from scilpy.utils.filenames import split_name_with_nii
 
 
@@ -207,7 +207,7 @@ def main():
     if dps_to_use is not None:
         # Then dpp_to_use is None, and the sft contains no dpp key.
         # Can overwrite.
-        sft = copy_dps_as_dpp(sft, dps_to_use, overwrite=True)
+        sft = convert_dps_to_dpp(sft, dps_to_use, overwrite=True)
         all_keys = dps_to_use
     else:
         all_keys = dpp_to_use
@@ -220,12 +220,12 @@ def main():
         for key in all_keys:
             sft.data_per_streamline[key] = perform_operation_dpp_to_dps(
                 'mean', sft, key, endpoints_only=args.mean_endpoints)
-        sft = copy_dps_as_dpp(sft, all_keys, overwrite=True)
+        sft = convert_dps_to_dpp(sft, all_keys, overwrite=True)
 
     # -------- Projection and saving ----------
     for key in all_keys:
         logging.info("Projecting streamlines metric {} to a map".format(key))
-        the_map = project_dpp_to_map(sft, key, to_endpoints=args.to_endpoints)
+        the_map = project_dpp_to_map(sft, key, endpoints_only=args.to_endpoints)
 
         out_file = args.out_prefix + key + '.nii.gz'
         logging.info("Saving file {}".format(out_file))
