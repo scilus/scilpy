@@ -144,9 +144,7 @@ def main():
                      'one file to output.')
 
     assert_inputs_exist(parser, [],
-                        optional=list(np.concatenate((args.in_dwis,
-                                                      args.in_bvals,
-                                                      args.in_bvecs))))
+                        [args.in_dwis + args.in_bvals + args.in_bvecs])
     assert_outputs_exist(parser, args, arglist)
 
     if not (len(args.in_dwis) == len(args.in_bvals)
