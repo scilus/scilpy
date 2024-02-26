@@ -1,8 +1,6 @@
 Create overlapping slice mosaics
 ================================
 
-::
-
 Screenshots to a series of volume image slices that overlap according to a
 given factor and arranged into a mosaic can be created using the
 `scil_screenshot_volume_mosaic_overlap.py` script. The script takes an input

@@ -31,7 +31,7 @@ def get_endpoints_density_map(sft, point_to_select=1):
     Returns
     -------
     np.ndarray: A np.ndarray where voxel values represent the density of
-    endpoints.
+        endpoints.
     """
 
     endpoints_map_head, endpoints_map_tail = \
@@ -55,11 +55,11 @@ def get_head_tail_density_maps(sft, point_to_select=1):
 
     Returns
     -------
-    A tuple containing
-        np.ndarray: A np.ndarray where voxel values represent the density of
-            head endpoints.
-        np.ndarray: A np.ndarray where voxel values represent the density of
-            tail endpoints.
+    A tuple containing:
+    - np.ndarray: A np.ndarray where voxel values represent the density of
+        head endpoints.
+    - np.ndarray: A np.ndarray where voxel values represent the density of
+        tail endpoints.
     """
 
     sft.to_vox()

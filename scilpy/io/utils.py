@@ -18,7 +18,6 @@ from fury import window
 from PIL import Image
 from scipy.io import loadmat
 import six
-import importlib.metadata
 
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.gradients.bvec_bval_tools import DEFAULT_B0_THRESHOLD
@@ -231,12 +230,6 @@ def add_verbose_arg(parser):
                              'the provided level. \nDefault level is warning, '
                              'default when using -v is info.')
 
-    version = importlib.metadata.version('scilpy')
-
-    logging.getLogger().setLevel(logging.INFO)
-    logging.info("Scilpy version: {}".format(version))
-    logging.getLogger().setLevel(logging.WARNING)
-
 
 def add_bbox_arg(parser):
     parser.add_argument('--no_bbox_check', dest='bbox_check',
@@ -411,11 +404,13 @@ def add_nifti_screenshot_overlays_args(
 
 
 def validate_nbr_processes(parser, args):
-    """ Check if the passed number of processes arg is valid.
+    """
+    Check if the passed number of processes arg is valid.
+
     Valid values are considered to be in the [0, CPU count] range:
         - Raises a parser.error if an invalid value is provided.
         - Returns the maximum number of cores retrieved if no value (or a value
-        of 0) is provided.
+          of 0) is provided.
 
     Parameters
     ----------
@@ -445,7 +440,8 @@ def validate_nbr_processes(parser, args):
 
 
 def validate_sh_basis_choice(sh_basis):
-    """ Check if the passed sh_basis arg to a fct is right.
+    """
+    Check if the passed sh_basis arg to a fct is right.
 
     Parameters
     ----------
@@ -481,7 +477,8 @@ def verify_compression_th(compress_th):
 
 
 def assert_inputs_exist(parser, required, optional=None):
-    """Assert that all inputs exist. If not, print parser's usage and exit.
+    """
+    Assert that all inputs exist. If not, print parser's usage and exit.
 
     Parameters
     ----------
@@ -933,5 +930,3 @@ def get_default_screenshotting_data(args):
         labelmap_img, \
         mask_imgs, \
         masks_colors
-
-

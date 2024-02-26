@@ -12,5 +12,9 @@ Welcome to the scilpy documentation!
     :maxdepth: 1
     :caption: Documentation
 
-    documentation/tractogram_registration
+    documentation/btensor_scripts
+    documentation/bundle_diameter_fitting_function
+    documentation/construct_participants_tsv_file
+    documentation/create_overlapping_slice_mosaics
     documentation/devcontainer
+    documentation/tractogram_registration

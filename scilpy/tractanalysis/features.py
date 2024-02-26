@@ -17,6 +17,7 @@ from scilpy.tractograms.streamline_operations import \
 def detect_ushape(sft, minU, maxU):
     """
     Extract streamlines depending on their "u-shapeness".
+
     Parameters
     ----------
     sft: Statefull tractogram
@@ -64,6 +65,7 @@ def remove_loops_and_sharp_turns(streamlines,
                                  num_processes=1):
     """
     Remove loops and sharp turns from a list of streamlines.
+
     Parameters
     ----------
     streamlines: list of ndarray
@@ -177,6 +179,7 @@ def outliers_removal_using_hierarchical_quickbundles(streamlines,
                                                      fast_approx=False):
     """
     Classify inliers and outliers from a list of streamlines.
+
     Parameters
     ----------
     streamlines: list of ndarray
@@ -188,6 +191,7 @@ def outliers_removal_using_hierarchical_quickbundles(streamlines,
         A different sampling is used each time.
     sampling_seed: int
         Random number generation initialization seed.
+
     Returns
     -------
     ndarray: Float value representing the 0-1 score for each streamline
