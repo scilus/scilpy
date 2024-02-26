@@ -28,11 +28,11 @@ import numpy as np
 
 from scilpy.image.labels import get_data_as_labels
 from scilpy.utils.filenames import split_name_with_nii
-from scilpy.io.streamlines import load_tractogram_with_reference
+from scilpy.io.streamlines import (load_tractogram_with_reference,
+                                   verify_compatibility_with_reference_sft)
 from scilpy.io.utils import (add_json_args,
                              add_reference_arg, add_verbose_arg,
-                             assert_inputs_exist, assert_outputs_exist,
-                             verify_compatibility_with_reference_sft)
+                             assert_inputs_exist, assert_outputs_exist)
 from scilpy.utils.metrics_tools import get_bundle_metrics_mean_std, \
     get_bundle_metrics_mean_std_per_point
 

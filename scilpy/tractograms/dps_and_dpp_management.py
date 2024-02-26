@@ -2,9 +2,37 @@
 import numpy as np
 
 
+def convert_dps_to_dpp(sft, keys, overwrite=False):
+    """
+    Copy the value of the data_per_streamline to each point of the
+    streamline, as data_per_point. The dps key is removed and added as dpp key.
+
+    Parameters
+    ----------
+    sft: StatefulTractogram
+    keys: List[str], optional
+        The list of dps keys to convert to dpp.
+    overwrite: bool
+        If true, allow continuing even if the key already existed as dpp.
+    """
+    for key in keys:
+        if key not in sft.data_per_streamline:
+            raise ValueError("Dps key {} not found!".format(key))
+        if key in sft.data_per_point and not overwrite:
+            raise ValueError("Dpp key {} already existed. Please allow "
+                             "overwriting.".format(key))
+        sft.data_per_point[key] = [[val]*len(s) for val, s in
+                                   zip(sft.data_per_streamline[key],
+                                       sft.streamlines)]
+        del sft.data_per_streamline[key]
+
+    return sft
+
+
 def project_map_to_streamlines(sft, map_volume, endpoints_only=False):
     """
-    Projects a map onto the points of streamlines.
+    Projects a map onto the points of streamlines. The result is a
+    data_per_point.
 
     Parameters
     ----------
@@ -12,18 +40,16 @@ def project_map_to_streamlines(sft, map_volume, endpoints_only=False):
         Input tractogram.
     map_volume: DataVolume
         Input map.
-
-    Optional:
-    ---------
-    endpoints_only: bool
+    endpoints_only: bool, optional
         If True, will only project the map_volume onto the endpoints of the
         streamlines (all values along streamlines set to zero). If False,
         will project the map_volume onto all points of the streamlines.
 
     Returns
     -------
-    streamline_data:
-        map_volume projected to each point of the streamlines.
+    streamline_data: List
+        The values that could now be associated to a data_per_point key.
+        The map_volume projected to each point of the streamlines.
     """
     if len(map_volume.data.shape) == 4:
         dimension = map_volume.data.shape[3]
@@ -63,9 +89,62 @@ def project_map_to_streamlines(sft, map_volume, endpoints_only=False):
     return streamline_data
 
 
-def perform_streamline_operation_per_point(op_name, sft, dpp_name='metric',
-                                           endpoints_only=False):
-    """Peforms an operation per point for all streamlines.
+def project_dpp_to_map(sft, dpp_key, sum_lines=False, endpoints_only=False):
+    """
+    Saves the values of data_per_point keys to the underlying voxels. Averages
+    the values of various streamlines in each voxel. Returns one map per key.
+    The streamlines are not preprocessed here. You should probably first
+    uncompress your streamlines to have smoother maps.
+
+    Parameters
+    ----------
+    sft: StatefulTractogram
+    dpp_key: str
+        The data_per_point key to project to a map.
+    sum_lines: bool
+        Do not average values of streamlines that cross a same voxel; sum them
+        instead.
+    endpoints_only: bool
+        If true, only project the streamline's endpoints.
+
+    Returns
+    -------
+    the_map: np.ndarray
+        The 3D resulting map.
+    """
+    sft.to_vox()
+
+    # Using to_corner, if we simply floor the coordinates of the point, we find
+    # the voxel where it is.
+    sft.to_corner()
+
+    # count: could also use compute_tract_counts_map.
+    count = np.zeros(sft.dimensions)
+    the_map = np.zeros(sft.dimensions)
+    for s in range(len(sft)):
+        if endpoints_only:
+            points = [0, -1]
+        else:
+            points = range(len(sft.streamlines[s]))
+
+        for p in points:
+            x, y, z = sft.streamlines[s][p, :].astype(int)  # Or floor
+            count[x, y, z] += 1
+            the_map[x, y, z] += sft.data_per_point[dpp_key][s][p]
+
+    if not sum_lines:
+        count = np.maximum(count, 1e-6)  # Avoid division by 0
+        the_map /= count
+
+    return the_map
+
+
+def perform_operation_on_dpp(op_name, sft, dpp_name, endpoints_only=False):
+    """
+    Peforms an operation on the data per point for all streamlines (mean, sum,
+    min, max, correlation). The operation is applied on each point invidiually,
+    and thus makes sense if the data_per_point at each point is a vector. The
+    result is a new data_per_point.
 
     Parameters
     ----------
@@ -77,12 +156,13 @@ def perform_streamline_operation_per_point(op_name, sft, dpp_name='metric',
     dpp_name: str
         The name of the data per point to be used in the operation.
     endpoints_only: bool
-        If True, will only perform operation on endpoints
+        If True, will only perform operation on endpoints. Values at other
+        points will be set to NaN.
 
     Returns
     -------
-    new_sft: StatefulTractogram
-        sft with data per streamline resulting from the operation.
+    new_data_per_point: list
+        The values that could now be associated to a new data_per_point key.
     """
 
     # Performing operation
@@ -104,13 +184,15 @@ def perform_streamline_operation_per_point(op_name, sft, dpp_name='metric',
             new_data_per_point.append(
                 np.reshape(this_data_per_point, (len(this_data_per_point), 1)))
 
-    # Extracting streamlines
     return new_data_per_point
 
 
-def perform_operation_per_streamline(op_name, sft, dpp_name='metric',
-                                     endpoints_only=False):
-    """Performs an operation across all data points for each streamline.
+def perform_operation_dpp_to_dps(op_name, sft, dpp_name, endpoints_only=False):
+    """
+    Converts dpp to dps, using a chosen operation.
+
+    Performs an operation across all data_per_points for each streamline (mean,
+    sum, min, max, correlation). The result is a data_per_streamline.
 
     Parameters
     ----------
@@ -122,12 +204,14 @@ def perform_operation_per_streamline(op_name, sft, dpp_name='metric',
     dpp_name: str
         The name of the data per point to be used in the operation.
     endpoints_only: bool
-        If True, will only perform operation on endpoints
+        If True, will only perform operation on endpoints. Other points will be
+        ignored in the operation.
 
     Returns
     -------
-    new_sft: StatefulTractogram
-        sft with data per streamline resulting from the operation.
+    new_data_per_streamline: list
+        The values that could now be associated to a new data_per_streamline
+        key.
     """
     # Performing operation
     call_op = OPERATIONS[op_name]

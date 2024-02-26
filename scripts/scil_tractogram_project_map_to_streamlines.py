@@ -8,6 +8,20 @@ The default options will take data from a nifti image (3D or 4D) and
 project it onto the points of streamlines. If the image is 4D, the data
 is stored as a list of 1D arrays per streamline. If the image is 3D,
 the data is stored as a list of values per streamline.
+
+See also scil_tractogram_project_streamlines_to_map.py for the reverse action.
+
+* Note that the data from your maps will be projected only on the coordinates
+of the points of your streamlines. Data underlying the whole segments between
+two consecutive points is not used. If your streamlines are strongly
+compressed, or if they have a very big step size, the result will possibly
+reflect poorly your map. You may use scil_tractogram_resample.py to upsample
+your streamlines first.
+* Hint: The streamlines themselves are not modified here, only their dpp. To
+avoid multiplying data on disk, you could use the following arguments to save
+the new dpp in your current tractogram:
+>> scil_tractogram_project_map_to_streamlines.py $in_bundle $in_bundle
+       --keep_all_dpp -f
 """
 
 import argparse

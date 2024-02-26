@@ -13,24 +13,23 @@ Two modes of operation are supported: dpp and dps.
    - In dpp mode, the operation is performed on each point separately,
    resulting in a new dpp.
 
-If endpoints_only and dpp mode is set the operation will only
-be calculated at the streamline endpoints the rest of the
-values along the streamline will be NaN
+If endpoints_only and dpp mode is set the operation will only be calculated at
+the streamline endpoints the rest of the values along the streamline will be
+NaN.
 
-If endpoints_only and dps mode is set operation will be calculated
-across the data at the endpoints and stored as a
-single value (or array in the 4D case) per streamline.
+If endpoints_only and dps mode is set operation will be calculated across the
+data at the endpoints and stored as a single value (or array in the 4D case)
+per streamline.
 
 Endpoint only operation:
-correlation: correlation calculated between arrays extracted from
-streamline endpoints (data must be multivalued per point) and dps
-mode must be set.
+correlation: correlation calculated between arrays extracted from streamline
+endpoints (data must be multivalued per point) and dps mode must be set.
 """
 
 import argparse
 import logging
 
-from dipy.io.streamline import save_tractogram, StatefulTractogram
+from dipy.io.streamline import save_tractogram
 
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_bbox_arg,
@@ -41,8 +40,8 @@ from scilpy.io.utils import (add_bbox_arg,
                              assert_outputs_exist)
 from scilpy.tractograms.dps_and_dpp_management import (
     perform_pairwise_streamline_operation_on_endpoints,
-    perform_streamline_operation_per_point,
-    perform_operation_per_streamline)
+    perform_operation_on_dpp,
+    perform_operation_dpp_to_dps)
 
 
 def _build_arg_parser():
@@ -65,12 +64,12 @@ def _build_arg_parser():
                    'streamline. Set to dpp if the operation is to be \n'
                    'performed on each point separately resulting in a \n'
                    'single value per point.')
-    p.add_argument('--in_dpp_name',  nargs='+', required=True,
+    p.add_argument('--in_dpp_name',  nargs='+', required=True, metavar='key',
                    help='Name or list of names of the data_per_point for \n'
                         'operation to be performed on. If more than one dpp \n'
                         'is selected, the same operation will be applied \n'
                         'separately to each one.')
-    p.add_argument('--out_name', nargs='+', required=True,
+    p.add_argument('--out_name', nargs='+', required=True, metavar='key',
                    help='Name of the resulting data_per_point or \n'
                    'data_per_streamline to be saved in the output \n'
                    'tractogram. If more than one --in_dpp_name was used, \n'
@@ -88,9 +87,9 @@ def _build_arg_parser():
                    'keys will be saved.')
     p.add_argument('--overwrite_dpp_dps', action='store_true',
                    help='If set, if --keep_all_dpp_dps is set and some \n'
-                   '--out_dpp_name keys already existed in your \n'
-                   ' data_per_point or data_per_streamline, allow \n'
-                   ' overwriting old data_per_point.')
+                   '--out_name keys already existed in your \n'
+                   'data_per_point or data_per_streamline, allow \n'
+                   'overwriting old data_per_point.')
 
     add_reference_arg(p)
     add_verbose_arg(p)
@@ -115,8 +114,7 @@ def main():
     sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
 
     if len(sft.streamlines) == 0:
-        logging.info("Input tractogram contains no streamlines. Exiting.")
-        return
+        parser.error("Input tractogram contains no streamlines. Exiting.")
 
     if len(args.in_dpp_name) != len(args.out_name):
         parser.error('The number of in_dpp_names and out_names must be '
@@ -130,9 +128,8 @@ def main():
     for in_dpp_name in args.in_dpp_name:
         # Check to see if the data per point exists.
         if in_dpp_name not in sft.data_per_point:
-            logging.info('Data per point {} not found in input tractogram.'
+            parser.error('Data per point {} not found in input tractogram.'
                          .format(in_dpp_name))
-            return
 
         # warning if dpp mode and data in single number per point
         data_shape = sft.data_per_point[in_dpp_name][0].shape
@@ -143,20 +140,17 @@ def main():
 
         # Check if first data_per_point is multivalued
         if args.operation == 'correlation' and data_shape[0] == 1:
-            logging.info('Correlation operation requires multivalued data per '
+            parser.error('Correlation operation requires multivalued data per '
                          'point. Exiting.')
-            return
 
         if args.operation == 'correlation' and args.mode == 'dpp':
-            logging.info('Correlation operation requires dps mode. Exiting.')
-            return
+            parser.error('Correlation operation requires dps mode. Exiting.')
 
         if not args.overwrite_dpp_dps:
             if in_dpp_name in args.out_name:
-                logging.info('out_name {} already exists in input tractogram. '
+                parser.error('out_name {} already exists in input tractogram. '
                              'Set overwrite_dpp_dps or choose a different '
                              'out_name. Exiting.'.format(in_dpp_name))
-                return
 
     data_per_point = {}
     data_per_streamline = {}
@@ -176,7 +170,7 @@ def main():
                 'Performing {} on data from each streamine point '
                 'and saving as new dpp {}'.format(
                     args.operation, out_name))
-            new_dpp = perform_streamline_operation_per_point(
+            new_dpp = perform_operation_on_dpp(
                 args.operation, sft, in_dpp_name, args.endpoints_only)
             data_per_point[out_name] = new_dpp
         elif args.mode == 'dps':
@@ -184,7 +178,7 @@ def main():
             logging.info(
                 'Performing {} across each streamline and saving resulting '
                 'data per streamline {}'.format(args.operation, out_name))
-            new_data_per_streamline = perform_operation_per_streamline(
+            new_data_per_streamline = perform_operation_dpp_to_dps(
                 args.operation, sft, in_dpp_name, args.endpoints_only)
             data_per_streamline[out_name] = new_data_per_streamline
 
