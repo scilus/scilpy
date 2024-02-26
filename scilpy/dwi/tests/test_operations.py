@@ -87,6 +87,7 @@ def test_detect_volume_outliers():
 
 
 def test_compute_residuals():
+    # Quite simple. Not testing.
     pass
 
 
