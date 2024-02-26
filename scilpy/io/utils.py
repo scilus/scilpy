@@ -292,15 +292,15 @@ def add_sh_basis_args(parser, mandatory=False, input_output=False):
                         help=help_msg)
 
 
-def interpret_sh_basis(args):
+def parse_sh_basis_arg(args):
     """
-    Interpret the input from args.sh_basis. If two SH bases are given,
+    Parser the input from args.sh_basis. If two SH bases are given,
     both input/output sh_basis and is_legacy are returned.
 
     Parameters
     ----------
-    args : argparser
-        Argparser from a script.
+    args : ArgumentParser.parse_args
+        ArgumentParser.parse_args from a script.
 
     Returns
     -------
