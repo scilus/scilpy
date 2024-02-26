@@ -15,14 +15,13 @@ from dipy.utils.optpkg import optional_package
 cvx, have_cvxpy, _ = optional_package("cvxpy")
 
 
-def get_ventricles_max_fodf(data, fa, md, zoom, sh_basis, args,
-                            is_legacy=True):
+def get_ventricles_max_fodf(data, fa, md, zoom, sh_basis, small_dims,
+                            fa_threshold, md_threshold, is_legacy=True):
     """
-    Compute mean maximal fodf value in ventricules. Given
-    heuristics thresholds on FA and MD values, finds the
-    voxels of the ventricules or CSF and computes a mean
-    fODF value. This is described in
-    Dell'Acqua et al HBM 2013.
+    Compute mean maximal fodf value in ventricules. Given heuristics thresholds
+    on FA and MD values, finds the voxels of the ventricules or CSF and
+    computes a mean fODF value. This is described in
+    Dell'Acqua et al. HBM 2013.
 
     Parameters
     ----------
@@ -32,18 +31,27 @@ def get_ventricles_max_fodf(data, fa, md, zoom, sh_basis, args,
          FA (Fractional Anisotropy) volume from DTI
     md: ndarray (x, y, z)
          MD (Mean Diffusivity) volume from DTI
-    zoom: int > 0
-         Maximum number of voxels used to compute the mean.
-         1000 works well at 2x2x2 = 8 mm3
+    zoom: List of length 3
+        The resolution. A total number of voxels of 1000 works well at
+        2x2x2 = 8 mm3.
     sh_basis: str
         Either 'tournier07' or 'descoteaux07'
+    small_dims: bool
+        If set, takes the full range of data to search the max fodf amplitude
+        in ventricles. Useful when the data has small dimensions.
+    fa_threshold: float
+        Maximal threshold of FA (voxels under that threshold are considered
+        for evaluation).
+    md_threshold: float
+        Minimal threshold of MD in mm2/s (voxels above that threshold are
+        considered for evaluation).
     is_legacy : bool, optional
         Whether or not the SH basis is in its legacy form.
 
     Returns
     -------
     mean, mask: int, ndarray (x, y, z)
-         Mean maximum fODF value and mask of voxels used
+         Mean maximum fODF value and mask of voxels used.
     """
 
     order = find_order_from_nb_coeff(data)
@@ -72,7 +80,7 @@ def get_ventricles_max_fodf(data, fa, md, zoom, sh_basis, args,
 
     # In the case of 2D-like data (3D data with one dimension size of 1), or
     # a small 3D dataset, the full range of data is scanned.
-    if args.small_dims:
+    if small_dims:
         all_i = list(range(0, data.shape[0]))
         all_j = list(range(0, data.shape[1]))
         all_k = list(range(0, data.shape[2]))
@@ -90,8 +98,8 @@ def get_ventricles_max_fodf(data, fa, md, zoom, sh_basis, args,
             for k in all_k:
                 if count > max_number_of_voxels - 1:
                     continue
-                if fa[i, j, k] < args.fa_threshold \
-                        and md[i, j, k] > args.md_threshold:
+                if fa[i, j, k] < fa_threshold \
+                        and md[i, j, k] > md_threshold:
                     sf = np.dot(data[i, j, k], b_matrix)
                     sum_of_max += sf.max()
                     count += 1
