@@ -2,7 +2,7 @@ scilpy.reconst package
 ======================
 
 scilpy.reconst.aodf module
----------------------------------------------
+------------------------------------------------------
 
 .. automodule:: scilpy.reconst.aodf
    :members:
@@ -10,7 +10,7 @@ scilpy.reconst.aodf module
    :show-inheritance:
 
 scilpy.reconst.bingham module
----------------------------------------------
+------------------------------------------------------
 
 .. automodule:: scilpy.reconst.bingham
    :members:
@@ -18,7 +18,7 @@ scilpy.reconst.bingham module
    :show-inheritance:
 
 scilpy.reconst.divide module
----------------------------------------------
+------------------------------------------------------
 
 .. automodule:: scilpy.reconst.divide
    :members:
@@ -26,7 +26,7 @@ scilpy.reconst.divide module
    :show-inheritance:
 
 scilpy.reconst.fiber\_coherence module
----------------------------------------------
+------------------------------------------------------
 
 .. automodule:: scilpy.reconst.fiber_coherence
    :members:
@@ -34,7 +34,7 @@ scilpy.reconst.fiber\_coherence module
    :show-inheritance:
 
 scilpy.reconst.fodf module
---------------------------
+------------------------------------------------------
 
 .. automodule:: scilpy.reconst.fodf
    :members:
@@ -42,7 +42,7 @@ scilpy.reconst.fodf module
    :show-inheritance:
 
 scilpy.reconst.frf module
--------------------------
+------------------------------------------------------
 
 .. automodule:: scilpy.reconst.frf
    :members:
@@ -50,7 +50,7 @@ scilpy.reconst.frf module
    :show-inheritance:
 
 scilpy.reconst.mti module
----------------------------------------------
+------------------------------------------------------
 
 .. automodule:: scilpy.reconst.mti
    :members:
@@ -58,7 +58,7 @@ scilpy.reconst.mti module
    :show-inheritance:
 
 scilpy.reconst.sh module
----------------------------------------------
+------------------------------------------------------
 
 .. automodule:: scilpy.reconst.sh
    :members:
@@ -66,7 +66,7 @@ scilpy.reconst.sh module
    :show-inheritance:
 
 scilpy.reconst.utils module
----------------------------
+------------------------------------------------------
 
 .. automodule:: scilpy.reconst.utils
    :members:

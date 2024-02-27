@@ -46,7 +46,7 @@ Complete example
 
 
 Apply back and forth tractogram transformation with the ANTS transformation
------------------
+----------------------------------------------------------------------------
 ::
 
     # The ANTS commands is MOVING->REFERENCE

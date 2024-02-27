@@ -22,7 +22,7 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_outputs_exist)
 
 
-def build_arg_parser():
+def _build_arg_parser():
     p = argparse.ArgumentParser(
         description=__doc__,
         formatter_class=argparse.RawTextHelpFormatter,)
@@ -52,7 +52,7 @@ def build_arg_parser():
 
 
 def main():
-    parser = build_arg_parser()
+    parser = _build_arg_parser()
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 

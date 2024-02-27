@@ -20,10 +20,10 @@ class BinghamDistribution(object):
     """
     Scaled Bingham distribution, given by:
         B(u) = f0 * e^(- k1 * (mu1 * u)**2 - k2 * (mu2 * u)**2),
-    mu1 and mu2 are unit vectors.
+        mu1 and mu2 are unit vectors.
 
-    Params
-    ------
+    Parameters
+    ----------
     f0: float
         Scaling parameter of the distribution.
     mu_prime1: ndarray (3,)
