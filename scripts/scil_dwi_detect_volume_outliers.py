@@ -73,7 +73,7 @@ def main():
 
     # Not using the result. Only printing on screen. This is why the logging
     # level can never be set higher than INFO.
-    detect_volume_outliers(data, bvecs, bvals, args.std_scale, b0_thr)
+    detect_volume_outliers(data, bvals, bvecs, args.std_scale, b0_thr)
 
 
 if __name__ == "__main__":

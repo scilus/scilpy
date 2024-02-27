@@ -60,7 +60,7 @@ def test_detect_volume_outliers():
     dwi[0, 0, 0, 0:4] = np.random.rand(4)
     dwi[..., -1] = np.random.rand(10, 10, 10)
 
-    res, outliers = detect_volume_outliers(dwi, bvecs, bvals, std_scale=1)
+    res, outliers = detect_volume_outliers(dwi, bvals, bvecs, std_scale=1)
 
     # Should get one shell
     keys = list(res.keys())

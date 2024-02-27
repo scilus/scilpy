@@ -147,7 +147,7 @@ def compute_dwi_attenuation(dwi_weights: np.ndarray, b0: np.ndarray):
     return dwi_attenuation
 
 
-def detect_volume_outliers(data, bvecs, bvals, std_scale,
+def detect_volume_outliers(data, bvals, bvecs, std_scale,
                            b0_thr=DEFAULT_B0_THRESHOLD):
     """
     Detects outliers. Finds the 3 closest angular neighbors of each direction
@@ -158,11 +158,11 @@ def detect_volume_outliers(data, bvecs, bvals, std_scale,
     Parameters
     ----------
     data: np.ndarray
-        The 4D dwi data.
-    bvecs: np.ndarray
-        The bvecs, of shape (nb_gradients, 3), normalized
-    bvals: np.array
-        The b-values vector, of shape (nb_gradients, )
+        4D Input diffusion volume with shape (X, Y, Z, N)
+    bvals : ndarray
+        1D bvals array with shape (N,)
+    bvecs : ndarray
+        2D bvecs array with shape (N, 3)
     std_scale: float
         How many deviation from the mean are required to be considered an
         outlier.
