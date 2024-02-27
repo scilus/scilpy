@@ -18,19 +18,23 @@ def cl_device_type(device_type_str):
 
 class CLManager(object):
     """
-    Class for managing an OpenCL GPU program.
+    Class for managing an OpenCL program.
 
     Wraps a subset of pyopencl functions to simplify its
-    integration with python.
+    integration with python. The OpenCL program can be run
+    on the cpu or on the gpu, given the appropriate drivers
+    are installed.
+    
+    When multiple cpu or gpu are available, the
+    one that first comes up in the list of available devices
+    is selected.
 
     Parameters
     ----------
     cl_kernel: CLKernel object
         The CLKernel containing the OpenCL program to manage.
-    n_inputs: int
-        Number of input buffers for the kernel.
-    n_outputs: int
-        Number of output buffers for the kernel.
+    device_type: string
+        The device onto which to run the program. One of 'cpu', 'gpu'.
     """
     def __init__(self, cl_kernel, device_type='gpu'):
         if not have_opencl:
@@ -92,18 +96,14 @@ class CLManager(object):
 
         Parameters
         ----------
-        arg_pos: int
-            Position of the buffer in the input buffers list.
+        key: string
+            Name of the buffer in the input buffers list. Used for
+            referencing when updating buffers.
         arr: numpy ndarray
             Data array.
         dtype: dtype, optional
             Optional type for array data. It is recommended to use float32
             whenever possible to avoid unexpected behaviours.
-
-        Returns
-        -------
-        indice: int
-            Index of the input buffer in the input buffers list.
 
         Note
         ----
@@ -127,6 +127,20 @@ class CLManager(object):
         self.input_buffers.append(buf)
 
     def update_input_buffer(self, key, arr, dtype=np.float32):
+        """
+        Update an input buffer. Input buffers must first be added
+        to program using `add_input_buffer`.
+
+        Parameters
+        ----------
+        key: string
+            Name of the buffer in the input buffers list.
+        arr: numpy ndarray
+            Data array.
+        dtype: dtype, optional
+            Optional type for array data. It is recommended to use float32
+            whenever possible to avoid unexpected behaviours.
+        """
         if key not in self.inputs_mapping.keys():
             raise ValueError('Invalid key for buffer!')
         argpos = self.inputs_mapping[key]
@@ -139,17 +153,20 @@ class CLManager(object):
 
     def add_output_buffer(self, key, shape=None, dtype=np.float32):
         """
-        Add an output buffer.
+        Add an output buffer to the kernel program. Output buffers
+        must be added in the same order as they are declared inside
+        the kernel code (.cl file).
 
         Parameters
         ----------
-        arg_pos: int
-            Position of the buffer in the output buffers list.
+        key: string
+            Name of the buffer in the output buffers list. Used for
+            referencing when updating buffers.
         shape: tuple
             Shape of the output array.
         dtype: dtype, optional
-            Data type for the output. It is recommended to keep
-            float32 to avoid unexpected behaviour.
+            Optional type for array data. It is recommended to use float32
+            whenever possible to avoid unexpected behaviours.
         """
         if key in self.outputs_mapping.keys():
             raise ValueError('Invalid key for buffer!')
@@ -163,6 +180,20 @@ class CLManager(object):
         self.output_buffers.append(self.OutBuffer(buf, shape, dtype))
 
     def update_output_buffer(self, key, shape, dtype=np.float32):
+        """
+        Update an output buffer. Output buffers must first be added
+        to program using `add_output_buffer`.
+
+        Parameters
+        ----------
+        key: string
+            Name of the buffer in the output buffers list.
+        shape: tuple
+            New shape of the output array.
+        dtype: dtype, optional
+            Optional type for array data. It is recommended to use float32
+            whenever possible to avoid unexpected behaviours.
+        """
         if key not in self.outputs_mapping.keys():
             raise ValueError('Invalid key for buffer!')
         argpos = self.outputs_mapping[key]
