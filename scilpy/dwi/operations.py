@@ -5,7 +5,8 @@ import pprint
 import numpy as np
 
 from scilpy.gradients.bvec_bval_tools import identify_shells, \
-    round_bvals_to_shell, DEFAULT_B0_THRESHOLD
+    round_bvals_to_shell, DEFAULT_B0_THRESHOLD, is_normalized_bvecs, \
+    normalize_bvecs
 
 
 def apply_bias_field(dwi_data, bias_field_data, mask_data):
@@ -187,6 +188,10 @@ def detect_volume_outliers(data, bvals, bvecs, std_scale,
                 'outliers_corr': list[int]}
         The indices of outliers (indices in the original bvecs).
     """
+    if not is_normalized_bvecs(bvecs):
+        logging.warning("Your b-vectors do not seem normalized... Normalizing")
+        bvecs = normalize_bvecs(bvecs)
+
     results_dict = {}
     shells_to_extract = identify_shells(bvals, b0_thr, sort=True)[0]
     bvals = round_bvals_to_shell(bvals, shells_to_extract)

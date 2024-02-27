@@ -75,7 +75,7 @@ def compute_ssst_frf(data, bvals, bvecs, mask=None, mask_wm=None,
             "Make sure it makes sense for this dataset.".format(min_fa_thresh))
 
     if not is_normalized_bvecs(bvecs):
-        logging.warning("Your b-vectors do not seem normalized...")
+        logging.warning("Your b-vectors do not seem normalized... Normalizing")
         bvecs = normalize_bvecs(bvecs)
 
     b0_thr = check_b0_threshold(force_b0_threshold, bvals.min(), bvals.min())
