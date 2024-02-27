@@ -8,6 +8,7 @@ import scilpy
 from dipy.utils.optpkg import optional_package
 cl, have_opencl, _ = optional_package('pyopencl')
 
+
 def cl_device_type(device_type_str):
     if device_type_str == 'cpu':
         return cl.device_type.CPU
@@ -24,7 +25,7 @@ class CLManager(object):
     integration with python. The OpenCL program can be run
     on the cpu or on the gpu, given the appropriate drivers
     are installed.
-    
+
     When multiple cpu or gpu are available, the
     one that first comes up in the list of available devices
     is selected.
@@ -59,7 +60,8 @@ class CLManager(object):
             devices = p.get_devices()
             for d in devices:
                 d_type = d.get_info(cl.device_info.TYPE)
-                if d_type == cl_device_type(device_type) and best_device is None:
+                if d_type == cl_device_type(device_type)\
+                   and best_device is None:
                     best_device = d  # take the first device of right type
 
         if best_device is None:
