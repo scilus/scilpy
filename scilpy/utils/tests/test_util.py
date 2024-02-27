@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import numpy as np
-from np.testing import assert_almost_equal
+from numpy.testing import assert_almost_equal
 
 from scilpy.utils.util import rotation_around_vector_matrix
 
