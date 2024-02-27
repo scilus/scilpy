@@ -14,6 +14,7 @@ from dipy.reconst.utils import _mask_from_roi, _roi_in_volume
 from dipy.segment.mask import crop, median_otsu
 import nibabel as nib
 import numpy as np
+from numpy import ma
 from scipy.ndimage import binary_dilation, gaussian_filter
 
 from scilpy.image.reslice import reslice  # Don't use Dipy's reslice. Buggy.
