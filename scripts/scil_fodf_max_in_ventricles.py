@@ -89,7 +89,7 @@ def main():
     sh_basis, is_legacy = parse_sh_basis_arg(args)
 
     value, mask = get_ventricles_max_fodf(fodf, fa, md, zoom, sh_basis,
-                                          args.small_dims, args.fa_treshold,
+                                          args.small_dims, args.fa_threshold,
                                           args.md_threshold,
                                           is_legacy=is_legacy)
 
