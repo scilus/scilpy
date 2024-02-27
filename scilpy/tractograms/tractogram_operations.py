@@ -607,6 +607,22 @@ def transform_warp_sft(sft, linear_transfo, target, inverse=False,
 
 
 def compress_streamlines_wrapper(tractogram, error_rate):
+    """
+    Compresses the streamlines of a tractogram.
+    Supports both nibabel.Tractogram or list of streamlines.
+
+    Parameters
+    ----------
+    tractogram: TrkFile, TckFile, ArraySequence, list
+        The tractogram to compress.
+    error_rate: float
+        The maximum distance (in mm) to the original position of any point.
+
+    Returns
+    -------
+    compressed_streamlines: list of np.ndarray
+        The compressed streamlines.
+    """
     if isinstance(tractogram, (TrkFile, TckFile)):
         return lambda: (compress_streamlines(
             s, error_rate) for s in tractogram.streamlines)

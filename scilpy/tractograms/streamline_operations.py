@@ -7,6 +7,8 @@ from dipy.io.stateful_tractogram import StatefulTractogram
 from dipy.tracking.streamlinespeed import (length, set_number_of_points)
 from scipy.interpolate import splev, splprep
 
+from scilpy.utils.util import rotation_around_vector_matrix
+
 
 def _get_streamline_pt_index(points_to_index, vox_index, from_start=True):
     """Get the index of the streamline point in the voxel.
@@ -83,6 +85,7 @@ def _get_point_on_line(first_point, second_point, vox_lower_corner):
             t1 = min(t1, max(v0, v1))
 
     return first_point + ray * (t0 + t1) / 2.
+
 
 def filter_streamlines_by_length(sft, min_length=0., max_length=np.inf):
     """
@@ -389,38 +392,6 @@ def smooth_line_spline(streamline, smoothing_parameter, nb_ctrl_points):
 
     return smoothed_streamline
 
-
-def rotation_around_vector_matrix(vec, theta):
-    """ Rotation matrix around a 3D vector by an angle theta.
-    From https://stackoverflow.com/questions/6802577/rotation-of-3d-vector
-
-    TODO?: Put this somewhere else.
-
-    Parameters
-    ----------
-    vec: ndarray (3,)
-        The vector to rotate around.
-    theta: float
-        The angle of rotation in radians.
-
-    Returns
-    -------
-    rot: ndarray (3, 3)
-        The rotation matrix.
-    """
-
-    vec = vec / np.linalg.norm(vec)
-    x, y, z = vec
-    c, s = np.cos(theta), np.sin(theta)
-    return np.array([[c + x**2 * (1 - c),
-                        x * y * (1 - c) - z * s,
-                        x * z * (1 - c) + y * s],
-                        [y * x * (1 - c) + z * s,
-                        c + y**2 * (1 - c),
-                        y * z * (1 - c) - x * s],
-                        [z * x * (1 - c) - y * s,
-                        z * y * (1 - c) + x * s,
-                        c + z**2 * (1 - c)]])
 
 def parallel_transport_streamline(streamline, nb_streamlines, radius, rng=None):
     """ Generate new streamlines by parallel transport of the input
