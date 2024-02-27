@@ -18,9 +18,7 @@ from fury import window
 from PIL import Image
 from scipy.io import loadmat
 import six
-import importlib.metadata
 
-from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.gradients.bvec_bval_tools import DEFAULT_B0_THRESHOLD
 from scilpy.utils.filenames import split_name_with_nii
 
@@ -225,13 +223,11 @@ def add_force_b0_arg(parser):
 
 
 def add_verbose_arg(parser):
-    parser.add_argument('-v', action='store_true', dest='verbose',
-                        help='If set, produces verbose output.')
-
-    version = importlib.metadata.version('scilpy')
-
-    logging.getLogger().setLevel(logging.INFO)
-    logging.info("Scilpy version: {}".format(version))
+    parser.add_argument('-v', default="WARNING", const='INFO', nargs='?',
+                        choices=['DEBUG', 'INFO', 'WARNING'], dest='verbose',
+                        help='Produces verbose output depending on '
+                             'the provided level. \nDefault level is warning, '
+                             'default when using -v is info.')
 
 
 def add_bbox_arg(parser):
@@ -356,11 +352,13 @@ def add_nifti_screenshot_overlays_args(
 
 
 def validate_nbr_processes(parser, args):
-    """ Check if the passed number of processes arg is valid.
+    """
+    Check if the passed number of processes arg is valid.
+
     Valid values are considered to be in the [0, CPU count] range:
         - Raises a parser.error if an invalid value is provided.
         - Returns the maximum number of cores retrieved if no value (or a value
-        of 0) is provided.
+          of 0) is provided.
 
     Parameters
     ----------
@@ -390,7 +388,8 @@ def validate_nbr_processes(parser, args):
 
 
 def validate_sh_basis_choice(sh_basis):
-    """ Check if the passed sh_basis arg to a fct is right.
+    """
+    Check if the passed sh_basis arg to a fct is right.
 
     Parameters
     ----------
@@ -426,7 +425,8 @@ def verify_compression_th(compress_th):
 
 
 def assert_inputs_exist(parser, required, optional=None):
-    """Assert that all inputs exist. If not, print parser's usage and exit.
+    """
+    Assert that all inputs exist. If not, print parser's usage and exit.
 
     Parameters
     ----------
@@ -590,46 +590,6 @@ def assert_roi_radii_format(parser):
         parser.error('Wrong size for --roi_radii, can only be a scalar' +
                      'or an array of size (3,)')
     return roi_radii
-
-
-def verify_compatibility_with_reference_sft(ref_sft, files_to_verify,
-                                            parser, args):
-    """
-    Verifies the compatibility of a reference sft with a list of files.
-
-    Params
-    ------
-    ref_sft: StatefulTractogram
-        A tractogram to be used as reference.
-    files_to_verify: List[str]
-        List of files that should be compatible with the reference sft. Files
-        can be either other tractograms or nifti files (ex: masks).
-    parser: argument parser
-        Will raise an error if a file is not compatible.
-    args: Namespace
-        Should contain a args.reference if any file is a .tck, and possibly a
-        args.bbox_check (set to True by default).
-    """
-    save_ref = args.reference
-
-    for file in files_to_verify:
-        if file is not None:
-            _, ext = os.path.splitext(file)
-            if ext in ['.trk', '.tck', '.fib', '.vtk', '.dpy']:
-                # Cheating ref because it may send a lot of warning if loading
-                # many trk with ref (reference was maybe added only for some
-                # of these files)
-                if ext == '.trk':
-                    args.reference = None
-                else:
-                    args.reference = save_ref
-                mask = load_tractogram_with_reference(parser, args, file)
-            else:  # should be a nifti file.
-                mask = file
-            compatible = is_header_compatible(ref_sft, mask)
-            if not compatible:
-                parser.error("Reference tractogram incompatible with {}"
-                             .format(file))
 
 
 def is_header_compatible_multiple_files(parser, list_files,
@@ -878,5 +838,3 @@ def get_default_screenshotting_data(args):
         labelmap_img, \
         mask_imgs, \
         masks_colors
-
-

@@ -10,6 +10,7 @@ Formerly: scil_convert_json_to_xlsx.py
 
 import argparse
 import json
+import logging
 
 import numpy as np
 import pandas as pd
@@ -475,6 +476,7 @@ def _build_arg_parser():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
+    logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     assert_inputs_exist(parser, args.in_json)
     assert_outputs_exist(parser, args, args.out_xlsx)

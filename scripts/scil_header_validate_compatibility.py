@@ -11,7 +11,7 @@ Formerly: scil_verify_space_attributes_compatibility.py
 """
 
 import argparse
-
+import logging
 
 from scilpy.io.utils import (
     add_reference_arg,
@@ -36,6 +36,7 @@ def _build_arg_parser():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
+    logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     assert_inputs_exist(parser, args.in_files)
     is_header_compatible_multiple_files(parser, args.in_files,

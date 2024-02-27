@@ -764,5 +764,7 @@ def gaussian_blur(input_list, ref_img):
     _validate_type(input_list[0], nib.Nifti1Image)
     _validate_float(input_list[1])
 
+    # Data is always 3D, using directly scipy. See also
+    # scilpy.image.volume_operations : smooth_to_fwhm.
     return gaussian_filter(input_list[0].get_fdata(dtype=np.float64),
                            sigma=input_list[1])

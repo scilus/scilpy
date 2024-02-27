@@ -61,7 +61,7 @@ def _random_p0(signal, gtab_infos, lb, ub, weight, n_iter):
 
     for i in range(n_iter):
         params_rand = lb + (ub - lb) * np.random.rand(len(lb))
-        signal_rand = gamma_fit2data(gtab_infos, params_rand)
+        signal_rand = _gamma_fit2data(gtab_infos, params_rand)
         residual_rand = np.sum(((signal - signal_rand) * weight)**2)
 
         if residual_rand < thr:
@@ -71,9 +71,9 @@ def _random_p0(signal, gtab_infos, lb, ub, weight, n_iter):
     return guess
 
 
-def gamma_data2fit(signal, gtab_infos, fit_iters=1, random_iters=50,
-                   do_weight_bvals=False, do_weight_pa=False,
-                   do_multiple_s0=False):
+def _gamma_data2fit(signal, gtab_infos, fit_iters=1, random_iters=50,
+                    do_weight_bvals=False, do_weight_pa=False,
+                    do_multiple_s0=False):
     """Fit the gamma model to data
 
     Parameters
@@ -130,7 +130,7 @@ def gamma_data2fit(signal, gtab_infos, fit_iters=1, random_iters=50,
         """
         params_unit = args
         params_SI = params_unit * unit_to_SI
-        signal = gamma_fit2data(gtab_infos, params_SI)
+        signal = _gamma_fit2data(gtab_infos, params_SI)
         return signal * weight
 
     lb_SI, ub_SI = _get_bounds()
@@ -172,7 +172,7 @@ def gamma_data2fit(signal, gtab_infos, fit_iters=1, random_iters=50,
                                                 bounds=bounds_unit,
                                                 method="trf")
 
-        signal_fit = gamma_fit2data(gtab_infos, params_unit * unit_to_SI)
+        signal_fit = _gamma_fit2data(gtab_infos, params_unit * unit_to_SI)
         residual = np.sum(((signal - signal_fit) * weight) ** 2)
         if residual < res_thr:
             res_thr = residual
@@ -183,7 +183,7 @@ def gamma_data2fit(signal, gtab_infos, fit_iters=1, random_iters=50,
     return params_best[0:4]
 
 
-def gamma_fit2data(gtab_infos, params):
+def _gamma_fit2data(gtab_infos, params):
     """Compute a signal from gtab infomations and fit parameters.
 
     Parameters
@@ -275,9 +275,9 @@ def _fit_gamma_parallel(args):
     sub_fit_array = np.zeros((data.shape[0], 4))
     for i in range(data.shape[0]):
         if data[i].any():
-            sub_fit_array[i] = gamma_data2fit(data[i], gtab_infos, fit_iters,
-                                              random_iters, do_weight_bvals,
-                                              do_weight_pa, do_multiple_s0)
+            sub_fit_array[i] = _gamma_data2fit(data[i], gtab_infos, fit_iters,
+                                               random_iters, do_weight_bvals,
+                                               do_weight_pa, do_multiple_s0)
 
     return chunk_id, sub_fit_array
 

@@ -144,12 +144,9 @@ def _build_arg_parser():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
+    logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
-    if args.verbose:
-        logging.basicConfig(level=logging.DEBUG)
-    else:
-        logging.basicConfig(level=logging.INFO)
-
+    # Verifications
     if not args.not_all:
         args.md = args.md or 'md.nii.gz'
         args.ufa = args.ufa or 'ufa.nii.gz'
@@ -159,17 +156,15 @@ def main():
 
     arglist = [args.md, args.ufa, args.mk_i, args.mk_a, args.mk_t]
     if args.not_all and not any(arglist):
-        parser.error('When using --not_all, you need to specify at least ' +
+        parser.error('When using --not_all, you need to specify at least '
                      'one file to output.')
 
     assert_inputs_exist(parser, [],
-                        optional=list(np.concatenate((args.in_dwis,
-                                                      args.in_bvals,
-                                                      args.in_bvecs))))
+                        optional=args.in_dwis + args.in_bvals + args.in_bvecs)
     assert_outputs_exist(parser, args, arglist)
 
     if args.op and not args.fa:
-        parser.error('Computation of the OP requires a precomputed ' +
+        parser.error('Computation of the OP requires a precomputed '
                      'FA map (given using --fa).')
 
     if not (len(args.in_dwis) == len(args.in_bvals)
@@ -183,16 +178,15 @@ def main():
               script to work properly."""
         raise ValueError(msg)
 
+    # Loading
     affine = extract_affine(args.in_dwis)
-
-    tol = args.tolerance
 
     data, gtab_infos = generate_btensor_input(args.in_dwis,
                                               args.in_bvals,
                                               args.in_bvecs,
                                               args.in_bdeltas,
                                               do_pa_signals=True,
-                                              tol=tol)
+                                              tol=args.tolerance)
 
     gtab_infos[0] *= 1e6  # getting bvalues to SI units
 
@@ -210,6 +204,7 @@ def main():
         vol = nib.load(args.fa)
         FA = vol.get_fdata(dtype=np.float32)
 
+    # Processing
     parameters = fit_gamma(data, gtab_infos, mask=mask,
                            fit_iters=args.fit_iters,
                            random_iters=args.random_iters,

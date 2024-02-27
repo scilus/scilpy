@@ -14,7 +14,7 @@ from dipy.reconst.utils import _mask_from_roi, _roi_in_volume
 from dipy.segment.mask import crop, median_otsu
 import nibabel as nib
 import numpy as np
-from scipy.ndimage import binary_dilation
+from scipy.ndimage import binary_dilation, gaussian_filter
 
 from scilpy.image.reslice import reslice  # Don't use Dipy's reslice. Buggy.
 from scilpy.io.image import get_data_as_mask
@@ -194,17 +194,55 @@ def transform_dwi(reg_obj, static, dwi, interpolation='linear'):
 
 
 def register_image(static, static_grid2world, moving, moving_grid2world,
-                   transformation_type='affine', dwi=None):
+                   transformation_type='affine', dwi=None, fine=False):
+    """
+    Register a moving image to a static image using either rigid or affine
+    transformations. If a DWI (4D) is provided, it applies the transformation
+    to each volume.
+
+    Parameters
+    ----------
+    static : ndarray
+        The static image volume to which the moving image will be registered.
+    static_grid2world : ndarray
+        The grid-to-world (vox2ras) transformation associated with the static
+        image.
+    moving : ndarray
+        The moving image volume that needs to be registered to the static image.
+    moving_grid2world : ndarray
+        The grid-to-world (vox2ras) transformation associated with the moving
+        image.
+    transformation_type : str, optional
+        The type of transformation ('rigid' or 'affine'). Default is 'affine'.
+    dwi : ndarray, optional
+        Diffusion-weighted imaging data (if applicable). Default is None.
+    fine : bool, optional
+        Whether to use fine or coarse settings for the registration.
+        Default is False.
+
+    Raises
+    ------
+    ValueError
+        If the transformation_type is neither 'rigid' nor 'affine'.
+
+    Returns
+    -------
+    ndarray or tuple
+        If `dwi` is None, returns transformed moving image and transformation
+        matrix.
+        If `dwi` is not None, returns transformed DWI and transformation matrix.
+    """
+
     if transformation_type not in ['rigid', 'affine']:
         raise ValueError('Transformation type not available in Dipy')
 
     # Set all parameters for registration
-    nbins = 32
+    nbins = 64 if fine else 32
     params0 = None
     sampling_prop = None
-    level_iters = [50, 25, 5]
-    sigmas = [8.0, 4.0, 2.0]
-    factors = [8, 4, 2]
+    level_iters = [250, 100, 50, 25] if fine else [50, 25, 5]
+    sigmas = [8.0, 4.0, 2.0, 1.0] if fine else [8.0, 4.0, 2.0]
+    factors = [8, 4, 2, 1.0] if fine else [8, 4, 2]
     metric = MutualInformationMetric(nbins, sampling_prop)
     reg_obj = AffineRegistration(metric=metric, level_iters=level_iters,
                                  sigmas=sigmas, factors=factors, verbosity=0)
@@ -241,7 +279,7 @@ def register_image(static, static_grid2world, moving, moving_grid2world,
 def compute_snr(dwi, bval, bvec, b0_thr, mask,
                 noise_mask=None, noise_map=None,
                 split_shells=False,
-                basename=None, verbose=False):
+                basename=None):
     """
     Compute snr
 
@@ -264,23 +302,17 @@ def compute_snr(dwi, bval, bvec, b0_thr, mask,
     basename: string
         Basename used for naming all output files.
 
-    verbose: boolean
-        Set to use logging
-
     Return
     ------
     Dictionary of values (bvec, bval, mean, std, snr) for all volumes.
     """
-    if verbose:
-        logging.getLogger().setLevel(logging.INFO)
-
     data = dwi.get_fdata(dtype=np.float32)
     affine = dwi.affine
     mask = get_data_as_mask(mask, dtype=bool)
 
     if split_shells:
-        centroids, shell_indices = identify_shells(bval, threshold=40.0,
-                                                   roundCentroids=False,
+        centroids, shell_indices = identify_shells(bval, tol=40.0,
+                                                   round_centroids=False,
                                                    sort=False)
         bval = centroids[shell_indices]
 
@@ -334,6 +366,37 @@ def compute_snr(dwi, bval, bvec, b0_thr, mask,
         val[idx]['snr'] = val[idx]['mean'] / val[idx]['std']
 
     return val
+
+
+def smooth_to_fwhm(data, fwhm):
+    """
+    Smooth a volume to given FWHM.
+
+    Parameters
+    ----------
+    data: np.ndarray
+        3D or 4D data. If it is 4D, processing invidually on each volume (on
+        the last dimension)
+    fwhm: float
+        Full width at half maximum.
+    """
+    if fwhm > 0:
+        # converting fwhm to Gaussian std
+        gauss_std = fwhm / np.sqrt(8 * np.log(2))
+
+        if len(data.shape) == 3:
+            data_smooth = gaussian_filter(data, sigma=gauss_std)
+        elif len(data.shape) == 4:
+            data_smooth = np.zeros(data.shape)
+            for v in range(data.shape[-1]):
+                data_smooth[..., v] = gaussian_filter(data[..., v],
+                                                      sigma=gauss_std)
+        else:
+            raise ValueError("Expecting a 3D or 4D volume.")
+
+        return data_smooth
+    else:
+        return data
 
 
 def _interp_code_to_order(interp_code):
@@ -416,17 +479,17 @@ def resample_volume(img, ref=None, res=None, iso_min=False, zoom=None,
     if interp not in interp_choices:
         raise ValueError("interp must be one of 'nn', 'lin', 'quad', 'cubic'.")
 
-    logging.debug('Data shape: %s', data.shape)
-    logging.debug('Data affine: %s', affine)
-    logging.debug('Data affine setup: %s', nib.aff2axcodes(affine))
-    logging.debug('Resampling data to %s with mode %s', new_zooms, interp)
+    logging.info('Data shape: %s', data.shape)
+    logging.info('Data affine: %s', affine)
+    logging.info('Data affine setup: %s', nib.aff2axcodes(affine))
+    logging.info('Resampling data to %s with mode %s', new_zooms, interp)
 
     data2, affine2 = reslice(data, affine, original_zooms, new_zooms,
                              _interp_code_to_order(interp))
 
-    logging.debug('Resampled data shape: %s', data2.shape)
-    logging.debug('Resampled data affine: %s', affine2)
-    logging.debug('Resampled data affine setup: %s', nib.aff2axcodes(affine2))
+    logging.info('Resampled data shape: %s', data2.shape)
+    logging.info('Resampled data affine: %s', affine2)
+    logging.info('Resampled data affine setup: %s', nib.aff2axcodes(affine2))
 
     if enforce_dimensions:
         if ref is None:

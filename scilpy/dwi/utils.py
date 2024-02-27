@@ -36,7 +36,7 @@ def extract_dwi_shell(dwi, bvals, bvecs, bvals_to_extract, tol=20,
     tol : int
         The tolerated gap between the b-values to extract and the actual
         b-values.
-    block_size : int
+    block_size : int, optional
         Load the data using this block size. Useful when the data is too
         large to be loaded in memory.
 
@@ -47,7 +47,8 @@ def extract_dwi_shell(dwi, bvals, bvecs, bvals_to_extract, tol=20,
     shell_data : ndarray
         Volumes corresponding to the provided b-values.
     output_bvals : ndarray
-        Selected b-values.
+        Selected b-values (raw values, not rounded values, even when tol is
+        given).
     output_bvecs : ndarray
         Selected b-vectors.
 
@@ -81,7 +82,6 @@ def extract_dwi_shell(dwi, bvals, bvecs, bvals_to_extract, tol=20,
         shell_data[..., in_volume] = data[..., in_data]
 
     output_bvals = bvals[indices].astype(int)
-    output_bvals.shape = (1, len(output_bvals))
     output_bvecs = bvecs[indices, :]
 
     return indices, shell_data, output_bvals, output_bvecs
@@ -96,24 +96,25 @@ def extract_b0(dwi, b0_mask, extract_in_cluster=False,
     ----------
     dwi : nib.Nifti1Image
         Original multi-shell volume.
-    b0_mask: array of bool
+    b0_mask: ndarray of bool
         Mask over the time dimension (4th) identifying b0 volumes.
     extract_in_cluster: bool
         Specify to extract b0's in each continuous sets of b0 volumes
         appearing in the input data.
-    strategy: Enum
-        The extraction strategy, of either select the first b0 found, select
-        them all or average them. When used in conjunction with the batch
-        parameter set to True, the strategy is applied individually on each
-        continuous set found.
-    block_size : int
+    strategy: enum
+        The extraction strategy. Must be one choice available in our enum
+        B0ExtractionStrategy: either select the first b0 found, select
+        them all or average them. When used in conjunction with the
+        extract_in_cluster parameter set to True, the strategy is applied
+        individually on each continuous set found.
+    block_size : int, optional
         Load the data using this block size. Useful when the data is too
         large to be loaded in memory.
 
     Returns
     -------
     b0_data : ndarray
-        Extracted b0 volumes.
+        Extracted b0 volumes. 3D with one b0, else 4D.
     """
 
     indices = np.where(b0_mask)[0]

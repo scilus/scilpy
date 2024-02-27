@@ -18,6 +18,7 @@ Formerly: scil_harmonize_json.py
 import argparse
 from copy import deepcopy
 import json
+import logging
 
 from deepdiff import DeepDiff
 
@@ -48,6 +49,7 @@ def _build_arg_parser():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
+    logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     assert_inputs_exist(parser, args.in_file)
     assert_outputs_exist(parser, args, args.out_file)

@@ -57,7 +57,7 @@ from scilpy.io.utils import (add_force_b0_arg,
 from scilpy.reconst.frf import compute_msmt_frf
 
 
-def buildArgsParser():
+def _build_arg_parser():
 
     p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawTextHelpFormatter)
@@ -177,13 +177,9 @@ def buildArgsParser():
 
 
 def main():
-    parser = buildArgsParser()
+    parser = _build_arg_parser()
     args = parser.parse_args()
-
-    if args.verbose:
-        logging.basicConfig(level=logging.DEBUG)
-    else:
-        logging.basicConfig(level=logging.INFO)
+    logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     assert_inputs_exist(parser, [],
                         optional=list(np.concatenate((args.in_dwis,

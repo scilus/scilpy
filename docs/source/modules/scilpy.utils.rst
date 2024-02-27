@@ -1,26 +1,10 @@
 scilpy.utils package
 ====================
 
-scilpy.utils.bvec\_bval\_tools module
--------------------------------------
-
-.. automodule:: scilpy.utils.bvec_bval_tools
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 scilpy.utils.filenames module
 -----------------------------
 
 .. automodule:: scilpy.utils.filenames
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-scilpy.utils.image module
--------------------------
-
-.. automodule:: scilpy.utils.image
    :members:
    :undoc-members:
    :show-inheritance:

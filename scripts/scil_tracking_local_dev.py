@@ -50,8 +50,7 @@ import dipy.core.geometry as gm
 import nibabel as nib
 import numpy as np
 
-from dipy.io.stateful_tractogram import StatefulTractogram, Space, \
-    set_sft_logger_level
+from dipy.io.stateful_tractogram import StatefulTractogram, Space
 from dipy.io.stateful_tractogram import Origin
 from dipy.io.streamline import save_tractogram
 from nibabel.streamlines import detect_format, TrkFile
@@ -156,9 +155,7 @@ def _build_arg_parser():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
-
-    if args.verbose:
-        logging.getLogger().setLevel(logging.DEBUG)
+    logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     if not nib.streamlines.is_supported(args.out_tractogram):
         parser.error('Invalid output streamline file format (must be trk or ' +
@@ -194,7 +191,7 @@ def main():
     our_origin = Origin('center')
 
     # Preparing everything
-    logging.debug("Loading seeding mask.")
+    logging.info("Loading seeding mask.")
     seed_img = nib.load(args.in_seed)
     seed_data = seed_img.get_fdata(caching='unchanged', dtype=float)
     if np.count_nonzero(seed_data) == 0:
@@ -219,19 +216,19 @@ def main():
         parser.error('Seed mask "{}" does not have any voxel with value > 0.'
                      .format(args.in_seed))
 
-    logging.debug("Loading tracking mask.")
+    logging.info("Loading tracking mask.")
     mask_img = nib.load(args.in_mask)
     mask_data = mask_img.get_fdata(caching='unchanged', dtype=float)
     mask_res = mask_img.header.get_zooms()[:3]
     mask = DataVolume(mask_data, mask_res, args.mask_interp)
 
-    logging.debug("Loading ODF SH data.")
+    logging.info("Loading ODF SH data.")
     odf_sh_img = nib.load(args.in_odf)
     odf_sh_data = odf_sh_img.get_fdata(caching='unchanged', dtype=float)
     odf_sh_res = odf_sh_img.header.get_zooms()[:3]
     dataset = DataVolume(odf_sh_data, odf_sh_res, args.sh_interp)
 
-    logging.debug("Instantiating propagator.")
+    logging.info("Instantiating propagator.")
     # Converting step size to vox space
     # We only support iso vox for now.
     assert odf_sh_res[0] == odf_sh_res[1] == odf_sh_res[2]
@@ -245,7 +242,7 @@ def main():
         args.sf_threshold, args.sf_threshold_init, theta, args.sphere,
         space=our_space, origin=our_origin)
 
-    logging.debug("Instantiating tracker.")
+    logging.info("Instantiating tracker.")
     tracker = Tracker(propagator, mask, seed_generator, nbr_seeds, min_nbr_pts,
                       max_nbr_pts, args.max_invalid_nb_points,
                       compression_th=args.compress,
@@ -258,13 +255,13 @@ def main():
                       verbose=args.verbose)
 
     start = time.time()
-    logging.debug("Tracking...")
+    logging.info("Tracking...")
     streamlines, seeds = tracker.track()
 
     str_time = "%.2f" % (time.time() - start)
-    logging.debug("Tracked {} streamlines (out of {} seeds), in {} seconds.\n"
-                  "Now saving..."
-                  .format(len(streamlines), nbr_seeds, str_time))
+    logging.info("Tracked {} streamlines (out of {} seeds), in {} seconds.\n"
+                 "Now saving..."
+                 .format(len(streamlines), nbr_seeds, str_time))
 
     # save seeds if args.save_seeds is given
     # We seeded (and tracked) in vox, center, which is what is expected for
@@ -273,10 +270,6 @@ def main():
         data_per_streamline = {'seeds': seeds}
     else:
         data_per_streamline = {}
-
-    # Silencing SFT's logger if our logging is in DEBUG mode, because it
-    # typically produces a lot of outputs!
-    set_sft_logger_level('WARNING')
 
     # Compared with scil_tracking_local, using sft rather than
     # LazyTractogram to deal with space.

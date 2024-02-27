@@ -24,6 +24,7 @@ Formerly: scil_reorder_connectivity.py
 """
 
 import argparse
+import logging
 import os
 
 import numpy as np
@@ -97,6 +98,7 @@ def parse_ordering(in_ordering_file, labels_list=None):
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
+    logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     assert_inputs_exist(parser, args.in_matrices,
                         [args.labels_list, args.in_ordering])

@@ -117,9 +117,7 @@ def _build_arg_parser():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
-
-    if args.verbose:
-        logging.getLogger().setLevel(logging.DEBUG)
+    logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     required_args = [args.in_json, args.in_participants]
     assert_inputs_exist(parser, required_args)
@@ -154,8 +152,8 @@ def main():
 
         curr_comparison_measure = ('_').join([b, m, v])
 
-        logging.debug('______________________')
-        logging.debug('Measure to compare: {}'.format(curr_comparison_measure))
+        logging.info('______________________')
+        logging.info('Measure to compare: {}'.format(curr_comparison_measure))
 
         # Check normality of that metric across all groups
 
@@ -164,19 +162,19 @@ def main():
         groups_array = []
         for group in my_group_dict:
             curr_sample = get_group_data_sample(my_group_dict, group, b, m, v)
-            logging.debug('Group {}'.format(group))
+            logging.info('Group {}'.format(group))
             current_normality[group] = verify_normality(
                                             curr_sample,
                                             alpha_error)
             if not current_normality[group][0]:
                 overall_normality = False
             groups_array.append(curr_sample)
-        logging.debug('Normality result:')
-        logging.debug(current_normality)
-        logging.debug('Overall Normality:')
-        logging.debug(overall_normality)
-        logging.debug('Groups array:')
-        logging.debug(groups_array)
+        logging.info('Normality result:')
+        logging.info(current_normality)
+        logging.info('Overall Normality:')
+        logging.info(overall_normality)
+        logging.info('Groups array:')
+        logging.info(groups_array)
 
         # Generate graph of the metric
         if args.generate_graph:
@@ -198,8 +196,8 @@ def main():
                                             groups_array,
                                             normality=overall_normality,
                                             alpha=alpha_error)
-        logging.debug('Equality of variance result:')
-        logging.debug(variance_equality)
+        logging.info('Equality of variance result:')
+        logging.info(variance_equality)
 
         # Now we compare the groups population
 
@@ -208,8 +206,8 @@ def main():
                                     normality=overall_normality,
                                     homoscedasticity=variance_equality[1],
                                     alpha=alpha_error)
-        logging.debug('Main test result:')
-        logging.debug(difference)
+        logging.info('Main test result:')
+        logging.info(difference)
 
         # Finally if we have more than 2 groups and found a difference
         # We do a post hoc analysis to explore where is this difference
@@ -234,8 +232,8 @@ def main():
         else:
             diff_2_by_2 = []
 
-        logging.debug('Summary of difference 2 by 2:')
-        logging.debug(diff_2_by_2)
+        logging.info('Summary of difference 2 by 2:')
+        logging.info(diff_2_by_2)
 
         # Write the current metric in the report
         curr_dict = write_current_dictionnary(curr_comparison_measure,

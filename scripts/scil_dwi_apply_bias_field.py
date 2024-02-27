@@ -3,13 +3,14 @@
 
 """
 Apply bias field correction to DWI. This script doesn't compute the bias
-field itself. It ONLY applies an existing bias field. Use the ANTs
+field itself. It ONLY applies an existing bias field. Please use the ANTs
 N4BiasFieldCorrection executable to compute the bias field.
 
 Formerly: scil_apply_bias_field_on_dwi.py
 """
 
 import argparse
+import logging
 
 import nibabel as nib
 import numpy as np
@@ -48,6 +49,7 @@ def _build_arg_parser():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
+    logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     assert_inputs_exist(parser, [args.in_dwi, args.in_bias_field], args.mask)
     assert_outputs_exist(parser, args, args.out_name)
@@ -60,11 +62,11 @@ def main():
 
     if args.mask:
         mask_img = nib.load(args.mask)
-        nz_mask_data = np.nonzero(get_data_as_mask(mask_img))
+        mask_data = get_data_as_mask(mask_img)
     else:
-        nz_mask_data = np.nonzero(np.average(dwi_data, axis=-1))
+        mask_data = np.average(dwi_data, axis=-1) != 0
 
-    dwi_data = apply_bias_field(dwi_data, bias_field_data, nz_mask_data)
+    dwi_data = apply_bias_field(dwi_data, bias_field_data, mask_data)
 
     nib.save(nib.Nifti1Image(dwi_data, dwi_img.affine, dwi_img.header),
              args.out_name)
