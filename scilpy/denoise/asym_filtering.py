@@ -75,8 +75,8 @@ class AsymmetricFilter():
         self.j_invariance = j_invariance
 
         if device_type not in ['cpu', 'gpu']:
-            raise ValueError('Invalid device type {}. '
-                             'Must be one of \{cpu, gpu\}')
+            raise ValueError('Invalid device type {}. Must be cpu or gpu'
+                             .format(device_type))
         if use_opencl and not have_opencl:
             raise ValueError('pyopencl is not installed. Please install before'
                              ' using option use_opencl=True.')
@@ -173,15 +173,18 @@ class AsymmetricFilter():
         half_width = int(round(3*sigma_spatial))
         filter_shape = (half_width*2+1, half_width*2+1, half_width*2+1)
 
-        grid_directions = _get_window_directions(filter_shape).astype(np.float32)
+        grid_directions =\
+            _get_window_directions(filter_shape).astype(np.float32)
         distances = np.linalg.norm(grid_directions, axis=-1)
-        grid_directions[distances > 0] = grid_directions[distances > 0]\
-                                        / distances[distances > 0][..., None]
+        grid_directions[distances > 0] =\
+            grid_directions[distances > 0] /\
+            distances[distances > 0][..., None]
 
         if self.disable_spatial:
             w_spatial = np.ones(filter_shape)
         else:
-            w_spatial = _evaluate_gaussian_distribution(distances, sigma_spatial)
+            w_spatial = _evaluate_gaussian_distribution(distances,
+                                                        sigma_spatial)
 
         if self.disable_align:
             w_align = np.ones(np.append(filter_shape, (len(directions),)))
@@ -197,7 +200,7 @@ class AsymmetricFilter():
             w[half_width, half_width, half_width] = 0.0
 
         # normalize
-        w /= np.sum(w, axis=(0,1,2), keepdims=True)
+        w /= np.sum(w, axis=(0, 1, 2), keepdims=True)
 
         return w
 
@@ -242,7 +245,8 @@ class AsymmetricFilter():
             Filtered output as SH coefficients.
         """
         uv_weights_offsets =\
-            np.append([0.0], np.cumsum(np.count_nonzero(self.uv_filter, axis=-1)))
+            np.append([0.0], np.cumsum(np.count_nonzero(self.uv_filter,
+                                                        axis=-1)))
         v_indices = np.tile(np.arange(self.uv_filter.shape[1]),
                             (self.uv_filter.shape[0], 1))[self.uv_filter > 0.0]
         flat_uv = self.uv_filter[self.uv_filter > 0.0]
@@ -251,7 +255,8 @@ class AsymmetricFilter():
         self.cl_manager.add_input_buffer("sf_data")  # SF data not initialized
         self.cl_manager.add_input_buffer("nx_filter", self.nx_filter)
         self.cl_manager.add_input_buffer("uv_filter", flat_uv)
-        self.cl_manager.add_input_buffer("uv_weights_offsets", uv_weights_offsets)
+        self.cl_manager.add_input_buffer("uv_weights_offsets",
+                                         uv_weights_offsets)
         self.cl_manager.add_input_buffer("v_indices", v_indices)
         self.cl_manager.add_output_buffer("out_sf")  # SF not initialized yet
 
@@ -371,11 +376,11 @@ class AsymmetricFilter():
                                    (0, 0)))
 
         sf_u = np.dot(sh_data, self.B[:, u_index])
-        sf_v  = np.dot(sh_data, self.B[:, v_indices])
+        sf_v = np.dot(sh_data, self.B[:, v_indices])
         uv_filter = self.uv_filter[u_index, v_indices]
 
         _get_range = _evaluate_gaussian_distribution\
-            if not self.disable_range else lambda x, _ : np.ones_like(x)
+            if not self.disable_range else lambda x, _: np.ones_like(x)
 
         for ii in range(out_sf.shape[0]):
             for jj in range(out_sf.shape[1]):
@@ -387,7 +392,9 @@ class AsymmetricFilter():
 
                     # the resulting filter for the current voxel and v_index
                     res_filter = range_filter * nx_filter[..., None]
-                    res_filter = res_filter * np.reshape(uv_filter, (1, 1, 1, len(uv_filter)))
+                    res_filter =\
+                        res_filter * np.reshape(uv_filter,
+                                                (1, 1, 1, len(uv_filter)))
                     out_sf[ii, jj, kk] = np.sum(
                         sf_v[ii:ii+h_w, jj:jj+h_h, kk:kk+h_d] * res_filter)
                     out_sf[ii, jj, kk] /= np.sum(res_filter)
