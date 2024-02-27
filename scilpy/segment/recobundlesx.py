@@ -240,7 +240,10 @@ class RecobundlesX(object):
         """
         Wrapper function to prune clusters from the tractogram too far from
         the model.
-        :param pruning_thr, float, distance in
+
+        Parameters
+        ----------
+        pruning_thr: float, distance in
             thresholds = [32, 16, 24, neighbors_cluster_thr]
         """
         # Neighbors can be refined since the search space is smaller

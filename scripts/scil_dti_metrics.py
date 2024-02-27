@@ -41,6 +41,8 @@ from dipy.reconst.dti import (TensorModel, color_fa, fractional_anisotropy,
 # Aliased to avoid clashes with images called mode.
 from dipy.reconst.dti import mode as dipy_mode
 
+from scilpy.dwi.operations import compute_residuals, \
+    compute_residuals_statistics
 from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              assert_outputs_exist, add_verbose_arg,
@@ -145,11 +147,81 @@ def _build_arg_parser():
     return p
 
 
+def _plot_residuals(args, data_diff, mask, R_k, q1, q3, iqr, residual_basename):
+    # Showing results in graph
+    # Note that stats will be computed manually and plotted using bxp
+    # but could be computed using stats = cbook.boxplot_stats
+    # or pyplot.boxplot(x)
+    if mask is None:
+        logging.info("Outlier detection will not be performed, since no "
+                     "mask was provided.")
+
+    # Initializing stats as a List[dict]
+    stats = [dict.fromkeys(['label', 'mean', 'iqr', 'cilo', 'cihi',
+                            'whishi', 'whislo', 'fliers', 'q1',
+                            'med', 'q3'], [])
+             for _ in range(data_diff.shape[-1])]
+
+    nb_voxels = np.count_nonzero(mask)
+    percent_outliers = np.zeros(data_diff.shape[-1], dtype=np.float32)
+    for k in range(data_diff.shape[-1]):
+        stats[k]['med'] = (q1[k] + q3[k]) / 2
+        stats[k]['mean'] = R_k[k]
+        stats[k]['q1'] = q1[k]
+        stats[k]['q3'] = q3[k]
+        stats[k]['whislo'] = q1[k] - 1.5 * iqr[k]
+        stats[k]['whishi'] = q3[k] + 1.5 * iqr[k]
+        stats[k]['label'] = k
+
+        # Outliers are observations that fall below Q1 - 1.5(IQR) or
+        # above Q3 + 1.5(IQR) We check if a voxel is an outlier only if
+        # we have a mask, else we are biased.
+        if args.mask is not None:
+            x = data_diff[..., k]
+            outliers = (x < stats[k]['whislo']) | (x > stats[k]['whishi'])
+            percent_outliers[k] = np.sum(outliers) / nb_voxels * 100
+            # What would be our definition of too many outliers?
+            # Maybe mean(all_means)+-3SD?
+            # Or we let people choose based on the figure.
+            # if percent_outliers[k] > ???? :
+            #    logger.warning('   Careful! Diffusion-Weighted Image'
+            #                   ' i=%s has %s %% outlier voxels',
+            #                   k, percent_outliers[k])
+
+    if args.mask is None:
+        fig, axe = plt.subplots(nrows=1, ncols=1, squeeze=False)
+    else:
+        fig, axe = plt.subplots(nrows=1, ncols=2, squeeze=False,
+                                figsize=[10, 4.8])
+        # Default is [6.4, 4.8]. Increasing width to see better.
+
+    medianprops = dict(linestyle='-', linewidth=2.5, color='firebrick')
+    meanprops = dict(linestyle='-', linewidth=2.5, color='green')
+    axe[0, 0].bxp(stats, showmeans=True, meanline=True, showfliers=False,
+                  medianprops=medianprops, meanprops=meanprops)
+    axe[0, 0].set_xlabel('DW image')
+    axe[0, 0].set_ylabel('Residuals per DWI volume. Red is median,\n'
+                         'green is mean. Whiskers are 1.5*interquartile')
+    axe[0, 0].set_title('Residuals')
+    axe[0, 0].set_xticks(range(0, q1.shape[0], 5))
+    axe[0, 0].set_xticklabels(range(0, q1.shape[0], 5))
+
+    if args.mask is not None:
+        axe[0, 1].plot(range(data_diff.shape[-1]), percent_outliers)
+        axe[0, 1].set_xticks(range(0, q1.shape[0], 5))
+        axe[0, 1].set_xticklabels(range(0, q1.shape[0], 5))
+        axe[0, 1].set_xlabel('DW image')
+        axe[0, 1].set_ylabel('Percentage of outlier voxels')
+        axe[0, 1].set_title('Outliers')
+    plt.savefig(residual_basename + '_residuals_stats.png')
+
+
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
+    # Verifications
     if not args.not_all:
         args.fa = args.fa or 'fa.nii.gz'
         args.ga = args.ga or 'ga.nii.gz'
@@ -178,6 +250,7 @@ def main():
         parser, [args.in_dwi, args.in_bval, args.in_bvec], args.mask)
     assert_outputs_exist(parser, args, outputs)
 
+    # Loading
     img = nib.load(args.in_dwi)
     data = img.get_fdata(dtype=np.float32)
     affine = img.affine
@@ -186,7 +259,6 @@ def main():
     else:
         mask = get_data_as_mask(nib.load(args.mask), dtype=bool)
 
-    # Validate bvals and bvecs
     logging.info('Tensor estimation with the {} method...'.format(args.method))
     bvals, bvecs = read_bvals_bvecs(args.in_bval, args.in_bvec)
 
@@ -197,6 +269,8 @@ def main():
     b0_thr = check_b0_threshold(
         args.force_b0_threshold, bvals.min(), bvals.min())
     gtab = gradient_table(bvals, bvecs, b0_threshold=b0_thr)
+
+    # Processing
 
     # Get tensors
     if args.method == 'restore':
@@ -209,10 +283,7 @@ def main():
 
     tenfit = tenmodel.fit(data, mask)
 
-    FA = fractional_anisotropy(tenfit.evals)
-    FA[np.isnan(FA)] = 0
-    FA = np.clip(FA, 0, 1)
-
+    # Save all metrics.
     if args.tensor:
         # Get the Tensor values
         # Format them for visualization in various software.
@@ -226,48 +297,34 @@ def main():
 
         del tensor_vals, fiber_tensors, tensor_vals_reordered
 
-    if args.fa:
-        fa_img = nib.Nifti1Image(FA.astype(np.float32), affine)
-        nib.save(fa_img, args.fa)
+    if args.fa or args.RGB:
+        FA = fractional_anisotropy(tenfit.evals)
+        FA[np.isnan(FA)] = 0
+        FA = np.clip(FA, 0, 1)
+        if args.fa:
+            nib.save(nib.Nifti1Image(FA.astype(np.float32), affine), args.fa)
 
-        del fa_img
+        if args.rgb:
+            RGB = color_fa(FA, tenfit.evecs)
+            nib.save(nib.Nifti1Image(np.array(255 * RGB, 'uint8'), affine),
+                     args.rgb)
 
     if args.ga:
         GA = geodesic_anisotropy(tenfit.evals)
         GA[np.isnan(GA)] = 0
-
-        ga_img = nib.Nifti1Image(GA.astype(np.float32), affine)
-        nib.save(ga_img, args.ga)
-
-        del GA, ga_img
-
-    if args.rgb:
-        RGB = color_fa(FA, tenfit.evecs)
-        rgb_img = nib.Nifti1Image(np.array(255 * RGB, 'uint8'), affine)
-        nib.save(rgb_img, args.rgb)
-
-        del RGB, rgb_img
+        nib.save(nib.Nifti1Image(GA.astype(np.float32), affine), args.ga)
 
     if args.md:
         MD = mean_diffusivity(tenfit.evals)
-        md_img = nib.Nifti1Image(MD.astype(np.float32), affine)
-        nib.save(md_img, args.md)
-
-        del MD, md_img
+        nib.save(nib.Nifti1Image(MD.astype(np.float32), affine), args.md)
 
     if args.ad:
         AD = axial_diffusivity(tenfit.evals)
-        ad_img = nib.Nifti1Image(AD.astype(np.float32), affine)
-        nib.save(ad_img, args.ad)
-
-        del AD, ad_img
+        nib.save(nib.Nifti1Image(AD.astype(np.float32), affine), args.ad)
 
     if args.rd:
         RD = radial_diffusivity(tenfit.evals)
-        rd_img = nib.Nifti1Image(RD.astype(np.float32), affine)
-        nib.save(rd_img, args.rd)
-
-        del RD, rd_img
+        nib.save(nib.Nifti1Image(RD.astype(np.float32), affine), args.rd)
 
     if args.mode:
         # Compute tensor mode
@@ -278,44 +335,29 @@ def main():
         non_nan_indices = np.isfinite(inter_mode)
         mode = np.zeros(inter_mode.shape)
         mode[non_nan_indices] = inter_mode[non_nan_indices]
-
-        mode_img = nib.Nifti1Image(mode.astype(np.float32), affine)
-        nib.save(mode_img, args.mode)
-
-        del inter_mode, mode_img, mode
+        nib.save(nib.Nifti1Image(mode.astype(np.float32), affine), args.mode)
 
     if args.norm:
         NORM = norm(tenfit.quadratic_form)
-        norm_img = nib.Nifti1Image(NORM.astype(np.float32), affine)
-        nib.save(norm_img, args.norm)
-
-        del NORM, norm_img
+        nib.save(nib.Nifti1Image(NORM.astype(np.float32), affine), args.norm)
 
     if args.evecs:
         evecs = tenfit.evecs.astype(np.float32)
-        evecs_img = nib.Nifti1Image(evecs, affine)
-        nib.save(evecs_img, args.evecs)
+        nib.save(nib.Nifti1Image(evecs, affine), args.evecs)
 
         # save individual e-vectors also
         for i in range(3):
-            e_img = nib.Nifti1Image(evecs[..., i], affine)
-            nib.save(e_img, add_filename_suffix(args.evecs, '_v'+str(i+1)))
-            del e_img
-
-        del evecs, evecs_img
+            nib.save(nib.Nifti1Image(evecs[..., i], affine),
+                     add_filename_suffix(args.evecs, '_v'+str(i+1)))
 
     if args.evals:
         evals = tenfit.evals.astype(np.float32)
-        evals_img = nib.Nifti1Image(evals, affine)
-        nib.save(evals_img, args.evals)
+        nib.save(nib.Nifti1Image(evals, affine), args.evals)
 
         # save individual e-values also
         for i in range(3):
-            e_img = nib.Nifti1Image(evals[..., i], affine)
-            nib.save(e_img, add_filename_suffix(args.evals, '_e' + str(i+1)))
-            del e_img
-
-        del evals, evals_img
+            nib.save(nib.Nifti1Image(evals[..., i], affine),
+                     add_filename_suffix(args.evals, '_e' + str(i+1)))
 
     if args.p_i_signal:
         S0 = np.mean(data[..., gtab.b0s_mask], axis=-1, keepdims=True)
@@ -325,10 +367,8 @@ def main():
         if args.mask is not None:
             pis_mask *= mask
 
-        pis_img = nib.Nifti1Image(pis_mask.astype(np.int16), affine)
-        nib.save(pis_img, args.p_i_signal)
-
-        del pis_img, S0, DWI
+        nib.save(nib.Nifti1Image(pis_mask.astype(np.int16), affine),
+                 args.p_i_signal)
 
     if args.pulsation:
         STD = np.std(data[..., ~gtab.b0s_mask], axis=-1)
@@ -336,8 +376,8 @@ def main():
         if args.mask is not None:
             STD *= mask
 
-        std_img = nib.Nifti1Image(STD.astype(np.float32), affine)
-        nib.save(std_img, add_filename_suffix(args.pulsation, '_std_dwi'))
+        nib.save(nib.Nifti1Image(STD.astype(np.float32), affine),
+                 add_filename_suffix(args.pulsation, '_std_dwi'))
 
         if np.sum(gtab.b0s_mask) <= 1:
             logger.info('Not enough b=0 images to output standard '
@@ -352,15 +392,13 @@ def main():
             if args.mask is not None:
                 STD *= mask
 
-            std_img = nib.Nifti1Image(STD.astype(np.float32), affine)
-            nib.save(std_img, add_filename_suffix(args.pulsation, '_std_b0'))
-
-        del STD, std_img
+            nib.save(nib.Nifti1Image(STD.astype(np.float32), affine),
+                     add_filename_suffix(args.pulsation, '_std_b0'))
 
     if args.residual:
         # Mean residual image
         S0 = np.mean(data[..., gtab.b0s_mask], axis=-1)
-        data_diff = np.zeros(data.shape, dtype=np.float32)
+        tenfit2_predict = np.zeros(data.shape, dtype=np.float32)
 
         for i in range(data.shape[0]):
             if args.mask is not None:
@@ -368,71 +406,15 @@ def main():
             else:
                 tenfit2 = tenmodel.fit(data[i, :, :, :])
 
-            data_diff[i, :, :, :] = np.abs(
-                tenfit2.predict(gtab, S0[i, :, :]).astype(
-                    np.float32) - data[i, :, :])
+            tenfit2_predict[i, :, :, :] = tenfit2.predict(gtab, S0[i, :, :])
 
-        R = np.mean(data_diff[..., ~gtab.b0s_mask], axis=-1, dtype=np.float32)
-
-        if args.mask is not None:
-            R *= mask
-
-        R_img = nib.Nifti1Image(R.astype(np.float32), affine)
-        nib.save(R_img, args.residual)
-
-        del R, R_img, S0
+        R, data_diff = compute_residuals(
+            predicted_data=tenfit2_predict.astype(np.float32),
+            real_data=data, b0s_mask=gtab.b0s_mask, mask=mask)
+        nib.save(nib.Nifti1Image(R.astype(np.float32), affine), args.residual)
 
         # Each volume's residual statistics
-        if args.mask is None:
-            logger.info("Outlier detection will not be performed, since no "
-                        "mask was provided.")
-
-        stats = [dict.fromkeys(['label', 'mean', 'iqr', 'cilo', 'cihi',
-                                'whishi', 'whislo', 'fliers', 'q1',
-                                'med', 'q3'], [])
-                 for i in range(data.shape[-1])]
-        # Note that stats will be computed manually and plotted using bxp
-        # but could be computed using stats = cbook.boxplot_stats
-        # or pyplot.boxplot(x)
-        # mean residual per DWI
-        R_k = np.zeros(data.shape[-1], dtype=np.float32)
-        # std residual per DWI
-        std = np.zeros(data.shape[-1], dtype=np.float32)
-        # first quartile per DWI
-        q1 = np.zeros(data.shape[-1], dtype=np.float32)
-        # third quartile per DWI
-        q3 = np.zeros(data.shape[-1], dtype=np.float32)
-        # interquartile per DWI
-        iqr = np.zeros(data.shape[-1], dtype=np.float32)
-        percent_outliers = np.zeros(data.shape[-1], dtype=np.float32)
-        nb_voxels = np.count_nonzero(mask)
-        for k in range(data.shape[-1]):
-            x = data_diff[..., k]
-            R_k[k] = np.mean(x)
-            std[k] = np.std(x)
-            q3[k], q1[k] = np.percentile(x, [75, 25])
-            iqr[k] = q3[k] - q1[k]
-            stats[k]['med'] = (q1[k] + q3[k]) / 2
-            stats[k]['mean'] = R_k[k]
-            stats[k]['q1'] = q1[k]
-            stats[k]['q3'] = q3[k]
-            stats[k]['whislo'] = q1[k] - 1.5 * iqr[k]
-            stats[k]['whishi'] = q3[k] + 1.5 * iqr[k]
-            stats[k]['label'] = k
-
-            # Outliers are observations that fall below Q1 - 1.5(IQR) or
-            # above Q3 + 1.5(IQR) We check if a voxel is an outlier only if
-            # we have a mask, else we are biased.
-            if args.mask is not None:
-                outliers = (x < stats[k]['whislo']) | (x > stats[k]['whishi'])
-                percent_outliers[k] = np.sum(outliers)/nb_voxels*100
-                # What would be our definition of too many outliers?
-                # Maybe mean(all_means)+-3SD?
-                # Or we let people choose based on the figure.
-                # if percent_outliers[k] > ???? :
-                #    logger.warning('   Careful! Diffusion-Weighted Image'
-                #                   ' i=%s has %s %% outlier voxels',
-                #                   k, percent_outliers[k])
+        R_k, q1, q3, iqr, std = compute_residuals_statistics(data_diff)
 
         # Saving all statistics as npy values
         residual_basename, _ = split_name_with_nii(args.residual)
@@ -444,33 +426,9 @@ def main():
         np.save(add_filename_suffix(res_stats_basename, "_iqr_residuals"), iqr)
         np.save(add_filename_suffix(res_stats_basename, "_std_residuals"), std)
 
-        # Showing results in graph
-        if args.mask is None:
-            fig, axe = plt.subplots(nrows=1, ncols=1, squeeze=False)
-        else:
-            fig, axe = plt.subplots(nrows=1, ncols=2, squeeze=False,
-                                    figsize=[10, 4.8])
-            # Default is [6.4, 4.8]. Increasing width to see better.
-
-        medianprops = dict(linestyle='-', linewidth=2.5, color='firebrick')
-        meanprops = dict(linestyle='-', linewidth=2.5, color='green')
-        axe[0, 0].bxp(stats, showmeans=True, meanline=True, showfliers=False,
-                      medianprops=medianprops, meanprops=meanprops)
-        axe[0, 0].set_xlabel('DW image')
-        axe[0, 0].set_ylabel('Residuals per DWI volume. Red is median,\n'
-                             'green is mean. Whiskers are 1.5*interquartile')
-        axe[0, 0].set_title('Residuals')
-        axe[0, 0].set_xticks(range(0, q1.shape[0], 5))
-        axe[0, 0].set_xticklabels(range(0, q1.shape[0], 5))
-
-        if args.mask is not None:
-            axe[0, 1].plot(range(data.shape[-1]), percent_outliers)
-            axe[0, 1].set_xticks(range(0, q1.shape[0], 5))
-            axe[0, 1].set_xticklabels(range(0, q1.shape[0], 5))
-            axe[0, 1].set_xlabel('DW image')
-            axe[0, 1].set_ylabel('Percentage of outlier voxels')
-            axe[0, 1].set_title('Outliers')
-        plt.savefig(residual_basename + '_residuals_stats.png')
+        # Plotting and saving figure
+        _plot_residuals(args, data_diff, mask, R_k, q1, q3, iqr,
+                        residual_basename)
 
 
 if __name__ == "__main__":

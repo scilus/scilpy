@@ -3,37 +3,37 @@
 """
 Tractometry
 -----------
-
 Global connectivity metrics:
-    Computed by default:
+
+- Computed by default:
     - VS: valid streamlines, belonging to a bundle (i.e. respecting all the
         criteria for that bundle; endpoints, limit_mask, gt_mask.).
     - IS: invalid streamlines. All other streamlines. IS = IC + NC.
 
-    Optional:
+- Optional:
     - WPC: wrong path connections, streamlines connecting correct ROIs but not
         respecting the other criteria for that bundle. Such streamlines always
         exist but they are only saved separately if specified in the options.
         Else, they are merged back with the IS.
-        ** By definition. WPC are only computed if "limits masks" are provided.
+        By definition. WPC are only computed if "limits masks" are provided.
     - IC: invalid connections, streamlines joining an incorrect combination of
         ROIs. Use carefully, quality depends on the quality of your ROIs and no
         analysis is done on the shape of the streamlines.
     - NC: no connections. Invalid streamlines minus invalid connections.
 
-Fidelity metrics:
-    - OL : Overlap. Percentage of ground truth voxels containing streamline(s)
+- Fidelity metrics:
+    - OL: Overlap. Percentage of ground truth voxels containing streamline(s)
         for a given bundle.
     - OR: Overreach. Amount of voxels containing streamline(s) when they
         shouldn't, for a given bundle. We compute two versions :
         OR_pct_vs = divided by the total number of voxel covered by the bundle.
-           (percentage of the voxels touched by VS).
-           Values range between 0 and 100%. Values are not defined when we
-           recovered no streamline for a bundle, but we set the OR_pct_vs to 0
-           in that case.
+        (percentage of the voxels touched by VS).
+        Values range between 0 and 100%. Values are not defined when we
+        recovered no streamline for a bundle, but we set the OR_pct_vs to 0
+        in that case.
         OR_pct_gt = divided by the total size of the ground truth bundle mask.
-           Values could be higher than 100%.
-    - f1 score (which is the same as the Dice score).
+        Values could be higher than 100%.
+    - f1 score: which is the same as the Dice score.
 """
 
 import logging

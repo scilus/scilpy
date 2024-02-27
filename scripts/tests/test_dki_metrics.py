@@ -29,5 +29,6 @@ def test_execution_processing(script_runner):
                             '--dki_fa', 'dki_fa.nii.gz',
                             '--dki_md', 'dki_md.nii.gz',
                             '--dki_rd', 'dki_rd.nii.gz',
-                            '--dki_ad', 'dki_ad.nii.gz')
+                            '--dki_ad', 'dki_ad.nii.gz',
+                            '--dki_residual', 'dki_res.nii.gz')
     assert ret.success

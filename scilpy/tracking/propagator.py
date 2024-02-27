@@ -74,8 +74,8 @@ class AbstractPropagator(object):
         we reset the internal data to None before starting a multiprocess, then
         load it back when process has started.
 
-        Params
-        ------
+        Parameters
+        ----------
         new_data: Any
             Will replace self.datavolume.data.
 
@@ -431,9 +431,10 @@ class ODFPropagator(PropagatorOnSphere):
         streamline for forward propagation: v_in and any other information
         necessary for the self.propagate method.
 
-        About v_in: it is used for two things:
+        About **v_in**, it is used for two things:
+
         - To sample the next direction based on _sample_next_direction method.
-         Ex, with fODF, it defines a cone theta of accepable directions.
+            Ex, with fODF, it defines a cone theta of accepable directions.
         - If no valid next dir are found, continue straight.
 
         Parameters
