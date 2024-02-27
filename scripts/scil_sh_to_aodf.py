@@ -31,7 +31,8 @@ from scilpy.denoise.asym_filtering import cosine_filtering, AsymmetricFilter
 
 EPILOG = """
 [1] Poirier and Descoteaux, 2024, "A Unified Filtering Method for Estimating
-    Asymmetric Orientation Distribution Functions", Neuroimage, vol. 287
+    Asymmetric Orientation Distribution Functions", Neuroimage, vol. 287,
+    https://doi.org/10.1016/j.neuroimage.2024.120516
 
 [2] Poirier et al, 2021, "Investigating the Occurrence of Asymmetric Patterns
     in White Matter Fiber Orientation Distribution Functions", ISMRM 2021

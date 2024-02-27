@@ -11,7 +11,7 @@ from scilpy.gpuparallel.opencl_utils import have_opencl, CLKernel, CLManager
 
 class AsymmetricFilter():
     """
-    Unified asymmetric filtering as described in Poirier et al, 2024.
+    Unified asymmetric filtering as described in [1].
 
     Parameters
     ----------
@@ -48,6 +48,12 @@ class AsymmetricFilter():
         Device on which the code should run. Choices are cpu or gpu.
     use_opencl: bool, optional
         Use OpenCL for software acceleration.
+
+    References
+    ----------
+    [1] Poirier and Descoteaux, 2024, "A Unified Filtering Method for
+        Estimating Asymmetric Orientation Distribution Functions",
+        Neuroimage, https://doi.org/10.1016/j.neuroimage.2024.120516
     """
     def __init__(self, sh_order, sh_basis, legacy, full_basis, sphere_str,
                  sigma_spatial=1.0, sigma_align=0.8, sigma_angle=None,
@@ -95,6 +101,15 @@ class AsymmetricFilter():
             self.cl_manager = None
 
     def _prepare_opencl(self, sigma_range):
+        """
+        Instantiate OpenCL context manager and compile OpenCL program.
+
+        Parameters
+        ----------
+        sigma_range: float
+            Value for sigma_range. Will be cast to float. Must be provided even
+            when range filtering is disabled for the OpenCL program to compile.
+        """
         self.cl_kernel = CLKernel('filter', 'denoise', 'aodf_filter.cl')
 
         self.cl_kernel.set_define('WIN_WIDTH', self.nx_filter.shape[0])
@@ -108,6 +123,21 @@ class AsymmetricFilter():
         self.cl_manager = CLManager(self.cl_kernel, self.device_type)
 
     def _build_uv_filter(self, sigma_angle):
+        """
+        Build the angle filter.
+
+        Parameters
+        ----------
+        sigma_angle: float
+            Standard deviation of filter. Values at distances greater than
+            sigma_angle are clipped to 0 to reduce computation time.
+            Ignored when self.disable_angle is True.
+
+        Returns
+        -------
+        weights: ndarray
+            Angle filter of shape (N_dirs, N_dirs).
+        """
         directions = self.sphere.vertices
         if not self.disable_angle:
             dot = directions.dot(directions.T)
@@ -121,6 +151,24 @@ class AsymmetricFilter():
         return weights
 
     def _build_nx_filter(self, sigma_spatial, sigma_align):
+        """
+        Build the combined spatial and alignment filter.
+
+        Parameters
+        ----------
+        sigma_spatial: float
+            Standard deviation of spatial filter. Also controls the
+            filtering window size (6*sigma_spatial + 1).
+        sigma_align: float
+            Standard deviation of the alignment filter. Ignored when
+            self.disable_align is True.
+
+        Returns
+        -------
+        weights: ndarray
+            Combined spatial + alignment filter of shape (W, H, D, N) where
+            N is the number of sphere directions.
+        """
         directions = self.sphere.vertices.astype(np.float32)
         half_width = int(round(3*sigma_spatial))
         filter_shape = (half_width*2+1, half_width*2+1, half_width*2+1)
@@ -154,6 +202,19 @@ class AsymmetricFilter():
         return w
 
     def _get_sf_range(self, sh_data):
+        """
+        Get the range of SF amplitudes for input `sh_data`.
+
+        Parameters
+        ----------
+        sh_data: ndarray
+            Spherical harmonics coefficients image.
+
+        Returns
+        -------
+        sf_range: float
+            Range of SF amplitudes.
+        """
         sf_max = 0.0
         sf_min = np.inf
         for sph_id in range(len(self.sphere.vertices)):
@@ -164,6 +225,22 @@ class AsymmetricFilter():
         return sf_max - sf_min
 
     def _call_opencl(self, sh_data, patch_size):
+        """
+        Run filtering using opencl.
+
+        Parameters
+        ----------
+        sh_data: ndarray
+            Input SH volume.
+        patch_size: int
+            Data is processed in patches of
+            patch_size x patch_size x patch_size.
+
+        Returns
+        -------
+        out_sh: ndarray
+            Filtered output as SH coefficients.
+        """
         uv_weights_offsets =\
             np.append([0.0], np.cumsum(np.count_nonzero(self.uv_filter, axis=-1)))
         v_indices = np.tile(np.arange(self.uv_filter.shape[1]),
@@ -232,6 +309,22 @@ class AsymmetricFilter():
         return out_sh
 
     def _call_purepython(self, sh_data, sigma_range):
+        """
+        Run filtering using pure python implementation.
+
+        Parameters
+        ----------
+        sh_data: ndarray
+            Input SH data.
+        sigma_range: float
+            Standard deviation of range filter. Ignored when
+            self.disable_range is True.
+
+        Returns
+        -------
+        out_sh: ndarray
+            Filtered output as SH coefficients.
+        """
         nb_sf = len(self.sphere.vertices)
         mean_sf = np.zeros(sh_data.shape[:-1] + (nb_sf,))
 
@@ -248,11 +341,30 @@ class AsymmetricFilter():
         return out_sh
 
     def _correlate(self, sh_data, sigma_range, u_index):
+        """
+        Apply the filters to the SH image for the sphere direction
+        described by `u_index`.
+
+        Parameters
+        ----------
+        sh_data: ndarray
+            Input SH coefficients.
+        sigma_range: float
+            Standard deviation of range filter. Ignored when
+            self.disable_range is True.
+        u_index: int
+            Index of the current sphere direction to process.
+
+        Returns
+        -------
+        out_sf: ndarray
+            Output SF amplitudes along the direction described by `u_index`.
+        """
         v_indices = np.flatnonzero(self.uv_filter[u_index])
         nx_filter = self.nx_filter[..., u_index]
         h_w, h_h, h_d = nx_filter.shape[:3]
         half_w, half_h, half_d = h_w // 2, h_h // 2, h_d // 2
-        out_im = np.zeros(sh_data.shape[:3])
+        out_sf = np.zeros(sh_data.shape[:3])
         sh_data = np.pad(sh_data, ((half_w, half_w),
                                    (half_h, half_h),
                                    (half_d, half_d),
@@ -265,9 +377,9 @@ class AsymmetricFilter():
         _get_range = _evaluate_gaussian_distribution\
             if not self.disable_range else lambda x, _ : np.ones_like(x)
 
-        for ii in range(out_im.shape[0]):
-            for jj in range(out_im.shape[1]):
-                for kk in range(out_im.shape[2]):
+        for ii in range(out_sf.shape[0]):
+            for jj in range(out_sf.shape[1]):
+                for kk in range(out_sf.shape[2]):
                     a = sf_v[ii:ii+h_w, jj:jj+h_h, kk:kk+h_d]
                     b = sf_u[ii + half_w, jj + half_h, kk + half_d]
                     x_range = a - b
@@ -276,15 +388,32 @@ class AsymmetricFilter():
                     # the resulting filter for the current voxel and v_index
                     res_filter = range_filter * nx_filter[..., None]
                     res_filter = res_filter * np.reshape(uv_filter, (1, 1, 1, len(uv_filter)))
-                    # print(res_filter.shape)
-                    out_im[ii, jj, kk] = np.sum(
+                    out_sf[ii, jj, kk] = np.sum(
                         sf_v[ii:ii+h_w, jj:jj+h_h, kk:kk+h_d] * res_filter)
-                    out_im[ii, jj, kk] /= np.sum(res_filter)
+                    out_sf[ii, jj, kk] /= np.sum(res_filter)
 
-        return out_im
+        return out_sf
 
     def __call__(self, sh_data, patch_size=40):
-        sigma_range = self.rel_sigma_range * self._get_sf_range(sh_data)
+        """
+        Run filtering.
+
+        Parameters
+        ----------
+        sh_data: ndarray
+            Input SH coefficients.
+        patch_size: int, optional
+            Data is processed in patches of
+            patch_size x patch_size x patch_size.
+
+        Returns
+        -------
+        out_sh: ndarray
+            Filtered output as SH coefficients.
+        """
+        sigma_range = 0.0
+        if not self.disable_range:
+            sigma_range = self.rel_sigma_range * self._get_sf_range(sh_data)
         if self.use_opencl:
             self._prepare_opencl(sigma_range)
             return self._call_opencl(sh_data, patch_size)
