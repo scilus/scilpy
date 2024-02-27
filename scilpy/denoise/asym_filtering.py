@@ -27,44 +27,43 @@ class AsymmetricFilter():
     sphere_str: str
         Name of the DIPY sphere to use for SH to SF projection.
     sigma_spatial: float
-        Standard deviation of spatial filter.
-    sigma_align: float
-        Standard deviation of alignment filter.
-    sigma_angle: float
-        Standard deviation of the angle filter.
-    rel_sigma_range: float
+        Standard deviation of spatial filter. Also controls the
+        filtering window size (6*sigma_spatial + 1).
+    sigma_align: float or None
+        Standard deviation of alignment filter. `None` disables
+        alignment filtering.
+    sigma_angle: float or None
+        Standard deviation of the angle filter. `None` disables
+        angle filtering.
+    rel_sigma_range: float or None
         Standard deviation of the range filter, relative to the
-        range of SF amplitudes.
+        range of SF amplitudes. `None` disables range filtering.
     disable_spatial: bool, optional
-        Disable spatial filtering. Replaces the
-        gaussian weights by a constant value.
-    disable_align: bool, optional
-        Disable alignment filtering.
-    disable_angle: bool, optional
-        Disable angle filtering, which considers neighbour *sphere
-        directions* in the estimation of the a-ODF.
-    disable_range: bool, optional
-        Disable range filtering.
+        Replace gaussian filter by a mean filter for spatial filter.
+        The value from `sigma_spatial` is still used for setting the
+        size of the filtering window.
+    j_invariance: bool, optional
+        Assign a weight of 0 to the center voxel of the filter.
+    device_type: string, optional
+        Device on which the code should run. Choices are cpu or gpu.
+    use_opencl: bool, optional
+        Use OpenCL for software acceleration.
     """
-    def __init__(self, sh_order, sh_basis, legacy, full_basis,
-                 sphere_str, sigma_spatial, sigma_align,
-                 sigma_angle, rel_sigma_range, disable_spatial=False,
-                 disable_align=False, disable_angle=False,
-                 disable_range=False, j_invariance=False,
-                 device_type='gpu', use_opencl=True):
+    def __init__(self, sh_order, sh_basis, legacy, full_basis, sphere_str,
+                 sigma_spatial=1.0, sigma_align=0.8, sigma_angle=None,
+                 rel_sigma_range=0.2, disable_spatial=False,
+                 j_invariance=False, device_type='gpu',
+                 use_opencl=True):
         self.sh_order = sh_order
         self.legacy = legacy
         self.basis = sh_basis
         self.full_basis = full_basis
         self.sphere = get_sphere(sphere_str)
-        self.sigma_spatial = sigma_spatial
-        self.sigma_align = sigma_align
-        self.sigma_angle = sigma_angle
         self.rel_sigma_range = rel_sigma_range
-        self.disable_range = disable_range
-        self.disable_angle = disable_angle
+        self.disable_range = rel_sigma_range is None
+        self.disable_angle = sigma_angle is None
         self.disable_spatial = disable_spatial
-        self.disable_align = disable_align
+        self.disable_align = sigma_align is None
         self.device_type = device_type
         self.use_opencl = use_opencl
         self.j_invariance = j_invariance
@@ -80,8 +79,8 @@ class AsymmetricFilter():
                              'to use device \'gpu\'.')
 
         # build filters
-        self.uv_filter = self._build_uv_filter()
-        self.nx_filter = self._build_nx_filter()
+        self.uv_filter = self._build_uv_filter(sigma_angle)
+        self.nx_filter = self._build_nx_filter(sigma_spatial, sigma_align)
 
         self.B = sh_to_sf_matrix(self.sphere, self.sh_order,
                                  self.basis, self.full_basis,
@@ -108,22 +107,22 @@ class AsymmetricFilter():
                                                    else 'false')
         self.cl_manager = CLManager(self.cl_kernel, self.device_type)
 
-    def _build_uv_filter(self):
+    def _build_uv_filter(self, sigma_angle):
         directions = self.sphere.vertices
         if not self.disable_angle:
             dot = directions.dot(directions.T)
             x = np.arccos(np.clip(dot, -1.0, 1.0))
-            weights = _evaluate_gaussian_distribution(x, self.sigma_angle)
-            mask = x > (3.0*self.sigma_angle)
+            weights = _evaluate_gaussian_distribution(x, sigma_angle)
+            mask = x > (3.0*sigma_angle)
             weights[mask] = 0.0
             weights /= np.sum(weights, axis=-1)
         else:
             weights = np.eye(len(directions))
         return weights
 
-    def _build_nx_filter(self):
+    def _build_nx_filter(self, sigma_spatial, sigma_align):
         directions = self.sphere.vertices.astype(np.float32)
-        half_width = int(round(3*self.sigma_spatial))
+        half_width = int(round(3*sigma_spatial))
         filter_shape = (half_width*2+1, half_width*2+1, half_width*2+1)
 
         grid_directions = _get_window_directions(filter_shape).astype(np.float32)
@@ -134,17 +133,15 @@ class AsymmetricFilter():
         if self.disable_spatial:
             w_spatial = np.ones(filter_shape)
         else:
-            w_spatial = _evaluate_gaussian_distribution(distances,
-                                                        self.sigma_spatial)
-
-        cos_theta = np.clip(grid_directions.dot(directions.T), -1.0, 1.0)
-        theta = np.arccos(cos_theta)
-        theta[half_width, half_width, half_width] = 0.0
+            w_spatial = _evaluate_gaussian_distribution(distances, sigma_spatial)
 
         if self.disable_align:
             w_align = np.ones(np.append(filter_shape, (len(directions),)))
         else:
-            w_align = _evaluate_gaussian_distribution(theta, self.sigma_align)
+            cos_theta = np.clip(grid_directions.dot(directions.T), -1.0, 1.0)
+            theta = np.arccos(cos_theta)
+            theta[half_width, half_width, half_width] = 0.0
+            w_align = _evaluate_gaussian_distribution(theta, sigma_align)
 
         w = w_spatial[..., None] * w_align
 
@@ -240,8 +237,9 @@ class AsymmetricFilter():
 
         # Apply filter to each sphere vertice
         for u_sph_id in range(nb_sf):
-            logging.info('Processing sphere direction: {}'
-                         .format(u_sph_id))
+            if u_sph_id % 20 == 0:
+                logging.info('Processing direction: {}/{}'
+                             .format(u_sph_id, nb_sf))
             mean_sf[..., u_sph_id] = self._correlate(sh_data, sigma_range,
                                                      u_sph_id)
 

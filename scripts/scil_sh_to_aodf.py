@@ -4,15 +4,14 @@
 Script to estimate asymmetric ODFs (aODFs) from a spherical harmonics image.
 
 Two methods are available:
-    * Angle-aware bilateral filtering [1] is an extension of bilateral
-      filtering considering the angular distance between sphere directions
-      for filtering 5-dimensional spatio-angular images.
+    * Unified filtering [1] combines four asymmetric filtering methods into
+      a single equation and relies on a combination of four gaussian filters.
     * Cosine filtering [2] is a simpler implementation using cosine distance
       for assigning weights to neighbours.
 
-Angle-aware bilateral filtering can be performed on the GPU using pyopencl by
-specifying --use_gpu. Make sure you have pyopencl installed to use this option.
-Otherwise, the filtering runs entirely on the CPU.
+Unified filtering can be accelerated using OpenCL. Make sure you have pyopencl
+installed before using this option. By default, the OpenCL program will run on
+the cpu. To use a gpu instead, specify the option --device gpu.
 """
 
 import argparse
@@ -31,8 +30,8 @@ from scilpy.denoise.asym_filtering import cosine_filtering, AsymmetricFilter
 
 
 EPILOG = """
-[1] Poirier et al, 2022, "Intuitive Angle-Aware Bilateral Filtering Revealing
-    Asymmetric Fiber ODF for Improved Tractography", ISMRM 2022 (abstract 3552)
+[1] Poirier and Descoteaux, 2024, "A Unified Filtering Method for Estimating
+    Asymmetric Orientation Distribution Functions", Neuroimage, vol. 287
 
 [2] Poirier et al, 2021, "Investigating the Occurrence of Asymmetric Patterns
     in White Matter Fiber Orientation Distribution Functions", ISMRM 2021
@@ -59,40 +58,35 @@ def _build_arg_parser():
                    help='Sphere used for the SH to SF projection. '
                         '[%(default)s]')
 
-    p.add_argument('--method', default='bilateral',
-                   choices=['bilateral', 'cosine'],
+    p.add_argument('--method', default='unified',
+                   choices=['unified', 'cosine'],
                    help='Method for estimating asymmetric ODFs '
                         '[%(default)s].\nOne of:\n'
-                        '    \'bilateral\': Angle-aware bilateral '
-                        'filtering [1].\n'
-                        '    \'cosine\'  : Cosine-based filtering [2].')
+                        '    \'unified\': Unified filtering [1].\n'
+                        '    \'cosine\' : Cosine-based filtering [2].')
 
     shared_group = p.add_argument_group('Shared filter arguments')
     shared_group.add_argument('--sigma_spatial', default=1.0, type=float,
                               help='Standard deviation for spatial distance.'
                                    ' [%(default)s]')
 
-    trilateral_group = p.add_argument_group('Angle-aware bilateral arguments')
-    trilateral_group.add_argument('--sigma_align', default=0.8, type=float,
-                                  help='Standard deviation for alignment '
-                                       'filter. [%(default)s]')
-    trilateral_group.add_argument('--sigma_range', default=0.2, type=float,
-                                  help='Standard deviation for range filter '
-                                       '*relative to SF range of image*. '
-                                       '[%(default)s]')
-    trilateral_group.add_argument('--sigma_angle', default=0.1, type=float,
-                                  help='Standard deviation for angular filter.' 
-                                       '[%(default)s]')
-    trilateral_group.add_argument('--disable_spatial', action='store_true',
-                                  help='Disable spatial filtering.')
-    trilateral_group.add_argument('--disable_align', action='store_true',
-                                  help='Disable alignment filtering.')
-    trilateral_group.add_argument('--disable_angle', action='store_true',
-                                  help='Disable angle filtering, i.e. do not '
-                                       'include\nneighbour sphere directions in'
-                                       ' filtering.')
-    trilateral_group.add_argument('--disable_range', action='store_true',
-                                  help='Disable range filtering.')
+    unified_group = p.add_argument_group('Unified filter arguments')
+    unified_group.add_argument('--sigma_align', default=0.8, type=float,
+                               help='Standard deviation for alignment '
+                                    'filter. [%(default)s]')
+    unified_group.add_argument('--sigma_range', default=0.2, type=float,
+                               help='Standard deviation for range filter '
+                                    '*relative to SF range of image*. '
+                                    '[%(default)s]')
+    unified_group.add_argument('--sigma_angle', type=float,
+                               help='Standard deviation for angular filter. '
+                                    'Disabled by default.')
+    unified_group.add_argument('--disable_spatial', action='store_true',
+                               help='Disable spatial filtering.')
+    unified_group.add_argument('--disable_align', action='store_true',
+                               help='Disable alignment filtering.')
+    unified_group.add_argument('--disable_range', action='store_true',
+                               help='Disable range filtering.')
 
     cosine_group = p.add_argument_group('Cosine filter arguments')
     cosine_group.add_argument('--sharpness', default=1.0, type=float,
@@ -137,19 +131,18 @@ def main():
 
     t0 = time.perf_counter()
     logging.info('Filtering SH image.')
-    if args.method == 'bilateral':
+    if args.method == 'unified':
+        sigma_align = None if args.disable_align else args.sigma_align
+        sigma_range = None if args.disable_range else args.sigma_range
         asym_filter = AsymmetricFilter(
             sh_order=sh_order, sh_basis=args.sh_basis,
             legacy=True, full_basis=full_basis,
             sphere_str=args.sphere,
             sigma_spatial=args.sigma_spatial,
-            sigma_align=args.sigma_align,
+            sigma_align=sigma_align,
             sigma_angle=args.sigma_angle,
-            rel_sigma_range=args.sigma_range,
+            rel_sigma_range=sigma_range,
             disable_spatial=args.disable_spatial,
-            disable_align=args.disable_align,
-            disable_range=args.disable_range,
-            disable_angle=args.disable_angle,
             device_type=args.device,
             use_opencl=args.use_opencl)
         asym_sh = asym_filter(data)
