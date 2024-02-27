@@ -21,7 +21,7 @@ from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg, add_reference_arg,
                              add_sh_basis_args, add_verbose_arg,
                              assert_inputs_exist, assert_outputs_exist,
-                             interpret_sh_basis)
+                             parse_sh_basis_arg)
 from scilpy.tractanalysis.todi import TrackOrientationDensityImaging
 
 
@@ -144,7 +144,7 @@ def main():
         img.to_filename(args.out_mask)
 
     if args.out_todi_sh:
-        sh_basis, is_legacy = interpret_sh_basis(args)
+        sh_basis, is_legacy = parse_sh_basis_arg(args)
         if args.normalize_per_voxel:
             todi_obj.normalize_todi_per_voxel()
         img = todi_obj.get_sh(sh_basis, args.sh_order,

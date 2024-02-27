@@ -26,7 +26,7 @@ from scilpy.io.utils import (add_overwrite_arg,
                              add_verbose_arg,
                              assert_inputs_exist,
                              assert_outputs_exist,
-                             interpret_sh_basis)
+                             parse_sh_basis_arg)
 from scilpy.reconst.utils import find_order_from_nb_coeff
 from scilpy.tractanalysis.todi import TrackOrientationDensityImaging
 
@@ -98,7 +98,7 @@ def main():
     img_sh = nib.load(args.in_fodf)
     sh_shape = img_sh.shape
     sh_order = find_order_from_nb_coeff(sh_shape)
-    sh_basis, is_legacy = interpret_sh_basis(args)
+    sh_basis, is_legacy = parse_sh_basis_arg(args)
     img_mask = nib.load(args.in_mask)
 
     sft = load_tractogram_with_reference(parser, args, args.in_bundle)

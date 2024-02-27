@@ -45,7 +45,7 @@ from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_overwrite_arg, add_sh_basis_args,
                              add_processes_arg, add_verbose_arg,
                              assert_inputs_exist, assert_outputs_exist,
-                             interpret_sh_basis)
+                             parse_sh_basis_arg)
 from scilpy.reconst.sh import peaks_from_sh, maps_from_sh
 
 
@@ -147,7 +147,7 @@ def main():
             raise ValueError("Mask is not the same shape as data.")
 
     sphere = get_sphere(args.sphere)
-    sh_basis, is_legacy = interpret_sh_basis(args)
+    sh_basis, is_legacy = parse_sh_basis_arg(args)
 
     # Computing peaks
     peak_dirs, peak_values, \

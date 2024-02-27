@@ -24,7 +24,7 @@ from dipy.data import get_sphere
 from scilpy.reconst.utils import get_sh_order_and_fullness
 from scilpy.io.utils import (add_sh_basis_args, add_overwrite_arg,
                              assert_inputs_exist, add_verbose_arg,
-                             assert_outputs_exist, interpret_sh_basis)
+                             assert_outputs_exist, parse_sh_basis_arg)
 from scilpy.io.image import assert_same_resolution, get_data_as_mask
 from scilpy.viz.scene_utils import (create_odf_slicer, create_texture_slicer,
                                     create_peaks_slicer, create_scene,
@@ -266,7 +266,7 @@ def main():
     data = _get_data_from_inputs(args)
     sph = get_sphere(args.sphere)
     sh_order, full_basis = get_sh_order_and_fullness(data['fodf'].shape[-1])
-    sh_basis, is_legacy = interpret_sh_basis(args)
+    sh_basis, is_legacy = parse_sh_basis_arg(args)
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     actors = []

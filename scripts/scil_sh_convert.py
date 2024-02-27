@@ -22,7 +22,7 @@ from scilpy.reconst.sh import convert_sh_basis
 from scilpy.io.utils import (add_overwrite_arg, add_sh_basis_args,
                              add_processes_arg, add_verbose_arg,
                              assert_inputs_exist, assert_outputs_exist,
-                             interpret_sh_basis)
+                             parse_sh_basis_arg)
 
 
 def _build_arg_parser():
@@ -55,7 +55,7 @@ def main():
     data = img.get_fdata(dtype=np.float32)
 
     in_sh_basis, is_in_legacy, out_sh_basis, is_out_legacy \
-        = interpret_sh_basis(args)
+        = parse_sh_basis_arg(args)
 
     new_data = convert_sh_basis(data, sphere,
                                 input_basis=in_sh_basis,

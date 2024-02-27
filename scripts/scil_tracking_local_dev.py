@@ -59,7 +59,7 @@ from scilpy.io.image import assert_same_resolution
 from scilpy.io.utils import (add_processes_arg, add_sphere_arg,
                              add_verbose_arg,
                              assert_inputs_exist, assert_outputs_exist,
-                             interpret_sh_basis, verify_compression_th)
+                             parse_sh_basis_arg, verify_compression_th)
 from scilpy.image.volume_space_management import DataVolume
 from scilpy.tracking.propagator import ODFPropagator
 from scilpy.tracking.seed import SeedGenerator
@@ -237,7 +237,7 @@ def main():
 
     # Using space and origin in the propagator: vox and center, like
     # in dipy.
-    sh_basis, is_legacy = interpret_sh_basis(args)
+    sh_basis, is_legacy = parse_sh_basis_arg(args)
     propagator = ODFPropagator(
         dataset, vox_step_size, args.rk_order, args.algo, sh_basis,
         args.sf_threshold, args.sf_threshold_init, theta, args.sphere,

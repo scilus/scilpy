@@ -23,7 +23,7 @@ from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg, add_sh_basis_args,
                              add_reference_arg, add_verbose_arg,
                              assert_inputs_exist, assert_outputs_exist,
-                             interpret_sh_basis)
+                             parse_sh_basis_arg)
 from scilpy.tractanalysis.afd_along_streamlines \
     import afd_map_along_streamlines
 
@@ -69,7 +69,7 @@ def main():
     sft = load_tractogram_with_reference(parser, args, args.in_bundle)
     fodf_img = nib.load(args.in_fodf)
 
-    sh_basis, is_legacy = interpret_sh_basis(args)
+    sh_basis, is_legacy = parse_sh_basis_arg(args)
 
     afd_mean_map, rd_mean_map = afd_map_along_streamlines(
                                                 sft,

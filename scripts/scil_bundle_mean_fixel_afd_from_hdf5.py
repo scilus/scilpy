@@ -33,7 +33,7 @@ from scilpy.io.utils import (add_overwrite_arg,
                              add_verbose_arg,
                              assert_inputs_exist,
                              assert_outputs_exist,
-                             interpret_sh_basis,
+                             parse_sh_basis_arg,
                              validate_nbr_processes)
 from scilpy.tractanalysis.afd_along_streamlines \
     import afd_map_along_streamlines
@@ -107,7 +107,7 @@ def main():
     assert_outputs_exist(parser, args, [args.out_hdf5])
 
     nbr_cpu = validate_nbr_processes(parser, args)
-    sh_basis, is_legacy = interpret_sh_basis(args)
+    sh_basis, is_legacy = parse_sh_basis_arg(args)
 
     # HDF5 will not overwrite the file
     if os.path.isfile(args.out_hdf5):

@@ -19,7 +19,7 @@ from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_force_b0_arg, add_overwrite_arg,
                              add_sh_basis_args, assert_inputs_exist,
                              add_verbose_arg, assert_outputs_exist,
-                             interpret_sh_basis)
+                             parse_sh_basis_arg)
 from scilpy.reconst.sh import compute_sh_coefficients
 
 
@@ -69,7 +69,7 @@ def main():
     bvals, bvecs = read_bvals_bvecs(args.in_bval, args.in_bvec)
     gtab = gradient_table(args.in_bval, args.in_bvec, b0_threshold=bvals.min())
 
-    sh_basis, is_legacy = interpret_sh_basis(args)
+    sh_basis, is_legacy = parse_sh_basis_arg(args)
     print(sh_basis)
 
     mask = None

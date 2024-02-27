@@ -32,7 +32,7 @@ from scilpy.io.utils import (add_overwrite_arg, add_processes_arg,
                              add_sh_basis_args, assert_inputs_exist,
                              assert_outputs_exist, add_force_b0_arg,
                              validate_nbr_processes, add_verbose_arg,
-                             interpret_sh_basis)
+                             parse_sh_basis_arg)
 from scilpy.io.image import get_data_as_mask
 from scilpy.gradients.bvec_bval_tools import (normalize_bvecs,
                                               is_normalized_bvecs,
@@ -134,7 +134,7 @@ def main():
     gtab = gradient_table(bvals, bvecs, b0_threshold=bvals.min())
 
     sphere = get_sphere('symmetric724')
-    sh_basis, _ = interpret_sh_basis(args)
+    sh_basis, _ = parse_sh_basis_arg(args)
 
     mask = None
     if args.mask:

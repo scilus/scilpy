@@ -52,7 +52,7 @@ from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              assert_outputs_exist, add_sh_basis_args,
                              add_processes_arg, add_verbose_arg,
-                             interpret_sh_basis)
+                             parse_sh_basis_arg)
 from scilpy.reconst.fodf import fit_from_model
 from scilpy.reconst.sh import convert_sh_basis
 
@@ -178,7 +178,7 @@ def main():
             raise ValueError("Mask is not the same shape as data.")
 
     sh_order = args.sh_order
-    sh_basis, is_legacy = interpret_sh_basis(args)
+    sh_basis, is_legacy = parse_sh_basis_arg(args)
 
     # Checking data and sh_order
     if data.shape[-1] < (sh_order + 1) * (sh_order + 2) / 2:

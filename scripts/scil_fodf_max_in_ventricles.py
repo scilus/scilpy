@@ -19,7 +19,7 @@ import numpy as np
 from scilpy.io.utils import (add_overwrite_arg,
                              add_sh_basis_args, add_verbose_arg,
                              assert_inputs_exist, assert_outputs_exist,
-                             interpret_sh_basis)
+                             parse_sh_basis_arg)
 from scilpy.reconst.fodf import get_ventricles_max_fodf
 
 EPILOG = """
@@ -89,7 +89,7 @@ def main():
     img_md = nib.load(args.in_md)
     md = img_md.get_fdata(dtype=np.float32)
 
-    sh_basis, is_legacy = interpret_sh_basis(args)
+    sh_basis, is_legacy = parse_sh_basis_arg(args)
 
     value, mask = get_ventricles_max_fodf(fodf, fa, md, zoom, sh_basis, args,
                                           is_legacy=is_legacy)

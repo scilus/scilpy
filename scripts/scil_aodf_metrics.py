@@ -45,7 +45,7 @@ from scilpy.io.utils import (add_processes_arg,
                              assert_inputs_exist,
                              assert_outputs_exist,
                              add_overwrite_arg,
-                             interpret_sh_basis)
+                             parse_sh_basis_arg)
 from scilpy.io.image import get_data_as_mask
 
 
@@ -149,7 +149,7 @@ def main():
 
     sphere = get_sphere(args.sphere)
 
-    sh_basis, is_legacy = interpret_sh_basis(args)
+    sh_basis, is_legacy = parse_sh_basis_arg(args)
     sh_order, full_basis = get_sh_order_and_fullness(sh.shape[-1])
     if not full_basis and (args.asi_map or args.odd_power_map):
         parser.error('Invalid SH image. A full SH basis is expected.')
