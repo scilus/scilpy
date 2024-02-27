@@ -141,7 +141,7 @@ def compute_dwi_attenuation(dwi_weights: np.ndarray, b0: np.ndarray):
         dwi_weights = np.minimum(dwi_weights, b0)
 
     # Compute attenuation
-    b0[zeros_mask] = 1e-6
+    b0[zeros_mask] = 1e-10
     dwi_attenuation = dwi_weights / b0
     dwi_attenuation *= ~zeros_mask[:, :, :, None]
 
