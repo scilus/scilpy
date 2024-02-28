@@ -258,3 +258,5 @@ def verify_frf_files(wm_frf, gm_frf, csf_frf):
     if not csf_frf.shape[1] == 4:
         raise ValueError('CSF frf file did not contain 4 elements. '
                          'Invalid or deprecated FRF format')
+
+    return wm_frf, gm_frf, csf_frf

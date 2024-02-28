@@ -138,7 +138,7 @@ def main():
     bvals, bvecs = read_bvals_bvecs(args.in_bval, args.in_bvec)
 
     # Checking data and sh_order
-    verify_frf_files(wm_frf, gm_frf, csf_frf)
+    wm_frf, gm_frf, csf_frf = verify_frf_files(wm_frf, gm_frf, csf_frf)
     verify_data_vs_sh_order(data, args.sh_order)
     sh_basis, is_legacy = parse_sh_basis_arg(args)
 
