@@ -14,9 +14,9 @@ from dipy.direction import (DeterministicMaximumDirectionGetter,
 from dipy.direction.peaks import PeaksAndMetrics
 from dipy.io.utils import (get_reference_info,
                            create_tractogram_header)
+from dipy.reconst.shm import sh_to_sf_matrix
 from dipy.tracking.streamlinespeed import length, compress_streamlines
-from scilpy.reconst.utils import (find_order_from_nb_coeff,
-                                  get_b_matrix, get_maximas)
+from scilpy.reconst.utils import find_order_from_nb_coeff, get_maximas
 from nibabel.streamlines import TrkFile
 from nibabel.streamlines.tractogram import LazyTractogram, TractogramItem
 
@@ -355,14 +355,14 @@ def get_direction_getter(in_img, algo, sphere, sub_sphere, theta, sh_basis,
             peak_values = np.zeros((img_shape_3d + (npeaks, )))
             peak_indices = np.full((img_shape_3d + (npeaks, )), -1,
                                    dtype='int')
-            b_matrix = get_b_matrix(
-                find_order_from_nb_coeff(img_data), sphere, sh_basis,
-                legacy=is_legacy)
+            b_matrix, _ = sh_to_sf_matrix(sphere,
+                                          find_order_from_nb_coeff(img_data),
+                                          sh_basis, legacy=is_legacy)
 
             for idx in np.argwhere(np.sum(img_data, axis=-1)):
                 idx = tuple(idx)
                 directions, values, indices = get_maximas(img_data[idx],
-                                                          sphere, b_matrix,
+                                                          sphere, b_matrix.T,
                                                           sf_threshold, 0)
                 if values.shape[0] != 0:
                     n = min(npeaks, values.shape[0])

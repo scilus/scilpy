@@ -7,8 +7,9 @@ import numpy as np
 from dipy.data import get_sphere
 from dipy.reconst.mcsd import MSDeconvFit
 from dipy.reconst.multi_voxel import MultiVoxelFit
+from dipy.reconst.shm import sh_to_sf_matrix
 
-from scilpy.reconst.utils import find_order_from_nb_coeff, get_b_matrix
+from scilpy.reconst.utils import find_order_from_nb_coeff
 
 from dipy.utils.optpkg import optional_package
 cvx, have_cvxpy, _ = optional_package("cvxpy")
@@ -47,7 +48,7 @@ def get_ventricles_max_fodf(data, fa, md, zoom, sh_basis, args,
 
     order = find_order_from_nb_coeff(data)
     sphere = get_sphere('repulsion100')
-    b_matrix = get_b_matrix(order, sphere, sh_basis, is_legacy=is_legacy)
+    b_matrix, _ = sh_to_sf_matrix(sphere, order, sh_basis, legacy=is_legacy)
     sum_of_max = 0
     count = 0
 
@@ -91,7 +92,7 @@ def get_ventricles_max_fodf(data, fa, md, zoom, sh_basis, args,
                     continue
                 if fa[i, j, k] < args.fa_threshold \
                         and md[i, j, k] > args.md_threshold:
-                    sf = np.dot(data[i, j, k], b_matrix.T)
+                    sf = np.dot(data[i, j, k], b_matrix)
                     sum_of_max += sf.max()
                     count += 1
                     mask[i, j, k] = 1
