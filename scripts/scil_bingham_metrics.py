@@ -93,7 +93,7 @@ def main():
 
     outputs = [args.out_fd, args.out_fs, args.out_ff]
     assert_inputs_exist(parser, args.in_bingham, args.mask)
-    assert_outputs_exist(parser, args, outputs)
+    assert_outputs_exist(parser, args, [], optional=outputs)
 
     bingham_im = nib.load(args.in_bingham)
     bingham = bingham_im.get_fdata()
