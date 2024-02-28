@@ -110,7 +110,8 @@ def approximate_surface_node(roi):
     """
     ind = np.argwhere(roi > 0)
     tree = KDTree(ind)
-    count = np.sum(7 - len(tree.query_radius(ind, r=1.0)))
+    count = np.sum(7 - tree.query_radius(ind, r=1.0,
+                                         count_only=True))
 
     return count
 
