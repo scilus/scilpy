@@ -14,6 +14,7 @@ import numpy as np
 from numpy.random import RandomState
 from scipy.spatial import cKDTree
 from sklearn.metrics import cohen_kappa_score
+from sklearn.neighbors import KDTree
 from tqdm import tqdm
 
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
@@ -121,9 +122,11 @@ def approximate_surface_node(roi):
     int: the number of surface voxels
     """
     ind = np.argwhere(roi > 0)
-    tree = cKDTree(ind)
-    neighbors = np.sum(7 - len(tree.query_ball_point(ind, r=1.0)))
-    count = [len(neighbor) for neighbor in neighbors]
+    tree = KDTree(ind)
+    count = np.sum(7 - tree.query_radius(ind, r=1.0,
+                                         count_only=True))
+
+    return count
 
     return count
 
