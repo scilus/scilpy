@@ -142,7 +142,8 @@ def main():
 
     # Generate the image slices
     volume_screenhots_generator = screenshot_volume(vol_img, args.axis_name,
-                                                    slice_ids, args.win_dims)
+                                                    slice_ids, args.win_dims,
+                                                    args.volume_cmap_name)
 
     # Generate transparency, if requested
     transparency_screenshots_generator = empty_generator()
@@ -154,7 +155,8 @@ def main():
     labelmap_screenshots_generator = empty_generator()
     if labelmap_img:
         labelmap_screenshots_generator = screenshot_volume(
-            labelmap_img, args.axis_name, slice_ids, args.win_dims)
+            labelmap_img, args.axis_name, slice_ids, args.win_dims,
+            args.labelmap_cmap_name)
 
     # Create the overlay screenshotter
     overlay_screenshotter = screenshot_volume
@@ -194,13 +196,11 @@ def main():
             fillvalue=None):
 
         img = compose_image(volume, args.win_dims, slice_id,
-                            vol_cmap_name=args.volume_cmap_name,
                             transparency_scene=trans,
                             mask_overlay_scene=contour,
                             mask_overlay_color=mask_overlay_colors,
                             mask_overlay_alpha=args.masks_alpha,
                             labelmap_scene=label,
-                            labelmap_cmap_name=args.labelmap_cmap_name,
                             labelmap_overlay_alpha=args.labelmap_alpha,
                             peaks_overlay_scene=peaks,
                             peaks_overlay_alpha=args.peaks_alpha,

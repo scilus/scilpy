@@ -10,13 +10,13 @@ from scilpy.viz.backends.fury import (create_contours_actor,
                                       create_peaks_actor,
                                       set_display_extent)
 from scilpy.viz.backends.vtk import contours_from_data
-from scilpy.viz.color import generate_n_colors
+from scilpy.viz.color import generate_n_colors, lut_from_matplotlib_name
 from scilpy.viz.utils import affine_from_offset
 
 
 def create_texture_slicer(texture, orientation, slice_index, mask=None,
                           value_range=None, opacity=1.0, offset=0.5,
-                          interpolation='nearest'):
+                          lut=None, interpolation='nearest'):
     """
     Create a texture displayed at a given offset (in the given orientation)
     from the origin of the grid.
@@ -40,6 +40,8 @@ def create_texture_slicer(texture, orientation, slice_index, mask=None,
         1.0 is completely visible. Defaults to 1.0.
     offset : float, optional
         The offset of the texture image. Defaults to 0.5.
+    lut : str, vtkLookupTable, optional
+        Either a vtk lookup table or a matplotlib name for one.
     interpolation : str, optional
         Interpolation mode for the texture image. Choices are nearest or
         linear. Defaults to nearest.
@@ -55,11 +57,16 @@ def create_texture_slicer(texture, orientation, slice_index, mask=None,
     if mask is not None:
         texture[np.where(mask == 0)] = 0
 
-    if value_range:
-        value_range = np.clip(value_range, np.min(texture), np.max(texture))
+    if isinstance(lut, str):
+        _vl = value_range
+        if _vl is None:
+            _vl = (texture.min(), texture.max())
+
+        lut = lut_from_matplotlib_name(lut, _vl)
 
     slicer_actor = actor.slicer(texture, value_range=value_range,
                                 affine=affine, opacity=opacity,
+                                lookup_colormap=lut,
                                 interpolation=interpolation)
 
     set_display_extent(slicer_actor, orientation, texture.shape, slice_index)
@@ -165,7 +172,7 @@ def create_peaks_slicer(data, orientation, slice_index, peak_values=None,
     if zero_norms.all():
         raise ValueError('Peak slicer received an empty volume to render.')
 
-    data = data[..., ~zero_norms]
+    data = data[..., ~zero_norms, :]
     norm = norm[..., ~zero_norms]
 
     # Normalize input data

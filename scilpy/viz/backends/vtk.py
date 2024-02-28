@@ -31,6 +31,23 @@ def get_color_by_name(color_name):
         raise ValueError("Invalid VTK color name : {}".format(color_name))
 
 
+def lut_from_colors(colors, value_range):
+    lut = vtk.vtkLookupTable()
+    lut.SetNumberOfColors(len(colors))
+
+    _cl = vtk.vtkUnsignedCharArray()
+    _cl.SetNumberOfComponents(len(colors[0]))
+    _cl.SetNumberOfTuples(len(colors))
+    for i, _v in enumerate(colors):
+        _cl.SetTuple(i,_v)
+
+    lut.SetTable(_cl)
+    lut.SetTableRange(*value_range)
+    lut.Build()
+
+    return lut
+
+
 def create_tube_with_radii(positions, radii, error, error_coloring=False,
                            wireframe=False):
     """
