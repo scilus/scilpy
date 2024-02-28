@@ -76,11 +76,11 @@ def _build_arg_parser():
                                help='Standard deviation for alignment '
                                     'filter. [%(default)s]')
     unified_group.add_argument('--sigma_range', default=0.2, type=float,
-                               help='Standard deviation for range filter '
+                               help='Standard deviation for range filter\n'
                                     '*relative to SF range of image*. '
                                     '[%(default)s]')
     unified_group.add_argument('--sigma_angle', type=float,
-                               help='Standard deviation for angular filter. '
+                               help='Standard deviation for angular filter.\n'
                                     'Disabled by default.')
     unified_group.add_argument('--disable_spatial', action='store_true',
                                help='Disable spatial filtering.')
@@ -91,14 +91,14 @@ def _build_arg_parser():
 
     cosine_group = p.add_argument_group('Cosine filter arguments')
     cosine_group.add_argument('--sharpness', default=1.0, type=float,
-                              help='Specify sharpness factor to use for'
-                                   ' weighted average. [%(default)s]')
+                              help='Specify sharpness factor to use for\n'
+                                   'weighted average. [%(default)s]')
 
     p.add_argument('--device', choices=['cpu', 'gpu'], default='cpu',
                    help='Device to use for execution. [%(default)s]')
     p.add_argument('--use_opencl', action='store_true',
-                   help='Accelerate code using OpenCL\n(requires pyopencl'
-                        ' and a working OpenCL implementation).')
+                   help='Accelerate code using OpenCL (requires pyopencl\n'
+                        'and a working OpenCL implementation).')
 
     add_verbose_arg(p)
     add_overwrite_arg(p)
@@ -133,6 +133,7 @@ def main():
     if args.method == 'unified':
         sigma_align = None if args.disable_align else args.sigma_align
         sigma_range = None if args.disable_range else args.sigma_range
+        # instantiate asymmetric filter
         asym_filter = AsymmetricFilter(
             sh_order=sh_order, sh_basis=args.sh_basis,
             legacy=True, full_basis=full_basis,
@@ -144,7 +145,9 @@ def main():
             disable_spatial=args.disable_spatial,
             device_type=args.device,
             use_opencl=args.use_opencl)
+        # filter the input image
         asym_sh = asym_filter(data)
+
     else:  # args.method == 'cosine'
         asym_sh = cosine_filtering(
             data, sh_order=sh_order,
