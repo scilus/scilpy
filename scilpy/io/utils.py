@@ -273,15 +273,20 @@ def add_sh_basis_args(parser, mandatory=False, input_output=False):
                '\nMust be either \'descoteaux07\', \'tournier07\', \n' +\
                '\'descoteaux07_legacy\' or \'tournier07_legacy\'' +\
                ' [%(default)s]:\n' +\
-               '    \'descoteaux07\'       : SH basis from the Descoteaux et al.\n' +\
-               '                             MRM 2007 paper\n' +\
-               '    \'tournier07\'         : SH basis from the new Tournier et al.\n' +\
-               '                             NeuroImage 2019 paper, as in MRtrix 3.\n' +\
-               '    \'descoteaux07_legacy\': SH basis from the legacy Dipy\n' +\
-               '                             implementation of the Descoteaux et al.\n' +\
-               '                             MRM 2007 paper\n' +\
-               '    \'tournier07_legacy\'  : SH basis from the legacy Tournier et al.\n' +\
-               '                             NeuroImage 2007 paper.'
+               '    \'descoteaux07\'       : SH basis from the Descoteaux ' +\
+               'et al.\n' +\
+               '                           MRM 2007 paper\n' +\
+               '    \'tournier07\'         : SH basis from the new ' +\
+               'Tournier et al.\n' +\
+               '                           NeuroImage 2019 paper, as in ' +\
+               'MRtrix 3.\n' +\
+               '    \'descoteaux07_legacy\': SH basis from the legacy Dipy ' +\
+               'implementation\n' +\
+               '                           of the ' +\
+               'Descoteaux et al. MRM 2007 paper\n' +\
+               '    \'tournier07_legacy\'  : SH basis from the legacy ' +\
+               'Tournier et al.\n' +\
+               '                           NeuroImage 2007 paper.'
 
     if mandatory:
         arg_name = 'sh_basis'
@@ -309,15 +314,15 @@ def parse_sh_basis_arg(args):
         Spherical harmonic basis name.
     is_legacy : bool
         Whether or not the SH basis is in its legacy form.
-    """    
+    """
     sh_basis_name = args.sh_basis[0]
     sh_basis = 'descoteaux07' if 'descoteaux07' in sh_basis_name \
-                else 'tournier07'
+        else 'tournier07'
     is_legacy = 'legacy' in sh_basis_name
     if len(args.sh_basis) == 2:
         sh_basis_name = args.sh_basis[1]
         out_sh_basis = 'descoteaux07' if 'descoteaux07' in sh_basis_name \
-                else 'tournier07'
+            else 'tournier07'
         is_out_legacy = 'legacy' in sh_basis_name
         return sh_basis, is_legacy, out_sh_basis, is_out_legacy
     else:
