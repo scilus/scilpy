@@ -34,7 +34,7 @@ def any2grayscale(array_2d):
     return np.array(_gray * 255).astype("uint8")
 
 
-def create_image_from_2d_array(array_2d, size, mode=None, lut=None):
+def create_image_from_2d_array(array_2d, size, mode=None):
     """
     Create a `PIL.Image` from the 2d array data
     (in range [0, 255], if no colormap provided).
@@ -56,10 +56,10 @@ def create_image_from_2d_array(array_2d, size, mode=None, lut=None):
         Image.
     """
 
-    if lut:
-        # data returned by cmap is normalized to the [0,1] range: scale to the
-        # [0, 255] range and convert to uint8 for Pillow
-        array_2d = (lut(array_2d) * 255).astype("uint8")
+    #if lut:
+    #    # data returned by cmap is normalized to the [0,1] range: scale to the
+    #    # [0, 255] range and convert to uint8 for Pillow
+    #    array_2d = (lut(array_2d) * 255).astype("uint8")
 
     # TODO : Need to flip the array due to some bug in the FURY image buffer.
     # Might be solved in newer versions of the package.
@@ -89,7 +89,7 @@ def create_mask_from_2d_array(array_2d, size, greater_threshold=0):
     """
 
     _bin_arr = array_2d > greater_threshold
-    return create_image_from_2d_array(any2grayscale(_bin_arr) * 255, size)
+    return create_image_from_2d_array(any2grayscale(_bin_arr), size)
 
 
 def compute_canvas_size(rows, columns, cell_width, cell_height,
@@ -215,9 +215,7 @@ def draw_2d_array_at_position(canvas, array_2d, size,
                               mask_overlay_alpha=0.7,
                               mask_overlay_color=None,
                               peak_overlay=None,
-                              peak_overlay_alpha=0.7,
-                              vol_lut=None,
-                              labelmap_lut=None):
+                              peak_overlay_alpha=0.7):
     """
     Draw a 2d array in the given target image at the specified position.
 
@@ -255,7 +253,7 @@ def draw_2d_array_at_position(canvas, array_2d, size,
         Lookup table (colormap) function for the labelmap overlay scene data.
     """
 
-    image = create_image_from_2d_array(array_2d, size, lut=vol_lut)
+    image = create_image_from_2d_array(array_2d, size)
 
     _transparency = None
     if transparency is not None:
@@ -266,8 +264,7 @@ def draw_2d_array_at_position(canvas, array_2d, size,
 
     # Draw the labelmap overlay image if any
     if labelmap_overlay is not None:
-        labelmap = create_image_from_2d_array(labelmap_overlay, size,
-                                              lut=labelmap_lut)
+        labelmap = create_image_from_2d_array(labelmap_overlay, size)
 
         # Create transparency mask over the labelmap overlay image
         label_mask = (labelmap_overlay > 0) * labelmap_overlay_alpha

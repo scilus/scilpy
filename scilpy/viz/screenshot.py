@@ -6,19 +6,18 @@ from scilpy.utils.util import get_axis_index
 from scilpy.viz.backends.fury import (create_scene,
                                       set_display_extent,
                                       set_viewport,
-                                      snapshot_slices)
+                                      screenshot_slices)
 from scilpy.viz.backends.pil import (annotate_image,
                                      any2grayscale,
                                      create_canvas,
                                      draw_2d_array_at_position)
-from scilpy.viz.color import get_lookup_table
 from scilpy.viz.utils import compute_cell_topleft_pos
 from scilpy.viz.slice import (create_contours_slicer,
                               create_peaks_slicer,
                               create_texture_slicer)
 
 
-def screenshot_volume(img, orientation, slice_ids, size):
+def screenshot_volume(img, orientation, slice_ids, size, labelmap=None):
     """
     Take a screenshot of the given volume at the provided slice indices.
 
@@ -39,10 +38,10 @@ def screenshot_volume(img, orientation, slice_ids, size):
         Scene screenshots generator.
     """
     slice_actor = create_texture_slicer(img.get_fdata(), orientation, 0,
-                                        offset=0.0)
+                                        offset=0.0, lut=labelmap)
 
-    return snapshot_slices([slice_actor], slice_ids, orientation,
-                           img.shape, size)
+    return screenshot_slices([slice_actor], slice_ids, orientation,
+                             img.shape, size)
 
 
 def screenshot_contour(bin_img, orientation, slice_ids, size, bg_opacity=0.):
@@ -117,10 +116,14 @@ def screenshot_peaks(img, orientation, slice_ids, size, mask_img=None):
         Scene screenshots generator.
     """
 
-    peaks_actor = create_peaks_slicer(img.get_fdata(), orientation, 0,
-                                      mask=mask_img.get_fdata().astype(bool))
+    mask = None
+    if mask_img:
+        mask=mask_img.get_fdata().astype(bool)
 
-    return snapshot_slices([peaks_actor], slice_ids, orientation,
+    peaks_actor = create_peaks_slicer(img.get_fdata(), orientation, 0,
+                                      mask=mask)
+
+    return screenshot_slices([peaks_actor], slice_ids, orientation,
                            img.shape, size)
 
 
@@ -129,7 +132,6 @@ def compose_image(img_scene, img_size, slice_number, corner_position=(0, 0),
                   labelmap_overlay_alpha=0.7, mask_overlay_scene=None,
                   mask_overlay_alpha=0.7, mask_overlay_color=None,
                   peaks_overlay_scene=None, peaks_overlay_alpha=0.7,
-                  vol_cmap_name=None, labelmap_cmap_name=None,
                   display_slice_number=False, display_lr=False,
                   lr_labels=["L", "R"], canvas=None):
     """
@@ -186,12 +188,6 @@ def compose_image(img_scene, img_size, slice_number, corner_position=(0, 0),
     if canvas is None:
         canvas = create_canvas(*img_size, 1, 1, 0, 0)
 
-    vol_lut, labelmap_lut = None, None
-    if vol_cmap_name:
-        vol_lut = get_lookup_table(vol_cmap_name)
-    if labelmap_cmap_name:
-        labelmap_lut = get_lookup_table(labelmap_cmap_name)
-
     draw_2d_array_at_position(canvas, img_scene, img_size,
                               corner_position[0], corner_position[1],
                               transparency=transparency_scene,
@@ -201,8 +197,7 @@ def compose_image(img_scene, img_size, slice_number, corner_position=(0, 0),
                               mask_overlay_alpha=mask_overlay_alpha,
                               mask_overlay_color=mask_overlay_color,
                               peak_overlay=peaks_overlay_scene,
-                              peak_overlay_alpha=peaks_overlay_alpha,
-                              vol_lut=vol_lut, labelmap_lut=labelmap_lut)
+                              peak_overlay_alpha=peaks_overlay_alpha)
 
     annotate_image(canvas, slice_number, display_slice_number,
                    display_lr, lr_labels)

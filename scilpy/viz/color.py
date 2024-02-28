@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from matplotlib import colors
 import numpy as np
 
-from scilpy.viz.backends.vtk import get_color_by_name
+from scilpy.viz.backends.vtk import get_color_by_name, lut_from_colors
 
 
 def convert_color_names_to_rgb(names):
@@ -100,3 +100,9 @@ def get_lookup_table(name):
         return cmap
 
     return plt.colormaps.get_cmap(name)
+
+
+def lut_from_matplotlib_name(name, value_range, n_samples=256):
+    lut = get_lookup_table(name)
+    return lut_from_colors(
+        lut(np.linspace(0., 1., n_samples)) * 255., value_range)
