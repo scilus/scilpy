@@ -38,8 +38,11 @@ from scilpy.io.utils import (add_overwrite_arg, add_processes_arg,
                              add_sh_basis_args, add_skip_b0_check_arg,
                              add_verbose_arg, add_tolerance_arg,
                              parse_sh_basis_arg)
-from scilpy.reconst.fodf import fit_from_model
-from scilpy.reconst.sh import convert_sh_basis
+from scilpy.reconst.fodf import (fit_from_model,
+                                 verify_failed_voxels_shm_coeff,
+                                 verify_frf_files)
+from scilpy.reconst.sh import convert_sh_basis, verify_data_vs_sh_order
+
 
 
 def _build_arg_parser():
@@ -107,6 +110,7 @@ def main():
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
+    # Verifications
     if not args.not_all:
         args.wm_out_fODF = args.wm_out_fODF or 'wm_fodf.nii.gz'
         args.gm_out_fODF = args.gm_out_fODF or 'gm_fodf.nii.gz'
@@ -117,7 +121,7 @@ def main():
     arglist = [args.wm_out_fODF, args.gm_out_fODF, args.csf_out_fODF,
                args.vf, args.vf_rgb]
     if args.not_all and not any(arglist):
-        parser.error('When using --not_all, you need to specify at least ' +
+        parser.error('When using --not_all, you need to specify at least '
                      'one file to output.')
 
     assert_inputs_exist(parser, [args.in_dwi, args.in_bval, args.in_bvec,
@@ -133,6 +137,11 @@ def main():
     data = vol.get_fdata(dtype=np.float32)
     bvals, bvecs = read_bvals_bvecs(args.in_bval, args.in_bvec)
 
+    # Checking data and sh_order
+    verify_frf_files(wm_frf, gm_frf, csf_frf)
+    verify_data_vs_sh_order(data, args.sh_order)
+    sh_basis, is_legacy = parse_sh_basis_arg(args)
+
     # Checking mask
     if args.mask is None:
         mask = None
@@ -140,18 +149,6 @@ def main():
         mask = get_data_as_mask(nib.load(args.mask), dtype=bool)
         if mask.shape != data.shape[:-1]:
             raise ValueError("Mask is not the same shape as data.")
-
-    sh_order = args.sh_order
-    sh_basis, is_legacy = parse_sh_basis_arg(args)
-
-    # Checking data and sh_order
-    sh_order = args.sh_order
-    if data.shape[-1] < (sh_order + 1) * (sh_order + 2) / 2:
-        logging.warning(
-            'We recommend having at least {} unique DWIs volumes, but you '
-            'currently have {} volumes. Try lowering the parameter --sh_order '
-            'in case of non convergence.'.format(
-                (sh_order + 1) * (sh_order + 2) / 2, data.shape[-1]))
 
     # Checking bvals, bvecs values and loading gtab
     if not is_normalized_bvecs(bvecs):
@@ -168,54 +165,28 @@ def main():
                            skip_b0_check=args.skip_b0_check)
     gtab = gradient_table(bvals, bvecs, b0_threshold=args.tolerance)
 
-    # Checking response functions and computing msmt response function
-    if not wm_frf.shape[1] == 4:
-        raise ValueError('WM frf file did not contain 4 elements. '
-                         'Invalid or deprecated FRF format')
-    if not gm_frf.shape[1] == 4:
-        raise ValueError('GM frf file did not contain 4 elements. '
-                         'Invalid or deprecated FRF format')
-    if not csf_frf.shape[1] == 4:
-        raise ValueError('CSF frf file did not contain 4 elements. '
-                         'Invalid or deprecated FRF format')
-    ubvals = unique_bvals_tolerance(bvals, tol=args.tolerance)
-    msmt_response = multi_shell_fiber_response(sh_order, ubvals,
-                                               wm_frf, gm_frf, csf_frf,
-                                               tol=args.tolerance)
-
     # Loading spheres
     reg_sphere = get_sphere('symmetric362')
+
+    # Starting main process!
+
+    # Checking response functions and computing msmt response function
+    ubvals = unique_bvals_tolerance(bvals, tol=args.tolerance)
+    msmt_response = multi_shell_fiber_response(args.sh_order, ubvals,
+                                               wm_frf, gm_frf, csf_frf,
+                                               tol=args.tolerance)
 
     # Computing msmt-CSD
     msmt_model = MultiShellDeconvModel(gtab, msmt_response,
                                        reg_sphere=reg_sphere,
-                                       sh_order=sh_order)
+                                       sh_order=args.sh_order)
 
     # Computing msmt-CSD fit
     msmt_fit = fit_from_model(msmt_model, data,
                               mask=mask, nbr_processes=args.nbr_processes)
 
     shm_coeff = msmt_fit.all_shm_coeff
-
-    nan_count = len(np.argwhere(np.isnan(shm_coeff[..., 0])))
-    voxel_count = np.prod(shm_coeff.shape[:-1])
-
-    if nan_count / voxel_count >= 0.05:
-        msg = """There are {} voxels out of {} that could not be solved by
-        the solver, reaching a critical amount of voxels. Make sure to tune the
-        response functions properly, as the solving process is very sensitive
-        to it. Proceeding to fill the problematic voxels by 0.
-        """
-        logging.warning(msg.format(nan_count, voxel_count))
-    elif nan_count > 0:
-        msg = """There are {} voxels out of {} that could not be solved by
-        the solver. Make sure to tune the response functions properly, as the
-        solving process is very sensitive to it. Proceeding to fill the
-        problematic voxels by 0.
-        """
-        logging.warning(msg.format(nan_count, voxel_count))
-
-    shm_coeff = np.where(np.isnan(shm_coeff), 0, shm_coeff)
+    shm_coeff = verify_failed_voxels_shm_coeff(shm_coeff)
 
     vf = msmt_fit.volume_fractions
     vf = np.where(np.isnan(vf), 0, vf)

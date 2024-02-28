@@ -188,3 +188,58 @@ def fit_from_model(model, data, mask=None, nbr_processes=None):
     fit_array = MultiVoxelFit(model, fit_array, mask)
 
     return fit_array
+
+
+def verify_failed_voxels_shm_coeff(shm_coeff):
+    """
+    Verifies if there are any NaN in the final coefficients, and if so raises
+    warnings.
+    """
+    nan_count = len(np.argwhere(np.isnan(shm_coeff[..., 0])))
+    voxel_count = np.prod(shm_coeff.shape[:-1])
+
+    if nan_count / voxel_count >= 0.05:
+        logging.warning(
+            "There are {} voxels out of {} that could not be solved by the "
+            "solver, reaching a critical amount of voxels. Make sure to tune "
+            "the response functions properly, as the solving process is very "
+            "sensitive to it. Proceeding to fill the problematic voxels by 0."
+            .format(nan_count, voxel_count))
+    elif nan_count > 0:
+        logging.warning(
+            "There are {} voxels out of {} that could not be solved by the "
+            "solver. Make sure to tune the response functions properly, as "
+            "the solving process is very sensitive to it. Proceeding to fill "
+            "the problematic voxels by 0.".format(nan_count, voxel_count))
+
+    shm_coeff = np.where(np.isnan(shm_coeff), 0, shm_coeff)
+    return shm_coeff
+
+
+def verify_frf_files(wm_frf, gm_frf, csf_frf):
+    """
+    Verifies that all three frf files contain four columns, else raises
+    ValueErrors.
+
+    Parameters
+    ----------
+    wm_frf: np.ndarray
+    gm_frf: np.ndarray
+    csf_frf: np.ndarray
+    """
+    if len(wm_frf.shape) == 1:
+        wm_frf = wm_frf[None, :]
+    if len(gm_frf.shape) == 1:
+        gm_frf = gm_frf[None, :]
+    if len(csf_frf.shape) == 1:
+        csf_frf = csf_frf[None, :]
+
+    if not wm_frf.shape[1] == 4:
+        raise ValueError('WM frf file did not contain 4 elements. '
+                         'Invalid or deprecated FRF format')
+    if not gm_frf.shape[1] == 4:
+        raise ValueError('GM frf file did not contain 4 elements. '
+                         'Invalid or deprecated FRF format')
+    if not csf_frf.shape[1] == 4:
+        raise ValueError('CSF frf file did not contain 4 elements. '
+                         'Invalid or deprecated FRF format')

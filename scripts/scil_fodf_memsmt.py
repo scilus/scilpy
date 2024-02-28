@@ -3,10 +3,11 @@
 
 """
 Script to compute multi-encoding multi-shell multi-tissue (memsmt)
-Constrained Spherical Deconvolution ODFs. In order to operate,
-the script only needs the data from one type of b-tensor encoding. However,
-giving only a spherical one will not produce good fODFs, as it only probes
-spherical shapes. As for planar encoding, it should technically
+Constrained Spherical Deconvolution ODFs.
+
+In order to operate, the script only needs the data from one type of b-tensor
+encoding. However, giving only a spherical one will not produce good fODFs, as
+it only probes spherical shapes. As for planar encoding, it should technically
 work alone, but seems to be very sensitive to noise and is yet to be properly
 documented. We thus suggest to always use at least the linear encoding, which
 will be equivalent to standard multi-shell multi-tissue if used alone, in
@@ -14,10 +15,11 @@ combinaison with other encodings. Note that custom encodings are not yet
 supported, so that only the linear tensor encoding (LTE, b_delta = 1), the
 planar tensor encoding (PTE, b_delta = -0.5), the spherical tensor encoding
 (STE, b_delta = 0) and the cigar shape tensor encoding (b_delta = 0.5) are
-available. Moreover, all of `--in_dwis`, `--in_bvals`, `--in_bvecs` and
-`--in_bdeltas` must have the same number of arguments. Be sure to keep the
-same order of encodings throughout all these inputs and to set `--in_bdeltas`
-accordingly (IMPORTANT).
+available.
+
+All of `--in_dwis`, `--in_bvals`, `--in_bvecs` and `--in_bdeltas` must have the
+same number of arguments. Be sure to keep the same order of encodings
+throughout all these inputs and to set `--in_bdeltas` accordingly (IMPORTANT).
 
 By default, will output all possible files, using default names.
 Specific names can be specified using the file flags specified in the
@@ -50,12 +52,14 @@ from scilpy.io.btensor import (generate_btensor_input,
                                convert_bdelta_to_bshape)
 from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_overwrite_arg, add_processes_arg,
+                             add_sh_basis_args, add_skip_b0_check_arg,
+                             add_tolerance_arg, add_verbose_arg,
                              assert_inputs_exist, assert_outputs_exist,
-                             add_sh_basis_args, add_verbose_arg,
-                             add_skip_b0_check_arg, add_tolerance_arg,
                              parse_sh_basis_arg)
-from scilpy.reconst.fodf import fit_from_model
-from scilpy.reconst.sh import convert_sh_basis
+from scilpy.reconst.fodf import (fit_from_model,
+                                 verify_failed_voxels_shm_coeff,
+                                 verify_frf_files)
+from scilpy.reconst.sh import convert_sh_basis, verify_data_vs_sh_order
 
 
 def _build_arg_parser():
@@ -130,6 +134,7 @@ def main():
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
+    # Verifications
     if not args.not_all:
         args.wm_out_fODF = args.wm_out_fODF or 'wm_fodf.nii.gz'
         args.gm_out_fODF = args.gm_out_fODF or 'gm_fodf.nii.gz'
@@ -140,19 +145,21 @@ def main():
     arglist = [args.wm_out_fODF, args.gm_out_fODF, args.csf_out_fODF,
                args.vf, args.vf_rgb]
     if args.not_all and not any(arglist):
-        parser.error('When using --not_all, you need to specify at least ' +
+        parser.error('When using --not_all, you need to specify at least '
                      'one file to output.')
 
-    assert_inputs_exist(parser, [],
-                        args.in_dwis + args.in_bvals + args.in_bvecs)
+    required = args.in_dwis + args.in_bvals + args.in_bvecs + args.in_bdeltas
+    required += [args.in_wm_frf, args.in_gm_frf, args.in_csf_frf]
+    assert_inputs_exist(parser, required, optional=args.mask)
     assert_outputs_exist(parser, args, arglist)
 
     if not (len(args.in_dwis) == len(args.in_bvals)
             == len(args.in_bvecs) == len(args.in_bdeltas)):
-        msg = """The number of given dwis, bvals, bvecs and bdeltas must be the
-              same. Please verify that all inputs were correctly inserted."""
-        raise ValueError(msg)
+        parser.error("The number of given dwis, bvals, bvecs and bdeltas must "
+                     "be the same. Please verify that all inputs were "
+                     "correctly inserted.")
 
+    # Loading data
     affine = extract_affine(args.in_dwis)
 
     wm_frf = np.loadtxt(args.in_wm_frf)
@@ -175,74 +182,35 @@ def main():
         if mask.shape != data.shape[:-1]:
             raise ValueError("Mask is not the same shape as data.")
 
-    sh_order = args.sh_order
+    # Checking data and sh_order
+    verify_data_vs_sh_order(data, args.sh_order)
     sh_basis, is_legacy = parse_sh_basis_arg(args)
 
-    # Checking data and sh_order
-    if data.shape[-1] < (sh_order + 1) * (sh_order + 2) / 2:
-        logging.warning(
-            'We recommend having at least {} unique DWIs volumes, but you '
-            'currently have {} volumes. Try lowering the parameter --sh_order '
-            'in case of non convergence.'.format(
-                (sh_order + 1) * (sh_order + 2) / 2, data.shape[-1]))
+    # Checking response functions and computing mesmt response function
+    wm_frf, gm_frf, csf_frf = verify_frf_files(wm_frf, gm_frf, csf_frf)
 
-    # Checking response functions and computing msmt response function
-    if len(wm_frf.shape) == 1:
-        wm_frf = np.reshape(wm_frf, (1,) + wm_frf.shape)
-    if len(gm_frf.shape) == 1:
-        gm_frf = np.reshape(gm_frf, (1,) + gm_frf.shape)
-    if len(csf_frf.shape) == 1:
-        csf_frf = np.reshape(csf_frf, (1,) + csf_frf.shape)
+    # Loading spheres
+    reg_sphere = get_sphere('symmetric362')
 
-    if not wm_frf.shape[1] == 4:
-        raise ValueError('WM frf file did not contain 4 elements. '
-                         'Invalid or deprecated FRF format')
-    if not gm_frf.shape[1] == 4:
-        raise ValueError('GM frf file did not contain 4 elements. '
-                         'Invalid or deprecated FRF format')
-    if not csf_frf.shape[1] == 4:
-        raise ValueError('CSF frf file did not contain 4 elements. '
-                         'Invalid or deprecated FRF format')
+    # Starting main process!
 
     ubshapes = convert_bdelta_to_bshape(ubdeltas)
-    memsmt_response = multi_shell_fiber_response(sh_order,
-                                                 ubvals,
+    memsmt_response = multi_shell_fiber_response(args.sh_order, ubvals,
                                                  wm_frf, gm_frf, csf_frf,
                                                  tol=args.tolerance,
                                                  btens=ubshapes)
 
-    reg_sphere = get_sphere('symmetric362')
-
     # Computing memsmt-CSD
     memsmt_model = MultiShellDeconvModel(gtab, memsmt_response,
                                          reg_sphere=reg_sphere,
-                                         sh_order=sh_order)
+                                         sh_order=args.sh_order)
 
     # Computing memsmt-CSD fit
     memsmt_fit = fit_from_model(memsmt_model, data,
                                 mask=mask, nbr_processes=args.nbr_processes)
 
     shm_coeff = memsmt_fit.all_shm_coeff
-
-    nan_count = len(np.argwhere(np.isnan(shm_coeff[..., 0])))
-    voxel_count = np.prod(shm_coeff.shape[:-1])
-
-    if nan_count / voxel_count >= 0.05:
-        msg = """There are {} voxels out of {} that could not be solved by
-        the solver, reaching a critical amount of voxels. Make sure to tune the
-        response functions properly, as the solving process is very sensitive
-        to it. Proceeding to fill the problematic voxels by 0.
-        """
-        logging.warning(msg.format(nan_count, voxel_count))
-    elif nan_count > 0:
-        msg = """There are {} voxels out of {} that could not be solved by
-        the solver. Make sure to tune the response functions properly, as the
-        solving process is very sensitive to it. Proceeding to fill the
-        problematic voxels by 0.
-        """
-        logging.warning(msg.format(nan_count, voxel_count))
-
-    shm_coeff = np.where(np.isnan(shm_coeff), 0, shm_coeff)
+    shm_coeff = verify_failed_voxels_shm_coeff(shm_coeff)
 
     vf = memsmt_fit.volume_fractions
     vf = np.where(np.isnan(vf), 0, vf)
