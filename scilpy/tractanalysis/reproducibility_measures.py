@@ -122,7 +122,7 @@ def approximate_surface_node(roi):
     """
     ind = np.argwhere(roi > 0)
     tree = cKDTree(ind)
-    neighbors = np.sum(7 - tree.query_ball_point(ind, r=1.0))
+    neighbors = np.sum(7 - len(tree.query_ball_point(ind, r=1.0)))
     count = [len(neighbor) for neighbor in neighbors]
 
     return count
