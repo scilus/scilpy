@@ -148,7 +148,7 @@ def main():
         parser.error('When using --not_all, you need to specify at least '
                      'one file to output.')
 
-    required = args.in_dwis + args.in_bvals + args.in_bvecs + args.in_bdeltas
+    required = args.in_dwis + args.in_bvals + args.in_bvecs
     required += [args.in_wm_frf, args.in_gm_frf, args.in_csf_frf]
     assert_inputs_exist(parser, required, optional=args.mask)
     assert_outputs_exist(parser, args, arglist)
@@ -209,6 +209,11 @@ def main():
     memsmt_fit = fit_from_model(memsmt_model, data,
                                 mask=mask, nbr_processes=args.nbr_processes)
 
+    # memsmt_fit is a MultiVoxelFit.
+    #   - memsmt_fit.array_fit is a 3D np.ndarray, where value in each voxel is
+    #     a dipy.reconst.mcsd.MSDeconvFit object.
+    #   - When accessing memsmt_fit.all_shm_coeff, we get an array of shape
+    #     (x, y, z, n), where n is the number of fitted values.
     shm_coeff = memsmt_fit.all_shm_coeff
     shm_coeff = verify_failed_voxels_shm_coeff(shm_coeff)
 

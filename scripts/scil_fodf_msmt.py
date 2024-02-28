@@ -185,6 +185,11 @@ def main():
     msmt_fit = fit_from_model(msmt_model, data,
                               mask=mask, nbr_processes=args.nbr_processes)
 
+    # mmsmt_fit is a MultiVoxelFit.
+    #   - memsmt_fit.array_fit is a 3D np.ndarray, where value in each voxel is
+    #     a dipy.reconst.mcsd.MSDeconvFit object.
+    #   - When accessing memsmt_fit.all_shm_coeff, we get an array of shape
+    #     (x, y, z, n), where n is the number of fitted values.
     shm_coeff = msmt_fit.all_shm_coeff
     shm_coeff = verify_failed_voxels_shm_coeff(shm_coeff)
 

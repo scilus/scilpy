@@ -133,12 +133,13 @@ def _fit_from_model_parallel(args):
 
 
 def fit_from_model(model, data, mask=None, nbr_processes=None):
-    """Fit the model to data
+    """Fit the model to data. Can use parallel processing.
 
     Parameters
     ----------
     model : a model instance
-        `model` will be used to fit the data.
+        It will be used to fit the data.
+        e.g: An instance of dipy.reconst.shm.SphHarmFit.
     data : np.ndarray (4d)
         Diffusion data.
     mask : np.ndarray, optional
@@ -150,8 +151,11 @@ def fit_from_model(model, data, mask=None, nbr_processes=None):
 
     Returns
     -------
-    fit_array : np.ndarray
-        Array containing the fit
+    fit_array : MultiVoxelFit
+        Dipy's MultiVoxelFit, containing the fit.
+        It contains an array of fits. Any attributes of its individuals fits
+        (of class given by 'model.fit') can be accessed through the
+        MultiVoxelFit to get all fits at once.
     """
     data_shape = data.shape
     if mask is None:
@@ -194,6 +198,17 @@ def verify_failed_voxels_shm_coeff(shm_coeff):
     """
     Verifies if there are any NaN in the final coefficients, and if so raises
     warnings.
+
+    Parameters
+    ----------
+    shm_coeff: np.ndarray
+        The shm_coeff given by dipy's fit classes. Of shape (x, y, z, n) with
+        the coefficients on the last dimension.
+
+    Returns
+    -------
+    shm_coeff: np.ndarray
+        The coefficients with 0 instead of NaNs.
     """
     nan_count = len(np.argwhere(np.isnan(shm_coeff[..., 0])))
     voxel_count = np.prod(shm_coeff.shape[:-1])
