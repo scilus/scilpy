@@ -242,7 +242,8 @@ def add_bbox_arg(parser):
 
 def add_sh_basis_args(parser, mandatory=False, input_output=False):
     """
-    Add spherical harmonics (SH) bases argument.
+    Add spherical harmonics (SH) bases argument. For more information about
+    the bases, see https://docs.dipy.org/stable/theory/sh_basis.html.
 
     Parameters
     ----------
@@ -308,16 +309,18 @@ def parse_sh_basis_arg(args):
         Spherical harmonic basis name.
     is_legacy : bool
         Whether or not the SH basis is in its legacy form.
-    """
+    """    
+    sh_basis_name = args.sh_basis[0]
+    sh_basis = 'descoteaux07' if 'descoteaux07' in sh_basis_name \
+                else 'tournier07'
+    is_legacy = 'legacy' in sh_basis_name
     if len(args.sh_basis) == 2:
-        in_sh_basis = args.sh_basis[0].split("_")[0]
-        is_in_legacy = len(args.sh_basis[0].split("_")) == 2
-        out_sh_basis = args.sh_basis[1].split("_")[0]
-        is_out_legacy = len(args.sh_basis[1].split("_")) == 2
-        return in_sh_basis, is_in_legacy, out_sh_basis, is_out_legacy
+        sh_basis_name = args.sh_basis[1]
+        out_sh_basis = 'descoteaux07' if 'descoteaux07' in sh_basis_name \
+                else 'tournier07'
+        is_out_legacy = 'legacy' in sh_basis_name
+        return sh_basis, is_legacy, out_sh_basis, is_out_legacy
     else:
-        sh_basis = args.sh_basis[0].split("_")[0]
-        is_legacy = len(args.sh_basis[0].split("_")) == 2
         return sh_basis, is_legacy
 
 
