@@ -239,8 +239,22 @@ def verify_frf_files(wm_frf, gm_frf, csf_frf):
     Parameters
     ----------
     wm_frf: np.ndarray
+        The frf directly as loaded from its text file.
     gm_frf: np.ndarray
+        Idem
     csf_frf: np.ndarray
+        Idem
+
+    Returns
+    -------
+    wm_frf: np.ndarray
+        The file. In the case where there was only one line in the file, and it
+        has been loaded as a vector, we return the array formatted as 2D, with
+        the 4 frf values as columns.
+    gm_frf: np.ndarray
+        Idem
+    csf_frf: np.ndarray
+        Idem
     """
     if len(wm_frf.shape) == 1:
         wm_frf = wm_frf[None, :]
