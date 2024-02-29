@@ -19,7 +19,7 @@ def pull_test_case_package(package_name):
             raise ValueError(f"Unknown test case: {package_name}")
 
         pull_package_from_dvc_repository(
-            package_name, f"{SCILPY_HOME}/test_data",
+            f"{package_name}", f"{SCILPY_HOME}/test_data",
             test_descriptors[package_name]["revision"])
 
         return f"{SCILPY_HOME}/test_data/{package_name}"
@@ -34,7 +34,7 @@ def pull_package_from_dvc_repository(package_name, output_dir, revision="main",
     trivial valid configuration is a data storage located at the registry
     root and named store.
     """
-    return pull_from_dvc_repository(f"store/{package_name}",
+    return pull_from_dvc_repository(f"store/scilpy_tests/{package_name}",
                                     f"{output_dir}/{package_name}",
                                     revision, remote_url, remote_name,
                                     dvc_config_root)
