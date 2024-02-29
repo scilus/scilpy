@@ -182,7 +182,7 @@ def main():
 
     name, ext = splitext(args.out_fname)
     names = ["{}_slice_{}{}".format(name, s, ext) for s in slice_ids]
-    sides_labels = ["A", "P"] if args.axis_name == "sagittal" else ["L", "R"]
+    sides_labels = ["P", "A"] if args.axis_name == "sagittal" else ["L", "R"]
 
     # Compose and save each slice
     for volume, trans, label, contour, peaks, name, slice_id in zip_longest(
