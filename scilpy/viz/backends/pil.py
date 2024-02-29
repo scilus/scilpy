@@ -34,7 +34,8 @@ def any2grayscale(array_2d):
     return np.array(_gray * 255).astype("uint8")
 
 
-def create_image_from_2d_array(array_2d, size, mode=None):
+def create_image_from_2d_array(
+    array_2d, size, mode=None, resampling=Image.LANCZOS):
     """
     Create a `PIL.Image` from the 2d array data
     (in range [0, 255], if no colormap provided).
@@ -47,8 +48,8 @@ def create_image_from_2d_array(array_2d, size, mode=None):
         Image size (pixels) (width, height).
     mode : str, optional
         Type and depth of a pixel in the `Pillow` image.
-    lut : function, optional
-        Lookup table function to colorize the 2d array.
+    resampling : Literal, optional
+        Resampling method to use when resizing the `Pillow` image.
 
     Returns
     -------
@@ -63,9 +64,11 @@ def create_image_from_2d_array(array_2d, size, mode=None):
 
     # TODO : Need to flip the array due to some bug in the FURY image buffer.
     # Might be solved in newer versions of the package.
+    print(mode)
+    print(array_2d.shape)
     return Image.fromarray(array_2d, mode=mode) \
         .transpose(Image.FLIP_TOP_BOTTOM) \
-        .resize(size, Image.LANCZOS)
+        .resize(size, resampling)
 
 
 def create_mask_from_2d_array(array_2d, size, greater_threshold=0):
@@ -253,23 +256,23 @@ def draw_2d_array_at_position(canvas, array_2d, size,
         Lookup table (colormap) function for the labelmap overlay scene data.
     """
 
-    image = create_image_from_2d_array(array_2d, size)
+    image = create_image_from_2d_array(array_2d, size, "RGB")
 
     _transparency = None
     if transparency is not None:
         _transparency = create_image_from_2d_array(transparency, size,
-                                                   mode="L")
+                                                   "RGB", Image.NEAREST)
+        _transparency = _transparency.convert("L")
 
     canvas.paste(image, (left_position, top_position), mask=_transparency)
 
     # Draw the labelmap overlay image if any
     if labelmap_overlay is not None:
-        labelmap = create_image_from_2d_array(labelmap_overlay, size)
-
+        labelmap = create_image_from_2d_array(labelmap_overlay, size, "RGB")
         # Create transparency mask over the labelmap overlay image
-        label_mask = (labelmap_overlay > 0) * labelmap_overlay_alpha
+        label_mask = np.any(labelmap_overlay > 0, -1) * labelmap_overlay_alpha
         label_transparency = create_image_from_2d_array(
-            (label_mask * 255.).astype(np.uint8), size).convert("L")
+            (label_mask * 255.).astype(np.uint8), size, "L", Image.NEAREST)
 
         canvas.paste(labelmap, (left_position, top_position),
                      mask=label_transparency)

@@ -87,7 +87,7 @@ def initialize_camera(orientation, slice_index, volume_shape, aspect_ratio):
     # of the image w.r.t. the viewport
     vert_idx = 1 if axis_index == 2 else 2
     camera[CamParams.VIEW_UP] = np.zeros((3,))
-    camera[CamParams.VIEW_UP][vert_idx] = 1.0
+    camera[CamParams.VIEW_UP][vert_idx] = -1.0
 
     # Based on : https://stackoverflow.com/questions/6565703/
     # math-algorithm-fit-image-to-screen-retain-aspect-ratio
@@ -269,7 +269,7 @@ def screenshot_slices(actors, slice_ids, orientation, shape, size):
             set_display_extent(_actor, orientation, shape, idx)
 
         set_viewport(scene, orientation, idx, shape, size[0] / size[1])
-        yield window.snapshot(scene, size=size)
+        yield window.snapshot(scene, size=size).astype(np.uint8)
 
 
 def snapshot_scenes(scenes, window_size):

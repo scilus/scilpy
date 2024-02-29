@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import numpy as np
 from fury import window
 from scilpy.utils.util import get_axis_index
 
@@ -91,7 +92,7 @@ def screenshot_contour(bin_img, orientation, slice_ids, size, bg_opacity=0.):
         scene.add(contour_actor)
         set_viewport(scene, orientation, idx, image_size_2d, size[0] / size[1])
 
-        yield window.snapshot(scene, size=size)
+        yield window.snapshot(scene, size=size).astype(np.uint8)
         scene.rm(contour_actor)
 
 
@@ -124,7 +125,7 @@ def screenshot_peaks(img, orientation, slice_ids, size, mask_img=None):
                                       mask=mask)
 
     return screenshot_slices([peaks_actor], slice_ids, orientation,
-                           img.shape, size)
+                             img.shape, size)
 
 
 def compose_image(img_scene, img_size, slice_number, corner_position=(0, 0),
