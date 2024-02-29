@@ -49,9 +49,10 @@ from scilpy.image.utils import extract_affine
 from scilpy.io.btensor import (generate_btensor_input,
                                convert_bdelta_to_bshape)
 from scilpy.io.image import get_data_as_mask
-from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
-                             assert_outputs_exist, add_sh_basis_args,
-                             add_processes_arg, add_verbose_arg)
+from scilpy.io.utils import (add_overwrite_arg, add_processes_arg,
+                             add_sh_basis_args, add_verbose_arg,
+                             assert_inputs_exist, assert_outputs_exist,
+                             add_skip_b0_check_arg, add_tolerance_arg)
 from scilpy.reconst.fodf import fit_from_model
 from scilpy.reconst.sh import convert_sh_basis
 
@@ -88,10 +89,9 @@ def _build_arg_parser():
         '--mask',
         help='Path to a binary mask. Only the data inside the '
              'mask will be used for computations and reconstruction.')
-    p.add_argument(
-        '--tolerance', type=int, default=20,
-        help='The tolerated gap between the b-values to '
-             'extract\nand the current b-value. [%(default)s]')
+    add_tolerance_arg(p)
+    add_skip_b0_check_arg(p, will_overwrite_with_min=False,
+                          b0_tol_name='--tolerance')
 
     add_sh_basis_args(p)
     add_processes_arg(p)
@@ -156,17 +156,17 @@ def main():
 
     affine = extract_affine(args.in_dwis)
 
-    tol = args.tolerance
-
     wm_frf = np.loadtxt(args.in_wm_frf)
     gm_frf = np.loadtxt(args.in_gm_frf)
     csf_frf = np.loadtxt(args.in_csf_frf)
 
-    gtab, data, ubvals, ubdeltas = generate_btensor_input(args.in_dwis,
-                                                          args.in_bvals,
-                                                          args.in_bvecs,
-                                                          args.in_bdeltas,
-                                                          tol=tol)
+    # Note. This script does not currently allow using a separate b0_threshold
+    # for the b0s. Using the tolerance. To change this, we would have to
+    # change generate_btensor_input. Not doing any verification on the
+    # bvals. Typically, we would use check_b0_threshold(bvals.min(), args)
+    gtab, data, ubvals, ubdeltas = generate_btensor_input(
+        args.in_dwis, args.in_bvals, args.in_bvecs, args.in_bdeltas,
+        tol=args.tolerance, skip_b0_check=args.skip_b0_check)
 
     # Checking mask
     if args.mask is None:
@@ -208,7 +208,7 @@ def main():
     memsmt_response = multi_shell_fiber_response(sh_order,
                                                  ubvals,
                                                  wm_frf, gm_frf, csf_frf,
-                                                 tol=tol,
+                                                 tol=args.tolerance,
                                                  btens=ubshapes)
 
     reg_sphere = get_sphere('symmetric362')

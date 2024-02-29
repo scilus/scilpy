@@ -23,10 +23,10 @@ from scilpy.gradients.bvec_bval_tools import (check_b0_threshold,
                                               normalize_bvecs,
                                               is_normalized_bvecs)
 from scilpy.io.image import get_data_as_mask
-from scilpy.io.utils import (add_overwrite_arg,
-                             assert_inputs_exist, add_verbose_arg,
-                             assert_outputs_exist, add_force_b0_arg,
-                             add_sh_basis_args, add_processes_arg)
+from scilpy.io.utils import (add_b0_thresh_arg, add_overwrite_arg,
+                             add_processes_arg, add_sh_basis_args,
+                             add_skip_b0_check_arg, add_verbose_arg,
+                             assert_inputs_exist, assert_outputs_exist)
 from scilpy.reconst.fodf import fit_from_model
 from scilpy.reconst.sh import convert_sh_basis
 
@@ -52,9 +52,10 @@ def _build_arg_parser():
     p.add_argument(
         '--mask', metavar='',
         help='Path to a binary mask. Only the data inside the mask will be '
-             'used for computations and reconstruction.')
+             'used \nfor computations and reconstruction.')
 
-    add_force_b0_arg(p)
+    add_b0_thresh_arg(p)
+    add_skip_b0_check_arg(p, will_overwrite_with_min=True)
     add_sh_basis_args(p)
     add_processes_arg(p)
     add_verbose_arg(p)
@@ -89,8 +90,6 @@ def main():
     sh_order = args.sh_order
 
     # Checking data and sh_order
-    b0_thr = check_b0_threshold(
-        args.force_b0_threshold, bvals.min(), bvals.min())
     if data.shape[-1] < (sh_order + 1) * (sh_order + 2) / 2:
         logging.warning(
             'We recommend having at least {} unique DWI volumes, but you '
@@ -102,7 +101,12 @@ def main():
     if not is_normalized_bvecs(bvecs):
         logging.warning('Your b-vectors do not seem normalized...')
         bvecs = normalize_bvecs(bvecs)
-    gtab = gradient_table(bvals, bvecs, b0_threshold=b0_thr)
+
+    # gtab.b0s_mask is used in dipy's csdeconv class.
+    args.b0_threshold = check_b0_threshold(bvals.min(),
+                                           b0_thr=args.b0_threshold,
+                                           skip_b0_check=args.skip_b0_check)
+    gtab = gradient_table(bvals, bvecs, b0_threshold=args.b0_threshold)
 
     # Checking full_frf and separating it
     if not full_frf.shape[0] == 4:
@@ -115,10 +119,9 @@ def main():
     reg_sphere = get_sphere('symmetric362')
 
     # Computing CSD
-    csd_model = ConstrainedSphericalDeconvModel(
-        gtab, (frf, mean_b0_val),
-        reg_sphere=reg_sphere,
-        sh_order=sh_order)
+    csd_model = ConstrainedSphericalDeconvModel(gtab, (frf, mean_b0_val),
+                                                reg_sphere=reg_sphere,
+                                                sh_order=sh_order)
 
     # Computing CSD fit
     csd_fit = fit_from_model(csd_model, data,

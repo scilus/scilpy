@@ -20,8 +20,9 @@ import nibabel as nib
 import numpy as np
 
 from scilpy.dwi.utils import extract_b0
-from scilpy.io.utils import (assert_inputs_exist, add_force_b0_arg,
-                             add_verbose_arg, add_overwrite_arg)
+from scilpy.io.utils import (add_b0_thresh_arg, add_overwrite_arg,
+                             add_skip_b0_check_arg, add_verbose_arg,
+                             assert_inputs_exist)
 from scilpy.gradients.bvec_bval_tools import (check_b0_threshold,
                                               B0ExtractionStrategy)
 from scilpy.utils.filenames import split_name_with_nii
@@ -40,10 +41,6 @@ def _build_arg_parser():
                    help='b-values filename, in FSL format (.bvec).')
     p.add_argument('out_b0',
                    help='Output b0 file(s).')
-    p.add_argument('--b0_thr', type=float, default=0.0,
-                   help='All b-values with values less than or equal '
-                        'to b0_thr are considered as b0s i.e. without '
-                        'diffusion weighting. [%(default)s]')
 
     group_ = p.add_argument_group("Options in the case of multiple b0s.")
     group = group_.add_mutually_exclusive_group()
@@ -64,11 +61,12 @@ def _build_arg_parser():
 
     p.add_argument('--single-image', action='store_true',
                    help='If output b0 volume has multiple time points, only '
-                        'outputs a single image instead of a numbered series '
-                        'of images.')
+                        'outputs a single \nimage instead of a numbered '
+                        'series of images.')
 
+    add_b0_thresh_arg(p)
+    add_skip_b0_check_arg(p, will_overwrite_with_min=True)
     add_verbose_arg(p)
-    add_force_b0_arg(p)
     add_overwrite_arg(p)
 
     return p
@@ -97,10 +95,10 @@ def main():
 
     bvals, bvecs = read_bvals_bvecs(args.in_bval, args.in_bvec)
 
-    b0_threshold = check_b0_threshold(
-        args.force_b0_threshold, bvals.min(), args.b0_thr)
-
-    gtab = gradient_table(bvals, bvecs, b0_threshold=b0_threshold)
+    args.b0_threshold = check_b0_threshold(bvals.min(),
+                                           b0_thr=args.b0_threshold,
+                                           skip_b0_check=args.skip_b0_check)
+    gtab = gradient_table(bvals, bvecs, b0_threshold=args.b0_threshold)
     b0_idx = np.where(gtab.b0s_mask)[0]
 
     logger.info('Number of b0 images in the data: {}'.format(len(b0_idx)))
