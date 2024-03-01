@@ -35,6 +35,16 @@ def test_execution_processing_dti_peaks(script_runner):
     assert ret.success
 
 
-def test_execution_processing_fodf_peaks():
-    # ToDo
-    pass
+def test_execution_processing_fodf_peaks(script_runner):
+    os.chdir(os.path.expanduser(tmp_dir.name))
+    in_bvec = os.path.join(get_home(), 'processing',
+                           'dwi.bvec')
+    in_peaks = os.path.join(get_home(), 'processing',
+                           'peaks.nii.gz')
+    in_fa = os.path.join(get_home(), 'processing',
+                           'fa.nii.gz')
+
+    # test the actual script
+    ret = script_runner.run('scil_gradients_validate_correct.py', in_bvec,
+                            in_peaks, in_fa, 'bvec_corr_fodf', '-v')
+    assert ret.success
