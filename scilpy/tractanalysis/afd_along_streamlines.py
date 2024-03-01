@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 
 from dipy.data import get_sphere
+from dipy.reconst.shm import sh_to_sf_matrix, sph_harm_ind_list
 import numpy as np
 from scipy.special import lpn
 
-from scilpy.reconst.utils import find_order_from_nb_coeff, get_b_matrix
+from scilpy.reconst.utils import find_order_from_nb_coeff
 from scilpy.tractanalysis.grid_intersections import grid_intersections
 
 
@@ -83,8 +84,8 @@ def afd_and_rd_sums_along_streamlines(sft, fodf, fodf_basis,
     fodf_data = fodf.get_fdata(dtype=np.float32)
     order = find_order_from_nb_coeff(fodf_data)
     sphere = get_sphere('repulsion724')
-    b_matrix, _, n = get_b_matrix(order, sphere, fodf_basis, return_all=True,
-                                  is_legacy=is_legacy)
+    b_matrix, _ = sh_to_sf_matrix(sphere, order, fodf_basis, legacy=is_legacy)
+    _, n = sph_harm_ind_list(order)
     legendre0_at_n = lpn(order, 0)[0][n]
     sphere_norm = np.linalg.norm(sphere.vertices)
 
@@ -123,7 +124,7 @@ def afd_and_rd_sums_along_streamlines(sft, fodf, fodf_basis,
                                                               closest_vertex_indices,
                                                               normalization_weights):
             vox_idx = tuple(vox_idx)
-            b_at_idx = b_matrix[closest_vertex_index]
+            b_at_idx = b_matrix.T[closest_vertex_index]
             fodf_at_index = fodf_data[vox_idx]
 
             afd_val = np.dot(b_at_idx, fodf_at_index)

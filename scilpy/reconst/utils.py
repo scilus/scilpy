@@ -31,34 +31,6 @@ def get_sh_order_and_fullness(ncoeffs):
     raise ValueError('Invalid number of coefficients for SH basis.')
 
 
-def _honor_authorsnames_sh_basis(sh_basis_type):
-    sh_basis = sh_basis_type
-    if sh_basis_type == 'fibernav':
-        sh_basis = 'descoteaux07'
-        warnings.warn("'fibernav' sph basis name is deprecated and will be "
-                      "discontinued in favor of 'descoteaux07'.",
-                      DeprecationWarning)
-    elif sh_basis_type == 'mrtrix':
-        sh_basis = 'tournier07'
-        warnings.warn("'mrtrix' sph basis name is deprecated and will be "
-                      "discontinued in favor of 'tournier07'.",
-                      DeprecationWarning)
-    return sh_basis
-
-
-def get_b_matrix(order, sphere, sh_basis_type, return_all=False,
-                 is_legacy=True):
-    sh_basis = _honor_authorsnames_sh_basis(sh_basis_type)
-    sph_harm_basis = sph_harm_lookup.get(sh_basis)
-    if sph_harm_basis is None:
-        raise ValueError("Invalid basis name.")
-    b_matrix, m, n = sph_harm_basis(order, sphere.theta, sphere.phi,
-                                    legacy=is_legacy)
-    if return_all:
-        return b_matrix, m, n
-    return b_matrix
-
-
 def get_maximas(data, sphere, b_matrix, threshold, absolute_threshold,
                 min_separation_angle=25):
     spherical_func = np.dot(data, b_matrix.T)
