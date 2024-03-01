@@ -36,8 +36,7 @@ def pull_test_case_package(package_name):
             raise ValueError(f"Unknown test package: {package_name}")
 
         pull_package_from_dvc_repository(
-            "scilpy_tests", f"{package_name}",
-            f"{SCILPY_HOME}/test_data/{package_name}",
+            "scilpy_tests", f"{package_name}", f"{SCILPY_HOME}/test_data",
             test_descriptors[package_name]["revision"])
 
         return f"{SCILPY_HOME}/test_data/{package_name}"
