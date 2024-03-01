@@ -19,7 +19,6 @@ from PIL import Image
 from scipy.io import loadmat
 import six
 
-from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.gradients.bvec_bval_tools import DEFAULT_B0_THRESHOLD
 from scilpy.utils.filenames import split_name_with_nii
 
@@ -216,11 +215,55 @@ def add_overwrite_arg(parser):
         help='Force overwriting of the output files.')
 
 
-def add_force_b0_arg(parser):
-    parser.add_argument('--force_b0_threshold', action='store_true',
-                        help='If set, the script will continue even if the '
-                             'minimum bvalue is suspiciously high ( > {})'
-                        .format(DEFAULT_B0_THRESHOLD))
+def add_tolerance_arg(parser):
+    parser.add_argument(
+        '--tolerance', type=int, default=20, metavar='tol',
+        help='The tolerated gap between the b-values to extract and the '
+             'current b-value.\n'
+             '[Default: %(default)s]\n'
+             '* Note. We would expect to find at least one b-value in the \n'
+             '  range [0, tolerance]. To skip this check, use '
+             '--skip_b0_check.')
+
+
+def add_b0_thresh_arg(parser):
+    parser.add_argument(
+        '--b0_threshold', type=float, default=DEFAULT_B0_THRESHOLD,
+        metavar='thr',
+        help='Threshold under which b-values are considered to be b0s.\n'
+             '[Default: %(default)s] \n'
+             '* Note. We would expect to find at least one b-value in the \n'
+             '  range [0, b0_threshold]. To skip this check, use '
+             '--skip_b0_check.')
+
+
+def add_skip_b0_check_arg(parser, will_overwrite_with_min,
+                          b0_tol_name='--b0_threshold'):
+    """
+    Parameters
+    ----------
+    parser: argparse.ArgumentParser object
+        Parser.
+    will_overwrite_with_min: bool
+        If true, the help message will explain that b0_threshold could be
+        overwritten.
+    b0_tol_name: str
+        Name of the argparse parameter acting as b0_threshold. Should probably
+        be either '--b0_threshold' or '--tolerance'.
+    """
+    msg = ('By default, we supervise that at least one b0 exists in your '
+           'data\n'
+           '(i.e. b-values below the default {}). Use this option to \n'
+           'allow continuing even if the minimum b-value is suspiciously '
+           'high.\n'.format(b0_tol_name))
+    if will_overwrite_with_min:
+        msg += ('If no b-value is found below the threshold, the script will '
+                'continue \nwith your minimal b-value as new {}.\n'
+                .format(b0_tol_name))
+    msg += 'Use with care, and only if you understand your data.'
+
+    parser.add_argument(
+        '--skip_b0_check', action='store_true', help=msg)
 
 
 def add_verbose_arg(parser):
@@ -644,46 +687,6 @@ def assert_roi_radii_format(parser):
         parser.error('Wrong size for --roi_radii, can only be a scalar' +
                      'or an array of size (3,)')
     return roi_radii
-
-
-def verify_compatibility_with_reference_sft(ref_sft, files_to_verify,
-                                            parser, args):
-    """
-    Verifies the compatibility of a reference sft with a list of files.
-
-    Params
-    ------
-    ref_sft: StatefulTractogram
-        A tractogram to be used as reference.
-    files_to_verify: List[str]
-        List of files that should be compatible with the reference sft. Files
-        can be either other tractograms or nifti files (ex: masks).
-    parser: argument parser
-        Will raise an error if a file is not compatible.
-    args: Namespace
-        Should contain a args.reference if any file is a .tck, and possibly a
-        args.bbox_check (set to True by default).
-    """
-    save_ref = args.reference
-
-    for file in files_to_verify:
-        if file is not None:
-            _, ext = os.path.splitext(file)
-            if ext in ['.trk', '.tck', '.fib', '.vtk', '.dpy']:
-                # Cheating ref because it may send a lot of warning if loading
-                # many trk with ref (reference was maybe added only for some
-                # of these files)
-                if ext == '.trk':
-                    args.reference = None
-                else:
-                    args.reference = save_ref
-                mask = load_tractogram_with_reference(parser, args, file)
-            else:  # should be a nifti file.
-                mask = file
-            compatible = is_header_compatible(ref_sft, mask)
-            if not compatible:
-                parser.error("Reference tractogram incompatible with {}"
-                             .format(file))
 
 
 def is_header_compatible_multiple_files(parser, list_files,

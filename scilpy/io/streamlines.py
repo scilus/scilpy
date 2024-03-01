@@ -7,8 +7,11 @@ import tempfile
 
 from dipy.io.streamline import load_tractogram
 import nibabel as nib
+from dipy.io.utils import is_header_compatible
 from nibabel.streamlines.array_sequence import ArraySequence
 import numpy as np
+
+from scilpy.io.utils import load_matrix_in_any_format
 
 
 def check_tracts_same_format(parser, tractogram_1, tractogram_2):
@@ -113,6 +116,145 @@ def load_tractogram_with_reference(parser, args, filepath, arg_name=None):
         parser.error('{} is an unsupported file format'.format(filepath))
 
     return sft
+
+
+def verify_compatibility_with_reference_sft(ref_sft, files_to_verify,
+                                            parser, args):
+    """
+    Verifies the compatibility of a reference sft with a list of files.
+
+    Params
+    ------
+    ref_sft: StatefulTractogram
+        A tractogram to be used as reference.
+    files_to_verify: List[str]
+        List of files that should be compatible with the reference sft. Files
+        can be either other tractograms or nifti files (ex: masks).
+    parser: argument parser
+        Will raise an error if a file is not compatible.
+    args: Namespace
+        Should contain a args.reference if any file is a .tck, and possibly a
+        args.bbox_check (set to True by default).
+    """
+    save_ref = args.reference
+
+    for file in files_to_verify:
+        if file is not None:
+            _, ext = os.path.splitext(file)
+            if ext in ['.trk', '.tck', '.fib', '.vtk', '.dpy']:
+                # Cheating ref because it may send a lot of warning if loading
+                # many trk with ref (reference was maybe added only for some
+                # of these files)
+                if ext == '.trk':
+                    args.reference = None
+                else:
+                    args.reference = save_ref
+                mask = load_tractogram_with_reference(parser, args, file)
+            else:  # should be a nifti file.
+                mask = file
+            compatible = is_header_compatible(ref_sft, mask)
+            if not compatible:
+                parser.error("Reference tractogram incompatible with {}"
+                             .format(file))
+
+
+def load_dps_files_as_dps(parser, dps_files, sft, keys=None, overwrite=False):
+    """
+    Load dps information. They must be scalar values.
+
+    Parameters
+    ----------
+    parser: parser
+    dps_files: list[str]
+        Either .npy or .txt files.
+    sft: StatefulTractogram
+    keys: list[str]
+        If None, use the filenames as keys.
+    overwrite: bool
+        If True, allow overwriting an existing dps key.
+
+    Returns
+    -------
+    sft: StatefulTractogram
+        The modified SFT. (Note that it is modified in-place even if the
+        returned variable is not used!)
+    new_keys: list[str]
+        Added keys.
+    """
+    if keys is not None and len(keys) != len(dps_files):
+        parser.error("You must provide one key name per dps file.")
+
+    new_keys = []
+    for i, file in enumerate(dps_files):
+        if keys is None:
+            name = os.path.basename(file)
+            key, ext = os.path.splitext(name)
+        else:
+            key = keys[i]
+
+        if key in sft.data_per_streamline and not overwrite:
+            parser.error("Key {} already exists in your tractogram's dps. "
+                         "You must allow overwriting keys."
+                         .format(key))
+
+        data = np.squeeze(load_matrix_in_any_format(file))
+        if len(data) != len(sft):
+            parser.error('Wrong dps size in file {}. Expected one value per '
+                         'streamline ({}) but got {} values!'
+                         .format(file, len(sft), len(data)))
+
+        new_keys.append(key)
+        sft.data_per_streamline[key] = data
+    return sft, new_keys
+
+
+def load_dpp_files_as_dpp(parser, dpp_files, sft, keys=None, overwrite=False):
+    """
+    Load dpp information. They must be scalar values.
+
+    Parameters
+    ----------
+    parser: parser
+    dpp_files: list[str]
+        Either .npy or .txt files.
+    sft: StatefulTractogram
+    keys: list[str]
+        If None, use the filenames as keys.
+    overwrite: bool
+        If True, allow overwriting an existing dpp key.
+
+    Returns
+    -------
+    sft: StatefulTractogram
+        The modified SFT. (Note that it is modified in-place even if the
+        returned variable is not used!)
+    new_keys: list[str]
+        Added keys.
+    """
+    if keys is not None and len(keys) != len(dpp_files):
+        parser.error("You must provide one key name per dps file.")
+
+    new_keys = []
+    for i, file in enumerate(dpp_files):
+        if keys is None:
+            name = os.path.basename(file)
+            key, ext = os.path.splitext(name)
+        else:
+            key = keys[i]
+
+        if key in sft.data_per_streamline and not overwrite:
+            parser.error("Key {} already exists in your tractogram's dpp. "
+                         "You must allow overwriting keys."
+                         .format(key))
+
+        data = np.squeeze(load_matrix_in_any_format(file))
+        if len(data) != len(sft.streamlines._data):
+            parser.error('Wrong dpp size in file {}. Expected one value per '
+                         'point in your tractogram ({}) but got {}!'
+                         .format(file, len(sft.streamlines._data), len(data)))
+        new_keys.append(key)
+        sft.data_per_point[key] = data
+    return sft, new_keys
 
 
 def streamlines_to_memmap(input_streamlines,

@@ -23,13 +23,12 @@ from dipy.core.sphere import Sphere
 from dipy.data import SPHERE_FILES, get_sphere
 from dipy.io import read_bvals_bvecs
 
-from scilpy.io.utils import (add_force_b0_arg, add_overwrite_arg,
-                             add_processes_arg, add_sh_basis_args,
-                             assert_inputs_exist, add_verbose_arg,
-                             assert_outputs_exist, parse_sh_basis_arg,
-                             validate_nbr_processes)
+from scilpy.gradients.bvec_bval_tools import DEFAULT_B0_THRESHOLD
+from scilpy.io.utils import (add_overwrite_arg, add_processes_arg,
+                             add_sh_basis_args, add_verbose_arg,
+                             assert_inputs_exist, assert_outputs_exist,
+                             parse_sh_basis_arg, validate_nbr_processes)
 from scilpy.reconst.sh import convert_sh_to_sf
-from scilpy.gradients.bvec_bval_tools import (check_b0_threshold)
 
 
 def _build_arg_parser():
@@ -48,7 +47,8 @@ def _build_arg_parser():
                             help='Sphere used for the SH to SF projection. ')
     directions.add_argument('--in_bvec',
                             help="Directions used for the SH to SF "
-                            "projection.")
+                            "projection. \nIf given, --in_bval must also be "
+                            "provided.")
 
     p.add_argument('--dtype', default="float32",
                    choices=["float32", "float64"],
@@ -57,28 +57,48 @@ def _build_arg_parser():
 
     # Optional args for a DWI-like volume
     p.add_argument('--in_bval',
-                   help='b-value file, in FSL format, '
-                        'used to assign a b-value to the '
-                        'output SF and generate a `.bval` file.')
+                   help='b-value file, in FSL format, used to assign a '
+                        'b-value to the \noutput SF and generate a `.bval` '
+                        'file.\n'
+                        '- If used, --out_bval is required.\n'
+                        '- The output bval will contain one b-value per point '
+                        'in the SF \n  output (i.e. one per point on the '
+                        '--sphere or one per --in_bvec.)\n'
+                        '- The values of the output bval will all be set to '
+                        'the same b-value:\n  the average of your in_bval. '
+                        '(Any b0 found in this file, i.e \n  b-values under '
+                        '--b0_threshold, will be removed beforehand.)\n'
+                        '- To add b0s to both the SF volume and the '
+                        '--out_bval file, use --in_b0.')
     p.add_argument('--in_b0',
-                   help='b0 volume to concatenate to the '
-                        'final SF volume.')
+                   help='b0 volume to concatenate to the final SF volume.')
     p.add_argument('--out_bval',
                    help="Optional output bval file.")
     p.add_argument('--out_bvec',
                    help="Optional output bvec file.")
 
     p.add_argument('--b0_scaling', action="store_true",
-                   help="Scale resulting SF by the b0 image.")
+                   help="Scale resulting SF by the b0 image (--in_b0 must"
+                        "be given).")
 
     add_sh_basis_args(p)
     p.add_argument('--full_basis', action="store_true",
                    help="If true, use a full basis for the input SH "
                         "coefficients.")
 
+    # Could use add_b0_thresh_arg(p), but adding manually to add more
+    # explanation in the text.
+    p.add_argument(
+        '--b0_threshold', type=float, default=DEFAULT_B0_THRESHOLD,
+        metavar='thr',
+        help='Threshold under which b-values are considered to be b0s.\n'
+             'Default if not set is {}.\n'
+             'This value is used with option --in_bval only: any b0 found in '
+             'the in_bval will be removed.'
+             .format(DEFAULT_B0_THRESHOLD))
+
     add_processes_arg(p)
     add_verbose_arg(p)
-    add_force_b0_arg(p)
     add_overwrite_arg(p)
 
     return p
@@ -94,21 +114,35 @@ def main():
     assert_outputs_exist(parser, args, args.out_sf,
                          optional=[args.out_bvec, args.out_bval])
 
+    if args.in_bval:
+        if args.b0_threshold > DEFAULT_B0_THRESHOLD:
+            logging.warning(
+                'Your defined b0 threshold is {}. This is suspicious. '
+                'Typical b0_thresholds are no higher than {}.'
+                .format(args.b0_threshold, DEFAULT_B0_THRESHOLD))
+
     if (args.in_bval and not args.out_bval) or (
             args.out_bval and not args.in_bval):
         parser.error("--out_bval is required if --in_bval is provided, "
                      "and vice-versa.")
-
-    if args.in_bvec and not args.in_bval:
-        parser.error(
-            "--in_bval is required when using --in_bvec, in order to remove "
-            "bvecs corresponding to b0 images.")
 
     if args.b0_scaling and not args.in_b0:
         parser.error("--in_b0 is required when using --b0_scaling.")
 
     nbr_processes = validate_nbr_processes(parser, args)
     sh_basis, is_legacy = parse_sh_basis_arg(args)
+
+    # Load bvecs / bvals, verify options.
+    bvals = None
+    bvecs = None
+    if args.in_bvec:
+        if not args.in_bval:
+            parser.error(
+                "--in_bval is required when using --in_bvec, in order to "
+                "remove bvecs corresponding to b0 images.")
+        bvals, bvecs = read_bvals_bvecs(args.in_bval, args.in_bvec)
+    elif args.in_bval:
+        bvals, _ = read_bvals_bvecs(args.in_bval, None)
 
     # Load SH
     vol_sh = nib.load(args.in_sh)
@@ -118,8 +152,7 @@ def main():
     if args.sphere:
         sphere = get_sphere(args.sphere)
     elif args.in_bvec:
-        bvals, bvecs = read_bvals_bvecs(args.in_bval, args.in_bvec)
-        gtab = gradient_table(bvals, bvecs, b0_threshold=bvals.min())
+        gtab = gradient_table(bvals, bvecs, b0_threshold=args.b0_threshold)
         # Remove bvecs corresponding to b0 images
         bvecs = bvecs[np.logical_not(gtab.b0s_mask)]
         sphere = Sphere(xyz=bvecs)
@@ -135,13 +168,8 @@ def main():
     # Assign bval to SF if --in_bval was provided
     new_bvals = []
     if args.in_bval:
-        # Load bvals
-        bvals, _ = read_bvals_bvecs(args.in_bval, None)
-
-        # Compute average bval
-        b0_thr = check_b0_threshold(
-            args.force_b0_threshold, bvals.min(), bvals.min())
-        b0s_mask = bvals <= b0_thr
+        # Compute average bval (except b0s), and create n out_bvals.
+        b0s_mask = bvals <= args.b0_threshold
         avg_bval = np.mean(bvals[np.logical_not(b0s_mask)])
 
         new_bvals = ([avg_bval] * len(sphere.theta))
@@ -154,7 +182,8 @@ def main():
         if data_b0.ndim == 3:
             data_b0 = data_b0[..., np.newaxis]
 
-        new_bvals = ([0] * data_b0.shape[-1]) + new_bvals
+        if args.in_bval:
+            new_bvals = ([0] * data_b0.shape[-1]) + new_bvals
 
         # Append zeros to bvecs
         new_bvecs = np.concatenate(
