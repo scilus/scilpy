@@ -26,7 +26,8 @@ from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_b0_thresh_arg, add_overwrite_arg,
                              add_processes_arg, add_sh_basis_args,
                              add_skip_b0_check_arg, add_verbose_arg,
-                             assert_inputs_exist, assert_outputs_exist)
+                             assert_inputs_exist, assert_outputs_exist,
+                             parse_sh_basis_arg)
 from scilpy.reconst.fodf import fit_from_model
 from scilpy.reconst.sh import convert_sh_basis
 
@@ -88,6 +89,7 @@ def main():
             raise ValueError("Mask is not the same shape as data.")
 
     sh_order = args.sh_order
+    sh_basis, is_legacy = parse_sh_basis_arg(args)
 
     # Checking data and sh_order
     if data.shape[-1] < (sh_order + 1) * (sh_order + 2) / 2:
@@ -129,9 +131,12 @@ def main():
 
     # Saving results
     shm_coeff = csd_fit.shm_coeff
-    if args.sh_basis == 'tournier07':
-        shm_coeff = convert_sh_basis(shm_coeff, reg_sphere, mask=mask,
-                                     nbr_processes=args.nbr_processes)
+    shm_coeff = convert_sh_basis(shm_coeff, reg_sphere, mask=mask,
+                                 input_basis='descoteaux07',
+                                 output_basis=sh_basis,
+                                 is_input_legacy=True,
+                                 is_output_legacy=is_legacy,
+                                 nbr_processes=args.nbr_processes)
     nib.save(nib.Nifti1Image(shm_coeff.astype(np.float32),
                              vol.affine), args.out_fODF)
 

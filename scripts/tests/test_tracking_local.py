@@ -167,5 +167,5 @@ def test_execution_tracking_fodf_prob_pmf_mapping(script_runner):
                             in_mask, in_mask, 'local_prob3.trk', '--nt', '100',
                             '--compress', '0.1', '--sh_basis', 'descoteaux07',
                             '--min_length', '20', '--max_length', '200',
-                            '--sh_to_pmf')
+                            '--sh_to_pmf', '-v')
     assert ret.success

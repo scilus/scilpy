@@ -44,7 +44,8 @@ from scilpy.io.utils import (add_processes_arg,
                              add_verbose_arg,
                              assert_inputs_exist,
                              assert_outputs_exist,
-                             add_overwrite_arg)
+                             add_overwrite_arg,
+                             parse_sh_basis_arg)
 from scilpy.io.image import get_data_as_mask
 
 
@@ -148,6 +149,7 @@ def main():
 
     sphere = get_sphere(args.sphere)
 
+    sh_basis, is_legacy = parse_sh_basis_arg(args)
     sh_order, full_basis = get_sh_order_and_fullness(sh.shape[-1])
     if not full_basis and (args.asi_map or args.odd_power_map):
         parser.error('Invalid SH image. A full SH basis is expected.')
@@ -178,7 +180,8 @@ def main():
                           # because v and -v are unique, we want twice
                           # the usual default value (5) of npeaks
                           npeaks=10,
-                          sh_basis_type=args.sh_basis,
+                          sh_basis_type=sh_basis,
+                          is_legacy=is_legacy,
                           nbr_processes=args.nbr_processes,
                           full_basis=full_basis,
                           is_symmetric=False)

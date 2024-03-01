@@ -32,12 +32,12 @@ from dipy.reconst.shm import QballModel, CsaOdfModel, anisotropic_power
 from scilpy.gradients.bvec_bval_tools import (check_b0_threshold,
                                               is_normalized_bvecs,
                                               normalize_bvecs)
+from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_b0_thresh_arg, add_overwrite_arg,
                              add_processes_arg, add_sh_basis_args,
                              add_skip_b0_check_arg, add_verbose_arg,
                              assert_inputs_exist, assert_outputs_exist,
-                             validate_nbr_processes)
-from scilpy.io.image import get_data_as_mask
+                             parse_sh_basis_arg, validate_nbr_processes)
 
 
 DEFAULT_SMOOTH = 0.006
@@ -140,6 +140,7 @@ def main():
     gtab = gradient_table(bvals, bvecs, b0_threshold=args.b0_threshold)
 
     sphere = get_sphere('symmetric724')
+    sh_basis, _ = parse_sh_basis_arg(args)
 
     mask = None
     if args.mask:
@@ -156,6 +157,7 @@ def main():
         model = CsaOdfModel(gtab, sh_order=args.sh_order,
                             smooth=DEFAULT_SMOOTH)
 
+    # ToDo: Once Dipy adds the legacy option to peaks_from_model, put is_legacy
     odfpeaks = peaks_from_model(model=model,
                                 data=data,
                                 sphere=sphere,
@@ -166,7 +168,7 @@ def main():
                                 normalize_peaks=True,
                                 return_sh=True,
                                 sh_order=int(args.sh_order),
-                                sh_basis_type=args.sh_basis,
+                                sh_basis_type=sh_basis,
                                 npeaks=5,
                                 parallel=parallel,
                                 num_processes=nbr_processes)
