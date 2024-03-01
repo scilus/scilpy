@@ -243,6 +243,8 @@ def add_bbox_arg(parser):
 def add_sh_basis_args(parser, mandatory=False, input_output=False):
     """
     Add spherical harmonics (SH) bases argument.
+    For more information about the bases, see
+    https://docs.dipy.org/stable/theory/sh_basis.html.
 
     Parameters
     ----------
