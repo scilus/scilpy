@@ -215,11 +215,55 @@ def add_overwrite_arg(parser):
         help='Force overwriting of the output files.')
 
 
-def add_force_b0_arg(parser):
-    parser.add_argument('--force_b0_threshold', action='store_true',
-                        help='If set, the script will continue even if the '
-                             'minimum bvalue is suspiciously high ( > {})'
-                        .format(DEFAULT_B0_THRESHOLD))
+def add_tolerance_arg(parser):
+    parser.add_argument(
+        '--tolerance', type=int, default=20, metavar='tol',
+        help='The tolerated gap between the b-values to extract and the '
+             'current b-value.\n'
+             '[Default: %(default)s]\n'
+             '* Note. We would expect to find at least one b-value in the \n'
+             '  range [0, tolerance]. To skip this check, use '
+             '--skip_b0_check.')
+
+
+def add_b0_thresh_arg(parser):
+    parser.add_argument(
+        '--b0_threshold', type=float, default=DEFAULT_B0_THRESHOLD,
+        metavar='thr',
+        help='Threshold under which b-values are considered to be b0s.\n'
+             '[Default: %(default)s] \n'
+             '* Note. We would expect to find at least one b-value in the \n'
+             '  range [0, b0_threshold]. To skip this check, use '
+             '--skip_b0_check.')
+
+
+def add_skip_b0_check_arg(parser, will_overwrite_with_min,
+                          b0_tol_name='--b0_threshold'):
+    """
+    Parameters
+    ----------
+    parser: argparse.ArgumentParser object
+        Parser.
+    will_overwrite_with_min: bool
+        If true, the help message will explain that b0_threshold could be
+        overwritten.
+    b0_tol_name: str
+        Name of the argparse parameter acting as b0_threshold. Should probably
+        be either '--b0_threshold' or '--tolerance'.
+    """
+    msg = ('By default, we supervise that at least one b0 exists in your '
+           'data\n'
+           '(i.e. b-values below the default {}). Use this option to \n'
+           'allow continuing even if the minimum b-value is suspiciously '
+           'high.\n'.format(b0_tol_name))
+    if will_overwrite_with_min:
+        msg += ('If no b-value is found below the threshold, the script will '
+                'continue \nwith your minimal b-value as new {}.\n'
+                .format(b0_tol_name))
+    msg += 'Use with care, and only if you understand your data.'
+
+    parser.add_argument(
+        '--skip_b0_check', action='store_true', help=msg)
 
 
 def add_verbose_arg(parser):
@@ -239,8 +283,10 @@ def add_bbox_arg(parser):
                              'streamlines).')
 
 
-def add_sh_basis_args(parser, mandatory=False):
-    """Add spherical harmonics (SH) bases argument.
+def add_sh_basis_args(parser, mandatory=False, input_output=False):
+    """
+    Add spherical harmonics (SH) bases argument. For more information about
+    the bases, see https://docs.dipy.org/stable/theory/sh_basis.html.
 
     Parameters
     ----------
@@ -248,25 +294,82 @@ def add_sh_basis_args(parser, mandatory=False):
         Parser.
     mandatory: bool
         Whether this argument is mandatory.
+    input_output: bool
+        Whether this argument should expect both input and output bases or not.
+        If set, the sh_basis argument will expect first the input basis,
+        followed by the output basis.
     """
-    choices = ['descoteaux07', 'tournier07']
-    def_val = 'descoteaux07'
+    if input_output:
+        nargs = 2
+        def_val = ['descoteaux07_legacy', 'tournier07']
+        input_output_msg = '\nBoth the input and output bases are ' +\
+                           'required, in that order.'
+    else:
+        nargs = 1
+        def_val = ['descoteaux07_legacy']
+        input_output_msg = ''
+
+    choices = ['descoteaux07', 'tournier07', 'descoteaux07_legacy',
+               'tournier07_legacy']
     help_msg = 'Spherical harmonics basis used for the SH coefficients. ' +\
-               '\nMust be either \'descoteaux07\' or \'tournier07\'' +\
+               input_output_msg +\
+               '\nMust be either \'descoteaux07\', \'tournier07\', \n' +\
+               '\'descoteaux07_legacy\' or \'tournier07_legacy\'' +\
                ' [%(default)s]:\n' +\
-               '    \'descoteaux07\': SH basis from the Descoteaux et al.\n' +\
-               '                      MRM 2007 paper\n' +\
-               '    \'tournier07\'  : SH basis from the Tournier et al.\n' +\
-               '                      NeuroImage 2007 paper.'
+               '    \'descoteaux07\'       : SH basis from the Descoteaux ' +\
+               'et al.\n' +\
+               '                           MRM 2007 paper\n' +\
+               '    \'tournier07\'         : SH basis from the new ' +\
+               'Tournier et al.\n' +\
+               '                           NeuroImage 2019 paper, as in ' +\
+               'MRtrix 3.\n' +\
+               '    \'descoteaux07_legacy\': SH basis from the legacy Dipy ' +\
+               'implementation\n' +\
+               '                           of the ' +\
+               'Descoteaux et al. MRM 2007 paper\n' +\
+               '    \'tournier07_legacy\'  : SH basis from the legacy ' +\
+               'Tournier et al.\n' +\
+               '                           NeuroImage 2007 paper.'
 
     if mandatory:
         arg_name = 'sh_basis'
     else:
         arg_name = '--sh_basis'
 
-    parser.add_argument(arg_name,
+    parser.add_argument(arg_name, nargs=nargs,
                         choices=choices, default=def_val,
                         help=help_msg)
+
+
+def parse_sh_basis_arg(args):
+    """
+    Parser the input from args.sh_basis. If two SH bases are given,
+    both input/output sh_basis and is_legacy are returned.
+
+    Parameters
+    ----------
+    args : ArgumentParser.parse_args
+        ArgumentParser.parse_args from a script.
+
+    Returns
+    -------
+    sh_basis : string
+        Spherical harmonic basis name.
+    is_legacy : bool
+        Whether or not the SH basis is in its legacy form.
+    """
+    sh_basis_name = args.sh_basis[0]
+    sh_basis = 'descoteaux07' if 'descoteaux07' in sh_basis_name \
+        else 'tournier07'
+    is_legacy = 'legacy' in sh_basis_name
+    if len(args.sh_basis) == 2:
+        sh_basis_name = args.sh_basis[1]
+        out_sh_basis = 'descoteaux07' if 'descoteaux07' in sh_basis_name \
+            else 'tournier07'
+        is_out_legacy = 'legacy' in sh_basis_name
+        return sh_basis, is_legacy, out_sh_basis, is_out_legacy
+    else:
+        return sh_basis, is_legacy
 
 
 def add_nifti_screenshot_default_args(

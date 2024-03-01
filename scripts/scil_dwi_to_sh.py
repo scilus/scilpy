@@ -15,10 +15,12 @@ from dipy.io.gradients import read_bvals_bvecs
 import nibabel as nib
 import numpy as np
 
+from scilpy.gradients.bvec_bval_tools import check_b0_threshold
 from scilpy.io.image import get_data_as_mask
-from scilpy.io.utils import (add_force_b0_arg, add_overwrite_arg,
-                             add_sh_basis_args, assert_inputs_exist,
-                             add_verbose_arg, assert_outputs_exist)
+from scilpy.io.utils import (add_b0_thresh_arg, add_overwrite_arg,
+                             add_sh_basis_args, add_skip_b0_check_arg,
+                             add_verbose_arg, assert_inputs_exist,
+                             assert_outputs_exist, parse_sh_basis_arg)
 from scilpy.reconst.sh import compute_sh_coefficients
 
 
@@ -43,11 +45,12 @@ def _build_arg_parser():
     p.add_argument('--use_attenuation', action='store_true',
                    help='If set, will use signal attenuation before fitting '
                         'the SH (i.e. divide by the b0).')
-    add_force_b0_arg(p)
     p.add_argument('--mask',
                    help='Path to a binary mask.\nOnly data inside the mask '
                         'will be used for computations and reconstruction ')
-    
+
+    add_b0_thresh_arg(p)
+    add_skip_b0_check_arg(p, will_overwrite_with_min=True)
     add_verbose_arg(p)
     add_overwrite_arg(p)
 
@@ -66,16 +69,23 @@ def main():
     dwi = vol.get_fdata(dtype=np.float32)
 
     bvals, bvecs = read_bvals_bvecs(args.in_bval, args.in_bvec)
-    gtab = gradient_table(args.in_bval, args.in_bvec, b0_threshold=bvals.min())
+
+    # gtab.b0s_mask in used in compute_sh_coefficients to get the b0s.
+    args.b0_threshold = check_b0_threshold(bvals.min(),
+                                           b0_thr=args.b0_threshold,
+                                           skip_b0_check=args.skip_b0_check)
+    gtab = gradient_table(bvals, bvecs, b0_threshold=args.b0_threshold)
+
+    sh_basis, is_legacy = parse_sh_basis_arg(args)
 
     mask = None
     if args.mask:
         mask = get_data_as_mask(nib.load(args.mask), dtype=bool)
 
-    sh = compute_sh_coefficients(dwi, gtab, args.sh_order, args.sh_basis,
-                                 args.smooth,
+    sh = compute_sh_coefficients(dwi, gtab, args.b0_threshold,
+                                 args.sh_order, sh_basis, args.smooth,
                                  use_attenuation=args.use_attenuation,
-                                 mask=mask)
+                                 mask=mask, is_legacy=is_legacy)
 
     nib.save(nib.Nifti1Image(sh.astype(np.float32), vol.affine), args.out_sh)
 
