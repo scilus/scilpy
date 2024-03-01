@@ -57,7 +57,7 @@ def main():
             raise ValueError('FRF file {} did not contain 4 elements per '
                              'line. Invalid or deprecated FRF format.'
                              .format(frf_file))
-        
+
         if not frf.shape == frf_shape:
             raise ValueError('FRF file {} did not match the format of '
                              'previous files.'.format(frf_file))
