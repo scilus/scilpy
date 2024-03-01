@@ -14,8 +14,7 @@ from scilpy.tractograms.tractogram_operations import flip_sft, \
     concatenate_sft, perform_tractogram_operation_on_sft
 
 # Prepare SFT
-fetch_data(get_testing_files_dict(), keys=['surface_vtk_fib.zip',
-                                           'bst.zip'])
+fetch_data(get_testing_files_dict(), keys=['surface_vtk_fib.zip'])
 tmp_dir = tempfile.TemporaryDirectory()
 in_sft = os.path.join(get_home(), 'surface_vtk_fib', 'gyri_fanning.trk')
 
