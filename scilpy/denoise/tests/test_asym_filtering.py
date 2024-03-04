@@ -22,7 +22,7 @@ def test_angle_aware_bilateral_filtering():
 
     sh_order, full_basis = get_sh_order_and_fullness(in_sh.shape[-1])
     out = angle_aware_bilateral_filtering_cpu(in_sh, sh_order,
-                                              sh_basis, full_basis,
+                                              sh_basis, full_basis, True,
                                               sphere_str, sigma_spatial,
                                               sigma_angular, sigma_range)
 
@@ -40,7 +40,7 @@ def test_cosine_filtering():
     sharpness = 1.0
 
     sh_order, full_basis = get_sh_order_and_fullness(in_sh.shape[-1])
-    out = cosine_filtering(in_sh, sh_order, sh_basis, full_basis,
+    out = cosine_filtering(in_sh, sh_order, sh_basis, full_basis, True,
                            sharpness, sphere_str, sigma_spatial)
 
     assert np.allclose(out, fodf_3x3_order8_descoteaux07_filtered_cosine)

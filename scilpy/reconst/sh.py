@@ -10,18 +10,20 @@ from dipy.reconst.odf import gfa
 from dipy.reconst.shm import (sh_to_sf_matrix, order_from_ncoef, sf_to_sh,
                               sph_harm_ind_list)
 
-from scilpy.gradients.bvec_bval_tools import (check_b0_threshold,
-                                              identify_shells,
+from scilpy.gradients.bvec_bval_tools import (identify_shells,
                                               is_normalized_bvecs,
-                                              normalize_bvecs)
+                                              normalize_bvecs,
+                                              DEFAULT_B0_THRESHOLD)
 from scilpy.dwi.operations import compute_dwi_attenuation
 
 
-def compute_sh_coefficients(dwi, gradient_table, sh_order=4,
+def compute_sh_coefficients(dwi, gradient_table,
+                            b0_threshold=DEFAULT_B0_THRESHOLD, sh_order=4,
                             basis_type='descoteaux07', smooth=0.006,
-                            use_attenuation=False, force_b0_threshold=False,
-                            mask=None, sphere=None):
+                            use_attenuation=False, mask=None, sphere=None,
+                            is_legacy=True):
     """Fit a diffusion signal with spherical harmonics coefficients.
+    Data must come from a single shell acquisition.
 
     Parameters
     ----------
@@ -29,21 +31,24 @@ def compute_sh_coefficients(dwi, gradient_table, sh_order=4,
         Diffusion signal as weighted images (4D).
     gradient_table : GradientTable
         Dipy object that contains all bvals and bvecs.
+    b0_threshold: float
+        Threshold for the b0 values. Used to validate that the data contains
+        single shell signal.
     sh_order : int, optional
         SH order to fit, by default 4.
-    smooth : float, optional
-        Lambda-regularization coefficient in the SH fit, by default 0.006.
     basis_type: str
         Either 'tournier07' or 'descoteaux07'
+    smooth : float, optional
+        Lambda-regularization coefficient in the SH fit, by default 0.006.
     use_attenuation: bool, optional
         If true, we will use DWI attenuation. [False]
-    force_b0_threshold : bool, optional
-        If set, will continue even if the minimum bvalue is suspiciously high.
     mask: nib.Nifti1Image object, optional
         Binary mask. Only data inside the mask will be used for computations
         and reconstruction.
     sphere: Sphere
         Dipy object. If not provided, will use Sphere(xyz=bvecs).
+    is_legacy : bool, optional
+        Whether or not the SH basis is in its legacy form.
 
     Returns
     -------
@@ -61,8 +66,6 @@ def compute_sh_coefficients(dwi, gradient_table, sh_order=4,
     if not is_normalized_bvecs(bvecs):
         logging.warning("Your b-vectors do not seem normalized...")
         bvecs = normalize_bvecs(bvecs)
-
-    b0_threshold = check_b0_threshold(force_b0_threshold, bvals.min())
 
     # Ensure that this is on a single shell.
     shell_values, _ = identify_shells(bvals)
@@ -84,7 +87,8 @@ def compute_sh_coefficients(dwi, gradient_table, sh_order=4,
         sphere = Sphere(xyz=bvecs)
 
     # Fit SH
-    sh = sf_to_sh(weights, sphere, sh_order, basis_type, smooth=smooth)
+    sh = sf_to_sh(weights, sphere, sh_order, basis_type, smooth=smooth,
+                  legacy=is_legacy)
 
     # Apply mask
     if mask is not None:
@@ -201,8 +205,8 @@ def _peaks_from_sh_parallel(args):
 def peaks_from_sh(shm_coeff, sphere, mask=None, relative_peak_threshold=0.5,
                   absolute_threshold=0, min_separation_angle=25,
                   normalize_peaks=False, npeaks=5,
-                  sh_basis_type='descoteaux07', nbr_processes=None,
-                  full_basis=False, is_symmetric=True):
+                  sh_basis_type='descoteaux07', is_legacy=True,
+                  nbr_processes=None, full_basis=False, is_symmetric=True):
     """Computes peaks from given spherical harmonic coefficients
 
     Parameters
@@ -236,6 +240,11 @@ def peaks_from_sh(shm_coeff, sphere, mask=None, relative_peak_threshold=0.5,
         Type of spherical harmonic basis used for `shm_coeff`. Either
         `descoteaux07` or `tournier07`.
         Default: `descoteaux07`
+    is_legacy: bool, optional
+        If true, this means that the input SH used a legacy basis definition
+        for backward compatibility with previous ``tournier07`` and
+        ``descoteaux07`` implementations.
+        Default: True
     nbr_processes: int, optional
         The number of subprocesses to use.
         Default: multiprocessing.cpu_count()
@@ -252,7 +261,8 @@ def peaks_from_sh(shm_coeff, sphere, mask=None, relative_peak_threshold=0.5,
         peak_dirs, peak_values, peak_indices
     """
     sh_order = order_from_ncoef(shm_coeff.shape[-1], full_basis)
-    B, _ = sh_to_sf_matrix(sphere, sh_order, sh_basis_type, full_basis)
+    B, _ = sh_to_sf_matrix(sphere, sh_order, sh_basis_type, full_basis,
+                           legacy=is_legacy)
 
     data_shape = shm_coeff.shape
     if mask is None:
@@ -490,8 +500,9 @@ def _convert_sh_basis_parallel(args):
 
 
 def convert_sh_basis(shm_coeff, sphere, mask=None,
-                     input_basis='descoteaux07', nbr_processes=None,
-                     is_input_legacy=True, is_output_legacy=True):
+                     input_basis='descoteaux07', output_basis='tournier07',
+                     is_input_legacy=True, is_output_legacy=False,
+                     nbr_processes=None):
     """Converts spherical harmonic coefficients between two bases
 
     Parameters
@@ -507,9 +518,10 @@ def convert_sh_basis(shm_coeff, sphere, mask=None,
         Type of spherical harmonic basis used for `shm_coeff`. Either
         `descoteaux07` or `tournier07`.
         Default: `descoteaux07`
-    nbr_processes: int, optional
-        The number of subprocesses to use.
-        Default: multiprocessing.cpu_count()
+    output_basis : str, optional
+        Type of spherical harmonic basis wanted as output. Either
+        `descoteaux07` or `tournier07`.
+        Default: `tournier07`
     is_input_legacy: bool, optional
         If true, this means that the input SH used a legacy basis definition
         for backward compatibility with previous ``tournier07`` and
@@ -519,16 +531,20 @@ def convert_sh_basis(shm_coeff, sphere, mask=None,
         If true, this means that the output SH will use a legacy basis
         definition for backward compatibility with previous ``tournier07`` and
         ``descoteaux07`` implementations.
-        Default: True
+        Default: False
+    nbr_processes: int, optional
+        The number of subprocesses to use.
+        Default: multiprocessing.cpu_count()
 
     Returns
     -------
     shm_coeff_array : np.ndarray
         Spherical harmonic coefficients in the desired basis.
     """
-    output_basis = 'descoteaux07' \
-        if input_basis == 'tournier07' \
-        else 'tournier07'
+    if input_basis == output_basis and is_input_legacy == is_output_legacy:
+        logging.info('Input and output SH basis are equal, no SH basis '
+                     'convertion needed.')
+        return shm_coeff
 
     sh_order = order_from_ncoef(shm_coeff.shape[-1])
     B_in, _ = sh_to_sf_matrix(sphere, sh_order, input_basis,
@@ -587,6 +603,7 @@ def _convert_sh_to_sf_parallel(args):
 
 def convert_sh_to_sf(shm_coeff, sphere, mask=None, dtype="float32",
                      input_basis='descoteaux07', input_full_basis=False,
+                     is_input_legacy=True,
                      nbr_processes=multiprocessing.cpu_count()):
     """Converts spherical harmonic coefficients to an SF sphere
 
@@ -606,9 +623,11 @@ def convert_sh_to_sf(shm_coeff, sphere, mask=None, dtype="float32",
         Type of spherical harmonic basis used for `shm_coeff`. Either
         `descoteaux07` or `tournier07`.
         Default: `descoteaux07`
-    input_full_basis : bool
+    input_full_basis : bool, optional
         If True, use a full SH basis (even and odd orders) for the input SH
         coefficients.
+    is_input_legacy : bool, optional
+        Whether or not the input basis is in its legacy form.
     nbr_processes: int, optional
         The number of subprocesses to use.
         Default: multiprocessing.cpu_count()
@@ -624,7 +643,8 @@ def convert_sh_to_sf(shm_coeff, sphere, mask=None, dtype="float32",
     sh_order = order_from_ncoef(shm_coeff.shape[-1],
                                 full_basis=input_full_basis)
     B_in, _ = sh_to_sf_matrix(sphere, sh_order, basis_type=input_basis,
-                              full_basis=input_full_basis)
+                              full_basis=input_full_basis,
+                              legacy=is_input_legacy)
     B_in = B_in.astype(dtype)
 
     data_shape = shm_coeff.shape

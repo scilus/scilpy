@@ -2,9 +2,9 @@
 import numpy as np
 
 from scilpy.gradients.bvec_bval_tools import (
-    identify_shells, is_normalized_bvecs, flip_gradient_sampling,
-    normalize_bvecs, round_bvals_to_shell, str_to_axis_index,
-    swap_gradient_axis)
+    check_b0_threshold, identify_shells, is_normalized_bvecs,
+    flip_gradient_sampling, normalize_bvecs, round_bvals_to_shell,
+    str_to_axis_index, swap_gradient_axis)
 
 bvecs = np.asarray([[1.0, 1.0, 1.0],
                     [1.0, 0.0, 1.0],
@@ -23,8 +23,16 @@ def test_normalize_bvecs():
 
 
 def test_check_b0_threshold():
-    # toDo To be modified (see PR#867).
-    pass
+    assert check_b0_threshold(min_bval=0, b0_thr=0, skip_b0_check=False) == 0
+    assert check_b0_threshold(min_bval=0, b0_thr=20, skip_b0_check=False) == 20
+    assert check_b0_threshold(min_bval=20, b0_thr=0, skip_b0_check=True) == 20
+
+    error_raised = False
+    try:
+        _ = check_b0_threshold(min_bval=20, b0_thr=0, skip_b0_check=False)
+    except ValueError:
+        error_raised = True
+    assert error_raised
 
 
 def test_identify_shells():

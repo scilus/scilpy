@@ -129,7 +129,8 @@ def set_display_extent(slicer_actor, orientation, volume_shape, slice_index):
 def create_odf_slicer(sh_fodf, orientation, slice_index, mask, sphere,
                       nb_subdivide, sh_order, sh_basis, full_basis,
                       scale, radial_scale, norm, colormap, sh_variance=None,
-                      variance_k=1, variance_color=(255, 255, 255)):
+                      variance_k=1, variance_color=(255, 255, 255),
+                      is_legacy=True):
     """
     Create a ODF slicer actor displaying a fODF slice. The input volume is a
     3-dimensional grid containing the SH coefficients of the fODF for each
@@ -171,6 +172,8 @@ def create_odf_slicer(sh_fodf, orientation, slice_index, mask, sphere,
         Factor that multiplies sqrt(variance).
     variance_color : tuple, optional
         Color of the variance fODF data, in RGB.
+    is_legacy : bool, optional
+        Whether or not the SH basis is in its legacy form.
 
     Returns
     -------
@@ -183,15 +186,15 @@ def create_odf_slicer(sh_fodf, orientation, slice_index, mask, sphere,
 
     # SH coefficients to SF coefficients matrix
     B_mat = sh_to_sf_matrix(sphere, sh_order, sh_basis,
-                            full_basis, return_inv=False)
+                            full_basis, return_inv=False, legacy=is_legacy)
 
     var_actor = None
 
     if sh_variance is not None:
         fodf = sh_to_sf(sh_fodf, sphere, sh_order, sh_basis,
-                        full_basis=full_basis)
+                        full_basis=full_basis, legacy=is_legacy)
         fodf_var = sh_to_sf(sh_variance, sphere, sh_order, sh_basis,
-                            full_basis=full_basis)
+                            full_basis=full_basis, legacy=is_legacy)
         fodf_uncertainty = fodf + variance_k * np.sqrt(np.clip(fodf_var, 0,
                                                                None))
         # normalise fodf and variance
