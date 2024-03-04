@@ -49,9 +49,11 @@ from scilpy.image.utils import extract_affine
 from scilpy.io.btensor import (generate_btensor_input,
                                convert_bdelta_to_bshape)
 from scilpy.io.image import get_data_as_mask
-from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
-                             assert_outputs_exist, add_sh_basis_args,
-                             add_processes_arg, add_verbose_arg)
+from scilpy.io.utils import (add_overwrite_arg, add_processes_arg,
+                             assert_inputs_exist, assert_outputs_exist,
+                             add_sh_basis_args, add_verbose_arg,
+                             add_skip_b0_check_arg, add_tolerance_arg,
+                             parse_sh_basis_arg)
 from scilpy.reconst.fodf import fit_from_model
 from scilpy.reconst.sh import convert_sh_basis
 
@@ -88,10 +90,9 @@ def _build_arg_parser():
         '--mask',
         help='Path to a binary mask. Only the data inside the '
              'mask will be used for computations and reconstruction.')
-    p.add_argument(
-        '--tolerance', type=int, default=20,
-        help='The tolerated gap between the b-values to '
-             'extract\nand the current b-value. [%(default)s]')
+    add_tolerance_arg(p)
+    add_skip_b0_check_arg(p, will_overwrite_with_min=False,
+                          b0_tol_name='--tolerance')
 
     add_sh_basis_args(p)
     add_processes_arg(p)
@@ -127,11 +128,7 @@ def _build_arg_parser():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
-
-    if args.verbose:
-        logging.basicConfig(level=logging.DEBUG)
-    else:
-        logging.basicConfig(level=logging.INFO)
+    logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     if not args.not_all:
         args.wm_out_fODF = args.wm_out_fODF or 'wm_fodf.nii.gz'
@@ -160,17 +157,17 @@ def main():
 
     affine = extract_affine(args.in_dwis)
 
-    tol = args.tolerance
-
     wm_frf = np.loadtxt(args.in_wm_frf)
     gm_frf = np.loadtxt(args.in_gm_frf)
     csf_frf = np.loadtxt(args.in_csf_frf)
 
-    gtab, data, ubvals, ubdeltas = generate_btensor_input(args.in_dwis,
-                                                          args.in_bvals,
-                                                          args.in_bvecs,
-                                                          args.in_bdeltas,
-                                                          tol=tol)
+    # Note. This script does not currently allow using a separate b0_threshold
+    # for the b0s. Using the tolerance. To change this, we would have to
+    # change generate_btensor_input. Not doing any verification on the
+    # bvals. Typically, we would use check_b0_threshold(bvals.min(), args)
+    gtab, data, ubvals, ubdeltas = generate_btensor_input(
+        args.in_dwis, args.in_bvals, args.in_bvecs, args.in_bdeltas,
+        tol=args.tolerance, skip_b0_check=args.skip_b0_check)
 
     # Checking mask
     if args.mask is None:
@@ -181,6 +178,7 @@ def main():
             raise ValueError("Mask is not the same shape as data.")
 
     sh_order = args.sh_order
+    sh_basis, is_legacy = parse_sh_basis_arg(args)
 
     # Checking data and sh_order
     if data.shape[-1] < (sh_order + 1) * (sh_order + 2) / 2:
@@ -212,7 +210,7 @@ def main():
     memsmt_response = multi_shell_fiber_response(sh_order,
                                                  ubvals,
                                                  wm_frf, gm_frf, csf_frf,
-                                                 tol=tol,
+                                                 tol=args.tolerance,
                                                  btens=ubshapes)
 
     reg_sphere = get_sphere('symmetric362')
@@ -254,27 +252,36 @@ def main():
     # Saving results
     if args.wm_out_fODF:
         wm_coeff = shm_coeff[..., 2:]
-        if args.sh_basis == 'tournier07':
-            wm_coeff = convert_sh_basis(wm_coeff, reg_sphere, mask=mask,
-                                        nbr_processes=args.nbr_processes)
+        wm_coeff = convert_sh_basis(wm_coeff, reg_sphere, mask=mask,
+                                    input_basis='descoteaux07',
+                                    output_basis=sh_basis,
+                                    is_input_legacy=True,
+                                    is_output_legacy=is_legacy,
+                                    nbr_processes=args.nbr_processes)
         nib.save(nib.Nifti1Image(wm_coeff.astype(np.float32),
                                  affine), args.wm_out_fODF)
 
     if args.gm_out_fODF:
         gm_coeff = shm_coeff[..., 1]
-        if args.sh_basis == 'tournier07':
-            gm_coeff = gm_coeff.reshape(gm_coeff.shape + (1,))
-            gm_coeff = convert_sh_basis(gm_coeff, reg_sphere, mask=mask,
-                                        nbr_processes=args.nbr_processes)
+        gm_coeff = gm_coeff.reshape(gm_coeff.shape + (1,))
+        gm_coeff = convert_sh_basis(gm_coeff, reg_sphere, mask=mask,
+                                    input_basis='descoteaux07',
+                                    output_basis=sh_basis,
+                                    is_input_legacy=True,
+                                    is_output_legacy=is_legacy,
+                                    nbr_processes=args.nbr_processes)
         nib.save(nib.Nifti1Image(gm_coeff.astype(np.float32),
                                  affine), args.gm_out_fODF)
 
     if args.csf_out_fODF:
         csf_coeff = shm_coeff[..., 0]
-        if args.sh_basis == 'tournier07':
-            csf_coeff = csf_coeff.reshape(csf_coeff.shape + (1,))
-            csf_coeff = convert_sh_basis(csf_coeff, reg_sphere, mask=mask,
-                                         nbr_processes=args.nbr_processes)
+        csf_coeff = csf_coeff.reshape(csf_coeff.shape + (1,))
+        csf_coeff = convert_sh_basis(csf_coeff, reg_sphere, mask=mask,
+                                     input_basis='descoteaux07',
+                                     output_basis=sh_basis,
+                                     is_input_legacy=True,
+                                     is_output_legacy=is_legacy,
+                                     nbr_processes=args.nbr_processes)
         nib.save(nib.Nifti1Image(csf_coeff.astype(np.float32),
                                  affine), args.csf_out_fODF)
 

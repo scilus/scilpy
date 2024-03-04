@@ -28,6 +28,7 @@ Formerly: scil_compute_asym_odf_metrics.py
 
 
 import argparse
+import logging
 import nibabel as nib
 import numpy as np
 
@@ -43,7 +44,8 @@ from scilpy.io.utils import (add_processes_arg,
                              add_verbose_arg,
                              assert_inputs_exist,
                              assert_outputs_exist,
-                             add_overwrite_arg)
+                             add_overwrite_arg,
+                             parse_sh_basis_arg)
 from scilpy.io.image import get_data_as_mask
 
 
@@ -117,7 +119,9 @@ def _build_arg_parser():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
+    logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
+    # Verifications
     if not args.not_all:
         args.asi_map = args.asi_map or 'asi_map.nii.gz'
         args.odd_power_map = args.odd_power_map or 'odd_power_map.nii.gz'
@@ -139,11 +143,13 @@ def main():
     assert_inputs_exist(parser, inputs)
     assert_outputs_exist(parser, args, arglist)
 
+    # Loading
     sh_img = nib.load(args.in_sh)
     sh = sh_img.get_fdata()
 
     sphere = get_sphere(args.sphere)
 
+    sh_basis, is_legacy = parse_sh_basis_arg(args)
     sh_order, full_basis = get_sh_order_and_fullness(sh.shape[-1])
     if not full_basis and (args.asi_map or args.odd_power_map):
         parser.error('Invalid SH image. A full SH basis is expected.')
@@ -153,6 +159,7 @@ def main():
     else:
         mask = np.sum(np.abs(sh), axis=-1) > 0
 
+    # Processing
     if args.asi_map:
         asi_map = compute_asymmetry_index(sh, sh_order, mask)
         nib.save(nib.Nifti1Image(asi_map, sh_img.affine),
@@ -173,7 +180,8 @@ def main():
                           # because v and -v are unique, we want twice
                           # the usual default value (5) of npeaks
                           npeaks=10,
-                          sh_basis_type=args.sh_basis,
+                          sh_basis_type=sh_basis,
+                          is_legacy=is_legacy,
                           nbr_processes=args.nbr_processes,
                           full_basis=full_basis,
                           is_symmetric=False)

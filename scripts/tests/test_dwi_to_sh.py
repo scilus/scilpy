@@ -27,3 +27,9 @@ def test_execution_processing(script_runner):
     ret = script_runner.run('scil_dwi_to_sh.py', in_dwi, in_bval,
                             in_bvec, 'sh_1000.nii.gz')
     assert ret.success
+
+    # Test wrong b0. Current minimal b-value is 5.
+    ret = script_runner.run('scil_dwi_to_sh.py', in_dwi, in_bval,
+                            in_bvec, 'sh_1000.nii.gz', '--b0_threshold', '1',
+                            '-f')
+    assert not ret.success

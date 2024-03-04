@@ -17,6 +17,7 @@ See also:
 
 import argparse
 import json
+import logging
 
 from dipy.tracking.streamlinespeed import length
 import numpy as np
@@ -24,6 +25,7 @@ import numpy as np
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_json_args,
                              add_reference_arg,
+                             add_verbose_arg,
                              assert_inputs_exist)
 
 
@@ -34,6 +36,7 @@ def _build_arg_parser():
     p.add_argument('in_tractogram',
                    help='Tractogram file.')
     add_reference_arg(p)
+    add_verbose_arg(p)
     add_json_args(p)
 
     return p
@@ -42,6 +45,7 @@ def _build_arg_parser():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
+    logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     assert_inputs_exist(parser, args.in_tractogram)
 

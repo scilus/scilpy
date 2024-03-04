@@ -34,6 +34,7 @@ Formerly: scil_compute_fodf_metrics.py
 """
 
 import argparse
+import logging
 import numpy as np
 import nibabel as nib
 
@@ -43,7 +44,8 @@ from dipy.direction.peaks import reshape_peaks_for_visualization
 from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_overwrite_arg, add_sh_basis_args,
                              add_processes_arg, add_verbose_arg,
-                             assert_inputs_exist, assert_outputs_exist)
+                             assert_inputs_exist, assert_outputs_exist,
+                             parse_sh_basis_arg)
 from scilpy.reconst.sh import peaks_from_sh, maps_from_sh
 
 
@@ -111,6 +113,7 @@ def _build_arg_parser():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
+    logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     if not args.not_all:
         args.afd_max = args.afd_max or 'afd_max.nii.gz'
@@ -144,6 +147,7 @@ def main():
             raise ValueError("Mask is not the same shape as data.")
 
     sphere = get_sphere(args.sphere)
+    sh_basis, is_legacy = parse_sh_basis_arg(args)
 
     # Computing peaks
     peak_dirs, peak_values, \
@@ -154,7 +158,8 @@ def main():
                                      absolute_threshold=args.a_threshold,
                                      min_separation_angle=25,
                                      normalize_peaks=False,
-                                     sh_basis_type=args.sh_basis,
+                                     sh_basis_type=sh_basis,
+                                     is_legacy=is_legacy,
                                      nbr_processes=args.nbr_processes)
 
     # Computing maps

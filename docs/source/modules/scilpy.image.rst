@@ -1,24 +1,16 @@
 scilpy.image package
 ====================
 
-scilpy.image.operations module
-------------------------------
+scilpy.image.labels module
+--------------------------
 
-.. automodule:: scilpy.image.operations
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-scilpy.image.resample\_volume module
-------------------------------------
-
-.. automodule:: scilpy.image.resample_volume
+.. automodule:: scilpy.image.labels
    :members:
    :undoc-members:
    :show-inheritance:
 
 scilpy.image.reslice module
----------------------------
+----------------------------
 
 .. automodule:: scilpy.image.reslice
    :members:
@@ -33,3 +25,26 @@ scilpy.image.utils module
    :undoc-members:
    :show-inheritance:
 
+scilpy.image.volume\_math module
+--------------------------------
+
+.. automodule:: scilpy.image.volume_math
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+scilpy.image.volume\_operations module
+--------------------------------------
+
+.. automodule:: scilpy.image.volume_operations
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+scilpy.image.volume\_space\_management module
+---------------------------------------------
+
+.. automodule:: scilpy.image.volume_space_management
+   :members:
+   :undoc-members:
+   :show-inheritance:

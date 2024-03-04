@@ -1,0 +1,34 @@
+codecov:
+  allow_coverage_offsets: True
+
+coverage:
+  status:
+    project:
+      default:
+        target: 75%
+        threshold: 2%
+        branches: 
+          - master
+        if_ci_failed: error
+        only_pulls: false
+    patch:
+      default:
+        target: 90%
+        branches: 
+          - master
+        if_ci_failed: error
+        only_pulls: false
+
+component_management:
+  individual_components:
+    - component_id: scilpy_scripts
+      name: Scripts
+      paths:
+        - scripts/
+    - component_id: scilpy_library
+      name: Library
+      paths:
+        - scilpy/
+
+comment:
+  layout: "condensed_header, diff, components"

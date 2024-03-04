@@ -9,10 +9,10 @@ from scipy.interpolate import splev, splprep
 
 
 def _get_streamline_pt_index(points_to_index, vox_index, from_start=True):
-    """ Get the index of the streamline point in the voxel.
+    """Get the index of the streamline point in the voxel.
 
-    Arguments
-    ---------
+    Parameters
+    ----------
     points_to_index: np.ndarray
         The indices of the voxels in the streamline's voxel grid.
     vox_index: int
@@ -83,7 +83,6 @@ def _get_point_on_line(first_point, second_point, vox_lower_corner):
             t1 = min(t1, max(v0, v1))
 
     return first_point + ray * (t0 + t1) / 2.
-
 
 def filter_streamlines_by_length(sft, min_length=0., max_length=np.inf):
     """
@@ -176,19 +175,19 @@ def filter_streamlines_by_total_length_per_dim(
         total_per_orientation = np.abs(np.asarray(
             [np.sum(d, axis=0) for d in all_dirs]))
 
-    logging.debug("Total length per orientation is:\n"
-                  "Average: x: {:.2f}, y: {:.2f}, z: {:.2f} \n"
-                  "Min: x: {:.2f}, y: {:.2f}, z: {:.2f} \n"
-                  "Max: x: {:.2f}, y: {:.2f}, z: {:.2f} \n"
-                  .format(np.mean(total_per_orientation[:, 0]),
-                          np.mean(total_per_orientation[:, 1]),
-                          np.mean(total_per_orientation[:, 2]),
-                          np.min(total_per_orientation[:, 0]),
-                          np.min(total_per_orientation[:, 1]),
-                          np.min(total_per_orientation[:, 2]),
-                          np.max(total_per_orientation[:, 0]),
-                          np.max(total_per_orientation[:, 1]),
-                          np.max(total_per_orientation[:, 2])))
+    logging.info("Total length per orientation is:\n"
+                 "Average: x: {:.2f}, y: {:.2f}, z: {:.2f} \n"
+                 "Min: x: {:.2f}, y: {:.2f}, z: {:.2f} \n"
+                 "Max: x: {:.2f}, y: {:.2f}, z: {:.2f} \n"
+                 .format(np.mean(total_per_orientation[:, 0]),
+                         np.mean(total_per_orientation[:, 1]),
+                         np.mean(total_per_orientation[:, 2]),
+                         np.min(total_per_orientation[:, 0]),
+                         np.min(total_per_orientation[:, 1]),
+                         np.min(total_per_orientation[:, 2]),
+                         np.max(total_per_orientation[:, 0]),
+                         np.max(total_per_orientation[:, 1]),
+                         np.max(total_per_orientation[:, 2])))
 
     # Find good ids
     mask_good_x = np.logical_and(limits_x[0] < total_per_orientation[:, 0],
@@ -264,11 +263,11 @@ def resample_streamlines_step_size(sft, step_size):
     if step_size == 0:
         raise ValueError("Step size can't be 0!")
     elif step_size < 0.1:
-        logging.debug("The value of your step size seems suspiciously low. "
-                      "Please check.")
+        logging.info("The value of your step size seems suspiciously low. "
+                     "Please check.")
     elif step_size > np.max(sft.voxel_sizes):
-        logging.debug("The value of your step size seems suspiciously high. "
-                      "Please check.")
+        logging.info("The value of your step size seems suspiciously high. "
+                     "Please check.")
 
     # Make sure we are in world space
     orig_space = sft.space
@@ -299,9 +298,9 @@ def _warn_and_save(new_streamlines, sft):
     Warn that we loose data_per_point, then create resampled SFT."""
 
     if sft.data_per_point is not None and sft.data_per_point.keys():
-        logging.debug("Initial StatefulTractogram contained data_per_point. "
-                      "This information will not be carried in the final "
-                      "tractogram.")
+        logging.info("Initial StatefulTractogram contained data_per_point. "
+                     "This information will not be carried in the final "
+                     "tractogram.")
     new_sft = StatefulTractogram.from_sft(
         new_streamlines, sft, data_per_streamline=sft.data_per_streamline)
 
@@ -328,7 +327,7 @@ def smooth_line_gaussian(streamline, sigma):
         raise ValueError('Cant have a 0 sigma with gaussian.')
 
     if length(streamline) < 1:
-        logging.debug('Streamline shorter than 1mm, corner cases possible.')
+        logging.info('Streamline shorter than 1mm, corner cases possible.')
 
     # Smooth each dimension separately
     x, y, z = streamline.T
@@ -367,7 +366,7 @@ def smooth_line_spline(streamline, smoothing_parameter, nb_ctrl_points):
         raise ValueError('Cant have a 0 sigma with spline.')
 
     if length(streamline) < 1:
-        logging.debug('Streamline shorter than 1mm, corner cases possible.')
+        logging.info('Streamline shorter than 1mm, corner cases possible.')
 
     if nb_ctrl_points < 3:
         nb_ctrl_points = 3

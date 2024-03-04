@@ -37,15 +37,15 @@ import nibabel as nib
 import numpy as np
 
 from scilpy.dwi.utils import extract_dwi_shell
+from scilpy.gradients.bvec_bval_tools import check_b0_threshold
 from scilpy.io.image import get_data_as_mask
-from scilpy.io.utils import (add_force_b0_arg,
-                             add_overwrite_arg, add_verbose_arg,
-                             assert_inputs_exist, assert_outputs_exist,
-                             assert_roi_radii_format)
+from scilpy.io.utils import (add_overwrite_arg, add_skip_b0_check_arg,
+                             add_verbose_arg, assert_inputs_exist,
+                             assert_outputs_exist, assert_roi_radii_format)
 from scilpy.reconst.frf import compute_msmt_frf
 
 
-def buildArgsParser():
+def _build_arg_parser():
 
     p = argparse.ArgumentParser(
         description=__doc__,
@@ -118,6 +118,8 @@ def buildArgsParser():
                    type=int, default=20,
                    help='The tolerated gap between the b-values to '
                         'extract and the current b-value. [%(default)s]')
+    add_skip_b0_check_arg(p, will_overwrite_with_min=False,
+                          b0_tol_name='--tolerance')
     p.add_argument('--dti_bval_limit',
                    type=int, default=1200,
                    help='The highest b-value taken for the DTI model. '
@@ -150,19 +152,15 @@ def buildArgsParser():
                         'used to compute the CSF frf.')
 
     add_verbose_arg(p)
-    add_force_b0_arg(p)
     add_overwrite_arg(p)
 
     return p
 
 
 def main():
-
-    parser = buildArgsParser()
+    parser = _build_arg_parser()
     args = parser.parse_args()
-
-    log_level = logging.DEBUG if args.verbose else logging.INFO
-    logging.getLogger().setLevel(log_level)
+    logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     assert_inputs_exist(parser, [args.in_dwi, args.in_bval, args.in_bvec])
     assert_outputs_exist(parser, args, [args.out_wm_frf, args.out_gm_frf,
@@ -174,14 +172,18 @@ def main():
     data = vol.get_fdata(dtype=np.float32)
     bvals, bvecs = read_bvals_bvecs(args.in_bval, args.in_bvec)
 
-    tol = args.tolerance
     dti_lim = args.dti_bval_limit
 
-    list_bvals = unique_bvals_tolerance(bvals, tol=tol)
+    # Note. This script does not currently allow using a separate b0_threshold
+    # for the b0s. Using the tolerance. To fix this, we would need to change
+    # the unique_bvals_tolerance and extract_dwi_shell methods.
+    _ = check_b0_threshold(bvals.min(), b0_thr=args.tolerance,
+                           skip_b0_check=args.skip_b0_check)
+    list_bvals = unique_bvals_tolerance(bvals, tol=args.tolerance)
     if not np.all(list_bvals <= dti_lim):
         outputs = extract_dwi_shell(vol, bvals, bvecs,
                                     list_bvals[list_bvals <= dti_lim],
-                                    tol=tol)
+                                    tol=args.tolerance)
         _, data_dti, bvals_dti, bvecs_dti = outputs
         bvals_dti = np.squeeze(bvals_dti)
     else:
@@ -204,7 +206,6 @@ def main():
     if args.mask_csf:
         mask_csf = get_data_as_mask(nib.load(args.mask_csf), dtype=bool)
 
-    force_b0_thr = args.force_b0_threshold
     responses, frf_masks = compute_msmt_frf(data, bvals, bvecs,
                                             data_dti=data_dti,
                                             bvals_dti=bvals_dti,
@@ -219,8 +220,7 @@ def main():
                                             min_nvox=args.min_nvox,
                                             roi_radii=roi_radii,
                                             roi_center=args.roi_center,
-                                            tol=tol,
-                                            force_b0_threshold=force_b0_thr)
+                                            tol=args.tolerance)
 
     masks_files = [args.wm_frf_mask, args.gm_frf_mask, args.csf_frf_mask]
     for mask, mask_file in zip(frf_masks, masks_files):

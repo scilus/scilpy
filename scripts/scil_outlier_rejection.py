@@ -51,6 +51,7 @@ def _build_arg_parser():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
+    logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     assert_inputs_exist(parser, args.in_bundle)
     assert_outputs_exist(parser, args, args.out_bundle, args.remaining_bundle)

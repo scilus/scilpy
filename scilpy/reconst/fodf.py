@@ -7,14 +7,16 @@ import numpy as np
 from dipy.data import get_sphere
 from dipy.reconst.mcsd import MSDeconvFit
 from dipy.reconst.multi_voxel import MultiVoxelFit
+from dipy.reconst.shm import sh_to_sf_matrix
 
-from scilpy.reconst.utils import find_order_from_nb_coeff, get_b_matrix
+from scilpy.reconst.utils import find_order_from_nb_coeff
 
 from dipy.utils.optpkg import optional_package
 cvx, have_cvxpy, _ = optional_package("cvxpy")
 
 
-def get_ventricles_max_fodf(data, fa, md, zoom, args):
+def get_ventricles_max_fodf(data, fa, md, zoom, sh_basis, args,
+                            is_legacy=True):
     """
     Compute mean maximal fodf value in ventricules. Given
     heuristics thresholds on FA and MD values, finds the
@@ -30,9 +32,13 @@ def get_ventricles_max_fodf(data, fa, md, zoom, args):
          FA (Fractional Anisotropy) volume from DTI
     md: ndarray (x, y, z)
          MD (Mean Diffusivity) volume from DTI
-    vol: int > 0
-         Maximum Nnumber of voxels used to compute the mean.
+    zoom: int > 0
+         Maximum number of voxels used to compute the mean.
          1000 works well at 2x2x2 = 8 mm3
+    sh_basis: str
+        Either 'tournier07' or 'descoteaux07'
+    is_legacy : bool, optional
+        Whether or not the SH basis is in its legacy form.
 
     Returns
     -------
@@ -42,7 +48,7 @@ def get_ventricles_max_fodf(data, fa, md, zoom, args):
 
     order = find_order_from_nb_coeff(data)
     sphere = get_sphere('repulsion100')
-    b_matrix = get_b_matrix(order, sphere, args.sh_basis)
+    b_matrix, _ = sh_to_sf_matrix(sphere, order, sh_basis, legacy=is_legacy)
     sum_of_max = 0
     count = 0
 
@@ -86,18 +92,18 @@ def get_ventricles_max_fodf(data, fa, md, zoom, args):
                     continue
                 if fa[i, j, k] < args.fa_threshold \
                         and md[i, j, k] > args.md_threshold:
-                    sf = np.dot(data[i, j, k], b_matrix.T)
+                    sf = np.dot(data[i, j, k], b_matrix)
                     sum_of_max += sf.max()
                     count += 1
                     mask[i, j, k] = 1
 
-    logging.debug('Number of voxels detected: {}'.format(count))
+    logging.info('Number of voxels detected: {}'.format(count))
     if count == 0:
         logging.warning('No voxels found for evaluation! Change your fa '
                         'and/or md thresholds')
         return 0, mask
 
-    logging.debug('Average max fodf value: {}'.format(sum_of_max / count))
+    logging.info('Average max fodf value: {}'.format(sum_of_max / count))
     return sum_of_max / count, mask
 
 

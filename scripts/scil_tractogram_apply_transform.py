@@ -101,9 +101,7 @@ def _build_arg_parser():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
-
-    if args.verbose:
-        logging.getLogger().setLevel(logging.DEBUG)
+    logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     assert_inputs_exist(parser, [args.in_moving_tractogram,
                                  args.in_target_file,
@@ -130,8 +128,8 @@ def main():
 
     if len(new_sft.streamlines) == 0:
         if args.no_empty:
-            logging.debug("The file {} won't be written "
-                          "(0 streamline).".format(args.out_tractogram))
+            logging.info("The file {} won't be written "
+                         "(0 streamline).".format(args.out_tractogram))
             return
 
     if args.keep_invalid:

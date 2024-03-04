@@ -14,6 +14,7 @@ mask non-zero values are set to full transparency in the saved scene.
 """
 
 import argparse
+import logging
 
 import nibabel as nib
 import numpy as np
@@ -23,7 +24,7 @@ from dipy.data import get_sphere
 from scilpy.reconst.utils import get_sh_order_and_fullness
 from scilpy.io.utils import (add_sh_basis_args, add_overwrite_arg,
                              assert_inputs_exist, add_verbose_arg,
-                             assert_outputs_exist)
+                             assert_outputs_exist, parse_sh_basis_arg)
 from scilpy.io.image import assert_same_resolution, get_data_as_mask
 from scilpy.viz.scene_utils import (create_odf_slicer, create_texture_slicer,
                                     create_peaks_slicer, create_scene,
@@ -265,6 +266,8 @@ def main():
     data = _get_data_from_inputs(args)
     sph = get_sphere(args.sphere)
     sh_order, full_basis = get_sh_order_and_fullness(data['fodf'].shape[-1])
+    sh_basis, is_legacy = parse_sh_basis_arg(args)
+    logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     actors = []
 
@@ -285,14 +288,15 @@ def main():
     odf_actor, var_actor = create_odf_slicer(data['fodf'], args.axis_name,
                                              args.slice_index, mask, sph,
                                              args.sph_subdivide, sh_order,
-                                             args.sh_basis, full_basis,
+                                             sh_basis, full_basis,
                                              args.scale,
                                              not args.radial_scale_off,
                                              not args.norm_off,
                                              args.colormap or color_rgb,
                                              sh_variance=variance,
                                              variance_k=args.variance_k,
-                                             variance_color=var_color)
+                                             variance_color=var_color,
+                                             is_legacy=is_legacy)
     actors.append(odf_actor)
 
     # Instantiate a variance slicer actor if a variance image is supplied

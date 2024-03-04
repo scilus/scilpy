@@ -18,7 +18,8 @@ import numpy as np
 
 from scilpy.io.utils import (add_overwrite_arg,
                              add_sh_basis_args, add_verbose_arg,
-                             assert_inputs_exist, assert_outputs_exist)
+                             assert_inputs_exist, assert_outputs_exist,
+                             parse_sh_basis_arg)
 from scilpy.reconst.fodf import get_ventricles_max_fodf
 
 EPILOG = """
@@ -70,13 +71,11 @@ def _build_arg_parser():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
+    logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     assert_inputs_exist(parser, [args.in_fodfs, args.in_fa, args.in_md])
     assert_outputs_exist(parser, args, [],
                          [args.max_value_output, args.mask_output])
-
-    if args.verbose:
-        logging.getLogger().setLevel(logging.DEBUG)
 
     # Load input image
     img_fODFs = nib.load(args.in_fodfs)
@@ -90,7 +89,10 @@ def main():
     img_md = nib.load(args.in_md)
     md = img_md.get_fdata(dtype=np.float32)
 
-    value, mask = get_ventricles_max_fodf(fodf, fa, md, zoom, args)
+    sh_basis, is_legacy = parse_sh_basis_arg(args)
+
+    value, mask = get_ventricles_max_fodf(fodf, fa, md, zoom, sh_basis, args,
+                                          is_legacy=is_legacy)
 
     if args.mask_output:
         img = nib.Nifti1Image(np.array(mask, 'float32'),  affine)

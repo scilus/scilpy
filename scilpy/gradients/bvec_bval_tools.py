@@ -6,9 +6,6 @@ from enum import Enum
 from dipy.core.gradients import get_bval_indices
 import numpy as np
 
-from scilpy.io.gradients import (save_gradient_sampling_fsl,
-                                 save_gradient_sampling_mrtrix)
-
 DEFAULT_B0_THRESHOLD = 20
 
 
@@ -31,13 +28,12 @@ def is_normalized_bvecs(bvecs):
     -------
     True/False
     """
-
     bvecs_norm = np.linalg.norm(bvecs, axis=1)
     return np.all(np.logical_or(np.abs(bvecs_norm - 1) < 1e-3,
                                 bvecs_norm == 0))
 
 
-def normalize_bvecs(bvecs, filename=None):
+def normalize_bvecs(bvecs):
     """
     Normalize b-vectors
 
@@ -45,151 +41,83 @@ def normalize_bvecs(bvecs, filename=None):
     ----------
     bvecs : (N, 3) array
         input b-vectors (N, 3) array
-    filename : string
-        output filename where to save the normalized bvecs
 
     Returns
     -------
     bvecs : (N, 3)
        normalized b-vectors
     """
-
+    bvecs = bvecs.copy()  # Avoid in-place modification.
     bvecs_norm = np.linalg.norm(bvecs, axis=1)
     idx = bvecs_norm != 0
     bvecs[idx] /= bvecs_norm[idx, None]
 
-    if filename is not None:
-        logging.info('Saving new bvecs: {}'.format(filename))
-        np.savetxt(filename, np.transpose(bvecs), "%.8f")
-
     return bvecs
 
 
-def check_b0_threshold(
-        force_b0_threshold, bvals_min, b0_thr=DEFAULT_B0_THRESHOLD
-):
-    """Check if the minimal bvalue is under zero or over the threshold.
-    If `force_b0_threshold` is true, don't raise an error even if the minimum
-    bvalue is over the threshold.
+def check_b0_threshold(min_bval, b0_thr, skip_b0_check):
+    """
+    Check if the minimal bvalue is under the threshold. If not, raise an
+    error to ask user to update the b0_thr.
+
+    Also verifies if the b0_thr is suspicious (should be included in range
+    [0, DEFAULT_B0_THRESHOLD]).
 
     Parameters
     ----------
-    force_b0_threshold : bool
-        If True, don't raise an error.
-    bvals_min : float
+    min_bval : float
         Minimum bvalue.
-    b0_thr : float
+    b0_thr: float
         Maximum bvalue considered as a b0.
+    skip_b0_check: bool
+        If True, and no b0 is found, only print a warning, do not raise
+        an error.
+
+    Returns
+    -------
+    b0_thr: float
+        Either the unmodified b0_thr, or, in the case where the minimal b-value
+        is larger than b0_thr, and skip_b0_check is set to True, then returns
+        min_bval.
 
     Raises
     ------
     ValueError
-        If the minimal bvalue is over the threshold, and
-        `force_b0_threshold` is False.
+        If the minimal bvalue is over the threshold (and skip_b0_check is
+        False).
     """
     if b0_thr > DEFAULT_B0_THRESHOLD:
         logging.warning(
-            'Warning: Your defined threshold is {}. This is suspicious. We '
-            'recommend using volumes with bvalues no higher '
-            'than {} as b0s.'.format(b0_thr, DEFAULT_B0_THRESHOLD)
-        )
+            'Your defined b0 threshold is {}. This is suspicious. We '
+            'recommend using volumes with bvalues no higher than {} as b0s'
+            .format(b0_thr, DEFAULT_B0_THRESHOLD))
 
-    if bvals_min < 0:
+    if min_bval < 0:
         logging.warning(
-            'Warning: Your dataset contains negative b-values (minimal '
-            'bvalue of {}). This is suspicious. We recommend you check '
-            'your data.')
+            'Warning: Your dataset contains negative b-values (minimal bvalue '
+            'of {}). This is suspicious. We recommend you check your data.'
+            .format(min_bval))
 
-    if bvals_min > b0_thr:
-        if force_b0_threshold:
+    if min_bval > b0_thr:
+        if skip_b0_check:
             logging.warning(
-                'Warning: Your minimal bvalue is {}, but the threshold '
-                'is set to {}. Since --force_b0_threshold was specified, '
-                'the script will proceed with a threshold of {}'
-                '.'.format(bvals_min, b0_thr, bvals_min))
-            return bvals_min
+                'Your minimal bvalue ({}), is above the threshold ({})\n'
+                'Since --skip_b0_check was specified, the script will '
+                'proceed with a b0 threshold of {}.'
+                .format(min_bval, b0_thr, min_bval))
+            return min_bval
         else:
-            raise ValueError('The minimal bvalue ({}) is greater than the '
-                             'threshold ({}). No b0 volumes can be found.\n'
-                             'Please check your data to ensure everything '
-                             'is correct.\n'
-                             'Use --force_b0_threshold to execute '
-                             'regardless.'
-                             .format(bvals_min, b0_thr))
-
+            raise ValueError(
+                'The minimal bvalue ({}) is above the threshold ({})\n'
+                'No b0 volumes can be found.\n'
+                'Please check your data to ensure everything is correct.\n'
+                'You may also increase the threshold or use '
+                '--skip_b0_check'
+                .format(min_bval, b0_thr))
     return b0_thr
 
 
-def fsl2mrtrix(fsl_bval_filename, fsl_bvec_filename, mrtrix_filename):
-    """
-    Convert a fsl dir_grad.bvec/.bval files to mrtrix encoding.b file.
-
-    Parameters
-    ----------
-    fsl_bval_filename: str
-        path to input fsl bval file.
-    fsl_bvec_filename: str
-        path to input fsl bvec file.
-    mrtrix_filename : str
-        path to output mrtrix encoding.b file.
-
-    Returns
-    -------
-    """
-
-    shells = np.loadtxt(fsl_bval_filename)
-    points = np.loadtxt(fsl_bvec_filename)
-    bvals = np.unique(shells).tolist()
-
-    # Remove .bval and .bvec if present
-    mrtrix_filename = mrtrix_filename.replace('.b', '')
-
-    if not points.shape[0] == 3:
-        points = points.transpose()
-        logging.warning('WARNING: Your bvecs seem transposed. ' +
-                        'Transposing them.')
-
-    shell_idx = [int(np.where(bval == bvals)[0]) for bval in shells]
-    save_gradient_sampling_mrtrix(points,
-                                  shell_idx,
-                                  bvals,
-                                  mrtrix_filename + '.b')
-
-
-def mrtrix2fsl(mrtrix_filename, fsl_filename):
-    """
-    Convert a mrtrix encoding.b file to fsl dir_grad.bvec/.bval files.
-
-    Parameters
-    ----------
-    mrtrix_filename : str
-        path to mrtrix encoding.b file.
-    fsl_bval_filename: str
-        path to the output fsl files. Files will be named
-        fsl_bval_filename.bval and fsl_bval_filename.bvec.
-    """
-    # Remove .bval and .bvec if present
-    fsl_filename = fsl_filename.replace('.bval', '')
-    fsl_filename = fsl_filename.replace('.bvec', '')
-
-    mrtrix_b = np.loadtxt(mrtrix_filename)
-    if not len(mrtrix_b.shape) == 2 or not mrtrix_b.shape[1] == 4:
-        raise ValueError('mrtrix file must have 4 columns')
-
-    points = np.array([mrtrix_b[:, 0], mrtrix_b[:, 1], mrtrix_b[:, 2]])
-    shells = np.array(mrtrix_b[:, 3])
-
-    bvals = np.unique(shells).tolist()
-    shell_idx = [int(np.where(bval == bvals)[0]) for bval in shells]
-
-    save_gradient_sampling_fsl(points,
-                               shell_idx,
-                               bvals,
-                               filename_bval=fsl_filename + '.bval',
-                               filename_bvec=fsl_filename + '.bvec')
-
-
-def identify_shells(bvals, threshold=40.0, roundCentroids=False, sort=False):
+def identify_shells(bvals, tol=40.0, round_centroids=False, sort=False):
     """
     Guessing the shells from the b-values. Returns the list of shells and, for
     each b-value, the associated shell.
@@ -206,10 +134,11 @@ def identify_shells(bvals, threshold=40.0, roundCentroids=False, sort=False):
     ----------
     bvals: array (N,)
         Array of bvals
-    threshold: float
-        Limit value to consider that a b-value is on an existing shell. Above
-        this limit, the b-value is placed on a new shell.
-    roundCentroids: bool
+    tol: float
+        Limit difference to centroid to consider that a b-value is on an
+        existing shell. On or above this limit, the b-value is placed on a new
+        shell.
+    round_centroids: bool
         If true will round shell values to the nearest 10.
     sort: bool
         Sort centroids and shell_indices associated.
@@ -229,7 +158,7 @@ def identify_shells(bvals, threshold=40.0, roundCentroids=False, sort=False):
     bval_centroids = [bvals[0]]
     for bval in bvals[1:]:
         diffs = np.abs(np.asarray(bval_centroids, dtype=float) - bval)
-        if not len(np.where(diffs < threshold)[0]):
+        if not len(np.where(diffs < tol)[0]):
             # Found no bval in bval centroids close enough to the current one.
             # Create new centroid (i.e. new shell)
             bval_centroids.append(bval)
@@ -241,15 +170,23 @@ def identify_shells(bvals, threshold=40.0, roundCentroids=False, sort=False):
 
     shell_indices = np.argmin(np.abs(bvals_for_diffs - centroids), axis=1)
 
-    if roundCentroids:
+    if round_centroids:
         centroids = np.round(centroids, decimals=-1)
+
+        # Ex: with bvals [0, 5], threshold 5, we get centroids 0, 5.
+        # Rounded, we get centroids 0, 0.
+        if len(np.unique(centroids)) != len(centroids):
+            logging.warning("With option to round the centroids to the "
+                            "nearest 10, with tolerance {}, we get unclear "
+                            "division of the shells. Use this data carefully."
+                            .format(tol))
 
     if sort:
         sort_index = np.argsort(centroids)
-        sorted_centroids = np.zeros(centroids.shape)
-        sorted_indices = np.zeros(shell_indices.shape)
+        sorted_centroids = centroids[sort_index]
+
+        sorted_indices = np.zeros(shell_indices.shape, dtype=int)
         for i in range(len(centroids)):
-            sorted_centroids[i] = centroids[sort_index[i]]
             sorted_indices[shell_indices == i] = sort_index[i]
         return sorted_centroids, sorted_indices
 
@@ -286,12 +223,13 @@ def flip_gradient_sampling(bvecs, axes, sampling_type):
     Parameters
     ----------
     bvecs: np.ndarray
-        Loaded bvecs. In the case 'mrtrix' the bvecs actually also contain the
-        bvals.
+        bvecs loaded directly, not re-formatted. Careful! Must respect the
+        format (not verified here).
     axes: list of int
-        List of axes to flip (e.g. [0, 1])
+        List of axes to flip (e.g. [0, 1]). See str_to_axis_index.
     sampling_type: str
-        Either 'mrtrix' or 'fsl'.
+        Either 'mrtrix': bvecs are of shape (N, 4) or
+               'fsl': bvecs are of shape (3, N)
 
     Returns
     -------
@@ -299,6 +237,8 @@ def flip_gradient_sampling(bvecs, axes, sampling_type):
         The final bvecs.
     """
     assert sampling_type in ['mrtrix', 'fsl']
+
+    bvecs = bvecs.copy()  # Avoid in-place modification.
     if sampling_type == 'mrtrix':
         for axis in axes:
             bvecs[:, axis] *= -1
@@ -315,12 +255,13 @@ def swap_gradient_axis(bvecs, final_order, sampling_type):
     Parameters
     ----------
     bvecs: np.array
-        Loaded bvecs. In the case 'mrtrix' the bvecs actually also contain the
-        bvals.
+        bvecs loaded directly, not re-formatted. Careful! Must respect the
+        format (not verified here).
     final_order: new order
         Final order (ex, 2 1 0)
     sampling_type: str
-        Either 'mrtrix' or 'fsl'.
+        Either 'mrtrix': bvecs are of shape (N, 4) or
+               'fsl': bvecs are of shape (3, N)
 
     Returns
     -------

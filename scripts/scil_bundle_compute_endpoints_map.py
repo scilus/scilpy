@@ -66,6 +66,7 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
     swap = args.swap
+    logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     assert_inputs_exist(parser, args.in_bundle, args.reference)
     assert_outputs_exist(parser, args, [args.endpoints_map_head,

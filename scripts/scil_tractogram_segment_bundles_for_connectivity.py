@@ -37,8 +37,7 @@ import os
 import time
 
 import coloredlogs
-from dipy.io.stateful_tractogram import (StatefulTractogram,
-                                         set_sft_logger_level)
+from dipy.io.stateful_tractogram import StatefulTractogram
 from dipy.io.streamline import save_tractogram
 from dipy.io.utils import get_reference_info, is_header_compatible
 from dipy.tracking.streamlinespeed import length
@@ -243,6 +242,8 @@ def _build_arg_parser():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
+    logging.getLogger().setLevel(logging.getLevelName(args.verbose))
+    coloredlogs.install(level=logging.getLevelName(args.verbose))
 
     assert_inputs_exist(parser, args.in_tractograms+[args.in_labels],
                         args.reference)
@@ -263,11 +264,6 @@ def main():
             parser.error('Do not use the current path as output directory.')
         assert_output_dirs_exist_and_empty(parser, args, args.out_dir,
                                            create_dir=True)
-
-    log_level = logging.INFO if args.verbose else logging.WARNING
-    logging.getLogger().setLevel(log_level)
-    coloredlogs.install(level=log_level)
-    set_sft_logger_level('WARNING')
 
     # Load everything
     img_labels = nib.load(args.in_labels)

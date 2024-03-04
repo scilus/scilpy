@@ -34,6 +34,9 @@ def _build_arg_parser():
     p.add_argument('--config', default='b02b0.cnf',
                    help='Topup config file [%(default)s].')
 
+    p.add_argument('--synb0', action='store_true',
+                   help='If set, will use SyNb0 custom acqparams file.')
+
     p.add_argument('--encoding_direction', default='y',
                    choices=['x', 'y', 'z'],
                    help='Acquisition direction of the forward b0 '
@@ -75,6 +78,7 @@ def _build_arg_parser():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
+    logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     try:
         devnull = open(os.devnull)
@@ -84,9 +88,6 @@ def main():
             "topup not found. If executing locally, please install "
             "the command from the FSL library and make sure it is "
             "available in your path.")
-
-    if args.verbose:
-        logging.getLogger().setLevel(logging.INFO)
 
     required_args = [args.in_forward_b0, args.in_reverse_b0]
 
@@ -121,8 +122,8 @@ def main():
     fused_b0s_path = os.path.join(args.out_directory, args.out_b0s)
     nib.save(nib.Nifti1Image(fused_b0s, b0_img.affine), fused_b0s_path)
 
-    acqparams = create_acqparams(
-        args.readout, args.encoding_direction, b0.shape[-1], rev_b0.shape[-1])
+    acqparams = create_acqparams(args.readout, args.encoding_direction,
+                                 args.synb0, b0.shape[-1], rev_b0.shape[-1])
 
     if not os.path.exists(args.out_directory):
         os.makedirs(args.out_directory)

@@ -115,13 +115,18 @@ def combine_labels(data_list, indices_per_input_volume, out_labels_choice,
         List of np.ndarray containing the indices to use in each input volume.
     out_labels_choice: tuple(str, any)
         Tuple of a string expressing the choice of output option and the
-        associated necessary value. Choices are:
+        associated necessary value.
+        Choices are:
+
         ('all_labels'): Keeps values from the input volumes, or with
             merge_groups, used the volumes ordering.
+
         ('out_label_ids', list): Out labels will be renamed as given from
             the list.
+
         ('unique'): Out labels will be renamed to range from 1 to
             total_nb_labels (+ the background).
+
         ('group_in_m'): Add (x * 10 000) to each volume labels, where x is the
             input volume order number.
     background_id: int

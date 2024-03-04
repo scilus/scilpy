@@ -22,5 +22,5 @@ def test_execution_processing(script_runner):
                            'fodf.nii.gz')
     ret = script_runner.run('scil_sh_convert.py', in_fodf,
                             'fodf_descoteaux07.nii.gz', 'tournier07',
-                            '--processes', '1')
+                            'descoteaux07_legacy', '--processes', '1')
     assert ret.success

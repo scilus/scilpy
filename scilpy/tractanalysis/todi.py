@@ -230,7 +230,8 @@ class TrackOrientationDensityImaging(object):
         self.todi = todi_u.p_normalize_vectors(self.todi, p_norm)
         return self.todi
 
-    def get_sh(self, sh_basis, sh_order, smooth=0.006, full_basis=False):
+    def get_sh(self, sh_basis, sh_order, smooth=0.006, full_basis=False,
+               is_legacy=True):
         """Spherical Harmonics (SH) coefficients of the TODI map
 
         Compute the SH representation of the TODI map,
@@ -249,6 +250,8 @@ class TrackOrientationDensityImaging(object):
         smooth : float, optional
             Smoothing factor for the conversion,
             Lambda-regularization in the SH fit (default 0.006).
+        is_legacy : bool, optional
+            Whether or not the SH basis is in its legacy form.
 
         Returns
         -------
@@ -267,7 +270,7 @@ class TrackOrientationDensityImaging(object):
         """
         return sf_to_sh(self.todi, self.sphere, sh_order=sh_order,
                         basis_type=sh_basis, full_basis=full_basis,
-                        smooth=smooth)
+                        smooth=smooth, legacy=is_legacy)
 
     def reshape_to_3d(self, img_voxelly_masked):
         """Reshape a complex ravelled image to 3D.

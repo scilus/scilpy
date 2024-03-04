@@ -76,8 +76,7 @@ def _build_arg_parser():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
-    if args.verbose:
-        logging.getLogger().setLevel(logging.INFO)
+    logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     inputs = [args.in_bvec, args.in_peaks, args.in_FA]
     optional = [args.mask, args.peaks_vals]

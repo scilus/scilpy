@@ -45,8 +45,8 @@ import numpy as np
 
 from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_overwrite_arg, add_sh_basis_args,
-                             add_verbose_arg,
-                             assert_inputs_exist, assert_outputs_exist)
+                             add_verbose_arg, assert_inputs_exist,
+                             assert_outputs_exist, parse_sh_basis_arg)
 from scilpy.tracking.utils import get_theta
 
 
@@ -138,8 +138,7 @@ def _build_arg_parser():
                        help='If set, save the seeds used for the tracking \n '
                             'in the data_per_streamline property.')
 
-    log_g = p.add_argument_group('Logging options')
-    add_verbose_arg(log_g)
+    add_verbose_arg(p)
 
     return p
 
@@ -147,9 +146,7 @@ def _build_arg_parser():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
-
-    if args.verbose:
-        logging.getLogger().setLevel(logging.DEBUG)
+    logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     assert_inputs_exist(parser, [args.in_sh, args.in_seed,
                                  args.in_map_include,
@@ -202,7 +199,7 @@ def main():
     if not np.allclose(np.linalg.norm(tracking_sphere.vertices, axis=1), 1.):
         raise RuntimeError('Tracking sphere should be unit normed.')
 
-    sh_basis = args.sh_basis
+    sh_basis, is_legacy = parse_sh_basis_arg(args)
 
     if args.algo == 'det':
         dgklass = DeterministicMaximumDirectionGetter
@@ -220,6 +217,7 @@ def main():
         max_angle=theta,
         sphere=tracking_sphere,
         basis_type=sh_basis,
+        legacy=is_legacy,
         pmf_threshold=args.sf_threshold,
         relative_peak_threshold=args.sf_threshold_init)
 

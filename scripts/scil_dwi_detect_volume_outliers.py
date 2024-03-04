@@ -8,27 +8,24 @@ If the angles or correlations to neighbors are below the shell average (by
 args.std_scale x STD) it will flag the volume as a potential outlier.
 
 This script supports multi-shells, but each shell is independant and detected
-using the args.b0_thr parameter.
+using the --b0_threshold parameter.
 
 This script can be run before any processing to identify potential problem
 before launching pre-processing.
 """
 
 import argparse
-import pprint
+import logging
 
 from dipy.io.gradients import read_bvals_bvecs
 import nibabel as nib
-import numpy as np
 
-from scilpy.io.utils import (assert_inputs_exist,
-                             add_force_b0_arg,
-                             add_verbose_arg)
+
+from scilpy.dwi.operations import detect_volume_outliers
+from scilpy.io.utils import (add_b0_thresh_arg, add_skip_b0_check_arg,
+                             add_verbose_arg, assert_inputs_exist, )
 from scilpy.gradients.bvec_bval_tools import (check_b0_threshold,
-                                              identify_shells,
-                                              normalize_bvecs,
-                                              round_bvals_to_shell)
-import math
+                                              normalize_bvecs)
 
 
 def _build_arg_parser():
@@ -43,15 +40,12 @@ def _build_arg_parser():
     p.add_argument('in_bvec',
                    help='The b-vectors files in FSL format (.bvec).')
 
-    p.add_argument('--b0_thr', type=float, default=20.0,
-                   help='All b-values with values less than or equal '
-                        'to b0_thr are considered as b0s i.e. without '
-                        'diffusion weighting. [%(default)s]')
     p.add_argument('--std_scale', type=float, default=2.0,
                    help='How many deviation from the mean are required to be '
-                        'considered an outliers. [%(default)s]')
+                        'considered an outlier. [%(default)s]')
 
-    add_force_b0_arg(p)
+    add_b0_thresh_arg(p)
+    add_skip_b0_check_arg(p, will_overwrite_with_min=True)
     add_verbose_arg(p)
 
     return p
@@ -60,77 +54,25 @@ def _build_arg_parser():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
+    if args.verbose == "WARNING":
+        logging.getLogger().setLevel(logging.INFO)
+    else:
+        logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     assert_inputs_exist(parser, [args.in_dwi, args.in_bval, args.in_bvec])
 
     bvals, bvecs = read_bvals_bvecs(args.in_bval, args.in_bvec)
-    dwi = nib.load(args.in_dwi)
-    data = dwi.get_fdata()
+    data = nib.load(args.in_dwi).get_fdata()
 
-    b0_thr = check_b0_threshold(args.force_b0_threshold,
-                                bvals.min(), args.b0_thr)
+    args.b0_threshold = check_b0_threshold(bvals.min(),
+                                           b0_thr=args.b0_threshold,
+                                           skip_b0_check=args.skip_b0_check)
     bvecs = normalize_bvecs(bvecs)
 
-    results_dict = {}
-    shells_to_extract = identify_shells(bvals, b0_thr, sort=True)[0]
-    bvals = round_bvals_to_shell(bvals, shells_to_extract)
-    for bval in shells_to_extract[shells_to_extract > args.b0_thr]:
-        shell_idx = np.where(bvals == bval)[0]
-        shell = bvecs[shell_idx]
-        results_dict[bval] = np.ones((len(shell), 3)) * -1
-        for i, vec in enumerate(shell):
-            if np.linalg.norm(vec) < 0.001:
-                continue
-
-            dot_product = np.clip(np.tensordot(shell, vec, axes=1), -1, 1)
-            angle = np.arccos(dot_product) * 180 / math.pi
-            angle[np.isnan(angle)] = 0
-            idx = np.argpartition(angle, 4).tolist()
-            idx.remove(i)
-
-            avg_angle = np.average(angle[idx[:3]])
-            corr = np.corrcoef([data[..., shell_idx[i]].ravel(),
-                                data[..., shell_idx[idx[0]]].ravel(),
-                                data[..., shell_idx[idx[1]]].ravel(),
-                                data[..., shell_idx[idx[2]]].ravel()])
-            results_dict[bval][i] = [shell_idx[i], avg_angle,
-                                     np.average(corr[0, 1:])]
-
-    for key in results_dict.keys():
-        avg_angle = np.round(np.average(results_dict[key][:, 1]), 4)
-        std_angle = np.round(np.std(results_dict[key][:, 1]), 4)
-
-        avg_corr = np.round(np.average(results_dict[key][:, 2]), 4)
-        std_corr = np.round(np.std(results_dict[key][:, 2]), 4)
-
-        outliers_angle = np.argwhere(
-            results_dict[key][:, 1] < avg_angle-(args.std_scale*std_angle))
-        outliers_corr = np.argwhere(
-            results_dict[key][:, 2] < avg_corr-(args.std_scale*std_corr))
-
-        print('Results for shell {} with {} directions:'.format(
-            key, len(results_dict[key])))
-        print('AVG and STD of angles: {} +/- {}'.format(
-            avg_angle, std_angle))
-        print('AVG and STD of correlations: {} +/- {}'.format(
-            avg_corr, std_corr))
-
-        if len(outliers_angle) or len(outliers_corr):
-            print('Possible outliers ({} STD below or above average):'.format(
-                args.std_scale))
-            print('Outliers based on angle [position (4D), value]')
-            for i in outliers_angle:
-                print(results_dict[key][i, :][0][0:2])
-            print('Outliers based on correlation [position (4D), value]')
-            for i in outliers_corr:
-                print(results_dict[key][i, :][0][0::2])
-        else:
-            print('No outliers detected.')
-
-        if args.verbose:
-            print('Shell with b-value {}'.format(key))
-            pprint.pprint(results_dict[key])
-        print()
+    # Not using the result. Only printing on screen. This is why the logging
+    # level can never be set higher than INFO.
+    detect_volume_outliers(data, bvals, bvecs, args.std_scale,
+                           args.b0_threshold)
 
 
 if __name__ == "__main__":

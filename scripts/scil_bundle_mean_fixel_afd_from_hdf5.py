@@ -15,8 +15,9 @@ Formerly: scil_compute_fixel_afd_from_hdf5.py
 
 import argparse
 import itertools
-import os
+import logging
 import multiprocessing
+import os
 import shutil
 
 from dipy.io.stateful_tractogram import Space, Origin, StatefulTractogram
@@ -32,6 +33,7 @@ from scilpy.io.utils import (add_overwrite_arg,
                              add_verbose_arg,
                              assert_inputs_exist,
                              assert_outputs_exist,
+                             parse_sh_basis_arg,
                              validate_nbr_processes)
 from scilpy.tractanalysis.afd_along_streamlines \
     import afd_map_along_streamlines
@@ -52,6 +54,7 @@ def _afd_rd_wrapper(args):
     fodf_img = args[2]
     sh_basis = args[3]
     length_weighting = args[4]
+    is_legacy = args[5]
 
     with h5py.File(in_hdf5_filename, 'r') as in_hdf5_file:
         affine = in_hdf5_file.attrs['affine']
@@ -66,7 +69,8 @@ def _afd_rd_wrapper(args):
                              origin=Origin.TRACKVIS)
     afd_mean_map, rd_mean_map = afd_map_along_streamlines(sft, fodf_img,
                                                           sh_basis,
-                                                          length_weighting)
+                                                          length_weighting,
+                                                          is_legacy=is_legacy)
     afd_mean = np.average(afd_mean_map[afd_mean_map > 0])
 
     return key, afd_mean
@@ -97,11 +101,13 @@ def _build_arg_parser():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
+    logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     assert_inputs_exist(parser, [args.in_hdf5, args.in_fodf])
     assert_outputs_exist(parser, args, [args.out_hdf5])
 
     nbr_cpu = validate_nbr_processes(parser, args)
+    sh_basis, is_legacy = parse_sh_basis_arg(args)
 
     # HDF5 will not overwrite the file
     if os.path.isfile(args.out_hdf5):
@@ -123,8 +129,9 @@ def main():
         results_list = []
         for key in keys:
             results_list.append(_afd_rd_wrapper([args.in_hdf5, key, fodf_img,
-                                                 args.sh_basis,
-                                                 args.length_weighting]))
+                                                 sh_basis,
+                                                 args.length_weighting,
+                                                 is_legacy]))
 
     else:
         pool = multiprocessing.Pool(nbr_cpu)
@@ -132,8 +139,9 @@ def main():
                                 zip(itertools.repeat(args.in_hdf5),
                                     keys,
                                     itertools.repeat(fodf_img),
-                                    itertools.repeat(args.sh_basis),
-                                    itertools.repeat(args.length_weighting)))
+                                    itertools.repeat(sh_basis),
+                                    itertools.repeat(args.length_weighting),
+                                    itertools.repeat(is_legacy)))
         pool.close()
         pool.join()
 

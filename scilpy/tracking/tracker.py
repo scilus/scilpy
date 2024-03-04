@@ -179,8 +179,8 @@ class Tracker(object):
 
         if nbr_processes > self.nbr_seeds:
             nbr_processes = self.nbr_seeds
-            logging.debug("Setting number of processes to {} since there were "
-                          "less seeds than processes.".format(nbr_processes))
+            logging.info("Setting number of processes to {} since there were "
+                         "less seeds than processes.".format(nbr_processes))
         return nbr_processes
 
     def _prepare_multiprocessing_pool(self, tmpdir):
@@ -503,6 +503,8 @@ class GPUTacker():
         is randomly drawn from the list for each streamline.
     sh_basis : str, optional
         Spherical harmonics basis.
+    is_legacy : bool, optional
+        Whether or not the SH basis is in its legacy form.
     batch_size : int, optional
         Approximate size of GPU batches.
     forward_only: bool, optional
@@ -514,7 +516,7 @@ class GPUTacker():
     """
     def __init__(self, sh, mask, seeds, step_size, max_nbr_pts,
                  theta=20.0, sf_threshold=0.1, sh_interp='trilinear',
-                 sh_basis='descoteaux07', batch_size=100000,
+                 sh_basis='descoteaux07', is_legacy=True, batch_size=100000,
                  forward_only=False, rng_seed=None, sphere=None):
         if not have_opencl:
             raise ImportError('pyopencl is not installed. In order to use'
@@ -545,6 +547,7 @@ class GPUTacker():
         self.theta = np.atleast_1d(theta)
 
         self.sh_basis = sh_basis
+        self.is_legacy = is_legacy
         self.forward_only = forward_only
 
         # Instantiate random number generator
@@ -602,7 +605,7 @@ class GPUTacker():
 
         sh_order = find_order_from_nb_coeff(self.sh)
         B_mat = sh_to_sf_matrix(self.sphere, sh_order, self.sh_basis,
-                                return_inv=False)
+                                return_inv=False, legacy=self.is_legacy)
         cl_manager.add_input_buffer(2, B_mat)
 
         fodf_max = self._get_max_amplitudes(B_mat)

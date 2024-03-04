@@ -18,9 +18,7 @@ from fury import window
 from PIL import Image
 from scipy.io import loadmat
 import six
-import importlib.metadata
 
-from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.gradients.bvec_bval_tools import DEFAULT_B0_THRESHOLD
 from scilpy.utils.filenames import split_name_with_nii
 
@@ -217,21 +215,63 @@ def add_overwrite_arg(parser):
         help='Force overwriting of the output files.')
 
 
-def add_force_b0_arg(parser):
-    parser.add_argument('--force_b0_threshold', action='store_true',
-                        help='If set, the script will continue even if the '
-                             'minimum bvalue is suspiciously high ( > {})'
-                        .format(DEFAULT_B0_THRESHOLD))
+def add_tolerance_arg(parser):
+    parser.add_argument(
+        '--tolerance', type=int, default=20, metavar='tol',
+        help='The tolerated gap between the b-values to extract and the '
+             'current b-value.\n'
+             '[Default: %(default)s]\n'
+             '* Note. We would expect to find at least one b-value in the \n'
+             '  range [0, tolerance]. To skip this check, use '
+             '--skip_b0_check.')
+
+
+def add_b0_thresh_arg(parser):
+    parser.add_argument(
+        '--b0_threshold', type=float, default=DEFAULT_B0_THRESHOLD,
+        metavar='thr',
+        help='Threshold under which b-values are considered to be b0s.\n'
+             '[Default: %(default)s] \n'
+             '* Note. We would expect to find at least one b-value in the \n'
+             '  range [0, b0_threshold]. To skip this check, use '
+             '--skip_b0_check.')
+
+
+def add_skip_b0_check_arg(parser, will_overwrite_with_min,
+                          b0_tol_name='--b0_threshold'):
+    """
+    Parameters
+    ----------
+    parser: argparse.ArgumentParser object
+        Parser.
+    will_overwrite_with_min: bool
+        If true, the help message will explain that b0_threshold could be
+        overwritten.
+    b0_tol_name: str
+        Name of the argparse parameter acting as b0_threshold. Should probably
+        be either '--b0_threshold' or '--tolerance'.
+    """
+    msg = ('By default, we supervise that at least one b0 exists in your '
+           'data\n'
+           '(i.e. b-values below the default {}). Use this option to \n'
+           'allow continuing even if the minimum b-value is suspiciously '
+           'high.\n'.format(b0_tol_name))
+    if will_overwrite_with_min:
+        msg += ('If no b-value is found below the threshold, the script will '
+                'continue \nwith your minimal b-value as new {}.\n'
+                .format(b0_tol_name))
+    msg += 'Use with care, and only if you understand your data.'
+
+    parser.add_argument(
+        '--skip_b0_check', action='store_true', help=msg)
 
 
 def add_verbose_arg(parser):
-    parser.add_argument('-v', action='store_true', dest='verbose',
-                        help='If set, produces verbose output.')
-
-    version = importlib.metadata.version('scilpy')
-
-    logging.getLogger().setLevel(logging.INFO)
-    logging.info("Scilpy version: {}".format(version))
+    parser.add_argument('-v', default="WARNING", const='INFO', nargs='?',
+                        choices=['DEBUG', 'INFO', 'WARNING'], dest='verbose',
+                        help='Produces verbose output depending on '
+                             'the provided level. \nDefault level is warning, '
+                             'default when using -v is info.')
 
 
 def add_bbox_arg(parser):
@@ -243,8 +283,10 @@ def add_bbox_arg(parser):
                              'streamlines).')
 
 
-def add_sh_basis_args(parser, mandatory=False):
-    """Add spherical harmonics (SH) bases argument.
+def add_sh_basis_args(parser, mandatory=False, input_output=False):
+    """
+    Add spherical harmonics (SH) bases argument. For more information about
+    the bases, see https://docs.dipy.org/stable/theory/sh_basis.html.
 
     Parameters
     ----------
@@ -252,25 +294,82 @@ def add_sh_basis_args(parser, mandatory=False):
         Parser.
     mandatory: bool
         Whether this argument is mandatory.
+    input_output: bool
+        Whether this argument should expect both input and output bases or not.
+        If set, the sh_basis argument will expect first the input basis,
+        followed by the output basis.
     """
-    choices = ['descoteaux07', 'tournier07']
-    def_val = 'descoteaux07'
+    if input_output:
+        nargs = 2
+        def_val = ['descoteaux07_legacy', 'tournier07']
+        input_output_msg = '\nBoth the input and output bases are ' +\
+                           'required, in that order.'
+    else:
+        nargs = 1
+        def_val = ['descoteaux07_legacy']
+        input_output_msg = ''
+
+    choices = ['descoteaux07', 'tournier07', 'descoteaux07_legacy',
+               'tournier07_legacy']
     help_msg = 'Spherical harmonics basis used for the SH coefficients. ' +\
-               '\nMust be either \'descoteaux07\' or \'tournier07\'' +\
+               input_output_msg +\
+               '\nMust be either \'descoteaux07\', \'tournier07\', \n' +\
+               '\'descoteaux07_legacy\' or \'tournier07_legacy\'' +\
                ' [%(default)s]:\n' +\
-               '    \'descoteaux07\': SH basis from the Descoteaux et al.\n' +\
-               '                      MRM 2007 paper\n' +\
-               '    \'tournier07\'  : SH basis from the Tournier et al.\n' +\
-               '                      NeuroImage 2007 paper.'
+               '    \'descoteaux07\'       : SH basis from the Descoteaux ' +\
+               'et al.\n' +\
+               '                           MRM 2007 paper\n' +\
+               '    \'tournier07\'         : SH basis from the new ' +\
+               'Tournier et al.\n' +\
+               '                           NeuroImage 2019 paper, as in ' +\
+               'MRtrix 3.\n' +\
+               '    \'descoteaux07_legacy\': SH basis from the legacy Dipy ' +\
+               'implementation\n' +\
+               '                           of the ' +\
+               'Descoteaux et al. MRM 2007 paper\n' +\
+               '    \'tournier07_legacy\'  : SH basis from the legacy ' +\
+               'Tournier et al.\n' +\
+               '                           NeuroImage 2007 paper.'
 
     if mandatory:
         arg_name = 'sh_basis'
     else:
         arg_name = '--sh_basis'
 
-    parser.add_argument(arg_name,
+    parser.add_argument(arg_name, nargs=nargs,
                         choices=choices, default=def_val,
                         help=help_msg)
+
+
+def parse_sh_basis_arg(args):
+    """
+    Parser the input from args.sh_basis. If two SH bases are given,
+    both input/output sh_basis and is_legacy are returned.
+
+    Parameters
+    ----------
+    args : ArgumentParser.parse_args
+        ArgumentParser.parse_args from a script.
+
+    Returns
+    -------
+    sh_basis : string
+        Spherical harmonic basis name.
+    is_legacy : bool
+        Whether or not the SH basis is in its legacy form.
+    """
+    sh_basis_name = args.sh_basis[0]
+    sh_basis = 'descoteaux07' if 'descoteaux07' in sh_basis_name \
+        else 'tournier07'
+    is_legacy = 'legacy' in sh_basis_name
+    if len(args.sh_basis) == 2:
+        sh_basis_name = args.sh_basis[1]
+        out_sh_basis = 'descoteaux07' if 'descoteaux07' in sh_basis_name \
+            else 'tournier07'
+        is_out_legacy = 'legacy' in sh_basis_name
+        return sh_basis, is_legacy, out_sh_basis, is_out_legacy
+    else:
+        return sh_basis, is_legacy
 
 
 def add_nifti_screenshot_default_args(
@@ -356,11 +455,13 @@ def add_nifti_screenshot_overlays_args(
 
 
 def validate_nbr_processes(parser, args):
-    """ Check if the passed number of processes arg is valid.
+    """
+    Check if the passed number of processes arg is valid.
+
     Valid values are considered to be in the [0, CPU count] range:
         - Raises a parser.error if an invalid value is provided.
         - Returns the maximum number of cores retrieved if no value (or a value
-        of 0) is provided.
+          of 0) is provided.
 
     Parameters
     ----------
@@ -390,7 +491,8 @@ def validate_nbr_processes(parser, args):
 
 
 def validate_sh_basis_choice(sh_basis):
-    """ Check if the passed sh_basis arg to a fct is right.
+    """
+    Check if the passed sh_basis arg to a fct is right.
 
     Parameters
     ----------
@@ -426,7 +528,8 @@ def verify_compression_th(compress_th):
 
 
 def assert_inputs_exist(parser, required, optional=None):
-    """Assert that all inputs exist. If not, print parser's usage and exit.
+    """
+    Assert that all inputs exist. If not, print parser's usage and exit.
 
     Parameters
     ----------
@@ -590,46 +693,6 @@ def assert_roi_radii_format(parser):
         parser.error('Wrong size for --roi_radii, can only be a scalar' +
                      'or an array of size (3,)')
     return roi_radii
-
-
-def verify_compatibility_with_reference_sft(ref_sft, files_to_verify,
-                                            parser, args):
-    """
-    Verifies the compatibility of a reference sft with a list of files.
-
-    Params
-    ------
-    ref_sft: StatefulTractogram
-        A tractogram to be used as reference.
-    files_to_verify: List[str]
-        List of files that should be compatible with the reference sft. Files
-        can be either other tractograms or nifti files (ex: masks).
-    parser: argument parser
-        Will raise an error if a file is not compatible.
-    args: Namespace
-        Should contain a args.reference if any file is a .tck, and possibly a
-        args.bbox_check (set to True by default).
-    """
-    save_ref = args.reference
-
-    for file in files_to_verify:
-        if file is not None:
-            _, ext = os.path.splitext(file)
-            if ext in ['.trk', '.tck', '.fib', '.vtk', '.dpy']:
-                # Cheating ref because it may send a lot of warning if loading
-                # many trk with ref (reference was maybe added only for some
-                # of these files)
-                if ext == '.trk':
-                    args.reference = None
-                else:
-                    args.reference = save_ref
-                mask = load_tractogram_with_reference(parser, args, file)
-            else:  # should be a nifti file.
-                mask = file
-            compatible = is_header_compatible(ref_sft, mask)
-            if not compatible:
-                parser.error("Reference tractogram incompatible with {}"
-                             .format(file))
 
 
 def is_header_compatible_multiple_files(parser, list_files,
@@ -878,5 +941,3 @@ def get_default_screenshotting_data(args):
         labelmap_img, \
         mask_imgs, \
         masks_colors
-
-

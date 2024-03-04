@@ -74,8 +74,8 @@ class AbstractPropagator(object):
         we reset the internal data to None before starting a multiprocess, then
         load it back when process has started.
 
-        Params
-        ------
+        Parameters
+        ----------
         new_data: Any
             Will replace self.datavolume.data.
 
@@ -320,7 +320,8 @@ class ODFPropagator(PropagatorOnSphere):
                  rk_order, algo, basis, sf_threshold, sf_threshold_init,
                  theta, dipy_sphere='symmetric724',
                  min_separation_angle=np.pi / 16.,
-                 space=Space('vox'), origin=Origin('center')):
+                 space=Space('vox'), origin=Origin('center'),
+                 is_legacy=True):
         """
 
         Parameters
@@ -363,6 +364,8 @@ class ODFPropagator(PropagatorOnSphere):
             Origin of the streamlines during tracking. Default: center, like in
             dipy. Interpolation of the ODF is done in center origin so this
             choice implies the less data modification.
+        is_legacy : bool, optional
+            Whether or not the SH basis is in its legacy form.
         """
         super().__init__(datavolume, step_size, rk_order, dipy_sphere,
                          space, origin)
@@ -395,9 +398,10 @@ class ODFPropagator(PropagatorOnSphere):
         sh_order, full_basis =\
             get_sh_order_and_fullness(self.datavolume.data.shape[-1])
         self.basis = basis
+        self.is_legacy = is_legacy
         self.B = sh_to_sf_matrix(self.sphere, sh_order, self.basis,
                                  smooth=0.006, return_inv=False,
-                                 full_basis=full_basis)
+                                 full_basis=full_basis, legacy=self.is_legacy)
 
     def _get_sf(self, pos):
         """
@@ -431,9 +435,10 @@ class ODFPropagator(PropagatorOnSphere):
         streamline for forward propagation: v_in and any other information
         necessary for the self.propagate method.
 
-        About v_in: it is used for two things:
+        About **v_in**, it is used for two things:
+
         - To sample the next direction based on _sample_next_direction method.
-         Ex, with fODF, it defines a cone theta of accepable directions.
+            Ex, with fODF, it defines a cone theta of accepable directions.
         - If no valid next dir are found, continue straight.
 
         Parameters

@@ -25,7 +25,8 @@ from scilpy.io.utils import (add_overwrite_arg,
                              add_sh_basis_args,
                              add_verbose_arg,
                              assert_inputs_exist,
-                             assert_outputs_exist)
+                             assert_outputs_exist,
+                             parse_sh_basis_arg)
 from scilpy.reconst.utils import find_order_from_nb_coeff
 from scilpy.tractanalysis.todi import TrackOrientationDensityImaging
 
@@ -71,9 +72,9 @@ def _build_arg_parser():
 
 
 def main():
-    logging.getLogger().setLevel(logging.INFO)
     parser = _build_arg_parser()
     args = parser.parse_args()
+    logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     required = [args.in_bundle, args.in_fodf, args.in_mask]
     assert_inputs_exist(parser, required)
@@ -97,6 +98,7 @@ def main():
     img_sh = nib.load(args.in_fodf)
     sh_shape = img_sh.shape
     sh_order = find_order_from_nb_coeff(sh_shape)
+    sh_basis, is_legacy = parse_sh_basis_arg(args)
     img_mask = nib.load(args.in_mask)
 
     sft = load_tractogram_with_reference(parser, args, args.in_bundle)
@@ -128,13 +130,15 @@ def main():
     sphere = get_sphere('repulsion724')
     priors_3d[sub_mask_3d] = sf_to_sh(todi_sf, sphere,
                                       sh_order=sh_order,
-                                      basis_type=args.sh_basis)
+                                      basis_type=sh_basis,
+                                      legacy=is_legacy)
     nib.save(nib.Nifti1Image(priors_3d, img_mask.affine), out_priors)
     del priors_3d
 
     input_sh_3d = img_sh.get_fdata(dtype=np.float32)
     input_sf_1d = sh_to_sf(input_sh_3d[sub_mask_3d],
-                           sphere, sh_order=sh_order, basis_type=args.sh_basis)
+                           sphere, sh_order=sh_order,
+                           basis_type=sh_basis, legacy=is_legacy)
 
     # Creation of the enhanced-FOD (direction-wise multiplication)
     mult_sf_1d = input_sf_1d * todi_sf
@@ -150,7 +154,8 @@ def main():
     # Memory friendly saving
     input_sh_3d[sub_mask_3d] = sf_to_sh(mult_sf_1d, sphere,
                                         sh_order=sh_order,
-                                        basis_type=args.sh_basis)
+                                        basis_type=sh_basis,
+                                        legacy=is_legacy)
     nib.save(nib.Nifti1Image(input_sh_3d, img_mask.affine), out_efod)
     del input_sh_3d
 

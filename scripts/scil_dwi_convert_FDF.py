@@ -13,6 +13,7 @@ Formerly: scil_convert_fdf.py
 """
 
 import argparse
+import logging
 
 from scilpy.io.varian_fdf import (correct_procpar_intensity, load_fdf,
                                   save_babel)
@@ -21,7 +22,7 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_outputs_exist)
 
 
-def build_arg_parser():
+def _build_arg_parser():
     p = argparse.ArgumentParser(
         description=__doc__,
         formatter_class=argparse.RawTextHelpFormatter,)
@@ -51,8 +52,9 @@ def build_arg_parser():
 
 
 def main():
-    parser = build_arg_parser()
+    parser = _build_arg_parser()
     args = parser.parse_args()
+    logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     assert_outputs_exist(parser, args, args.out_path, optional=[args.bval,
                                                                 args.bvec])

@@ -39,3 +39,9 @@ def test_execution_not_all(script_runner):
     ret = script_runner.run('scil_qball_metrics.py', in_dwi,
                             in_bval, in_bvec, "--not_all", "--sh", "2.nii.gz")
     assert ret.success
+
+    # Test wrong b0. Current minimal b-val is 5.
+    ret = script_runner.run('scil_qball_metrics.py', in_dwi,
+                            in_bval, in_bvec, "--not_all", "--sh", "2.nii.gz",
+                            '--b0_threshold', '1', '-f')
+    assert not ret.success

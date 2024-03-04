@@ -24,6 +24,7 @@ import colorsys
 import glob
 import json
 import itertools
+import logging
 import nibabel as nib
 import numpy as np
 import os
@@ -106,6 +107,7 @@ def random_rgb():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
+    logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     # Make sure the colors are consistent between executions
     if args.random_coloring is not None:

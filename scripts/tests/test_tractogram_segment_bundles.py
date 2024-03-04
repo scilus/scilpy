@@ -39,5 +39,5 @@ def test_execution_bundles(script_runner):
                             in_tractogram, 'config.json',
                             in_models,
                             in_aff, '--inverse',
-                            '--processes', '1', '--log', 'WARNING')
+                            '--processes', '1', '-v', 'WARNING')
     assert ret.success

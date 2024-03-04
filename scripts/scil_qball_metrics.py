@@ -28,14 +28,16 @@ from dipy.io import read_bvals_bvecs
 from dipy.direction.peaks import (peaks_from_model,
                                   reshape_peaks_for_visualization)
 from dipy.reconst.shm import QballModel, CsaOdfModel, anisotropic_power
-from scilpy.io.utils import (add_overwrite_arg, add_processes_arg,
-                             add_sh_basis_args, assert_inputs_exist,
-                             assert_outputs_exist, add_force_b0_arg,
-                             validate_nbr_processes, add_verbose_arg)
-from scilpy.io.image import get_data_as_mask
-from scilpy.gradients.bvec_bval_tools import (normalize_bvecs,
+
+from scilpy.gradients.bvec_bval_tools import (check_b0_threshold,
                                               is_normalized_bvecs,
-                                              check_b0_threshold)
+                                              normalize_bvecs)
+from scilpy.io.image import get_data_as_mask
+from scilpy.io.utils import (add_b0_thresh_arg, add_overwrite_arg,
+                             add_processes_arg, add_sh_basis_args,
+                             add_skip_b0_check_arg, add_verbose_arg,
+                             assert_inputs_exist, assert_outputs_exist,
+                             parse_sh_basis_arg, validate_nbr_processes)
 
 
 DEFAULT_SMOOTH = 0.006
@@ -85,10 +87,11 @@ def _build_arg_parser():
                    help='Output filename for the anisotropic power map'
                         '[anisotropic_power.nii.gz].')
 
+    add_b0_thresh_arg(p)
+    add_skip_b0_check_arg(p, will_overwrite_with_min=True)
     add_sh_basis_args(p)
     add_processes_arg(p)
     add_verbose_arg(p)
-    add_force_b0_arg(p)
 
     return p
 
@@ -96,6 +99,7 @@ def _build_arg_parser():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
+    logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     if not args.not_all:
         args.gfa = args.gfa or 'gfa.nii.gz'
@@ -128,10 +132,15 @@ def main():
         logging.warning('Your b-vectors do not seem normalized...')
         bvecs = normalize_bvecs(bvecs)
 
-    check_b0_threshold(args, bvals.min())
-    gtab = gradient_table(bvals, bvecs, b0_threshold=bvals.min())
+    # Usage of gtab.b0s_mask in dipy's models is not very well documented, but
+    # we can see that it is indeed used.
+    args.b0_threshold = check_b0_threshold(bvals.min(),
+                                           b0_thr=args.b0_threshold,
+                                           skip_b0_check=args.skip_b0_check)
+    gtab = gradient_table(bvals, bvecs, b0_threshold=args.b0_threshold)
 
     sphere = get_sphere('symmetric724')
+    sh_basis, _ = parse_sh_basis_arg(args)
 
     mask = None
     if args.mask:
@@ -148,6 +157,7 @@ def main():
         model = CsaOdfModel(gtab, sh_order=args.sh_order,
                             smooth=DEFAULT_SMOOTH)
 
+    # ToDo: Once Dipy adds the legacy option to peaks_from_model, put is_legacy
     odfpeaks = peaks_from_model(model=model,
                                 data=data,
                                 sphere=sphere,
@@ -158,7 +168,7 @@ def main():
                                 normalize_peaks=True,
                                 return_sh=True,
                                 sh_order=int(args.sh_order),
-                                sh_basis_type=args.sh_basis,
+                                sh_basis_type=sh_basis,
                                 npeaks=5,
                                 parallel=parallel,
                                 num_processes=nbr_processes)

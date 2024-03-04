@@ -18,6 +18,7 @@ Formerly: scil_combine_labels.py.
 
 
 import argparse
+import logging
 
 from dipy.io.utils import is_header_compatible
 import nibabel as nib
@@ -76,6 +77,7 @@ def _build_arg_parser():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
+    logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     image_files = []
     indices_per_input_volume = []

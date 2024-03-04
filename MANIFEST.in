@@ -3,6 +3,7 @@ include LICENSE
 include requirements.txt
 include .python-version
 
+recursive-include data/LUT *
 recursive-include scilpy *.c
 recursive-include scilpy *.cpp
 recursive-include scilpy *.pyx

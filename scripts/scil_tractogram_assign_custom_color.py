@@ -170,7 +170,7 @@ def save_colorbar(cmap, lbound, ubound, args):
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
-    logging.getLogger().setLevel(logging.WARNING)
+    logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     assert_inputs_exist(parser, args.in_tractogram)
     assert_outputs_exist(parser, args, args.out_tractogram,
@@ -200,7 +200,9 @@ def main():
                 data = np.clip(data, np.quantile(data, 0.05),
                                np.quantile(data, 0.95))
         elif args.use_dpp:
-            data = np.squeeze(sft.data_per_point[args.use_dpp]._data)
+            tmp = [np.squeeze(sft.data_per_point[args.use_dpp][s]) for s in
+                   range(len(sft))]
+            data = np.hstack(tmp)
         elif args.load_dps:
             data = np.squeeze(load_matrix_in_any_format(args.load_dps))
             if len(data) != len(sft):

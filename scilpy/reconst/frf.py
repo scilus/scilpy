@@ -10,12 +10,14 @@ from dipy.segment.mask import applymask
 import numpy as np
 
 from scilpy.gradients.bvec_bval_tools import (check_b0_threshold,
-                                              is_normalized_bvecs, normalize_bvecs)
+                                              is_normalized_bvecs,
+                                              normalize_bvecs,
+                                              DEFAULT_B0_THRESHOLD)
 
 
-def compute_ssst_frf(data, bvals, bvecs, mask=None, mask_wm=None,
-                     fa_thresh=0.7, min_fa_thresh=0.5, min_nvox=300,
-                     roi_radii=10, roi_center=None, force_b0_threshold=False):
+def compute_ssst_frf(data, bvals, bvecs, b0_threshold=DEFAULT_B0_THRESHOLD,
+                     mask=None, mask_wm=None, fa_thresh=0.7, min_fa_thresh=0.5,
+                     min_nvox=300, roi_radii=10, roi_center=None):
     """Compute a single-shell (under b=1500), single-tissue single Fiber
     Response Function from a DWI volume.
     A DTI fit is made, and voxels containing a single fiber population are
@@ -29,6 +31,8 @@ def compute_ssst_frf(data, bvals, bvecs, mask=None, mask_wm=None,
         1D bvals array with shape (N,)
     bvecs : ndarray
         2D bvecs array with shape (N, 3)
+    b0_threshold: float
+        Value under which bvals are considered b0s.
     mask : ndarray, optional
         3D mask with shape (X,Y,Z)
         Binary mask. Only the data inside the mask will be used for
@@ -55,8 +59,6 @@ def compute_ssst_frf(data, bvals, bvecs, mask=None, mask_wm=None,
     roi_center : tuple(3), optional
         Use this center to span the roi of size roi_radius (center of the
         3D volume).
-    force_b0_threshold : bool, optional
-        If set, will continue even if the minimum bvalue is suspiciously high.
 
     Returns
     -------
@@ -75,12 +77,10 @@ def compute_ssst_frf(data, bvals, bvecs, mask=None, mask_wm=None,
             "Make sure it makes sense for this dataset.".format(min_fa_thresh))
 
     if not is_normalized_bvecs(bvecs):
-        logging.warning("Your b-vectors do not seem normalized...")
+        logging.warning("Your b-vectors do not seem normalized... Normalizing")
         bvecs = normalize_bvecs(bvecs)
 
-    b0_thr = check_b0_threshold(force_b0_threshold, bvals.min(), bvals.min())
-
-    gtab = gradient_table(bvals, bvecs, b0_threshold=b0_thr)
+    gtab = gradient_table(bvals, bvecs, b0_threshold=b0_threshold)
 
     if mask is not None:
         data = applymask(data, mask)
@@ -107,7 +107,7 @@ def compute_ssst_frf(data, bvals, bvecs, mask=None, mask_wm=None,
         nvox = np.sum(mask)
         response, ratio = response_from_mask_ssst(gtab, data, mask)
 
-        logging.debug(
+        logging.info(
             "Number of indices is {:d} with threshold of {:.2f}".format(
                 nvox, fa_thresh))
         fa_thresh -= 0.05
@@ -117,14 +117,14 @@ def compute_ssst_frf(data, bvals, bvecs, mask=None, mask_wm=None,
             "Could not find at least {:d} voxels with sufficient FA "
             "to estimate the FRF!".format(min_nvox))
 
-    logging.debug(
+    logging.info(
         "Found {:d} voxels with FA threshold {:.2f} for "
         "FRF estimation".format(nvox, fa_thresh + 0.05))
-    logging.debug("FRF eigenvalues: {}".format(str(response[0])))
-    logging.debug("Ratio for smallest to largest eigen value "
-                  "is {:.3f}".format(ratio))
-    logging.debug("Mean of the b=0 signal for voxels used "
-                  "for FRF: {}".format(response[1]))
+    logging.info("FRF eigenvalues: {}".format(str(response[0])))
+    logging.info("Ratio for smallest to largest eigen value "
+                 "is {:.3f}".format(ratio))
+    logging.info("Mean of the b=0 signal for voxels used "
+                 "for FRF: {}".format(response[1]))
 
     full_response = np.array([response[0][0], response[0][1],
                               response[0][2], response[1]])
@@ -137,8 +137,7 @@ def compute_msmt_frf(data, bvals, bvecs, btens=None, data_dti=None,
                      mask=None, mask_wm=None, mask_gm=None, mask_csf=None,
                      fa_thr_wm=0.7, fa_thr_gm=0.2, fa_thr_csf=0.1,
                      md_thr_gm=0.0007, md_thr_csf=0.003, min_nvox=300,
-                     roi_radii=10, roi_center=None, tol=20,
-                     force_b0_threshold=False):
+                     roi_radii=10, roi_center=None, tol=20):
     """Compute a multi-shell, multi-tissue single Fiber
     Response Function from a DWI volume.
     A DTI fit is made, and voxels containing a single fiber population are
@@ -152,6 +151,18 @@ def compute_msmt_frf(data, bvals, bvecs, btens=None, data_dti=None,
         1D bvals array with shape (N,)
     bvecs : ndarray
         2D bvecs array with shape (N, 3)
+    btens: ndarray 1D
+        btens array with shape (N,), describing the btensor shape of every
+        pair of bval/bvec.
+    data_dti: ndarray 4D
+        Input diffusion volume with shape (X, Y, Z, M), where M is the number
+        of DTI directions.
+    bvals_dti: ndarray 1D
+        bvals array with shape (M,)
+    bvecs_dti: ndarray 2D
+        bvals array with shape (M, 3)
+    btens_dti: ndarray 1D
+        bvals array with shape (M,)
     mask : ndarray, optional
         3D mask with shape (X,Y,Z)
         Binary mask. Only the data inside the mask will be used for
@@ -200,8 +211,6 @@ def compute_msmt_frf(data, bvals, bvecs, btens=None, data_dti=None,
         3D volume).
     tol : int
         tolerance gap for b-values clustering. Defaults to 20
-    force_b0_threshold : bool, optional
-        If set, will continue even if the minimum bvalue is suspiciously high.
 
     Returns
     -------
@@ -221,9 +230,10 @@ def compute_msmt_frf(data, bvals, bvecs, btens=None, data_dti=None,
         logging.warning('Your b-vectors do not seem normalized...')
         bvecs = normalize_bvecs(bvecs)
 
-    b0_thr = check_b0_threshold(force_b0_threshold, bvals.min(), bvals.min())
-
-    gtab = gradient_table(bvals, bvecs, btens=btens, b0_threshold=b0_thr)
+    # Note. Using the tolerance here because currently, the gtab.b0s_mask is
+    # not used. Below, we use the tolerance only (in dipy).
+    # An issue has been added in dipy too.
+    gtab = gradient_table(bvals, bvecs, btens=btens, b0_threshold=tol)
 
     if data_dti is None and bvals_dti is None and bvecs_dti is None:
         logging.warning(
@@ -244,7 +254,6 @@ def compute_msmt_frf(data, bvals, bvecs, btens=None, data_dti=None,
             logging.warning('Your b-vectors do not seem normalized...')
             bvecs_dti = normalize_bvecs(bvecs_dti)
 
-        check_b0_threshold(force_b0_threshold, bvals_dti.min())
         gtab_dti = gradient_table(bvals_dti, bvecs_dti, btens=btens_dti)
 
         wm_frf_mask, gm_frf_mask, csf_frf_mask \

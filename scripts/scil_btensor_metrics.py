@@ -50,8 +50,9 @@ from scilpy.image.utils import extract_affine
 from scilpy.io.btensor import generate_btensor_input
 from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
-                             assert_outputs_exist, add_force_b0_arg,
-                             add_processes_arg, add_verbose_arg)
+                             assert_outputs_exist, add_processes_arg,
+                             add_verbose_arg, add_skip_b0_check_arg,
+                             add_tolerance_arg)
 from scilpy.reconst.divide import fit_gamma, gamma_fit2metrics
 
 
@@ -77,10 +78,9 @@ def _build_arg_parser():
         '--mask',
         help='Path to a binary mask. Only the data inside the '
              'mask will be used for computations and reconstruction.')
-    p.add_argument(
-        '--tolerance', type=int, default=20,
-        help='The tolerated gap between the b-values to '
-             'extract\nand the current b-value. [%(default)s]')
+    add_tolerance_arg(p)
+    add_skip_b0_check_arg(p, will_overwrite_with_min=False,
+                          b0_tol_name='--tolerance')
     p.add_argument(
         '--fit_iters', type=int, default=1,
         help='The number of time the gamma fit will be done [%(default)s]')
@@ -110,7 +110,6 @@ def _build_arg_parser():
         '--fa',
         help='Path to a FA map. Needed for calculating the OP.')
 
-    add_force_b0_arg(p)
     add_processes_arg(p)
     add_verbose_arg(p)
     add_overwrite_arg(p)
@@ -144,12 +143,9 @@ def _build_arg_parser():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
+    logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
-    if args.verbose:
-        logging.basicConfig(level=logging.DEBUG)
-    else:
-        logging.basicConfig(level=logging.INFO)
-
+    # Verifications
     if not args.not_all:
         args.md = args.md or 'md.nii.gz'
         args.ufa = args.ufa or 'ufa.nii.gz'
@@ -159,17 +155,15 @@ def main():
 
     arglist = [args.md, args.ufa, args.mk_i, args.mk_a, args.mk_t]
     if args.not_all and not any(arglist):
-        parser.error('When using --not_all, you need to specify at least ' +
+        parser.error('When using --not_all, you need to specify at least '
                      'one file to output.')
 
     assert_inputs_exist(parser, [],
-                        optional=list(np.concatenate((args.in_dwis,
-                                                      args.in_bvals,
-                                                      args.in_bvecs))))
+                        optional=args.in_dwis + args.in_bvals + args.in_bvecs)
     assert_outputs_exist(parser, args, arglist)
 
     if args.op and not args.fa:
-        parser.error('Computation of the OP requires a precomputed ' +
+        parser.error('Computation of the OP requires a precomputed '
                      'FA map (given using --fa).')
 
     if not (len(args.in_dwis) == len(args.in_bvals)
@@ -183,16 +177,19 @@ def main():
               script to work properly."""
         raise ValueError(msg)
 
+    # Loading
     affine = extract_affine(args.in_dwis)
 
-    tol = args.tolerance
-
+    # Note. This script does not currently allow using a separate b0_threshold
+    # for the b0s. Using the tolerance. To change this, we would have to
+    # change generate_btensor_input.
     data, gtab_infos = generate_btensor_input(args.in_dwis,
                                               args.in_bvals,
                                               args.in_bvecs,
                                               args.in_bdeltas,
                                               do_pa_signals=True,
-                                              tol=tol)
+                                              tol=args.tolerance,
+                                              skip_b0_check=args.skip_b0_check)
 
     gtab_infos[0] *= 1e6  # getting bvalues to SI units
 
@@ -210,6 +207,7 @@ def main():
         vol = nib.load(args.fa)
         FA = vol.get_fdata(dtype=np.float32)
 
+    # Processing
     parameters = fit_gamma(data, gtab_infos, mask=mask,
                            fit_iters=args.fit_iters,
                            random_iters=args.random_iters,

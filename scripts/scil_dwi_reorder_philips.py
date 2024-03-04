@@ -18,7 +18,7 @@ from dipy.io.gradients import read_bvals_bvecs
 import nibabel as nib
 import numpy as np
 
-from scilpy.gradients.utils import get_new_order_philips
+from scilpy.gradients.utils import get_new_gtab_order
 from scilpy.io.utils import (add_overwrite_arg,
                              add_verbose_arg,
                              assert_inputs_exist,
@@ -34,18 +34,18 @@ def _build_arg_parser():
 
     p.add_argument('in_dwi',
                    help='Input dwi file.')
-    p.add_argument('in_bvec',
-                   help='Input bvec FSL format.')
     p.add_argument('in_bval',
                    help='Input bval FSL format.')
+    p.add_argument('in_bvec',
+                   help='Input bvec FSL format.')
     p.add_argument('in_table',
                    help='Original philips table - first line is skipped.')
     p.add_argument('out_basename',
                    help='Basename output file.')
 
     p.add_argument('--json',
-                   help='If you json file, it will check if you need'
-                        ' to reorder your Philips dwi.')
+                   help='If you give a json file, it will check if you need '
+                        'to reorder your Philips dwi.')
 
     add_verbose_arg(p)
     add_overwrite_arg(p)
@@ -56,9 +56,7 @@ def _build_arg_parser():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
-
-    if args.verbose:
-        logging.getLogger().setLevel(logging.INFO)
+    logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     required_args = [args.in_dwi, args.in_bvec, args.in_bval, args.in_table]
 
@@ -90,7 +88,7 @@ def main():
     bvals, bvecs = read_bvals_bvecs(args.in_bval, args.in_bvec)
     dwi = nib.load(args.in_dwi)
 
-    new_index = get_new_order_philips(philips_table, dwi, bvals, bvecs)
+    new_index = get_new_gtab_order(philips_table, dwi, bvals, bvecs)
     bvecs = bvecs[new_index]
     bvals = bvals[new_index]
 
