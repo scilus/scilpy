@@ -14,6 +14,11 @@ from scilpy.reconst.mti import adjust_B1_map_intensities, smooth_B1_map, \
 
 
 def add_common_args_mti(p):
+    """
+    Defines arguments used in common for these scripts:
+    - scil_mti_maps_MT.py
+    - scil_mti_maps_ihMT.py
+    """
     p.add_argument('--extended', action='store_true',
                    help='If set, outputs the folder Complementary_maps.')
     p.add_argument('--filtering', action='store_true',
@@ -69,7 +74,34 @@ def add_common_args_mti(p):
 def verifications_and_loading_mti(args, parser, input_maps_lists,
                                   extended_dir, affine, contrast_names):
     """
-    Common verifications for both MT and ihMT scripts.
+    Common verifications and loading for both MT and ihMT scripts.
+
+    Parameters
+    ----------
+    args: Namespace
+    parser: Argparser
+    input_maps_lists: list[list]
+        A list of lists of inputs.
+    extended_dir: str
+        The folder for extended savings (with option args.extended).
+    affine: np.ndarray
+        A reference affine to save files.
+    contrast_names: list
+        A list of prefixes for each sub-list in input_maps_lists.
+
+    Returns
+    -------
+    single_echo: bool
+        True if the first list in input_maps_lists (i.e. the main echoes)
+        contains only one file.
+    flip_angles: list[float]
+        The flip angles, in radian
+    rep_times: list[float]
+        The rep times, in ms.
+    B1_map: np.ndarray
+        The loaded map, with adjusted intensities, smoothed, corrected.
+    contrast_maps: list[np.ndarray]
+        One contrast map per string in contrast_names.
     """
     # Verify that there is the same number of --positive, --negative,
     # --in_mtoff_pd and --in_mtoff_t1
@@ -111,10 +143,10 @@ def verifications_and_loading_mti(args, parser, input_maps_lists,
                 logging.warning('Repetition time found in {} does not seem to '
                                 'be given in seconds. MTsat and ihMTsat '
                                 'results might be affected.'.format(curr_json))
-            rep_times.append(acq_parameter[0] * 1000)  # convert ms.
-            flip_angles.append(acq_parameter[1] * np.pi / 180.)  # convert rad.
+            rep_times.append(acq_parameter[0] * 1000)  # convert to ms.
+            flip_angles.append(np.deg2rad(acq_parameter[1]))
 
-    # Fix issue from the presence of invalide value and division by zero
+    # Fix issue from the presence of invalid value and division by zero
     np.seterr(divide='ignore', invalid='ignore')
 
     # Load B1 image
