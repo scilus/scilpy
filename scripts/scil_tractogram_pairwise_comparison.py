@@ -29,6 +29,7 @@ import os
 
 import nibabel as nib
 
+from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg, add_reference_arg,
                              assert_inputs_exist,
                              assert_outputs_exist,
@@ -36,9 +37,8 @@ from scilpy.io.utils import (add_overwrite_arg, add_reference_arg,
                              add_processes_arg,
                              add_verbose_arg,
                              is_header_compatible_multiple_files,
-                             load_tractogram_with_reference,
                              validate_nbr_processes)
-from scilpy.tractograms.tractogram_operations import tractogram_pairwise_comparison
+from scilpy.tractanalysis.reproducibility_measures import tractogram_pairwise_comparison
 
 
 def _build_arg_parser():
@@ -64,7 +64,7 @@ def _build_arg_parser():
                    help='Optional input mask.')
     p.add_argument('--skip_streamlines_distance', action='store_true',
                    help='Skip computation of the spatial distance between '
-                        'streamlines.')
+                        'streamlines. Slowest part of the computation.')
     add_processes_arg(p)
     add_reference_arg(p)
     add_verbose_arg(p)
@@ -77,11 +77,10 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    if args.verbose:
-        logging.basicConfig(level=logging.INFO)
+    logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
-    assert_inputs_exist(parser, [args.in_tractogram_1,
-                                 args.in_tractogram_2])
+    assert_inputs_exist(parser, [args.in_tractogram_1, args.in_tractogram_2],
+                        [args.in_mask, args.reference])
     to_verify = [args.in_tractogram_1, args.in_tractogram_2]
     if args.in_mask:
         to_verify.append(args.in_mask)
@@ -102,8 +101,8 @@ def main():
     assert_output_dirs_exist_and_empty(parser, args, [], optional=args.out_dir)
     assert_outputs_exist(parser, args, [out_corr_filename,
                                         out_acc_filename,
-                                        out_diff_filename,
-                                        out_merge_filename])
+                                        out_merge_filename],
+                         out_diff_filename)
     nbr_cpu = validate_nbr_processes(parser, args)
 
     logging.info('Loading tractograms...')
@@ -118,7 +117,8 @@ def main():
     logging.info('Saving results...')
     nib.save(nib.Nifti1Image(acc_data, sft_1.affine), out_acc_filename)
     nib.save(nib.Nifti1Image(corr_data, sft_1.affine), out_corr_filename)
-    nib.save(nib.Nifti1Image(diff_data, sft_1.affine), out_diff_filename)
+    if not args.skip_streamlines_distance:
+        nib.save(nib.Nifti1Image(diff_data, sft_1.affine), out_diff_filename)
     nib.save(nib.Nifti1Image(heatmap, sft_1.affine), out_merge_filename)
 
 
