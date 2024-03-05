@@ -90,7 +90,7 @@ import os
 import nibabel as nib
 import numpy as np
 
-from scilpy.io.mti import add_common_args_mti, verifications_and_loading_mti
+from scilpy.io.mti import add_common_args_mti, load_and_verify_mti
 from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist, add_verbose_arg,
                              assert_output_dirs_exist_and_empty)
@@ -203,8 +203,8 @@ def main():
 
     # Other checks, loading, saving contrast_maps.
     single_echo, flip_angles, rep_times, B1_map, contrast_maps = \
-        verifications_and_loading_mti(args, parser, input_maps_lists,
-                                      extended_dir, affine, contrast_names)
+        load_and_verify_mti(args, parser, input_maps_lists, extended_dir,
+                            affine, contrast_names)
 
     # Compute ratio maps
     MTR, ihMTR = compute_ratio_map((contrast_maps[2] + contrast_maps[3]) / 2,

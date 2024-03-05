@@ -125,13 +125,14 @@ def load_and_verify_mti(args, parser, input_maps_lists, extended_dir, affine,
 
     # Set TR and FlipAngle parameters. Required with --in_mtoff_t1, in which
     # case one of --in_aqc_parameters or --in_jsons is set.
-    rep_times, flip_angles = _parse_acquisition_parameters
+    rep_times, flip_angles = _parse_acquisition_parameters(args)
 
     # Fix issue from the presence of invalid value and division by zero
     np.seterr(divide='ignore', invalid='ignore')
 
     # Load B1 image
-    B1_map, flip_angles = _prepare_B1_map(args, flip_angles)
+    B1_map, flip_angles = _prepare_B1_map(args, flip_angles, extended_dir,
+                                          affine)
 
     # Define contrasts maps names
     if args.filtering:
