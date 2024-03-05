@@ -1,7 +1,3 @@
-[cache]
-    dir = /home/scil/.scilpy/dvc-cache/
-    shared = group
-    type = symlink
 [core]
     remote = scil-data
 ['remote "scil-data"']

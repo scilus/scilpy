@@ -1,14 +1,25 @@
 # -*- coding: utf-8 -*-
 
 
-from dvc import config, api
 import os
+
 import yaml
+from dvc import api, config
 
 from scilpy import SCILPY_HOME, SCILPY_ROOT
 
-
 DVC_REPOSITORY = "https://github.com/AlexVCaron/scil_data.git"
+DEFAULT_CACHE_CONFIG = {
+    "type": "symlink",
+    "shared": "group",
+    "dir": os.path.join(SCILPY_HOME, "dvc-cache")
+}
+
+
+def get_default_config():
+    return config.Config(config={
+        "cache": DEFAULT_CACHE_CONFIG
+    })
 
 
 def pull_test_case_package(package_name):
@@ -27,7 +38,7 @@ def pull_test_case_package(package_name):
         The path to the pulled package.
 
     .. _Scilpy Tests Vendor:
-        https://github.com/AlexVCaron/scil_data/tree/main/store/scilpy_tests
+        https://github.com/AlexVCaron/scilus/tree/main/store/scilpy_tests
     """
     with open(f"{SCILPY_ROOT}/.dvc/test_descriptors.yml", 'r') as f:
         test_descriptors = yaml.safe_load(f)
@@ -75,10 +86,10 @@ def pull_package_from_dvc_repository(vendor, package_name, output_dir,
         The path to the pulled package.
 
     .. _SCIL Data Store:
-        https://github.com/AlexVCaron/scil_data/tree/main/store
+        https://github.com/scilus/scil_data/tree/main/store
     """
     return pull_from_dvc_repository(f"store/{vendor}/{package_name}",
-                                    f"{output_dir}/{package_name}",
+                                    f"{output_dir}/",
                                     revision, remote_url, remote_name,
                                     dvc_config_root)
 
@@ -110,9 +121,11 @@ def pull_from_dvc_repository(package_name, output_dir, revision="main",
     str
         The path to the pulled package.
     """
-    conf = config.Config(dvc_config_root)
+    conf = get_default_config()
+    conf.merge(config.Config(dvc_config_root))
+
     registry = api.DVCFileSystem(remote_url, revision,
-                                 remote_name=remote_name,
+                                 config=conf, remote_name=remote_name,
                                  remote_config=conf["remote"][remote_name])
 
-    registry.get(package_name, output_dir, True)
+    registry.get(package_name, output_dir, True, cache=True)
