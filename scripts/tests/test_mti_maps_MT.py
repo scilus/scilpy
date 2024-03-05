@@ -11,6 +11,51 @@ fetch_data(get_testing_files_dict(), keys=['MT.zip'])
 tmp_dir = tempfile.TemporaryDirectory()
 
 
+# Preparing once the filenames.
+in_mask = os.path.join(get_home(), 'MT', 'mask.nii.gz')
+
+in_mtoff_json = os.path.join(get_home(),
+                             'MT', 'sub-001_echo-1_acq-mtoff_mtsat.json')
+in_t1w_json = os.path.join(get_home(),
+                           'MT', 'sub-001_echo-1_acq-t1w_mtsat.json')
+
+in_e1_mtoff = os.path.join(get_home(),
+                           'MT', 'sub-001_echo-1_acq-mtoff_mtsat.nii.gz')
+in_e2_mtoff = os.path.join(get_home(),
+                           'MT', 'sub-001_echo-2_acq-mtoff_mtsat.nii.gz')
+in_e3_mtoff = os.path.join(get_home(),
+                           'MT', 'sub-001_echo-3_acq-mtoff_mtsat.nii.gz')
+in_e4_mtoff = os.path.join(get_home(),
+                           'MT', 'sub-001_echo-4_acq-mtoff_mtsat.nii.gz')
+in_e5_mtoff = os.path.join(get_home(),
+                           'MT', 'sub-001_echo-5_acq-mtoff_mtsat.nii.gz')
+
+in_e1_mton = os.path.join(get_home(),
+                          'MT', 'sub-001_echo-1_acq-mton_mtsat.nii.gz')
+in_e2_mton = os.path.join(get_home(),
+                          'MT', 'sub-001_echo-2_acq-mton_mtsat.nii.gz')
+in_e3_mton = os.path.join(get_home(),
+                          'MT', 'sub-001_echo-3_acq-mton_mtsat.nii.gz')
+in_e4_mton = os.path.join(get_home(),
+                          'MT', 'sub-001_echo-4_acq-mton_mtsat.nii.gz')
+in_e5_mton = os.path.join(get_home(),
+                          'MT', 'sub-001_echo-5_acq-mton_mtsat.nii.gz')
+
+in_e1_t1w = os.path.join(get_home(),
+                         'MT', 'sub-001_echo-1_acq-t1w_mtsat.nii.gz')
+in_e2_t1w = os.path.join(get_home(),
+                         'MT', 'sub-001_echo-2_acq-t1w_mtsat.nii.gz')
+in_e3_t1w = os.path.join(get_home(),
+                         'MT', 'sub-001_echo-3_acq-t1w_mtsat.nii.gz')
+in_e4_t1w = os.path.join(get_home(),
+                         'MT', 'sub-001_echo-4_acq-t1w_mtsat.nii.gz')
+in_e5_t1w = os.path.join(get_home(),
+                         'MT', 'sub-001_echo-5_acq-t1w_mtsat.nii.gz')
+
+in_b1_map = os.path.join(get_home(), 'MT', 'sub-001_run-01_B1map.nii.gz')
+in_b1_json = os.path.join(get_home(), 'MT', 'sub-001_run-01_B1map.json')
+
+
 def test_help_option(script_runner):
     ret = script_runner.run('scil_mti_maps_MT.py', '--help')
     assert ret.success
@@ -18,46 +63,6 @@ def test_help_option(script_runner):
 
 def test_execution_MT_no_option(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-
-    in_mask = os.path.join(get_home(), 'MT', 'mask.nii.gz')
-
-    in_mtoff_json = os.path.join(get_home(),
-                                 'MT', 'sub-001_echo-1_acq-mtoff_mtsat.json')
-    in_t1w_json = os.path.join(get_home(),
-                               'MT', 'sub-001_echo-1_acq-t1w_mtsat.json')
-
-    in_e1_mtoff = os.path.join(get_home(),
-                               'MT', 'sub-001_echo-1_acq-mtoff_mtsat.nii.gz')
-    in_e2_mtoff = os.path.join(get_home(),
-                               'MT', 'sub-001_echo-2_acq-mtoff_mtsat.nii.gz')
-    in_e3_mtoff = os.path.join(get_home(),
-                               'MT', 'sub-001_echo-3_acq-mtoff_mtsat.nii.gz')
-    in_e4_mtoff = os.path.join(get_home(),
-                               'MT', 'sub-001_echo-4_acq-mtoff_mtsat.nii.gz')
-    in_e5_mtoff = os.path.join(get_home(),
-                               'MT', 'sub-001_echo-5_acq-mtoff_mtsat.nii.gz')
-
-    in_e1_mton = os.path.join(get_home(),
-                              'MT', 'sub-001_echo-1_acq-mton_mtsat.nii.gz')
-    in_e2_mton = os.path.join(get_home(),
-                              'MT', 'sub-001_echo-2_acq-mton_mtsat.nii.gz')
-    in_e3_mton = os.path.join(get_home(),
-                              'MT', 'sub-001_echo-3_acq-mton_mtsat.nii.gz')
-    in_e4_mton = os.path.join(get_home(),
-                              'MT', 'sub-001_echo-4_acq-mton_mtsat.nii.gz')
-    in_e5_mton = os.path.join(get_home(),
-                              'MT', 'sub-001_echo-5_acq-mton_mtsat.nii.gz')
-
-    in_e1_t1w = os.path.join(get_home(),
-                             'MT', 'sub-001_echo-1_acq-t1w_mtsat.nii.gz')
-    in_e2_t1w = os.path.join(get_home(),
-                             'MT', 'sub-001_echo-2_acq-t1w_mtsat.nii.gz')
-    in_e3_t1w = os.path.join(get_home(),
-                             'MT', 'sub-001_echo-3_acq-t1w_mtsat.nii.gz')
-    in_e4_t1w = os.path.join(get_home(),
-                             'MT', 'sub-001_echo-4_acq-t1w_mtsat.nii.gz')
-    in_e5_t1w = os.path.join(get_home(),
-                             'MT', 'sub-001_echo-5_acq-t1w_mtsat.nii.gz')
 
     # no option
     ret = script_runner.run('scil_mti_maps_MT.py', tmp_dir.name,
@@ -75,46 +80,6 @@ def test_execution_MT_no_option(script_runner):
 
 def test_execution_MT_prefix(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-
-    in_mask = os.path.join(get_home(), 'MT', 'mask.nii.gz')
-
-    in_mtoff_json = os.path.join(get_home(),
-                                 'MT', 'sub-001_echo-1_acq-mtoff_mtsat.json')
-    in_t1w_json = os.path.join(get_home(),
-                               'MT', 'sub-001_echo-1_acq-t1w_mtsat.json')
-
-    in_e1_mtoff = os.path.join(get_home(),
-                               'MT', 'sub-001_echo-1_acq-mtoff_mtsat.nii.gz')
-    in_e2_mtoff = os.path.join(get_home(),
-                               'MT', 'sub-001_echo-2_acq-mtoff_mtsat.nii.gz')
-    in_e3_mtoff = os.path.join(get_home(),
-                               'MT', 'sub-001_echo-3_acq-mtoff_mtsat.nii.gz')
-    in_e4_mtoff = os.path.join(get_home(),
-                               'MT', 'sub-001_echo-4_acq-mtoff_mtsat.nii.gz')
-    in_e5_mtoff = os.path.join(get_home(),
-                               'MT', 'sub-001_echo-5_acq-mtoff_mtsat.nii.gz')
-
-    in_e1_mton = os.path.join(get_home(),
-                              'MT', 'sub-001_echo-1_acq-mton_mtsat.nii.gz')
-    in_e2_mton = os.path.join(get_home(),
-                              'MT', 'sub-001_echo-2_acq-mton_mtsat.nii.gz')
-    in_e3_mton = os.path.join(get_home(),
-                              'MT', 'sub-001_echo-3_acq-mton_mtsat.nii.gz')
-    in_e4_mton = os.path.join(get_home(),
-                              'MT', 'sub-001_echo-4_acq-mton_mtsat.nii.gz')
-    in_e5_mton = os.path.join(get_home(),
-                              'MT', 'sub-001_echo-5_acq-mton_mtsat.nii.gz')
-
-    in_e1_t1w = os.path.join(get_home(),
-                             'MT', 'sub-001_echo-1_acq-t1w_mtsat.nii.gz')
-    in_e2_t1w = os.path.join(get_home(),
-                             'MT', 'sub-001_echo-2_acq-t1w_mtsat.nii.gz')
-    in_e3_t1w = os.path.join(get_home(),
-                             'MT', 'sub-001_echo-3_acq-t1w_mtsat.nii.gz')
-    in_e4_t1w = os.path.join(get_home(),
-                             'MT', 'sub-001_echo-4_acq-t1w_mtsat.nii.gz')
-    in_e5_t1w = os.path.join(get_home(),
-                             'MT', 'sub-001_echo-5_acq-t1w_mtsat.nii.gz')
 
     # --out_prefix
     ret = script_runner.run('scil_mti_maps_MT.py', tmp_dir.name,
@@ -134,46 +99,6 @@ def test_execution_MT_prefix(script_runner):
 def test_execution_MT_extended(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
 
-    in_mask = os.path.join(get_home(), 'MT', 'mask.nii.gz')
-
-    in_mtoff_json = os.path.join(get_home(),
-                                 'MT', 'sub-001_echo-1_acq-mtoff_mtsat.json')
-    in_t1w_json = os.path.join(get_home(),
-                               'MT', 'sub-001_echo-1_acq-t1w_mtsat.json')
-
-    in_e1_mtoff = os.path.join(get_home(),
-                               'MT', 'sub-001_echo-1_acq-mtoff_mtsat.nii.gz')
-    in_e2_mtoff = os.path.join(get_home(),
-                               'MT', 'sub-001_echo-2_acq-mtoff_mtsat.nii.gz')
-    in_e3_mtoff = os.path.join(get_home(),
-                               'MT', 'sub-001_echo-3_acq-mtoff_mtsat.nii.gz')
-    in_e4_mtoff = os.path.join(get_home(),
-                               'MT', 'sub-001_echo-4_acq-mtoff_mtsat.nii.gz')
-    in_e5_mtoff = os.path.join(get_home(),
-                               'MT', 'sub-001_echo-5_acq-mtoff_mtsat.nii.gz')
-
-    in_e1_mton = os.path.join(get_home(),
-                              'MT', 'sub-001_echo-1_acq-mton_mtsat.nii.gz')
-    in_e2_mton = os.path.join(get_home(),
-                              'MT', 'sub-001_echo-2_acq-mton_mtsat.nii.gz')
-    in_e3_mton = os.path.join(get_home(),
-                              'MT', 'sub-001_echo-3_acq-mton_mtsat.nii.gz')
-    in_e4_mton = os.path.join(get_home(),
-                              'MT', 'sub-001_echo-4_acq-mton_mtsat.nii.gz')
-    in_e5_mton = os.path.join(get_home(),
-                              'MT', 'sub-001_echo-5_acq-mton_mtsat.nii.gz')
-
-    in_e1_t1w = os.path.join(get_home(),
-                             'MT', 'sub-001_echo-1_acq-t1w_mtsat.nii.gz')
-    in_e2_t1w = os.path.join(get_home(),
-                             'MT', 'sub-001_echo-2_acq-t1w_mtsat.nii.gz')
-    in_e3_t1w = os.path.join(get_home(),
-                             'MT', 'sub-001_echo-3_acq-t1w_mtsat.nii.gz')
-    in_e4_t1w = os.path.join(get_home(),
-                             'MT', 'sub-001_echo-4_acq-t1w_mtsat.nii.gz')
-    in_e5_t1w = os.path.join(get_home(),
-                             'MT', 'sub-001_echo-5_acq-t1w_mtsat.nii.gz')
-
     # --extended
     ret = script_runner.run('scil_mti_maps_MT.py', tmp_dir.name,
                             '--mask', in_mask,
@@ -191,46 +116,6 @@ def test_execution_MT_extended(script_runner):
 
 def test_execution_MT_filtering(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-
-    in_mask = os.path.join(get_home(), 'MT', 'mask.nii.gz')
-
-    in_mtoff_json = os.path.join(get_home(),
-                                 'MT', 'sub-001_echo-1_acq-mtoff_mtsat.json')
-    in_t1w_json = os.path.join(get_home(),
-                               'MT', 'sub-001_echo-1_acq-t1w_mtsat.json')
-
-    in_e1_mtoff = os.path.join(get_home(),
-                               'MT', 'sub-001_echo-1_acq-mtoff_mtsat.nii.gz')
-    in_e2_mtoff = os.path.join(get_home(),
-                               'MT', 'sub-001_echo-2_acq-mtoff_mtsat.nii.gz')
-    in_e3_mtoff = os.path.join(get_home(),
-                               'MT', 'sub-001_echo-3_acq-mtoff_mtsat.nii.gz')
-    in_e4_mtoff = os.path.join(get_home(),
-                               'MT', 'sub-001_echo-4_acq-mtoff_mtsat.nii.gz')
-    in_e5_mtoff = os.path.join(get_home(),
-                               'MT', 'sub-001_echo-5_acq-mtoff_mtsat.nii.gz')
-
-    in_e1_mton = os.path.join(get_home(),
-                              'MT', 'sub-001_echo-1_acq-mton_mtsat.nii.gz')
-    in_e2_mton = os.path.join(get_home(),
-                              'MT', 'sub-001_echo-2_acq-mton_mtsat.nii.gz')
-    in_e3_mton = os.path.join(get_home(),
-                              'MT', 'sub-001_echo-3_acq-mton_mtsat.nii.gz')
-    in_e4_mton = os.path.join(get_home(),
-                              'MT', 'sub-001_echo-4_acq-mton_mtsat.nii.gz')
-    in_e5_mton = os.path.join(get_home(),
-                              'MT', 'sub-001_echo-5_acq-mton_mtsat.nii.gz')
-
-    in_e1_t1w = os.path.join(get_home(),
-                             'MT', 'sub-001_echo-1_acq-t1w_mtsat.nii.gz')
-    in_e2_t1w = os.path.join(get_home(),
-                             'MT', 'sub-001_echo-2_acq-t1w_mtsat.nii.gz')
-    in_e3_t1w = os.path.join(get_home(),
-                             'MT', 'sub-001_echo-3_acq-t1w_mtsat.nii.gz')
-    in_e4_t1w = os.path.join(get_home(),
-                             'MT', 'sub-001_echo-4_acq-t1w_mtsat.nii.gz')
-    in_e5_t1w = os.path.join(get_home(),
-                             'MT', 'sub-001_echo-5_acq-t1w_mtsat.nii.gz')
 
     # --filtering
     ret = script_runner.run('scil_mti_maps_MT.py', tmp_dir.name,
@@ -250,50 +135,6 @@ def test_execution_MT_filtering(script_runner):
 def test_execution_MT_B1_map(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
 
-    in_mask = os.path.join(get_home(), 'MT', 'mask.nii.gz')
-
-    in_mtoff_json = os.path.join(get_home(),
-                                 'MT', 'sub-001_echo-1_acq-mtoff_mtsat.json')
-    in_t1w_json = os.path.join(get_home(),
-                               'MT', 'sub-001_echo-1_acq-t1w_mtsat.json')
-
-    in_e1_mtoff = os.path.join(get_home(),
-                               'MT', 'sub-001_echo-1_acq-mtoff_mtsat.nii.gz')
-    in_e2_mtoff = os.path.join(get_home(),
-                               'MT', 'sub-001_echo-2_acq-mtoff_mtsat.nii.gz')
-    in_e3_mtoff = os.path.join(get_home(),
-                               'MT', 'sub-001_echo-3_acq-mtoff_mtsat.nii.gz')
-    in_e4_mtoff = os.path.join(get_home(),
-                               'MT', 'sub-001_echo-4_acq-mtoff_mtsat.nii.gz')
-    in_e5_mtoff = os.path.join(get_home(),
-                               'MT', 'sub-001_echo-5_acq-mtoff_mtsat.nii.gz')
-
-    in_e1_mton = os.path.join(get_home(),
-                              'MT', 'sub-001_echo-1_acq-mton_mtsat.nii.gz')
-    in_e2_mton = os.path.join(get_home(),
-                              'MT', 'sub-001_echo-2_acq-mton_mtsat.nii.gz')
-    in_e3_mton = os.path.join(get_home(),
-                              'MT', 'sub-001_echo-3_acq-mton_mtsat.nii.gz')
-    in_e4_mton = os.path.join(get_home(),
-                              'MT', 'sub-001_echo-4_acq-mton_mtsat.nii.gz')
-    in_e5_mton = os.path.join(get_home(),
-                              'MT', 'sub-001_echo-5_acq-mton_mtsat.nii.gz')
-
-    in_e1_t1w = os.path.join(get_home(),
-                             'MT', 'sub-001_echo-1_acq-t1w_mtsat.nii.gz')
-    in_e2_t1w = os.path.join(get_home(),
-                             'MT', 'sub-001_echo-2_acq-t1w_mtsat.nii.gz')
-    in_e3_t1w = os.path.join(get_home(),
-                             'MT', 'sub-001_echo-3_acq-t1w_mtsat.nii.gz')
-    in_e4_t1w = os.path.join(get_home(),
-                             'MT', 'sub-001_echo-4_acq-t1w_mtsat.nii.gz')
-    in_e5_t1w = os.path.join(get_home(),
-                             'MT', 'sub-001_echo-5_acq-t1w_mtsat.nii.gz')
-
-    in_b1_map = os.path.join(get_home(),
-                             'MT', 'sub-001_run-01_B1map.nii.gz')
-    in_b1_json = os.path.join(get_home(),
-                              'MT', 'sub-001_run-01_B1map.json')
     out_b1_map = tmp_dir.name + '/B1map.nii.gz'
 
     # Temporary trick to have the B1 map with proper header.
@@ -322,46 +163,6 @@ def test_execution_MT_B1_map(script_runner):
 def test_execution_MT_wrong_echoes(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
 
-    in_mask = os.path.join(get_home(), 'MT', 'mask.nii.gz')
-
-    in_mtoff_json = os.path.join(get_home(),
-                                 'MT', 'sub-001_echo-1_acq-mtoff_mtsat.json')
-    in_t1w_json = os.path.join(get_home(),
-                               'MT', 'sub-001_echo-1_acq-t1w_mtsat.json')
-
-    in_e1_mtoff = os.path.join(get_home(),
-                               'MT', 'sub-001_echo-1_acq-mtoff_mtsat.nii.gz')
-    in_e2_mtoff = os.path.join(get_home(),
-                               'MT', 'sub-001_echo-2_acq-mtoff_mtsat.nii.gz')
-    in_e3_mtoff = os.path.join(get_home(),
-                               'MT', 'sub-001_echo-3_acq-mtoff_mtsat.nii.gz')
-    in_e4_mtoff = os.path.join(get_home(),
-                               'MT', 'sub-001_echo-4_acq-mtoff_mtsat.nii.gz')
-    in_e5_mtoff = os.path.join(get_home(),
-                               'MT', 'sub-001_echo-5_acq-mtoff_mtsat.nii.gz')
-
-    in_e1_mton = os.path.join(get_home(),
-                              'MT', 'sub-001_echo-1_acq-mton_mtsat.nii.gz')
-    in_e2_mton = os.path.join(get_home(),
-                              'MT', 'sub-001_echo-2_acq-mton_mtsat.nii.gz')
-    in_e3_mton = os.path.join(get_home(),
-                              'MT', 'sub-001_echo-3_acq-mton_mtsat.nii.gz')
-    in_e4_mton = os.path.join(get_home(),
-                              'MT', 'sub-001_echo-4_acq-mton_mtsat.nii.gz')
-    in_e5_mton = os.path.join(get_home(),
-                              'MT', 'sub-001_echo-5_acq-mton_mtsat.nii.gz')
-
-    in_e1_t1w = os.path.join(get_home(),
-                             'MT', 'sub-001_echo-1_acq-t1w_mtsat.nii.gz')
-    in_e2_t1w = os.path.join(get_home(),
-                             'MT', 'sub-001_echo-2_acq-t1w_mtsat.nii.gz')
-    in_e3_t1w = os.path.join(get_home(),
-                             'MT', 'sub-001_echo-3_acq-t1w_mtsat.nii.gz')
-    in_e4_t1w = os.path.join(get_home(),
-                             'MT', 'sub-001_echo-4_acq-t1w_mtsat.nii.gz')
-    in_e5_t1w = os.path.join(get_home(),
-                             'MT', 'sub-001_echo-5_acq-t1w_mtsat.nii.gz')
-
     # Wrong number of echoes for negative
     ret = script_runner.run('scil_mti_maps_MT.py', tmp_dir.name,
                             '--mask', in_mask,
@@ -381,22 +182,6 @@ def test_execution_MT_wrong_echoes(script_runner):
 def test_execution_MT_single_echoe(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
 
-    in_mask = os.path.join(get_home(), 'MT', 'mask.nii.gz')
-
-    in_mtoff_json = os.path.join(get_home(),
-                                 'MT', 'sub-001_echo-1_acq-mtoff_mtsat.json')
-    in_t1w_json = os.path.join(get_home(),
-                               'MT', 'sub-001_echo-1_acq-t1w_mtsat.json')
-
-    in_e1_mtoff = os.path.join(get_home(),
-                               'MT', 'sub-001_echo-1_acq-mtoff_mtsat.nii.gz')
-
-    in_e1_mton = os.path.join(get_home(),
-                              'MT', 'sub-001_echo-1_acq-mton_mtsat.nii.gz')
-
-    in_e1_t1w = os.path.join(get_home(),
-                             'MT', 'sub-001_echo-1_acq-t1w_mtsat.nii.gz')
-
     # Single echoe
     ret = script_runner.run('scil_mti_maps_MT.py', tmp_dir.name,
                             '--mask', in_mask,
@@ -412,23 +197,6 @@ def test_execution_MT_single_echoe(script_runner):
 def test_execution_MT_B1_not_T1(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
 
-    in_mask = os.path.join(get_home(), 'MT', 'mask.nii.gz')
-
-    in_mtoff_json = os.path.join(get_home(),
-                                 'MT', 'sub-001_echo-1_acq-mtoff_mtsat.json')
-    in_t1w_json = os.path.join(get_home(),
-                               'MT', 'sub-001_echo-1_acq-t1w_mtsat.json')
-
-    in_e1_mtoff = os.path.join(get_home(),
-                               'MT', 'sub-001_echo-1_acq-mtoff_mtsat.nii.gz')
-
-    in_e1_mton = os.path.join(get_home(),
-                              'MT', 'sub-001_echo-1_acq-mton_mtsat.nii.gz')
-
-    in_b1_map = os.path.join(get_home(),
-                             'MT', 'sub-001_run-01_B1map.nii.gz')
-    in_b1_json = os.path.join(get_home(),
-                              'MT', 'sub-001_run-01_B1map.json')
     out_b1_map = tmp_dir.name + '/B1map.nii.gz'
 
     # Temporary trick to have the B1 map with proper header.
@@ -451,26 +219,6 @@ def test_execution_MT_B1_not_T1(script_runner):
 def test_execution_MT_B1_no_fit(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
 
-    in_mask = os.path.join(get_home(), 'MT', 'mask.nii.gz')
-
-    in_mtoff_json = os.path.join(get_home(),
-                                 'MT', 'sub-001_echo-1_acq-mtoff_mtsat.json')
-    in_t1w_json = os.path.join(get_home(),
-                               'MT', 'sub-001_echo-1_acq-t1w_mtsat.json')
-
-    in_e1_mtoff = os.path.join(get_home(),
-                               'MT', 'sub-001_echo-1_acq-mtoff_mtsat.nii.gz')
-
-    in_e1_mton = os.path.join(get_home(),
-                              'MT', 'sub-001_echo-1_acq-mton_mtsat.nii.gz')
-
-    in_e1_t1w = os.path.join(get_home(),
-                             'MT', 'sub-001_echo-1_acq-t1w_mtsat.nii.gz')
-
-    in_b1_map = os.path.join(get_home(),
-                             'MT', 'sub-001_run-01_B1map.nii.gz')
-    in_b1_json = os.path.join(get_home(),
-                              'MT', 'sub-001_run-01_B1map.json')
     out_b1_map = tmp_dir.name + '/B1map.nii.gz'
 
     # Temporary trick to have the B1 map with proper header.
@@ -493,22 +241,6 @@ def test_execution_MT_B1_no_fit(script_runner):
 
 def test_execution_MT_acq_params(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-
-    in_mask = os.path.join(get_home(), 'MT', 'mask.nii.gz')
-
-    in_mtoff_json = os.path.join(get_home(),
-                                 'MT', 'sub-001_echo-1_acq-mtoff_mtsat.json')
-    in_t1w_json = os.path.join(get_home(),
-                               'MT', 'sub-001_echo-1_acq-t1w_mtsat.json')
-
-    in_e1_mtoff = os.path.join(get_home(),
-                               'MT', 'sub-001_echo-1_acq-mtoff_mtsat.nii.gz')
-
-    in_e1_mton = os.path.join(get_home(),
-                              'MT', 'sub-001_echo-1_acq-mton_mtsat.nii.gz')
-
-    in_e1_t1w = os.path.join(get_home(),
-                             'MT', 'sub-001_echo-1_acq-t1w_mtsat.nii.gz')
 
     # Acquisition parameters
     ret = script_runner.run('scil_mti_maps_MT.py', tmp_dir.name,
