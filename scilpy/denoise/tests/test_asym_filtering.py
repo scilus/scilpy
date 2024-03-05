@@ -1,7 +1,7 @@
 import numpy as np
 
 from scilpy.denoise.asym_filtering import \
-        AsymmetricFilter, cosine_filtering
+        unified_filtering, cosine_filtering
 from scilpy.reconst.utils import get_sh_order_and_fullness
 from scilpy.tests.arrays import (
     fodf_3x3_order8_descoteaux07,
@@ -20,26 +20,25 @@ def test_unified_asymmetric_filtering():
     sigma_align = 0.8
     sigma_range = 0.2
     sigma_angle = 0.06
-    disable_spatial = False
-    j_invariance = False
+    win_hwidth=3
+    exclude_center = False
     device_type = 'cpu'
     use_opencl = False
 
     sh_order, full_basis = get_sh_order_and_fullness(in_sh.shape[-1])
-    asym_filter = AsymmetricFilter(sh_order, sh_basis, legacy=True,
-                                   full_basis=full_basis,
-                                   sphere_str=sphere_str,
-                                   sigma_spatial=sigma_spatial,
-                                   sigma_align=sigma_align,
-                                   sigma_angle=sigma_angle,
-                                   rel_sigma_range=sigma_range,
-                                   disable_spatial=disable_spatial,
-                                   j_invariance=j_invariance,
-                                   device_type=device_type,
-                                   use_opencl=use_opencl)
-    out = asym_filter(in_sh)
+    asym_sh = unified_filtering(in_sh, sh_order, sh_basis, legacy=True,
+                                full_basis=full_basis,
+                                sphere_str=sphere_str,
+                                sigma_spatial=sigma_spatial,
+                                sigma_align=sigma_align,
+                                sigma_angle=sigma_angle,
+                                rel_sigma_range=sigma_range,
+                                win_hwidth=win_hwidth,
+                                exclude_center=exclude_center,
+                                device_type=device_type,
+                                use_opencl=use_opencl)
 
-    assert np.allclose(out, fodf_3x3_order8_descoteaux07_filtered_unified)
+    assert np.allclose(asym_sh, fodf_3x3_order8_descoteaux07_filtered_unified)
 
 
 def test_cosine_filtering():

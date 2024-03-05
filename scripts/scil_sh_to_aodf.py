@@ -26,7 +26,7 @@ from scilpy.reconst.utils import get_sh_order_and_fullness
 from scilpy.io.utils import (add_overwrite_arg, add_verbose_arg,
                              assert_inputs_exist, add_sh_basis_args,
                              assert_outputs_exist)
-from scilpy.denoise.asym_filtering import cosine_filtering, AsymmetricFilter
+from scilpy.denoise.asym_filtering import cosine_filtering, unified_filtering
 
 
 EPILOG = """
@@ -54,7 +54,7 @@ def _build_arg_parser():
 
     add_sh_basis_args(p)
 
-    p.add_argument('--sphere', default='repulsion724',
+    p.add_argument('--sphere', default='repulsion200',
                    choices=sorted(SPHERE_FILES.keys()),
                    help='Sphere used for the SH to SF projection. '
                         '[%(default)s]')
@@ -80,14 +80,19 @@ def _build_arg_parser():
                                     '*relative to SF range of image*. '
                                     '[%(default)s]')
     unified_group.add_argument('--sigma_angle', type=float,
-                               help='Standard deviation for angular filter.\n'
-                                    'Disabled by default.')
+                               help='Standard deviation for angular filter '
+                                    '(disabled by default).')
     unified_group.add_argument('--disable_spatial', action='store_true',
                                help='Disable spatial filtering.')
     unified_group.add_argument('--disable_align', action='store_true',
                                help='Disable alignment filtering.')
     unified_group.add_argument('--disable_range', action='store_true',
                                help='Disable range filtering.')
+    unified_group.add_argument('--include_center', action='store_true',
+                               help='Include center voxel in neighourhood.')
+    unified_group.add_argument('--win_hwidth', type=int,
+                               help='Filtering window half-width. Defaults to '
+                                    '3*sigma_spatial.')
 
     cosine_group = p.add_argument_group('Cosine filter arguments')
     cosine_group.add_argument('--sharpness', default=1.0, type=float,
@@ -99,6 +104,8 @@ def _build_arg_parser():
     p.add_argument('--use_opencl', action='store_true',
                    help='Accelerate code using OpenCL (requires pyopencl\n'
                         'and a working OpenCL implementation).')
+    p.add_argument('--patch_size', type=int, default=40,
+                   help='OpenCL patch size. [%(default)s]')
 
     add_verbose_arg(p)
     add_overwrite_arg(p)
@@ -133,21 +140,20 @@ def main():
     if args.method == 'unified':
         sigma_align = None if args.disable_align else args.sigma_align
         sigma_range = None if args.disable_range else args.sigma_range
-        # instantiate asymmetric filter
-        asym_filter = AsymmetricFilter(
+        sigma_spatial = None if args.disable_spatial else args.sigma_spatial
+
+        asym_sh = unified_filtering(data,
             sh_order=sh_order, sh_basis=args.sh_basis,
             legacy=True, full_basis=full_basis,
             sphere_str=args.sphere,
-            sigma_spatial=args.sigma_spatial,
+            sigma_spatial=sigma_spatial,
             sigma_align=sigma_align,
             sigma_angle=args.sigma_angle,
             rel_sigma_range=sigma_range,
-            disable_spatial=args.disable_spatial,
+            win_hwidth=args.win_hwidth,
+            exclude_center=not(args.include_center),
             device_type=args.device,
             use_opencl=args.use_opencl)
-        # filter the input image
-        asym_sh = asym_filter(data)
-
     else:  # args.method == 'cosine'
         asym_sh = cosine_filtering(
             data, sh_order=sh_order,

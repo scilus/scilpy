@@ -37,6 +37,7 @@ def test_asym_basis_output(script_runner, in_fodf, expected_fodf):
                             '--sigma_angle', '0.06',
                             '--device', 'cpu',
                             '--sh_basis', 'descoteaux07', '-f',
+                            '--include_center',
                             print_result=True, shell=True)
 
     assert ret.success
@@ -63,6 +64,7 @@ def test_asym_input(script_runner, in_fodf, expected_fodf):
                             '--sigma_angle', '0.06',
                             '--device', 'cpu',
                             '--sh_basis', 'descoteaux07', '-f',
+                            '--include_center',
                             print_result=True, shell=True)
 
     assert ret.success
