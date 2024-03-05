@@ -71,8 +71,8 @@ def add_common_args_mti(p):
                         'smoothing, in number of voxels. [%(default)s]')
 
 
-def verifications_and_loading_mti(args, parser, input_maps_lists,
-                                  extended_dir, affine, contrast_names):
+def load_and_verify_mti(args, parser, input_maps_lists, extended_dir, affine,
+                        contrast_names):
     """
     Common verifications and loading for both MT and ihMT scripts.
 
@@ -125,44 +125,13 @@ def verifications_and_loading_mti(args, parser, input_maps_lists,
 
     # Set TR and FlipAngle parameters. Required with --in_mtoff_t1, in which
     # case one of --in_aqc_parameters or --in_jsons is set.
-    rep_times = None
-    flip_angles = None
-    if args.in_acq_parameters:
-        flip_angles = np.asarray(args.in_acq_parameters[:2]) * np.pi / 180.
-        rep_times = np.asarray(args.in_acq_parameters[2:]) * 1000
-        if rep_times[0] > 10000 or rep_times[1] > 10000:
-            logging.warning('Given repetition times do not seem to be given '
-                            'in seconds. MTsat results might be affected.')
-    elif args.in_jsons:
-        rep_times = []
-        flip_angles = []
-        for curr_json in args.in_jsons:
-            acq_parameter = get_acq_parameters(curr_json,
-                                               ['RepetitionTime', 'FlipAngle'])
-            if acq_parameter[0] > 10:
-                logging.warning('Repetition time found in {} does not seem to '
-                                'be given in seconds. MTsat and ihMTsat '
-                                'results might be affected.'.format(curr_json))
-            rep_times.append(acq_parameter[0] * 1000)  # convert to ms.
-            flip_angles.append(np.deg2rad(acq_parameter[1]))
+    rep_times, flip_angles = _parse_acquisition_parameters
 
     # Fix issue from the presence of invalid value and division by zero
     np.seterr(divide='ignore', invalid='ignore')
 
     # Load B1 image
-    B1_map = None
-    if args.in_B1_map and args.in_mtoff_t1:
-        B1_img = nib.load(args.in_B1_map)
-        B1_map = B1_img.get_fdata(dtype=np.float32)
-        B1_map = adjust_B1_map_intensities(B1_map, nominal=args.B1_nominal)
-        B1_map = smooth_B1_map(B1_map, wdims=args.B1_smooth_dims)
-        if args.B1_correction_method == 'model_based':
-            # Apply the B1 map to the flip angles for model-based correction
-            flip_angles[0] *= B1_map
-            flip_angles[1] *= B1_map
-        if args.extended:
-            nib.save(nib.Nifti1Image(B1_map, affine),
-                     os.path.join(extended_dir, "B1_map.nii.gz"))
+    B1_map, flip_angles = _prepare_B1_map(args, flip_angles)
 
     # Define contrasts maps names
     if args.filtering:
@@ -193,3 +162,79 @@ def verifications_and_loading_mti(args, parser, input_maps_lists,
                                   contrast_names[idx] + '.nii.gz'))
 
     return single_echo, flip_angles, rep_times, B1_map, contrast_maps
+
+
+def _parse_acquisition_parameters(args):
+    """
+    Parse the acquisition parameters from MTI, either from json files or
+    directly inputed parameters.
+
+    Parameters
+    ----------
+    args: Namespace
+
+    Returns
+    -------
+    flip_angles: list[float]
+        The flip angles, in radian
+    rep_times: list[float]
+        The rep times, in ms.
+    """
+    rep_times = None
+    flip_angles = None
+    if args.in_acq_parameters:
+        flip_angles = np.asarray(args.in_acq_parameters[:2]) * np.pi / 180.
+        rep_times = np.asarray(args.in_acq_parameters[2:]) * 1000
+        if rep_times[0] > 10000 or rep_times[1] > 10000:
+            logging.warning('Given repetition times do not seem to be given '
+                            'in seconds. MTsat results might be affected.')
+    elif args.in_jsons:
+        rep_times = []
+        flip_angles = []
+        for curr_json in args.in_jsons:
+            acq_parameter = get_acq_parameters(curr_json,
+                                               ['RepetitionTime', 'FlipAngle'])
+            if acq_parameter[0] > 10:
+                logging.warning('Repetition time found in {} does not seem to '
+                                'be given in seconds. MTsat and ihMTsat '
+                                'results might be affected.'.format(curr_json))
+            rep_times.append(acq_parameter[0] * 1000)  # convert to ms.
+            flip_angles.append(np.deg2rad(acq_parameter[1]))
+    return rep_times, flip_angles
+
+
+def _prepare_B1_map(args, flip_angles, extended_dir, affine):
+    """
+    Common verifications and loading for both MT and ihMT scripts.
+
+    Parameters
+    ----------
+    args: Namespace
+    flip_angles: list[float]
+        The flip angles, in radian
+    extended_dir: str
+        The folder for extended savings (with option args.extended).
+    affine: np.ndarray
+        A reference affine to save files.
+
+    Returns
+    -------
+    B1_map: np.ndarray
+        The loaded map, with adjusted intensities, smoothed, corrected.
+    flip_angles: list[float]
+        The modified flip angles, in radian
+    """
+    B1_map = None
+    if args.in_B1_map and args.in_mtoff_t1:
+        B1_img = nib.load(args.in_B1_map)
+        B1_map = B1_img.get_fdata(dtype=np.float32)
+        B1_map = adjust_B1_map_intensities(B1_map, nominal=args.B1_nominal)
+        B1_map = smooth_B1_map(B1_map, wdims=args.B1_smooth_dims)
+        if args.B1_correction_method == 'model_based':
+            # Apply the B1 map to the flip angles for model-based correction
+            flip_angles[0] *= B1_map
+            flip_angles[1] *= B1_map
+        if args.extended:
+            nib.save(nib.Nifti1Image(B1_map, affine),
+                     os.path.join(extended_dir, "B1_map.nii.gz"))
+    return B1_map, flip_angles
