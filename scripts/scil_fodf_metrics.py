@@ -44,7 +44,8 @@ from dipy.direction.peaks import reshape_peaks_for_visualization
 from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_overwrite_arg, add_sh_basis_args,
                              add_processes_arg, add_verbose_arg,
-                             assert_inputs_exist, assert_outputs_exist)
+                             assert_inputs_exist, assert_outputs_exist,
+                             parse_sh_basis_arg)
 from scilpy.reconst.sh import peaks_from_sh, maps_from_sh
 
 
@@ -114,6 +115,7 @@ def main():
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
+    # Verifications
     if not args.not_all:
         args.afd_max = args.afd_max or 'afd_max.nii.gz'
         args.afd_total = args.afd_total or 'afd_total_sh0.nii.gz'
@@ -134,6 +136,7 @@ def main():
     assert_inputs_exist(parser, args.in_fODF)
     assert_outputs_exist(parser, args, arglist)
 
+    # Loading
     vol = nib.load(args.in_fODF)
     data = vol.get_fdata(dtype=np.float32)
     affine = vol.affine
@@ -146,6 +149,7 @@ def main():
             raise ValueError("Mask is not the same shape as data.")
 
     sphere = get_sphere(args.sphere)
+    sh_basis, is_legacy = parse_sh_basis_arg(args)
 
     # Computing peaks
     peak_dirs, peak_values, \
@@ -156,7 +160,8 @@ def main():
                                      absolute_threshold=args.a_threshold,
                                      min_separation_angle=25,
                                      normalize_peaks=False,
-                                     sh_basis_type=args.sh_basis,
+                                     sh_basis_type=sh_basis,
+                                     is_legacy=is_legacy,
                                      nbr_processes=args.nbr_processes)
 
     # Computing maps
@@ -165,27 +170,28 @@ def main():
             _, _ = maps_from_sh(data, peak_dirs, peak_values, peak_indices,
                                 sphere, nbr_processes=args.nbr_processes)
 
-    # Save result
-    if args.nufo:
-        nib.save(nib.Nifti1Image(nufo_map.astype(np.float32),
-                                 affine), args.nufo)
+        # Save result
+        if args.nufo:
+            nib.save(nib.Nifti1Image(nufo_map.astype(np.float32), affine),
+                     args.nufo)
 
-    if args.afd_max:
-        nib.save(nib.Nifti1Image(afd_max.astype(np.float32),
-                                 affine), args.afd_max)
+        if args.afd_max:
+            nib.save(nib.Nifti1Image(afd_max.astype(np.float32), affine),
+                     args.afd_max)
 
-    if args.afd_total:
-        # this is the analytical afd total
-        afd_tot = data[:, :, :, 0]
-        nib.save(nib.Nifti1Image(afd_tot.astype(np.float32),
-                                 affine), args.afd_total)
+        if args.afd_total:
+            # this is the analytical afd total
+            afd_tot = data[:, :, :, 0]
+            nib.save(nib.Nifti1Image(afd_tot.astype(np.float32), affine),
+                     args.afd_total)
 
-    if args.afd_sum:
-        nib.save(nib.Nifti1Image(afd_sum.astype(np.float32),
-                                 affine), args.afd_sum)
+        if args.afd_sum:
+            nib.save(nib.Nifti1Image(afd_sum.astype(np.float32), affine),
+                     args.afd_sum)
 
-    if args.rgb:
-        nib.save(nib.Nifti1Image(rgb_map.astype('uint8'), affine), args.rgb)
+        if args.rgb:
+            nib.save(nib.Nifti1Image(rgb_map.astype('uint8'), affine),
+                     args.rgb)
 
     if args.peaks or args.peak_values:
         if not args.abs_peaks_and_values:

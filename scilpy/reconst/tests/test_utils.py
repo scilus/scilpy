@@ -11,11 +11,6 @@ def test_sh_basis():
     pass
 
 
-def test_get_b_matrix():
-    # toDO
-    pass
-
-
 def test_get_maximas():
     # toDO
     pass

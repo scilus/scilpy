@@ -33,12 +33,16 @@ from scilpy.gradients.bvec_bval_tools import (check_b0_threshold,
                                               normalize_bvecs,
                                               is_normalized_bvecs)
 from scilpy.io.image import get_data_as_mask
-from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
-                             assert_outputs_exist, add_force_b0_arg,
-                             add_sh_basis_args, add_processes_arg,
-                             add_verbose_arg)
-from scilpy.reconst.fodf import fit_from_model
-from scilpy.reconst.sh import convert_sh_basis
+from scilpy.io.utils import (add_overwrite_arg, add_processes_arg,
+                             assert_inputs_exist, assert_outputs_exist,
+                             add_sh_basis_args, add_skip_b0_check_arg,
+                             add_verbose_arg, add_tolerance_arg,
+                             parse_sh_basis_arg)
+from scilpy.reconst.fodf import (fit_from_model,
+                                 verify_failed_voxels_shm_coeff,
+                                 verify_frf_files)
+from scilpy.reconst.sh import convert_sh_basis, verify_data_vs_sh_order
+
 
 
 def _build_arg_parser():
@@ -66,16 +70,11 @@ def _build_arg_parser():
         '--mask', metavar='',
         help='Path to a binary mask. Only the data inside the '
              'mask will be used for computations and reconstruction.')
-    p.add_argument(
-        '--tolerance', type=int, default=20,
-        help='The tolerated gap between the b-values to '
-             'extract and the current b-value. [%(default)s]')
-
-    add_force_b0_arg(p)
+    add_tolerance_arg(p)
+    add_skip_b0_check_arg(p, will_overwrite_with_min=False,
+                          b0_tol_name='--tolerance')
     add_sh_basis_args(p)
     add_processes_arg(p)
-    add_verbose_arg(p)
-    add_overwrite_arg(p)
 
     p.add_argument(
         '--not_all', action='store_true',
@@ -100,6 +99,9 @@ def _build_arg_parser():
         '--vf_rgb', metavar='file', default='',
         help='Output filename for the volume fractions map in rgb.')
 
+    add_verbose_arg(p)
+    add_overwrite_arg(p)
+
     return p
 
 
@@ -108,6 +110,7 @@ def main():
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
+    # Verifications
     if not args.not_all:
         args.wm_out_fODF = args.wm_out_fODF or 'wm_fodf.nii.gz'
         args.gm_out_fODF = args.gm_out_fODF or 'gm_fodf.nii.gz'
@@ -118,7 +121,7 @@ def main():
     arglist = [args.wm_out_fODF, args.gm_out_fODF, args.csf_out_fODF,
                args.vf, args.vf_rgb]
     if args.not_all and not any(arglist):
-        parser.error('When using --not_all, you need to specify at least ' +
+        parser.error('When using --not_all, you need to specify at least '
                      'one file to output.')
 
     assert_inputs_exist(parser, [args.in_dwi, args.in_bval, args.in_bvec,
@@ -134,6 +137,11 @@ def main():
     data = vol.get_fdata(dtype=np.float32)
     bvals, bvecs = read_bvals_bvecs(args.in_bval, args.in_bvec)
 
+    # Checking data and sh_order
+    wm_frf, gm_frf, csf_frf = verify_frf_files(wm_frf, gm_frf, csf_frf)
+    verify_data_vs_sh_order(data, args.sh_order)
+    sh_basis, is_legacy = parse_sh_basis_arg(args)
+
     # Checking mask
     if args.mask is None:
         mask = None
@@ -142,74 +150,48 @@ def main():
         if mask.shape != data.shape[:-1]:
             raise ValueError("Mask is not the same shape as data.")
 
-    tol = args.tolerance
-    sh_order = args.sh_order
-
-    # Checking data and sh_order
-    b0_thr = check_b0_threshold(
-        args.force_b0_threshold, bvals.min(), bvals.min())
-
-    if data.shape[-1] < (sh_order + 1) * (sh_order + 2) / 2:
-        logging.warning(
-            'We recommend having at least {} unique DWIs volumes, but you '
-            'currently have {} volumes. Try lowering the parameter --sh_order '
-            'in case of non convergence.'.format(
-                (sh_order + 1) * (sh_order + 2) / 2, data.shape[-1]))
-
     # Checking bvals, bvecs values and loading gtab
     if not is_normalized_bvecs(bvecs):
         logging.warning('Your b-vectors do not seem normalized...')
         bvecs = normalize_bvecs(bvecs)
-    gtab = gradient_table(bvals, bvecs, b0_threshold=b0_thr)
 
-    # Checking response functions and computing msmt response function
-    if not wm_frf.shape[1] == 4:
-        raise ValueError('WM frf file did not contain 4 elements. '
-                         'Invalid or deprecated FRF format')
-    if not gm_frf.shape[1] == 4:
-        raise ValueError('GM frf file did not contain 4 elements. '
-                         'Invalid or deprecated FRF format')
-    if not csf_frf.shape[1] == 4:
-        raise ValueError('CSF frf file did not contain 4 elements. '
-                         'Invalid or deprecated FRF format')
-    ubvals = unique_bvals_tolerance(bvals, tol=tol)
-    msmt_response = multi_shell_fiber_response(sh_order, ubvals,
-                                               wm_frf, gm_frf, csf_frf,
-                                               tol=tol)
+    # Note. This script does not currently allow using a separate b0_threshold
+    # for the b0s. Using the tolerance. To change this, we would have to
+    # change many things in dipy. An issue has been added in dipy to
+    # ask them to clarify the usage of gtab.b0s_mask. See here:
+    #  https://github.com/dipy/dipy/issues/3015
+    # b0_threshold option in gradient_table probably unused.
+    _ = check_b0_threshold(bvals.min(), b0_thr=args.tolerance,
+                           skip_b0_check=args.skip_b0_check)
+    gtab = gradient_table(bvals, bvecs, b0_threshold=args.tolerance)
 
     # Loading spheres
     reg_sphere = get_sphere('symmetric362')
 
+    # Starting main process!
+
+    # Checking response functions and computing msmt response function
+    ubvals = unique_bvals_tolerance(bvals, tol=args.tolerance)
+    msmt_response = multi_shell_fiber_response(args.sh_order, ubvals,
+                                               wm_frf, gm_frf, csf_frf,
+                                               tol=args.tolerance)
+
     # Computing msmt-CSD
     msmt_model = MultiShellDeconvModel(gtab, msmt_response,
                                        reg_sphere=reg_sphere,
-                                       sh_order=sh_order)
+                                       sh_order=args.sh_order)
 
     # Computing msmt-CSD fit
     msmt_fit = fit_from_model(msmt_model, data,
                               mask=mask, nbr_processes=args.nbr_processes)
 
+    # mmsmt_fit is a MultiVoxelFit.
+    #   - memsmt_fit.array_fit is a 3D np.ndarray, where value in each voxel is
+    #     a dipy.reconst.mcsd.MSDeconvFit object.
+    #   - When accessing memsmt_fit.all_shm_coeff, we get an array of shape
+    #     (x, y, z, n), where n is the number of fitted values.
     shm_coeff = msmt_fit.all_shm_coeff
-
-    nan_count = len(np.argwhere(np.isnan(shm_coeff[..., 0])))
-    voxel_count = np.prod(shm_coeff.shape[:-1])
-
-    if nan_count / voxel_count >= 0.05:
-        msg = """There are {} voxels out of {} that could not be solved by
-        the solver, reaching a critical amount of voxels. Make sure to tune the
-        response functions properly, as the solving process is very sensitive
-        to it. Proceeding to fill the problematic voxels by 0.
-        """
-        logging.warning(msg.format(nan_count, voxel_count))
-    elif nan_count > 0:
-        msg = """There are {} voxels out of {} that could not be solved by
-        the solver. Make sure to tune the response functions properly, as the
-        solving process is very sensitive to it. Proceeding to fill the
-        problematic voxels by 0.
-        """
-        logging.warning(msg.format(nan_count, voxel_count))
-
-    shm_coeff = np.where(np.isnan(shm_coeff), 0, shm_coeff)
+    shm_coeff = verify_failed_voxels_shm_coeff(shm_coeff)
 
     vf = msmt_fit.volume_fractions
     vf = np.where(np.isnan(vf), 0, vf)
@@ -217,27 +199,36 @@ def main():
     # Saving results
     if args.wm_out_fODF:
         wm_coeff = shm_coeff[..., 2:]
-        if args.sh_basis == 'tournier07':
-            wm_coeff = convert_sh_basis(wm_coeff, reg_sphere, mask=mask,
-                                        nbr_processes=args.nbr_processes)
+        wm_coeff = convert_sh_basis(wm_coeff, reg_sphere, mask=mask,
+                                    input_basis='descoteaux07',
+                                    output_basis=sh_basis,
+                                    is_input_legacy=True,
+                                    is_output_legacy=is_legacy,
+                                    nbr_processes=args.nbr_processes)
         nib.save(nib.Nifti1Image(wm_coeff.astype(np.float32),
                                  vol.affine), args.wm_out_fODF)
 
     if args.gm_out_fODF:
         gm_coeff = shm_coeff[..., 1]
-        if args.sh_basis == 'tournier07':
-            gm_coeff = gm_coeff.reshape(gm_coeff.shape + (1,))
-            gm_coeff = convert_sh_basis(gm_coeff, reg_sphere, mask=mask,
-                                        nbr_processes=args.nbr_processes)
+        gm_coeff = gm_coeff.reshape(gm_coeff.shape + (1,))
+        gm_coeff = convert_sh_basis(gm_coeff, reg_sphere, mask=mask,
+                                    input_basis='descoteaux07',
+                                    output_basis=sh_basis,
+                                    is_input_legacy=True,
+                                    is_output_legacy=is_legacy,
+                                    nbr_processes=args.nbr_processes)
         nib.save(nib.Nifti1Image(gm_coeff.astype(np.float32),
                                  vol.affine), args.gm_out_fODF)
 
     if args.csf_out_fODF:
         csf_coeff = shm_coeff[..., 0]
-        if args.sh_basis == 'tournier07':
-            csf_coeff = csf_coeff.reshape(csf_coeff.shape + (1,))
-            csf_coeff = convert_sh_basis(csf_coeff, reg_sphere, mask=mask,
-                                         nbr_processes=args.nbr_processes)
+        csf_coeff = csf_coeff.reshape(csf_coeff.shape + (1,))
+        csf_coeff = convert_sh_basis(csf_coeff, reg_sphere, mask=mask,
+                                     input_basis='descoteaux07',
+                                     output_basis=sh_basis,
+                                     is_input_legacy=True,
+                                     is_output_legacy=is_legacy,
+                                     nbr_processes=args.nbr_processes)
         nib.save(nib.Nifti1Image(csf_coeff.astype(np.float32),
                                  vol.affine), args.csf_out_fODF)
 

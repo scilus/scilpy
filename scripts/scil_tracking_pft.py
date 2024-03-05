@@ -45,8 +45,8 @@ import numpy as np
 
 from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_overwrite_arg, add_sh_basis_args,
-                             add_verbose_arg,
-                             assert_inputs_exist, assert_outputs_exist)
+                             add_verbose_arg, assert_inputs_exist,
+                             assert_outputs_exist, parse_sh_basis_arg)
 from scilpy.tracking.utils import get_theta
 
 
@@ -199,7 +199,7 @@ def main():
     if not np.allclose(np.linalg.norm(tracking_sphere.vertices, axis=1), 1.):
         raise RuntimeError('Tracking sphere should be unit normed.')
 
-    sh_basis = args.sh_basis
+    sh_basis, is_legacy = parse_sh_basis_arg(args)
 
     if args.algo == 'det':
         dgklass = DeterministicMaximumDirectionGetter
@@ -217,6 +217,7 @@ def main():
         max_angle=theta,
         sphere=tracking_sphere,
         basis_type=sh_basis,
+        legacy=is_legacy,
         pmf_threshold=args.sf_threshold,
         relative_peak_threshold=args.sf_threshold_init)
 

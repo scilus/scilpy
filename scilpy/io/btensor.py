@@ -8,7 +8,8 @@ import numpy as np
 
 from scilpy.dwi.utils import extract_dwi_shell
 from scilpy.gradients.bvec_bval_tools import (normalize_bvecs,
-                                              is_normalized_bvecs)
+                                              is_normalized_bvecs,
+                                              check_b0_threshold)
 
 
 bshapes = {0: "STE", 1: "LTE", -0.5: "PTE", 0.5: "CTE"}
@@ -50,10 +51,13 @@ def convert_bdelta_to_bshape(b_deltas):
 
 
 def generate_btensor_input(in_dwis, in_bvals, in_bvecs, in_bdeltas,
-                           do_pa_signals=False, tol=20):
+                           do_pa_signals=False, tol=20, skip_b0_check=False):
     """Generate b-tensor input from an ensemble of data, bvals and bvecs files.
     This generated input is mandatory for all scripts using b-tensor encoding
     data. Also generate the powder-averaged (PA) data if set.
+
+    For the moment, this does not enable the use of a b0_threshold different
+    than the tolerance.
 
     Parameters
     ----------
@@ -71,6 +75,10 @@ def generate_btensor_input(in_dwis, in_bvals, in_bvecs, in_bdeltas,
         each bvals.
     tol : int
         tolerance gap for b-values clustering. Defaults to 20
+    skip_b0_check: bool
+        (See full explanation in io.utils.add_skip_b0_check_arg.) If true,
+        script will continue even if no b-values are found below the tolerance
+        (no b0s found).
 
     Returns
     -------
@@ -105,6 +113,8 @@ def generate_btensor_input(in_dwis, in_bvals, in_bvecs, in_bdeltas,
         if inputf:  # verifies if the input file exists
             vol = nib.load(inputf)
             bvals, bvecs = read_bvals_bvecs(bvalsf, bvecsf)
+            _ = check_b0_threshold(bvals.min(), b0_thr=tol,
+                                   skip_b0_check=skip_b0_check)
             if np.sum([bvals > tol]) != 0:
                 bvals = np.round(bvals)
             if not is_normalized_bvecs(bvecs):
@@ -156,7 +166,7 @@ def generate_btensor_input(in_dwis, in_bvals, in_bvecs, in_bdeltas,
         gtab_infos[3] = acq_index_full
         if np.sum([ubvals_full < tol]) < acq_index - 1:
             gtab_infos[3] *= 0
-        return(pa_signals, gtab_infos)
+        return pa_signals, gtab_infos
     # Removing the duplicate b0s from ubvals_full
     duplicate_b0_ind = np.union1d(np.argwhere(ubvals_full == min(ubvals_full)),
                                   np.argwhere(ubvals_full > tol))
@@ -185,4 +195,4 @@ def generate_btensor_input(in_dwis, in_bvals, in_bvecs, in_bdeltas,
                                b0_threshold=bvals_full.min(),
                                btens=b_shapes)
 
-    return(gtab_full, data_full, ubvals_full, ub_deltas_full)
+    return gtab_full, data_full, ubvals_full, ub_deltas_full

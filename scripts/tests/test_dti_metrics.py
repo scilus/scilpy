@@ -37,3 +37,8 @@ def test_execution_processing(script_runner):
                             '--residual', 'residual.nii.gz',
                             '--mask', mask_uint8)
     assert ret.success
+
+    ret = script_runner.run('scil_dti_metrics.py', in_dwi,
+                            in_bval, in_bvec, '--not_all',
+                            '--fa', 'fa.nii.gz', '--b0_threshold', '1', '-f')
+    assert not ret.success

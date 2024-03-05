@@ -55,58 +55,65 @@ def normalize_bvecs(bvecs):
     return bvecs
 
 
-def check_b0_threshold(
-        force_b0_threshold, bvals_min, b0_thr=DEFAULT_B0_THRESHOLD
-):
-    """Check if the minimal bvalue is under zero or over the threshold.
-    If `force_b0_threshold` is true, don't raise an error even if the minimum
-    bvalue is over the threshold.
+def check_b0_threshold(min_bval, b0_thr, skip_b0_check):
+    """
+    Check if the minimal bvalue is under the threshold. If not, raise an
+    error to ask user to update the b0_thr.
+
+    Also verifies if the b0_thr is suspicious (should be included in range
+    [0, DEFAULT_B0_THRESHOLD]).
 
     Parameters
     ----------
-    force_b0_threshold : bool
-        If True, don't raise an error.
-    bvals_min : float
+    min_bval : float
         Minimum bvalue.
-    b0_thr : float
+    b0_thr: float
         Maximum bvalue considered as a b0.
+    skip_b0_check: bool
+        If True, and no b0 is found, only print a warning, do not raise
+        an error.
+
+    Returns
+    -------
+    b0_thr: float
+        Either the unmodified b0_thr, or, in the case where the minimal b-value
+        is larger than b0_thr, and skip_b0_check is set to True, then returns
+        min_bval.
 
     Raises
     ------
     ValueError
-        If the minimal bvalue is over the threshold, and
-        `force_b0_threshold` is False.
+        If the minimal bvalue is over the threshold (and skip_b0_check is
+        False).
     """
     if b0_thr > DEFAULT_B0_THRESHOLD:
         logging.warning(
-            'Warning: Your defined threshold is {}. This is suspicious. We '
-            'recommend using volumes with bvalues no higher '
-            'than {} as b0s.'.format(b0_thr, DEFAULT_B0_THRESHOLD)
-        )
+            'Your defined b0 threshold is {}. This is suspicious. We '
+            'recommend using volumes with bvalues no higher than {} as b0s'
+            .format(b0_thr, DEFAULT_B0_THRESHOLD))
 
-    if bvals_min < 0:
+    if min_bval < 0:
         logging.warning(
-            'Warning: Your dataset contains negative b-values (minimal '
-            'bvalue of {}). This is suspicious. We recommend you check '
-            'your data.')
+            'Warning: Your dataset contains negative b-values (minimal bvalue '
+            'of {}). This is suspicious. We recommend you check your data.'
+            .format(min_bval))
 
-    if bvals_min > b0_thr:
-        if force_b0_threshold:
+    if min_bval > b0_thr:
+        if skip_b0_check:
             logging.warning(
-                'Warning: Your minimal bvalue is {}, but the threshold '
-                'is set to {}. Since --force_b0_threshold was specified, '
-                'the script will proceed with a threshold of {}'
-                '.'.format(bvals_min, b0_thr, bvals_min))
-            return bvals_min
+                'Your minimal bvalue ({}), is above the threshold ({})\n'
+                'Since --skip_b0_check was specified, the script will '
+                'proceed with a b0 threshold of {}.'
+                .format(min_bval, b0_thr, min_bval))
+            return min_bval
         else:
-            raise ValueError('The minimal bvalue ({}) is greater than the '
-                             'threshold ({}). No b0 volumes can be found.\n'
-                             'Please check your data to ensure everything '
-                             'is correct.\n'
-                             'Use --force_b0_threshold to execute '
-                             'regardless.'
-                             .format(bvals_min, b0_thr))
-
+            raise ValueError(
+                'The minimal bvalue ({}) is above the threshold ({})\n'
+                'No b0 volumes can be found.\n'
+                'Please check your data to ensure everything is correct.\n'
+                'You may also increase the threshold or use '
+                '--skip_b0_check'
+                .format(min_bval, b0_thr))
     return b0_thr
 
 

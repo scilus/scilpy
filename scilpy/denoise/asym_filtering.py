@@ -478,7 +478,7 @@ def _correlate(sh_data, nx_filter, uv_filter, sigma_range, u_index, B_mat):
 
 
 def cosine_filtering(in_sh, sh_order=8, sh_basis='descoteaux07',
-                     in_full_basis=False, dot_sharpness=1.0,
+                     in_full_basis=False, is_legacy=True, dot_sharpness=1.0,
                      sphere_str='repulsion724', sigma=1.0):
     """
     Average the SH projected on a sphere using a first-neighbor gaussian
@@ -496,6 +496,8 @@ def cosine_filtering(in_sh, sh_order=8, sh_basis='descoteaux07',
         SH basis of the input signal.
     in_full_basis: bool, optional
         True if the input is in full SH basis.
+    is_legacy : bool, optional
+        Whether or not the SH basis is in its legacy form.
     dot_sharpness: float, optional
         Exponent of the dot product. When set to 0.0, directions
         are not weighted by the dot product.
@@ -518,13 +520,14 @@ def cosine_filtering(in_sh, sh_order=8, sh_basis='descoteaux07',
     nb_sf = len(sphere.vertices)
     mean_sf = np.zeros(np.append(in_sh.shape[:-1], nb_sf))
     B = sh_to_sf_matrix(sphere, sh_order=sh_order, basis_type=sh_basis,
-                        return_inv=False, full_basis=in_full_basis)
+                        return_inv=False, full_basis=in_full_basis,
+                        legacy=is_legacy)
 
     # We want a B matrix to project on an inverse sphere to have the sf on
     # the opposite hemisphere for a given vertice
     neg_B = sh_to_sf_matrix(Sphere(xyz=-sphere.vertices), sh_order=sh_order,
                             basis_type=sh_basis, return_inv=False,
-                            full_basis=in_full_basis)
+                            full_basis=in_full_basis, legacy=is_legacy)
 
     # Apply filter to each sphere vertice
     for sf_i in range(nb_sf):
@@ -542,7 +545,8 @@ def cosine_filtering(in_sh, sh_order=8, sh_basis='descoteaux07',
     # Convert back to SH coefficients
     _, B_inv = sh_to_sf_matrix(sphere, sh_order=sh_order,
                                basis_type=sh_basis,
-                               full_basis=True)
+                               full_basis=True,
+                               legacy=is_legacy)
 
     out_sh = np.array([np.dot(i, B_inv) for i in mean_sf], dtype=in_sh.dtype)
     return out_sh

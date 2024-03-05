@@ -13,7 +13,6 @@ Formerly: scil_set_response_function.py
 """
 
 import argparse
-from ast import literal_eval
 import logging
 import numpy as np
 
@@ -21,6 +20,7 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist,
                              add_verbose_arg,
                              assert_outputs_exist)
+from scilpy.reconst.frf import replace_frf
 
 
 def _build_arg_parser():
@@ -29,11 +29,12 @@ def _build_arg_parser():
 
     p.add_argument('frf_file', metavar='input',
                    help='Path of the FRF file.')
-    p.add_argument('new_frf', metavar='tuple',
-                   help='Replace the response function with\n'
-                        'this fiber response function x 10**-4 (e.g. '
-                        '15,4,4). \nIf multi-shell, write the first shell'
-                        ', then the second shell, \nand the third, etc '
+    p.add_argument('new_frf',
+                   help='New response function given as a tuple. We will '
+                        'replace the \nresponse function in frf_file with '
+                        'this fiber response \nfunction x 10**-4 (e.g. '
+                        '15,4,4). \nIf multi-shell, write the first shell,'
+                        'then the second shell, \nand the third, etc. '
                         '(e.g. 15,4,4,13,5,5,12,5,5).')
     p.add_argument('output_frf_file', metavar='output',
                    help='Path of the new FRF file.')
@@ -56,24 +57,8 @@ def main():
     assert_inputs_exist(parser, args.frf_file)
     assert_outputs_exist(parser, args, args.output_frf_file)
 
-    frf_file = np.array(np.loadtxt(args.frf_file)).T
-    new_frf = np.array(literal_eval(args.new_frf), dtype=np.float64)
-    if not args.no_factor:
-        new_frf *= 10 ** -4
-    b0_mean = frf_file[3]
-
-    if new_frf.shape[0] % 3 != 0:
-        raise ValueError('Inputed new frf is not valid. There should be '
-                         'three values per shell, and thus the total number '
-                         'of values should be a multiple of three.')
-
-    nb_shells = int(new_frf.shape[0] / 3)
-    new_frf = new_frf.reshape((nb_shells, 3))
-
-    response = np.empty((nb_shells, 4))
-    response[:, 0:3] = new_frf
-    response[:, 3] = b0_mean
-
+    frf_file = np.loadtxt(args.frf_file)
+    response = replace_frf(frf_file, args.new_frf, args.no_factor)
     np.savetxt(args.output_frf_file, response)
 
 

@@ -35,6 +35,14 @@ def test_roi_center_parameter(script_runner):
 
     assert (not ret.success)
 
+    # Test wrong b0 threshold. Current minimal b-value is 5.
+    ret = script_runner.run('scil_frf_ssst.py', in_dwi,
+                            in_bval, in_bvec, 'frf.txt', '--roi_center',
+                            '15', '15', '15', '-f', '--b0_threshold', '1')
+
+    assert not ret.success
+
+
 def test_roi_radii_shape_parameter(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
     in_dwi = os.path.join(get_home(), 'processing',
@@ -58,6 +66,7 @@ def test_roi_radii_shape_parameter(script_runner):
                             '37', '37', '37', '37', '37', '-f')
 
     assert (not ret.success)
+
 
 def test_execution_processing(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))

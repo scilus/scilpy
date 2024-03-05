@@ -30,3 +30,10 @@ def test_execution_processing(script_runner):
                             in_bvec, in_frf, 'fodf.nii.gz', '--sh_order', '4',
                             '--sh_basis', 'tournier07', '--processes', '1')
     assert ret.success
+
+    # Test wrong b0. Current minimal b-value is 5.
+    ret = script_runner.run('scil_fodf_ssst.py', in_dwi, in_bval,
+                            in_bvec, in_frf, 'fodf.nii.gz', '--sh_order', '4',
+                            '--sh_basis', 'tournier07', '--processes', '1',
+                            '--b0_threshold', '1', '-f')
+    assert not ret.success
