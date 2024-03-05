@@ -206,7 +206,8 @@ def _parse_acquisition_parameters(args):
 
 def _prepare_B1_map(args, flip_angles, extended_dir, affine):
     """
-    Common verifications and loading for both MT and ihMT scripts.
+    Prepare the B1 map for MTI B1+ inhomogeneity correction. Flip angles might
+    also be affected.
 
     Parameters
     ----------
