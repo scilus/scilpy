@@ -36,7 +36,7 @@ def test_asym_basis_output(script_runner, in_fodf, expected_fodf):
                             '--sigma_range', '0.2',
                             '--sigma_angle', '0.06',
                             '--device', 'cpu',
-                            '--sh_basis', 'descoteaux07', '-f',
+                            '--sh_basis', 'descoteaux07_legacy', '-f',
                             '--include_center',
                             print_result=True, shell=True)
 
@@ -63,7 +63,7 @@ def test_asym_input(script_runner, in_fodf, expected_fodf):
                             '--sigma_range', '0.2',
                             '--sigma_angle', '0.06',
                             '--device', 'cpu',
-                            '--sh_basis', 'descoteaux07', '-f',
+                            '--sh_basis', 'descoteaux07_legacy', '-f',
                             '--include_center',
                             print_result=True, shell=True)
 
@@ -84,7 +84,7 @@ def test_cosine_method(script_runner, in_fodf, out_fodf):
                             in_fodf, 'out_fodf1.nii.gz',
                             '--sphere', 'repulsion100',
                             '--method', 'cosine', '-f',
-                            '--sh_basis', 'descoteaux07',
+                            '--sh_basis', 'descoteaux07_legacy',
                             print_result=True, shell=True)
 
     assert ret.success

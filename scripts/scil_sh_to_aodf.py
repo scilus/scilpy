@@ -144,7 +144,7 @@ def main():
         sigma_spatial = None if args.disable_spatial else args.sigma_spatial
 
         asym_sh = unified_filtering(data,
-            sh_order=sh_order, sh_basis=args.sh_basis,
+            sh_order=sh_order, sh_basis=sh_basis,
             legacy=is_legacy, full_basis=full_basis,
             sphere_str=args.sphere,
             sigma_spatial=sigma_spatial,
