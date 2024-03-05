@@ -40,9 +40,9 @@ def test_execution_processing_fodf_peaks(script_runner):
     in_bvec = os.path.join(get_home(), 'processing',
                            'dwi.bvec')
     in_peaks = os.path.join(get_home(), 'processing',
-                           'peaks.nii.gz')
+                            'peaks.nii.gz')
     in_fa = os.path.join(get_home(), 'processing',
-                           'fa.nii.gz')
+                         'fa.nii.gz')
 
     # test the actual script
     ret = script_runner.run('scil_gradients_validate_correct.py', in_bvec,
