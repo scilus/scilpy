@@ -2,8 +2,8 @@ import json
 import os
 import tempfile
 
-from scilpy.io.fetcher import get_testing_files_dict, fetch_data, get_home
-
+from scilpy import SCILPY_HOME
+from scilpy.io.fetcher import fetch_data, get_testing_files_dict
 
 # If they already exist, this only takes 5 seconds (check md5sum)
 fetch_data(get_testing_files_dict(), keys=['tracking.zip'])
@@ -18,17 +18,17 @@ def test_help_option(script_runner):
 
 def test_score_bundles(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    in_tractogram = os.path.join(get_home(), 'tracking', 'pft.trk')
+    in_tractogram = os.path.join(SCILPY_HOME, 'tracking', 'pft.trk')
 
     json_contents = {
         "example_bundle": {
             "angle": 300,
             "length": [30, 190],
-            "any_mask": os.path.join(get_home(), 'tracking',
+            "any_mask": os.path.join(SCILPY_HOME, 'tracking',
                                      'seeding_mask.nii.gz'),
-            "gt_mask": os.path.join(get_home(), 'tracking',
+            "gt_mask": os.path.join(SCILPY_HOME, 'tracking',
                                     'seeding_mask.nii.gz'),
-            "endpoints": os.path.join(get_home(), 'tracking',
+            "endpoints": os.path.join(SCILPY_HOME, 'tracking',
                                       'interface.nii.gz')
         }
     }

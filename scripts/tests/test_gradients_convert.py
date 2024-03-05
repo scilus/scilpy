@@ -4,7 +4,8 @@
 import os
 import tempfile
 
-from scilpy.io.fetcher import fetch_data, get_home, get_testing_files_dict
+from scilpy import SCILPY_HOME
+from scilpy.io.fetcher import fetch_data, get_testing_files_dict
 
 # If they already exist, this only takes 5 seconds (check md5sum)
 fetch_data(get_testing_files_dict(), keys=['processing.zip'])
@@ -19,9 +20,9 @@ def test_help_option(script_runner):
 
 def test_execution_processing_fsl(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    in_bval = os.path.join(get_home(), 'processing',
+    in_bval = os.path.join(SCILPY_HOME, 'processing',
                            '1000.bval')
-    in_bvec = os.path.join(get_home(), 'processing',
+    in_bvec = os.path.join(SCILPY_HOME, 'processing',
                            '1000.bvec')
     ret = script_runner.run('scil_gradients_convert.py',
                             '--input_fsl',
@@ -31,7 +32,7 @@ def test_execution_processing_fsl(script_runner):
 
 def test_execution_processing_mrtrix(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    in_encoding = os.path.join(get_home(), 'processing',
+    in_encoding = os.path.join(SCILPY_HOME, 'processing',
                                '1000.b')
     ret = script_runner.run('scil_gradients_convert.py',
                             '--input_mrtrix',
@@ -41,9 +42,9 @@ def test_execution_processing_mrtrix(script_runner):
 
 def test_name_validation_mrtrix(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    in_bval = os.path.join(get_home(), 'processing',
+    in_bval = os.path.join(SCILPY_HOME, 'processing',
                            '1000.bval')
-    in_bvec = os.path.join(get_home(), 'processing',
+    in_bvec = os.path.join(SCILPY_HOME, 'processing',
                            '1000.bvec')
     ret = script_runner.run('scil_gradients_convert.py',
                             '--input_fsl',
@@ -59,7 +60,7 @@ def test_name_validation_mrtrix(script_runner):
 
 def test_name_validation_fsl_bval(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    in_encoding = os.path.join(get_home(), 'processing',
+    in_encoding = os.path.join(SCILPY_HOME, 'processing',
                                '1000.b')
     ret = script_runner.run('scil_gradients_convert.py',
                             '--input_mrtrix',
@@ -79,7 +80,7 @@ def test_name_validation_fsl_bval(script_runner):
 
 def test_name_validation_fsl_bvec(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    in_encoding = os.path.join(get_home(), 'processing',
+    in_encoding = os.path.join(SCILPY_HOME, 'processing',
                                '1000.b')
     ret = script_runner.run('scil_gradients_convert.py',
                             '--input_mrtrix',

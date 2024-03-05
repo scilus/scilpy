@@ -4,7 +4,8 @@
 import os
 import tempfile
 
-from scilpy.io.fetcher import fetch_data, get_home, get_testing_files_dict
+from scilpy import SCILPY_HOME
+from scilpy.io.fetcher import fetch_data, get_testing_files_dict
 
 # If they already exist, this only takes 5 seconds (check md5sum)
 fetch_data(get_testing_files_dict(), keys=['processing.zip'])
@@ -18,11 +19,11 @@ def test_help_option(script_runner):
 
 def test_execution_processing_1000(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    in_dwi = os.path.join(get_home(), 'processing',
+    in_dwi = os.path.join(SCILPY_HOME, 'processing',
                           'dwi_crop.nii.gz')
-    in_bval = os.path.join(get_home(), 'processing',
+    in_bval = os.path.join(SCILPY_HOME, 'processing',
                            'dwi.bval')
-    in_bvec = os.path.join(get_home(), 'processing',
+    in_bvec = os.path.join(SCILPY_HOME, 'processing',
                            'dwi.bvec')
     ret = script_runner.run('scil_dwi_extract_shell.py', in_dwi,
                             in_bval, in_bvec, '0', '1000',
@@ -33,11 +34,11 @@ def test_execution_processing_1000(script_runner):
 
 def test_execution_out_indices(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    in_dwi = os.path.join(get_home(), 'processing',
+    in_dwi = os.path.join(SCILPY_HOME, 'processing',
                           'dwi_crop.nii.gz')
-    in_bval = os.path.join(get_home(), 'processing',
+    in_bval = os.path.join(SCILPY_HOME, 'processing',
                            'dwi.bval')
-    in_bvec = os.path.join(get_home(), 'processing',
+    in_bvec = os.path.join(SCILPY_HOME, 'processing',
                            'dwi.bvec')
     ret = script_runner.run('scil_dwi_extract_shell.py', in_dwi,
                             in_bval, in_bvec, '0', '1000',
@@ -49,11 +50,11 @@ def test_execution_out_indices(script_runner):
 
 def test_execution_processing_3000(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    in_dwi = os.path.join(get_home(), 'processing',
+    in_dwi = os.path.join(SCILPY_HOME, 'processing',
                           'dwi_crop.nii.gz')
-    in_bval = os.path.join(get_home(), 'processing',
+    in_bval = os.path.join(SCILPY_HOME, 'processing',
                            'dwi.bval')
-    in_bvec = os.path.join(get_home(), 'processing',
+    in_bvec = os.path.join(SCILPY_HOME, 'processing',
                            'dwi.bvec')
     ret = script_runner.run('scil_dwi_extract_shell.py', in_dwi,
                             in_bval, in_bvec, '0', '3000',

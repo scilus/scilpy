@@ -4,8 +4,8 @@
 import os
 import tempfile
 
-from scilpy.io.fetcher import get_testing_files_dict, fetch_data, get_home
-
+from scilpy import SCILPY_HOME
+from scilpy.io.fetcher import fetch_data, get_testing_files_dict
 
 # If they already exist, this only takes 5 seconds (check md5sum)
 fetch_data(get_testing_files_dict(), keys=['filtering.zip'])
@@ -19,9 +19,9 @@ def test_help_option(script_runner):
 
 def test_execution(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    in_1 = os.path.join(get_home(), 'filtering', 'bundle_4.trk')
-    in_2 = os.path.join(get_home(), 'filtering', 'bundle_4_filtered.trk')
-    in_3 = os.path.join(get_home(), 'filtering',
+    in_1 = os.path.join(SCILPY_HOME, 'filtering', 'bundle_4.trk')
+    in_2 = os.path.join(SCILPY_HOME, 'filtering', 'bundle_4_filtered.trk')
+    in_3 = os.path.join(SCILPY_HOME, 'filtering',
                         'bundle_4_filtered_no_loops.trk')
 
     prefix = 'test_voting_'

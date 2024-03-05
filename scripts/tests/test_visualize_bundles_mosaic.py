@@ -15,10 +15,10 @@ def test_help_option(script_runner):
 # def test_image_create(script_runner):
 #     os.chdir(os.path.expanduser(tmp_dir.name))
 #     in_vol = os.path.join(
-#         get_home(), 'bundles', 'fibercup_atlas', 'bundle_all_1mm.nii.gz')
+#         SCILPY_HOME, 'bundles', 'fibercup_atlas', 'bundle_all_1mm.nii.gz')
 
 #     in_bundle = os.path.join(
-#         get_home(), 'bundles', 'fibercup_atlas', 'subj_1', 'bundle_0.trk')
+#         SCILPY_HOME, 'bundles', 'fibercup_atlas', 'subj_1', 'bundle_0.trk')
 
 #     ret = script_runner.run('scil_visualize_bundles_mosaic.py',
 #                             in_vol, in_bundle, 'out.png')

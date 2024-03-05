@@ -4,7 +4,8 @@
 import os
 import tempfile
 
-from scilpy.io.fetcher import fetch_data, get_home, get_testing_files_dict
+from scilpy import SCILPY_HOME
+from scilpy.io.fetcher import fetch_data, get_testing_files_dict
 
 # If they already exist, this only takes 5 seconds (check md5sum)
 fetch_data(get_testing_files_dict(), keys=['ihMT.zip'])
@@ -12,57 +13,57 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 # Preparing once the filenames.
 
-in_mask = os.path.join(get_home(), 'ihMT', 'mask_resample.nii.gz')
+in_mask = os.path.join(SCILPY_HOME, 'ihMT', 'mask_resample.nii.gz')
 
-in_mtoff_pd_json = os.path.join(get_home(),
+in_mtoff_pd_json = os.path.join(SCILPY_HOME,
                                 'ihMT', 'echo-1_acq-mtoff_ihmt.json')
-in_mtoff_t1_json = os.path.join(get_home(),
+in_mtoff_t1_json = os.path.join(SCILPY_HOME,
                                 'ihMT', 'echo-1_acq-T1w_ihmt.json')
 
-in_e1_altnp = os.path.join(get_home(),
+in_e1_altnp = os.path.join(SCILPY_HOME,
                            'ihMT', 'echo-1_acq-altnp_ihmt.nii.gz')
-in_e2_altnp = os.path.join(get_home(),
+in_e2_altnp = os.path.join(SCILPY_HOME,
                            'ihMT', 'echo-2_acq-altnp_ihmt.nii.gz')
-in_e3_altnp = os.path.join(get_home(),
+in_e3_altnp = os.path.join(SCILPY_HOME,
                            'ihMT', 'echo-3_acq-altnp_ihmt.nii.gz')
 
-in_e1_altpn = os.path.join(get_home(),
+in_e1_altpn = os.path.join(SCILPY_HOME,
                            'ihMT', 'echo-1_acq-altpn_ihmt.nii.gz')
-in_e2_altpn = os.path.join(get_home(),
+in_e2_altpn = os.path.join(SCILPY_HOME,
                            'ihMT', 'echo-2_acq-altpn_ihmt.nii.gz')
-in_e3_altpn = os.path.join(get_home(),
+in_e3_altpn = os.path.join(SCILPY_HOME,
                            'ihMT', 'echo-3_acq-altpn_ihmt.nii.gz')
 
-in_e1_mtoff_pd = os.path.join(get_home(),
+in_e1_mtoff_pd = os.path.join(SCILPY_HOME,
                               'ihMT', 'echo-1_acq-mtoff_ihmt.nii.gz')
-in_e2_mtoff_pd = os.path.join(get_home(),
+in_e2_mtoff_pd = os.path.join(SCILPY_HOME,
                               'ihMT', 'echo-2_acq-mtoff_ihmt.nii.gz')
-in_e3_mtoff_pd = os.path.join(get_home(),
+in_e3_mtoff_pd = os.path.join(SCILPY_HOME,
                               'ihMT', 'echo-3_acq-mtoff_ihmt.nii.gz')
 
-in_e1_neg = os.path.join(get_home(),
+in_e1_neg = os.path.join(SCILPY_HOME,
                          'ihMT', 'echo-1_acq-neg_ihmt.nii.gz')
-in_e2_neg = os.path.join(get_home(),
+in_e2_neg = os.path.join(SCILPY_HOME,
                          'ihMT', 'echo-2_acq-neg_ihmt.nii.gz')
-in_e3_neg = os.path.join(get_home(),
+in_e3_neg = os.path.join(SCILPY_HOME,
                          'ihMT', 'echo-3_acq-neg_ihmt.nii.gz')
 
-in_e1_pos = os.path.join(get_home(),
+in_e1_pos = os.path.join(SCILPY_HOME,
                          'ihMT', 'echo-1_acq-pos_ihmt.nii.gz')
-in_e2_pos = os.path.join(get_home(),
+in_e2_pos = os.path.join(SCILPY_HOME,
                          'ihMT', 'echo-2_acq-pos_ihmt.nii.gz')
-in_e3_pos = os.path.join(get_home(),
+in_e3_pos = os.path.join(SCILPY_HOME,
                          'ihMT', 'echo-3_acq-pos_ihmt.nii.gz')
 
-in_e1_mtoff_t1 = os.path.join(get_home(),
+in_e1_mtoff_t1 = os.path.join(SCILPY_HOME,
                               'ihMT', 'echo-1_acq-T1w_ihmt.nii.gz')
-in_e2_mtoff_t1 = os.path.join(get_home(),
+in_e2_mtoff_t1 = os.path.join(SCILPY_HOME,
                               'ihMT', 'echo-2_acq-T1w_ihmt.nii.gz')
-in_e3_mtoff_t1 = os.path.join(get_home(),
+in_e3_mtoff_t1 = os.path.join(SCILPY_HOME,
                               'ihMT', 'echo-3_acq-T1w_ihmt.nii.gz')
 
-in_b1_map = os.path.join(get_home(), 'ihMT', 'B1map.nii.gz')
-in_b1_json = os.path.join(get_home(), 'MT', 'sub-001_run-01_B1map.json')
+in_b1_map = os.path.join(SCILPY_HOME, 'ihMT', 'B1map.nii.gz')
+in_b1_json = os.path.join(SCILPY_HOME, 'MT', 'sub-001_run-01_B1map.json')
 
 
 def test_help_option(script_runner):
