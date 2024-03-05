@@ -115,6 +115,7 @@ def main():
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
+    # Verifications
     if not args.not_all:
         args.afd_max = args.afd_max or 'afd_max.nii.gz'
         args.afd_total = args.afd_total or 'afd_total_sh0.nii.gz'
@@ -135,6 +136,7 @@ def main():
     assert_inputs_exist(parser, args.in_fODF)
     assert_outputs_exist(parser, args, arglist)
 
+    # Loading
     vol = nib.load(args.in_fODF)
     data = vol.get_fdata(dtype=np.float32)
     affine = vol.affine
@@ -168,27 +170,28 @@ def main():
             _, _ = maps_from_sh(data, peak_dirs, peak_values, peak_indices,
                                 sphere, nbr_processes=args.nbr_processes)
 
-    # Save result
-    if args.nufo:
-        nib.save(nib.Nifti1Image(nufo_map.astype(np.float32),
-                                 affine), args.nufo)
+        # Save result
+        if args.nufo:
+            nib.save(nib.Nifti1Image(nufo_map.astype(np.float32), affine),
+                     args.nufo)
 
-    if args.afd_max:
-        nib.save(nib.Nifti1Image(afd_max.astype(np.float32),
-                                 affine), args.afd_max)
+        if args.afd_max:
+            nib.save(nib.Nifti1Image(afd_max.astype(np.float32), affine),
+                     args.afd_max)
 
-    if args.afd_total:
-        # this is the analytical afd total
-        afd_tot = data[:, :, :, 0]
-        nib.save(nib.Nifti1Image(afd_tot.astype(np.float32),
-                                 affine), args.afd_total)
+        if args.afd_total:
+            # this is the analytical afd total
+            afd_tot = data[:, :, :, 0]
+            nib.save(nib.Nifti1Image(afd_tot.astype(np.float32), affine),
+                     args.afd_total)
 
-    if args.afd_sum:
-        nib.save(nib.Nifti1Image(afd_sum.astype(np.float32),
-                                 affine), args.afd_sum)
+        if args.afd_sum:
+            nib.save(nib.Nifti1Image(afd_sum.astype(np.float32), affine),
+                     args.afd_sum)
 
-    if args.rgb:
-        nib.save(nib.Nifti1Image(rgb_map.astype('uint8'), affine), args.rgb)
+        if args.rgb:
+            nib.save(nib.Nifti1Image(rgb_map.astype('uint8'), affine),
+                     args.rgb)
 
     if args.peaks or args.peak_values:
         if not args.abs_peaks_and_values:

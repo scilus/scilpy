@@ -50,26 +50,22 @@ def _build_arg_parser():
     p.add_argument('--mask_wm',
                    help='Path to a binary white matter mask. Only the data '
                         'inside this mask \nand above the threshold defined '
-                        'by --fa will be used to estimate the \nfiber '
+                        'by --fa_thresh will be used to estimate the \nfiber '
                         'response function.')
-    p.add_argument('--fa', dest='fa_thresh',
-                   default=0.7, type=float,
+    p.add_argument('--fa_thresh', default=0.7, type=float,
                    help='If supplied, use this threshold as the initial '
                         'threshold to select \nsingle fiber voxels. '
                         '[%(default)s]')
-    p.add_argument('--min_fa', dest='min_fa_thresh',
-                   default=0.5, type=float,
+    p.add_argument('--min_fa_thresh', default=0.5, type=float,
                    help='If supplied, this is the minimal value that will be '
                         'tried when looking \nfor single fiber '
                         'voxels. [%(default)s]')
-    p.add_argument('--min_nvox',
-                   default=300, type=int,
+    p.add_argument('--min_nvox', default=300, type=int,
                    help='Minimal number of voxels needing to be identified '
                         'as single fiber voxels \nin the automatic '
                         'estimation. [%(default)s]')
 
-    p.add_argument('--roi_radii',
-                   default=[20], nargs='+', type=int,
+    p.add_argument('--roi_radii', default=[20], nargs='+', type=int,
                    help='If supplied, use those radii to select a cuboid roi '
                         'to estimate the \nresponse functions. The roi will '
                         'be a cuboid spanning from the middle of \nthe volume '

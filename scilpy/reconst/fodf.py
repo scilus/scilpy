@@ -15,14 +15,13 @@ from dipy.utils.optpkg import optional_package
 cvx, have_cvxpy, _ = optional_package("cvxpy")
 
 
-def get_ventricles_max_fodf(data, fa, md, zoom, sh_basis, args,
-                            is_legacy=True):
+def get_ventricles_max_fodf(data, fa, md, zoom, sh_basis, small_dims,
+                            fa_threshold, md_threshold, is_legacy=True):
     """
-    Compute mean maximal fodf value in ventricules. Given
-    heuristics thresholds on FA and MD values, finds the
-    voxels of the ventricules or CSF and computes a mean
-    fODF value. This is described in
-    Dell'Acqua et al HBM 2013.
+    Compute mean maximal fodf value in ventricules. Given heuristics thresholds
+    on FA and MD values, finds the voxels of the ventricules or CSF and
+    computes a mean fODF value. This is described in
+    Dell'Acqua et al. HBM 2013.
 
     Parameters
     ----------
@@ -32,18 +31,27 @@ def get_ventricles_max_fodf(data, fa, md, zoom, sh_basis, args,
          FA (Fractional Anisotropy) volume from DTI
     md: ndarray (x, y, z)
          MD (Mean Diffusivity) volume from DTI
-    zoom: int > 0
-         Maximum number of voxels used to compute the mean.
-         1000 works well at 2x2x2 = 8 mm3
+    zoom: List of length 3
+        The resolution. A total number of voxels of 1000 works well at
+        2x2x2 = 8 mm3.
     sh_basis: str
         Either 'tournier07' or 'descoteaux07'
+    small_dims: bool
+        If set, takes the full range of data to search the max fodf amplitude
+        in ventricles. Useful when the data has small dimensions.
+    fa_threshold: float
+        Maximal threshold of FA (voxels under that threshold are considered
+        for evaluation).
+    md_threshold: float
+        Minimal threshold of MD in mm2/s (voxels above that threshold are
+        considered for evaluation).
     is_legacy : bool, optional
         Whether or not the SH basis is in its legacy form.
 
     Returns
     -------
     mean, mask: int, ndarray (x, y, z)
-         Mean maximum fODF value and mask of voxels used
+         Mean maximum fODF value and mask of voxels used.
     """
 
     order = find_order_from_nb_coeff(data)
@@ -72,7 +80,7 @@ def get_ventricles_max_fodf(data, fa, md, zoom, sh_basis, args,
 
     # In the case of 2D-like data (3D data with one dimension size of 1), or
     # a small 3D dataset, the full range of data is scanned.
-    if args.small_dims:
+    if small_dims:
         all_i = list(range(0, data.shape[0]))
         all_j = list(range(0, data.shape[1]))
         all_k = list(range(0, data.shape[2]))
@@ -90,8 +98,8 @@ def get_ventricles_max_fodf(data, fa, md, zoom, sh_basis, args,
             for k in all_k:
                 if count > max_number_of_voxels - 1:
                     continue
-                if fa[i, j, k] < args.fa_threshold \
-                        and md[i, j, k] > args.md_threshold:
+                if fa[i, j, k] < fa_threshold \
+                        and md[i, j, k] > md_threshold:
                     sf = np.dot(data[i, j, k], b_matrix)
                     sum_of_max += sf.max()
                     count += 1
@@ -125,12 +133,13 @@ def _fit_from_model_parallel(args):
 
 
 def fit_from_model(model, data, mask=None, nbr_processes=None):
-    """Fit the model to data
+    """Fit the model to data. Can use parallel processing.
 
     Parameters
     ----------
     model : a model instance
-        `model` will be used to fit the data.
+        It will be used to fit the data.
+        e.g: An instance of dipy.reconst.shm.SphHarmFit.
     data : np.ndarray (4d)
         Diffusion data.
     mask : np.ndarray, optional
@@ -142,8 +151,11 @@ def fit_from_model(model, data, mask=None, nbr_processes=None):
 
     Returns
     -------
-    fit_array : np.ndarray
-        Array containing the fit
+    fit_array : MultiVoxelFit
+        Dipy's MultiVoxelFit, containing the fit.
+        It contains an array of fits. Any attributes of its individuals fits
+        (of class given by 'model.fit') can be accessed through the
+        MultiVoxelFit to get all fits at once.
     """
     data_shape = data.shape
     if mask is None:
@@ -180,3 +192,85 @@ def fit_from_model(model, data, mask=None, nbr_processes=None):
     fit_array = MultiVoxelFit(model, fit_array, mask)
 
     return fit_array
+
+
+def verify_failed_voxels_shm_coeff(shm_coeff):
+    """
+    Verifies if there are any NaN in the final coefficients, and if so raises
+    warnings.
+
+    Parameters
+    ----------
+    shm_coeff: np.ndarray
+        The shm_coeff given by dipy's fit classes. Of shape (x, y, z, n) with
+        the coefficients on the last dimension.
+
+    Returns
+    -------
+    shm_coeff: np.ndarray
+        The coefficients with 0 instead of NaNs.
+    """
+    nan_count = len(np.argwhere(np.isnan(shm_coeff[..., 0])))
+    voxel_count = np.prod(shm_coeff.shape[:-1])
+
+    if nan_count / voxel_count >= 0.05:
+        logging.warning(
+            "There are {} voxels out of {} that could not be solved by the "
+            "solver, reaching a critical amount of voxels. Make sure to tune "
+            "the response functions properly, as the solving process is very "
+            "sensitive to it. Proceeding to fill the problematic voxels by 0."
+            .format(nan_count, voxel_count))
+    elif nan_count > 0:
+        logging.warning(
+            "There are {} voxels out of {} that could not be solved by the "
+            "solver. Make sure to tune the response functions properly, as "
+            "the solving process is very sensitive to it. Proceeding to fill "
+            "the problematic voxels by 0.".format(nan_count, voxel_count))
+
+    shm_coeff = np.where(np.isnan(shm_coeff), 0, shm_coeff)
+    return shm_coeff
+
+
+def verify_frf_files(wm_frf, gm_frf, csf_frf):
+    """
+    Verifies that all three frf files contain four columns, else raises
+    ValueErrors.
+
+    Parameters
+    ----------
+    wm_frf: np.ndarray
+        The frf directly as loaded from its text file.
+    gm_frf: np.ndarray
+        Idem
+    csf_frf: np.ndarray
+        Idem
+
+    Returns
+    -------
+    wm_frf: np.ndarray
+        The file. In the case where there was only one line in the file, and it
+        has been loaded as a vector, we return the array formatted as 2D, with
+        the 4 frf values as columns.
+    gm_frf: np.ndarray
+        Idem
+    csf_frf: np.ndarray
+        Idem
+    """
+    if len(wm_frf.shape) == 1:
+        wm_frf = wm_frf[None, :]
+    if len(gm_frf.shape) == 1:
+        gm_frf = gm_frf[None, :]
+    if len(csf_frf.shape) == 1:
+        csf_frf = csf_frf[None, :]
+
+    if not wm_frf.shape[1] == 4:
+        raise ValueError('WM frf file did not contain 4 elements. '
+                         'Invalid or deprecated FRF format')
+    if not gm_frf.shape[1] == 4:
+        raise ValueError('GM frf file did not contain 4 elements. '
+                         'Invalid or deprecated FRF format')
+    if not csf_frf.shape[1] == 4:
+        raise ValueError('CSF frf file did not contain 4 elements. '
+                         'Invalid or deprecated FRF format')
+
+    return wm_frf, gm_frf, csf_frf

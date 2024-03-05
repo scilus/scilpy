@@ -50,16 +50,18 @@ def _build_arg_parser():
     p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawTextHelpFormatter,
                                 epilog=EPILOG)
-    p.add_argument('in_bingham', help='Input Bingham image.')
+    p.add_argument('in_bingham',
+                   help='Input Bingham nifti image.')
 
-    p.add_argument('--out_fd', default='',
+    p.add_argument('--out_fd',
                    help='Path to output fiber density. [fd.nii.gz]')
-    p.add_argument('--out_fs', default='',
+    p.add_argument('--out_fs',
                    help='Path to output fiber spread. [fs.nii.gz]')
-    p.add_argument('--out_ff', default='',
+    p.add_argument('--out_ff',
                    help='Path to fiber fraction file. [ff.nii.gz]')
     p.add_argument('--not_all', action='store_true',
-                   help='Do not compute all metrics.')
+                   help='Do not compute all metrics. Then, please provide '
+                        'the output paths of the files you need.')
     p.add_argument('--mask',
                    help='Optional mask image. Only voxels inside '
                         'the mask are computed.')
@@ -91,7 +93,7 @@ def main():
 
     outputs = [args.out_fd, args.out_fs, args.out_ff]
     assert_inputs_exist(parser, args.in_bingham, args.mask)
-    assert_outputs_exist(parser, args, outputs)
+    assert_outputs_exist(parser, args, [], optional=outputs)
 
     bingham_im = nib.load(args.in_bingham)
     bingham = bingham_im.get_fdata()
