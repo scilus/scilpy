@@ -4,8 +4,8 @@
 import os
 import tempfile
 
-from scilpy.io.fetcher import get_testing_files_dict, fetch_data, get_home
-
+from scilpy import SCILPY_HOME
+from scilpy.io.fetcher import fetch_data, get_testing_files_dict
 
 # If they already exist, this only takes 5 seconds (check md5sum)
 fetch_data(get_testing_files_dict(), keys=['bst.zip'])
@@ -19,11 +19,11 @@ def test_help_option(script_runner):
 
 def test_execution_bst(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    in_model = os.path.join(get_home(), 'bst', 'template',
+    in_model = os.path.join(SCILPY_HOME, 'bst', 'template',
                             'template0.nii.gz')
-    in_fa = os.path.join(get_home(), 'bst',
+    in_fa = os.path.join(SCILPY_HOME, 'bst',
                          'fa.nii.gz')
-    in_aff = os.path.join(get_home(), 'bst',
+    in_aff = os.path.join(SCILPY_HOME, 'bst',
                           'output0GenericAffine.mat')
     ret = script_runner.run('scil_volume_apply_transform.py',
                             in_model, in_fa, in_aff,

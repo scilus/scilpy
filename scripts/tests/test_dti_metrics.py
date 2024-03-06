@@ -4,7 +4,8 @@
 import os
 import tempfile
 
-from scilpy.io.fetcher import fetch_data, get_home, get_testing_files_dict
+from scilpy import SCILPY_HOME
+from scilpy.io.fetcher import fetch_data, get_testing_files_dict
 
 # If they already exist, this only takes 5 seconds (check md5sum)
 fetch_data(get_testing_files_dict(), keys=['processing.zip'])
@@ -18,12 +19,12 @@ def test_help_option(script_runner):
 
 def test_execution_processing(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    in_dwi = os.path.join(get_home(), 'processing', 'dwi_crop_1000.nii.gz')
-    in_bval = os.path.join(get_home(), 'processing', '1000.bval')
-    in_bvec = os.path.join(get_home(), 'processing', '1000.bvec')
+    in_dwi = os.path.join(SCILPY_HOME, 'processing', 'dwi_crop_1000.nii.gz')
+    in_bval = os.path.join(SCILPY_HOME, 'processing', '1000.bval')
+    in_bvec = os.path.join(SCILPY_HOME, 'processing', '1000.bvec')
 
     # No mask fitting with this data? Creating our own.
-    mask = os.path.join(get_home(), 'processing', 'ad.nii.gz')
+    mask = os.path.join(SCILPY_HOME, 'processing', 'ad.nii.gz')
     mask_uint8 = os.path.join('mask_uint8.nii.gz')
     script_runner.run('scil_volume_math.py', 'convert',
                       mask, mask_uint8, '--data_type', 'uint8')

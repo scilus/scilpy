@@ -4,8 +4,8 @@
 import os
 import tempfile
 
-from scilpy.io.fetcher import get_testing_files_dict, fetch_data, get_home
-
+from scilpy import SCILPY_HOME
+from scilpy.io.fetcher import fetch_data, get_testing_files_dict
 
 # If they already exist, this only takes 5 seconds (check md5sum)
 fetch_data(get_testing_files_dict(), keys=['tracking.zip'])
@@ -20,7 +20,7 @@ def test_help_option(script_runner):
 
 def test_execution_processing(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    in_trk = os.path.join(get_home(), 'tracking', 'union.trk')
+    in_trk = os.path.join(SCILPY_HOME, 'tracking', 'union.trk')
     out_trk = 'ushape.trk'
     remaining_trk = 'remaining.trk'
     ret = script_runner.run('scil_tractogram_extract_ushape.py', in_trk, out_trk,

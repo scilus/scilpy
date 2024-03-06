@@ -4,7 +4,8 @@
 import os
 import tempfile
 
-from scilpy.io.fetcher import fetch_data, get_home, get_testing_files_dict
+from scilpy import SCILPY_HOME
+from scilpy.io.fetcher import fetch_data, get_testing_files_dict
 
 # If they already exist, this only takes 5 seconds (check md5sum)
 fetch_data(get_testing_files_dict(), keys=['MT.zip'])
@@ -12,48 +13,48 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 # Preparing once the filenames.
-in_mask = os.path.join(get_home(), 'MT', 'mask.nii.gz')
+in_mask = os.path.join(SCILPY_HOME, 'MT', 'mask.nii.gz')
 
-in_mtoff_json = os.path.join(get_home(),
+in_mtoff_json = os.path.join(SCILPY_HOME,
                              'MT', 'sub-001_echo-1_acq-mtoff_mtsat.json')
-in_t1w_json = os.path.join(get_home(),
+in_t1w_json = os.path.join(SCILPY_HOME,
                            'MT', 'sub-001_echo-1_acq-t1w_mtsat.json')
 
-in_e1_mtoff = os.path.join(get_home(),
+in_e1_mtoff = os.path.join(SCILPY_HOME,
                            'MT', 'sub-001_echo-1_acq-mtoff_mtsat.nii.gz')
-in_e2_mtoff = os.path.join(get_home(),
+in_e2_mtoff = os.path.join(SCILPY_HOME,
                            'MT', 'sub-001_echo-2_acq-mtoff_mtsat.nii.gz')
-in_e3_mtoff = os.path.join(get_home(),
+in_e3_mtoff = os.path.join(SCILPY_HOME,
                            'MT', 'sub-001_echo-3_acq-mtoff_mtsat.nii.gz')
-in_e4_mtoff = os.path.join(get_home(),
+in_e4_mtoff = os.path.join(SCILPY_HOME,
                            'MT', 'sub-001_echo-4_acq-mtoff_mtsat.nii.gz')
-in_e5_mtoff = os.path.join(get_home(),
+in_e5_mtoff = os.path.join(SCILPY_HOME,
                            'MT', 'sub-001_echo-5_acq-mtoff_mtsat.nii.gz')
 
-in_e1_mton = os.path.join(get_home(),
+in_e1_mton = os.path.join(SCILPY_HOME,
                           'MT', 'sub-001_echo-1_acq-mton_mtsat.nii.gz')
-in_e2_mton = os.path.join(get_home(),
+in_e2_mton = os.path.join(SCILPY_HOME,
                           'MT', 'sub-001_echo-2_acq-mton_mtsat.nii.gz')
-in_e3_mton = os.path.join(get_home(),
+in_e3_mton = os.path.join(SCILPY_HOME,
                           'MT', 'sub-001_echo-3_acq-mton_mtsat.nii.gz')
-in_e4_mton = os.path.join(get_home(),
+in_e4_mton = os.path.join(SCILPY_HOME,
                           'MT', 'sub-001_echo-4_acq-mton_mtsat.nii.gz')
-in_e5_mton = os.path.join(get_home(),
+in_e5_mton = os.path.join(SCILPY_HOME,
                           'MT', 'sub-001_echo-5_acq-mton_mtsat.nii.gz')
 
-in_e1_t1w = os.path.join(get_home(),
+in_e1_t1w = os.path.join(SCILPY_HOME,
                          'MT', 'sub-001_echo-1_acq-t1w_mtsat.nii.gz')
-in_e2_t1w = os.path.join(get_home(),
+in_e2_t1w = os.path.join(SCILPY_HOME,
                          'MT', 'sub-001_echo-2_acq-t1w_mtsat.nii.gz')
-in_e3_t1w = os.path.join(get_home(),
+in_e3_t1w = os.path.join(SCILPY_HOME,
                          'MT', 'sub-001_echo-3_acq-t1w_mtsat.nii.gz')
-in_e4_t1w = os.path.join(get_home(),
+in_e4_t1w = os.path.join(SCILPY_HOME,
                          'MT', 'sub-001_echo-4_acq-t1w_mtsat.nii.gz')
-in_e5_t1w = os.path.join(get_home(),
+in_e5_t1w = os.path.join(SCILPY_HOME,
                          'MT', 'sub-001_echo-5_acq-t1w_mtsat.nii.gz')
 
-in_b1_map = os.path.join(get_home(), 'MT', 'sub-001_run-01_B1map.nii.gz')
-in_b1_json = os.path.join(get_home(), 'MT', 'sub-001_run-01_B1map.json')
+in_b1_map = os.path.join(SCILPY_HOME, 'MT', 'sub-001_run-01_B1map.nii.gz')
+in_b1_json = os.path.join(SCILPY_HOME, 'MT', 'sub-001_run-01_B1map.json')
 
 
 def test_help_option(script_runner):

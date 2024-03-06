@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+import json
 import os
 import tempfile
-import json
 
-from scilpy.io.fetcher import get_testing_files_dict, fetch_data, get_home
-
+from scilpy import SCILPY_HOME
+from scilpy.io.fetcher import fetch_data, get_testing_files_dict
 
 # If they already exist, this only takes 5 seconds (check md5sum)
 fetch_data(get_testing_files_dict(), keys=['bundles.zip'])
@@ -20,12 +20,12 @@ def test_help_option(script_runner):
 
 def test_execution_bundles(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    in_tractogram = os.path.join(get_home(), 'bundles',
+    in_tractogram = os.path.join(SCILPY_HOME, 'bundles',
                                  'bundle_all_1mm.trk')
-    in_conf = os.path.join(get_home(), 'bundles', 'fibercup_atlas',
+    in_conf = os.path.join(SCILPY_HOME, 'bundles', 'fibercup_atlas',
                            'default_config_sim.json')
-    in_models = os.path.join(get_home(), 'bundles', 'fibercup_atlas')
-    in_aff = os.path.join(get_home(), 'bundles',
+    in_models = os.path.join(SCILPY_HOME, 'bundles', 'fibercup_atlas')
+    in_aff = os.path.join(SCILPY_HOME, 'bundles',
                           'affine.txt')
 
     tmp_config = {}

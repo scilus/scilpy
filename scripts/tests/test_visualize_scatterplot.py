@@ -4,7 +4,8 @@
 import os
 import tempfile
 
-from scilpy.io.fetcher import fetch_data, get_home, get_testing_files_dict
+from scilpy import SCILPY_HOME
+from scilpy.io.fetcher import fetch_data, get_testing_files_dict
 
 # If they already exist, this only takes 5 seconds (check md5sum)
 fetch_data(get_testing_files_dict(), keys=['plot.zip'])
@@ -18,9 +19,9 @@ def test_help_option(script_runner):
 
 def test_execution_processing(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    in_x = os.path.join(get_home(), 'plot',
+    in_x = os.path.join(SCILPY_HOME, 'plot',
                         'fa.nii.gz')
-    in_y = os.path.join(get_home(), 'plot',
+    in_y = os.path.join(SCILPY_HOME, 'plot',
                         'ad.nii.gz')
     ret = script_runner.run('scil_visualize_scatterplot.py', in_x, in_y,
                             'scatter_plot.png')
@@ -29,11 +30,11 @@ def test_execution_processing(script_runner):
 
 def test_execution_processing_bin_mask(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    in_x = os.path.join(get_home(), 'plot',
+    in_x = os.path.join(SCILPY_HOME, 'plot',
                         'fa.nii.gz')
-    in_y = os.path.join(get_home(), 'plot',
+    in_y = os.path.join(SCILPY_HOME, 'plot',
                         'ad.nii.gz')
-    in_mask = os.path.join(get_home(), 'plot',
+    in_mask = os.path.join(SCILPY_HOME, 'plot',
                            'mask_wm.nii.gz')
     ret = script_runner.run('scil_visualize_scatterplot.py', in_x, in_y,
                             'scatter_plot_m.png', '--in_bin_mask', in_mask)
@@ -42,13 +43,13 @@ def test_execution_processing_bin_mask(script_runner):
 
 def test_execution_processing_prob_map(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    in_x = os.path.join(get_home(), 'plot',
+    in_x = os.path.join(SCILPY_HOME, 'plot',
                         'fa.nii.gz')
-    in_y = os.path.join(get_home(), 'plot',
+    in_y = os.path.join(SCILPY_HOME, 'plot',
                         'ad.nii.gz')
-    in_prob_1 = os.path.join(get_home(), 'plot',
+    in_prob_1 = os.path.join(SCILPY_HOME, 'plot',
                              'map_wm.nii.gz')
-    in_prob_2 = os.path.join(get_home(), 'plot',
+    in_prob_2 = os.path.join(SCILPY_HOME, 'plot',
                              'map_gm.nii.gz')
     ret = script_runner.run('scil_visualize_scatterplot.py', in_x, in_y,
                             'scatter_plot_prob.png',
@@ -58,13 +59,13 @@ def test_execution_processing_prob_map(script_runner):
 
 def test_execution_processing_atlas(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    in_x = os.path.join(get_home(), 'plot',
+    in_x = os.path.join(SCILPY_HOME, 'plot',
                         'fa.nii.gz')
-    in_y = os.path.join(get_home(), 'plot',
+    in_y = os.path.join(SCILPY_HOME, 'plot',
                         'ad.nii.gz')
-    in_atlas = os.path.join(get_home(), 'plot',
+    in_atlas = os.path.join(SCILPY_HOME, 'plot',
                             'atlas_brainnetome.nii.gz')
-    atlas_lut = os.path.join(get_home(), 'plot',
+    atlas_lut = os.path.join(SCILPY_HOME, 'plot',
                              'atlas_brainnetome.json')
     ret = script_runner.run('scil_visualize_scatterplot.py', in_x, in_y,
                             'scatter_plot', '--in_atlas', in_atlas,
@@ -74,13 +75,13 @@ def test_execution_processing_atlas(script_runner):
 
 def test_execution_processing_atlas_folder(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    in_x = os.path.join(get_home(), 'plot',
+    in_x = os.path.join(SCILPY_HOME, 'plot',
                         'fa.nii.gz')
-    in_y = os.path.join(get_home(), 'plot',
+    in_y = os.path.join(SCILPY_HOME, 'plot',
                         'ad.nii.gz')
-    in_atlas = os.path.join(get_home(), 'plot',
+    in_atlas = os.path.join(SCILPY_HOME, 'plot',
                             'atlas_brainnetome.nii.gz')
-    atlas_lut = os.path.join(get_home(), 'plot',
+    atlas_lut = os.path.join(SCILPY_HOME, 'plot',
                              'atlas_brainnetome.json')
     ret = script_runner.run('scil_visualize_scatterplot.py', in_x, in_y,
                             'scatter_plot', '--in_atlas', in_atlas,
@@ -91,13 +92,13 @@ def test_execution_processing_atlas_folder(script_runner):
 
 def test_execution_processing_atlas_folder_specific_label(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    in_x = os.path.join(get_home(), 'plot',
+    in_x = os.path.join(SCILPY_HOME, 'plot',
                         'fa.nii.gz')
-    in_y = os.path.join(get_home(), 'plot',
+    in_y = os.path.join(SCILPY_HOME, 'plot',
                         'ad.nii.gz')
-    in_atlas = os.path.join(get_home(), 'plot',
+    in_atlas = os.path.join(SCILPY_HOME, 'plot',
                             'atlas_brainnetome.nii.gz')
-    atlas_lut = os.path.join(get_home(), 'plot',
+    atlas_lut = os.path.join(SCILPY_HOME, 'plot',
                              'atlas_brainnetome.json')
     ret = script_runner.run('scil_visualize_scatterplot.py', in_x, in_y,
                             'scatter_plot', '--in_atlas', in_atlas,

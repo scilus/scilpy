@@ -1,18 +1,19 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import nibabel as nib
-import numpy as np
 import os
-import pytest
 import tempfile
 
-from scilpy.io.fetcher import get_testing_files_dict, fetch_data, get_home
+import nibabel as nib
+import numpy as np
+import pytest
 
+from scilpy import SCILPY_HOME
+from scilpy.io.fetcher import fetch_data, get_testing_files_dict
 
 # If they already exist, this only takes 5 seconds (check md5sum)
 fetch_data(get_testing_files_dict(), keys=['fodf_filtering.zip'])
-data_path = os.path.join(get_home(), 'fodf_filtering')
+data_path = os.path.join(SCILPY_HOME, 'fodf_filtering')
 tmp_dir = tempfile.TemporaryDirectory()
 
 
