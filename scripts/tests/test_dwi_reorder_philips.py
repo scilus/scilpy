@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import os
 import json
+import os
 import tempfile
 
-from dipy.io.gradients import read_bvals_bvecs
 import numpy as np
+from dipy.io.gradients import read_bvals_bvecs
 
-from scilpy.io.fetcher import fetch_data, get_home, get_testing_files_dict
+from scilpy import SCILPY_HOME
+from scilpy.io.fetcher import fetch_data, get_testing_files_dict
 
 # If they already exist, this only takes 5 seconds (check md5sum)
 fetch_data(get_testing_files_dict(), keys=['processing.zip'])
@@ -22,9 +23,9 @@ def test_help_option(script_runner):
 
 def test_reorder(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    in_dwi = os.path.join(get_home(), 'processing', 'dwi_crop.nii.gz')
-    in_bval = os.path.join(get_home(), 'processing', 'dwi.bval')
-    in_bvec = os.path.join(get_home(), 'processing', 'dwi.bvec')
+    in_dwi = os.path.join(SCILPY_HOME, 'processing', 'dwi_crop.nii.gz')
+    in_bval = os.path.join(SCILPY_HOME, 'processing', 'dwi.bval')
+    in_bvec = os.path.join(SCILPY_HOME, 'processing', 'dwi.bvec')
     table = np.ones((64, 4))
     bval, bvec = read_bvals_bvecs(in_bval, in_bvec)
     table[:, :3] = bvec
@@ -41,9 +42,9 @@ def test_reorder(script_runner):
 
 def test_reorder_w_json_old_version(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    in_dwi = os.path.join(get_home(), 'processing', 'dwi_crop.nii.gz')
-    in_bval = os.path.join(get_home(), 'processing', 'dwi.bval')
-    in_bvec = os.path.join(get_home(), 'processing', 'dwi.bvec')
+    in_dwi = os.path.join(SCILPY_HOME, 'processing', 'dwi_crop.nii.gz')
+    in_bval = os.path.join(SCILPY_HOME, 'processing', 'dwi.bval')
+    in_bvec = os.path.join(SCILPY_HOME, 'processing', 'dwi.bvec')
     table = np.ones((64, 4))
     bval, bvec = read_bvals_bvecs(in_bval, in_bvec)
     table[:, :3] = bvec
@@ -64,9 +65,9 @@ def test_reorder_w_json_old_version(script_runner):
 
 def test_reorder_w_json_new_version(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    in_dwi = os.path.join(get_home(), 'processing', 'dwi_crop.nii.gz')
-    in_bval = os.path.join(get_home(), 'processing', 'dwi.bval')
-    in_bvec = os.path.join(get_home(), 'processing', 'dwi.bvec')
+    in_dwi = os.path.join(SCILPY_HOME, 'processing', 'dwi_crop.nii.gz')
+    in_bval = os.path.join(SCILPY_HOME, 'processing', 'dwi.bval')
+    in_bvec = os.path.join(SCILPY_HOME, 'processing', 'dwi.bvec')
     table = np.ones((64, 4))
     bval, bvec = read_bvals_bvecs(in_bval, in_bvec)
     table[:, :3] = bvec

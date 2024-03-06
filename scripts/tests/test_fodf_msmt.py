@@ -4,7 +4,8 @@
 import os
 import tempfile
 
-from scilpy.io.fetcher import fetch_data, get_home, get_testing_files_dict
+from scilpy import SCILPY_HOME
+from scilpy.io.fetcher import fetch_data, get_testing_files_dict
 
 fetch_data(get_testing_files_dict(), keys=['commit_amico.zip'])
 tmp_dir = tempfile.TemporaryDirectory()
@@ -17,13 +18,13 @@ def test_help_option(script_runner):
 
 def test_execution_processing(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    in_dwi = os.path.join(get_home(), 'commit_amico', 'dwi.nii.gz')
-    in_bval = os.path.join(get_home(), 'commit_amico', 'dwi.bval')
-    in_bvec = os.path.join(get_home(), 'commit_amico', 'dwi.bvec')
-    in_wm_frf = os.path.join(get_home(), 'commit_amico', 'wm_frf.txt')
-    in_gm_frf = os.path.join(get_home(), 'commit_amico', 'gm_frf.txt')
-    in_csf_frf = os.path.join(get_home(), 'commit_amico', 'csf_frf.txt')
-    mask = os.path.join(get_home(), 'commit_amico', 'mask.nii.gz')
+    in_dwi = os.path.join(SCILPY_HOME, 'commit_amico', 'dwi.nii.gz')
+    in_bval = os.path.join(SCILPY_HOME, 'commit_amico', 'dwi.bval')
+    in_bvec = os.path.join(SCILPY_HOME, 'commit_amico', 'dwi.bvec')
+    in_wm_frf = os.path.join(SCILPY_HOME, 'commit_amico', 'wm_frf.txt')
+    in_gm_frf = os.path.join(SCILPY_HOME, 'commit_amico', 'gm_frf.txt')
+    in_csf_frf = os.path.join(SCILPY_HOME, 'commit_amico', 'csf_frf.txt')
+    mask = os.path.join(SCILPY_HOME, 'commit_amico', 'mask.nii.gz')
 
     ret = script_runner.run('scil_fodf_msmt.py', in_dwi, in_bval,
                             in_bvec, in_wm_frf, in_gm_frf, in_csf_frf,

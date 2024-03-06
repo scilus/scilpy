@@ -5,11 +5,11 @@ import tempfile
 import nibabel as nib
 import numpy as np
 import pytest
-
 from dipy.io.streamline import load_tractogram
 from dipy.tracking.streamlinespeed import length
 
-from scilpy.io.fetcher import fetch_data, get_testing_files_dict, get_home
+from scilpy import SCILPY_HOME
+from scilpy.io.fetcher import fetch_data, get_testing_files_dict
 from scilpy.tractograms.streamline_operations import (
     filter_streamlines_by_length,
     filter_streamlines_by_total_length_per_dim,
@@ -18,6 +18,7 @@ from scilpy.tractograms.streamline_operations import (
     smooth_line_gaussian,
     smooth_line_spline)
 from scilpy.tractograms.tractogram_operations import concatenate_sft
+
 
 fetch_data(get_testing_files_dict(), keys=['tractograms.zip'])
 tmp_dir = tempfile.TemporaryDirectory()
@@ -28,20 +29,20 @@ def _setup_files():
     """
 
     os.chdir(os.path.expanduser(tmp_dir.name))
-    in_long_sft = os.path.join(get_home(), 'tractograms',
+    in_long_sft = os.path.join(SCILPY_HOME, 'tractograms',
                                'streamline_operations',
                                'bundle_4.tck')
-    in_mid_sft = os.path.join(get_home(), 'tractograms',
+    in_mid_sft = os.path.join(SCILPY_HOME, 'tractograms',
                               'streamline_operations',
                               'bundle_4_cut_endpoints.tck')
-    in_short_sft = os.path.join(get_home(), 'tractograms',
+    in_short_sft = os.path.join(SCILPY_HOME, 'tractograms',
                                 'streamline_operations',
                                 'bundle_4_cut_center.tck')
-    in_ref = os.path.join(get_home(), 'tractograms',
+    in_ref = os.path.join(SCILPY_HOME, 'tractograms',
                           'streamline_operations',
                           'bundle_4_wm.nii.gz')
 
-    in_rois = os.path.join(get_home(), 'tractograms',
+    in_rois = os.path.join(SCILPY_HOME, 'tractograms',
                            'streamline_operations',
                            'bundle_4_head_tail_offset.nii.gz')
 

@@ -4,8 +4,8 @@
 import os
 import tempfile
 
-from scilpy.io.fetcher import get_testing_files_dict, fetch_data, get_home
-
+from scilpy import SCILPY_HOME
+from scilpy.io.fetcher import fetch_data, get_testing_files_dict
 
 fetch_data(get_testing_files_dict(), keys=['processing.zip'])
 tmp_dir = tempfile.TemporaryDirectory()
@@ -18,15 +18,15 @@ def test_help_option(script_runner):
 
 def test_snr(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    in_dwi = os.path.join(get_home(), 'processing',
+    in_dwi = os.path.join(SCILPY_HOME, 'processing',
                           'dwi.nii.gz')
-    in_bval = os.path.join(get_home(), 'processing',
+    in_bval = os.path.join(SCILPY_HOME, 'processing',
                            'dwi.bval')
-    in_bvec = os.path.join(get_home(), 'processing',
+    in_bvec = os.path.join(SCILPY_HOME, 'processing',
                            'dwi.bvec')
-    in_mask = os.path.join(get_home(), 'processing',
+    in_mask = os.path.join(SCILPY_HOME, 'processing',
                            'cc.nii.gz')
-    noise_mask = os.path.join(get_home(), 'processing',
+    noise_mask = os.path.join(SCILPY_HOME, 'processing',
                               'small_roi_gm_mask.nii.gz')
 
     ret = script_runner.run('scil_dwi_compute_snr.py', in_dwi,

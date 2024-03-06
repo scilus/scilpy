@@ -4,7 +4,8 @@
 import os
 import tempfile
 
-from scilpy.io.fetcher import fetch_data, get_home, get_testing_files_dict
+from scilpy import SCILPY_HOME
+from scilpy.io.fetcher import fetch_data, get_testing_files_dict
 
 # If they already exist, this only takes 5 seconds (check md5sum)
 fetch_data(get_testing_files_dict(), keys=['others.zip'])
@@ -19,8 +20,8 @@ def test_help_option(script_runner):
 
 def test_execution_3D_map(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    in_t1 = os.path.join(get_home(), 'tractometry', 'mni_masked.nii.gz')
-    in_tracto_1 = os.path.join(get_home(), 'others',
+    in_t1 = os.path.join(SCILPY_HOME, 'tractometry', 'mni_masked.nii.gz')
+    in_tracto_1 = os.path.join(SCILPY_HOME, 'others',
                                'IFGWM_sub.trk')
 
     ret = script_runner.run('scil_tractogram_project_map_to_streamlines.py',
@@ -32,8 +33,8 @@ def test_execution_3D_map(script_runner):
 
 def test_execution_4D_map(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    in_rgb = os.path.join(get_home(), 'others', 'rgb.nii.gz')
-    in_tracto_1 = os.path.join(get_home(), 'others',
+    in_rgb = os.path.join(SCILPY_HOME, 'others', 'rgb.nii.gz')
+    in_tracto_1 = os.path.join(SCILPY_HOME, 'others',
                                'IFGWM_sub.trk')
 
     ret = script_runner.run('scil_tractogram_project_map_to_streamlines.py',
@@ -45,8 +46,8 @@ def test_execution_4D_map(script_runner):
 
 def test_execution_3D_map_endpoints_only(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    in_t1 = os.path.join(get_home(), 'tractometry', 'mni_masked.nii.gz')
-    in_tracto_1 = os.path.join(get_home(), 'others',
+    in_t1 = os.path.join(SCILPY_HOME, 'tractometry', 'mni_masked.nii.gz')
+    in_tracto_1 = os.path.join(SCILPY_HOME, 'others',
                                'IFGWM_sub.trk')
 
     ret = script_runner.run('scil_tractogram_project_map_to_streamlines.py',
@@ -60,8 +61,8 @@ def test_execution_3D_map_endpoints_only(script_runner):
 
 def test_execution_4D_map_endpoints_only(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    in_rgb = os.path.join(get_home(), 'others', 'rgb.nii.gz')
-    in_tracto_1 = os.path.join(get_home(), 'others',
+    in_rgb = os.path.join(SCILPY_HOME, 'others', 'rgb.nii.gz')
+    in_tracto_1 = os.path.join(SCILPY_HOME, 'others',
                                'IFGWM_sub.trk')
 
     ret = script_runner.run('scil_tractogram_project_map_to_streamlines.py',
@@ -75,8 +76,8 @@ def test_execution_4D_map_endpoints_only(script_runner):
 
 def test_execution_3D_map_trilinear(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    in_t1 = os.path.join(get_home(), 'tractometry', 'mni_masked.nii.gz')
-    in_tracto_1 = os.path.join(get_home(), 'others',
+    in_t1 = os.path.join(SCILPY_HOME, 'tractometry', 'mni_masked.nii.gz')
+    in_tracto_1 = os.path.join(SCILPY_HOME, 'others',
                                'IFGWM_sub.trk')
 
     ret = script_runner.run('scil_tractogram_project_map_to_streamlines.py',
