@@ -38,11 +38,11 @@ def test_execution_processing_dti_peaks(script_runner):
 
 def test_execution_processing_fodf_peaks(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    in_bvec = os.path.join(get_home(), 'processing',
+    in_bvec = os.path.join(SCILPY_HOME, 'processing',
                            'dwi.bvec')
-    in_peaks = os.path.join(get_home(), 'processing',
+    in_peaks = os.path.join(SCILPY_HOME, 'processing',
                             'peaks.nii.gz')
-    in_fa = os.path.join(get_home(), 'processing',
+    in_fa = os.path.join(SCILPY_HOME, 'processing',
                          'fa.nii.gz')
 
     # test the actual script
