@@ -4,20 +4,20 @@ import os
 
 import nibabel as nib
 import numpy as np
-
 from dipy.io.streamline import load_tractogram
 
-from scilpy.io.fetcher import get_testing_files_dict, fetch_data, get_home
+from scilpy import SCILPY_HOME
 from scilpy.image.utils import split_mask_blobs_kmeans
+from scilpy.io.fetcher import fetch_data, get_testing_files_dict
 from scilpy.tractograms.streamline_and_mask_operations import (
+    _intersects_two_rois,
     compute_streamline_segment,
     cut_between_mask_two_blobs_streamlines,
     cut_outside_of_mask_streamlines,
     get_endpoints_density_map,
     get_head_tail_density_maps)
-from scilpy.tractograms.streamline_and_mask_operations import \
-    _intersects_two_rois
 from scilpy.tractograms.uncompress import uncompress
+
 
 fetch_data(get_testing_files_dict(), keys=['tractograms.zip'])
 
@@ -26,20 +26,20 @@ def _setup_files():
     """ Load streamlines and masks relevant to the tests here.
     """
 
-    in_ref = os.path.join(get_home(), 'tractograms',
+    in_ref = os.path.join(SCILPY_HOME, 'tractograms',
                           'streamline_and_mask_operations',
                           'bundle_4_wm.nii.gz')
 
-    in_head_tail = os.path.join(get_home(), 'tractograms',
+    in_head_tail = os.path.join(SCILPY_HOME, 'tractograms',
                                 'streamline_and_mask_operations',
                                 'bundle_4_head_tail.nii.gz')
-    in_head_tail_offset = os.path.join(get_home(), 'tractograms',
+    in_head_tail_offset = os.path.join(SCILPY_HOME, 'tractograms',
                                        'streamline_and_mask_operations',
                                        'bundle_4_head_tail_offset.nii.gz')
-    in_center = os.path.join(get_home(), 'tractograms',
+    in_center = os.path.join(SCILPY_HOME, 'tractograms',
                              'streamline_and_mask_operations',
                              'bundle_4_center.nii.gz')
-    in_sft = os.path.join(get_home(), 'tractograms',
+    in_sft = os.path.join(SCILPY_HOME, 'tractograms',
                           'streamline_and_mask_operations',
                           'bundle_4.tck')
 
@@ -63,7 +63,7 @@ def test_get_endpoints_density_map():
     endpoints_map = get_endpoints_density_map(
         sft, point_to_select=1)
 
-    in_result = os.path.join(get_home(), 'tractograms',
+    in_result = os.path.join(SCILPY_HOME, 'tractograms',
                              'streamline_and_mask_operations',
                              'bundle_4_endpoints_1point.nii.gz')
 
@@ -81,7 +81,7 @@ def test_get_endpoints_density_map_five_points():
     endpoints_map = get_endpoints_density_map(
         sft, point_to_select=5)
 
-    in_result = os.path.join(get_home(), 'tractograms',
+    in_result = os.path.join(SCILPY_HOME, 'tractograms',
                              'streamline_and_mask_operations',
                              'bundle_4_endpoints_5points.nii.gz')
 
@@ -101,7 +101,7 @@ def test_get_head_tail_density_maps():
     head_map, tail_map = get_head_tail_density_maps(
         sft, point_to_select=1)
 
-    in_result = os.path.join(get_home(), 'tractograms',
+    in_result = os.path.join(SCILPY_HOME, 'tractograms',
                              'streamline_and_mask_operations',
                              'bundle_4_endpoints_1point.nii.gz')
 
@@ -116,7 +116,7 @@ def test_cut_outside_of_mask_streamlines():
     cut_sft = cut_outside_of_mask_streamlines(
         sft, center_roi)
 
-    in_result = os.path.join(get_home(), 'tractograms',
+    in_result = os.path.join(SCILPY_HOME, 'tractograms',
                              'streamline_and_mask_operations',
                              'bundle_4_cut_center.tck')
 
@@ -142,7 +142,7 @@ def test_cut_between_mask_two_blobs_streamlines():
         sft, head_tail_rois)
 
     # The expected result is the input bundle.
-    in_result = os.path.join(get_home(), 'tractograms',
+    in_result = os.path.join(SCILPY_HOME, 'tractograms',
                              'streamline_and_mask_operations',
                              'bundle_4.tck')
 
@@ -168,7 +168,7 @@ def test_cut_between_mask_two_blobs_streamlines_offset():
     cut_sft = cut_between_mask_two_blobs_streamlines(
         sft, head_tail_offset_rois)
 
-    in_result = os.path.join(get_home(), 'tractograms',
+    in_result = os.path.join(SCILPY_HOME, 'tractograms',
                              'streamline_and_mask_operations',
                              'bundle_4_cut_endpoints.tck')
 

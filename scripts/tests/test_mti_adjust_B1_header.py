@@ -4,7 +4,8 @@
 import os
 import tempfile
 
-from scilpy.io.fetcher import fetch_data, get_home, get_testing_files_dict
+from scilpy import SCILPY_HOME
+from scilpy.io.fetcher import fetch_data, get_testing_files_dict
 
 # If they already exist, this only takes 5 seconds (check md5sum)
 fetch_data(get_testing_files_dict(), keys=['ihMT.zip'])
@@ -19,9 +20,9 @@ def test_help_option(script_runner):
 def test_execution_ihMT_no_option(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
 
-    in_b1_map = os.path.join(get_home(),
+    in_b1_map = os.path.join(SCILPY_HOME,
                              'MT', 'sub-001_run-01_B1map.nii.gz')
-    in_b1_json = os.path.join(get_home(),
+    in_b1_json = os.path.join(SCILPY_HOME,
                               'MT', 'sub-001_run-01_B1map.json')
 
     # no option

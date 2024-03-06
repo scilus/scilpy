@@ -3,8 +3,8 @@ import os
 import shutil
 import tempfile
 
-from scilpy.io.fetcher import get_testing_files_dict, fetch_data, get_home
-
+from scilpy import SCILPY_HOME
+from scilpy.io.fetcher import fetch_data, get_testing_files_dict
 
 # If they already exist, this only takes 5 seconds (check md5sum)
 fetch_data(get_testing_files_dict(), keys=['tracking.zip'])
@@ -19,7 +19,7 @@ def test_help_option(script_runner):
 
 def test_score_bundles(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    in_tractogram = os.path.join(get_home(), 'tracking', 'pft.trk')
+    in_tractogram = os.path.join(SCILPY_HOME, 'tracking', 'pft.trk')
 
     # Pretend we have our segmented bundles on disk
     shutil.copyfile(in_tractogram, './NC.trk')
@@ -31,11 +31,11 @@ def test_score_bundles(script_runner):
 
     json_contents = {
         "bundle1": {
-            "gt_mask": os.path.join(get_home(), 'tracking',
+            "gt_mask": os.path.join(SCILPY_HOME, 'tracking',
                                     'seeding_mask.nii.gz'),
         },
         "bundle2": {
-            "gt_mask": os.path.join(get_home(), 'tracking',
+            "gt_mask": os.path.join(SCILPY_HOME, 'tracking',
                                     'seeding_mask.nii.gz'),
         }
     }

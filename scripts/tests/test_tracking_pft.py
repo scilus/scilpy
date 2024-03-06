@@ -4,8 +4,8 @@
 import os
 import tempfile
 
-from scilpy.io.fetcher import get_testing_files_dict, fetch_data, get_home
-
+from scilpy import SCILPY_HOME
+from scilpy.io.fetcher import fetch_data, get_testing_files_dict
 
 # If they already exist, this only takes 5 seconds (check md5sum)
 fetch_data(get_testing_files_dict(), keys=['tracking.zip'])
@@ -20,13 +20,13 @@ def test_help_option(script_runner):
 
 def test_execution_tracking(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    in_fodf = os.path.join(get_home(), 'tracking',
+    in_fodf = os.path.join(SCILPY_HOME, 'tracking',
                            'fodf.nii.gz')
-    in_interface = os.path.join(get_home(), 'tracking',
+    in_interface = os.path.join(SCILPY_HOME, 'tracking',
                                 'interface.nii.gz')
-    in_include = os.path.join(get_home(), 'tracking',
+    in_include = os.path.join(SCILPY_HOME, 'tracking',
                               'map_include.nii.gz')
-    in_exclude = os.path.join(get_home(), 'tracking',
+    in_exclude = os.path.join(SCILPY_HOME, 'tracking',
                               'map_exclude.nii.gz')
     ret = script_runner.run('scil_tracking_pft.py', in_fodf,
                             in_interface, in_include, in_exclude,

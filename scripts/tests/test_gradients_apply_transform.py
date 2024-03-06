@@ -4,8 +4,8 @@
 import os
 import tempfile
 
-from scilpy.io.fetcher import get_testing_files_dict, fetch_data, get_home
-
+from scilpy import SCILPY_HOME
+from scilpy.io.fetcher import fetch_data, get_testing_files_dict
 
 # If they already exist, this only takes 5 seconds (check md5sum)
 fetch_data(get_testing_files_dict(), keys=['bst.zip'])
@@ -20,9 +20,9 @@ def test_help_option(script_runner):
 
 def test_execution_bst(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    in_bvecs = os.path.join(get_home(), 'processing',
+    in_bvecs = os.path.join(SCILPY_HOME, 'processing',
                             'dwi.bvec')
-    in_aff = os.path.join(get_home(), 'bst',
+    in_aff = os.path.join(SCILPY_HOME, 'bst',
                           'output0GenericAffine.mat')
     ret = script_runner.run('scil_gradients_apply_transform.py',
                             in_bvecs, in_aff,

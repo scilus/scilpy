@@ -4,7 +4,8 @@
 import os
 import tempfile
 
-from scilpy.io.fetcher import fetch_data, get_home, get_testing_files_dict
+from scilpy import SCILPY_HOME
+from scilpy.io.fetcher import fetch_data, get_testing_files_dict
 
 # If they already exist, this only takes 5 seconds (check md5sum)
 fetch_data(get_testing_files_dict(), keys=['processing.zip'])
@@ -18,8 +19,8 @@ def test_help_option(script_runner):
 
 def test_execution_processing(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    in_tracking = os.path.join(get_home(), 'processing', 'tracking.trk')
-    in_fodf = os.path.join(get_home(), 'processing',
+    in_tracking = os.path.join(SCILPY_HOME, 'processing', 'tracking.trk')
+    in_fodf = os.path.join(SCILPY_HOME, 'processing',
                            'fodf_descoteaux07.nii.gz')
     ret = script_runner.run('scil_bundle_mean_fixel_afd.py', in_tracking,
                             in_fodf, 'afd_test.nii.gz',
