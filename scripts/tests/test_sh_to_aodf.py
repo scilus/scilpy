@@ -8,12 +8,10 @@ import nibabel as nib
 import numpy as np
 import pytest
 
-from scilpy import SCILPY_HOME
-from scilpy.io.fetcher import fetch_data, get_testing_files_dict
+from scilpy.io.dvc import pull_test_case_package
 
 # If they already exist, this only takes 5 seconds (check md5sum)
-fetch_data(get_testing_files_dict(), keys=['fodf_filtering.zip'])
-data_path = os.path.join(SCILPY_HOME, 'fodf_filtering')
+test_data_root = pull_test_case_package("aodf")
 tmp_dir = tempfile.TemporaryDirectory()
 
 
@@ -23,8 +21,8 @@ def test_help_option(script_runner):
 
 
 @pytest.mark.parametrize("in_fodf,expected_fodf",
-    [[os.path.join(data_path, "fodf_descoteaux07_sub.nii.gz"),
-      os.path.join(data_path,
+    [[os.path.join(test_data_root, "fodf_descoteaux07_sub.nii.gz"),
+      os.path.join(test_data_root,
                    "fodf_descoteaux07_sub_unified_asym.nii.gz")]])
 def test_asym_basis_output(script_runner, in_fodf, expected_fodf):
     os.chdir(os.path.expanduser(tmp_dir.name))
@@ -49,9 +47,9 @@ def test_asym_basis_output(script_runner, in_fodf, expected_fodf):
 
 
 @pytest.mark.parametrize("in_fodf,expected_fodf",
-    [[os.path.join(data_path,
+    [[os.path.join(test_data_root,
                    "fodf_descoteaux07_sub_unified_asym.nii.gz"),
-      os.path.join(data_path,
+      os.path.join(test_data_root,
                    "fodf_descoteaux07_sub_unified_asym_twice.nii.gz")]])
 def test_asym_input(script_runner, in_fodf, expected_fodf):
     os.chdir(os.path.expanduser(tmp_dir.name))
@@ -76,8 +74,9 @@ def test_asym_input(script_runner, in_fodf, expected_fodf):
 
 
 @pytest.mark.parametrize("in_fodf,out_fodf",
-    [[os.path.join(data_path, 'fodf_descoteaux07_sub.nii.gz'),
-      os.path.join(data_path, 'fodf_descoteaux07_sub_cosine_asym.nii.gz')]])
+    [[os.path.join(test_data_root, 'fodf_descoteaux07_sub.nii.gz'),
+      os.path.join(test_data_root,
+                   'fodf_descoteaux07_sub_cosine_asym.nii.gz')]])
 def test_cosine_method(script_runner, in_fodf, out_fodf):
     os.chdir(os.path.expanduser(tmp_dir.name))
 
