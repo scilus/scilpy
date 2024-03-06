@@ -143,8 +143,8 @@ def main():
         sigma_range = None if args.disable_range else args.sigma_range
         sigma_spatial = None if args.disable_spatial else args.sigma_spatial
 
-        asym_sh = unified_filtering(data,
-            sh_order=sh_order, sh_basis=sh_basis,
+        asym_sh = unified_filtering(
+            data, sh_order=sh_order, sh_basis=sh_basis,
             legacy=is_legacy, full_basis=full_basis,
             sphere_str=args.sphere,
             sigma_spatial=sigma_spatial,
@@ -152,7 +152,7 @@ def main():
             sigma_angle=args.sigma_angle,
             rel_sigma_range=sigma_range,
             win_hwidth=args.win_hwidth,
-            exclude_center=not(args.include_center),
+            exclude_center=not args.include_center,
             device_type=args.device,
             use_opencl=args.use_opencl)
     else:  # args.method == 'cosine'

@@ -15,13 +15,13 @@ def test_unified_asymmetric_filtering():
     """
     in_sh = fodf_3x3_order8_descoteaux07
     sh_basis = 'descoteaux07'
-    legacy=True
+    legacy = True
     sphere_str = 'repulsion100'
     sigma_spatial = 1.0
     sigma_align = 0.8
     sigma_range = 0.2
     sigma_angle = 0.06
-    win_hwidth=3
+    win_hwidth = 3
     exclude_center = False
     device_type = 'cpu'
     use_opencl = False

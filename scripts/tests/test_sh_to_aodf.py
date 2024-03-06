@@ -20,10 +20,10 @@ def test_help_option(script_runner):
     assert ret.success
 
 
-@pytest.mark.parametrize("in_fodf,expected_fodf",
-    [[os.path.join(test_data_root, "fodf_descoteaux07_sub.nii.gz"),
-      os.path.join(test_data_root,
-                   "fodf_descoteaux07_sub_unified_asym.nii.gz")]])
+@pytest.mark.parametrize("in_fodf,expected_fodf", [
+    [os.path.join(test_data_root, "fodf_descoteaux07_sub.nii.gz"),
+     os.path.join(test_data_root,
+                  "fodf_descoteaux07_sub_unified_asym.nii.gz")]])
 def test_asym_basis_output(script_runner, in_fodf, expected_fodf):
     os.chdir(os.path.expanduser(tmp_dir.name))
 
@@ -46,11 +46,11 @@ def test_asym_basis_output(script_runner, in_fodf, expected_fodf):
     assert np.allclose(ret_fodf.get_fdata(), test_fodf.get_fdata())
 
 
-@pytest.mark.parametrize("in_fodf,expected_fodf",
-    [[os.path.join(test_data_root,
-                   "fodf_descoteaux07_sub_unified_asym.nii.gz"),
-      os.path.join(test_data_root,
-                   "fodf_descoteaux07_sub_unified_asym_twice.nii.gz")]])
+@pytest.mark.parametrize("in_fodf,expected_fodf", [
+    [os.path.join(test_data_root,
+                  "fodf_descoteaux07_sub_unified_asym.nii.gz"),
+     os.path.join(test_data_root,
+                  "fodf_descoteaux07_sub_unified_asym_twice.nii.gz")]])
 def test_asym_input(script_runner, in_fodf, expected_fodf):
     os.chdir(os.path.expanduser(tmp_dir.name))
 
@@ -73,10 +73,10 @@ def test_asym_input(script_runner, in_fodf, expected_fodf):
     assert np.allclose(ret_fodf.get_fdata(), test_fodf.get_fdata())
 
 
-@pytest.mark.parametrize("in_fodf,out_fodf",
-    [[os.path.join(test_data_root, 'fodf_descoteaux07_sub.nii.gz'),
-      os.path.join(test_data_root,
-                   'fodf_descoteaux07_sub_cosine_asym.nii.gz')]])
+@pytest.mark.parametrize("in_fodf,out_fodf", [
+    [os.path.join(test_data_root, 'fodf_descoteaux07_sub.nii.gz'),
+     os.path.join(test_data_root,
+                  'fodf_descoteaux07_sub_cosine_asym.nii.gz')]])
 def test_cosine_method(script_runner, in_fodf, out_fodf):
     os.chdir(os.path.expanduser(tmp_dir.name))
 
