@@ -43,15 +43,15 @@ def _build_arg_parser():
 
     g1 = p.add_argument_group('Metrics options')
     g1.add_argument(
-        '--fa_single_fiber', type=float, default=0.7,
+        '--fa_min_single_fiber', type=float, default=0.7,
         help='Minimal threshold of FA (voxels above that threshold are '
              'considered in \nthe single fiber mask). [%(default)s]')
     g1.add_argument(
-        '--fa_ventricles', type=float, default=0.1,
+        '--fa_max_ventricles', type=float, default=0.1,
         help='Maximal threshold of FA (voxels under that threshold are '
              'considered in \nthe ventricles). [%(default)s]')
     g1.add_argument(
-        '--md_ventricles', type=float, default=0.003,
+        '--md_min_ventricles', type=float, default=0.003,
         help='Minimal threshold of MD in mm2/s (voxels above that threshold '
              'are considered \nfor in the ventricles). [%(default)s]')
 
@@ -121,6 +121,7 @@ def main():
 
     # Finding ROI center
     if args.roi_center is None:
+        # Using the center of the image: single-fiber region should be the CC
         ci, cj, ck = np.array(fa_data.shape[:3]) // 2
     else:
         if len(args.roi_center) != 3:
@@ -142,10 +143,10 @@ def main():
 
     # Get information in single fiber voxels
     # Taking voxels with FA < 0.95 just to avoid using weird broken voxels.
-    indices = np.where((roi_fa > args.fa_single_fiber) & (roi_fa < 0.95))
+    indices = np.where((roi_fa > args.fa_min_single_fiber) & (roi_fa < 0.95))
     nb_voxels = roi_fa[indices].shape[0]
     logging.info('Number of voxels found in single fiber area (FA in range '
-                 '{}-{}]: {}'.format(args.fa_single_fiber, 0.95, nb_voxels))
+                 '{}-{}]: {}'.format(args.fa_min_single_fiber, 0.95, nb_voxels))
     single_fiber_ad_mean = np.mean(roi_ad[indices])
     single_fiber_ad_std = np.std(roi_ad[indices])
     single_fiber_rd_mean = np.mean(roi_rd[indices])
@@ -159,12 +160,12 @@ def main():
     mask_single_fiber[indices] = 1
 
     # Get information in ventricles
-    indices = np.where((roi_md > args.md_ventricles) &
-                       (roi_fa < args.fa_ventricles))
+    indices = np.where((roi_md > args.md_min_ventricles) &
+                       (roi_fa < args.fa_max_ventricles))
     nb_voxels = roi_md[indices].shape[0]
     logging.info('Number of voxels found in ventricles (FA < {} and MD > {}): '
                  '{}'
-                 .format(args.fa_ventricles, args.md_ventricles, nb_voxels))
+                 .format(args.fa_max_ventricles, args.md_min_ventricles, nb_voxels))
 
     vent_avg = np.mean(roi_md[indices])
     vent_std = np.std(roi_md[indices])
