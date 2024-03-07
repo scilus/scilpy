@@ -655,6 +655,16 @@ def correlation(input_list, ref_img, patch_radius=1):
     combs = list(combinations(range(len(input_list)), r=2))
     all_corr = np.zeros(data_shape + (len(combs),), dtype=np.float32)
 
+    def correlate(data):
+        data += np.random.rand(data.shape[0]) * 0.001
+        a, b = np.split(data, 2)
+
+        if np.allclose(a, b):
+            return 1
+
+        corr = np.corrcoef(a, b, dtype=np.float32)[0, 1]
+        return corr
+
     np.random.seed(0)
     for i, comb in enumerate(combs):
         img_1 = input_list[comb[0]]
@@ -680,17 +690,7 @@ def correlation(input_list, ref_img, patch_radius=1):
         patches = np.concatenate((patches_1, patches_2), axis=-1)
 
         non_zeros_patches = np.sum(patches, axis=-1)
-        non_zeros_ids = np.where(np.abs(non_zeros_patches) > 0.001)[0]
-
-        def correlate(data):
-            data += np.random.rand(data.shape[0]) * 0.001
-            a, b = np.split(data, 2)
-
-            if np.allclose(a, b):
-                return 1
-
-            corr = np.corrcoef(a, b, dtype=np.float32)[0, 1]
-            return corr
+        non_zeros_ids = np.where(np.abs(non_zeros_patches) > 1e-10)[0]
 
         results = np.zeros((len(patches)), dtype=np.float32)
         results[non_zeros_ids] = np.apply_along_axis(correlate, 1,

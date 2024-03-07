@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-
 import nibabel as nib
 import numpy as np
 from numpy.testing import (assert_array_equal,
@@ -34,7 +33,7 @@ from scilpy.image.volume_math import (_validate_imgs,
                                       difference, invert,
                                       concatenate, gaussian_blur,
                                       dilation, erosion,
-                                      closing, opening)
+                                      closing, opening, correlation)
 
 
 EPSILON = np.finfo(float).eps
@@ -570,6 +569,22 @@ def test_concatenate():
 
     output_data = concatenate([img1, img2], img1)
     assert_array_almost_equal(img_data_1.shape+(2,), output_data.shape)
+
+
+def test_correlation():
+    # Note. Not working on 2D data.
+    img_data = np.zeros((3, 3, 3)).astype(float)
+    affine = np.eye(4)
+    img1 = nib.Nifti1Image(img_data, affine)
+    img2 = nib.Nifti1Image(img_data + 1, affine)
+
+    # With patch_radius of 1, we get the correlation for each voxel.
+    # Note: Currently, patch_radius is NEVER used in scilpy. To delete?
+    output = correlation([img1, img2], img1, patch_radius=1)
+
+    print(output.shape)
+    print(output)
+    assert np.all(output == 1)
 
 
 def test_dilation():
