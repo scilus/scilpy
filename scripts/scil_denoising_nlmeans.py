@@ -12,7 +12,6 @@ import logging
 import warnings
 
 from dipy.denoise.nlmeans import nlmeans
-from dipy.denoise.noise_estimate import estimate_sigma
 import nibabel as nib
 import numpy as np
 
@@ -23,6 +22,7 @@ from scilpy.io.utils import (add_processes_arg,
                              assert_inputs_exist,
                              assert_outputs_exist,
                              assert_headers_compatible)
+from scilpy.stats.stats import get_std
 
 
 def _build_arg_parser():
@@ -37,16 +37,17 @@ def _build_arg_parser():
                    help='Number of receiver coils of the scanner.\nUse '
                         'number_coils=1 in the case of a SENSE (GE, Philips) '
                         'reconstruction and \nnumber_coils >= 1 for GRAPPA '
-                        'reconstruction (Siemens). number_coils=4 works well '
-                        'for the 1.5T\n in Sherbrooke. Use number_coils=0 if '
-                        'the noise is considered Gaussian distributed.')
+                        'reconstruction (Siemens). \nnumber_coils=4 works '
+                        'well for the 1.5T in Sherbrooke. \nUse '
+                        'number_coils=0 if the noise is considered '
+                        'Gaussian distributed.')
 
     p.add_argument('--mask', metavar='',
                    help='Path to a binary mask. Only the data inside the mask'
                         ' will be used for computations')
     p.add_argument('--sigma', metavar='float', type=float,
                    help='The standard deviation of the noise to use instead '
-                        'of computing  it automatically.')
+                        'of computing it automatically.')
     p.add_argument('--log', dest="logfile",
                    help='If supplied, name of the text file to store '
                         'the logs.')
@@ -57,27 +58,12 @@ def _build_arg_parser():
     return p
 
 
-def _get_basic_sigma(data):
-    # We force to zero as the 3T is either oversmoothed or still noisy, but
-    # we prefer the second option
-    logging.info("In basic noise estimation, number_coils=0 is enforced!")
-    sigma = estimate_sigma(data, N=0)
-
-    # Use a single value for all of the volumes.
-    # This is the same value for a given bval with this estimator
-    sigma = np.median(sigma)
-    logging.info('The noise standard deviation from the basic estimation '
-                 'is {}'.format(sigma))
-
-    # Broadcast the single value to a whole 3D volume for nlmeans
-    return np.ones(data.shape[:3]) * sigma
-
-
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
+    # Verifications
     assert_inputs_exist(parser, args.in_image, args.mask)
     assert_outputs_exist(parser, args, args.out_image, args.logfile)
     assert_headers_compatible(parser, args.in_image, args.mask)
@@ -86,6 +72,7 @@ def main():
         logging.getLogger().addHandler(logging.FileHandler(args.logfile,
                                                            mode='w'))
 
+    # Loading
     vol = nib.load(args.in_image)
     data = vol.get_fdata(dtype=np.float32)
     if args.mask is None:
@@ -99,14 +86,18 @@ def main():
 
     sigma = args.sigma
 
+    # Processing
     if sigma is not None:
         logging.info('User supplied noise standard deviation is '
                      '{}'.format(sigma))
-        # Broadcast the single value to a whole 3D volume for nlmeans
-        sigma = np.ones(data.shape[:3]) * sigma
     else:
         logging.info('Estimating noise')
-        sigma = _get_basic_sigma(vol.get_fdata(dtype=np.float32))
+        sigma = get_std(vol.get_fdata(dtype=np.float32))
+        logging.info('The estimated noise standard deviation from the basic '
+                     'estimation is {}'.format(sigma))
+
+    # Broadcast the single value to a whole 3D volume for nlmeans
+    sigma = np.ones(data.shape[:3]) * sigma
 
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", category=DeprecationWarning)
@@ -114,6 +105,7 @@ def main():
             data, sigma, mask=mask, rician=args.number_coils > 0,
             num_threads=args.nbr_processes)
 
+    # Saving
     nib.save(nib.Nifti1Image(data_denoised, vol.affine, header=vol.header),
              args.out_image)
 
