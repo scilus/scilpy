@@ -120,6 +120,16 @@ def main():
     shells_centroids, indices_shells = identify_shells(bvals, args.tolerance,
                                                        round_centroids=True)
 
+    nb_shells = len(shells_centroids)
+    if nb_shells <= 1:
+        raise ValueError("Amico's NODDI works with data with more than one "
+                         "shell, but you seem to have single-shell data (we "
+                         "found shells {}). Change tolerance if necessary."
+                         .format(np.sort(shells_centroids)))
+    
+    logging.info('Will compute NODDI with AMICO on {} shells at found at {}.'
+                 .format(len(shells_centroids), np.sort(shells_centroids)))
+
     # Save the resulting bvals to a temporary file
     tmp_dir = tempfile.TemporaryDirectory()
     tmp_scheme_filename = os.path.join(tmp_dir.name, 'gradients.b')
@@ -127,9 +137,6 @@ def main():
     np.savetxt(tmp_bval_filename, shells_centroids[indices_shells],
                newline=' ', fmt='%i')
     fsl2mrtrix(tmp_bval_filename, args.in_bvec, tmp_scheme_filename)
-
-    logging.info('Will compute NODDI with AMICO on {} shells at found at {}.'
-                 .format(len(shells_centroids), np.sort(shells_centroids)))
 
     with redirected_stdout:
         # Load the data
