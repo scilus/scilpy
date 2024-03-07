@@ -12,7 +12,8 @@ from scilpy import SCILPY_HOME
 from scilpy.image.volume_operations import (apply_transform, compute_snr,
                                             crop_volume, flip_volume,
                                             merge_metrics, normalize_metric,
-                                            resample_volume, register_image)
+                                            resample_volume, register_image,
+                                            mask_data_with_default_cube)
 from scilpy.io.fetcher import fetch_data, get_testing_files_dict
 from scilpy.image.utils import compute_nifti_bounding_box
 
@@ -209,3 +210,12 @@ def test_merge_metrics_nan_propagation():
     merged_metric = merge_metrics(*arrays)
 
     assert_almost_equal(merged_metric, expected_output, decimal=6)
+
+
+def test_mask_data_with_default_cube():
+    data = np.ones((12, 12, 12))
+    out = mask_data_with_default_cube(data)
+    assert np.array_equal(data.shape, out.shape)
+    assert out[0, 0, 0] == 0
+    assert out[-1, -1, -1] == 0
+    assert out[6, 6, 6] == 1

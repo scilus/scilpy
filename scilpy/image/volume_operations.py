@@ -587,16 +587,17 @@ def resample_volume(img, ref=None, res=None, iso_min=False, zoom=None,
     return nib.Nifti1Image(data2.astype(data.dtype), affine2)
 
 
-def crop_data_with_default_cube(data):
-    """ Crop data with a default cube
-    Cube: data.shape/3 centered
+def mask_data_with_default_cube(data):
+    """Masks data outside a default cube (Cube: data.shape/3 centered)
 
     Parameters
     ----------
-    data : 3D ndarray
-        Volume data.
+    data :  np.ndarray
+        Volume data, 3D.
+
     Returns
     -------
+    data: np.ndarray
         Data masked
     """
     shape = np.array(data.shape[:3])
