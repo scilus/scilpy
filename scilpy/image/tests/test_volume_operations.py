@@ -131,14 +131,30 @@ def test_compute_snr():
     mask = nib.load(in_mask)
     noise_mask = nib.load(in_noise_mask)
 
-    snr = compute_snr(dwi, bvals, bvecs, 20, mask,
-                      noise_mask=noise_mask, noise_map=None,
-                      split_shells=True)
+    snr, _ = compute_snr(dwi, bvals, bvecs, 20, mask,
+                         noise_mask=noise_mask, noise_map=None,
+                         split_shells=True)
 
     # Value returned from multiple runs on the same data.
     target_val = 10.216334
-
     assert np.allclose(snr[0]['snr'], target_val, atol=0.00005)
+
+    # Testing automatic noise mask (when giving no noise_mask, noise_map)
+    # Current chosen dwi has no noise in the background. Adding manually. Let's
+    # change the input someday.
+    # Adding at the top (in z)
+    dwi_data = dwi.get_fdata()
+    dwi_data[:, :, -1, :] = np.random.rand(dwi_data.shape[0],
+                                           dwi_data.shape[1],
+                                           dwi_data.shape[3])
+    dwi = nib.Nifti1Image(dwi_data, dwi.affine)
+    snr, noise_mask = compute_snr(dwi, bvals, bvecs, 20, mask,
+                                  noise_mask=None, noise_map=None,
+                                  split_shells=True)
+
+    # Value returned from multiple runs on the same data varies because of
+    # random value. But always high (~ 11 600)
+    assert snr[0]['snr'] > 5000
 
 
 def test_remove_outliers_ransac():

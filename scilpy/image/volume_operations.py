@@ -31,8 +31,13 @@ def count_non_zero_voxels(image):
 
     Parameters:
     -----------
-    image: string
-        Path to the image
+    image: np.ndarray
+        The loaded image.
+
+    Returns
+    -------
+    nb_voxels: int
+        The count.
     """
     # Count the number of non-zero voxels.
     if len(image.shape) >= 4:
@@ -56,8 +61,8 @@ def flip_volume(data, axes):
     axes: List
         A list containing any number of values amongst ['x', 'y', 'z'].
 
-    Return
-    ------
+    Returns
+    -------
     data: np.ndarray
         Flipped volume data along specified axes.
     """
@@ -85,9 +90,10 @@ def crop_volume(img: nib.Nifti1Image, wbbox):
     wbbox: WorldBoundingBox
         Bounding box.
 
-    Return
-    ------
-    nib.Nifti1Image with the cropped data and transformed affine.
+    Returns
+    -------
+    cropped_im: nib.Nifti1Image
+        The image with cropped data and transformed affine.
     """
     data = img.get_fdata(dtype=np.float32, caching='unchanged')
     affine = img.affine
@@ -132,7 +138,8 @@ def apply_transform(transfo, reference, moving,
 
     Return
     ------
-    nib.Nifti1Image of the warped moving image.
+    moved_im: nib.Nifti1Image
+        The warped moving image.
     """
     grid2world, dim, _, _ = get_reference_info(reference)
     static_data = reference.get_fdata(dtype=np.float32)
@@ -190,7 +197,8 @@ def transform_dwi(reg_obj, static, dwi, interpolation='linear'):
 
     Return
     ------
-    nib.Nifti1Image of the warped 4D volume.
+    trans_dwi: nib.Nifti1Image
+        The warped 4D volume.
     """
     trans_dwi = np.zeros(static.shape + (dwi.shape[3],), dtype=dwi.dtype)
     for i in range(dwi.shape[3]):
@@ -235,11 +243,11 @@ def register_image(static, static_grid2world, moving, moving_grid2world,
 
     Returns
     -------
-    ndarray or tuple
-        If `dwi` is None, returns transformed moving image and transformation
-        matrix.
-        If `dwi` is not None, returns transformed DWI and transformation
-        matrix.
+    moved: np.ndarray
+        If `dwi` is None, returns the transformed moving image, else the
+        transformed dwi.
+    transform: np.ndarray
+        The transformation matrix.
     """
     if transformation_type not in ['rigid', 'affine']:
         raise ValueError('Transformation type not available in Dipy')
@@ -293,12 +301,10 @@ def register_image(static, static_grid2world, moving, moving_grid2world,
         return mapper.transform(moving), transformation
 
 
-def compute_snr(dwi, bval, bvec, b0_thr, mask,
-                noise_mask=None, noise_map=None,
-                split_shells=False,
-                basename=None):
+def compute_snr(dwi, bval, bvec, b0_thr, mask, noise_mask=None, noise_map=None,
+                split_shells=False):
     """
-    Compute snr
+    Computes the SNR. Saves
 
     Parameters
     ----------
@@ -312,19 +318,19 @@ def compute_snr(dwi, bval, bvec, b0_thr, mask,
         Threshold to define b0 minimum value.
     mask: nib.Nifti1Image
         Mask file in nibabel format.
-    noise_mask: nib.Nifti1Image
+    noise_mask: nib.Nifti1Image, optional
         Noise mask file in nibabel format.
-    noise_map: nib.Nifti1Image
-        Noise map file in nibabel format.
-    basename: string
-        Basename used for naming all output files.
+    noise_map: nib.Nifti1Image, optional
+        Noise map file in nibabel format. Only one of noise_mask or noise_map
+        may be used.
+    split_shells: bool
+        If true,
 
     Return
     ------
     Dictionary of values (bvec, bval, mean, std, snr) for all volumes.
     """
     data = dwi.get_fdata(dtype=np.float32)
-    affine = dwi.affine
     mask = get_data_as_mask(mask, dtype=bool)
 
     if split_shells:
@@ -339,30 +345,37 @@ def compute_snr(dwi, bval, bvec, b0_thr, mask,
         raise ValueError('You should ajust --b0_thr={} '
                          'since no b0s where find.'.format(b0_thr))
 
-    if noise_mask is None and noise_map is None:
-        b0_mask, noise_mask = median_otsu(data, vol_idx=b0s_location)
-
-        # we inflate the mask, then invert it to recover only the noise
-        noise_mask = binary_dilation(noise_mask, iterations=10).squeeze()
-
-        # Add the upper half in order to delete the neck and shoulder
-        # when inverting the mask
-        noise_mask[..., :noise_mask.shape[-1]//2] = 1
-
-        # Reverse the mask to get only noise
-        noise_mask = (~noise_mask).astype('float32')
-
-        logging.info('Number of voxels found '
-                     'in noise mask : {}'.format(np.count_nonzero(noise_mask)))
-        logging.info('Total number of voxel '
-                     'in volume : {}'.format(np.size(noise_mask)))
-
-        nib.save(nib.Nifti1Image(noise_mask, affine),
-                 basename + '_noise_mask.nii.gz')
-    elif noise_mask:
-        noise_mask = get_data_as_mask(noise_mask, dtype=bool).squeeze()
+    if noise_map and noise_mask:
+        raise ValueError("Please only use either noise_map or noise_mask, not "
+                         "both.")
     elif noise_map:
         data_noisemap = noise_map.get_fdata(dtype=np.float32)
+    else:
+        if noise_mask is None:
+            logging.info("No noise mask given. Trying to discover "
+                         "automatically from the upper half of the image "
+                         "(typically allowing to exlude neck and shoulder, "
+                         "if any).")
+            # Note median_otsu is ~BET
+            b0_mask, noise_mask = median_otsu(data, vol_idx=b0s_location)
+
+            # we inflate the mask, then invert it to recover only the noise
+            noise_mask = binary_dilation(noise_mask, iterations=10).squeeze()
+
+            # Add the upper half in order to delete the neck and shoulder
+            # when inverting the mask
+            noise_mask[..., :noise_mask.shape[-1]//2] = 1
+
+            # Reverse the mask to get only noise
+            noise_mask = (~noise_mask).astype(bool)
+            automatic_noise_mask = True
+        else:
+            noise_mask = get_data_as_mask(noise_mask, dtype=bool).squeeze()
+            automatic_noise_mask = False
+
+        logging.info('Number of voxels found in noise mask : {} / {}'
+                     .format(np.count_nonzero(noise_mask),
+                             np.size(noise_mask)))
 
     # Val = np array (mean_signal, std_noise)
     val = {0: {'bvec': [0, 0, 0], 'bval': 0, 'mean': 0, 'std': 0}}
@@ -370,18 +383,24 @@ def compute_snr(dwi, bval, bvec, b0_thr, mask,
         val[idx] = {}
         val[idx]['bvec'] = bvec[idx]
         val[idx]['bval'] = bval[idx]
-        val[idx]['mean'] = np.mean(data[..., idx:idx+1][mask > 0])
+        val[idx]['mean'] = np.mean(data[..., idx][mask > 0])
         if noise_map:
             val[idx]['std'] = np.std(data_noisemap[mask > 0])
         else:
-            val[idx]['std'] = np.std(data[..., idx:idx+1][noise_mask > 0])
+            val[idx]['std'] = np.std(data[..., idx][noise_mask])
             if val[idx]['std'] == 0:
-                raise ValueError('Your noise mask does not capture any data'
-                                 '(std=0). Please check your noise mask.')
+                if automatic_noise_mask:
+                    raise ValueError("No noise in the background such as "
+                                     "discovered automatically. Please give "
+                                     "your own noise_mask for more accuracy.")
+                else:
+                    raise ValueError('Your noise mask does not capture any '
+                                     'noise (std=0). Please check your noise '
+                                     'mask.')
 
         val[idx]['snr'] = val[idx]['mean'] / val[idx]['std']
 
-    return val
+    return val, noise_mask
 
 
 def remove_outliers_ransac(in_data, min_fit, fit_thr, max_iter):
