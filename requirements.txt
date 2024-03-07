@@ -10,13 +10,8 @@ deepdiff==6.3.0
 dmri-amico==2.0.*
 dmri-commit==2.0.*
 docopt==0.6.*
-dvc==3.39.0
-dvc-data==3.7.0
-dvc-http==2.32.0
-dvc-objects==3.0.6
-dvc-render==1.0.0
-dvc-studio-client==0.18.0
-dvc-task==0.3.0
+dvc==3.48.*
+dvc-http==2.32.*
 formulaic==0.3.*
 fury==0.9.*
 future==0.18.*
