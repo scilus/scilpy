@@ -23,7 +23,7 @@ from scilpy.io.utils import (assert_inputs_exist,
 EPILOG = """
 Reference:
     [1] Zhang H, Schneider T, Wheeler-Kingshott CA, Alexander DC.
-        NODDI: practical in vivo neurite orientation dispersion and density 
+        NODDI: practical in vivo neurite orientation dispersion and density
         imaging of the human brain. NeuroImage. 2012 Jul 16;61:1000-16.
 """
 
@@ -163,7 +163,8 @@ def main():
                        (roi_fa < args.fa_ventricles))
     nb_voxels = roi_md[indices].shape[0]
     logging.info('Number of voxels found in ventricles (FA < {} and MD > {}): '
-                 '{}'.format(args.fa_ventricles, args.md_ventricles, nb_voxels))
+                 '{}'
+                 .format(args.fa_ventricles, args.md_ventricles, nb_voxels))
 
     vent_avg = np.mean(roi_md[indices])
     vent_std = np.std(roi_md[indices])

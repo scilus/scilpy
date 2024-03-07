@@ -126,7 +126,7 @@ def main():
                          "shell, but you seem to have single-shell data (we "
                          "found shells {}). Change tolerance if necessary."
                          .format(np.sort(shells_centroids)))
-    
+
     logging.info('Will compute NODDI with AMICO on {} shells at found at {}.'
                  .format(len(shells_centroids), np.sort(shells_centroids)))
 
