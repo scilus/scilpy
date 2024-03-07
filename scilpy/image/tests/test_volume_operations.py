@@ -11,7 +11,8 @@ from numpy.testing import assert_equal
 from scilpy import SCILPY_HOME
 from scilpy.image.volume_operations import (apply_transform, compute_snr,
                                             crop_volume, flip_volume,
-                                            resample_volume, register_image)
+                                            resample_volume, register_image,
+                                            mask_data_with_default_cube)
 from scilpy.io.fetcher import fetch_data, get_testing_files_dict
 from scilpy.utils.util import compute_nifti_bounding_box
 
@@ -166,3 +167,13 @@ def test_resample_volume():
     resampled_img = resample_volume(moving3d_img, res=(2, 2, 2), interp='nn')
 
     assert_equal(resampled_img.get_fdata(), ref3d)
+
+
+def test_mask_data_with_default_cube():
+    data = np.ones((12, 12, 12))
+    out = mask_data_with_default_cube(data)
+    assert np.array_equal(data.shape, out.shape)
+    assert out[0, 0, 0] == 0
+    assert out[-1, -1, -1] == 0
+    assert out[6, 6, 6] == 1
+    
