@@ -577,8 +577,7 @@ def convert_sh_basis(shm_coeff, sphere, mask=None,
         mask = np.sum(shm_coeff, axis=3).astype(bool)
 
     nbr_processes = multiprocessing.cpu_count() \
-        if nbr_processes is None or nbr_processes < 0 \
-        else nbr_processes
+        if nbr_processes is None or nbr_processes < 0 else nbr_processes
 
     # Ravel the first 3 dimensions while keeping the 4th intact, like a list of
     # 1D time series voxels. Then separate it in chunks of len(nbr_processes).
@@ -647,7 +646,7 @@ def convert_sh_to_sf(shm_coeff, sphere, mask=None, dtype="float32",
         If True, use a full SH basis (even and odd orders) for the input SH
         coefficients.
     is_input_legacy : bool, optional
-        Whether or not the input basis is in its legacy form.
+        Whether the input basis is in its legacy form.
     nbr_processes: int, optional
         The number of subprocesses to use.
         Default: multiprocessing.cpu_count()

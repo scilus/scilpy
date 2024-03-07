@@ -363,8 +363,10 @@ def adjust_B1_map_header(B1_img, slope):
 
     Parameters
     ----------
-    B1_img:           B1 nifti image object.
-    slope:            Slope value, obtained from the image header.
+    B1_img: nifti image object
+        The B1 map.
+    slope: float
+        The slope value, obtained from the image header.
 
     Returns
     ----------

@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-Convert a SH file between the two of the following bases choices:
+Convert a SH file between the two of the following basis choices:
 'descoteaux07', 'descoteaux07_legacy', 'tournier07' or 'tournier07_legacy'.
 Using the sh_basis argument, both the input and the output SH bases must be
 given, in the order. For more information about the bases, see
