@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-
+import logging
 
 import nibabel as nib
 import numpy as np
@@ -11,12 +11,11 @@ from scipy.ndimage import (binary_closing, binary_dilation,
                            gaussian_filter)
 
 
-from scilpy.image.volume_math import (_validate_imgs,
-                                      _validate_imgs_concat,
+from scilpy.image.volume_math import (_validate_imgs_type,
                                       _validate_length,
                                       _validate_type,
                                       _validate_float,
-                                      cut_up_cube,
+                                      _get_neighbors,
                                       lower_threshold_eq, upper_threshold_eq,
                                       lower_threshold, upper_threshold,
                                       lower_threshold_otsu,
@@ -34,194 +33,71 @@ from scilpy.image.volume_math import (_validate_imgs,
                                       difference, invert,
                                       concatenate, gaussian_blur,
                                       dilation, erosion,
-                                      closing, opening)
+                                      closing, opening, neighborhood_correlation)
 
 
 EPSILON = np.finfo(float).eps
 
 
-def test_validate_imgs_matching():
-    data1 = np.zeros((5, 5, 5)).astype(float)
-    affine1 = np.eye(4)
-    img1 = nib.Nifti1Image(data1, affine1)
-
-    data2 = np.zeros((5, 5, 5)).astype(float)
-    affine2 = np.eye(4)
-    img2 = nib.Nifti1Image(data2, affine2)
-
+def _assert_failed(function, *args):
+    """
+    Assert that a call fails
+    """
+    failed = False
     try:
-        _validate_imgs(img1, img2)
-        print("Test with matching shapes passed.")
-    except ValueError as e:
-        print("Test with matching shapes failed:", str(e))
+        function(*args)
+    except ValueError:  # All our tests raise ValueErrors.
+        failed = True
+    assert failed
 
 
-def test_validate_imgs_different():
+def test_validate_imgs_type():
+    fake_affine = np.eye(4)
     data1 = np.zeros((5, 5, 5)).astype(float)
-    affine1 = np.eye(4)
-    img1 = nib.Nifti1Image(data1, affine1)
+    img1 = nib.Nifti1Image(data1, fake_affine)
 
+    # 1) If they are all images
     data2 = np.zeros((6, 6, 6)).astype(float)
-    affine2 = np.eye(4)
-    img2 = nib.Nifti1Image(data2, affine2)
+    img2 = nib.Nifti1Image(data2, fake_affine)
+    _validate_imgs_type(img1, img2)  # Should pass
 
-    try:
-        _validate_imgs(img1, img2)
-        print("Test with different shapes passed.")
-    except ValueError as e:
-        print("Test with different shapes failed:", str(e))
+    # 2) If one input is not an image
+    _assert_failed(_validate_imgs_type, img1, data2)
 
 
-def test_validate_imgs_concat_all():
-    data1 = np.zeros((5, 5, 5)).astype(float)
-    affine1 = np.eye(4)
-    img1 = nib.Nifti1Image(data1, affine1)
+def test_validate_length():
 
-    data2 = np.zeros((6, 6, 6)).astype(float)
-    affine2 = np.eye(4)
-    img2 = nib.Nifti1Image(data2, affine2)
-
-    try:
-        _validate_imgs_concat(img1, img2)
-        print("Test with all valid NIFTI images passed.")
-    except ValueError as e:
-        print("Test with all valid NIFTI images failed:", str(e))
-
-
-def test_validate_imgs_concat_not_all():
-    data1 = np.zeros((5, 5, 5)).astype(float)
-    affine1 = np.eye(4)
-    img1 = nib.Nifti1Image(data1, affine1)
-
-    not_an_image = "I am not an image"
-
-    try:
-        _validate_imgs_concat(img1, not_an_image)
-        print("Test with one invalid object passed.")
-    except ValueError as e:
-        print("Test with one invalid object failed:", str(e))
-
-
-def test_validate_length_exact():
+    # 1) Exact length
     exact_length_list = [1, 2, 3]
+    _validate_length(exact_length_list, 3)  # Should pass
+
     shorter_list = [1, 2]
+    _assert_failed(_validate_length, shorter_list, 3)
 
-    try:
-        _validate_length(exact_length_list, 3)
-        print("Test with exact length passed.")
-    except ValueError as e:
-        print("Test with exact length failed:", str(e))
-
-    try:
-        _validate_length(shorter_list, 3)
-        print("Test with shorter length passed.")
-    except ValueError as e:
-        print("Test with shorter length failed:", str(e))
-
-
-def test_validate_length_at_least():
+    # 2) With option 'at_least'
     at_least_list = [1, 2, 3, 4]
+    _validate_length(at_least_list, 3, at_least=True)  # Should pass
+
     shorter_list = [1, 2]
-
-    try:
-        _validate_length(at_least_list, 3, at_least=True)
-        print("Test with 'at least' length passed.")
-    except ValueError as e:
-        print("Test with 'at least' length failed:", str(e))
-
-    try:
-        _validate_length(shorter_list, 3, at_least=True)
-        print("Test with shorter 'at least' length passed.")
-    except ValueError as e:
-        print("Test with shorter 'at least' length failed:", str(e))
+    _assert_failed(_validate_length, shorter_list, 3)
 
 
-def test_validate_type_correct():
+def test_validate_type():
+
     correct_type_input = 42  # Integer
+    _validate_type(correct_type_input, int)  # Should pass
 
-    try:
-        _validate_type(correct_type_input, int)
-        print("Test with correct type passed.")
-    except ValueError:
-        print("Test with correct type failed.")
-
-
-def test_validate_type_incorrect():
     incorrect_type_input = "42"  # String
-
-    try:
-        _validate_type(incorrect_type_input, int)
-        print("Test with incorrect type passed.")
-    except ValueError:
-        print("Test with incorrect type failed.")
+    _assert_failed(_validate_type, incorrect_type_input, int)
 
 
-def test_validate_float_correct():
+def test_validate_float():
+
     correct_input = 42  # Integer can be cast to float
+    _validate_float(correct_input)  # Should pass
 
-    try:
-        _validate_float(correct_input)
-        print("Test with correct type passed.")
-    except ValueError:
-        print("Test with correct type failed.")
-
-
-def test_validate_float_incorrect():
     incorrect_input = "not_a_float"  # String that can't be cast to float
-
-    try:
-        _validate_float(incorrect_input)
-        print("Test with incorrect type passed.")
-    except ValueError:
-        print("Test with incorrect type failed.")
-
-
-def test_cut_up_cube_with_known_output():
-    # Input data: smaller 3x3x3 cube
-    data = np.arange(3 * 3 * 3).reshape((3, 3, 3))
-    blck = (3, 3, 3)
-
-    # Running the function
-    result = cut_up_cube(data, blck)
-
-    # Expected output shape
-    expected_shape = (3, 3, 3, 3, 3, 3)
-
-    # Expected first block
-    expected_first_block = np.array([[[0,  0,  0],
-                                      [0,  0,  0],
-                                      [0,  0,  0]],
-
-                                    [[0,  0,  0],
-                                     [0,  0,  1],
-                                     [0,  3,  4]],
-
-                                    [[0,  0,  0],
-                                     [0,  9, 10],
-                                     [0, 12, 13]]])
-
-    # Expected last block
-    expected_last_block = np.array([[[13, 14,  0],
-                                     [16, 17,  0],
-                                     [0,  0,  0]],
-
-                                   [[22, 23,  0],
-                                    [25, 26,  0],
-                                    [0,  0,  0]],
-
-                                   [[0,  0,  0],
-                                    [0,  0,  0],
-                                    [0,  0,  0]]])
-
-    # Asserting that the output shape matches the expected shape
-    assert result.shape == expected_shape, \
-        f"Expected shape {expected_shape}, got {result.shape}"
-
-    # Asserting that the first block matches the expected first block
-    assert_array_equal(result[0, 0, 0, :, :, :], expected_first_block)
-
-    # Asserting that the last block matches the expected last block
-    assert_array_equal(result[-1, -1, -1, :, :, :], expected_last_block)
+    _assert_failed(_validate_float, incorrect_input)
 
 
 def test_lower_threshold_eq():
@@ -243,7 +119,6 @@ def test_lower_threshold_eq():
     assert_array_equal(output_data, expected_output)
 
 
-# Test function for upper_threshold_eq
 def test_upper_threshold_eq():
     # Create a sample nib.Nifti1Image object
     img_data = np.array([0, 1, 2, 3, 4, 5]).astype(float)
@@ -570,6 +445,98 @@ def test_concatenate():
 
     output_data = concatenate([img1, img2], img1)
     assert_array_almost_equal(img_data_1.shape+(2,), output_data.shape)
+
+
+
+def test_get_neighbors():
+    # Input data: small data with NOT the same dimension in each direction.
+    data = np.arange(3 * 4 * 5).reshape((3, 4, 5)) + 1
+
+    # Cutting into patches of radius 1, i.e. 3x3x3.
+    result = _get_neighbors(data, radius=1)
+
+    # Expected output shape: Should fit 3 x 4 x 5 patches of shape 3x3x3
+    expected_shape = (3, 4, 5, 3, 3, 3)
+    assert result.shape == expected_shape, \
+        f"Expected shape {expected_shape}, got {result.shape}"
+
+    # First block: expecting 8 non-zero values (always true with patch_size 3!)
+    # (draw a cube and check the number of neighbors of the voxel at the
+    #  corner)
+    assert np.count_nonzero(result[0, 0, 0, :, :, :]) == 8
+
+    # Middle blocks: expecting 27 non-zero values
+    assert np.count_nonzero(result[1, 1, 1, :, :, :]) == 27
+
+    # Comparing with values obtained the day we created this test.
+    # Expected first block:
+    expected_first_block = np.array([[[0,  0,  0],
+                                      [0,  0,  0],
+                                      [0,  0,  0]],
+                                     [[0,  0,  0],
+                                      [0,  1,  2],
+                                      [0,  6,  7]],
+                                     [[0,  0,  0],
+                                      [0, 21, 22],
+                                      [0, 26, 27]]])
+    assert_array_equal(result[0, 0, 0, :, :, :], expected_first_block)
+
+    # Expected last block
+    expected_last_block = np.array([[[34, 35,  0],
+                                     [39, 40,  0],
+                                     [0,   0,  0]],
+                                    [[54, 55,  0],
+                                     [59, 60,  0],
+                                     [0,  0,  0]],
+                                    [[0,  0,  0],
+                                     [0,  0,  0],
+                                     [0,  0,  0]]])
+    assert_array_equal(result[-1, -1, -1, :, :, :], expected_last_block)
+
+
+def test_neighborhood_correlation():
+    # Note. Not working on 2D data.
+    affine = np.eye(4)
+
+    # Test 1: Perfect correlation
+    # Compares uniform patch of ones with a uniform patch of twos.
+    # No background.
+    img_data_1 = np.ones((3, 3, 3), dtype=float)
+    img1 = nib.Nifti1Image(img_data_1, affine)
+
+    img_data_2 = np.ones((3, 3, 3), dtype=float) * 2
+    img2 = nib.Nifti1Image(img_data_2, affine)
+    #output = neighborhood_correlation([img1, img2], img1)
+    #assert np.allclose(output, 1), \
+    #    "Expected a perfect correlation, got: {}".format(output)
+
+    # Test 2: Bad correlation.
+    # Compares uniform patch of ones with a noisy patch of twos.
+    # There should be a poor correlation (cloud of points is horizontal).
+    # But we notice that around the edges of the image, high correlation (~1),
+    # as explained in the correlation method's docstring
+    img_data_2 = np.ones((3, 3, 3), dtype=float) * 2 + \
+        np.random.rand(3, 3, 3) * 0.001
+    img2 = nib.Nifti1Image(img_data_2, affine)
+    output = neighborhood_correlation([img1, img2], img1)
+    expected = np.ones((3, 3, 3))
+    expected[1, 1, 1] = 0
+    assert np.allclose(output, expected), \
+        ("Expected a bad correlation at central point, good around the border,"
+         " got: {}").format(output)
+
+    # Test 2: Different backgrounds.
+    # Image 1 = only ones. Image 2 = only background.
+    # Expecting a poor correlation were backgrounds are not the same.
+    # But we get a one in the middle (two uniform patches)
+    img_data_2 = np.zeros((3, 3, 3)).astype(float)
+    img2 = nib.Nifti1Image(img_data_2, affine)
+    output = neighborhood_correlation([img1, img2], img1)
+    expected = np.zeros((3, 3, 3))
+    expected[1, 1, 1] = 1
+    assert np.allclose(output, expected), \
+        ("Expected a good correlation at central point, bad around the border,"
+         " got: {}").format(output)
 
 
 def test_dilation():

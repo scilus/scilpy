@@ -900,10 +900,12 @@ def assert_headers_compatible(parser, required, optional=None, reference=None):
 
     # Gather "headers" for all files to compare against each other later
     headers = []
+    files = []
     for filepath in list_files:
         _, in_extension = split_name_with_nii(filepath)
         if in_extension in ['.trk', '.nii', '.nii.gz']:
             headers.append(filepath)
+            files.append(filepath)
         elif in_extension == '.tck':
             if reference is None:
                 parser.error(
@@ -916,11 +918,11 @@ def assert_headers_compatible(parser, required, optional=None, reference=None):
     if len(headers) <= 1:
         return
 
-    for curr in headers[1:]:
+    for curr, file in zip(headers[1:], files[1:]):
         if not is_header_compatible(headers[0], curr):
             # Not raising error now. Allows to show all errors.
-            logging.error('ERROR:\"{}\" and \"{}\" do not have compatible '
-                          'headers.'.format(headers[0], curr))
+            logging.error('ERROR: "{}" and "{}" do not have compatible '
+                          'headers.'.format(files[0], file))
             all_valid = False
 
     if not all_valid:
