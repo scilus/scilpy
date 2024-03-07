@@ -26,6 +26,8 @@ def _build_arg_parser():
                    help='Input file (trk, nii and mgz).')
     p.add_argument('--keys', nargs='+',
                    help='Print only the specified keys.')
+    p.add_argument('--print_affine', action='store_true',
+                   help="Print nibabel's affine.")
 
     add_verbose_arg(p)
 
@@ -57,6 +59,13 @@ def main():
     else:
         pp = pprint.PrettyPrinter(indent=1)
         pp.pprint(header)
+
+    if args.print_affine:
+        if in_extension in ['.tck', '.trk']:
+            affine = nib.streamlines.load(args.in_file, lazy_load=True).affine
+        else:  # in_extension in ['.nii', '.nii.gz', '.mgz']:
+            affine = nib.load(args.in_file).affine
+        print(" '{}': {}".format('affine', affine))
 
 
 if __name__ == "__main__":

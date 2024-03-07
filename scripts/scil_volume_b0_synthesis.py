@@ -19,7 +19,6 @@ in Scilpy):
 import argparse
 import logging
 import os
-import sys
 import warnings
 
 # Disable tensorflow warnings
