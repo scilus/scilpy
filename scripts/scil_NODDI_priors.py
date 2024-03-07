@@ -146,7 +146,8 @@ def main():
     indices = np.where((roi_fa > args.fa_min_single_fiber) & (roi_fa < 0.95))
     nb_voxels = roi_fa[indices].shape[0]
     logging.info('Number of voxels found in single fiber area (FA in range '
-                 '{}-{}]: {}'.format(args.fa_min_single_fiber, 0.95, nb_voxels))
+                 '{}-{}]: {}'
+                 .format(args.fa_min_single_fiber, 0.95, nb_voxels))
     single_fiber_ad_mean = np.mean(roi_ad[indices])
     single_fiber_ad_std = np.std(roi_ad[indices])
     single_fiber_rd_mean = np.mean(roi_rd[indices])
@@ -164,8 +165,8 @@ def main():
                        (roi_fa < args.fa_max_ventricles))
     nb_voxels = roi_md[indices].shape[0]
     logging.info('Number of voxels found in ventricles (FA < {} and MD > {}): '
-                 '{}'
-                 .format(args.fa_max_ventricles, args.md_min_ventricles, nb_voxels))
+                 '{}'.format(args.fa_max_ventricles, args.md_min_ventricles,
+                             nb_voxels))
 
     vent_avg = np.mean(roi_md[indices])
     vent_std = np.std(roi_md[indices])
