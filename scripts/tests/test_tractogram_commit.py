@@ -9,8 +9,6 @@ from scilpy.io.fetcher import fetch_data, get_testing_files_dict
 
 # If they already exist, this only takes 5 seconds (check md5sum)
 fetch_data(get_testing_files_dict(), keys=['commit_amico.zip'])
-tmp_dir = tempfile.TemporaryDirectory()
-
 
 def test_help_option(script_runner):
     ret = script_runner.run('scil_tractogram_commit.py', '--help')
@@ -18,6 +16,7 @@ def test_help_option(script_runner):
 
 
 def test_execution_commit_amico(script_runner):
+    tmp_dir = tempfile.TemporaryDirectory()
     os.chdir(os.path.expanduser(tmp_dir.name))
     in_tracking = os.path.join(SCILPY_HOME, 'commit_amico',
                                'tracking.trk')
@@ -43,6 +42,7 @@ def test_execution_commit_amico(script_runner):
     assert ret.success
 
 def test_execution_commit_amico_wo_mask(script_runner):
+    tmp_dir = tempfile.TemporaryDirectory()
     os.chdir(os.path.expanduser(tmp_dir.name))
     in_tracking = os.path.join(SCILPY_HOME, 'commit_amico',
                                'tracking.trk')
