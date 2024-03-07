@@ -1,10 +1,28 @@
 # -*- coding: utf-8 -*-
 
+from itertools import combinations
 import logging
 
-from itertools import combinations
-
+from dipy.denoise.noise_estimate import estimate_sigma
+import numpy as np
 import scipy.stats
+
+
+def get_std(data):
+    """
+
+    """
+    # Using dipy's method
+    # We force to zero as the 3T is either over-smoothed or still noisy, but
+    # we prefer the second option
+
+    # In basic noise estimation, number_coils=0 is enforced!
+    sigma = estimate_sigma(data, N=0)
+    sigma = np.median(sigma)
+
+
+    # Broadcast the single value to a whole 3D volume for nlmeans
+    return sigma
 
 
 def verify_normality(data, alpha=0.05):
