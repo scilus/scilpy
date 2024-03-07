@@ -157,7 +157,9 @@ def _build_arg_parser():
                         'calculation of MTsat and ihMTsat. \nAcquisition '
                         'parameters should also be set with this image.')
 
+    # Other MTI arguments are gathered here.
     add_common_args_mti(p)
+
     add_verbose_arg(p)
     add_overwrite_arg(p)
 
