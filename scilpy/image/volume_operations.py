@@ -223,6 +223,7 @@ def register_image(static, static_grid2world, moving, moving_grid2world,
         The type of transformation ('rigid' or 'affine'). Default is 'affine'.
     dwi : ndarray, optional
         Diffusion-weighted imaging data (if applicable). Default is None.
+        If given, then `moving` should be the reference template.
     fine : bool, optional
         Whether to use fine or coarse settings for the registration.
         Default is False.
@@ -240,7 +241,6 @@ def register_image(static, static_grid2world, moving, moving_grid2world,
         If `dwi` is not None, returns transformed DWI and transformation
         matrix.
     """
-
     if transformation_type not in ['rigid', 'affine']:
         raise ValueError('Transformation type not available in Dipy')
 
@@ -249,6 +249,14 @@ def register_image(static, static_grid2world, moving, moving_grid2world,
     params0 = None
     sampling_prop = None
     level_iters = [250, 100, 50, 25] if fine else [50, 25, 5]
+
+    # With images too small, dipy fails with no clear warning.
+    if (np.any(np.asarray(moving.shape) < 8) or
+            np.any(np.asarray(static.shape) < 8)):
+        raise ValueError("Current implementation of registration was prepared "
+                         "with factors up to 8. Requires images with at least "
+                         "8 voxels in each direction.")
+
     sigmas = [8.0, 4.0, 2.0, 1.0] if fine else [8.0, 4.0, 2.0]
     factors = [8, 4, 2, 1.0] if fine else [8, 4, 2]
     metric = MutualInformationMetric(nbins, sampling_prop)
@@ -258,6 +266,7 @@ def register_image(static, static_grid2world, moving, moving_grid2world,
     # First, align the center of mass of both volume
     c_of_mass = transform_centers_of_mass(static, static_grid2world,
                                           moving, moving_grid2world)
+
     # Then, rigid transformation (translation + rotation)
     transform = RigidTransform3D()
     rigid = reg_obj.optimize(static, moving, transform, params0,

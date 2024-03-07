@@ -9,13 +9,10 @@ from dipy.io.gradients import read_bvals_bvecs
 from numpy.testing import assert_equal, assert_almost_equal
 
 from scilpy import SCILPY_HOME
-from scilpy.image.volume_operations import (apply_transform,
-                                            compute_snr,
-                                            crop_volume,
-                                            flip_volume,
-                                            merge_metrics,
-                                            normalize_metric,
-                                            resample_volume)
+from scilpy.image.volume_operations import (apply_transform, compute_snr,
+                                            crop_volume, flip_volume,
+                                            merge_metrics, normalize_metric,
+                                            resample_volume, register_image)
 from scilpy.io.fetcher import fetch_data, get_testing_files_dict
 from scilpy.image.utils import compute_nifti_bounding_box
 
@@ -32,7 +29,6 @@ in_noise_mask = os.path.join(SCILPY_HOME, 'processing',
 
 def test_count_non_zero_voxel():
     # Not necessary since it is only using numpy.count_nonzero()
-
     pass
 
 
@@ -91,14 +87,40 @@ def test_apply_transform():
 
 def test_transform_dwi():
     # Tested within test_apply_transform().
-
     pass
 
 
 def test_register_image():
-    # Not necessary since it is mostly dipy's function.
+    # Not necessary since it is mostly dipy's function, but running for the
+    # sake of coverage, and because there are many options to give.
+    static = np.ones((8, 8, 8))
+    moving = np.ones((8, 8, 8))
 
-    pass
+    # Images are similar: one column of 'color', but not the same.
+    # (We want to ensure convergence).
+    static[1, :, :] = 2
+    moving[2, :, :] = 2
+
+    # Realistic affines, already close except in x
+    static_grid2world = np.eye(4, 4, dtype=float)
+    static_grid2world[:, 3] = [-22, -20, 10, 1]
+    moving_grid2world = np.eye(4, 4, dtype=float)
+    static_grid2world[:, 3] = [-20, -20, 10, 1]
+
+    transformation_type = 'affine'
+    dwi = np.ones((8, 8, 8, 2))
+    dwi[2, :, :, :] = 2
+    fine = True
+    out_im, transform = register_image(static, static_grid2world, moving,
+                                       moving_grid2world, transformation_type,
+                                       dwi, fine)
+
+    assert np.array_equal(transform.shape, [4, 4])
+    assert np.array_equal(out_im.shape, [8, 8, 8, 2])
+
+    # Input image had 2 values: 1, 2. With interpolation, we now have ~1, ~2
+    # and the values on edges: a bit <1 and a bit>1.
+    assert len(np.unique(np.round(out_im, decimals=4))) == 4
 
 
 def test_compute_snr():
