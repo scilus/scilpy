@@ -179,11 +179,8 @@ def main():
     img = nib.load(args.in_dwi)
     data = img.get_fdata(dtype=np.float32)
     affine = img.affine
-    if args.mask is None:
-        mask = None
-    else:
-        mask_img = nib.load(args.mask)
-        mask = get_data_as_mask(mask_img, dtype=bool)
+    mask = get_data_as_mask(nib.load(args.mask), dtype=bool,
+                            ref_img=img) if args.mask else None
 
     bvals, bvecs = read_bvals_bvecs(args.in_bval, args.in_bvec)
     if not is_normalized_bvecs(bvecs):

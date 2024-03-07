@@ -89,8 +89,8 @@ def main():
 
     sh_im = nib.load(args.in_sh)
     data = sh_im.get_fdata()
-    mask = get_data_as_mask(nib.load(args.mask), dtype=bool)\
-        if args.mask else None
+    mask = get_data_as_mask(nib.load(args.mask), dtype=bool,
+                            ref_img=sh_im) if args.mask else None
 
     # validate number of processes
     nbr_processes = validate_nbr_processes(parser, args)

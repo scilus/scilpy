@@ -78,9 +78,8 @@ def main():
 
     sh_basis, is_legacy = parse_sh_basis_arg(args)
 
-    mask = None
-    if args.mask:
-        mask = get_data_as_mask(nib.load(args.mask), dtype=bool)
+    mask = get_data_as_mask(nib.load(args.mask), dtype=bool,
+                            ref_img=vol) if args.mask else None
 
     sh = compute_sh_coefficients(dwi, gtab, args.b0_threshold,
                                  args.sh_order, sh_basis, args.smooth,

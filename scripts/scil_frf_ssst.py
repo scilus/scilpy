@@ -102,13 +102,11 @@ def main():
     args.b0_threshold = check_b0_threshold(bvals.min(),
                                            b0_thr=args.b0_threshold,
                                            skip_b0_check=args.skip_b0_check)
-    mask = None
-    if args.mask:
-        mask = get_data_as_mask(nib.load(args.mask), dtype=bool)
 
-    mask_wm = None
-    if args.mask_wm:
-        mask_wm = get_data_as_mask(nib.load(args.mask_wm), dtype=bool)
+    mask = get_data_as_mask(nib.load(args.mask), dtype=bool,
+                            ref_img=vol) if args.mask else None
+    mask_wm = get_data_as_mask(nib.load(args.mask_wm), dtype=bool,
+                               ref_img=vol) if args.mask_wm else None
 
     full_response = compute_ssst_frf(
         data, bvals, bvecs, args.b0_threshold, mask=mask,

@@ -199,9 +199,8 @@ def main():
             'No mask provided. The fit might not converge due to noise. '
             'Please provide a mask if it is the case.')
     else:
-        mask = get_data_as_mask(nib.load(args.mask), dtype=bool)
-        if mask.shape != data.shape[:-1]:
-            raise ValueError("Mask is not the same shape as data.")
+        mask = get_data_as_mask(nib.load(args.mask), dtype=bool,
+                                ref_shape=data.shape)
 
     if args.fa is not None:
         vol = nib.load(args.fa)

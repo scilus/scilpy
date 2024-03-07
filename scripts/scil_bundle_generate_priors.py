@@ -100,6 +100,7 @@ def main():
     sh_order = find_order_from_nb_coeff(sh_shape)
     sh_basis, is_legacy = parse_sh_basis_arg(args)
     img_mask = nib.load(args.in_mask)
+    mask_data = get_data_as_mask(img_mask, ref_img=img_sh)
 
     sft = load_tractogram_with_reference(parser, args, args.in_bundle)
     sft.to_vox()
@@ -114,9 +115,8 @@ def main():
         todi_obj.smooth_todi_spatial(sigma=args.todi_sigma)
 
         # Fancy masking of 1d indices to limit spatial dilation to WM
-        sub_mask_3d = np.logical_and(get_data_as_mask(img_mask),
-                                     todi_obj.reshape_to_3d(
-                                         todi_obj.get_mask()))
+        sub_mask_3d = np.logical_and(
+            mask_data, todi_obj.reshape_to_3d(todi_obj.get_mask()))
         sub_mask_1d = sub_mask_3d.flatten()[todi_obj.get_mask()]
         todi_sf = todi_obj.get_todi()[sub_mask_1d] ** 2
 
@@ -169,8 +169,7 @@ def main():
         endpoints_mask[tuple(streamline[0])] = 1
         endpoints_mask[tuple(streamline[-1])] = 1
 
-    in_mask_data = get_data_as_mask(img_mask)
-    nib.save(nib.Nifti1Image(endpoints_mask*in_mask_data,
+    nib.save(nib.Nifti1Image(endpoints_mask * mask_data,
                              img_mask.affine), out_endpoints_mask)
 
 

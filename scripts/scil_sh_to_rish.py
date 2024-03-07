@@ -64,9 +64,8 @@ def main():
     # Load data
     sh_img = nib.load(args.in_sh)
     sh = sh_img.get_fdata(dtype=np.float32)
-    mask = None
-    if args.mask:
-        mask = get_data_as_mask(nib.load(args.mask), dtype=bool)
+    mask = get_data_as_mask(nib.load(args.mask), dtype=bool,
+                            ref_img=sh_img) if args.mask else None
 
     # Precompute output filenames to check if they exist
     sh_order = order_from_ncoef(sh.shape[-1], full_basis=args.full_basis)

@@ -84,12 +84,8 @@ def main():
     img = nib.load(args.in_dwi)
     data = img.get_fdata(dtype=np.float32)
     affine = img.affine
-    if args.mask is None:
-        mask = None
-    else:
-        mask_img = nib.load(args.mask)
-        assert_same_resolution((img, mask_img))
-        mask = get_data_as_mask(mask_img, dtype='uint8')
+    mask = get_data_as_mask(nib.load(args.mask), dtype='uint8',
+                            ref_img=img) if args.mask else None
 
     # Read bvals (bvecs not needed at this point)
     logging.info('Performing powder average')

@@ -353,7 +353,7 @@ def _extract_vb_one_bundle(
     mask_1_img = nib.load(head_filename)
     mask_2_img = nib.load(tail_filename)
     mask_1 = get_data_as_mask(mask_1_img)
-    mask_2 = get_data_as_mask(mask_2_img)
+    mask_2 = get_data_as_mask(mask_2_img, ref_img=mask_1_img)
 
     if dilate_endpoints:
         mask_1 = binary_dilation(mask_1, iterations=dilate_endpoints)
@@ -501,7 +501,7 @@ def _extract_ib_one_bundle(sft, mask_1_filename, mask_2_filename,
     mask_1_img = nib.load(mask_1_filename)
     mask_2_img = nib.load(mask_2_filename)
     mask_1 = get_data_as_mask(mask_1_img)
-    mask_2 = get_data_as_mask(mask_2_img)
+    mask_2 = get_data_as_mask(mask_2_img, ref_img=mask_1_img)
 
     if dilate_endpoints:
         mask_1 = binary_dilation(mask_1, iterations=dilate_endpoints)

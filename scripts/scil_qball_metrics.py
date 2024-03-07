@@ -142,13 +142,8 @@ def main():
     sphere = get_sphere('symmetric724')
     sh_basis, _ = parse_sh_basis_arg(args)
 
-    mask = None
-    if args.mask:
-        mask = get_data_as_mask(nib.load(args.mask))
-
-        # Sanity check on shape of mask
-        if mask.shape != data.shape[:-1]:
-            raise ValueError('Mask shape does not match data shape.')
+    mask = get_data_as_mask(nib.load(args.mask),
+                            ref_img=img) if args.mask else None
 
     if args.use_qball:
         model = QballModel(gtab, sh_order=args.sh_order,

@@ -68,13 +68,10 @@ def main():
     metric_img_data = metric_img.get_fdata(dtype=np.float32)
 
     # Load mask image
-    mask_img = nib.load(args.in_mask)
-    mask_img_data = get_data_as_mask(mask_img)
-
-    assert_same_resolution((metric_img, mask_img))
+    mask = get_data_as_mask(nib.load(args.in_mask), ref_img=metric_img)
 
     # Select value from mask
-    curr_data = metric_img_data[np.where(mask_img_data > 0)]
+    curr_data = metric_img_data[mask]
 
     # Display figure
     fig, ax = plt.subplots()

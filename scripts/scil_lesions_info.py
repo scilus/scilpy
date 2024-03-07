@@ -102,7 +102,7 @@ def main():
         bundle_name, _ = split_name_with_nii(
             os.path.basename(args.bundle_mask))
         map_img = nib.load(args.bundle_mask)
-        map_data = get_data_as_mask(map_img)
+        map_data = get_data_as_mask(map_img, ref_img=lesion_img)
     else:
         bundle_name, _ = split_name_with_nii(os.path.basename(
             args.bundle_labels_map))

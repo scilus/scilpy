@@ -155,7 +155,8 @@ def main():
         parser.error('Invalid SH image. A full SH basis is expected.')
 
     if args.mask:
-        mask = get_data_as_mask(nib.load(args.mask), dtype=bool)
+        mask = get_data_as_mask(nib.load(args.mask), dtype=bool,
+                                ref_img=sh_img)
     else:
         mask = np.sum(np.abs(sh), axis=-1) > 0
 

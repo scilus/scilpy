@@ -88,40 +88,58 @@ def assert_same_resolution(images):
             raise Exception("Images are not of the same resolution/affine")
 
 
-def get_data_as_mask(in_img, dtype=np.uint8):
+def get_data_as_mask(mask_img, dtype=np.uint8, ref_img=None, ref_shape=None):
     """
     Get data as mask (force type np.uint8 or bool), check data type before
     casting.
 
     Parameters
     ----------
-    in_img: nibabel.nifti1.Nifti1Image
-        Image
-
-    dtype: data type for the output data (default: uint8)
-        type
+    mask_img: nibabel.nifti1.Nifti1Image
+        Mask image.
+    dtype: type or str
+        Data type for the output data (default: uint8)
+    ref_img: nibabel.nitfi1.Nifti1Image
+        Reference image. If given, mask must be compatible.
+    ref_shape: shape
+        Alternative to ref_image. The shape of the associated data. If given,
+        verifies that the mask shape fits with the ref_shape.
 
     Return
     ------
     data: numpy.ndarray
         Data (dtype : np.uint8 or bool).
     """
+    # Verify that out data type is ok
     if not (issubclass(np.dtype(dtype).type, np.uint8) or
             issubclass(np.dtype(dtype).type, np.dtype(bool).type)):
         raise IOError('Output data type must be uint8 or bool. '
                       'Current data type is {}.'.format(dtype))
 
-    curr_type = in_img.get_data_dtype().type
-    basename = os.path.basename(in_img.get_filename())
+    # Verify that shape is ok
+    if ref_img is not None:
+        if not is_header_compatible(mask_img, ref_img):
+            raise IOError("Mask is not of the same resolution/affine as data.")
+    elif ref_shape is not None:
+        if not np.array_equal(mask_img.shape, ref_shape[0:3]):
+            raise IOError("Mask is not the same shape as data. Got {}, and "
+                          "data is of shape {}"
+                          .format(mask_img.shape, ref_shape))
+
+    # Verify that loaded datatype is ok
+    curr_type = mask_img.get_data_dtype().type
+    basename = os.path.basename(mask_img.get_filename())
     if np.issubdtype(curr_type, np.signedinteger) or \
         np.issubdtype(curr_type, np.unsignedinteger) \
             or np.issubdtype(curr_type, np.dtype(bool).type):
-        data = np.asanyarray(in_img.dataobj).astype(dtype)
+        data = np.asanyarray(mask_img.dataobj).astype(dtype)
+
+        # Verify that it contains only 0 and 1.
         unique_vals = np.unique(data)
         if len(unique_vals) == 2:
             if np.all(unique_vals != np.array([0, 1])):
                 logging.warning('The two unique values in mask were not 0 and'
-                                ' 1. Tha mask has been binarised.')
+                                ' 1. Binarizing the mask now.')
                 data[data != 0] = 1
         elif len(unique_vals) == 1:
             data[data != 0] = 1
@@ -132,6 +150,10 @@ def get_data_as_mask(in_img, dtype=np.uint8):
     else:
         raise IOError('The image {} cannot be loaded as mask because '
                       'its type {} is not compatible '
-                      'with a mask'.format(basename, curr_type))
+                      'with a mask.\n'
+                      'To convert your data, you may use tools like mrconvert '
+                      'or \n'
+                      '>> scil_volume_math.py convert IMG IMG '
+                      '--data_type uint8 -f'.format(basename, curr_type))
 
     return data

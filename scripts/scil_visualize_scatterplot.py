@@ -168,8 +168,7 @@ def main():
         if args.label is None:
             args.label = 'Masking data'
         # Load and apply binary mask
-        mask_image = nib.load(args.in_bin_mask)
-        mask_data = get_data_as_mask(mask_image)
+        mask_data = get_data_as_mask(nib.load(args.in_bin_mask))
         for curr_map in maps_data:
             curr_map[np.where(mask_data == 0)] = np.nan
 

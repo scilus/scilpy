@@ -133,7 +133,7 @@ def main():
         todi_obj.smooth_todi_spatial()
 
     if args.mask:
-        mask = get_data_as_mask(nib.load(args.mask))
+        mask = get_data_as_mask(nib.load(args.mask), ref_shape=data_shape)
         todi_obj.mask_todi(mask)
 
     logging.info('Saving Outputs ...')

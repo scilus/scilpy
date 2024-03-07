@@ -255,10 +255,8 @@ def main():
     img = nib.load(args.in_dwi)
     data = img.get_fdata(dtype=np.float32)
     affine = img.affine
-    if args.mask is None:
-        mask = None
-    else:
-        mask = get_data_as_mask(nib.load(args.mask), dtype=bool)
+    mask = get_data_as_mask(nib.load(args.mask), dtype=bool,
+                            ref_img=img) if args.mask else None
 
     logging.info('Tensor estimation with the {} method...'.format(args.method))
     bvals, bvecs = read_bvals_bvecs(args.in_bval, args.in_bvec)

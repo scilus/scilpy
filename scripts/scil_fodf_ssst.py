@@ -81,12 +81,8 @@ def main():
     bvals, bvecs = read_bvals_bvecs(args.in_bval, args.in_bvec)
 
     # Checking mask
-    if args.mask is None:
-        mask = None
-    else:
-        mask = get_data_as_mask(nib.load(args.mask), dtype=bool)
-        if mask.shape != data.shape[:-1]:
-            raise ValueError("Mask is not the same shape as data.")
+    mask = get_data_as_mask(nib.load(args.mask), dtype=bool,
+                            ref_img=vol) if args.mask else None
 
     sh_order = args.sh_order
     sh_basis, is_legacy = parse_sh_basis_arg(args)

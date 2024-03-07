@@ -93,7 +93,7 @@ def main():
         else:
             mask[data > 0] = 1
     else:
-        mask = get_data_as_mask(nib.load(args.mask), dtype=bool)
+        mask = get_data_as_mask(nib.load(args.mask), dtype=bool, ref_img=vol)
 
     sigma = args.sigma
 

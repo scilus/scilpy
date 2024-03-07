@@ -143,12 +143,8 @@ def main():
     sh_basis, is_legacy = parse_sh_basis_arg(args)
 
     # Checking mask
-    if args.mask is None:
-        mask = None
-    else:
-        mask = get_data_as_mask(nib.load(args.mask), dtype=bool)
-        if mask.shape != data.shape[:-1]:
-            raise ValueError("Mask is not the same shape as data.")
+    mask = get_data_as_mask(nib.load(args.mask), dtype=bool,
+                            ref_img=vol) if args.mask else None
 
     # Checking bvals, bvecs values and loading gtab
     if not is_normalized_bvecs(bvecs):

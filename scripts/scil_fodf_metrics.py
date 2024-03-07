@@ -140,13 +140,8 @@ def main():
     vol = nib.load(args.in_fODF)
     data = vol.get_fdata(dtype=np.float32)
     affine = vol.affine
-
-    if args.mask is None:
-        mask = None
-    else:
-        mask = get_data_as_mask(nib.load(args.mask), dtype=bool)
-        if mask.shape != data.shape[:-1]:
-            raise ValueError("Mask is not the same shape as data.")
+    mask = get_data_as_mask(nib.load(args.mask), dtype=bool,
+                            ref_img=vol) if args.mask else None
 
     sphere = get_sphere(args.sphere)
     sh_basis, is_legacy = parse_sh_basis_arg(args)

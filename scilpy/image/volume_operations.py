@@ -308,7 +308,7 @@ def compute_snr(dwi, bval, bvec, b0_thr, mask,
     """
     data = dwi.get_fdata(dtype=np.float32)
     affine = dwi.affine
-    mask = get_data_as_mask(mask, dtype=bool)
+    mask = get_data_as_mask(mask, dtype=bool, ref_shape=data.shape)
 
     if split_shells:
         centroids, shell_indices = identify_shells(bval, tol=40.0,
@@ -343,8 +343,8 @@ def compute_snr(dwi, bval, bvec, b0_thr, mask,
         nib.save(nib.Nifti1Image(noise_mask, affine),
                  basename + '_noise_mask.nii.gz')
     elif noise_mask:
-        noise_mask = get_data_as_mask(noise_mask,
-                                      dtype=bool).squeeze()
+        noise_mask = get_data_as_mask(noise_mask, dtype=bool,
+                                      ref_shape=data.shape).squeeze()
     elif noise_map:
         data_noisemap = noise_map.get_fdata(dtype=np.float32)
 

@@ -83,11 +83,8 @@ def main():
     data = get_data_as_labels(volume_nib)
     vox_size = np.reshape(volume_nib.header.get_zooms(), (1, 3))
 
-    if args.mask:
-        mask_nib = nib.load(args.mask)
-        mask_data = get_data_as_mask(mask_nib)
-    else:
-        mask_data = None
+    mask_data = get_data_as_mask(nib.load(args.mask),
+                                 ref_img=volume_nib) if args.mask else None
 
     data = dilate_labels(data, vox_size, args.distance, args.nbr_processes,
                          labels_to_dilate=args.labels_to_dilate,

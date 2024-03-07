@@ -97,8 +97,8 @@ def main():
 
     bingham_im = nib.load(args.in_bingham)
     bingham = bingham_im.get_fdata()
-    mask = get_data_as_mask(nib.load(args.mask), dtype=bool)\
-        if args.mask else None
+    mask = get_data_as_mask(nib.load(args.mask), dtype=bool,
+                            ref_img=bingham_im) if args.mask else None
 
     nbr_processes = validate_nbr_processes(parser, args)
 

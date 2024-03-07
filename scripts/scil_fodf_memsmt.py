@@ -175,12 +175,8 @@ def main():
         tol=args.tolerance, skip_b0_check=args.skip_b0_check)
 
     # Checking mask
-    if args.mask is None:
-        mask = None
-    else:
-        mask = get_data_as_mask(nib.load(args.mask), dtype=bool)
-        if mask.shape != data.shape[:-1]:
-            raise ValueError("Mask is not the same shape as data.")
+    mask = get_data_as_mask(nib.load(args.mask), dtype=bool,
+                            ref_shape=data.shape) if args.mask else None
 
     # Checking data and sh_order
     verify_data_vs_sh_order(data, args.sh_order)

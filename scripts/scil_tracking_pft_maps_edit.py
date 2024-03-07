@@ -57,8 +57,8 @@ def main():
     map_exc = nib.load(args.map_exclude)
     map_exc_data = map_exc.get_fdata(dtype=np.float32)
 
-    additional_mask = nib.load(args.additional_mask)
-    additional_mask_data = get_data_as_mask(additional_mask)
+    additional_mask_data = get_data_as_mask(nib.load(args.additional_mask),
+                                            ref_img=map_inc)
 
     map_inc_data[additional_mask_data > 0] = 0
     map_exc_data[additional_mask_data > 0] = 0

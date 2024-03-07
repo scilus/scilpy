@@ -174,10 +174,6 @@ def main():
                         "Ignoring.")
         args.save_seeds = False
 
-    logging.debug("Loading masks and finding seeds.")
-    mask_img = nib.load(args.in_mask)
-    mask_data = get_data_as_mask(mask_img, dtype=bool)
-
     # Make sure the data is isotropic. Else, the strategy used
     # when providing information to dipy (i.e. working as if in voxel space)
     # will not yield correct results. Tracking is performed in voxel space
@@ -187,6 +183,10 @@ def main():
                        odf_sh_img.header.get_zooms()[0], atol=1e-03):
         parser.error(
             'ODF SH file is not isotropic. Tracking cannot be ran robustly.')
+
+    logging.debug("Loading masks and finding seeds.")
+    mask_data = get_data_as_mask(nib.load(args.in_mask), dtype=bool,
+                                 ref_img=odf_sh_img)
 
     if args.npv:
         nb_seeds = args.npv

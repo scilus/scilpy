@@ -217,9 +217,8 @@ def main():
     else:
         gs_binary_3d = get_data_as_mask(nib.load(args.voxels_measures[0]))
         gs_binary_3d[gs_binary_3d > 0] = 1
-        tracking_mask_data = get_data_as_mask(nib.load(
-                                                args.voxels_measures[1]))
-        tracking_mask_data[tracking_mask_data > 0] = 1
+        tracking_mask_data = get_data_as_mask(
+            nib.load(args.voxels_measures[1]), ref_shape=gs_binary_3d.shape)
 
     if nbr_cpu == 1:
         voxels_dict = []

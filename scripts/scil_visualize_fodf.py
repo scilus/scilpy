@@ -219,14 +219,13 @@ def _get_data_from_inputs(args):
         bg = nib.nifti1.load(args.background).get_fdata(dtype=np.float32)
         data['bg'] = bg
     if args.in_transparency_mask:
-        assert_same_resolution([args.in_transparency_mask, args.in_fodf])
         transparency_mask = get_data_as_mask(
-            nib.nifti1.load(args.in_transparency_mask), dtype=bool
-        )
+            nib.nifti1.load(args.in_transparency_mask), dtype=bool,
+            ref_shape=fodf.shape)
         data['transparency_mask'] = transparency_mask
     if args.mask:
-        assert_same_resolution([args.mask, args.in_fodf])
-        mask = get_data_as_mask(nib.nifti1.load(args.mask), dtype=bool)
+        mask = get_data_as_mask(nib.nifti1.load(args.mask), dtype=bool,
+                                ref_shape=fodf.shape)
         data['mask'] = mask
     if args.peaks:
         assert_same_resolution([args.peaks, args.in_fodf])
