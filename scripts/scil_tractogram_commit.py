@@ -447,6 +447,7 @@ def main():
             kernels_dir = os.path.join(tmp_dir.name, 'kernels', mit.model.id)
             regenerate_kernels = True
         mit.set_config('ATOMS_path', kernels_dir)
+
         mit.generate_kernels(ndirs=args.nbr_dir, regenerate=regenerate_kernels)
         if args.compute_only:
             return
@@ -455,12 +456,14 @@ def main():
         mit.load_dictionary(tmp_dir.name,
                             use_all_voxels_in_mask=use_mask)
         mit.set_threads(args.nbr_processes)
+
         mit.build_operator(build_dir=os.path.join(tmp_dir.name, 'build/'))
         tol_fun = 1e-2 if args.commit2 else 1e-3
         mit.fit(tol_fun=tol_fun, max_iter=args.nbr_iter, verbose=False)
         mit.save_results()
         _save_results_wrapper(args, tmp_dir, ext, hdf5_file, offsets_list,
                               'commit_1/', False)
+
         if args.commit2:
             tmp = np.insert(np.cumsum(bundle_groups_len), 0, 0)
             group_idx = np.array([np.arange(tmp[i], tmp[i+1])

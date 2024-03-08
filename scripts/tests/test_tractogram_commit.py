@@ -13,6 +13,7 @@ from scilpy.io.fetcher import fetch_data, get_testing_files_dict
 fetch_data(get_testing_files_dict(), keys=['commit_amico.zip'])
 tmp_dir = tempfile.TemporaryDirectory()
 
+
 def test_help_option(script_runner):
     ret = script_runner.run('scil_tractogram_commit.py', '--help')
     assert ret.success
