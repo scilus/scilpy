@@ -312,8 +312,6 @@ def main():
     assert_output_dirs_exist_and_empty(parser, args, args.out_dir,
                                        optional=args.save_kernels)
     
-    print('HERE-1')
-
     if args.commit2:
         if os.path.splitext(args.in_tractogram)[1] != '.h5':
             parser.error('COMMIT2 requires .h5 file for connectomics.')
@@ -432,14 +430,11 @@ def main():
             mit.model.set(para_diff, perp_diff, isotropc_diff)
         else:
             logging.info('Using the Stick Zeppelin Ball model.')
-            logging.info('HERE2')
             para_diff = args.para_diff or 1.7E-3
             perp_diff = args.perp_diff or [0.85E-3, 0.51E-3]
             isotropc_diff = args.iso_diff or [1.7E-3, 3.0E-3]
             mit.model.set(para_diff, perp_diff, isotropc_diff)
-            logging.info('HERE3')
 
-        logging.info('HERE4')
         # The kernels are, by default, set to be in the current directory
         # Depending on the choice, manually change the saving location
         if args.save_kernels:
@@ -452,31 +447,22 @@ def main():
             kernels_dir = os.path.join(tmp_dir.name, 'kernels', mit.model.id)
             regenerate_kernels = True
         mit.set_config('ATOMS_path', kernels_dir)
-        logging.info('HERE5')
         mit.generate_kernels(ndirs=args.nbr_dir, regenerate=regenerate_kernels)
         if args.compute_only:
             return
         mit.load_kernels()
-        logging.info('HERE6')
         use_mask = args.in_tracking_mask is not None
         mit.load_dictionary(tmp_dir.name,
                             use_all_voxels_in_mask=use_mask)
-        logging.info('HERE6a')
         mit.set_threads(args.nbr_processes)
         logging.info(args.nbr_processes)
-        logging.info('HERE6b')
         logging.info(tmp_dir.name)
         mit.build_operator(build_dir=os.path.join(tmp_dir.name, 'build/'))
-        logging.info('HERE6ba')
         tol_fun = 1e-2 if args.commit2 else 1e-3
-        logging.info('HERE6c')
         mit.fit(tol_fun=tol_fun, max_iter=args.nbr_iter, verbose=False)
-        logging.info('HERE6d')
         mit.save_results()
-        logging.info('HERE7')
         _save_results_wrapper(args, tmp_dir, ext, hdf5_file, offsets_list,
                               'commit_1/', False)
-        logging.info('HERE8')
         if args.commit2:
             tmp = np.insert(np.cumsum(bundle_groups_len), 0, 0)
             group_idx = np.array([np.arange(tmp[i], tmp[i+1])
