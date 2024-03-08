@@ -38,8 +38,9 @@ def test_execution_commit_amico(script_runner):
                             '--para_diff', '1.7E-3',
                             '--perp_diff', '1.19E-3', '0.85E-3', '0.51E-3', '0.17E-3',
                             '--iso_diff', '1.7E-3', '3.0E-3',
-                            '--processes', '1')
-    assert ret.success
+                            '--processes', '1', '-f','-v')
+    assert False
+
 
 def test_execution_commit_amico_wo_mask(script_runner):
     tmp_dir = tempfile.TemporaryDirectory()
@@ -55,11 +56,11 @@ def test_execution_commit_amico_wo_mask(script_runner):
     in_peaks = os.path.join(SCILPY_HOME, 'commit_amico',
                             'peaks.nii.gz')
     ret = script_runner.run('scil_tractogram_commit.py', in_tracking, in_dwi,
-                            in_bval, in_bvec, 'results_bzs/',
+                            in_bval, in_bvec, 'results_bzs_wo_mask/',
                             '--b_thr', '30', '--nbr_dir', '500',
                             '--nbr_iter', '500', '--in_peaks', in_peaks,
                             '--para_diff', '1.7E-3',
                             '--perp_diff', '1.19E-3', '0.85E-3', '0.51E-3', '0.17E-3',
                             '--iso_diff', '1.7E-3', '3.0E-3',
-                            '--processes', '1')
+                            '--processes', '1', '-f', '-v')
     assert ret.success
