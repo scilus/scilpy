@@ -311,7 +311,7 @@ def main():
                         [args.in_peaks, args.in_tracking_mask])
     assert_output_dirs_exist_and_empty(parser, args, args.out_dir,
                                        optional=args.save_kernels)
-    
+
     if args.commit2:
         if os.path.splitext(args.in_tractogram)[1] != '.h5':
             parser.error('COMMIT2 requires .h5 file for connectomics.')
@@ -455,8 +455,6 @@ def main():
         mit.load_dictionary(tmp_dir.name,
                             use_all_voxels_in_mask=use_mask)
         mit.set_threads(args.nbr_processes)
-        logging.info(args.nbr_processes)
-        logging.info(tmp_dir.name)
         mit.build_operator(build_dir=os.path.join(tmp_dir.name, 'build/'))
         tol_fun = 1e-2 if args.commit2 else 1e-3
         mit.fit(tol_fun=tol_fun, max_iter=args.nbr_iter, verbose=False)

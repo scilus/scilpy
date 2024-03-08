@@ -40,5 +40,5 @@ def test_execution_commit_amico(script_runner):
                             '--para_diff', '1.7E-3',
                             '--perp_diff', '1.19E-3', '0.85E-3', '0.51E-3', '0.17E-3',
                             '--iso_diff', '1.7E-3', '3.0E-3',
-                            '--processes', '1', '-f','-v')
+                            '--processes', '1')
     assert ret.success
