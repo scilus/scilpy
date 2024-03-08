@@ -7,6 +7,8 @@ import tempfile
 from scilpy import SCILPY_HOME
 from scilpy.io.fetcher import fetch_data, get_testing_files_dict
 
+# Due to commit limitations we cannot run mutliple test of this script
+
 # If they already exist, this only takes 5 seconds (check md5sum)
 fetch_data(get_testing_files_dict(), keys=['commit_amico.zip'])
 tmp_dir = tempfile.TemporaryDirectory()
