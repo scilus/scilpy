@@ -140,7 +140,7 @@ def main():
     gtab = gradient_table(bvals, bvecs, b0_threshold=args.b0_threshold)
 
     sphere = get_sphere('symmetric724')
-    sh_basis, _ = parse_sh_basis_arg(args)
+    sh_basis, is_legacy = parse_sh_basis_arg(args)
 
     mask = None
     if args.mask:
@@ -169,6 +169,7 @@ def main():
                                 return_sh=True,
                                 sh_order=int(args.sh_order),
                                 sh_basis_type=sh_basis,
+                                legacy=is_legacy,
                                 npeaks=5,
                                 parallel=parallel,
                                 num_processes=nbr_processes)
