@@ -9,7 +9,7 @@ from itertools import product as iterprod
 from scilpy.gpuparallel.opencl_utils import have_opencl, CLKernel, CLManager
 
 
-def unified_filtering(sh_data, sh_order, sh_basis, legacy, full_basis,
+def unified_filtering(sh_data, sh_order, sh_basis, is_legacy, full_basis,
                       sphere_str, sigma_spatial=1.0, sigma_align=0.8,
                       sigma_angle=None, rel_sigma_range=0.2,
                       win_hwidth=None, exclude_center=False,
@@ -26,7 +26,7 @@ def unified_filtering(sh_data, sh_order, sh_basis, legacy, full_basis,
     sh_basis: str
         SH basis definition used for input and output SH image.
         One of 'descoteaux07' or 'tournier07'.
-    legacy: bool
+    is_legacy: bool
         Whether the legacy SH basis definition should be used.
     full_basis: bool
         Whether the input SH basis is full or not.
@@ -96,9 +96,9 @@ def unified_filtering(sh_data, sh_order, sh_basis, legacy, full_basis,
                                          sigma_align, sphere, exclude_center)
 
     B = sh_to_sf_matrix(sphere, sh_order, sh_basis, full_basis,
-                        legacy=legacy, return_inv=False)
+                        legacy=is_legacy, return_inv=False)
     _, B_inv = sh_to_sf_matrix(sphere, sh_order, sh_basis, True,
-                               legacy=legacy, return_inv=True)
+                               legacy=is_legacy, return_inv=True)
 
     # compute "real" sigma_range scaled by sf amplitudes
     # if rel_sigma_range is supplied

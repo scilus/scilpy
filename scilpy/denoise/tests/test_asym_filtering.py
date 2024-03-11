@@ -27,7 +27,8 @@ def test_unified_asymmetric_filtering():
     use_opencl = False
 
     sh_order, full_basis = get_sh_order_and_fullness(in_sh.shape[-1])
-    asym_sh = unified_filtering(in_sh, sh_order, sh_basis, legacy=legacy,
+    asym_sh = unified_filtering(in_sh, sh_order, sh_basis,
+                                is_legacy=legacy,
                                 full_basis=full_basis,
                                 sphere_str=sphere_str,
                                 sigma_spatial=sigma_spatial,

@@ -121,7 +121,7 @@ def main():
         parser.error('Option --use_opencl is required for device \'gpu\'.')
 
     if args.use_opencl and args.method == 'cosine':
-        parser.error('Option --use_gpu is not supported for cosine filtering.')
+        parser.error('Option --use_opencl is not supported for cosine filtering.')
 
     outputs = [args.out_sh]
     if args.out_sym:
@@ -145,7 +145,7 @@ def main():
 
         asym_sh = unified_filtering(
             data, sh_order=sh_order, sh_basis=sh_basis,
-            legacy=is_legacy, full_basis=full_basis,
+            is_legacy=is_legacy, full_basis=full_basis,
             sphere_str=args.sphere,
             sigma_spatial=sigma_spatial,
             sigma_align=sigma_align,
