@@ -5,7 +5,7 @@ coloredlogs==15.0.*
 cvxpy==1.4.*
 cycler==0.11.*
 Cython==0.29.*, !=0.29.29
-dipy==1.8.*
+dipy==1.9.*
 deepdiff==6.3.0
 dmri-amico==2.0.*
 dmri-commit==2.1.*
