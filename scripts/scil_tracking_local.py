@@ -6,6 +6,8 @@ Local streamline HARDI tractography.
 The tracking direction is chosen in the aperture cone defined by the
 previous tracking direction and the angular constraint.
 
+WARNING: This script DOES NOT support asymetric FODF input (aFODF).
+
 Algo 'eudx': select the peak from the spherical function (SF) most closely
 aligned to the previous direction, and follow an average of it and the previous
 direction [1].

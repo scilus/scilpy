@@ -203,7 +203,7 @@ def main():
     # Computing memsmt-CSD
     memsmt_model = MultiShellDeconvModel(gtab, memsmt_response,
                                          reg_sphere=reg_sphere,
-                                         sh_order=args.sh_order)
+                                         sh_order_max=args.sh_order)
 
     # Computing memsmt-CSD fit
     memsmt_fit = fit_from_model(memsmt_model, data,

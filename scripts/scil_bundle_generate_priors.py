@@ -129,7 +129,7 @@ def main():
     priors_3d = np.zeros(sh_shape)
     sphere = get_sphere('repulsion724')
     priors_3d[sub_mask_3d] = sf_to_sh(todi_sf, sphere,
-                                      sh_order=sh_order,
+                                      sh_order_max=sh_order,
                                       basis_type=sh_basis,
                                       legacy=is_legacy)
     nib.save(nib.Nifti1Image(priors_3d, img_mask.affine), out_priors)
@@ -137,7 +137,7 @@ def main():
 
     input_sh_3d = img_sh.get_fdata(dtype=np.float32)
     input_sf_1d = sh_to_sf(input_sh_3d[sub_mask_3d],
-                           sphere, sh_order=sh_order,
+                           sphere, sh_order_max=sh_order,
                            basis_type=sh_basis, legacy=is_legacy)
 
     # Creation of the enhanced-FOD (direction-wise multiplication)
@@ -153,7 +153,7 @@ def main():
 
     # Memory friendly saving
     input_sh_3d[sub_mask_3d] = sf_to_sh(mult_sf_1d, sphere,
-                                        sh_order=sh_order,
+                                        sh_order_max=sh_order,
                                         basis_type=sh_basis,
                                         legacy=is_legacy)
     nib.save(nib.Nifti1Image(input_sh_3d, img_mask.affine), out_efod)

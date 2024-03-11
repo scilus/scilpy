@@ -151,10 +151,10 @@ def main():
             raise ValueError('Mask shape does not match data shape.')
 
     if args.use_qball:
-        model = QballModel(gtab, sh_order=args.sh_order,
+        model = QballModel(gtab, sh_order_max=args.sh_order,
                            smooth=DEFAULT_SMOOTH)
     else:
-        model = CsaOdfModel(gtab, sh_order=args.sh_order,
+        model = CsaOdfModel(gtab, sh_order_max=args.sh_order,
                             smooth=DEFAULT_SMOOTH)
 
     # ToDo: Once Dipy adds the legacy option to peaks_from_model, put is_legacy
@@ -167,7 +167,7 @@ def main():
                                 return_odf=False,
                                 normalize_peaks=True,
                                 return_sh=True,
-                                sh_order=int(args.sh_order),
+                                sh_order_max=int(args.sh_order),
                                 sh_basis_type=sh_basis,
                                 legacy=is_legacy,
                                 npeaks=5,
