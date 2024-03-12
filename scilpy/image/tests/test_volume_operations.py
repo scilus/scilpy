@@ -176,4 +176,3 @@ def test_mask_data_with_default_cube():
     assert out[0, 0, 0] == 0
     assert out[-1, -1, -1] == 0
     assert out[6, 6, 6] == 1
-    

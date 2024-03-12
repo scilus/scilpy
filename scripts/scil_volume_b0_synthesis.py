@@ -14,8 +14,6 @@ in Scilpy):
 - tensorrt
 - tensorflow
 """
-
-
 import argparse
 import logging
 import os
