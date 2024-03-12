@@ -47,7 +47,6 @@ from scilpy.image.volume_operations import compute_snr
 
 
 def _build_arg_parser():
-
     p = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
                                 description=__doc__)
 
@@ -120,12 +119,15 @@ def main():
         noise_map = nib.load(args.noise_map)
         noise_mask = None
 
-    values = compute_snr(dwi, bvals, bvecs, args.b0_thr,
-                         mask,
-                         noise_mask=noise_mask,
-                         noise_map=noise_map,
-                         split_shells=args.split_shells,
-                         basename=basename)
+    values, noise_mask = compute_snr(dwi, bvals, bvecs, args.b0_thr,
+                                     mask, noise_mask=noise_mask,
+                                     noise_map=noise_map,
+                                     split_shells=args.split_shells)
+
+    if noise_mask is None and noise_map is None:
+        filename = basename + '_noise_mask.nii.gz'
+        logging.info("Saving computed noise mask as {}".format(filename))
+        nib.save(nib.Nifti1Image(noise_mask, dwi.affine), filename)
 
     df = pd.DataFrame.from_dict(values).T
 

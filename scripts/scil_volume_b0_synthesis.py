@@ -14,12 +14,9 @@ in Scilpy):
 - tensorrt
 - tensorflow
 """
-
-
 import argparse
 import logging
 import os
-import sys
 import warnings
 
 # Disable tensorflow warnings

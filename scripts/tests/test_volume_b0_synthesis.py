@@ -27,11 +27,8 @@ def test_help_option(script_runner):
 @pytest.mark.skipif(tensorflow is None, reason="Tensorflow not installed")
 def test_synthesis(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    in_t1 = os.path.join(SCILPY_HOME, 'others',
-                         't1.nii.gz')
-    in_b0 = os.path.join(SCILPY_HOME, 'processing',
-                         'b0_mean.nii.gz')
-
+    in_t1 = os.path.join(SCILPY_HOME, 'others', 't1.nii.gz')
+    in_b0 = os.path.join(SCILPY_HOME, 'processing', 'b0_mean.nii.gz')
     t1_img = nib.load(in_t1)
     b0_img = nib.load(in_b0)
     t1_data = t1_img.get_fdata()
