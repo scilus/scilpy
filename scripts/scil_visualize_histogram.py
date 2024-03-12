@@ -73,7 +73,7 @@ def main():
     mask = get_data_as_mask(nib.load(args.in_mask))
 
     # Select value from mask
-    curr_data = metric_img_data[mask]
+    curr_data = metric_img_data[np.where(mask > 0)]
 
     # Display figure
     fig, ax = plt.subplots()
