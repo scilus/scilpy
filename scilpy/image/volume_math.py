@@ -656,13 +656,18 @@ def correlation(input_list, ref_img, patch_radius=1):
     all_corr = np.zeros(data_shape + (len(combs),), dtype=np.float32)
 
     def correlate(data):
+
+        # Adding a small random value to avoid NaNs in the background (0)
         data += np.random.rand(data.shape[0]) * 0.001
         a, b = np.split(data, 2)
 
         if np.allclose(a, b):
             return 1
 
+        np.set_printoptions(suppress=True, precision=4)
+        print("   CORRELATION BETWEEN ", a, b)
         corr = np.corrcoef(a, b, dtype=np.float32)[0, 1]
+        print("   gives ", corr)
         return corr
 
     np.random.seed(0)

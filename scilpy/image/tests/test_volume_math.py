@@ -573,18 +573,25 @@ def test_concatenate():
 
 def test_correlation():
     # Note. Not working on 2D data.
-    img_data = np.zeros((3, 3, 3)).astype(float)
+    # Test 1: Data with background values
+    # Test 2: No background
+    # In both cases, compares a bunch of 0 with a bunch of 1, should be a
+    # perfect correlation.
+    img_data_1 = np.zeros((3, 3, 3)).astype(float)
+    img_data_2 = np.ones((3, 3, 3)).astype(float)
     affine = np.eye(4)
-    img1 = nib.Nifti1Image(img_data, affine)
-    img2 = nib.Nifti1Image(img_data + 1, affine)
 
-    # With patch_radius of 1, we get the correlation for each voxel.
-    # Note: Currently, patch_radius is NEVER used in scilpy. To delete?
-    output = correlation([img1, img2], img1, patch_radius=1)
+    for img_data in [img_data_2, img_data_1]:
+        img1 = nib.Nifti1Image(img_data, affine)
+        img2 = nib.Nifti1Image(img_data + 1, affine)
 
-    print(output.shape)
-    print(output)
-    assert np.all(output == 1)
+        # With patch_radius of 1, we get the correlation for each voxel.
+        # Note: Currently, patch_radius is NEVER used in scilpy. To delete?
+        output = correlation([img1, img2], img1, patch_radius=1)
+
+        print(output.shape)
+        print(output)
+        assert np.allclose(output, 1)
 
 
 def test_dilation():
