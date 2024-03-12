@@ -66,4 +66,3 @@ def test_compute_fiber_coherence():
     fa[1, 1, :] = [1, 1, 1, 1, 0]
     coherence4 = compute_fiber_coherence(directions, fa)
     assert coherence4 == 0
-
