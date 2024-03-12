@@ -24,7 +24,8 @@ from dipy.data import get_sphere
 from scilpy.reconst.utils import get_sh_order_and_fullness
 from scilpy.io.utils import (add_sh_basis_args, add_overwrite_arg,
                              assert_inputs_exist, add_verbose_arg,
-                             assert_outputs_exist, parse_sh_basis_arg)
+                             assert_outputs_exist, parse_sh_basis_arg,
+                             assert_headers_compatible)
 from scilpy.io.image import assert_same_resolution, get_data_as_mask
 from scilpy.viz.scene_utils import (create_odf_slicer, create_texture_slicer,
                                     create_peaks_slicer, create_scene,
@@ -177,31 +178,22 @@ def _parse_args(parser):
     args = parser.parse_args()
     inputs = []
     output = []
-    inputs.append(args.in_fodf)
     if args.output:
         output.append(args.output)
     else:
         if args.silent:
             parser.error('Silent mode is enabled but no output is specified.'
                          'Specify an output with --output to use silent mode.')
-    if args.in_transparency_mask:
-        inputs.append(args.in_transparency_mask)
-    if args.mask:
-        inputs.append(args.mask)
-    if args.background:
-        inputs.append(args.background)
 
-    if args.peaks:
-        inputs.append(args.peaks)
-        if args.peaks_values:
-            inputs.append(args.peaks_values)
-    else:
-        if args.peaks_values:
-            parser.error('Peaks values image supplied without peaks. Specify '
-                         'a peaks image with --peaks to use this feature.')
+    if args.peaks_values and not args.peaks:
+        parser.error('Peaks values image supplied without peaks. Specify '
+                     'a peaks image with --peaks to use this feature.')
 
-    assert_inputs_exist(parser, inputs)
+    optional = [args.in_transparency_mask, args.mask, args.background,
+                args.peaks, args.peaks_values]
+    assert_inputs_exist(parser, args.in_fodf, optional)
     assert_outputs_exist(parser, args, output)
+    assert_headers_compatible(parser, args.in_fodf, optional)
 
     return args
 
@@ -220,12 +212,10 @@ def _get_data_from_inputs(args):
         data['bg'] = bg
     if args.in_transparency_mask:
         transparency_mask = get_data_as_mask(
-            nib.nifti1.load(args.in_transparency_mask), dtype=bool,
-            ref_shape=fodf.shape)
+            nib.nifti1.load(args.in_transparency_mask), dtype=bool)
         data['transparency_mask'] = transparency_mask
     if args.mask:
-        mask = get_data_as_mask(nib.nifti1.load(args.mask), dtype=bool,
-                                ref_shape=fodf.shape)
+        mask = get_data_as_mask(nib.nifti1.load(args.mask), dtype=bool)
         data['mask'] = mask
     if args.peaks:
         assert_same_resolution([args.peaks, args.in_fodf])

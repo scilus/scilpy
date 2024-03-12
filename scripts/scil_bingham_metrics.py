@@ -23,11 +23,12 @@ import nibabel as nib
 import time
 import argparse
 import logging
-from scilpy.io.image import get_data_as_mask
 
+from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_overwrite_arg, add_processes_arg,
                              add_verbose_arg, assert_inputs_exist,
-                             assert_outputs_exist, validate_nbr_processes)
+                             assert_outputs_exist, validate_nbr_processes,
+                             assert_headers_compatible)
 from scilpy.reconst.bingham import (compute_fiber_density,
                                     compute_fiber_spread,
                                     compute_fiber_fraction)
@@ -94,11 +95,12 @@ def main():
     outputs = [args.out_fd, args.out_fs, args.out_ff]
     assert_inputs_exist(parser, args.in_bingham, args.mask)
     assert_outputs_exist(parser, args, [], optional=outputs)
+    assert_headers_compatible(parser, args.in_bingham, args.mask)
 
     bingham_im = nib.load(args.in_bingham)
     bingham = bingham_im.get_fdata()
-    mask = get_data_as_mask(nib.load(args.mask), dtype=bool,
-                            ref_img=bingham_im) if args.mask else None
+    mask = get_data_as_mask(nib.load(args.mask),
+                            dtype=bool) if args.mask else None
 
     nbr_processes = validate_nbr_processes(parser, args)
 

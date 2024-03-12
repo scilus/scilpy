@@ -59,7 +59,8 @@ from scilpy.image.volume_operations import smooth_to_fwhm
 from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_overwrite_arg, add_skip_b0_check_arg,
                              add_verbose_arg, assert_inputs_exist,
-                             assert_outputs_exist, add_tolerance_arg, )
+                             assert_outputs_exist, add_tolerance_arg,
+                             assert_headers_compatible, )
 from scilpy.gradients.bvec_bval_tools import (check_b0_threshold,
                                               is_normalized_bvecs,
                                               identify_shells,
@@ -174,13 +175,14 @@ def main():
     assert_inputs_exist(
         parser, [args.in_dwi, args.in_bval, args.in_bvec], args.mask)
     assert_outputs_exist(parser, args, outputs)
+    assert_headers_compatible(parser, args.in_dwi, args.mask)
 
     # Loading
     img = nib.load(args.in_dwi)
     data = img.get_fdata(dtype=np.float32)
     affine = img.affine
-    mask = get_data_as_mask(nib.load(args.mask), dtype=bool,
-                            ref_img=img) if args.mask else None
+    mask = get_data_as_mask(nib.load(args.mask),
+                            dtype=bool) if args.mask else None
 
     bvals, bvecs = read_bvals_bvecs(args.in_bval, args.in_bvec)
     if not is_normalized_bvecs(bvecs):

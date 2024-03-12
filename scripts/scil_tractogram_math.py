@@ -57,7 +57,7 @@ from scilpy.io.utils import (add_bbox_arg,
                              add_verbose_arg,
                              assert_inputs_exist,
                              assert_outputs_exist,
-                             is_header_compatible_multiple_files)
+                             assert_headers_compatible)
 from scilpy.tractograms.lazy_tractogram_operations import lazy_concatenate
 from scilpy.tractograms.tractogram_operations import (
     perform_tractogram_operation_on_sft, concatenate_sft)
@@ -117,7 +117,7 @@ def main():
     assert_outputs_exist(parser, args, args.out_tractogram,
                          optional=args.save_indices)
 
-    is_header_compatible_multiple_files(
+    assert_headers_compatible(
         parser, args.in_tractograms, verbose_all_compatible=args.verbose,
         reference=args.reference)
 

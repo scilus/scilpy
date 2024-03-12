@@ -702,9 +702,8 @@ def assert_roi_radii_format(parser):
     return roi_radii
 
 
-def is_header_compatible_multiple_files(parser, list_files,
-                                        verbose_all_compatible=False,
-                                        reference=None):
+def assert_headers_compatible(parser, required, optional=None,
+                              verbose_all_compatible=False, reference=None):
     """
     Verifies the compatibility between the first item in list_files
     and the remaining files in list.
@@ -713,8 +712,10 @@ def is_header_compatible_multiple_files(parser, list_files,
     ---------
     parser: argument parser
         Will raise an error if a file is not compatible.
-    list_files: List[str]
+    required: List[str]
         List of files to test
+    optional: List[str or None]
+        List of files. May contain None, they will be discarted.
     verbose_all_compatible: bool
         If true will print a message when everything is okay
     reference: str
@@ -722,8 +723,21 @@ def is_header_compatible_multiple_files(parser, list_files,
     """
     all_valid = True
 
-    # Gather "headers" for all files to compare against
-    # eachother later
+    # Format required and optional to lists if a single filename was sent.
+    if isinstance(required, str):
+        required = [required]
+    if optional is None:
+        optional = []
+    elif isinstance(optional, str):
+        optional = [optional]
+    else:
+        optional = [f for f in optional if f is not None]
+    list_files = required + optional
+
+    if len(list_files) <= 1:
+        return
+
+    # Gather "headers" for all files to compare against each other later
     headers = []
     for filepath in list_files:
         _, in_extension = split_name_with_nii(filepath)

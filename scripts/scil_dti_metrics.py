@@ -34,6 +34,7 @@ import numpy as np
 from dipy.core.gradients import gradient_table
 import dipy.denoise.noise_estimate as ne
 from dipy.io.gradients import read_bvals_bvecs
+from dipy.io.utils import is_header_compatible
 from dipy.reconst.dti import (TensorModel, color_fa, fractional_anisotropy,
                               geodesic_anisotropy, mean_diffusivity,
                               axial_diffusivity, norm,
@@ -46,7 +47,8 @@ from scilpy.dwi.operations import compute_residuals, \
 from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_b0_thresh_arg, add_overwrite_arg,
                              add_skip_b0_check_arg, add_verbose_arg,
-                             assert_inputs_exist, assert_outputs_exist)
+                             assert_inputs_exist, assert_outputs_exist,
+                             assert_headers_compatible)
 from scilpy.io.tensor import convert_tensor_from_dipy_format, \
     supported_tensor_formats, tensor_format_description
 from scilpy.gradients.bvec_bval_tools import (check_b0_threshold,
@@ -250,13 +252,14 @@ def main():
     assert_inputs_exist(
         parser, [args.in_dwi, args.in_bval, args.in_bvec], args.mask)
     assert_outputs_exist(parser, args, outputs)
+    assert_headers_compatible(parser, args.in_dwi, args.mask)
 
     # Loading
     img = nib.load(args.in_dwi)
     data = img.get_fdata(dtype=np.float32)
     affine = img.affine
-    mask = get_data_as_mask(nib.load(args.mask), dtype=bool,
-                            ref_img=img) if args.mask else None
+    mask = get_data_as_mask(nib.load(args.mask),
+                            dtype=bool) if args.mask else None
 
     logging.info('Tensor estimation with the {} method...'.format(args.method))
     bvals, bvecs = read_bvals_bvecs(args.in_bval, args.in_bvec)

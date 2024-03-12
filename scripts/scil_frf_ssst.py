@@ -22,7 +22,8 @@ from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_b0_thresh_arg, add_overwrite_arg,
                              add_skip_b0_check_arg, add_verbose_arg,
                              assert_inputs_exist, assert_outputs_exist,
-                             assert_roi_radii_format)
+                             assert_roi_radii_format,
+                             assert_headers_compatible)
 from scilpy.reconst.frf import compute_ssst_frf
 
 
@@ -90,8 +91,10 @@ def main():
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
-    assert_inputs_exist(parser, [args.in_dwi, args.in_bval, args.in_bvec])
+    assert_inputs_exist(parser, [args.in_dwi, args.in_bval, args.in_bvec],
+                        [args.mask, args.mask_wm])
     assert_outputs_exist(parser, args, args.frf_file)
+    assert_headers_compatible(parser, args.in_dwi, [args.mask, args.mask_wm])
 
     roi_radii = assert_roi_radii_format(parser)
 
@@ -103,10 +106,10 @@ def main():
                                            b0_thr=args.b0_threshold,
                                            skip_b0_check=args.skip_b0_check)
 
-    mask = get_data_as_mask(nib.load(args.mask), dtype=bool,
-                            ref_img=vol) if args.mask else None
-    mask_wm = get_data_as_mask(nib.load(args.mask_wm), dtype=bool,
-                               ref_img=vol) if args.mask_wm else None
+    mask = get_data_as_mask(nib.load(args.mask),
+                            dtype=bool) if args.mask else None
+    mask_wm = get_data_as_mask(nib.load(args.mask_wm),
+                               dtype=bool) if args.mask_wm else None
 
     full_response = compute_ssst_frf(
         data, bvals, bvecs, args.b0_threshold, mask=mask,

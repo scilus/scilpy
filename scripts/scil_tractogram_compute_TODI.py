@@ -21,7 +21,7 @@ from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg, add_reference_arg,
                              add_sh_basis_args, add_verbose_arg,
                              assert_inputs_exist, assert_outputs_exist,
-                             parse_sh_basis_arg)
+                             parse_sh_basis_arg, assert_headers_compatible)
 from scilpy.tractanalysis.todi import TrackOrientationDensityImaging
 
 
@@ -92,6 +92,8 @@ def main():
 
     assert_inputs_exist(parser, args.in_tractogram,
                         [args.mask, args.reference])
+    assert_headers_compatible(parser, args.in_tractogram, args.mask,
+                              reference=args.reference)
 
     output_file_list = []
     if args.out_mask:
@@ -133,7 +135,7 @@ def main():
         todi_obj.smooth_todi_spatial()
 
     if args.mask:
-        mask = get_data_as_mask(nib.load(args.mask), ref_shape=data_shape)
+        mask = get_data_as_mask(nib.load(args.mask))
         todi_obj.mask_todi(mask)
 
     logging.info('Saving Outputs ...')

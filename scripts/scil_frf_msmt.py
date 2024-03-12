@@ -176,14 +176,14 @@ def main():
         bvals_dti = None
         bvecs_dti = None
 
-    mask = get_data_as_mask(nib.load(args.mask), dtype=bool,
-                            ref_img=vol) if args.mask else None
-    mask_wm = get_data_as_mask(nib.load(args.mask_wm), dtype=bool,
-                               ref_img=vol) if args.mask_wm else None
-    mask_gm = get_data_as_mask(nib.load(args.mask_gm), dtype=bool,
-                               ref_img=vol) if args.mask_gm else None
-    mask_csf = get_data_as_mask(nib.load(args.mask_csf), dtype=bool,
-                                ref_img=vol) if args.mask_csf else None
+    mask = get_data_as_mask(nib.load(args.mask),
+                            dtype=bool) if args.mask else None
+    mask_wm = get_data_as_mask(nib.load(args.mask_wm),
+                               dtype=bool) if args.mask_wm else None
+    mask_gm = get_data_as_mask(nib.load(args.mask_gm),
+                               dtype=bool) if args.mask_gm else None
+    mask_csf = get_data_as_mask(nib.load(args.mask_csf),
+                                dtype=bool) if args.mask_csf else None
 
     # Processing
     responses, frf_masks = compute_msmt_frf(data, bvals, bvecs,

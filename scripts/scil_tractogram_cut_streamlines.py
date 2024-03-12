@@ -34,7 +34,8 @@ from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg,
                              add_reference_arg,
                              add_verbose_arg,
-                             assert_inputs_exist, assert_outputs_exist)
+                             assert_inputs_exist, assert_outputs_exist,
+                             assert_headers_compatible)
 from scilpy.tractograms.streamline_and_mask_operations import \
     cut_outside_of_mask_streamlines, cut_between_mask_two_blobs_streamlines
 from scilpy.tractograms.streamline_operations import \
@@ -74,6 +75,8 @@ def main():
 
     assert_inputs_exist(parser, [args.in_tractogram, args.in_mask])
     assert_outputs_exist(parser, args, args.out_tractogram)
+    assert_headers_compatible(parser, [args.in_tractogram, args.in_mask],
+                              reference=args.reference)
 
     sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
     if args.step_size is not None:

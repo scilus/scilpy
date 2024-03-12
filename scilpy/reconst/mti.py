@@ -191,7 +191,7 @@ def threshold_map(computed_map,  in_mask,
     # Load and apply sum of T1 probability maps on myelin maps
     if in_mask is not None:
         mask_image = nib.load(in_mask)
-        mask_data = get_data_as_mask(mask_image, ref_shape=computed_map.shape)
+        mask_data = get_data_as_mask(mask_image)
         computed_map[np.where(mask_data == 0)] = 0
 
     # Apply threshold based on combination of specific contrast maps

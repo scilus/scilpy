@@ -30,7 +30,7 @@ from scilpy.io.utils import (add_overwrite_arg,
                              add_json_args,
                              assert_outputs_exist,
                              add_verbose_arg,
-                             add_reference_arg)
+                             add_reference_arg, assert_headers_compatible)
 from scilpy.segment.streamlines import filter_grid_roi
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
 from scilpy.utils.filenames import split_name_with_nii
@@ -85,6 +85,10 @@ def main():
     assert_outputs_exist(parser, args, args.out_json,
                          optional=[args.out_lesion_stats,
                                    args.out_streamlines_stats])
+    assert_headers_compatible(parser, args.in_lesion,
+                              optional=[args.bundle, args.bundle_mask,
+                                        args.bundle_labels_map],
+                              reference=args.reference)
 
     lesion_img = nib.load(args.in_lesion)
     lesion_data = get_data_as_mask(lesion_img, dtype=bool)
@@ -102,7 +106,7 @@ def main():
         bundle_name, _ = split_name_with_nii(
             os.path.basename(args.bundle_mask))
         map_img = nib.load(args.bundle_mask)
-        map_data = get_data_as_mask(map_img, ref_img=lesion_img)
+        map_data = get_data_as_mask(map_img)
     else:
         bundle_name, _ = split_name_with_nii(os.path.basename(
             args.bundle_labels_map))

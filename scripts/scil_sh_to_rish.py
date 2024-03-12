@@ -28,7 +28,8 @@ import numpy as np
 
 from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
-                             assert_outputs_exist, add_verbose_arg)
+                             assert_outputs_exist, add_verbose_arg,
+                             assert_headers_compatible)
 from scilpy.reconst.sh import compute_rish
 
 
@@ -60,12 +61,13 @@ def main():
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     assert_inputs_exist(parser, args.in_sh, optional=args.mask)
+    assert_headers_compatible(parser, args.in_sh, optional=args.mask)
 
     # Load data
     sh_img = nib.load(args.in_sh)
     sh = sh_img.get_fdata(dtype=np.float32)
-    mask = get_data_as_mask(nib.load(args.mask), dtype=bool,
-                            ref_img=sh_img) if args.mask else None
+    mask = get_data_as_mask(nib.load(args.mask),
+                            dtype=bool) if args.mask else None
 
     # Precompute output filenames to check if they exist
     sh_order = order_from_ncoef(sh.shape[-1], full_basis=args.full_basis)

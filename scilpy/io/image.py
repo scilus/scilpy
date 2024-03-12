@@ -88,7 +88,7 @@ def assert_same_resolution(images):
             raise Exception("Images are not of the same resolution/affine")
 
 
-def get_data_as_mask(mask_img, dtype=np.uint8, ref_img=None, ref_shape=None):
+def get_data_as_mask(mask_img, dtype=np.uint8):
     """
     Get data as mask (force type np.uint8 or bool), check data type before
     casting.
@@ -99,11 +99,6 @@ def get_data_as_mask(mask_img, dtype=np.uint8, ref_img=None, ref_shape=None):
         Mask image.
     dtype: type or str
         Data type for the output data (default: uint8)
-    ref_img: nibabel.nitfi1.Nifti1Image
-        Reference image. If given, mask must be compatible.
-    ref_shape: shape
-        Alternative to ref_image. The shape of the associated data. If given,
-        verifies that the mask shape fits with the ref_shape.
 
     Return
     ------
@@ -115,16 +110,6 @@ def get_data_as_mask(mask_img, dtype=np.uint8, ref_img=None, ref_shape=None):
             issubclass(np.dtype(dtype).type, np.dtype(bool).type)):
         raise IOError('Output data type must be uint8 or bool. '
                       'Current data type is {}.'.format(dtype))
-
-    # Verify that shape is ok
-    if ref_img is not None:
-        if not is_header_compatible(mask_img, ref_img):
-            raise IOError("Mask is not of the same resolution/affine as data.")
-    elif ref_shape is not None:
-        if not np.array_equal(mask_img.shape, ref_shape[0:3]):
-            raise IOError("Mask is not the same shape as data. Got {}, and "
-                          "data is of shape {}"
-                          .format(mask_img.shape, ref_shape))
 
     # Verify that loaded datatype is ok
     curr_type = mask_img.get_data_dtype().type

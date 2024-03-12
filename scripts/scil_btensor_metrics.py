@@ -52,7 +52,8 @@ from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              assert_outputs_exist, add_processes_arg,
                              add_verbose_arg, add_skip_b0_check_arg,
-                             add_tolerance_arg)
+                             add_tolerance_arg,
+                             assert_headers_compatible)
 from scilpy.reconst.divide import fit_gamma, gamma_fit2metrics
 
 
@@ -158,9 +159,10 @@ def main():
         parser.error('When using --not_all, you need to specify at least '
                      'one file to output.')
 
-    assert_inputs_exist(parser, [],
-                        optional=args.in_dwis + args.in_bvals + args.in_bvecs)
+    assert_inputs_exist(parser, args.in_dwis + args.in_bvals + args.in_bvecs,
+                        args.mask)
     assert_outputs_exist(parser, args, arglist)
+    assert_headers_compatible(parser, args.in_dwis, args.mask)
 
     if args.op and not args.fa:
         parser.error('Computation of the OP requires a precomputed '
@@ -199,8 +201,7 @@ def main():
             'No mask provided. The fit might not converge due to noise. '
             'Please provide a mask if it is the case.')
     else:
-        mask = get_data_as_mask(nib.load(args.mask), dtype=bool,
-                                ref_shape=data.shape)
+        mask = get_data_as_mask(nib.load(args.mask), dtype=bool)
 
     if args.fa is not None:
         vol = nib.load(args.fa)

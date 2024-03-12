@@ -52,7 +52,7 @@ from scilpy.image.labels import get_data_as_labels
 from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_overwrite_arg,
                              add_verbose_arg,
-                             assert_inputs_exist)
+                             assert_inputs_exist, assert_headers_compatible)
 
 
 def _build_arg_parser():
@@ -143,17 +143,18 @@ def main():
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
-    assert_inputs_exist(parser, [args.in_x_map, args.in_y_map])
+    maps = [args.in_x_map, args.in_y_map]
+    assert_inputs_exist(parser, maps,
+                        optional=args.in_prob_maps +
+                        [args.in_bin_mask, args.in_atlas, args.atlas_lut])
+    assert_headers_compatible(parser, maps,
+                              optional=args.in_prob_maps +
+                                       [args.in_bin_mask, args.in_atlas])
 
     if args.out_dir is None:
         args.out_dir = './'
 
-    if args.in_atlas:
-        assert_inputs_exist(parser, args.atlas_lut)
-
     # Load x and y images
-    maps = [args.in_x_map, args.in_y_map]
-
     maps_data = []
     for curr_map in maps:
         maps_image = nib.load(curr_map)

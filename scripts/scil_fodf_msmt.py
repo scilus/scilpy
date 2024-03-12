@@ -37,12 +37,11 @@ from scilpy.io.utils import (add_overwrite_arg, add_processes_arg,
                              assert_inputs_exist, assert_outputs_exist,
                              add_sh_basis_args, add_skip_b0_check_arg,
                              add_verbose_arg, add_tolerance_arg,
-                             parse_sh_basis_arg)
+                             parse_sh_basis_arg, assert_headers_compatible)
 from scilpy.reconst.fodf import (fit_from_model,
                                  verify_failed_voxels_shm_coeff,
                                  verify_frf_files)
 from scilpy.reconst.sh import convert_sh_basis, verify_data_vs_sh_order
-
 
 
 def _build_arg_parser():
@@ -126,8 +125,9 @@ def main():
 
     assert_inputs_exist(parser, [args.in_dwi, args.in_bval, args.in_bvec,
                                  args.in_wm_frf, args.in_gm_frf,
-                                 args.in_csf_frf])
+                                 args.in_csf_frf], args.mask)
     assert_outputs_exist(parser, args, arglist)
+    assert_headers_compatible(parser, args.in_dwi, args.mask)
 
     # Loading data
     wm_frf = np.loadtxt(args.in_wm_frf)
@@ -143,8 +143,8 @@ def main():
     sh_basis, is_legacy = parse_sh_basis_arg(args)
 
     # Checking mask
-    mask = get_data_as_mask(nib.load(args.mask), dtype=bool,
-                            ref_img=vol) if args.mask else None
+    mask = get_data_as_mask(nib.load(args.mask),
+                            dtype=bool) if args.mask else None
 
     # Checking bvals, bvecs values and loading gtab
     if not is_normalized_bvecs(bvecs):

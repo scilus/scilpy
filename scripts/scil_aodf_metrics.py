@@ -43,6 +43,7 @@ from scilpy.io.utils import (add_processes_arg,
                              add_sh_basis_args,
                              add_verbose_arg,
                              assert_inputs_exist,
+                             assert_headers_compatible,
                              assert_outputs_exist,
                              add_overwrite_arg,
                              parse_sh_basis_arg)
@@ -142,6 +143,8 @@ def main():
 
     assert_inputs_exist(parser, inputs)
     assert_outputs_exist(parser, args, arglist)
+    if args.mask:
+        assert_headers_compatible(parser, inputs)
 
     # Loading
     sh_img = nib.load(args.in_sh)
@@ -155,8 +158,7 @@ def main():
         parser.error('Invalid SH image. A full SH basis is expected.')
 
     if args.mask:
-        mask = get_data_as_mask(nib.load(args.mask), dtype=bool,
-                                ref_img=sh_img)
+        mask = get_data_as_mask(nib.load(args.mask), dtype=bool)
     else:
         mask = np.sum(np.abs(sh), axis=-1) > 0
 

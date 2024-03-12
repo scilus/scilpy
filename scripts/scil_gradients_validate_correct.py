@@ -31,7 +31,8 @@ import numpy as np
 import nibabel as nib
 
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
-                             assert_outputs_exist, add_verbose_arg)
+                             assert_outputs_exist, add_verbose_arg,
+                             assert_headers_compatible)
 from scilpy.io.image import get_data_as_mask
 from scilpy.reconst.fiber_coherence import compute_fiber_coherence_table
 
@@ -82,6 +83,8 @@ def main():
 
     assert_inputs_exist(parser, inputs, optional=optional)
     assert_outputs_exist(parser, args, args.out_bvec)
+    assert_headers_compatible(parser, [args.in_peaks, args.in_FA],
+                              optional=optional)
 
     _, bvecs = read_bvals_bvecs(None, args.in_bvec)
     fa = nib.load(args.in_FA).get_fdata()

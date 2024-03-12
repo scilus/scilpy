@@ -27,7 +27,7 @@ from scilpy.image.labels import get_data_as_labels, dilate_labels
 from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_overwrite_arg, add_processes_arg,
                              assert_inputs_exist, add_verbose_arg,
-                             assert_outputs_exist)
+                             assert_outputs_exist, assert_headers_compatible)
 
 EPILOG = """
     References:
@@ -74,6 +74,7 @@ def main():
 
     assert_inputs_exist(parser, args.in_file, optional=args.mask)
     assert_outputs_exist(parser, args, args.out_file)
+    assert_headers_compatible(parser, args.in_file, optional=args.mask)
 
     if args.nbr_processes is None:
         args.nbr_processes = -1
@@ -83,8 +84,7 @@ def main():
     data = get_data_as_labels(volume_nib)
     vox_size = np.reshape(volume_nib.header.get_zooms(), (1, 3))
 
-    mask_data = get_data_as_mask(nib.load(args.mask),
-                                 ref_img=volume_nib) if args.mask else None
+    mask_data = get_data_as_mask(nib.load(args.mask)) if args.mask else None
 
     data = dilate_labels(data, vox_size, args.distance, args.nbr_processes,
                          labels_to_dilate=args.labels_to_dilate,
