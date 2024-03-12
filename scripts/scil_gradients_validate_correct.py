@@ -33,7 +33,7 @@ import nibabel as nib
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              assert_outputs_exist, add_verbose_arg)
 from scilpy.io.image import get_data_as_mask
-from scilpy.reconst.fiber_coherence import compute_fiber_coherence_table
+from scilpy.reconst.fiber_coherence import compute_coherence_table_for_transforms
 
 
 EPILOG = """
@@ -106,7 +106,7 @@ def main():
         peaks[np.logical_not(mask)] = 0
 
     peaks[fa < args.fa_threshold] = 0
-    coherence, transform = compute_fiber_coherence_table(peaks, fa)
+    coherence, transform = compute_coherence_table_for_transforms(peaks, fa)
 
     best_t = transform[np.argmax(coherence)]
     if (best_t == np.eye(3)).all():
