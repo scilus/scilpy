@@ -73,7 +73,7 @@ def main():
     assert_inputs_exist(parser, [args.in_dwi, args.in_bval, args.in_bvec,
                                  args.frf_file], args.mask)
     assert_outputs_exist(parser, args, args.out_fODF)
-    assert_headers_compatible(args.in_dwi, args.mask)
+    assert_headers_compatible(parser, args.in_dwi, args.mask)
 
     # Loading data
     full_frf = np.loadtxt(args.frf_file)

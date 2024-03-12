@@ -144,12 +144,13 @@ def main():
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     maps = [args.in_x_map, args.in_y_map]
+    prob_maps = args.in_prob_maps or []
     assert_inputs_exist(parser, maps,
-                        optional=args.in_prob_maps +
+                        optional=prob_maps +
                         [args.in_bin_mask, args.in_atlas, args.atlas_lut])
     assert_headers_compatible(parser, maps,
-                              optional=args.in_prob_maps +
-                                       [args.in_bin_mask, args.in_atlas])
+                              optional=prob_maps +
+                              [args.in_bin_mask, args.in_atlas])
 
     if args.out_dir is None:
         args.out_dir = './'

@@ -118,7 +118,7 @@ def main():
 
     assert_inputs_exist(parser, [args.in_dwi, args.in_bval, args.in_bvec],
                         args.mask)
-    assert_outputs_exist(parser, args, arglist)
+    assert_outputs_exist(parser, args, [], optional=arglist)
     assert_headers_compatible(parser, args.in_dwi, args.mask)
 
     nbr_processes = validate_nbr_processes(parser, args)
