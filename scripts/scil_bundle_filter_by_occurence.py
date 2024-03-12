@@ -70,7 +70,7 @@ def main():
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
-    assert_inputs_exist(parser, args.in_bundles)
+    assert_inputs_exist(parser, args.in_bundles, args.reference)
     output_streamlines_filename = '{}streamlines.trk'.format(
         args.output_prefix)
     output_voxels_filename = '{}voxels.nii.gz'.format(args.output_prefix)

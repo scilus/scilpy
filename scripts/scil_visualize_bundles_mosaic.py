@@ -175,7 +175,8 @@ def main():
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
-    assert_inputs_exist(parser, args.in_bundles + [args.in_volume])
+    assert_inputs_exist(parser, args.in_bundles + [args.in_volume],
+                        args.reference)
     assert_outputs_exist(parser, args, args.out_image)
     assert_headers_compatible(parser, args.in_bundles + [args.in_volume],
                               reference=args.reference)

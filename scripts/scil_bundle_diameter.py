@@ -213,7 +213,8 @@ def main():
     tmp = args.in_bundles + args.in_labels
     args.in_labels = args.in_bundles[(len(tmp) // 2):] + args.in_labels
     args.in_bundles = args.in_bundles[0:len(tmp) // 2]
-    assert_inputs_exist(parser, args.in_bundles+args.in_labels)
+    assert_inputs_exist(parser, args.in_bundles + args.in_labels,
+                        args.reference)
     assert_output_dirs_exist_and_empty(parser, args, [],
                                        optional=args.save_rendering)
 

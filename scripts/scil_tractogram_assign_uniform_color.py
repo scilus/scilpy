@@ -70,7 +70,7 @@ def main():
     if len(args.in_tractograms) > 1 and args.out_tractogram:
         parser.error('Using multiple inputs, use --out_suffix.')
 
-    assert_inputs_exist(parser, args.in_tractograms)
+    assert_inputs_exist(parser, args.in_tractograms, args.reference)
 
     if args.out_suffix:
         if args.out_tractogram:

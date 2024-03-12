@@ -159,7 +159,7 @@ def main():
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
-    assert_inputs_exist(parser, args.in_bundles)
+    assert_inputs_exist(parser, args.in_bundles, args.reference)
     assert_outputs_exist(parser, args, args.out_json)
 
     if (not args.streamlines_measures) and (not args.voxels_measures):

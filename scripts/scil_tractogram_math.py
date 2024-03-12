@@ -113,7 +113,7 @@ def main():
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
-    assert_inputs_exist(parser, args.in_tractograms)
+    assert_inputs_exist(parser, args.in_tractograms, args.reference)
     assert_outputs_exist(parser, args, args.out_tractogram,
                          optional=args.save_indices)
 

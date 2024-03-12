@@ -81,7 +81,7 @@ def main():
 
     assert_inputs_exist(parser, [args.in_lesion],
                         optional=[args.bundle, args.bundle_mask,
-                                  args.bundle_labels_map])
+                                  args.bundle_labels_map, args.reference])
     assert_outputs_exist(parser, args, args.out_json,
                          optional=[args.out_lesion_stats,
                                    args.out_streamlines_stats])

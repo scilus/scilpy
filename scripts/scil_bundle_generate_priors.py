@@ -78,8 +78,8 @@ def main():
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     required = [args.in_bundle, args.in_fodf, args.in_mask]
-    assert_inputs_exist(parser, required)
-    assert_headers_compatible(parser, required)
+    assert_inputs_exist(parser, required, args.reference)
+    assert_headers_compatible(parser, required, reference=args.reference)
 
     out_efod = os.path.join(args.out_dir,
                             '{0}efod.nii.gz'.format(args.out_prefix))

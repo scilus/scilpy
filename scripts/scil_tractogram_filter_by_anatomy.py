@@ -277,7 +277,7 @@ def main():
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     assert_inputs_exist(parser, [args.in_tractogram, args.in_wmparc],
-                        args.csf_bin)
+                        [args.csf_bin, args.reference])
     assert_output_dirs_exist_and_empty(parser, args, args.out_path,
                                        create_dir=True)
     assert_headers_compatible(parser, [args.in_tractogram, args.in_wmparc],

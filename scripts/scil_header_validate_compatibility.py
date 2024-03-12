@@ -38,7 +38,7 @@ def main():
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
-    assert_inputs_exist(parser, args.in_files)
+    assert_inputs_exist(parser, args.in_files, args.reference)
     assert_headers_compatible(parser, args.in_files,
                               verbose_all_compatible=True,
                               reference=args.reference)

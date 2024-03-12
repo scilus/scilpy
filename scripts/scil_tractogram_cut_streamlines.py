@@ -73,7 +73,8 @@ def main():
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
-    assert_inputs_exist(parser, [args.in_tractogram, args.in_mask])
+    assert_inputs_exist(parser, [args.in_tractogram, args.in_mask],
+                        args.reference)
     assert_outputs_exist(parser, args, args.out_tractogram)
     assert_headers_compatible(parser, [args.in_tractogram, args.in_mask],
                               reference=args.reference)

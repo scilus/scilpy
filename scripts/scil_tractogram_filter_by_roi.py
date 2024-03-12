@@ -242,7 +242,7 @@ def main():
 
     # Todo. Prepare now the names of other files (ex, ROI) and verify if
     #  exist and compatible.
-    assert_inputs_exist(parser, args.in_tractogram)
+    assert_inputs_exist(parser, args.in_tractogram, args.reference)
     assert_outputs_exist(parser, args, args.out_tractogram, args.save_rejected)
 
     if overwrite_distance:

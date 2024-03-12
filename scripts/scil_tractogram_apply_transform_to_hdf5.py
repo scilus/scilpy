@@ -71,7 +71,8 @@ def main():
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     assert_inputs_exist(parser, [args.in_hdf5, args.in_target_file,
-                                 args.in_transfo], args.in_deformation)
+                                 args.in_transfo],
+                        [args.in_deformation, args.reference])
     assert_outputs_exist(parser, args, args.out_hdf5)
 
     # HDF5 will not overwrite the file

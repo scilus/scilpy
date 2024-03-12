@@ -63,7 +63,8 @@ def main():
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
-    assert_inputs_exist(parser, [args.in_bundle, args.in_fodf])
+    assert_inputs_exist(parser, [args.in_bundle, args.in_fodf],
+                        args.reference)
     assert_outputs_exist(parser, args, [args.afd_mean_map])
 
     sft = load_tractogram_with_reference(parser, args, args.in_bundle)
