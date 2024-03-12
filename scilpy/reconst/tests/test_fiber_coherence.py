@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 
-from scilpy.reconst.fiber_coherence import (compute_fiber_coherence_fliptable,
+from scilpy.reconst.fiber_coherence import (compute_coherence_table_for_transforms,
                                             compute_fiber_coherence)
 
 
@@ -10,7 +10,8 @@ def test_compute_fiber_coherence_fliptable():
     # See below for the real tests.
     directions = np.zeros((3, 3, 5, 3), dtype=float)
     fa = np.zeros((3, 3, 5), dtype=float)
-    coherence, transforms = compute_fiber_coherence_fliptable(directions, fa)
+    coherence, transforms = compute_coherence_table_for_transforms(
+        directions, fa)
     assert len(coherence) == 24
     assert len(transforms) == 24
 

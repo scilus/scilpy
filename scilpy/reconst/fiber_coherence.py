@@ -9,12 +9,12 @@ ANGLE_TH = np.pi / 6.
 # directions to the 26 neighbors.
 # Preparing once rather than in compute_fiber_coherence, possibly called many
 # times.
-all_d = np.indices((3, 3, 3))
-all_d = all_d.T.reshape((27, 3)) - 1
-all_d = np.delete(all_d, 13, axis=0)
+ALL_NEIGHBORS = np.indices((3, 3, 3))
+ALL_NEIGHBORS = ALL_NEIGHBORS.T.reshape((27, 3)) - 1
+ALL_NEIGHBORS = np.delete(ALL_NEIGHBORS, 13, axis=0)
 
 
-def compute_fiber_coherence_fliptable(directions, values):
+def compute_coherence_table_for_transforms(directions, values):
     """
     Compute fiber coherence indexes for all possible axes permutations/flips
     (ex, originating from a flip in the gradient table).
@@ -41,7 +41,7 @@ def compute_fiber_coherence_fliptable(directions, values):
     """
     # Generate transforms for 24 possible permutation/flips of
     # gradient directions. (Reminder. We want to verify if there was possibly
-    # a flip in the gradient table).
+    # an error in the gradient table).
     permutations = list(itertools.permutations([0, 1, 2]))
     transforms = np.zeros((len(permutations)*NB_FLIPS, 3, 3))
     for i in range(len(permutations)):
@@ -81,7 +81,7 @@ def compute_fiber_coherence(peaks, values):
     norm_peaks[norms > 0] = peaks[norms > 0] / norms[norms > 0][..., None]
 
     coherence = 0.0
-    for di in all_d:
+    for di in ALL_NEIGHBORS:
         tx, ty, tz = di.astype(int)
         slice_x = slice(1 + tx, peaks.shape[0] - 1 + tx)
         slice_y = slice(1 + ty, peaks.shape[1] - 1 + ty)
