@@ -4,6 +4,8 @@
 """
 Local streamline HARDI tractography including Particle Filtering tracking.
 
+WARNING: This script DOES NOT support asymetric FODF input (aFODF).
+
 The tracking is done inside partial volume estimation maps and uses the
 particle filtering tractography (PFT) algorithm. See
 scil_tracking_pft_maps.py to generate PFT required maps.

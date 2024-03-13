@@ -140,7 +140,7 @@ def main():
     gtab = gradient_table(bvals, bvecs, b0_threshold=args.b0_threshold)
 
     sphere = get_sphere('symmetric724')
-    sh_basis, _ = parse_sh_basis_arg(args)
+    sh_basis, is_legacy = parse_sh_basis_arg(args)
 
     mask = None
     if args.mask:
@@ -151,13 +151,12 @@ def main():
             raise ValueError('Mask shape does not match data shape.')
 
     if args.use_qball:
-        model = QballModel(gtab, sh_order=args.sh_order,
+        model = QballModel(gtab, sh_order_max=args.sh_order,
                            smooth=DEFAULT_SMOOTH)
     else:
-        model = CsaOdfModel(gtab, sh_order=args.sh_order,
+        model = CsaOdfModel(gtab, sh_order_max=args.sh_order,
                             smooth=DEFAULT_SMOOTH)
 
-    # ToDo: Once Dipy adds the legacy option to peaks_from_model, put is_legacy
     odfpeaks = peaks_from_model(model=model,
                                 data=data,
                                 sphere=sphere,
@@ -167,8 +166,9 @@ def main():
                                 return_odf=False,
                                 normalize_peaks=True,
                                 return_sh=True,
-                                sh_order=int(args.sh_order),
+                                sh_order_max=int(args.sh_order),
                                 sh_basis_type=sh_basis,
+                                legacy=is_legacy,
                                 npeaks=5,
                                 parallel=parallel,
                                 num_processes=nbr_processes)

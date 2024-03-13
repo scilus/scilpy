@@ -179,7 +179,7 @@ def main():
     # Computing msmt-CSD
     msmt_model = MultiShellDeconvModel(gtab, msmt_response,
                                        reg_sphere=reg_sphere,
-                                       sh_order=args.sh_order)
+                                       sh_order_max=args.sh_order)
 
     # Computing msmt-CSD fit
     msmt_fit = fit_from_model(msmt_model, data,

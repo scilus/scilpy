@@ -109,13 +109,13 @@ def angle_aware_bilateral_filtering_gpu(in_sh, sh_order=8,
     h_weights = s_weights[..., None] * a_weights
     h_weights /= np.sum(h_weights, axis=(0, 1, 2))
 
-    sh_to_sf_mat = sh_to_sf_matrix(sphere, sh_order=sh_order,
+    sh_to_sf_mat = sh_to_sf_matrix(sphere, sh_order_max=sh_order,
                                    basis_type=sh_basis,
                                    full_basis=in_full_basis,
                                    legacy=is_legacy,
                                    return_inv=False)
 
-    _, sf_to_sh_mat = sh_to_sf_matrix(sphere, sh_order=sh_order,
+    _, sf_to_sh_mat = sh_to_sf_matrix(sphere, sh_order_max=sh_order,
                                       basis_type=sh_basis,
                                       full_basis=True,
                                       legacy=is_legacy,
@@ -206,7 +206,7 @@ def angle_aware_bilateral_filtering_cpu(in_sh, sh_order=8,
     weights /= np.sum(weights, axis=(0, 1, 2))
 
     nb_sf = len(sphere.vertices)
-    B = sh_to_sf_matrix(sphere, sh_order=sh_order, basis_type=sh_basis,
+    B = sh_to_sf_matrix(sphere, sh_order_max=sh_order, basis_type=sh_basis,
                         return_inv=False, full_basis=in_full_basis,
                         legacy=is_legacy)
 
@@ -222,7 +222,7 @@ def angle_aware_bilateral_filtering_cpu(in_sh, sh_order=8,
                                                   sigma_range)
 
     # Convert back to SH coefficients
-    _, B_inv = sh_to_sf_matrix(sphere, sh_order=sh_order, basis_type=sh_basis,
+    _, B_inv = sh_to_sf_matrix(sphere, sh_order_max=sh_order, basis_type=sh_basis,
                                full_basis=True, legacy=is_legacy)
     out_sh = np.array([np.dot(i, B_inv) for i in mean_sf], dtype=in_sh.dtype)
     # By default, return only asymmetric SH
@@ -426,13 +426,13 @@ def cosine_filtering(in_sh, sh_order=8, sh_basis='descoteaux07',
 
     nb_sf = len(sphere.vertices)
     mean_sf = np.zeros(np.append(in_sh.shape[:-1], nb_sf))
-    B = sh_to_sf_matrix(sphere, sh_order=sh_order, basis_type=sh_basis,
+    B = sh_to_sf_matrix(sphere, sh_order_max=sh_order, basis_type=sh_basis,
                         return_inv=False, full_basis=in_full_basis,
                         legacy=is_legacy)
 
     # We want a B matrix to project on an inverse sphere to have the sf on
     # the opposite hemisphere for a given vertice
-    neg_B = sh_to_sf_matrix(Sphere(xyz=-sphere.vertices), sh_order=sh_order,
+    neg_B = sh_to_sf_matrix(Sphere(xyz=-sphere.vertices), sh_order_max=sh_order,
                             basis_type=sh_basis, return_inv=False,
                             full_basis=in_full_basis, legacy=is_legacy)
 
@@ -450,7 +450,7 @@ def cosine_filtering(in_sh, sh_order=8, sh_basis='descoteaux07',
         mean_sf[..., sf_i] += correlate(current_sf, w_filter, mode="constant")
 
     # Convert back to SH coefficients
-    _, B_inv = sh_to_sf_matrix(sphere, sh_order=sh_order,
+    _, B_inv = sh_to_sf_matrix(sphere, sh_order_max=sh_order,
                                basis_type=sh_basis,
                                full_basis=True,
                                legacy=is_legacy)

@@ -268,7 +268,7 @@ class TrackOrientationDensityImaging(object):
                diffusion MRI: Non-negativity constrained super-resolved
                spherical deconvolution. NeuroImage. 2007;35(4):1459-1472.
         """
-        return sf_to_sh(self.todi, self.sphere, sh_order=sh_order,
+        return sf_to_sh(self.todi, self.sphere, sh_order_max=sh_order,
                         basis_type=sh_basis, full_basis=full_basis,
                         smooth=smooth, legacy=is_legacy)
 
