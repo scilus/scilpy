@@ -8,7 +8,7 @@ from scipy.ndimage import correlate
 from scilpy.gpuparallel.opencl_utils import have_opencl, CLKernel, CLManager
 
 
-def angle_aware_bilateral_filtering(in_sh, sh_order=8,
+def angle_aware_bilateral_filtering(in_sh, sh_order_max=8,
                                     sh_basis='descoteaux07',
                                     in_full_basis=False,
                                     is_legacy=True,
@@ -22,7 +22,7 @@ def angle_aware_bilateral_filtering(in_sh, sh_order=8,
     ----------
     in_sh: ndarray (x, y, z, ncoeffs)
         Input SH volume.
-    sh_order: int, optional
+    sh_order_max: int, optional
         Maximum SH order of input volume.
     sh_basis: str, optional
         Name of SH basis used.
@@ -47,7 +47,7 @@ def angle_aware_bilateral_filtering(in_sh, sh_order=8,
         Output SH coefficient array in full SH basis.
     """
     if use_gpu and have_opencl:
-        return angle_aware_bilateral_filtering_gpu(in_sh, sh_order,
+        return angle_aware_bilateral_filtering_gpu(in_sh, sh_order_max,
                                                    sh_basis, in_full_basis,
                                                    is_legacy,
                                                    sphere_str, sigma_spatial,
@@ -56,14 +56,14 @@ def angle_aware_bilateral_filtering(in_sh, sh_order=8,
         raise RuntimeError('Package pyopencl not found. Install pyopencl'
                            ' or set use_gpu to False.')
     else:
-        return angle_aware_bilateral_filtering_cpu(in_sh, sh_order,
+        return angle_aware_bilateral_filtering_cpu(in_sh, sh_order_max,
                                                    sh_basis, in_full_basis,
                                                    is_legacy,
                                                    sphere_str, sigma_spatial,
                                                    sigma_angular, sigma_range)
 
 
-def angle_aware_bilateral_filtering_gpu(in_sh, sh_order=8,
+def angle_aware_bilateral_filtering_gpu(in_sh, sh_order_max=8,
                                         sh_basis='descoteaux07',
                                         in_full_basis=False,
                                         is_legacy=True,
@@ -78,7 +78,7 @@ def angle_aware_bilateral_filtering_gpu(in_sh, sh_order=8,
     ----------
     in_sh: ndarray (x, y, z, ncoeffs)
         Input SH volume.
-    sh_order: int, optional
+    sh_order_max: int, optional
         Maximum SH order of input volume.
     sh_basis: str, optional
         Name of SH basis used.
@@ -109,13 +109,13 @@ def angle_aware_bilateral_filtering_gpu(in_sh, sh_order=8,
     h_weights = s_weights[..., None] * a_weights
     h_weights /= np.sum(h_weights, axis=(0, 1, 2))
 
-    sh_to_sf_mat = sh_to_sf_matrix(sphere, sh_order=sh_order,
+    sh_to_sf_mat = sh_to_sf_matrix(sphere, sh_order_max=sh_order_max,
                                    basis_type=sh_basis,
                                    full_basis=in_full_basis,
                                    legacy=is_legacy,
                                    return_inv=False)
 
-    _, sf_to_sh_mat = sh_to_sf_matrix(sphere, sh_order=sh_order,
+    _, sf_to_sh_mat = sh_to_sf_matrix(sphere, sh_order_max=sh_order_max,
                                       basis_type=sh_basis,
                                       full_basis=True,
                                       legacy=is_legacy,
@@ -157,7 +157,7 @@ def angle_aware_bilateral_filtering_gpu(in_sh, sh_order=8,
     return outputs[0]
 
 
-def angle_aware_bilateral_filtering_cpu(in_sh, sh_order=8,
+def angle_aware_bilateral_filtering_cpu(in_sh, sh_order_max=8,
                                         sh_basis='descoteaux07',
                                         in_full_basis=False,
                                         is_legacy=True,
@@ -173,7 +173,7 @@ def angle_aware_bilateral_filtering_cpu(in_sh, sh_order=8,
     ----------
     in_sh: ndarray (x, y, z, ncoeffs)
         Input SH volume.
-    sh_order: int, optional
+    sh_order_max: int, optional
         Maximum SH order of input volume.
     sh_basis: str, optional
         Name of SH basis used.
@@ -206,7 +206,7 @@ def angle_aware_bilateral_filtering_cpu(in_sh, sh_order=8,
     weights /= np.sum(weights, axis=(0, 1, 2))
 
     nb_sf = len(sphere.vertices)
-    B = sh_to_sf_matrix(sphere, sh_order=sh_order, basis_type=sh_basis,
+    B = sh_to_sf_matrix(sphere, sh_order_max=sh_order_max, basis_type=sh_basis,
                         return_inv=False, full_basis=in_full_basis,
                         legacy=is_legacy)
 
@@ -222,7 +222,7 @@ def angle_aware_bilateral_filtering_cpu(in_sh, sh_order=8,
                                                   sigma_range)
 
     # Convert back to SH coefficients
-    _, B_inv = sh_to_sf_matrix(sphere, sh_order=sh_order, basis_type=sh_basis,
+    _, B_inv = sh_to_sf_matrix(sphere, sh_order_max=sh_order_max, basis_type=sh_basis,
                                full_basis=True, legacy=is_legacy)
     out_sh = np.array([np.dot(i, B_inv) for i in mean_sf], dtype=in_sh.dtype)
     # By default, return only asymmetric SH
@@ -384,7 +384,7 @@ def _correlate_spatial(image_u, h_filter, sigma_range):
     return out_im
 
 
-def cosine_filtering(in_sh, sh_order=8, sh_basis='descoteaux07',
+def cosine_filtering(in_sh, sh_order_max=8, sh_basis='descoteaux07',
                      in_full_basis=False, is_legacy=True, dot_sharpness=1.0,
                      sphere_str='repulsion724', sigma=1.0):
     """
@@ -397,7 +397,7 @@ def cosine_filtering(in_sh, sh_order=8, sh_basis='descoteaux07',
     ----------
     in_sh: ndarray (x, y, z, n_coeffs)
         Input SH coefficients array
-    sh_order: int, optional
+    sh_order_max: int, optional
         Maximum order of the SH series.
     sh_basis: {'descoteaux07', 'tournier07'}, optional
         SH basis of the input signal.
@@ -426,13 +426,13 @@ def cosine_filtering(in_sh, sh_order=8, sh_basis='descoteaux07',
 
     nb_sf = len(sphere.vertices)
     mean_sf = np.zeros(np.append(in_sh.shape[:-1], nb_sf))
-    B = sh_to_sf_matrix(sphere, sh_order=sh_order, basis_type=sh_basis,
+    B = sh_to_sf_matrix(sphere, sh_order_max=sh_order_max, basis_type=sh_basis,
                         return_inv=False, full_basis=in_full_basis,
                         legacy=is_legacy)
 
     # We want a B matrix to project on an inverse sphere to have the sf on
     # the opposite hemisphere for a given vertice
-    neg_B = sh_to_sf_matrix(Sphere(xyz=-sphere.vertices), sh_order=sh_order,
+    neg_B = sh_to_sf_matrix(Sphere(xyz=-sphere.vertices), sh_order_max=sh_order_max,
                             basis_type=sh_basis, return_inv=False,
                             full_basis=in_full_basis, legacy=is_legacy)
 
@@ -450,7 +450,7 @@ def cosine_filtering(in_sh, sh_order=8, sh_basis='descoteaux07',
         mean_sf[..., sf_i] += correlate(current_sf, w_filter, mode="constant")
 
     # Convert back to SH coefficients
-    _, B_inv = sh_to_sf_matrix(sphere, sh_order=sh_order,
+    _, B_inv = sh_to_sf_matrix(sphere, sh_order_max=sh_order_max,
                                basis_type=sh_basis,
                                full_basis=True,
                                legacy=is_legacy)
