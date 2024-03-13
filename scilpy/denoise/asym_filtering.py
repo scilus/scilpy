@@ -384,7 +384,7 @@ def _correlate_spatial(image_u, h_filter, sigma_range):
     return out_im
 
 
-def cosine_filtering(in_sh, z=8, sh_basis='descoteaux07',
+def cosine_filtering(in_sh, sh_order=8, sh_basis='descoteaux07',
                      in_full_basis=False, is_legacy=True, dot_sharpness=1.0,
                      sphere_str='repulsion724', sigma=1.0):
     """
