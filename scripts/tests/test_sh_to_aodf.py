@@ -49,7 +49,9 @@ def test_asym_basis_output_gpu(script_runner, in_fodf, expected_fodf):
         # the python implementation is float64 while gpu is float32)
         ret_fodf = nib.load("out_fodf1.nii.gz")
         test_fodf = nib.load(expected_fodf)
-        assert np.allclose(ret_fodf.get_fdata(), test_fodf.get_fdata(), atol=1e-6)
+        assert np.allclose(ret_fodf.get_fdata(),
+                           test_fodf.get_fdata(),
+                           atol=1e-6)
     else:
         # if we don't have opencl the script should have raised an error
         assert not ret.success
