@@ -157,7 +157,6 @@ def main():
         model = CsaOdfModel(gtab, sh_order_max=args.sh_order,
                             smooth=DEFAULT_SMOOTH)
 
-    # ToDo: Once Dipy adds the legacy option to peaks_from_model, put is_legacy
     odfpeaks = peaks_from_model(model=model,
                                 data=data,
                                 sphere=sphere,
