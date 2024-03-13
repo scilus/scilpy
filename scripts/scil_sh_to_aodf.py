@@ -9,9 +9,10 @@ Two methods are available:
     * Cosine filtering [2] is a simpler implementation using cosine distance
       for assigning weights to neighbours.
 
-Unified filtering can be accelerated using OpenCL. Make sure you have pyopencl
-installed before using this option. By default, the OpenCL program will run on
-the cpu. To use a gpu instead, specify the option --device gpu.
+Unified filtering can be accelerated using OpenCL with the option --use_opencl.
+Make sure you have pyopencl installed before using this option. By default, the
+OpenCL program will run on the cpu. To use a gpu instead, also specify the
+option --device gpu.
 """
 
 import argparse
@@ -61,10 +62,10 @@ def _build_arg_parser():
 
     p.add_argument('--method', default='unified',
                    choices=['unified', 'cosine'],
-                   help='Method for estimating asymmetric ODFs '
-                        '[%(default)s].\nOne of:\n'
-                        '    \'unified\': Unified filtering [1].\n'
-                        '    \'cosine\' : Cosine-based filtering [2].')
+                   help="Method for estimating asymmetric ODFs "
+                        "[%(default)s].\nOne of:\n"
+                        "    'unified': Unified filtering [1].\n"
+                        "    'cosine' : Cosine-based filtering [2].")
 
     shared_group = p.add_argument_group('Shared filter arguments')
     shared_group.add_argument('--sigma_spatial', default=1.0, type=float,
@@ -80,7 +81,7 @@ def _build_arg_parser():
                                     '*relative to SF range of image*. '
                                     '[%(default)s]')
     unified_group.add_argument('--sigma_angle', type=float,
-                               help='Standard deviation for angular filter '
+                               help='Standard deviation for angular filter\n'
                                     '(disabled by default).')
     unified_group.add_argument('--disable_spatial', action='store_true',
                                help='Disable spatial filtering.')
@@ -118,10 +119,14 @@ def main():
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     if args.device == 'gpu' and not args.use_opencl:
-        parser.error('Option --use_opencl is required for device \'gpu\'.')
+        logging.warning("Device 'gpu' chosen but --use_opencl not specified. "
+                        "Proceeding with use_opencl=True.")
+        # force use_opencl if option gpu is chosen
+        args.use_opencl = True
 
     if args.use_opencl and args.method == 'cosine':
-        parser.error('Option --use_opencl is not supported for cosine filtering.')
+        parser.error('Option --use_opencl is not supported'
+                     ' for cosine filtering.')
 
     outputs = [args.out_sh]
     if args.out_sym:

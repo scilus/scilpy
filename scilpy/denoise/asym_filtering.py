@@ -80,9 +80,18 @@ def unified_filtering(sh_data, sh_order, sh_basis, is_legacy, full_basis,
 
     sphere = get_sphere(sphere_str)
 
-    # calculate half-width from sigma_spatial if supplied
     if sigma_spatial is not None:
+        if sigma_spatial <= 0.0:
+            raise ValueError('sigma_spatial cannot be <= 0.')
+        # calculate half-width from sigma_spatial
         half_width = int(round(3*sigma_spatial))
+    if sigma_align is not None:
+        if sigma_align <= 0.0:
+            raise ValueError('sigma_align cannot be <= 0.')
+    if sigma_angle is not None:
+        if sigma_angle <= 0.0:
+            raise ValueError('sigma_align cannot be <= 0.')
+
     # overwrite half-width if win_hwidth is supplied
     if win_hwidth is not None:
         half_width = win_hwidth
@@ -104,6 +113,8 @@ def unified_filtering(sh_data, sh_order, sh_basis, is_legacy, full_basis,
     # if rel_sigma_range is supplied
     sigma_range = None
     if rel_sigma_range is not None:
+        if rel_sigma_range <= 0.0:
+            raise ValueError('sigma_rangel cannot be <= 0.')
         sigma_range = rel_sigma_range * _get_sf_range(sh_data, B)
 
     if use_opencl:
