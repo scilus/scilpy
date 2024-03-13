@@ -8,8 +8,8 @@ the generalized fractional anisotropy (GFA) and the peaks of the model.
 By default, will output all possible files, using default names. Specific names
 can be specified using the file flags specified in the "File flags" section.
 
-If --not_all is set, only the files specified explicitly by the flags
-will be output.
+If --not_all is set, only the files specified explicitly by the flags will be
+output.
 
 See [Descoteaux et al MRM 2007, Aganj et al MRM 2009] for details and
 [Cote et al MEDIA 2013] for quantitative comparisons.
@@ -69,21 +69,21 @@ def _build_arg_parser():
                         'following flags.')
 
     g = p.add_argument_group(title='File flags')
-    g.add_argument('--gfa', default='',
+    g.add_argument('--gfa',
                    help='Output filename for the generalized fractional '
                         'anisotropy [gfa.nii.gz].')
-    g.add_argument('--peaks', default='',
+    g.add_argument('--peaks',
                    help='Output filename for the extracted peaks '
                         '[peaks.nii.gz].')
-    g.add_argument('--peak_indices', default='',
+    g.add_argument('--peak_indices',
                    help='Output filename for the generated peaks '
                         'indices on the sphere [peaks_indices.nii.gz].')
-    g.add_argument('--sh', default='',
+    g.add_argument('--sh',
                    help='Output filename for the spherical harmonics '
                         'coefficients [sh.nii.gz].')
-    g.add_argument('--nufo', default='',
+    g.add_argument('--nufo',
                    help='Output filename for the NUFO map [nufo.nii.gz].')
-    g.add_argument('--a_power', default='',
+    g.add_argument('--a_power',
                    help='Output filename for the anisotropic power map'
                         '[anisotropic_power.nii.gz].')
 
@@ -112,14 +112,13 @@ def main():
     arglist = [args.gfa, args.peaks, args.peak_indices, args.sh, args.nufo,
                args.a_power]
     if args.not_all and not any(arglist):
-        parser.error('When using --not_all, you need to specify at least ' +
-                     'one file to output.')
+        parser.error('When using --not_all, you need to specify at least one '
+                     'file to output.')
 
     assert_inputs_exist(parser, [args.in_dwi, args.in_bval, args.in_bvec])
-    assert_outputs_exist(parser, args, arglist)
-    validate_nbr_processes(parser, args)
+    assert_outputs_exist(parser, args, [], optional=arglist)
 
-    nbr_processes = args.nbr_processes
+    nbr_processes = validate_nbr_processes(parser, args)
     parallel = nbr_processes > 1
 
     # Load data
@@ -129,7 +128,8 @@ def main():
     bvals, bvecs = read_bvals_bvecs(args.in_bval, args.in_bvec)
 
     if not is_normalized_bvecs(bvecs):
-        logging.warning('Your b-vectors do not seem normalized...')
+        logging.warning('Your b-vectors do not seem normalized... Normalizing '
+                        'now.')
         bvecs = normalize_bvecs(bvecs)
 
     # Usage of gtab.b0s_mask in dipy's models is not very well documented, but
@@ -140,7 +140,7 @@ def main():
     gtab = gradient_table(bvals, bvecs, b0_threshold=args.b0_threshold)
 
     sphere = get_sphere('symmetric724')
-    sh_basis, _ = parse_sh_basis_arg(args)
+    sh_basis, is_legacy = parse_sh_basis_arg(args)
 
     mask = None
     if args.mask:
@@ -151,13 +151,12 @@ def main():
             raise ValueError('Mask shape does not match data shape.')
 
     if args.use_qball:
-        model = QballModel(gtab, sh_order=args.sh_order,
+        model = QballModel(gtab, sh_order_max=args.sh_order,
                            smooth=DEFAULT_SMOOTH)
     else:
-        model = CsaOdfModel(gtab, sh_order=args.sh_order,
+        model = CsaOdfModel(gtab, sh_order_max=args.sh_order,
                             smooth=DEFAULT_SMOOTH)
 
-    # ToDo: Once Dipy adds the legacy option to peaks_from_model, put is_legacy
     odfpeaks = peaks_from_model(model=model,
                                 data=data,
                                 sphere=sphere,
@@ -167,8 +166,9 @@ def main():
                                 return_odf=False,
                                 normalize_peaks=True,
                                 return_sh=True,
-                                sh_order=int(args.sh_order),
+                                sh_order_max=int(args.sh_order),
                                 sh_basis_type=sh_basis,
+                                legacy=is_legacy,
                                 npeaks=5,
                                 parallel=parallel,
                                 num_processes=nbr_processes)

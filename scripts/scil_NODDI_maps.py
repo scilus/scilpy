@@ -26,8 +26,11 @@ from scilpy.io.utils import (add_overwrite_arg,
                              add_verbose_arg,
                              assert_inputs_exist,
                              assert_output_dirs_exist_and_empty,
-                             redirect_stdout_c)
-from scilpy.gradients.bvec_bval_tools import identify_shells
+                             redirect_stdout_c, add_tolerance_arg,
+                             add_skip_b0_check_arg)
+from scilpy.gradients.bvec_bval_tools import (check_b0_threshold,
+                                              identify_shells)
+
 
 EPILOG = """
 Reference:
@@ -41,7 +44,7 @@ Reference:
 def _build_arg_parser():
     p = argparse.ArgumentParser(
         description=__doc__, epilog=EPILOG,
-        formatter_class=argparse.RawDescriptionHelpFormatter)
+        formatter_class=argparse.RawTextHelpFormatter)
 
     p.add_argument('in_dwi',
                    help='DWI file acquired with a NODDI compatible protocol '
@@ -56,10 +59,9 @@ def _build_arg_parser():
     p.add_argument('--out_dir', default="results",
                    help='Output directory for the NODDI results. '
                         '[%(default)s]')
-    p.add_argument('--b_thr', type=int, default=40,
-                   help='Limit value to consider that a b-value is on an '
-                        'existing shell. Above this limit, the b-value is '
-                        'placed on a new shell. This includes b0s values.')
+    add_tolerance_arg(p)
+    add_skip_b0_check_arg(p, will_overwrite_with_min=False,
+                          b0_tol_name='--tolerance')
 
     g1 = p.add_argument_group(title='Model options')
     g1.add_argument('--para_diff', type=float, default=1.7e-3,
@@ -101,37 +103,47 @@ def main():
         logging.getLogger().setLevel(logging.getLevelName(args.verbose))
         redirected_stdout = redirect_stdout(sys.stdout)
 
+    # Verifications
     if args.compute_only and not args.save_kernels:
         parser.error('--compute_only must be used with --save_kernels.')
 
     assert_inputs_exist(parser, [args.in_dwi, args.in_bval, args.in_bvec],
                         args.mask)
 
-    assert_output_dirs_exist_and_empty(parser, args,
-                                       args.out_dir,
+    assert_output_dirs_exist_and_empty(parser, args, args.out_dir,
                                        optional=args.save_kernels)
 
-    # Generage a scheme file from the bvals and bvecs files
+    # Generate a scheme file from the bvals and bvecs files
+    bvals, _ = read_bvals_bvecs(args.in_bval, args.in_bvec)
+    _ = check_b0_threshold(bvals.min(), b0_thr=args.tolerance,
+                           skip_b0_check=args.skip_b0_check)
+    shells_centroids, indices_shells = identify_shells(bvals, args.tolerance,
+                                                       round_centroids=True)
+
+    nb_shells = len(shells_centroids)
+    if nb_shells <= 1:
+        raise ValueError("Amico's NODDI works with data with more than one "
+                         "shell, but you seem to have single-shell data (we "
+                         "found shells {}). Change tolerance if necessary."
+                         .format(np.sort(shells_centroids)))
+
+    logging.info('Will compute NODDI with AMICO on {} shells at found at {}.'
+                 .format(len(shells_centroids), np.sort(shells_centroids)))
+
+    # Save the resulting bvals to a temporary file
     tmp_dir = tempfile.TemporaryDirectory()
     tmp_scheme_filename = os.path.join(tmp_dir.name, 'gradients.b')
     tmp_bval_filename = os.path.join(tmp_dir.name, 'bval')
-    bvals, _ = read_bvals_bvecs(args.in_bval, args.in_bvec)
-    shells_centroids, indices_shells = identify_shells(bvals,
-                                                       args.b_thr,
-                                                       round_centroids=True)
     np.savetxt(tmp_bval_filename, shells_centroids[indices_shells],
                newline=' ', fmt='%i')
     fsl2mrtrix(tmp_bval_filename, args.in_bvec, tmp_scheme_filename)
-    logging.info('Compute NODDI with AMICO on {} shells at found '
-                 'at {}.'.format(len(shells_centroids), shells_centroids))
 
     with redirected_stdout:
         # Load the data
         amico.core.setup()
         ae = amico.Evaluation('.', '.')
-        ae.load_data(args.in_dwi,
-                     tmp_scheme_filename,
-                     mask_filename=args.mask)
+        ae.load_data(args.in_dwi, tmp_scheme_filename, mask_filename=args.mask)
+
         # Compute the response functions
         ae.set_model("NODDI")
 
@@ -139,18 +151,18 @@ def main():
         intra_orient_distr = np.hstack((np.array([0.03, 0.06]),
                                         np.linspace(0.09, 0.99, 10)))
 
-        ae.model.set(args.para_diff, args.iso_diff,
-                     intra_vol_frac, intra_orient_distr,
-                     False)
+        ae.model.set(dPar=args.para_diff, dIso=args.iso_diff,
+                     IC_VFs=intra_vol_frac, IC_ODs=intra_orient_distr,
+                     isExvivo=False)
         ae.set_solver(lambda1=args.lambda1, lambda2=args.lambda2)
 
         # The kernels are, by default, set to be in the current directory
         # Depending on the choice, manually change the saving location
         if args.save_kernels:
-            kernels_dir = os.path.join(args.save_kernels)
+            kernels_dir = args.save_kernels
             regenerate_kernels = True
         elif args.load_kernels:
-            kernels_dir = os.path.join(args.load_kernels)
+            kernels_dir = args.load_kernels
             regenerate_kernels = False
         else:
             kernels_dir = os.path.join(tmp_dir.name, 'kernels', ae.model.id)
@@ -166,6 +178,7 @@ def main():
 
         # Model fit
         ae.fit()
+
         # Save the results
         ae.save_results()
 

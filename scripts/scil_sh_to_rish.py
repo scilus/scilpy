@@ -2,12 +2,11 @@
 # -*- coding: utf-8 -*-
 
 """
-Compute the RISH (Rotationally Invariant Spherical Harmonics) features
-of an SH signal [1].
+Compute the RISH (Rotationally Invariant Spherical Harmonics) features of an SH
+signal [1].
 
-Each RISH feature map is the total energy of its
-associated order. Mathematically, it is the sum of the squared SH
-coefficients of the SH order.
+Each RISH feature map is the total energy of its associated order.
+Mathematically, it is the sum of the squared SH coefficients of the SH order.
 
 This script supports both symmetrical and asymmetrical SH images as input, of
 any SH order.
@@ -37,9 +36,12 @@ def _build_arg_parser():
     p = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
     p.add_argument('in_sh',
-                   help='Path of the sh image. Must be a symmetric SH file.')
+                   help='Path of the sh image. They can be formatted in any '
+                        'sh basis, but we \nexpect it to be a symmetrical '
+                        'one. Else, provide --full_basis.')
     p.add_argument('out_prefix',
-                   help='Prefix of the output RISH files to save.')
+                   help='Prefix of the output RISH files to save. Suffixes '
+                        'will be \nbased on the sh orders.')
     p.add_argument('--full_basis', action="store_true",
                    help="Input SH image uses a full SH basis (asymmetrical).")
     p.add_argument('--mask',
@@ -81,6 +83,7 @@ def main():
 
     # Save each RISH feature as a separate file
     for i, fname in enumerate(output_fnames):
+        logging.info("Saving {}".format(fname))
         nib.save(nib.Nifti1Image(rish[..., i], sh_img.affine), fname)
 
 

@@ -123,7 +123,7 @@ def main():
     # Computing CSD
     csd_model = ConstrainedSphericalDeconvModel(gtab, (frf, mean_b0_val),
                                                 reg_sphere=reg_sphere,
-                                                sh_order=sh_order)
+                                                sh_order_max=sh_order)
 
     # Computing CSD fit
     csd_fit = fit_from_model(csd_model, data,

@@ -5,20 +5,15 @@ coloredlogs==15.0.*
 cvxpy==1.4.*
 cycler==0.11.*
 Cython==0.29.*, !=0.29.29
-dipy==1.8.*
+dipy==1.9.*
 deepdiff==6.3.0
 dmri-amico==2.0.*
-dmri-commit==2.0.*
+dmri-commit==2.1.*
 docopt==0.6.*
-dvc==3.39.0
-dvc-data==3.7.0
-dvc-http==2.32.0
-dvc-objects==3.0.6
-dvc-render==1.0.0
-dvc-studio-client==0.18.0
-dvc-task==0.3.0
+dvc==3.48.*
+dvc-http==2.32.*
 formulaic==0.3.*
-fury==0.9.*
+fury==0.10.*
 future==0.18.*
 GitPython==3.1.*
 h5py==3.7.*

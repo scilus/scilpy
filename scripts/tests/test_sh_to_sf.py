@@ -62,7 +62,7 @@ def test_execution_no_bval(script_runner):
     # --sphere but no --bval
     ret = script_runner.run('scil_sh_to_sf.py', in_sh,
                             'sf_724.nii.gz', '--in_b0', in_b0,
-                            '--out_bvec', 'sf_724.bvec',
+                            '--out_bvec', 'sf_724.bvec', '--b0_scaling',
                             '--sphere', 'symmetric724', '--dtype', 'float32',
                             '-f')
     assert ret.success

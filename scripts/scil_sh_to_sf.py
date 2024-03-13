@@ -151,7 +151,7 @@ def main():
     # Sample SF from SH
     if args.sphere:
         sphere = get_sphere(args.sphere)
-    elif args.in_bvec:
+    else:  # args.in_bvec is set.
         gtab = gradient_table(bvals, bvecs, b0_threshold=args.b0_threshold)
         # Remove bvecs corresponding to b0 images
         bvecs = bvecs[np.logical_not(gtab.b0s_mask)]
