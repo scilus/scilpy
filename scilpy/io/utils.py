@@ -702,8 +702,7 @@ def assert_roi_radii_format(parser):
     return roi_radii
 
 
-def assert_headers_compatible(parser, required, optional=None,
-                              verbose_all_compatible=False, reference=None):
+def assert_headers_compatible(parser, required, optional=None, reference=None):
     """
     Verifies the compatibility between the first item in list_files
     and the remaining files in list.
@@ -716,8 +715,6 @@ def assert_headers_compatible(parser, required, optional=None,
         List of files to test
     optional: List[str or None]
         List of files. May contain None, they will be discarted.
-    verbose_all_compatible: bool
-        If true will print a message when everything is okay
     reference: str
         Reference for any .tck passed in `list_files`
     """
@@ -754,15 +751,18 @@ def assert_headers_compatible(parser, required, optional=None,
             parser.error('{} does not have a supported extension.'.format(
                 filepath))
 
+    # Verify again that we have more than one header (ex, if not all tck files)
+    if len(headers) <= 1:
+        return
+
     for curr in headers[1:]:
         if not is_header_compatible(headers[0], curr):
-            print('ERROR:\"{}\" and \"{}\" do not have compatible '
-                  'headers.'.format(headers[0], curr))
+            # Not raising error now. Allows to show all errors.
+            logging.error('ERROR:\"{}\" and \"{}\" do not have compatible '
+                          'headers.'.format(headers[0], curr))
             all_valid = False
 
-    if all_valid and verbose_all_compatible:
-        print('All input files have compatible headers.')
-    elif not all_valid:
+    if not all_valid:
         parser.error('Not all input files have compatible headers.')
 
 

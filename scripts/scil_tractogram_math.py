@@ -116,10 +116,8 @@ def main():
     assert_inputs_exist(parser, args.in_tractograms, args.reference)
     assert_outputs_exist(parser, args, args.out_tractogram,
                          optional=args.save_indices)
-
-    assert_headers_compatible(
-        parser, args.in_tractograms, verbose_all_compatible=args.verbose,
-        reference=args.reference)
+    assert_headers_compatible(parser, args.in_tractograms,
+                              reference=args.reference)
 
     if args.operation == 'lazy_concatenate':
         logging.info('Using lazy_concatenate, no spatial or metadata related '

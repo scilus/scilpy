@@ -40,8 +40,10 @@ def main():
 
     assert_inputs_exist(parser, args.in_files, args.reference)
     assert_headers_compatible(parser, args.in_files,
-                              verbose_all_compatible=True,
                               reference=args.reference)
+
+    # If we come here, it means there was no error.
+    print('All input files have compatible headers.')
 
 
 if __name__ == "__main__":
