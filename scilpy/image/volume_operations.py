@@ -152,6 +152,10 @@ def apply_transform(transfo, reference, moving,
     elif moving_data.ndim == 4:
         if isinstance(moving_data[0, 0, 0], np.void):
             raise ValueError('Does not support TrackVis RGB')
+        else:
+            logging.warning('You are applying a transform to a 4D volume. If'
+                            'it is a DWI volume, make sure to rotate your '
+                            'bvecs with scil_gradients_apply_transform.py')
 
         affine_map = AffineMap(np.linalg.inv(transfo),
                                dim[0:3], grid2world,
