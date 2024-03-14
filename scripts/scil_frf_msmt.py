@@ -153,8 +153,7 @@ def main():
                         optional=masks)
     assert_outputs_exist(parser, args, [args.out_wm_frf, args.out_gm_frf,
                                         args.out_csf_frf])
-    assert_headers_compatible(parser, [args.in_bundle, args.in_fodf],
-                              optional=masks)
+    assert_headers_compatible(parser, args.in_dwi, optional=masks)
 
     roi_radii = assert_roi_radii_format(parser)
 
