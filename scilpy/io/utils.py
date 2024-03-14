@@ -734,6 +734,9 @@ def assert_headers_compatible(parser, required, optional=None,
         optional = [f for f in optional if f is not None]
     list_files = required + optional
 
+    if reference is not None:
+        list_files.append(reference)
+
     if len(list_files) <= 1:
         return
 
@@ -744,12 +747,9 @@ def assert_headers_compatible(parser, required, optional=None,
         if in_extension in ['.trk', '.nii', '.nii.gz']:
             headers.append(filepath)
         elif in_extension == '.tck':
-            if reference:
-                headers.append(reference)
-            else:
+            if reference is None:
                 parser.error(
-                    '{} must be provided with a reference.'.format(
-                        filepath))
+                    '{} must be provided with a reference.'.format(filepath))
         else:
             parser.error('{} does not have a supported extension.'.format(
                 filepath))
