@@ -37,7 +37,7 @@ interpreted as axonal density (see Gagnon et al. 2022 for this specific example
 or ref [3] for an introduction to PCA).
 
 EXAMPLE USAGE:
-scil_compute_pca.py input_folder/ output_folder/ --metrics ad fa md rd [...]
+scil_connectivity_compute_pca.py input_folder/ output_folder/ --metrics ad fa md rd [...]
       --list_ids list_ids.txt
 """
 
