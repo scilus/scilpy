@@ -50,7 +50,7 @@ def _build_arg_parser():
                          'the bounding box to crop input file.')
     g1.add_argument('--output_bbox',
                     help='Path of the pickle file where to write the '
-                         'computed bounding box.')
+                         'computed bounding box. (.pickle extension)')
     return p
 
 
