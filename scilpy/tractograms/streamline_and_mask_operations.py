@@ -128,7 +128,8 @@ def cut_outside_of_mask_streamlines(sft, binary_mask, min_len=0):
     new_streamlines = _cut_streamlines_with_masks(
         streamlines, binary_mask, binary_mask)
 
-    new_sft = StatefulTractogram.from_sft(new_streamlines, sft)
+    new_sft = StatefulTractogram.from_sft(
+        new_streamlines, sft, data_per_streamline=sft.data_per_streamline)
     return filter_streamlines_by_length(new_sft, min_length=min_len)
 
 
@@ -166,7 +167,8 @@ def cut_between_mask_two_blobs_streamlines(sft, binary_mask, min_len=0):
     # New endpoints may be generated
     new_streamlines = _cut_streamlines_with_masks(streamlines, roi_data_1,
                                                   roi_data_2)
-    new_sft = StatefulTractogram.from_sft(new_streamlines, sft)
+    new_sft = StatefulTractogram.from_sft(
+        new_streamlines, sft, data_per_streamline=sft.data_per_streamline)
     return filter_streamlines_by_length(new_sft, min_length=min_len)
 
 
