@@ -60,7 +60,7 @@ from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_overwrite_arg, add_skip_b0_check_arg,
                              add_verbose_arg, assert_inputs_exist,
                              assert_outputs_exist, add_tolerance_arg,
-                             assert_headers_compatible, )
+                             assert_headers_compatible)
 from scilpy.gradients.bvec_bval_tools import (check_b0_threshold,
                                               is_normalized_bvecs,
                                               identify_shells,

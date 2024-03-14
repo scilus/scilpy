@@ -14,7 +14,6 @@ from dipy.core.gradients import gradient_table
 from dipy.io.gradients import read_bvals_bvecs
 import nibabel as nib
 import numpy as np
-from dipy.io.utils import is_header_compatible
 
 from scilpy.gradients.bvec_bval_tools import check_b0_threshold
 from scilpy.io.image import get_data_as_mask

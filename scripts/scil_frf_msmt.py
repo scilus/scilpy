@@ -38,7 +38,8 @@ from scilpy.gradients.bvec_bval_tools import check_b0_threshold
 from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_overwrite_arg, add_skip_b0_check_arg,
                              add_verbose_arg, assert_inputs_exist,
-                             assert_outputs_exist, assert_roi_radii_format)
+                             assert_outputs_exist, assert_roi_radii_format,
+                             assert_headers_compatible)
 from scilpy.reconst.frf import compute_msmt_frf
 
 
@@ -147,9 +148,13 @@ def main():
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     # Verifications
-    assert_inputs_exist(parser, [args.in_dwi, args.in_bval, args.in_bvec])
+    masks = [args.mask, args.mask_wm, args.mask_gm, args.mask_csf]
+    assert_inputs_exist(parser, [args.in_dwi, args.in_bval, args.in_bvec],
+                        optional=masks)
     assert_outputs_exist(parser, args, [args.out_wm_frf, args.out_gm_frf,
                                         args.out_csf_frf])
+    assert_headers_compatible(parser, [args.in_bundle, args.in_fodf],
+                              optional=masks)
 
     roi_radii = assert_roi_radii_format(parser)
 

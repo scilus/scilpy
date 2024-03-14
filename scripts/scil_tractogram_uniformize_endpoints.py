@@ -31,7 +31,7 @@ from scilpy.io.utils import (add_overwrite_arg,
                              add_reference_arg,
                              add_verbose_arg,
                              assert_outputs_exist,
-                             assert_inputs_exist)
+                             assert_inputs_exist, assert_headers_compatible)
 from scilpy.utils.streamlines import (uniformize_bundle_sft,
                                       uniformize_bundle_sft_using_mask)
 
@@ -77,8 +77,11 @@ def main():
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
-    assert_inputs_exist(parser, args.in_bundle, args.reference)
+    assert_inputs_exist(parser, args.in_bundle,
+                        args.target_roi + [args.reference])
     assert_outputs_exist(parser, args, args.out_bundle)
+    assert_headers_compatible(parser, args.in_bundle, args.target_roi,
+                              reference=args.reference)
 
     sft = load_tractogram_with_reference(parser, args, args.in_bundle)
     if args.auto:

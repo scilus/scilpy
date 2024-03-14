@@ -32,7 +32,6 @@ import json
 import logging
 import os
 
-from dipy.io.utils import is_header_compatible
 from fury import window, actor
 import nibabel as nib
 import numpy as np
@@ -40,14 +39,12 @@ from scipy.linalg import svd
 from scipy.ndimage import map_coordinates, gaussian_filter
 
 from scilpy.io.streamlines import load_tractogram_with_reference
-from scilpy.io.utils import (add_overwrite_arg,
-                             add_reference_arg,
-                             add_json_args,
-                             add_verbose_arg,
+from scilpy.io.utils import (add_overwrite_arg, add_reference_arg,
+                             add_json_args, add_verbose_arg,
                              assert_inputs_exist,
                              assert_output_dirs_exist_and_empty,
-                             parser_color_type,
-                             snapshot)
+                             parser_color_type, snapshot,
+                             assert_headers_compatible)
 from scilpy.viz.scene_utils import create_tube_with_radii
 from scilpy.viz.utils import get_colormap
 
@@ -218,6 +215,10 @@ def main():
     assert_output_dirs_exist_and_empty(parser, args, [],
                                        optional=args.save_rendering)
 
+    # same subject: same header or coregistered subjects: same header
+    assert_headers_compatible(parser, args.in_bundles + args.in_labels,
+                              reference=args.reference)
+
     stats = {}
     num_digits_labels = 3
     scene = window.Scene()
@@ -227,11 +228,6 @@ def main():
         sft.to_vox()
         sft.to_corner()
         img_labels = nib.load(args.in_labels[i])
-
-        # same subject: same header or coregistered subjects: same header
-        if not is_header_compatible(sft, args.in_bundles[0]) \
-                or not is_header_compatible(img_labels, args.in_bundles[0]):
-            parser.error('All headers must be identical.')
 
         data_labels = img_labels.get_fdata()
         bundle_name, _ = os.path.splitext(os.path.basename(filename))

@@ -46,15 +46,11 @@ from dipy.tracking.metrics import mean_curvature
 from dipy.tracking.utils import length
 import numpy as np
 
-from scilpy.io.utils import (add_json_args,
-                             add_verbose_arg,
-                             add_overwrite_arg,
-                             add_processes_arg,
-                             add_reference_arg,
-                             assert_inputs_exist,
-                             assert_outputs_exist,
-                             link_bundles_and_reference,
-                             validate_nbr_processes)
+from scilpy.io.utils import (add_json_args, add_verbose_arg,
+                             add_overwrite_arg, add_processes_arg,
+                             add_reference_arg, assert_inputs_exist,
+                             assert_outputs_exist, link_bundles_and_reference,
+                             validate_nbr_processes, assert_headers_compatible)
 
 from scilpy.tractanalysis.reproducibility_measures \
     import (approximate_surface_node,
@@ -201,6 +197,8 @@ def main():
 
     assert_inputs_exist(parser, args.in_bundles, args.reference)
     assert_outputs_exist(parser, args, [], args.out_json)
+    assert_headers_compatible(parser, args.in_bundles,
+                              reference=args.reference)
 
     nbr_cpu = validate_nbr_processes(parser, args)
     bundles_references_tuple_extended = link_bundles_and_reference(

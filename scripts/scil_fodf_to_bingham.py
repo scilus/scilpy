@@ -20,14 +20,10 @@ import time
 import argparse
 import logging
 
-from dipy.io.utils import is_header_compatible
-
-from scilpy.io.utils import (add_overwrite_arg,
-                             add_processes_arg,
-                             add_verbose_arg,
-                             assert_inputs_exist,
-                             assert_outputs_exist,
-                             validate_nbr_processes, assert_headers_compatible)
+from scilpy.io.utils import (add_overwrite_arg, add_processes_arg,
+                             add_verbose_arg, assert_inputs_exist,
+                             assert_outputs_exist, validate_nbr_processes,
+                             assert_headers_compatible)
 from scilpy.io.image import get_data_as_mask
 from scilpy.reconst.bingham import (bingham_fit_sh)
 

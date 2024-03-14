@@ -27,7 +27,7 @@ from scilpy.io.utils import (assert_inputs_exist,
                              assert_outputs_exist,
                              add_overwrite_arg,
                              add_verbose_arg,
-                             add_reference_arg)
+                             add_reference_arg, assert_headers_compatible)
 
 
 def _build_arg_parser():
@@ -71,6 +71,8 @@ def main():
         parser.error('Using multiple inputs, use --out_suffix.')
 
     assert_inputs_exist(parser, args.in_tractograms, args.reference)
+    assert_headers_compatible(parser, args.in_tractograms,
+                              reference=args.reference)
 
     if args.out_suffix:
         if args.out_tractogram:

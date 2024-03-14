@@ -52,8 +52,7 @@ from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              assert_outputs_exist, add_processes_arg,
                              add_verbose_arg, add_skip_b0_check_arg,
-                             add_tolerance_arg,
-                             assert_headers_compatible)
+                             add_tolerance_arg, assert_headers_compatible)
 from scilpy.reconst.divide import fit_gamma, gamma_fit2metrics
 
 
@@ -160,9 +159,9 @@ def main():
                      'one file to output.')
 
     assert_inputs_exist(parser, args.in_dwis + args.in_bvals + args.in_bvecs,
-                        args.mask)
+                        [args.mask, args.fa])
     assert_outputs_exist(parser, args, arglist)
-    assert_headers_compatible(parser, args.in_dwis, args.mask)
+    assert_headers_compatible(parser, args.in_dwis, [args.mask, args.fa])
 
     if args.op and not args.fa:
         parser.error('Computation of the OP requires a precomputed '

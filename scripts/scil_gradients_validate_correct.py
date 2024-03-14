@@ -78,13 +78,11 @@ def main():
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
-    inputs = [args.in_bvec, args.in_peaks, args.in_FA]
-    optional = [args.mask]
-
-    assert_inputs_exist(parser, inputs, optional=optional)
+    assert_inputs_exist(parser, [args.in_bvec, args.in_peaks, args.in_FA],
+                        optional=args.mask)
     assert_outputs_exist(parser, args, args.out_bvec)
     assert_headers_compatible(parser, [args.in_peaks, args.in_FA],
-                              optional=optional)
+                              optional=args.mask)
 
     _, bvecs = read_bvals_bvecs(None, args.in_bvec)
     fa = nib.load(args.in_FA).get_fdata()

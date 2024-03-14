@@ -34,7 +34,6 @@ import numpy as np
 from dipy.core.gradients import gradient_table
 import dipy.denoise.noise_estimate as ne
 from dipy.io.gradients import read_bvals_bvecs
-from dipy.io.utils import is_header_compatible
 from dipy.reconst.dti import (TensorModel, color_fa, fractional_anisotropy,
                               geodesic_anisotropy, mean_diffusivity,
                               axial_diffusivity, norm,

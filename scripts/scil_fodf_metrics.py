@@ -40,7 +40,6 @@ import nibabel as nib
 
 from dipy.data import get_sphere
 from dipy.direction.peaks import reshape_peaks_for_visualization
-from dipy.io.utils import is_header_compatible
 
 from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_overwrite_arg, add_sh_basis_args,

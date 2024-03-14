@@ -39,14 +39,10 @@ from scilpy.reconst.sh import peaks_from_sh
 from scilpy.reconst.utils import get_sh_order_and_fullness
 from scilpy.reconst.aodf import (compute_asymmetry_index,
                                  compute_odd_power_map)
-from scilpy.io.utils import (add_processes_arg,
-                             add_sh_basis_args,
-                             add_verbose_arg,
-                             assert_inputs_exist,
-                             assert_headers_compatible,
-                             assert_outputs_exist,
-                             add_overwrite_arg,
-                             parse_sh_basis_arg)
+from scilpy.io.utils import (add_processes_arg, add_sh_basis_args,
+                             add_verbose_arg, assert_inputs_exist,
+                             assert_headers_compatible, assert_outputs_exist,
+                             add_overwrite_arg, parse_sh_basis_arg)
 from scilpy.io.image import get_data_as_mask
 
 
@@ -137,14 +133,9 @@ def main():
         parser.error('When using --not_all, you need to specify at least '
                      'one file to output.')
 
-    inputs = [args.in_sh]
-    if args.mask:
-        inputs.append(args.mask)
-
-    assert_inputs_exist(parser, inputs)
+    assert_inputs_exist(parser, args.in_sh, args.mask)
     assert_outputs_exist(parser, args, arglist)
-    if args.mask:
-        assert_headers_compatible(parser, inputs)
+    assert_headers_compatible(parser, args.in_sh, args.mask)
 
     # Loading
     sh_img = nib.load(args.in_sh)

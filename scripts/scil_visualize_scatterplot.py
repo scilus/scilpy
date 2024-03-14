@@ -50,8 +50,7 @@ import numpy as np
 
 from scilpy.image.labels import get_data_as_labels
 from scilpy.io.image import get_data_as_mask
-from scilpy.io.utils import (add_overwrite_arg,
-                             add_verbose_arg,
+from scilpy.io.utils import (add_overwrite_arg, add_verbose_arg,
                              assert_inputs_exist, assert_headers_compatible)
 
 
