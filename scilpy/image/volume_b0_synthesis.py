@@ -21,6 +21,11 @@ def compute_b0_synthesis(t1_data, t1_bet_data, b0_data, b0_bet_data,
                          template_data, t1_affine, b0_affine, template_affine,
                          verbose):
     """
+    Note. Tensorflow is required here, through dipy.Synb0. If not installed,
+    dipy will raise an error, like:
+    >> dipy.utils.tripwire.TripWireError: We need package tensorflow_addons for
+    these functions, but ``import tensorflow_addons`` raised an ImportError.
+
     Parameters
     ----------
     t1_data: np.ndarary

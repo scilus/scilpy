@@ -10,9 +10,9 @@ template, run SyNb0 and then transform the result back to the original space.
 SyNb0 is a deep learning model that predicts a synthetic a distortion-free
 b0 image from a distorted b0 and T1w.
 
-This script must be used carefully, as it is not meant to be used in an
-environment with the following dependencies already installed (not default
-in Scilpy):
+This script must be used carefully, as it is meant to be used in an
+environment with the following dependencies already installed (not installed by
+default in Scilpy):
 - tensorflow-addons
 - tensorrt
 - tensorflow
