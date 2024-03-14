@@ -69,22 +69,22 @@ def _build_arg_parser():
                                 formatter_class=argparse.RawTextHelpFormatter)
     p.add_argument('in_sh', help='Input SH image.')
 
-    p.add_argument('--mask', default='',
+    p.add_argument('--mask',
                    help='Optional mask.')
 
     # outputs
-    p.add_argument('--asi_map', default='',
+    p.add_argument('--asi_map',
                    help='Output asymmetry index (ASI) map.')
     p.add_argument('--odd_power_map', default='',
                    help='Output odd power map.')
-    p.add_argument('--peaks', default='',
+    p.add_argument('--peaks',
                    help='Output filename for the extracted peaks.')
-    p.add_argument('--peak_values', default='',
+    p.add_argument('--peak_values',
                    help='Output filename for the extracted peaks values.')
-    p.add_argument('--peak_indices', default='',
+    p.add_argument('--peak_indices',
                    help='Output filename for the generated peaks indices on '
                         'the sphere.')
-    p.add_argument('--nufid', default='',
+    p.add_argument('--nufid',
                    help='Output filename for the nufid file.')
     p.add_argument('--not_all', action='store_true',
                    help='If set, only saves the files specified using the '
@@ -134,7 +134,7 @@ def main():
                      'one file to output.')
 
     assert_inputs_exist(parser, args.in_sh, args.mask)
-    assert_outputs_exist(parser, args, arglist)
+    assert_outputs_exist(parser, args, [], arglist)
     assert_headers_compatible(parser, args.in_sh, args.mask)
 
     # Loading
