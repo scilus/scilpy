@@ -56,6 +56,8 @@ def main():
     with open(args.in_labels_lut) as f:
         label_dict = json.load(f)
     map_data = nib.load(args.in_map).get_fdata(dtype=np.float32)
+    if len(map_data.shape) > 3:
+        parser.error('Mask should be a 3D image.')
 
     # Process
     out_dict = get_stats_in_label(map_data, label_data, label_dict)
