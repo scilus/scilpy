@@ -78,7 +78,7 @@ def main():
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     assert_inputs_exist(parser, args.in_bundle,
-                        args.target_roi + [args.reference])
+                        args.target_roi or [] + [args.reference])
     assert_outputs_exist(parser, args, args.out_bundle)
     assert_headers_compatible(parser, args.in_bundle, args.target_roi,
                               reference=args.reference)
