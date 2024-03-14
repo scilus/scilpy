@@ -25,6 +25,6 @@ def test_execution_processing(script_runner, monkeypatch):
     assert ret.success
 
     # Then try to load back the same box
-    ret = script_runner.run('scil_crop_volume.py', in_dwi, 'dwi_crop.nii.gz',
+    ret = script_runner.run('scil_crop_volume.py', in_dwi, 'dwi_crop2.nii.gz',
                             '--input_bbox', 'bbox.pickle')
     assert ret.success
