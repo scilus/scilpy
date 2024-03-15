@@ -63,7 +63,9 @@ def main():
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     assert_inputs_exist(parser, [args.moving_tractogram,
-                                 args.static_tractogram])
+                                 args.static_tractogram],
+                        [args.moving_tractogram_ref,
+                         args.static_tractogram_ref])
 
     if args.only_rigid:
         matrix_filename = os.path.splitext(args.out_name)[0] + '_rigid.txt'

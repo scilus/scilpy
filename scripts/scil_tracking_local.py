@@ -68,10 +68,12 @@ from dipy.tracking import utils as track_utils
 import nibabel as nib
 from nibabel.streamlines import detect_format, TrkFile
 import numpy as np
+
 from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_sphere_arg, add_verbose_arg,
                              assert_inputs_exist, assert_outputs_exist,
-                             parse_sh_basis_arg, verify_compression_th)
+                             parse_sh_basis_arg, verify_compression_th,
+                             assert_headers_compatible)
 from scilpy.tracking.utils import (add_mandatory_options_tracking,
                                    add_out_options, add_seeding_options,
                                    add_tracking_options,
@@ -159,6 +161,8 @@ def main():
 
     assert_inputs_exist(parser, [args.in_odf, args.in_seed, args.in_mask])
     assert_outputs_exist(parser, args, args.out_tractogram)
+    assert_headers_compatible(parser,
+                              [args.in_odf, args.in_seed, args.in_mask])
 
     if not nib.streamlines.is_supported(args.out_tractogram):
         parser.error('Invalid output streamline file format (must be trk or ' +
@@ -176,10 +180,6 @@ def main():
                         "Ignoring.")
         args.save_seeds = False
 
-    logging.debug("Loading masks and finding seeds.")
-    mask_img = nib.load(args.in_mask)
-    mask_data = get_data_as_mask(mask_img, dtype=bool)
-
     # Make sure the data is isotropic. Else, the strategy used
     # when providing information to dipy (i.e. working as if in voxel space)
     # will not yield correct results. Tracking is performed in voxel space
@@ -189,6 +189,9 @@ def main():
                        odf_sh_img.header.get_zooms()[0], atol=1e-03):
         parser.error(
             'ODF SH file is not isotropic. Tracking cannot be ran robustly.')
+
+    logging.debug("Loading masks and finding seeds.")
+    mask_data = get_data_as_mask(nib.load(args.in_mask), dtype=bool)
 
     if args.npv:
         nb_seeds = args.npv

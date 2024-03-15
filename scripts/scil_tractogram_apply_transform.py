@@ -105,7 +105,8 @@ def main():
 
     assert_inputs_exist(parser, [args.in_moving_tractogram,
                                  args.in_target_file,
-                                 args.in_transfo], args.in_deformation)
+                                 args.in_transfo],
+                        [args.in_deformation, args.reference])
     assert_outputs_exist(parser, args, args.out_tractogram)
 
     args.bbox_check = False  # Adding manually bbox_check argument.

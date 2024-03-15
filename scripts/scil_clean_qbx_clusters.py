@@ -24,7 +24,6 @@ import logging
 from fury import window, actor, interactor
 from dipy.io.stateful_tractogram import Space, StatefulTractogram
 from dipy.io.streamline import save_tractogram
-from dipy.io.utils import is_header_compatible
 
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_bbox_arg,
@@ -33,7 +32,8 @@ from scilpy.io.utils import (add_bbox_arg,
                              add_verbose_arg,
                              assert_inputs_exist,
                              assert_outputs_exist,
-                             assert_output_dirs_exist_and_empty)
+                             assert_output_dirs_exist_and_empty,
+                             assert_headers_compatible)
 
 
 def _build_arg_parser():
@@ -151,8 +151,10 @@ def main():
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
-    assert_inputs_exist(parser, args.in_bundles)
+    assert_inputs_exist(parser, args.in_bundles, args.reference)
     assert_outputs_exist(parser, args, [args.out_accepted, args.out_rejected])
+    assert_headers_compatible(parser, args.in_bundles,
+                              reference=args.reference)
 
     if args.out_accepted_dir:
         assert_output_dirs_exist_and_empty(parser, args,
@@ -181,8 +183,6 @@ def main():
     for filename in args.in_bundles:
         basename = os.path.basename(filename)
         sft = load_tractogram_with_reference(parser, args, filename)
-        if not is_header_compatible(ref_bundle, sft):
-            return
         if len(sft) >= args.min_cluster_size:
             sft_accepted_on_size.append(sft)
             filename_accepted_on_size.append(basename)

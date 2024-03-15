@@ -173,7 +173,7 @@ def load_and_verify_everything(parser, args):
     args.json_prefix = os.path.join(args.out_dir, args.json_prefix)
     json_outputs = [args.json_prefix + 'processing_stats.json',
                     args.json_prefix + 'results.json']
-    assert_inputs_exist(parser, args.gt_config)
+    assert_inputs_exist(parser, args.gt_config, args.reference)
     assert_output_dirs_exist_and_empty(parser, args, args.out_dir,
                                        create_dir=True)
     assert_outputs_exist(parser, args, json_outputs)

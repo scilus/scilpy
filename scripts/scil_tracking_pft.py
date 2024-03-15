@@ -48,7 +48,8 @@ import numpy as np
 from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_overwrite_arg, add_sh_basis_args,
                              add_verbose_arg, assert_inputs_exist,
-                             assert_outputs_exist, parse_sh_basis_arg)
+                             assert_outputs_exist, parse_sh_basis_arg,
+                             assert_headers_compatible)
 from scilpy.tracking.utils import get_theta
 
 
@@ -90,7 +91,7 @@ def _build_arg_parser():
                               '[%(default)s]')
     track_g.add_argument('--theta', type=float,
                          help='Maximum angle between 2 steps. '
-                         '["det"=45, "prob"=20]')
+                              '["det"=45, "prob"=20]')
     track_g.add_argument('--act', action='store_true',
                          help='If set, uses anatomically-constrained '
                               'tractography (ACT) \ninstead of continuous map '
@@ -123,7 +124,7 @@ def _build_arg_parser():
     pft_g.add_argument('--forward', dest='forward_tracking',
                        type=float, default=1.,
                        help='Length of PFT forward tracking (mm). '
-                       '[%(default)s]')
+                            '[%(default)s]')
 
     out_g = p.add_argument_group('Output options')
     out_g.add_argument('--compress', type=float,
@@ -150,10 +151,11 @@ def main():
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
-    assert_inputs_exist(parser, [args.in_sh, args.in_seed,
-                                 args.in_map_include,
-                                 args.map_exclude_file])
+    required = [args.in_sh, args.in_seed,
+                args.in_map_include, args.map_exclude_file]
+    assert_inputs_exist(parser, required)
     assert_outputs_exist(parser, args, args.out_tractogram)
+    assert_headers_compatible(parser, required)
 
     if not nib.streamlines.is_supported(args.out_tractogram):
         parser.error('Invalid output streamline file format (must be trk or ' +
@@ -229,14 +231,14 @@ def main():
 
     if not args.act:
         tissue_classifier = CmcStoppingCriterion(
-                                map_include_img.get_fdata(dtype=np.float32),
-                                map_exclude_img.get_fdata(dtype=np.float32),
-                                step_size=args.step_size,
-                                average_voxel_size=voxel_size)
+            map_include_img.get_fdata(dtype=np.float32),
+            map_exclude_img.get_fdata(dtype=np.float32),
+            step_size=args.step_size,
+            average_voxel_size=voxel_size)
     else:
         tissue_classifier = ActStoppingCriterion(
-                                map_include_img.get_fdata(dtype=np.float32),
-                                map_exclude_img.get_fdata(dtype=np.float32))
+            map_include_img.get_fdata(dtype=np.float32),
+            map_exclude_img.get_fdata(dtype=np.float32))
 
     if args.npv:
         nb_seeds = args.npv

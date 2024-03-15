@@ -94,7 +94,7 @@ def _build_arg_parser():
 
 def load_and_verify_everything(parser, args):
 
-    assert_inputs_exist(parser, [args.gt_config])
+    assert_inputs_exist(parser, args.gt_config, args.reference)
     if not os.path.isdir(args.bundles_dir):
         parser.error("Bundles dir ({}) does not exist."
                      .format(args.bundles_dir))

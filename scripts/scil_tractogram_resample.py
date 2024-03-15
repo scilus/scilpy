@@ -122,7 +122,7 @@ def main():
              args.streamline_wise_std <= 0):
         parser.error('STD needs to be above 0.')
 
-    assert_inputs_exist(parser, args.in_tractogram)
+    assert_inputs_exist(parser, args.in_tractogram, args.reference)
     assert_outputs_exist(parser, args, args.out_tractogram)
 
     logging.info("Loading sft.")

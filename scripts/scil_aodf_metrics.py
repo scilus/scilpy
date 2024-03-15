@@ -39,13 +39,10 @@ from scilpy.reconst.sh import peaks_from_sh
 from scilpy.reconst.utils import get_sh_order_and_fullness
 from scilpy.reconst.aodf import (compute_asymmetry_index,
                                  compute_odd_power_map)
-from scilpy.io.utils import (add_processes_arg,
-                             add_sh_basis_args,
-                             add_verbose_arg,
-                             assert_inputs_exist,
-                             assert_outputs_exist,
-                             add_overwrite_arg,
-                             parse_sh_basis_arg)
+from scilpy.io.utils import (add_processes_arg, add_sh_basis_args,
+                             add_verbose_arg, assert_inputs_exist,
+                             assert_headers_compatible, assert_outputs_exist,
+                             add_overwrite_arg, parse_sh_basis_arg)
 from scilpy.io.image import get_data_as_mask
 
 
@@ -72,22 +69,22 @@ def _build_arg_parser():
                                 formatter_class=argparse.RawTextHelpFormatter)
     p.add_argument('in_sh', help='Input SH image.')
 
-    p.add_argument('--mask', default='',
+    p.add_argument('--mask',
                    help='Optional mask.')
 
     # outputs
-    p.add_argument('--asi_map', default='',
+    p.add_argument('--asi_map',
                    help='Output asymmetry index (ASI) map.')
     p.add_argument('--odd_power_map', default='',
                    help='Output odd power map.')
-    p.add_argument('--peaks', default='',
+    p.add_argument('--peaks',
                    help='Output filename for the extracted peaks.')
-    p.add_argument('--peak_values', default='',
+    p.add_argument('--peak_values',
                    help='Output filename for the extracted peaks values.')
-    p.add_argument('--peak_indices', default='',
+    p.add_argument('--peak_indices',
                    help='Output filename for the generated peaks indices on '
                         'the sphere.')
-    p.add_argument('--nufid', default='',
+    p.add_argument('--nufid',
                    help='Output filename for the nufid file.')
     p.add_argument('--not_all', action='store_true',
                    help='If set, only saves the files specified using the '
@@ -136,12 +133,9 @@ def main():
         parser.error('When using --not_all, you need to specify at least '
                      'one file to output.')
 
-    inputs = [args.in_sh]
-    if args.mask:
-        inputs.append(args.mask)
-
-    assert_inputs_exist(parser, inputs)
-    assert_outputs_exist(parser, args, arglist)
+    assert_inputs_exist(parser, args.in_sh, args.mask)
+    assert_outputs_exist(parser, args, [], arglist)
+    assert_headers_compatible(parser, args.in_sh, args.mask)
 
     # Loading
     sh_img = nib.load(args.in_sh)

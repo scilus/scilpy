@@ -45,7 +45,7 @@ from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_overwrite_arg, add_sh_basis_args,
                              add_processes_arg, add_verbose_arg,
                              assert_inputs_exist, assert_outputs_exist,
-                             parse_sh_basis_arg)
+                             parse_sh_basis_arg, assert_headers_compatible)
 from scilpy.reconst.sh import peaks_from_sh, maps_from_sh
 
 
@@ -133,20 +133,16 @@ def main():
         parser.error('When using --not_all, you need to specify at least '
                      'one file to output.')
 
-    assert_inputs_exist(parser, args.in_fODF)
+    assert_inputs_exist(parser, args.in_fODF, args.mask)
     assert_outputs_exist(parser, args, arglist)
+    assert_headers_compatible(parser, args.in_fODF, args.mask)
 
     # Loading
     vol = nib.load(args.in_fODF)
     data = vol.get_fdata(dtype=np.float32)
     affine = vol.affine
-
-    if args.mask is None:
-        mask = None
-    else:
-        mask = get_data_as_mask(nib.load(args.mask), dtype=bool)
-        if mask.shape != data.shape[:-1]:
-            raise ValueError("Mask is not the same shape as data.")
+    mask = get_data_as_mask(nib.load(args.mask),
+                            dtype=bool) if args.mask else None
 
     sphere = get_sphere(args.sphere)
     sh_basis, is_legacy = parse_sh_basis_arg(args)

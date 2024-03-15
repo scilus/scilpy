@@ -17,6 +17,8 @@ def test_help_option(script_runner):
 
 
 def test_execution(script_runner):
+
+    # toDo: Add --mask.
     os.chdir(os.path.expanduser(tmp_dir.name))
     in_fodf = os.path.join(
         f"{test_data_root}/fodf_descoteaux07_sub_unified_asym.nii.gz")

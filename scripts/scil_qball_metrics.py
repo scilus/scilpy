@@ -37,7 +37,8 @@ from scilpy.io.utils import (add_b0_thresh_arg, add_overwrite_arg,
                              add_processes_arg, add_sh_basis_args,
                              add_skip_b0_check_arg, add_verbose_arg,
                              assert_inputs_exist, assert_outputs_exist,
-                             parse_sh_basis_arg, validate_nbr_processes)
+                             parse_sh_basis_arg, validate_nbr_processes,
+                             assert_headers_compatible)
 
 
 DEFAULT_SMOOTH = 0.006
@@ -115,8 +116,10 @@ def main():
         parser.error('When using --not_all, you need to specify at least one '
                      'file to output.')
 
-    assert_inputs_exist(parser, [args.in_dwi, args.in_bval, args.in_bvec])
+    assert_inputs_exist(parser, [args.in_dwi, args.in_bval, args.in_bvec],
+                        args.mask)
     assert_outputs_exist(parser, args, [], optional=arglist)
+    assert_headers_compatible(parser, args.in_dwi, args.mask)
 
     nbr_processes = validate_nbr_processes(parser, args)
     parallel = nbr_processes > 1
@@ -142,13 +145,7 @@ def main():
     sphere = get_sphere('symmetric724')
     sh_basis, is_legacy = parse_sh_basis_arg(args)
 
-    mask = None
-    if args.mask:
-        mask = get_data_as_mask(nib.load(args.mask))
-
-        # Sanity check on shape of mask
-        if mask.shape != data.shape[:-1]:
-            raise ValueError('Mask shape does not match data shape.')
+    mask = get_data_as_mask(nib.load(args.mask)) if args.mask else None
 
     if args.use_qball:
         model = QballModel(gtab, sh_order_max=args.sh_order,
