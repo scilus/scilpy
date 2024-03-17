@@ -66,10 +66,6 @@ def _build_arg_parser():
     upsampling_group.add_argument('--tube_radius', type=float, default=1,
                                   help='Maximum distance to generate streamlines '
                                        ' around the original ones [%(default)s].')
-    upsampling_group.add_argument('--force_tube', action='store_true',
-                                  help='Force the use of parellel transport to '
-                                       'resample, even if the output tractogram '
-                                       'has fewer streamlines.')
     upsampling_group.add_argument('--gaussian', metavar='SIGMA', type=int,
                                   help='Sigma for smoothing. Use the value of '
                                        'surrounding X,Y,Z points on the '

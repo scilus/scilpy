@@ -609,7 +609,8 @@ def transform_warp_sft(sft, linear_transfo, target, inverse=False,
 def compress_streamlines_wrapper(tractogram, error_rate):
     """
     Compresses the streamlines of a tractogram.
-    Supports both nibabel.Tractogram or list of streamlines.
+    Supports both nibabel.Tractogram dipy.StatefulTractogram
+    or list of streamlines.
 
     Parameters
     ----------
@@ -669,14 +670,14 @@ def upsample_tractogram(sft, nb, point_wise_std=None, tube_radius=None,
     rng = np.random.default_rng(seed)
 
     # Get the streamlines that will serve as a base for new ones
-    resample_sft = resample_streamlines_step_size(sft, 1)
+    resampled_sft = resample_streamlines_step_size(sft, 1)
     new_streamlines = []
-    indices = rng.choice(len(resample_sft), nb, replace=True)
+    indices = rng.choice(len(resampled_sft), nb, replace=True)
     unique_indices, count = np.unique(indices, return_counts=True)
 
     # For all selected streamlines, add noise and smooth
     for i, c in zip(unique_indices, count):
-        s = resample_sft.streamlines[i]
+        s = resampled_sft.streamlines[i]
         if len(s) < 3:
             new_streamlines.extend(np.repeat(s, c).tolist())
         new_s = parallel_transport_streamline(s, c, tube_radius)

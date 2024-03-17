@@ -141,7 +141,7 @@ def compute_fractal_dimension(density, n_steps=10, box_size_min=1.0,
         minimum size of boxes.
     threshold: float
         The threshold to filter the voxels in the density array. The default is
-        set to 0, so only (8)onzero voxels will be considered.
+        set to 0, so only nonzero voxels will be considered.
     box_size: ndarray
         A ndarray of different sizes of boxes in a linear space in an ascending
         order.
