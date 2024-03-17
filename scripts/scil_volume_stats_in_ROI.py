@@ -26,7 +26,7 @@ from scilpy.io.utils import (add_overwrite_arg,
                              add_json_args,
                              add_verbose_arg,
                              assert_inputs_exist,
-                             is_header_compatible_multiple_files)
+                             assert_headers_compatible)
 from scilpy.utils.filenames import split_name_with_nii
 from scilpy.utils.metrics_tools import get_roi_metrics_mean_std
 
@@ -73,8 +73,11 @@ def main():
         list_metrics_files = glob.glob(os.path.join(args.metrics_dir,
                                                     '*nii.gz'))
         assert_inputs_exist(parser, [args.in_mask] + list_metrics_files)
+        assert_headers_compatible(parser, [args.in_mask] + list_metrics_files)
     elif args.metrics_file_list:
         assert_inputs_exist(parser, [args.in_mask] + args.metrics_file_list)
+        assert_headers_compatible(parser,
+                                  [args.in_mask] + args.metrics_file_list)
 
     # Load mask and validate content depending on flags
     mask_img = nib.load(args.in_mask)
@@ -103,9 +106,6 @@ def main():
     # Load all metrics files.
     metrics_files = []
     if args.metrics_dir:
-        is_header_compatible_multiple_files(parser, [args.in_mask] +
-                                            list_metrics_files)
-
         for f in sorted(os.listdir(args.metrics_dir)):
             metric_img = nib.load(os.path.join(args.metrics_dir, f))
             if len(metric_img.shape)==3:
@@ -118,8 +118,8 @@ def main():
                 parser.error('Metric {} is not compatible ({}D image).'.format(os.path.join(args.metrics_dir, f),
                                                                                len(metric_img.shape)))
     elif args.metrics_file_list:
-        is_header_compatible_multiple_files(parser, [args.in_mask] +
-                                            args.metrics_file_list)
+        assert_headers_compatible(parser, [args.in_mask] +
+                                  args.metrics_file_list)
         for f in args.metrics_file_list:
             metric_img = nib.load(f)
             if len(metric_img.shape)==3:

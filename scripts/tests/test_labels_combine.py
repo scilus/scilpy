@@ -4,7 +4,8 @@
 import os
 import tempfile
 
-from scilpy.io.fetcher import fetch_data, get_home, get_testing_files_dict
+from scilpy import SCILPY_HOME
+from scilpy.io.fetcher import fetch_data, get_testing_files_dict
 
 # If they already exist, this only takes 5 seconds (check md5sum)
 fetch_data(get_testing_files_dict(), keys=['atlas.zip'])
@@ -18,9 +19,9 @@ def test_help_option(script_runner):
 
 def test_execution_atlas(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    in_atlas_1 = os.path.join(get_home(), 'atlas',
+    in_atlas_1 = os.path.join(SCILPY_HOME, 'atlas',
                               'atlas_freesurfer_v2.nii.gz')
-    in_brainstem = os.path.join(get_home(), 'atlas', 'brainstem.nii.gz')
+    in_brainstem = os.path.join(SCILPY_HOME, 'atlas', 'brainstem.nii.gz')
     ret = script_runner.run('scil_labels_combine.py',
                             'atlas_freesurfer_v2_single_brainstem.nii.gz',
                             '--volume_ids', in_atlas_1, '8', '47', '251',
@@ -31,9 +32,9 @@ def test_execution_atlas(script_runner):
 
 def test_execution_atlas_merge(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    in_atlas_1 = os.path.join(get_home(), 'atlas',
+    in_atlas_1 = os.path.join(SCILPY_HOME, 'atlas',
                               'atlas_freesurfer_v2.nii.gz')
-    in_brainstem = os.path.join(get_home(), 'atlas', 'brainstem.nii.gz')
+    in_brainstem = os.path.join(SCILPY_HOME, 'atlas', 'brainstem.nii.gz')
     ret = script_runner.run('scil_labels_combine.py',
                             'atlas_freesurfer_v2_merge_brainstem.nii.gz',
                             '--volume_ids', in_atlas_1, '8', '47', '251',

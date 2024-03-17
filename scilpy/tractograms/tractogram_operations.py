@@ -617,7 +617,7 @@ def compress_streamlines_wrapper(tractogram, error_rate):
     tractogram: TrkFile, TckFile, ArraySequence, list
         The tractogram to compress.
     error_rate: float
-        The maximum distance (in mm) to the original position of any point.
+        The maximum distance (in mm) for point displacement during compression.
 
     Returns
     -------

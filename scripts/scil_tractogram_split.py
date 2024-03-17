@@ -84,7 +84,7 @@ def main():
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
-    assert_inputs_exist(parser, args.in_tractogram)
+    assert_inputs_exist(parser, args.in_tractogram, args.reference)
     _, out_extension = os.path.splitext(args.in_tractogram)
 
     assert_output_dirs_exist_and_empty(parser, args, [], optional=args.out_dir)

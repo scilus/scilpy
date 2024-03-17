@@ -23,7 +23,7 @@ from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg, add_sh_basis_args,
                              add_reference_arg, add_verbose_arg,
                              assert_inputs_exist, assert_outputs_exist,
-                             parse_sh_basis_arg)
+                             parse_sh_basis_arg, assert_headers_compatible)
 from scilpy.tractanalysis.afd_along_streamlines \
     import afd_map_along_streamlines
 
@@ -63,8 +63,11 @@ def main():
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
-    assert_inputs_exist(parser, [args.in_bundle, args.in_fodf])
+    assert_inputs_exist(parser, [args.in_bundle, args.in_fodf],
+                        args.reference)
     assert_outputs_exist(parser, args, [args.afd_mean_map])
+    assert_headers_compatible(parser, [args.in_bundle, args.in_fodf],
+                              reference=args.reference)
 
     sft = load_tractogram_with_reference(parser, args, args.in_bundle)
     fodf_img = nib.load(args.in_fodf)

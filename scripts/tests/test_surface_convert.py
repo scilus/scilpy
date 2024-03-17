@@ -4,8 +4,8 @@
 import os
 import tempfile
 
-from scilpy.io.fetcher import get_testing_files_dict, fetch_data, get_home
-
+from scilpy import SCILPY_HOME
+from scilpy.io.fetcher import fetch_data, get_testing_files_dict
 
 # If they already exist, this only takes 5 seconds (check md5sum)
 fetch_data(get_testing_files_dict(), keys='surface_vtk_fib.zip')
@@ -19,7 +19,7 @@ def test_help_option(script_runner):
 
 def test_execution_surface_vtk_fib(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    in_surf = os.path.join(get_home(), 'surface_vtk_fib',
+    in_surf = os.path.join(SCILPY_HOME, 'surface_vtk_fib',
                            'lhpialt.vtk')
     ret = script_runner.run('scil_surface_convert.py', in_surf,
                             'rhpialt.ply')
@@ -28,9 +28,9 @@ def test_execution_surface_vtk_fib(script_runner):
 
 def test_execution_surface_vtk_xfrom(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    in_surf = os.path.join(get_home(), 'surface_vtk_fib',
+    in_surf = os.path.join(SCILPY_HOME, 'surface_vtk_fib',
                            'lh.pialt_xform')
-    x_form = os.path.join(get_home(), 'surface_vtk_fib',
+    x_form = os.path.join(SCILPY_HOME, 'surface_vtk_fib',
                           'log.txt')
     ret = script_runner.run('scil_surface_convert.py', in_surf,
                             'lh.pialt_xform.vtk', '--xform', x_form,

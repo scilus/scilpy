@@ -25,12 +25,10 @@ import scipy.ndimage as ndi
 from scilpy.image.labels import get_data_as_labels
 from scilpy.io.image import get_data_as_mask
 from scilpy.io.streamlines import load_tractogram_with_reference
-from scilpy.io.utils import (add_overwrite_arg,
-                             assert_inputs_exist,
-                             add_json_args,
-                             assert_outputs_exist,
-                             add_verbose_arg,
-                             add_reference_arg)
+from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
+                             add_json_args, assert_outputs_exist,
+                             add_verbose_arg, add_reference_arg,
+                             assert_headers_compatible)
 from scilpy.segment.streamlines import filter_grid_roi
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
 from scilpy.utils.filenames import split_name_with_nii
@@ -79,12 +77,16 @@ def main():
             and (not args.bundle_labels_map):
         parser.error('One of the option --bundle or --map must be used')
 
-    assert_inputs_exist(parser, [args.in_lesion],
+    assert_inputs_exist(parser, args.in_lesion,
                         optional=[args.bundle, args.bundle_mask,
-                                  args.bundle_labels_map])
+                                  args.bundle_labels_map, args.reference])
     assert_outputs_exist(parser, args, args.out_json,
                          optional=[args.out_lesion_stats,
                                    args.out_streamlines_stats])
+    assert_headers_compatible(parser, args.in_lesion,
+                              optional=[args.bundle, args.bundle_mask,
+                                        args.bundle_labels_map],
+                              reference=args.reference)
 
     lesion_img = nib.load(args.in_lesion)
     lesion_data = get_data_as_mask(lesion_img, dtype=bool)

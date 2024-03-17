@@ -49,7 +49,7 @@ from scilpy.io.utils import (add_json_args,
                              assert_inputs_exist,
                              assert_outputs_exist,
                              link_bundles_and_reference,
-                             validate_nbr_processes)
+                             validate_nbr_processes, assert_headers_compatible)
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
 from scilpy.tractanalysis.reproducibility_measures import binary_classification
@@ -159,8 +159,10 @@ def main():
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
-    assert_inputs_exist(parser, args.in_bundles)
+    assert_inputs_exist(parser, args.in_bundles, args.reference)
     assert_outputs_exist(parser, args, args.out_json)
+    assert_headers_compatible(parser, args.in_bundles,
+                              reference=args.reference)
 
     if (not args.streamlines_measures) and (not args.voxels_measures):
         parser.error('At least one of the two modes is needed')
@@ -217,9 +219,8 @@ def main():
     else:
         gs_binary_3d = get_data_as_mask(nib.load(args.voxels_measures[0]))
         gs_binary_3d[gs_binary_3d > 0] = 1
-        tracking_mask_data = get_data_as_mask(nib.load(
-                                                args.voxels_measures[1]))
-        tracking_mask_data[tracking_mask_data > 0] = 1
+        tracking_mask_data = get_data_as_mask(
+            nib.load(args.voxels_measures[1]))
 
     if nbr_cpu == 1:
         voxels_dict = []

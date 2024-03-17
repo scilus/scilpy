@@ -14,10 +14,9 @@ import nibabel as nib
 import numpy as np
 
 from scilpy.io.image import get_data_as_mask
-from scilpy.io.utils import (add_overwrite_arg,
-                             add_verbose_arg,
-                             assert_inputs_exist,
-                             assert_outputs_exist)
+from scilpy.io.utils import (add_overwrite_arg, add_verbose_arg,
+                             assert_inputs_exist, assert_outputs_exist,
+                             assert_headers_compatible)
 
 
 def _build_arg_parser():
@@ -50,6 +49,8 @@ def main():
                                  args.additional_mask])
     assert_outputs_exist(parser, args, [args.map_include_corr,
                                         args.map_exclude_corr])
+    assert_headers_compatible(parser, [args.map_include, args.map_exclude,
+                                 args.additional_mask])
 
     map_inc = nib.load(args.map_include)
     map_inc_data = map_inc.get_fdata(dtype=np.float32)
@@ -57,8 +58,7 @@ def main():
     map_exc = nib.load(args.map_exclude)
     map_exc_data = map_exc.get_fdata(dtype=np.float32)
 
-    additional_mask = nib.load(args.additional_mask)
-    additional_mask_data = get_data_as_mask(additional_mask)
+    additional_mask_data = get_data_as_mask(nib.load(args.additional_mask))
 
     map_inc_data[additional_mask_data > 0] = 0
     map_exc_data[additional_mask_data > 0] = 0

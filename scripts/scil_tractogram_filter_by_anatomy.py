@@ -52,7 +52,6 @@ import os
 import importlib.resources as resources
 
 from dipy.io.streamline import save_tractogram
-from dipy.io.utils import is_header_compatible
 import nibabel as nib
 import numpy as np
 from scipy.spatial import cKDTree
@@ -66,7 +65,7 @@ from scilpy.io.utils import (add_json_args,
                              add_verbose_arg,
                              assert_inputs_exist,
                              assert_output_dirs_exist_and_empty,
-                             validate_nbr_processes)
+                             validate_nbr_processes, assert_headers_compatible)
 from scilpy.image.labels import get_data_as_labels
 from scilpy.segment.streamlines import filter_grid_roi
 from scilpy.tractanalysis.features import remove_loops_and_sharp_turns
@@ -277,11 +276,12 @@ def main():
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
-    assert_inputs_exist(parser, args.in_tractogram)
-    assert_inputs_exist(parser, args.in_wmparc)
-    assert_output_dirs_exist_and_empty(parser, args,
-                                       args.out_path,
+    assert_inputs_exist(parser, [args.in_tractogram, args.in_wmparc],
+                        [args.csf_bin, args.reference])
+    assert_output_dirs_exist_and_empty(parser, args, args.out_path,
                                        create_dir=True)
+    assert_headers_compatible(parser, [args.in_tractogram, args.in_wmparc],
+                              args.csf_bin, reference=args.reference)
 
     nbr_cpu = validate_nbr_processes(parser, args)
 
@@ -296,14 +296,8 @@ def main():
     sft.to_corner()
 
     img_wmparc = nib.load(args.in_wmparc)
-    if not is_header_compatible(img_wmparc, sft):
-        parser.error('Headers from the tractogram and the wmparc are '
-                     'not compatible.')
     if args.csf_bin:
         img_csf = nib.load(args.csf_bin)
-        if not is_header_compatible(img_csf, sft):
-            parser.error('Headers from the tractogram and the CSF mask are '
-                         'not compatible.')
 
     if args.minL == 0 and np.isinf(args.maxL):
         logging.info("You have not specified minL nor maxL. Output will "

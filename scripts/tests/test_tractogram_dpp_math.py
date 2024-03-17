@@ -4,8 +4,8 @@
 import os
 import tempfile
 
-from scilpy.io.fetcher import get_testing_files_dict, fetch_data, get_home
-
+from scilpy import SCILPY_HOME
+from scilpy.io.fetcher import fetch_data, get_testing_files_dict
 
 # If they already exist, this only takes 5 seconds (check md5sum)
 fetch_data(get_testing_files_dict(), keys=['tractometry.zip'])
@@ -20,9 +20,9 @@ def test_help_option(script_runner):
 
 def test_execution_tractogram_point_math_mean_3D_defaults(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    in_bundle = os.path.join(get_home(), 'tractometry',
+    in_bundle = os.path.join(SCILPY_HOME, 'tractometry',
                              'IFGWM_uni.trk')
-    in_t1 = os.path.join(get_home(), 'tractometry',
+    in_t1 = os.path.join(SCILPY_HOME, 'tractometry',
                          'mni_masked.nii.gz')
 
     t1_on_bundle = 't1_on_streamlines.trk'
@@ -45,10 +45,10 @@ def test_execution_tractogram_point_math_mean_3D_defaults(script_runner):
 
 def test_execution_tractogram_point_math_mean_4D_correlation(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    in_bundle = os.path.join(get_home(), 'tracking',
+    in_bundle = os.path.join(SCILPY_HOME, 'tracking',
                              'local_split_0.trk')
 
-    in_fodf = os.path.join(get_home(), 'tracking',
+    in_fodf = os.path.join(SCILPY_HOME, 'tracking',
                            'fodf.nii.gz')
     fodf_on_bundle = 'fodf_on_streamlines.trk'
 

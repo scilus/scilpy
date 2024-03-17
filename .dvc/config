@@ -1,0 +1,4 @@
+[core]
+    remote = scil-data
+['remote "scil-data"']
+    url = https://scil.usherbrooke.ca/scil_test_data/dvc-store

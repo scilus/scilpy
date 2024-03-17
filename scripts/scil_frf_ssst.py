@@ -22,7 +22,8 @@ from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_b0_thresh_arg, add_overwrite_arg,
                              add_skip_b0_check_arg, add_verbose_arg,
                              assert_inputs_exist, assert_outputs_exist,
-                             assert_roi_radii_format)
+                             assert_roi_radii_format,
+                             assert_headers_compatible)
 from scilpy.reconst.frf import compute_ssst_frf
 
 
@@ -50,26 +51,22 @@ def _build_arg_parser():
     p.add_argument('--mask_wm',
                    help='Path to a binary white matter mask. Only the data '
                         'inside this mask \nand above the threshold defined '
-                        'by --fa will be used to estimate the \nfiber '
+                        'by --fa_thresh will be used to estimate the \nfiber '
                         'response function.')
-    p.add_argument('--fa', dest='fa_thresh',
-                   default=0.7, type=float,
+    p.add_argument('--fa_thresh', default=0.7, type=float,
                    help='If supplied, use this threshold as the initial '
                         'threshold to select \nsingle fiber voxels. '
                         '[%(default)s]')
-    p.add_argument('--min_fa', dest='min_fa_thresh',
-                   default=0.5, type=float,
+    p.add_argument('--min_fa_thresh', default=0.5, type=float,
                    help='If supplied, this is the minimal value that will be '
                         'tried when looking \nfor single fiber '
                         'voxels. [%(default)s]')
-    p.add_argument('--min_nvox',
-                   default=300, type=int,
+    p.add_argument('--min_nvox', default=300, type=int,
                    help='Minimal number of voxels needing to be identified '
                         'as single fiber voxels \nin the automatic '
                         'estimation. [%(default)s]')
 
-    p.add_argument('--roi_radii',
-                   default=[20], nargs='+', type=int,
+    p.add_argument('--roi_radii', default=[20], nargs='+', type=int,
                    help='If supplied, use those radii to select a cuboid roi '
                         'to estimate the \nresponse functions. The roi will '
                         'be a cuboid spanning from the middle of \nthe volume '
@@ -94,8 +91,10 @@ def main():
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
-    assert_inputs_exist(parser, [args.in_dwi, args.in_bval, args.in_bvec])
+    assert_inputs_exist(parser, [args.in_dwi, args.in_bval, args.in_bvec],
+                        [args.mask, args.mask_wm])
     assert_outputs_exist(parser, args, args.frf_file)
+    assert_headers_compatible(parser, args.in_dwi, [args.mask, args.mask_wm])
 
     roi_radii = assert_roi_radii_format(parser)
 
@@ -106,13 +105,11 @@ def main():
     args.b0_threshold = check_b0_threshold(bvals.min(),
                                            b0_thr=args.b0_threshold,
                                            skip_b0_check=args.skip_b0_check)
-    mask = None
-    if args.mask:
-        mask = get_data_as_mask(nib.load(args.mask), dtype=bool)
 
-    mask_wm = None
-    if args.mask_wm:
-        mask_wm = get_data_as_mask(nib.load(args.mask_wm), dtype=bool)
+    mask = get_data_as_mask(nib.load(args.mask),
+                            dtype=bool) if args.mask else None
+    mask_wm = get_data_as_mask(nib.load(args.mask_wm),
+                               dtype=bool) if args.mask_wm else None
 
     full_response = compute_ssst_frf(
         data, bvals, bvecs, args.b0_threshold, mask=mask,

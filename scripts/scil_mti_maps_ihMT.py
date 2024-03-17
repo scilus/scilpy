@@ -86,24 +86,19 @@ the echo.
 import argparse
 import logging
 import os
-import sys
 
 import nibabel as nib
 import numpy as np
 
-from scilpy.io.utils import (get_acq_parameters, add_overwrite_arg,
+from scilpy.io.mti import add_common_args_mti, load_and_verify_mti
+from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist, add_verbose_arg,
                              assert_output_dirs_exist_and_empty)
-from scilpy.io.image import load_img
-from scilpy.image.volume_math import concatenate
-from scilpy.reconst.mti import (adjust_B1_map_intensities,
-                                apply_B1_corr_empiric,
+from scilpy.reconst.mti import (apply_B1_corr_empiric,
                                 apply_B1_corr_model_based,
                                 compute_ratio_map,
                                 compute_saturation_map,
-                                process_contrast_map,
-                                threshold_map,
-                                smooth_B1_map)
+                                threshold_map)
 
 EPILOG = """
 Varma G, Girard OM, Prevost VH, Grant AK, Duhamel G, Alsop DC.
@@ -127,16 +122,10 @@ def _build_arg_parser():
                                 formatter_class=argparse.RawTextHelpFormatter)
     p.add_argument('out_dir',
                    help='Path to output folder.')
-
     p.add_argument('--out_prefix',
                    help='Prefix to be used for each output image.')
     p.add_argument('--mask',
                    help='Path to the binary brain mask.')
-    p.add_argument('--extended', action='store_true',
-                   help='If set, outputs the folder Complementary_maps.')
-    p.add_argument('--filtering', action='store_true',
-                   help='Gaussian filtering to remove Gibbs ringing. '
-                        'Not recommended.')
 
     g = p.add_argument_group(title='Contrast maps', description='Path to '
                              'echoes corresponding to contrast images. All '
@@ -168,53 +157,8 @@ def _build_arg_parser():
                         'calculation of MTsat and ihMTsat. \nAcquisition '
                         'parameters should also be set with this image.')
 
-    a = p.add_argument_group(title='Acquisition parameters',
-                             description='Acquisition parameters required '
-                                         'for MTsat and ihMTsat '
-                                         'calculation. \nThese are the '
-                                         'excitation flip angles '
-                                         '(a_PD, a_T1), in DEGREES, and \n'
-                                         'repetition times (TR_PD, TR_T1) of '
-                                         'the PD and T1 images, in SECONDS. '
-                                         '\nCan be given through json files '
-                                         '(--in_jsons) or directly '
-                                         '(--in_acq_parameters).')
-    a1 = a.add_mutually_exclusive_group(required='--in_mtoff_t1' in sys.argv)
-    a1.add_argument('--in_jsons', nargs=2,
-                    metavar=('PD_json', 'T1_json'),
-                    help='Path to MToff PD json file and MToff T1 json file, '
-                         'in that order. \nThe acquisition parameters will be '
-                         'extracted from these files. \nMust come from a '
-                         'Philips acquisition, otherwise, use '
-                         'in_acq_parameters.')
-    a1.add_argument('--in_acq_parameters', nargs=4, type=float,
-                    metavar=('PD flip angle', 'T1 flip angle',
-                             'PD repetition time', 'T1 repetition time'),
-                    help='Acquisition parameters in that order: flip angle of '
-                         'mtoff_PD, \nflip angle of mtoff_T1, repetition time '
-                         'of mtoff_PD, \nrepetition time of mtoff_T1')
-
-    b = p.add_argument_group(title='B1 correction')
-    b.add_argument('--in_B1_map',
-                   help='Path to B1 coregister map to MT contrasts.')
-    b.add_argument('--B1_correction_method',
-                   choices=['empiric', 'model_based'], default='empiric',
-                   help='Choice of B1 correction method. Choose between '
-                        'empiric and model-based. \nNote that the model-based '
-                        'method requires a B1 fitvalues file. \nBoth method '
-                        'will only correct the saturation measures. '
-                        '[%(default)s]')
-    b.add_argument('--B1_fitvalues', nargs=3,
-                   help='Path to B1 fitvalues files obtained externally. '
-                        'Should be three .mat \nfiles given in this specific '
-                        'order: positive frequency saturation, \nnegative '
-                        'frequency saturation, dual frequency saturation.')
-    b.add_argument('--B1_nominal', default=100, type=float,
-                   help='Nominal value for the B1 map. For Philips, should be '
-                        '100. [%(default)s]')
-    b.add_argument('--B1_smooth_dims', default=5, type=int,
-                   help='Dimension of the squared window used for B1 '
-                        'smoothing, in number of voxels. [%(default)s]')
+    # Other MTI arguments are gathered here.
+    add_common_args_mti(p)
 
     add_verbose_arg(p)
     add_overwrite_arg(p)
@@ -228,6 +172,7 @@ def main():
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     output_dir = os.path.join(args.out_dir, 'ihMT_native_maps')
+    extended_dir = None
     if args.extended:
         extended_dir = os.path.join(args.out_dir, 'Complementary_maps')
         assert_output_dirs_exist_and_empty(parser, args, extended_dir,
@@ -241,106 +186,27 @@ def main():
     else:
         out_prefix = ""
 
-    # Merge all echos path into a list
-    input_maps = [args.in_altnp, args.in_altpn, args.in_negative,
-                  args.in_positive, args.in_mtoff_pd]
-    maps_flat = (args.in_altnp + args.in_altpn + args.in_negative +
-                 args.in_positive + args.in_mtoff_pd)
+    # Combine all echos path into a list of lists
+    input_maps_lists = [args.in_altnp, args.in_altpn, args.in_negative,
+                        args.in_positive, args.in_mtoff_pd]
     if args.in_mtoff_t1:
-        input_maps.append(args.in_mtoff_t1)
+        input_maps_lists.append(args.in_mtoff_t1)
 
-    # check echoes number and jsons
-    assert_inputs_exist(parser, maps_flat, optional=args.in_mtoff_t1)
-    for curr_map in input_maps[1:]:
-        if len(curr_map) != len(input_maps[0]):
-            parser.error('Not the same number of echoes per contrast')
-    if len(input_maps[0]) == 1:
-        single_echo = True
-    else:
-        single_echo = False
+    input_maps_flat_list = [m for _list in input_maps_lists for m in _list]
+    assert_inputs_exist(parser, input_maps_flat_list,
+                        optional=args.in_mtoff_t1 or [] + [args.mask])
 
-    if args.in_B1_map and not args.in_mtoff_t1:
-        logging.warning('No B1 correction was applied because no MTsat or '
-                        'ihMTsat can be computed without the in_mtoff_t1.')
-
-    if args.B1_correction_method == 'model_based' and not args.B1_fitvalues:
-        parser.error('Fitvalues files must be given when choosing the '
-                     'model-based B1 correction method. Please use '
-                     '--B1_fitvalues.')
-
-    # Set TR and FlipAngle parameters
-    if args.in_acq_parameters:
-        flip_angles = np.asarray(args.in_acq_parameters[:2]) * np.pi / 180.
-        rep_times = np.asarray(args.in_acq_parameters[2:]) * 1000
-        if rep_times[0] > 10000 or rep_times[1] > 10000:
-            logging.warning('Given repetition times do not seem to be given '
-                            'in seconds. MTsat results might be affected.')
-    elif args.in_jsons:
-        rep_times = []
-        flip_angles = []
-        for curr_json in args.in_jsons:
-            acq_parameter = get_acq_parameters(curr_json,
-                                               ['RepetitionTime', 'FlipAngle'])
-            if acq_parameter[0] > 10:
-                logging.warning('Repetition time found in {} does not seem to '
-                                'be given in seconds. MTsat and ihMTsat '
-                                'results might be affected.'.format(curr_json))
-            rep_times.append(acq_parameter[0] * 1000)  # convert ms.
-            flip_angles.append(acq_parameter[1] * np.pi / 180.)  # convert rad.
-
-    # Fix issue from the presence of invalide value and division by zero
-    np.seterr(divide='ignore', invalid='ignore')
-
-    # Define affine
-    affine = nib.load(input_maps[4][0]).affine
-
-    # Load B1 image
-    if args.in_B1_map and args.in_mtoff_t1:
-        B1_img = nib.load(args.in_B1_map)
-        B1_map = B1_img.get_fdata(dtype=np.float32)
-        B1_map = adjust_B1_map_intensities(B1_map, nominal=args.B1_nominal)
-        B1_map = smooth_B1_map(B1_map, wdims=args.B1_smooth_dims)
-        if args.B1_correction_method == 'model_based':
-            # Apply shift to the B1 map for better correction
-            # shift = 0.05
-            # expt = 1.3
-            # B1_map = (B1_map + shift) ** expt
-            # Apply the B1 map to the flip angles for model-based correction
-            flip_angles[0] *= B1_map
-            flip_angles[1] *= B1_map
-        if args.extended:
-            nib.save(nib.Nifti1Image(B1_map, affine),
-                     os.path.join(extended_dir, out_prefix + "B1_map.nii.gz"))
+    # Define affine. Uses the first in_mtoff_pd (required).
+    affine = nib.load(input_maps_lists[4][0]).affine
 
     # Define contrasts maps names
     contrast_names = ['altnp', 'altpn', 'negative', 'positive', 'mtoff_PD',
                       'mtoff_T1']
-    if args.filtering:
-        contrast_names = [curr_name + '_filter'
-                          for curr_name in contrast_names]
-    if single_echo:
-        contrast_names = [curr_name + '_single_echo'
-                          for curr_name in contrast_names]
-    if args.out_prefix:
-        contrast_names = [out_prefix + curr_name
-                          for curr_name in contrast_names]
 
-# Compute contrasts maps
-    contrast_maps = []
-    for idx, curr_map in enumerate(input_maps):
-        input_images = []
-        for image in curr_map:
-            img, _ = load_img(image)
-            input_images.append(img)
-        merged_curr_map = concatenate(input_images, input_images[0])
-        contrast_maps.append(process_contrast_map(merged_curr_map,
-                                                  filtering=args.filtering,
-                                                  single_echo=single_echo))
-        if args.extended:
-            nib.save(nib.Nifti1Image(contrast_maps[idx].astype(np.float32),
-                                     affine),
-                     os.path.join(extended_dir,
-                                  contrast_names[idx] + '.nii.gz'))
+    # Other checks, loading, saving contrast_maps.
+    single_echo, flip_angles, rep_times, B1_map, contrast_maps = \
+        load_and_verify_mti(args, parser, input_maps_lists, extended_dir,
+                            affine, contrast_names)
 
     # Compute ratio maps
     MTR, ihMTR = compute_ratio_map((contrast_maps[2] + contrast_maps[3]) / 2,
@@ -394,8 +260,6 @@ def main():
 
         # Apply empiric B1 correction
         if args.in_B1_map and args.B1_correction_method == 'empiric':
-            # MTR = apply_B1_correction_empiric(MTR, B1_map)
-            # ihMTR = apply_B1_correction_empiric(ihMTR, B1_map)
             MTsat = apply_B1_corr_empiric(MTsat, B1_map)
             ihMTsat = apply_B1_corr_empiric(ihMTsat, B1_map)
 
@@ -425,8 +289,7 @@ def main():
                     for curr_name in img_name]
 
     for img_to_save, name in zip(img_data, img_name):
-        nib.save(nib.Nifti1Image(img_to_save.astype(np.float32),
-                                 affine),
+        nib.save(nib.Nifti1Image(img_to_save.astype(np.float32), affine),
                  os.path.join(output_dir, name + '.nii.gz'))
 
 

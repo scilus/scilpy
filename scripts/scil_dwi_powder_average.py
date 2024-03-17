@@ -26,9 +26,10 @@ import numpy as np
 from dipy.core.gradients import get_bval_indices
 from dipy.io.gradients import read_bvals_bvecs
 
-from scilpy.io.image import (get_data_as_mask, assert_same_resolution)
+from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
-                             assert_outputs_exist, add_verbose_arg)
+                             assert_outputs_exist, add_verbose_arg,
+                             assert_headers_compatible)
 
 
 def _build_arg_parser():
@@ -74,22 +75,15 @@ def main():
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
-    inputs = [args.in_dwi, args.in_bval]
-    if args.mask:
-        inputs.append(args.mask)
-
-    assert_inputs_exist(parser, inputs)
+    assert_inputs_exist(parser, [args.in_dwi, args.in_bval], args.mask)
     assert_outputs_exist(parser, args, args.out_avg)
+    assert_headers_compatible(parser, args.in_dwi, args.mask)
 
     img = nib.load(args.in_dwi)
     data = img.get_fdata(dtype=np.float32)
     affine = img.affine
-    if args.mask is None:
-        mask = None
-    else:
-        mask_img = nib.load(args.mask)
-        assert_same_resolution((img, mask_img))
-        mask = get_data_as_mask(mask_img, dtype='uint8')
+    mask = get_data_as_mask(nib.load(args.mask),
+                            dtype='uint8') if args.mask else None
 
     # Read bvals (bvecs not needed at this point)
     logging.info('Performing powder average')

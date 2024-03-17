@@ -180,12 +180,12 @@ def add_processes_arg(parser):
     parser.add_argument('--processes', dest='nbr_processes',
                         metavar='NBR', type=int, default=1,
                         help='Number of sub-processes to start. \n'
-                        'Default: [%(default)s]')
+                             'Default: [%(default)s]')
 
 
 def add_reference_arg(parser, arg_name=None):
     if arg_name:
-        parser.add_argument('--'+arg_name+'_ref',
+        parser.add_argument('--' + arg_name + '_ref',
                             help='Reference anatomy for {} (if tck/vtk/fib/dpy'
                                  ') file\n'
                                  'support (.nii or .nii.gz).'.format(arg_name))
@@ -302,8 +302,8 @@ def add_sh_basis_args(parser, mandatory=False, input_output=False):
     if input_output:
         nargs = 2
         def_val = ['descoteaux07_legacy', 'tournier07']
-        input_output_msg = '\nBoth the input and output bases are ' +\
-                           'required, in that order.'
+        input_output_msg = ('\nBoth the input and output bases are '
+                            'required, in that order.')
     else:
         nargs = 1
         def_val = ['descoteaux07_legacy']
@@ -311,25 +311,25 @@ def add_sh_basis_args(parser, mandatory=False, input_output=False):
 
     choices = ['descoteaux07', 'tournier07', 'descoteaux07_legacy',
                'tournier07_legacy']
-    help_msg = 'Spherical harmonics basis used for the SH coefficients. ' +\
-               input_output_msg +\
-               '\nMust be either \'descoteaux07\', \'tournier07\', \n' +\
-               '\'descoteaux07_legacy\' or \'tournier07_legacy\'' +\
-               ' [%(default)s]:\n' +\
-               '    \'descoteaux07\'       : SH basis from the Descoteaux ' +\
-               'et al.\n' +\
-               '                           MRM 2007 paper\n' +\
-               '    \'tournier07\'         : SH basis from the new ' +\
-               'Tournier et al.\n' +\
-               '                           NeuroImage 2019 paper, as in ' +\
-               'MRtrix 3.\n' +\
-               '    \'descoteaux07_legacy\': SH basis from the legacy Dipy ' +\
-               'implementation\n' +\
-               '                           of the ' +\
-               'Descoteaux et al. MRM 2007 paper\n' +\
-               '    \'tournier07_legacy\'  : SH basis from the legacy ' +\
-               'Tournier et al.\n' +\
-               '                           NeuroImage 2007 paper.'
+    help_msg = ("Spherical harmonics basis used for the SH coefficients. "
+                "{}\n"
+                "Must be either descoteaux07', 'tournier07', \n"
+                "'descoteaux07_legacy' or 'tournier07_legacy' [%(default)s]:\n"
+                "    'descoteaux07'       : SH basis from the Descoteaux "
+                "et al.\n"
+                "                           MRM 2007 paper\n"
+                "    'tournier07'         : SH basis from the new "
+                "Tournier et al.\n"
+                "                           NeuroImage 2019 paper, as in "
+                "MRtrix 3.\n"
+                "    'descoteaux07_legacy': SH basis from the legacy Dipy "
+                "implementation\n"
+                "                           of the Descoteaux et al. MRM 2007 "
+                "paper\n"
+                "    'tournier07_legacy'  : SH basis from the legacy "
+                "Tournier et al.\n"
+                "                           NeuroImage 2007 paper."
+                .format(input_output_msg))
 
     if mandatory:
         arg_name = 'sh_basis'
@@ -353,10 +353,14 @@ def parse_sh_basis_arg(args):
 
     Returns
     -------
-    sh_basis : string
-        Spherical harmonic basis name.
-    is_legacy : bool
-        Whether or not the SH basis is in its legacy form.
+    if args.sh_basis is a list of one string:
+        sh_basis : string
+            Spherical harmonic basis name.
+        is_legacy : bool
+            Whether the SH basis is in its legacy form.
+    else: (args:sh_basis is a list of two strings)
+        Returns a Tuple of 4 values:
+        (sh_basis_in, is_legacy_in, sh_basis_out, is_legacy_out)
     """
     sh_basis_name = args.sh_basis[0]
     sh_basis = 'descoteaux07' if 'descoteaux07' in sh_basis_name \
@@ -373,7 +377,7 @@ def parse_sh_basis_arg(args):
 
 
 def add_nifti_screenshot_default_args(
-    parser, slice_ids_mandatory=True, transparency_mask_mandatory=True
+        parser, slice_ids_mandatory=True, transparency_mask_mandatory=True
 ):
     _mask_prefix = "" if transparency_mask_mandatory else "--"
 
@@ -385,8 +389,8 @@ def add_nifti_screenshot_default_args(
                            "the transparency mask are selected."
         _output_help = "Name of the output image(s). If multiple slices are " \
                        "provided (or none), their index will be append to " \
-            "the name (e.g. volume.jpg, volume.png becomes " \
-            "volume_slice_0.jpg, volume_slice_0.png)."
+                       "the name (e.g. volume.jpg, volume.png becomes " \
+                       "volume_slice_0.jpg, volume_slice_0.png)."
 
     # Positional arguments
     parser.add_argument(
@@ -422,12 +426,12 @@ def add_nifti_screenshot_default_args(
 
 
 def add_nifti_screenshot_overlays_args(
-    parser, labelmap_overlay=True, mask_overlay=True,
-    transparency_is_overlay=False
+        parser, labelmap_overlay=True, mask_overlay=True,
+        transparency_is_overlay=False
 ):
     if labelmap_overlay:
         parser.add_argument(
-            "--in_labelmap",  help="Labelmap 3D Nifti image (.nii/.nii.gz).")
+            "--in_labelmap", help="Labelmap 3D Nifti image (.nii/.nii.gz).")
         parser.add_argument(
             "--labelmap_cmap_name", default="viridis",
             help="Colormap name for the labelmap image data. [%(default)s]")
@@ -540,6 +544,7 @@ def assert_inputs_exist(parser, required, optional=None):
     optional: string or list of paths
         Optional paths to be checked.
     """
+
     def check(path):
         if not os.path.isfile(path):
             parser.error('Input file {} does not exist'.format(path))
@@ -576,6 +581,7 @@ def assert_outputs_exist(parser, args, required, optional=None,
     check_dir_exists: bool
         Test if output directory exists.
     """
+
     def check(path):
         if os.path.isfile(path) and not args.overwrite:
             parser.error('Output file {} exists. Use -f to force '
@@ -620,6 +626,7 @@ def assert_output_dirs_exist_and_empty(parser, args, required,
     create_dir: bool
         If true, create the directory if it does not exist.
     """
+
     def check(path):
         if not os.path.isdir(path):
             if not create_dir:
@@ -695,9 +702,7 @@ def assert_roi_radii_format(parser):
     return roi_radii
 
 
-def is_header_compatible_multiple_files(parser, list_files,
-                                        verbose_all_compatible=False,
-                                        reference=None):
+def assert_headers_compatible(parser, required, optional=None, reference=None):
     """
     Verifies the compatibility between the first item in list_files
     and the remaining files in list.
@@ -706,42 +711,58 @@ def is_header_compatible_multiple_files(parser, list_files,
     ---------
     parser: argument parser
         Will raise an error if a file is not compatible.
-    list_files: List[str]
+    required: List[str]
         List of files to test
-    verbose_all_compatible: bool
-        If true will print a message when everything is okay
+    optional: List[str or None]
+        List of files. May contain None, they will be discarted.
     reference: str
         Reference for any .tck passed in `list_files`
     """
     all_valid = True
 
-    # Gather "headers" for all files to compare against
-    # eachother later
+    # Format required and optional to lists if a single filename was sent.
+    if isinstance(required, str):
+        required = [required]
+    if optional is None:
+        optional = []
+    elif isinstance(optional, str):
+        optional = [optional]
+    else:
+        optional = [f for f in optional if f is not None]
+    list_files = required + optional
+
+    if reference is not None:
+        list_files.append(reference)
+
+    if len(list_files) <= 1:
+        return
+
+    # Gather "headers" for all files to compare against each other later
     headers = []
     for filepath in list_files:
         _, in_extension = split_name_with_nii(filepath)
         if in_extension in ['.trk', '.nii', '.nii.gz']:
             headers.append(filepath)
         elif in_extension == '.tck':
-            if reference:
-                headers.append(reference)
-            else:
+            if reference is None:
                 parser.error(
-                    '{} must be provided with a reference.'.format(
-                        filepath))
+                    '{} must be provided with a reference.'.format(filepath))
         else:
             parser.error('{} does not have a supported extension.'.format(
                 filepath))
 
+    # Verify again that we have more than one header (ex, if not all tck files)
+    if len(headers) <= 1:
+        return
+
     for curr in headers[1:]:
         if not is_header_compatible(headers[0], curr):
-            print('ERROR:\"{}\" and \"{}\" do not have compatible '
-                  'headers.'.format(headers[0], curr))
+            # Not raising error now. Allows to show all errors.
+            logging.error('ERROR:\"{}\" and \"{}\" do not have compatible '
+                          'headers.'.format(headers[0], curr))
             all_valid = False
 
-    if all_valid and verbose_all_compatible:
-        print('All input files have compatible headers.')
-    elif not all_valid:
+    if not all_valid:
         parser.error('Not all input files have compatible headers.')
 
 
@@ -751,18 +772,18 @@ def read_info_from_mb_bdo(filename):
     geometry = root.attrib['type']
     center_tag = root.find('origin')
     flip = [-1, -1, 1]
-    center = [flip[0]*float(center_tag.attrib['x'].replace(',', '.')),
-              flip[1]*float(center_tag.attrib['y'].replace(',', '.')),
-              flip[2]*float(center_tag.attrib['z'].replace(',', '.'))]
+    center = [flip[0] * float(center_tag.attrib['x'].replace(',', '.')),
+              flip[1] * float(center_tag.attrib['y'].replace(',', '.')),
+              flip[2] * float(center_tag.attrib['z'].replace(',', '.'))]
     row_list = tree.iter('Row')
     radius = [None, None, None]
     for i, row in enumerate(row_list):
         for j in range(0, 3):
             if j == i:
-                key = 'col' + str(j+1)
+                key = 'col' + str(j + 1)
                 radius[i] = float(row.attrib[key].replace(',', '.'))
             else:
-                key = 'col' + str(j+1)
+                key = 'col' + str(j + 1)
                 value = float(row.attrib[key].replace(',', '.'))
                 if abs(value) > 0.01:
                     raise ValueError('Does not support rotation, for now \n'
@@ -912,7 +933,6 @@ def ranged_type(value_type, min_value, max_value):
 
 
 def get_default_screenshotting_data(args):
-
     volume_img = nib.load(args.in_volume)
 
     transparency_mask_img = None

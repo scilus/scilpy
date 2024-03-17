@@ -114,7 +114,7 @@ def main():
     if (args.tube_radius is not None and args.tube_radius <= 0):
         parser.error('argument --tube_radius: must be > 0')
 
-    assert_inputs_exist(parser, args.in_tractogram)
+    assert_inputs_exist(parser, args.in_tractogram, args.reference)
     assert_outputs_exist(parser, args, args.out_tractogram)
 
     logging.info("Loading sft.")

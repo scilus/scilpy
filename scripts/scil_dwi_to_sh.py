@@ -20,7 +20,8 @@ from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_b0_thresh_arg, add_overwrite_arg,
                              add_sh_basis_args, add_skip_b0_check_arg,
                              add_verbose_arg, assert_inputs_exist,
-                             assert_outputs_exist, parse_sh_basis_arg)
+                             assert_outputs_exist, parse_sh_basis_arg,
+                             assert_headers_compatible)
 from scilpy.reconst.sh import compute_sh_coefficients
 
 
@@ -62,8 +63,10 @@ def main():
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
-    assert_inputs_exist(parser, [args.in_dwi, args.in_bval, args.in_bvec])
+    assert_inputs_exist(parser, [args.in_dwi, args.in_bval, args.in_bvec],
+                        args.mask)
     assert_outputs_exist(parser, args, args.out_sh)
+    assert_headers_compatible(parser, args.in_dwi, args.mask)
 
     vol = nib.load(args.in_dwi)
     dwi = vol.get_fdata(dtype=np.float32)
@@ -78,9 +81,8 @@ def main():
 
     sh_basis, is_legacy = parse_sh_basis_arg(args)
 
-    mask = None
-    if args.mask:
-        mask = get_data_as_mask(nib.load(args.mask), dtype=bool)
+    mask = get_data_as_mask(nib.load(args.mask),
+                            dtype=bool) if args.mask else None
 
     sh = compute_sh_coefficients(dwi, gtab, args.b0_threshold,
                                  args.sh_order, sh_basis, args.smooth,

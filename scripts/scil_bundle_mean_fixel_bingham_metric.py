@@ -32,10 +32,9 @@ import nibabel as nib
 import numpy as np
 
 from scilpy.io.streamlines import load_tractogram_with_reference
-from scilpy.io.utils import (add_overwrite_arg,
-                             add_reference_arg,
-                             add_verbose_arg,
-                             assert_inputs_exist, assert_outputs_exist)
+from scilpy.io.utils import (add_overwrite_arg, add_reference_arg,
+                             add_verbose_arg, assert_inputs_exist,
+                             assert_outputs_exist, assert_headers_compatible)
 from scilpy.tractanalysis.bingham_metric_along_streamlines \
     import bingham_metric_map_along_streamlines
 
@@ -73,10 +72,13 @@ def main():
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
-    assert_inputs_exist(parser, [args.in_bundle,
-                                 args.in_bingham,
-                                 args.in_bingham_metric])
+    assert_inputs_exist(parser, [args.in_bundle, args.in_bingham,
+                                 args.in_bingham_metric],
+                        args.reference)
     assert_outputs_exist(parser, args, [args.out_mean_map])
+    assert_headers_compatible(parser, [args.in_bundle, args.in_bingham,
+                                       args.in_bingham_metric],
+                              reference=args.reference)
 
     sft = load_tractogram_with_reference(parser, args, args.in_bundle)
     bingham_img = nib.load(args.in_bingham)

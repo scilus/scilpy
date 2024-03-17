@@ -173,7 +173,7 @@ def main():
 
     # -------- General checks ----------
     assert_inputs_exist(parser, [args.in_bundle],
-                        args.load_dps + args.load_dpp)
+                        args.load_dps + args.load_dpp + [args.reference])
 
     # Find all final output files (one per metric).
     if args.load_dps or args.load_dpp:

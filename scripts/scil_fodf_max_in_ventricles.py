@@ -3,7 +3,7 @@
 
 """
 Script to compute the maximum fODF in the ventricles. The ventricules are
-estimated from a MD and FA threshold.
+estimated from an MD and FA threshold.
 
 This allows to clip the noise of fODF using an absolute thresold.
 
@@ -41,25 +41,23 @@ def _build_arg_parser():
     p.add_argument('in_md',  metavar='MD',
                    help='Path to the mean diffusivity (MD) volume.')
 
-    p.add_argument('--fa_t', dest='fa_threshold',
-                   type=float, default='0.1',
-                   help='Maximal threshold of FA (voxels under that threshold'
-                        ' are considered for evaluation, [%(default)s]).')
-    p.add_argument('--md_t', dest='md_threshold',
-                   type=float, default='0.003',
+    p.add_argument('--fa_threshold', type=float, default='0.1',
+                   help='Maximal threshold of FA (voxels under that threshold '
+                        'are considered \nfor evaluation. [%(default)s]).')
+    p.add_argument('--md_threshold', type=float, default='0.003',
                    help='Minimal threshold of MD in mm2/s (voxels above that '
-                        'threshold are considered for '
-                        'evaluation, [%(default)s]).')
+                        'threshold are \nconsidered for '
+                        'evaluation. [%(default)s]).')
     p.add_argument('--max_value_output',  metavar='file',
                    help='Output path for the text file containing the value. '
-                        'If not set the file will not be saved.')
+                        'If not set the \nfile will not be saved.')
     p.add_argument('--mask_output',  metavar='file',
                    help='Output path for the ventricule mask. If not set, '
-                        'the mask will not be saved.')
+                        'the mask \nwill not be saved.')
     p.add_argument('--small_dims',  action='store_true',
                    help='If set, takes the full range of data to search the '
-                        'max fodf amplitude in ventricles. Useful when the '
-                        'data is 2D or has small dimensions.')
+                        'max fodf amplitude \nin ventricles. Useful when the '
+                        'data has small dimensions.')
 
     add_sh_basis_args(p)
     add_verbose_arg(p)
@@ -80,7 +78,6 @@ def main():
     # Load input image
     img_fODFs = nib.load(args.in_fodfs)
     fodf = img_fODFs.get_fdata(dtype=np.float32)
-    affine = img_fODFs.affine
     zoom = img_fODFs.header.get_zooms()[:3]
 
     img_fa = nib.load(args.in_fa)
@@ -91,11 +88,13 @@ def main():
 
     sh_basis, is_legacy = parse_sh_basis_arg(args)
 
-    value, mask = get_ventricles_max_fodf(fodf, fa, md, zoom, sh_basis, args,
+    value, mask = get_ventricles_max_fodf(fodf, fa, md, zoom, sh_basis,
+                                          args.small_dims, args.fa_threshold,
+                                          args.md_threshold,
                                           is_legacy=is_legacy)
 
     if args.mask_output:
-        img = nib.Nifti1Image(np.array(mask, 'float32'),  affine)
+        img = nib.Nifti1Image(np.array(mask, 'float32'),  img_fODFs.affine)
         nib.save(img, args.mask_output)
 
     if args.max_value_output:
