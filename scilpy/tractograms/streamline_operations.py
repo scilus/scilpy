@@ -409,8 +409,9 @@ def generate_matched_points(sft):
 
 
     """
-    total_points = sft.streamlines._data.shape[0]
-    offsets = sft.streamlines._offsets
+    tmp_len = [len(s) for s in sft.streamlines]
+    total_points = np.sum(tmp_len)
+    offsets = np.insert(np.cumsum(tmp_len), 0, 0)
 
     matched_points = np.zeros(total_points, dtype=np.uint64)
 

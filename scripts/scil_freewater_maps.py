@@ -108,31 +108,29 @@ def main():
         logging.getLogger().setLevel(logging.getLevelName(args.verbose))
         redirected_stdout = redirect_stdout(sys.stdout)
 
+    # Verifications
     if args.compute_only and not args.save_kernels:
         parser.error('--compute_only must be used with --save_kernels.')
 
     assert_inputs_exist(parser, [args.in_dwi, args.in_bval, args.in_bvec],
                         args.mask)
 
-    assert_output_dirs_exist_and_empty(parser, args,
-                                       args.out_dir,
+    assert_output_dirs_exist_and_empty(parser, args, args.out_dir,
                                        optional=args.save_kernels)
 
-    # Generage a scheme file from the bvals and bvecs files
+    # Generate a scheme file from the bvals and bvecs files
     tmp_dir = tempfile.TemporaryDirectory()
     tmp_scheme_filename = os.path.join(tmp_dir.name, 'gradients.b')
     tmp_bval_filename = os.path.join(tmp_dir.name, 'bval')
     bvals, _ = read_bvals_bvecs(args.in_bval, args.in_bvec)
-    shells_centroids, indices_shells = identify_shells(bvals,
-                                                       args.b_thr,
+    shells_centroids, indices_shells = identify_shells(bvals, args.b_thr,
                                                        round_centroids=True)
     np.savetxt(tmp_bval_filename, shells_centroids[indices_shells],
                newline=' ', fmt='%i')
     fsl2mrtrix(tmp_bval_filename, args.in_bvec, tmp_scheme_filename)
     logging.info(
-        'Compute FreeWater with AMICO on {} shells at found at {}.'.format(
-            len(shells_centroids),
-            shells_centroids))
+        'Computing FreeWater with AMICO on {} shells at found at {}.'.format(
+            len(shells_centroids), shells_centroids))
 
     with redirected_stdout:
         amico.core.setup()
@@ -150,9 +148,7 @@ def main():
             model_type = 'Mouse'
 
         ae.model.set(args.para_diff,
-                     np.linspace(args.perp_diff_min,
-                                 args.perp_diff_max,
-                                 10),
+                     np.linspace(args.perp_diff_min, args.perp_diff_max, 10),
                      [args.iso_diff],
                      model_type)
 

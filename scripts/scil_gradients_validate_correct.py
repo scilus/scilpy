@@ -15,8 +15,10 @@ Note that peaks_v1.nii.gz is the file containing the direction associated
 to the highest eigenvalue at each voxel.
 
 It is also possible to use a file containing multiple principal directions per
-voxel, given that the amplitude of each direction is also given with the
-argument --peaks_vals.
+voxel, given that they are sorted by decreasing amplitude. In that case, the
+first direction (with the highest amplitude) will be chosen for validation.
+Only 4D data is supported, so the directions must be stored in a single
+dimension. For example, peaks.nii.gz from scil_fodf_metrics.py could be used.
 
 Formerly: scil_validate_and_correct_bvecs.py
 """
@@ -29,9 +31,10 @@ import numpy as np
 import nibabel as nib
 
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
-                             assert_outputs_exist, add_verbose_arg)
+                             assert_outputs_exist, add_verbose_arg,
+                             assert_headers_compatible)
 from scilpy.io.image import get_data_as_mask
-from scilpy.reconst.fiber_coherence import compute_fiber_coherence_table
+from scilpy.reconst.fiber_coherence import compute_coherence_table_for_transforms
 
 
 EPILOG = """
@@ -58,12 +61,9 @@ def _build_arg_parser():
     p.add_argument('--mask',
                    help='Path to an optional mask. If set, FA and Peaks will '
                         'only be used inside the mask.')
-    p.add_argument('--peaks_vals',
-                   help='Path to peaks values file. If more than one peak per '
-                        'voxel is found, the maximal peak only will be used.')
-    p.add_argument('--fa_th', default=0.2, type=float,
+    p.add_argument('--fa_threshold', default=0.2, type=float,
                    help='FA threshold. Only voxels with FA higher '
-                        'than fa_th will be considered. [%(default)s]')
+                        'than fa_threshold will be considered. [%(default)s]')
     p.add_argument('--column_wise', action='store_true',
                    help='Specify if input peaks are column-wise (..., 3, N) '
                         'instead of row-wise (..., N, 3).')
@@ -78,15 +78,20 @@ def main():
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
-    inputs = [args.in_bvec, args.in_peaks, args.in_FA]
-    optional = [args.mask, args.peaks_vals]
-
-    assert_inputs_exist(parser, inputs, optional=optional)
+    assert_inputs_exist(parser, [args.in_bvec, args.in_peaks, args.in_FA],
+                        optional=args.mask)
     assert_outputs_exist(parser, args, args.out_bvec)
+    assert_headers_compatible(parser, [args.in_peaks, args.in_FA],
+                              optional=args.mask)
 
     _, bvecs = read_bvals_bvecs(None, args.in_bvec)
     fa = nib.load(args.in_FA).get_fdata()
     peaks = nib.load(args.in_peaks).get_fdata()
+
+    if peaks.shape[-1] > 3:
+        logging.info('More than one principal direction per voxel was given.')
+        peaks = peaks[..., 0:3]
+        logging.info('The first peak is assumed to be the biggest.')
 
     # convert peaks to a volume of shape (H, W, D, N, 3)
     if args.column_wise:
@@ -95,23 +100,14 @@ def main():
     else:
         peaks = np.reshape(peaks, peaks.shape[:3] + (-1, 3))
 
-    N = peaks.shape[3]
-    if N > 1:
-        if not args.peaks_vals:
-            parser.error('More than one principal direction per voxel. Specify'
-                         ' peaks values with --peaks_vals to proceed.')
-        peaks_vals = nib.load(args.peaks_vals).get_fdata()
-        indices_max = np.argmax(peaks_vals, axis=-1)[..., None, None]
-        peaks = np.take_along_axis(peaks, indices_max, axis=-2)
-
     peaks = np.squeeze(peaks)
     if args.mask:
-        mask = get_data_as_mask(nib.load(args.mask))
+        mask = get_data_as_mask(nib.load(args.mask), ref_shape=peaks.shape)
         fa[np.logical_not(mask)] = 0
         peaks[np.logical_not(mask)] = 0
 
-    peaks[fa < args.fa_th] = 0
-    coherence, transform = compute_fiber_coherence_table(peaks, fa)
+    peaks[fa < args.fa_threshold] = 0
+    coherence, transform = compute_coherence_table_for_transforms(peaks, fa)
 
     best_t = transform[np.argmax(coherence)]
     if (best_t == np.eye(3)).all():

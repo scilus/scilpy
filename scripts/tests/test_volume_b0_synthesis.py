@@ -1,13 +1,16 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-from scilpy.io.fetcher import fetch_data, get_home, get_testing_files_dict
 import os
 import tempfile
 
-import pytest
 import nibabel as nib
 import numpy as np
+import pytest
+
+from scilpy import SCILPY_HOME
+from scilpy.io.fetcher import fetch_data, get_testing_files_dict
+
 tensorflow = pytest.importorskip("tensorflow")
 
 
@@ -24,9 +27,9 @@ def test_help_option(script_runner):
 @pytest.mark.skipif(tensorflow is None, reason="Tensorflow not installed")
 def test_synthesis(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    in_t1 = os.path.join(get_home(), 'others',
+    in_t1 = os.path.join(SCILPY_HOME, 'others',
                          't1.nii.gz')
-    in_b0 = os.path.join(get_home(), 'processing',
+    in_b0 = os.path.join(SCILPY_HOME, 'processing',
                          'b0_mean.nii.gz')
 
     t1_img = nib.load(in_t1)

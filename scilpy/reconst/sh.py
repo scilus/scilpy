@@ -17,6 +17,26 @@ from scilpy.gradients.bvec_bval_tools import (identify_shells,
 from scilpy.dwi.operations import compute_dwi_attenuation
 
 
+def verify_data_vs_sh_order(data, sh_order):
+    """
+    Raises a warning if the dwi data shape is not enough for the chosen
+    sh_order.
+
+    Parameters
+    ----------
+    data: np.ndarray
+        Diffusion signal as weighted images (4D).
+    sh_order: int
+        SH order to fit, by default 4.
+    """
+    if data.shape[-1] < (sh_order + 1) * (sh_order + 2) / 2:
+        logging.warning(
+            'We recommend having at least {} unique DWIs volumes, but you '
+            'currently have {} volumes. Try lowering the parameter --sh_order '
+            'in case of non convergence.'.format(
+                (sh_order + 1) * (sh_order + 2) / 2, data.shape[-1]))
+
+
 def compute_sh_coefficients(dwi, gradient_table,
                             b0_threshold=DEFAULT_B0_THRESHOLD, sh_order=4,
                             basis_type='descoteaux07', smooth=0.006,
@@ -557,8 +577,7 @@ def convert_sh_basis(shm_coeff, sphere, mask=None,
         mask = np.sum(shm_coeff, axis=3).astype(bool)
 
     nbr_processes = multiprocessing.cpu_count() \
-        if nbr_processes is None or nbr_processes < 0 \
-        else nbr_processes
+        if nbr_processes is None or nbr_processes < 0 else nbr_processes
 
     # Ravel the first 3 dimensions while keeping the 4th intact, like a list of
     # 1D time series voxels. Then separate it in chunks of len(nbr_processes).
@@ -627,7 +646,7 @@ def convert_sh_to_sf(shm_coeff, sphere, mask=None, dtype="float32",
         If True, use a full SH basis (even and odd orders) for the input SH
         coefficients.
     is_input_legacy : bool, optional
-        Whether or not the input basis is in its legacy form.
+        Whether the input basis is in its legacy form.
     nbr_processes: int, optional
         The number of subprocesses to use.
         Default: multiprocessing.cpu_count()

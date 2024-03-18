@@ -19,17 +19,15 @@ import logging
 
 from dipy.io.stateful_tractogram import StatefulTractogram
 from dipy.io.streamline import save_tractogram
-from dipy.io.utils import is_header_compatible, get_reference_info
+from dipy.io.utils import get_reference_info
 import nibabel as nib
 import numpy as np
 from scipy.sparse import dok_matrix
 
 from scilpy.io.streamlines import load_tractogram_with_reference
-from scilpy.io.utils import (add_overwrite_arg,
-                             add_reference_arg,
-                             add_verbose_arg,
-                             assert_inputs_exist,
-                             assert_outputs_exist)
+from scilpy.io.utils import (add_overwrite_arg, add_reference_arg,
+                             add_verbose_arg, assert_inputs_exist,
+                             assert_outputs_exist, assert_headers_compatible)
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
 from scilpy.tractograms.tractogram_operations import (
     intersection_robust, union_robust)
@@ -70,12 +68,14 @@ def main():
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
-    assert_inputs_exist(parser, args.in_bundles)
+    assert_inputs_exist(parser, args.in_bundles, args.reference)
     output_streamlines_filename = '{}streamlines.trk'.format(
         args.output_prefix)
     output_voxels_filename = '{}voxels.nii.gz'.format(args.output_prefix)
     assert_outputs_exist(parser, args, [output_voxels_filename,
                                         output_streamlines_filename])
+    assert_headers_compatible(parser, args.in_bundles,
+                              reference=args.reference)
 
     if not 0 <= args.ratio_voxels <= 1 or not 0 <= args.ratio_streamlines <= 1:
         parser.error('Ratios must be between 0 and 1.')
@@ -88,9 +88,6 @@ def main():
         tmp_sft = load_tractogram_with_reference(parser, args, name)
         tmp_sft.to_vox()
         tmp_sft.to_corner()
-
-        if not is_header_compatible(args.reference, tmp_sft):
-            raise ValueError('Headers are not compatible.')
         sft_list.append(tmp_sft)
         fusion_streamlines.append(tmp_sft.streamlines)
 

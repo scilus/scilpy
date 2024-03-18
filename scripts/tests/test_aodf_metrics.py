@@ -4,11 +4,10 @@
 import os
 import tempfile
 
-from scilpy.io.fetcher import get_testing_files_dict, fetch_data, get_home
-
+from scilpy.io.dvc import pull_test_case_package
 
 # If they already exist, this only takes 5 seconds (check md5sum)
-fetch_data(get_testing_files_dict(), keys=['processing.zip'])
+test_data_root = pull_test_case_package("aodf")
 tmp_dir = tempfile.TemporaryDirectory()
 
 
@@ -18,9 +17,11 @@ def test_help_option(script_runner):
 
 
 def test_execution(script_runner):
+
+    # toDo: Add --mask.
     os.chdir(os.path.expanduser(tmp_dir.name))
-    in_fodf = os.path.join(get_home(), 'processing',
-                           'fodf_descoteaux07_sub_full.nii.gz')
+    in_fodf = os.path.join(
+        f"{test_data_root}/fodf_descoteaux07_sub_unified_asym.nii.gz")
 
     # Using a low resolution sphere for peak extraction reduces process time
     ret = script_runner.run('scil_aodf_metrics.py', in_fodf,
@@ -30,8 +31,8 @@ def test_execution(script_runner):
 
 def test_assert_not_all(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    in_fodf = os.path.join(get_home(), 'processing',
-                           'fodf_descoteaux07_sub_full.nii.gz')
+    in_fodf = os.path.join(
+        f"{test_data_root}/fodf_descoteaux07_sub_unified_asym.nii.gz")
 
     ret = script_runner.run('scil_aodf_metrics.py', in_fodf,
                             '--not_all')
@@ -40,8 +41,8 @@ def test_assert_not_all(script_runner):
 
 def test_execution_not_all(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    in_fodf = os.path.join(get_home(), 'processing',
-                           'fodf_descoteaux07_sub_full.nii.gz')
+    in_fodf = os.path.join(
+        f"{test_data_root}/fodf_descoteaux07_sub_unified_asym.nii.gz")
 
     ret = script_runner.run('scil_aodf_metrics.py', in_fodf,
                             '--not_all', '--asi_map',
@@ -51,8 +52,8 @@ def test_execution_not_all(script_runner):
 
 def test_assert_symmetric_input(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    in_fodf = os.path.join(get_home(), 'processing',
-                           'fodf_descoteaux07.nii.gz')
+    in_fodf = os.path.join(
+        f"{test_data_root}/fodf_descoteaux07_sub.nii.gz")
 
     # Using a low resolution sphere for peak extraction reduces process time
     ret = script_runner.run('scil_aodf_metrics.py', in_fodf,
@@ -62,8 +63,8 @@ def test_assert_symmetric_input(script_runner):
 
 def test_execution_symmetric_input(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    in_fodf = os.path.join(get_home(), 'processing',
-                           'fodf_descoteaux07.nii.gz')
+    in_fodf = os.path.join(
+        f"{test_data_root}/fodf_descoteaux07_sub.nii.gz")
 
     # Using a low resolution sphere for peak extraction reduces process time
     ret = script_runner.run('scil_aodf_metrics.py', in_fodf,

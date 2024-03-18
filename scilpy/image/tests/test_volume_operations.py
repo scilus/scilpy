@@ -3,29 +3,28 @@
 import os
 import tempfile
 
-from dipy.io.gradients import read_bvals_bvecs
 import nibabel as nib
 import numpy as np
-from numpy.testing import assert_equal, assert_almost_equal
+from dipy.io.gradients import read_bvals_bvecs
+from numpy.testing import assert_equal
 
-from scilpy.image.volume_operations import (flip_volume,
-                                            crop_volume,
-                                            apply_transform,
+from scilpy import SCILPY_HOME
+from scilpy.image.volume_operations import (apply_transform,
                                             compute_snr,
-                                            resample_volume,
-                                            normalize_metric,
-                                            merge_metrics)
-from scilpy.io.fetcher import fetch_data, get_testing_files_dict, get_home
+                                            crop_volume,
+                                            flip_volume,
+                                            resample_volume)
+from scilpy.io.fetcher import fetch_data, get_testing_files_dict
 from scilpy.utils.util import compute_nifti_bounding_box
 
 # Fetching testing dwi data.
 fetch_data(get_testing_files_dict(), keys='processing.zip')
 tmp_dir = tempfile.TemporaryDirectory()
-in_dwi = os.path.join(get_home(), 'processing', 'dwi.nii.gz')
-in_bval = os.path.join(get_home(), 'processing', 'dwi.bval')
-in_bvec = os.path.join(get_home(), 'processing', 'dwi.bvec')
-in_mask = os.path.join(get_home(), 'processing', 'cc.nii.gz')
-in_noise_mask = os.path.join(get_home(), 'processing',
+in_dwi = os.path.join(SCILPY_HOME, 'processing', 'dwi.nii.gz')
+in_bval = os.path.join(SCILPY_HOME, 'processing', 'dwi.bval')
+in_bvec = os.path.join(SCILPY_HOME, 'processing', 'dwi.bvec')
+in_mask = os.path.join(SCILPY_HOME, 'processing', 'cc.nii.gz')
+in_noise_mask = os.path.join(SCILPY_HOME, 'processing',
                              'small_roi_gm_mask.nii.gz')
 
 

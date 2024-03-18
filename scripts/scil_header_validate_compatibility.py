@@ -17,7 +17,7 @@ from scilpy.io.utils import (
     add_reference_arg,
     add_verbose_arg,
     assert_inputs_exist,
-    is_header_compatible_multiple_files)
+    assert_headers_compatible)
 
 
 def _build_arg_parser():
@@ -38,10 +38,12 @@ def main():
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
-    assert_inputs_exist(parser, args.in_files)
-    is_header_compatible_multiple_files(parser, args.in_files,
-                                        verbose_all_compatible=True,
-                                        reference=args.reference)
+    assert_inputs_exist(parser, args.in_files, args.reference)
+    assert_headers_compatible(parser, args.in_files,
+                              reference=args.reference)
+
+    # If we come here, it means there was no error.
+    print('All input files have compatible headers.')
 
 
 if __name__ == "__main__":

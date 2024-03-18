@@ -4,8 +4,8 @@
 import os
 import tempfile
 
-from scilpy.io.fetcher import get_testing_files_dict, fetch_data, get_home
-
+from scilpy import SCILPY_HOME
+from scilpy.io.fetcher import fetch_data, get_testing_files_dict
 
 # If they already exist, this only takes 5 seconds (check md5sum)
 fetch_data(get_testing_files_dict(), keys=['tractometry.zip'])
@@ -20,8 +20,8 @@ def test_help_option(script_runner):
 
 def test_execution_dpp(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    in_bundle = os.path.join(get_home(), 'tractometry', 'IFGWM_uni.trk')
-    in_mni = os.path.join(get_home(), 'tractometry', 'mni_masked.nii.gz')
+    in_bundle = os.path.join(SCILPY_HOME, 'tractometry', 'IFGWM_uni.trk')
+    in_mni = os.path.join(SCILPY_HOME, 'tractometry', 'mni_masked.nii.gz')
     in_bundle_with_dpp = 'IFGWM_uni_with_dpp.trk'
 
     # Create our test data with dpp: add metrics as dpp.
@@ -52,8 +52,8 @@ def test_execution_dpp(script_runner):
 
 def test_execution_dps(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    in_bundle = os.path.join(get_home(), 'tractometry', 'IFGWM_uni.trk')
-    in_mni = os.path.join(get_home(), 'tractometry', 'mni_masked.nii.gz')
+    in_bundle = os.path.join(SCILPY_HOME, 'tractometry', 'IFGWM_uni.trk')
+    in_mni = os.path.join(SCILPY_HOME, 'tractometry', 'mni_masked.nii.gz')
     in_bundle_with_dpp = 'IFGWM_uni_with_dpp.trk'
     in_bundle_with_dps = 'IFGWM_uni_with_dps.trk'
 

@@ -1,13 +1,15 @@
 # -*- coding: utf-8 -*-
 
+import hashlib
 import inspect
 import logging
-import hashlib
 import os
 import pathlib
-import requests
 import zipfile
 
+import requests
+
+from scilpy import SCILPY_HOME
 
 DVC_URL = "https://scil.usherbrooke.ca/scil_test_data/dvc-store/files/md5"
 
@@ -33,15 +35,6 @@ def download_file_from_google_drive(url, destination):
     response = session.get(url, stream=True)
 
     save_response_content(response, destination)
-
-
-def get_home():
-    """ Set a user-writeable file-system location to put files. """
-    if 'SCILPY_HOME' in os.environ:
-        scilpy_home = os.environ['SCILPY_HOME']
-    else:
-        scilpy_home = os.path.join(os.path.expanduser('~'), '.scilpy')
-    return scilpy_home
 
 
 def get_testing_files_dict():
@@ -76,10 +69,9 @@ def fetch_data(files_dict, keys=None):
     But with too many data accesses, downloaded become denied.
     Using trick from https://github.com/wkentaro/gdown/issues/43.
     """
-    scilpy_home = get_home()
 
-    if not os.path.exists(scilpy_home):
-        os.makedirs(scilpy_home)
+    if not os.path.exists(SCILPY_HOME):
+        os.makedirs(SCILPY_HOME)
 
     if keys is None:
         keys = files_dict.keys()
@@ -87,14 +79,14 @@ def fetch_data(files_dict, keys=None):
         keys = [keys]
     for f in keys:
         url_md5 = files_dict[f]
-        full_path = os.path.join(scilpy_home, f)
+        full_path = os.path.join(SCILPY_HOME, f)
         full_path_no_ext, ext = os.path.splitext(full_path)
 
         CURR_URL = DVC_URL + "/" + url_md5[:2] + "/" + url_md5[2:]
         if not os.path.isdir(full_path_no_ext):
             if ext == '.zip' and not os.path.isdir(full_path_no_ext):
                 logging.warning('Downloading and extracting {} from url {} to '
-                                '{}'.format(f, CURR_URL, scilpy_home))
+                                '{}'.format(f, CURR_URL, SCILPY_HOME))
 
                 # Robust method to Virus/Size check from GDrive
                 download_file_from_google_drive(CURR_URL, full_path)

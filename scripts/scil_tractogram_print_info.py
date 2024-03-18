@@ -47,7 +47,7 @@ def main():
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
-    assert_inputs_exist(parser, args.in_tractogram)
+    assert_inputs_exist(parser, args.in_tractogram, args.reference)
 
     sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
 

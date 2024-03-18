@@ -7,16 +7,26 @@ import tempfile
 import numpy as np
 from dipy.io.streamline import load_tractogram
 
-from scilpy.io.fetcher import fetch_data, get_testing_files_dict, get_home
-from scilpy.tractograms.tractogram_operations import flip_sft, \
-    shuffle_streamlines, perform_tractogram_operation_on_lines, intersection, union, \
-    difference, intersection_robust, difference_robust, union_robust, \
-    concatenate_sft, perform_tractogram_operation_on_sft
+from scilpy import SCILPY_HOME
+from scilpy.io.fetcher import fetch_data, get_testing_files_dict
+from scilpy.tractograms.tractogram_operations import (
+    concatenate_sft,
+    difference,
+    difference_robust,
+    flip_sft,
+    intersection,
+    intersection_robust,
+    perform_tractogram_operation_on_lines,
+    perform_tractogram_operation_on_sft,
+    shuffle_streamlines,
+    union,
+    union_robust)
+
 
 # Prepare SFT
 fetch_data(get_testing_files_dict(), keys=['surface_vtk_fib.zip'])
 tmp_dir = tempfile.TemporaryDirectory()
-in_sft = os.path.join(get_home(), 'surface_vtk_fib', 'gyri_fanning.trk')
+in_sft = os.path.join(SCILPY_HOME, 'surface_vtk_fib', 'gyri_fanning.trk')
 
 # Loading and keeping only a few streamlines for faster testing.
 sft = load_tractogram(in_sft, 'same')[0:4]

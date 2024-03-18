@@ -20,12 +20,10 @@ import time
 import argparse
 import logging
 
-from scilpy.io.utils import (add_overwrite_arg,
-                             add_processes_arg,
-                             add_verbose_arg,
-                             assert_inputs_exist,
-                             assert_outputs_exist,
-                             validate_nbr_processes)
+from scilpy.io.utils import (add_overwrite_arg, add_processes_arg,
+                             add_verbose_arg, assert_inputs_exist,
+                             assert_outputs_exist, validate_nbr_processes,
+                             assert_headers_compatible)
 from scilpy.io.image import get_data_as_mask
 from scilpy.reconst.bingham import (bingham_fit_sh)
 
@@ -86,11 +84,12 @@ def main():
 
     assert_inputs_exist(parser, args.in_sh, args.mask)
     assert_outputs_exist(parser, args, args.out_bingham)
+    assert_headers_compatible(parser, args.in_sh, args.mask)
 
     sh_im = nib.load(args.in_sh)
     data = sh_im.get_fdata()
-    mask = get_data_as_mask(nib.load(args.mask), dtype=bool)\
-        if args.mask else None
+    mask = get_data_as_mask(nib.load(args.mask),
+                            dtype=bool) if args.mask else None
 
     # validate number of processes
     nbr_processes = validate_nbr_processes(parser, args)

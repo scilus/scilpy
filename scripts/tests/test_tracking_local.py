@@ -4,8 +4,8 @@
 import os
 import tempfile
 
-from scilpy.io.fetcher import get_testing_files_dict, fetch_data, get_home
-
+from scilpy import SCILPY_HOME
+from scilpy.io.fetcher import fetch_data, get_testing_files_dict
 
 # If they already exist, this only takes 5 seconds (check md5sum)
 fetch_data(get_testing_files_dict(), keys=['tracking.zip'])
@@ -22,8 +22,8 @@ def test_execution_tracking_fodf_prob(script_runner):
     # Our testing seeding mask has 125 286 voxels, this would be long.
     # Only testing option npv in our first gpu test, below
     os.chdir(os.path.expanduser(tmp_dir.name))
-    in_fodf = os.path.join(get_home(), 'tracking', 'fodf.nii.gz')
-    in_mask = os.path.join(get_home(), 'tracking', 'seeding_mask.nii.gz')
+    in_fodf = os.path.join(SCILPY_HOME, 'tracking', 'fodf.nii.gz')
+    in_mask = os.path.join(SCILPY_HOME, 'tracking', 'seeding_mask.nii.gz')
 
     ret = script_runner.run('scil_tracking_local.py', in_fodf,
                             in_mask, in_mask, 'local_prob.trk', '--nt', '100',
@@ -34,8 +34,8 @@ def test_execution_tracking_fodf_prob(script_runner):
 
 def test_execution_tracking_fodf_det(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    in_fodf = os.path.join(get_home(), 'tracking', 'fodf.nii.gz')
-    in_mask = os.path.join(get_home(), 'tracking', 'seeding_mask.nii.gz')
+    in_fodf = os.path.join(SCILPY_HOME, 'tracking', 'fodf.nii.gz')
+    in_mask = os.path.join(SCILPY_HOME, 'tracking', 'seeding_mask.nii.gz')
 
     ret = script_runner.run('scil_tracking_local.py', in_fodf,
                             in_mask, in_mask, 'local_det.trk', '--nt', '100',
@@ -47,8 +47,8 @@ def test_execution_tracking_fodf_det(script_runner):
 
 def test_execution_tracking_ptt(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    in_fodf = os.path.join(get_home(), 'tracking', 'fodf.nii.gz')
-    in_mask = os.path.join(get_home(), 'tracking', 'seeding_mask.nii.gz')
+    in_fodf = os.path.join(SCILPY_HOME, 'tracking', 'fodf.nii.gz')
+    in_mask = os.path.join(SCILPY_HOME, 'tracking', 'seeding_mask.nii.gz')
 
     ret = script_runner.run('scil_tracking_local.py', in_fodf,
                             in_mask, in_mask, 'local_ptt.trk', '--nt', '100',
@@ -60,8 +60,8 @@ def test_execution_tracking_ptt(script_runner):
 
 def test_execution_sphere_subdivide(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    in_fodf = os.path.join(get_home(), 'tracking', 'fodf.nii.gz')
-    in_mask = os.path.join(get_home(), 'tracking', 'seeding_mask.nii.gz')
+    in_fodf = os.path.join(SCILPY_HOME, 'tracking', 'fodf.nii.gz')
+    in_mask = os.path.join(SCILPY_HOME, 'tracking', 'seeding_mask.nii.gz')
 
     ret = script_runner.run('scil_tracking_local.py', in_fodf,
                             in_mask, in_mask, 'local_sphere.trk',
@@ -74,8 +74,8 @@ def test_execution_sphere_subdivide(script_runner):
 
 def test_execution_sphere_gpu(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    in_fodf = os.path.join(get_home(), 'tracking', 'fodf.nii.gz')
-    in_mask = os.path.join(get_home(), 'tracking', 'seeding_mask.nii.gz')
+    in_fodf = os.path.join(SCILPY_HOME, 'tracking', 'fodf.nii.gz')
+    in_mask = os.path.join(SCILPY_HOME, 'tracking', 'seeding_mask.nii.gz')
 
     ret = script_runner.run('scil_tracking_local.py', in_fodf,
                             in_mask, in_mask, 'sphere_gpu.trk',
@@ -87,8 +87,8 @@ def test_execution_sphere_gpu(script_runner):
 
 def test_sh_interp_without_gpu(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    in_fodf = os.path.join(get_home(), 'tracking', 'fodf.nii.gz')
-    in_mask = os.path.join(get_home(), 'tracking', 'seeding_mask.nii.gz')
+    in_fodf = os.path.join(SCILPY_HOME, 'tracking', 'fodf.nii.gz')
+    in_mask = os.path.join(SCILPY_HOME, 'tracking', 'seeding_mask.nii.gz')
 
     ret = script_runner.run('scil_tracking_local.py', in_fodf,
                             in_mask, in_mask, 'nearest_interp.trk',
@@ -99,8 +99,8 @@ def test_sh_interp_without_gpu(script_runner):
 
 def test_forward_without_gpu(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    in_fodf = os.path.join(get_home(), 'tracking', 'fodf.nii.gz')
-    in_mask = os.path.join(get_home(), 'tracking', 'seeding_mask.nii.gz')
+    in_fodf = os.path.join(SCILPY_HOME, 'tracking', 'fodf.nii.gz')
+    in_mask = os.path.join(SCILPY_HOME, 'tracking', 'seeding_mask.nii.gz')
 
     ret = script_runner.run('scil_tracking_local.py', in_fodf,
                             in_mask, in_mask, 'fwd_only.trk',
@@ -111,8 +111,8 @@ def test_forward_without_gpu(script_runner):
 
 def test_batch_size_without_gpu(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    in_fodf = os.path.join(get_home(), 'tracking', 'fodf.nii.gz')
-    in_mask = os.path.join(get_home(), 'tracking', 'seeding_mask.nii.gz')
+    in_fodf = os.path.join(SCILPY_HOME, 'tracking', 'fodf.nii.gz')
+    in_mask = os.path.join(SCILPY_HOME, 'tracking', 'seeding_mask.nii.gz')
 
     ret = script_runner.run('scil_tracking_local.py', in_fodf,
                             in_mask, in_mask, 'batch.trk',
@@ -123,8 +123,8 @@ def test_batch_size_without_gpu(script_runner):
 
 def test_algo_with_gpu(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    in_fodf = os.path.join(get_home(), 'tracking', 'fodf.nii.gz')
-    in_mask = os.path.join(get_home(), 'tracking', 'seeding_mask.nii.gz')
+    in_fodf = os.path.join(SCILPY_HOME, 'tracking', 'fodf.nii.gz')
+    in_mask = os.path.join(SCILPY_HOME, 'tracking', 'seeding_mask.nii.gz')
 
     ret = script_runner.run('scil_tracking_local.py', in_fodf,
                             in_mask, in_mask, 'gpu_det.trk', '--algo',
@@ -135,8 +135,8 @@ def test_algo_with_gpu(script_runner):
 
 def test_execution_tracking_fodf_no_compression(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    in_fodf = os.path.join(get_home(), 'tracking', 'fodf.nii.gz')
-    in_mask = os.path.join(get_home(), 'tracking', 'seeding_mask.nii.gz')
+    in_fodf = os.path.join(SCILPY_HOME, 'tracking', 'fodf.nii.gz')
+    in_mask = os.path.join(SCILPY_HOME, 'tracking', 'seeding_mask.nii.gz')
 
     ret = script_runner.run('scil_tracking_local.py', in_fodf,
                             in_mask, in_mask, 'local_prob2.trk',
@@ -148,8 +148,8 @@ def test_execution_tracking_fodf_no_compression(script_runner):
 
 def test_execution_tracking_peaks(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    in_peaks = os.path.join(get_home(), 'tracking', 'peaks.nii.gz')
-    in_mask = os.path.join(get_home(), 'tracking', 'seeding_mask.nii.gz')
+    in_peaks = os.path.join(SCILPY_HOME, 'tracking', 'peaks.nii.gz')
+    in_mask = os.path.join(SCILPY_HOME, 'tracking', 'seeding_mask.nii.gz')
     ret = script_runner.run('scil_tracking_local.py', in_peaks,
                             in_mask, in_mask, 'local_eudx.trk', '--nt', '100',
                             '--compress', '0.1', '--sh_basis', 'descoteaux07',
@@ -160,8 +160,8 @@ def test_execution_tracking_peaks(script_runner):
 
 def test_execution_tracking_fodf_prob_pmf_mapping(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    in_fodf = os.path.join(get_home(), 'tracking', 'fodf.nii.gz')
-    in_mask = os.path.join(get_home(), 'tracking', 'seeding_mask.nii.gz')
+    in_fodf = os.path.join(SCILPY_HOME, 'tracking', 'fodf.nii.gz')
+    in_mask = os.path.join(SCILPY_HOME, 'tracking', 'seeding_mask.nii.gz')
 
     ret = script_runner.run('scil_tracking_local.py', in_fodf,
                             in_mask, in_mask, 'local_prob3.trk', '--nt', '100',

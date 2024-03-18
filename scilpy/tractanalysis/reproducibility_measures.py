@@ -128,8 +128,6 @@ def approximate_surface_node(roi):
 
     return count
 
-    return count
-
 
 def compute_fractal_dimension(density, n_steps=10, box_size_min=1.0,
                               box_size_max=2.0, threshold=0.0, box_size=None):
@@ -454,7 +452,7 @@ def _compute_difference_for_voxel(chunk_indices,
             results.append([np.nan, acc])
             continue
 
-        # Get the streamlines in the neighborhood (i.e., 1.5mm away)
+        # Get the streamlines in the first SFT neighborhood (i.e., 1.5mm away)
         pts_ind_1 = tree_1.query_ball_point(vox_ind, 1.5)
         if not pts_ind_1:
             results.append([np.nan, acc])
@@ -462,7 +460,7 @@ def _compute_difference_for_voxel(chunk_indices,
         strs_ind_1 = np.unique(matched_points_1[pts_ind_1])
         neighb_streamlines_1 = sft_1.streamlines[strs_ind_1]
 
-        # Get the streamlines in the neighborhood (i.e., 1.5mm away)
+        # Get the streamlines in the second SFT neighborhood (i.e., 1.5mm away)
         pts_ind_2 = tree_2.query_ball_point(vox_ind, 1.5)
         if not pts_ind_2:
             results.append([np.nan, acc])
@@ -513,11 +511,10 @@ def _compare_tractogram_wrapper(mask, nbr_cpu, skip_streamlines_distance):
 
     Returns
     -------
-    Tuple of np.ndarray
-        diff_data: np.ndarray
-            Array containing the computed differences (mm).
-        acc_data: np.ndarray
-            Array containing the computed angular correlation.
+    diff_data: np.ndarray
+        Array containing the computed differences (mm).
+    acc_data: np.ndarray
+        Array containing the computed angular correlation.
     """
     dimensions = mask.shape
 

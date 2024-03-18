@@ -106,7 +106,7 @@ def main():
     if args.verbose:
         logging.getLogger().setLevel(logging.INFO)
 
-    assert_inputs_exist(parser, args.in_tractogram)
+    assert_inputs_exist(parser, args.in_tractogram, args.reference)
     assert_outputs_exist(parser, args, args.out_tractogram)
 
     # Load the input files.

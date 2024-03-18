@@ -1,6 +1,11 @@
 # -*- coding: utf-8 -*-
 
 
+def test_verify_data_vs_sh_order():
+    # Quite simple, nothing to test
+    pass
+
+
 def test_compute_sh_coefficients():
     # toDO
     pass

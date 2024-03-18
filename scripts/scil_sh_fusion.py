@@ -3,8 +3,8 @@
 """
 Merge a list of Spherical Harmonics files.
 
-This merges the coefficients of multiple Spherical Harmonics files
-by taking, for each coefficient, the one with the largest magnitude.
+This merges the coefficients of multiple Spherical Harmonics files by taking,
+for each coefficient, the one with the largest magnitude.
 
 Can be used to merge fODFs computed from different shells into 1, while
 conserving the most relevant information.
@@ -67,8 +67,7 @@ def main():
     out_coeffs = first_im.get_fdata(dtype=np.float32)
 
     for sh_file in args.in_shs[1:]:
-        im = nib.load(sh_file)
-        im_dat = im.get_fdata(dtype=np.float32)
+        im_dat = nib.load(sh_file).get_fdata(dtype=np.float32)
 
         out_coeffs = np.where(np.abs(im_dat) > np.abs(out_coeffs),
                               im_dat, out_coeffs)

@@ -17,10 +17,9 @@ import numpy as np
 
 from scilpy.dwi.operations import apply_bias_field
 from scilpy.io.image import get_data_as_mask
-from scilpy.io.utils import (add_overwrite_arg,
-                             add_verbose_arg,
-                             assert_inputs_exist,
-                             assert_outputs_exist)
+from scilpy.io.utils import (add_overwrite_arg, add_verbose_arg,
+                             assert_inputs_exist, assert_outputs_exist,
+                             assert_headers_compatible)
 
 
 def _build_arg_parser():
@@ -53,6 +52,8 @@ def main():
 
     assert_inputs_exist(parser, [args.in_dwi, args.in_bias_field], args.mask)
     assert_outputs_exist(parser, args, args.out_name)
+    assert_headers_compatible(parser, [args.in_dwi, args.in_bias_field],
+                              args.mask)
 
     dwi_img = nib.load(args.in_dwi)
     dwi_data = dwi_img.get_fdata(dtype=np.float32)
@@ -61,8 +62,7 @@ def main():
     bias_field_data = bias_field_img.get_fdata(dtype=np.float32)
 
     if args.mask:
-        mask_img = nib.load(args.mask)
-        mask_data = get_data_as_mask(mask_img)
+        mask_data = get_data_as_mask(nib.load(args.mask))
     else:
         mask_data = np.average(dwi_data, axis=-1) != 0
 

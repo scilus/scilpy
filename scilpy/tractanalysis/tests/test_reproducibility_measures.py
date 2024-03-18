@@ -1,4 +1,3 @@
-
 # -*- coding: utf-8 -*-
 
 import os
@@ -7,13 +6,13 @@ from dipy.io.stateful_tractogram import StatefulTractogram
 from dipy.io.streamline import load_tractogram
 import numpy as np
 
-from scilpy.io.fetcher import get_home
+from scilpy import SCILPY_HOME
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
 from scilpy.tractanalysis.reproducibility_measures import tractogram_pairwise_comparison
 
 
 def test_tractogram_pairwise_comparison():
-    sft_path = os.path.join(get_home(), 'bst', 'template', 'rpt_m.trk')
+    sft_path = os.path.join(SCILPY_HOME, 'bst', 'template', 'rpt_m.trk')
     print(sft_path)
     sft = load_tractogram(sft_path, 'same')
     sft_1 = StatefulTractogram.from_sft(sft.streamlines[0:100], sft)

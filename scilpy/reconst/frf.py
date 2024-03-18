@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import logging
+from ast import literal_eval
 
 from dipy.core.gradients import gradient_table
 from dipy.reconst.csdeconv import (mask_for_response_ssst,
@@ -301,3 +302,38 @@ def compute_msmt_frf(data, bvals, bvecs, btens=None, data_dti=None,
     responses = [response_wm, response_gm, response_csf]
 
     return responses, frf_masks
+
+
+def replace_frf(old_frf, new_frf, no_factor):
+    """
+    Replace old_frf with new_frf
+
+    Parameters
+    ----------
+    old_frf: np.ndarray
+        A loaded frf file, of shape (n, 4).
+    new_frf: tuple
+        The new frf, to be interpreted with a 10**-4 factor. Ex: (15,4,4)
+    no_factor: bool
+        If true, the fiber response function is evaluated without the
+        10**-4 factor.
+    """
+    old_frf = old_frf.T
+    new_frf = np.array(literal_eval(new_frf), dtype=np.float64)
+
+    if not no_factor:
+        new_frf *= 10 ** -4
+    b0_mean = old_frf[3]
+
+    if new_frf.shape[0] % 3 != 0:
+        raise ValueError('Inputed new frf is not valid. There should be '
+                         'three values per shell, and thus the total number '
+                         'of values should be a multiple of three.')
+
+    nb_shells = int(new_frf.shape[0] / 3)
+    new_frf = new_frf.reshape((nb_shells, 3))
+
+    response = np.empty((nb_shells, 4))
+    response[:, 0:3] = new_frf
+    response[:, 3] = b0_mean
+    return response
