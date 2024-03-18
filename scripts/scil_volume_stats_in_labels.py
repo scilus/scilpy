@@ -18,9 +18,8 @@ import nibabel as nib
 import numpy as np
 
 from scilpy.image.labels import get_data_as_labels, get_stats_in_label
-from scilpy.io.utils import (add_overwrite_arg,
-                             add_verbose_arg,
-                             assert_inputs_exist)
+from scilpy.io.utils import (add_overwrite_arg, add_verbose_arg,
+                             assert_inputs_exist, assert_headers_compatible)
 
 
 def _build_arg_parser():
@@ -48,8 +47,7 @@ def main():
     # Verifications
     assert_inputs_exist(parser,
                         [args.in_labels, args.in_map, args.in_labels_lut])
-    # toDo after PR937
-    # assert_headers_compatible(parser, [args.in_labels, args.in_map])
+    assert_headers_compatible(parser, [args.in_labels, args.in_map])
 
     # Loading
     label_data = get_data_as_labels(nib.load(args.in_labels))
