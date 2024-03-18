@@ -36,7 +36,7 @@ from scilpy.io.utils import (add_overwrite_arg, add_reference_arg,
                              assert_output_dirs_exist_and_empty,
                              add_processes_arg,
                              add_verbose_arg,
-                             is_header_compatible_multiple_files,
+                             assert_headers_compatible,
                              validate_nbr_processes)
 from scilpy.tractanalysis.reproducibility_measures import tractogram_pairwise_comparison
 
@@ -84,9 +84,7 @@ def main():
     to_verify = [args.in_tractogram_1, args.in_tractogram_2]
     if args.in_mask:
         to_verify.append(args.in_mask)
-    is_header_compatible_multiple_files(parser, to_verify,
-                                        verbose_all_compatible=True,
-                                        reference=args.reference)
+    assert_headers_compatible(parser, to_verify, reference=args.reference)
 
     if args.out_prefix and args.out_prefix[-1] == '_':
         args.out_prefix = args.out_prefix[:-1]
