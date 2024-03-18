@@ -6,13 +6,15 @@ import tempfile
 import nibabel as nib
 import numpy as np
 from dipy.io.gradients import read_bvals_bvecs
-from numpy.testing import assert_equal
+from numpy.testing import assert_equal, assert_almost_equal
 
 from scilpy import SCILPY_HOME
 from scilpy.image.volume_operations import (apply_transform,
                                             compute_snr,
                                             crop_volume,
                                             flip_volume,
+                                            merge_metrics,
+                                            normalize_metric,
                                             resample_volume)
 from scilpy.io.fetcher import fetch_data, get_testing_files_dict
 from scilpy.utils.util import compute_nifti_bounding_box
