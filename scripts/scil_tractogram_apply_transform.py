@@ -143,15 +143,18 @@ def main():
                      "(0 streamline).".format(args.out_tractogram))
         return
 
+    # Default is to crash if invalid.
     if args.keep_invalid:
         if not new_sft.is_bbox_in_vox_valid():
             logging.warning('Saving tractogram with invalid streamlines.')
         save_tractogram(new_sft, args.out_tractogram, bbox_valid_check=False)
     else:
+        # Here, there should be no invalid streamlines left. Either option =
+        # to crash, or remove/cut, already managed.
         if not new_sft.is_bbox_in_vox_valid():
-            logging.warning('Removing invalid streamlines before '
-                            'saving tractogram.')
-            new_sft.remove_invalid_streamlines()
+            raise ValueError("The result has invalid streamlines. Please "
+                             "chose --keep_invalid, --cut_invalid or "
+                             "--remove_invalid.")
         save_tractogram(new_sft, args.out_tractogram)
 
 

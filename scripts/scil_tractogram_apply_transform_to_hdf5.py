@@ -11,6 +11,8 @@ See scil_tractogram_apply_transform.py to apply directly to a tractogram.
 For more information on how to use the registration script, follow this link:
 https://scilpy.readthedocs.io/en/latest/documentation/tractogram_registration.html
 
+Or use >> scil_tractogram_apply_transform.py --help
+
 Formerly: scil_apply_transform_to_hdf5.py
 """
 
@@ -58,10 +60,17 @@ def _build_arg_parser():
                    help='Apply the transformation in reverse (see doc), warp\n'
                         'first, then linear.')
 
-    p.add_argument('--cut_invalid', action='store_true',
-                   help='Cut invalid streamlines rather than removing them.\n'
-                        'Keep the longest segment only.\n'
-                        'By default, invalid streamline are removed.')
+    g = p.add_argument_group("Management of invalid streamlines")
+    invalid = g.add_mutually_exclusive_group()
+    invalid.add_argument('--cut_invalid', action='store_true',
+                         help='Cut invalid streamlines rather than removing '
+                              'them.\nKeep the longest segment only.')
+    invalid.add_argument('--remove_invalid', action='store_true',
+                         help='Remove the streamlines landing out of the '
+                              'bounding box.')
+    invalid.add_argument('--keep_invalid', action='store_true',
+                         help='Keep the streamlines landing out of the '
+                              'bounding box.')
 
     add_reference_arg(p)
     add_verbose_arg(p)
@@ -128,8 +137,22 @@ def main():
                     inverse=args.inverse,
                     deformation_data=deformation_data,
                     reverse_op=args.reverse_operation,
-                    remove_invalid=not args.cut_invalid,
+                    remove_invalid=args.remove_invalid,
                     cut_invalid=args.cut_invalid)
+
+                # Default is to crash if invalid.
+                if args.keep_invalid:
+                    if not new_sft.is_bbox_in_vox_valid():
+                        logging.warning(
+                            'Saving tractogram with invalid streamlines.')
+                else:
+                    # Here, there should be no invalid streamlines left. Either
+                    # option = to crash, or remove/cut, already managed.
+                    if not new_sft.is_bbox_in_vox_valid():
+                        raise ValueError(
+                            "The result has invalid streamlines. Please "
+                            "chose --keep_invalid, --cut_invalid or "
+                            "--remove_invalid.")
 
                 # Save result to the hdf5
                 new_sft.to_vox()
