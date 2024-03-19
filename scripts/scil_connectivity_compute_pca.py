@@ -2,12 +2,14 @@
 # -*- coding: utf-8 -*-
 
 """
-Script to compute PCA analysis on diffusion metrics. Output returned is all significant principal components
-(e.g. presenting eigenvalues > 1) in a connectivity matrix format. This script can take into account all
-edges from every subject in a population or only non-zero edges across all subjects.
+Script to compute PCA analysis on diffusion metrics. Output returned is all
+significant principal components (e.g. presenting eigenvalues > 1) in a
+connectivity matrix format. This script can take into account all edges from
+every subject in a population or only non-zero edges across all subjects.
 
-The script can take directly as input a connectoflow output folder. Simply use the --input_connectoflow flag.
-For other type of folder input, the script expects a single folder containing all matrices for all subjects.
+The script can take directly as input a connectoflow output folder. Simply use
+the --input_connectoflow flag. For other type of folder input, the script
+expects a single folder containing all matrices for all subjects.
 Example:
         [in_folder]
         |--- sub-01_ad.npy
@@ -16,20 +18,27 @@ Example:
         |--- sub-02_md.npy
         |--- ...
 
-The plots, tables and principal components matrices will be outputted in the designated folder from the
-<out_folder> argument. If you want to move back your principal components matrices in your connectoflow
-output, you can use a similar bash command for all principal components:
-for sub in `cat list_id.txt`; do cp out_folder/${sub}_PC1.npy connectoflow_output/$sub/Compute_Connectivity/; done
+The plots, tables and principal components matrices will be outputted in the
+designated folder from the <out_folder> argument. If you want to move back your
+principal components matrices in your connectoflow output, you can use a
+similar bash command for all principal components:
+for sub in `cat list_id.txt`;
+do
+    cp out_folder/${sub}_PC1.npy connectoflow_output/$sub/Compute_Connectivity/
+done
 
-Interpretation of resulting principal components can be done by evaluating the loadings values for each metrics.
-A value near 0 means that this metric doesn't contribute to this specific component whereas high positive or
-negative values mean a larger contribution. Components can then be labeled based on which metric contributes
-the highest. For example, a principal component showing a high loading for afd_fixel and near 0 loading for all
-other metrics can be interpreted as axonal density (see Gagnon et al. 2022 for this specific example or
-ref [3] for an introduction to PCA).
+Interpretation of resulting principal components can be done by evaluating the
+loadings values for each metrics. A value near 0 means that this metric doesn't
+contribute to this specific component whereas high positive or negative values
+mean a larger contribution. Components can then be labeled based on which
+metric contributes the highest. For example, a principal component showing a
+high loading for afd_fixel and near 0 loading for all other metrics can be
+interpreted as axonal density (see Gagnon et al. 2022 for this specific example
+or ref [3] for an introduction to PCA).
 
 EXAMPLE USAGE:
-scil_compute_pca.py input_folder/ output_folder/ --metrics ad fa md rd [...] --list_ids list_ids.txt
+scil_connectivity_compute_pca.py input_folder/ output_folder/
+    --metrics ad fa md rd [...] --list_ids list_ids.txt
 """
 
 # Import required libraries.
@@ -50,12 +59,16 @@ from scilpy.io.utils import (load_matrix_in_any_format,
 
 
 EPILOG = """
-[1] Chamberland M, Raven EP, Genc S, Duffy K, Descoteaux M, Parker GD, Tax CMW, Jones DK. Dimensionality 
-    reduction of diffusion MRI measures for improved tractometry of the human brain. Neuroimage. 2019 Oct 
-    15;200:89-100. doi: 10.1016/j.neuroimage.2019.06.020. Epub 2019 Jun 20. PMID: 31228638; PMCID: PMC6711466.
-[2] Gagnon A., Grenier G., Bocti C., Gillet V., Lepage J.-F., Baccarelli A. A., Posner J., Descoteaux M., 
-    & Takser L. (2022). White matter microstructural variability linked to differential attentional skills 
-    and impulsive behavior in a pediatric population. Cerebral Cortex. https://doi.org/10.1093/cercor/bhac180
+[1] Chamberland M, Raven EP, Genc S, Duffy K, Descoteaux M, Parker GD, Tax CMW,
+ Jones DK. Dimensionality reduction of diffusion MRI measures for improved
+ tractometry of the human brain. Neuroimage. 2019 Oct 15;200:89-100.
+ doi: 10.1016/j.neuroimage.2019.06.020. Epub 2019 Jun 20. PMID: 31228638;
+ PMCID: PMC6711466.
+[2] Gagnon A., Grenier G., Bocti C., Gillet V., Lepage J.-F., Baccarelli A. A.,
+ Posner J., Descoteaux M., Takser L. (2022). White matter microstructural
+ variability linked to differential attentional skills and impulsive behavior
+ in a pediatric population. Cerebral Cortex.
+ https://doi.org/10.1093/cercor/bhac180
 [3] https://towardsdatascience.com/what-are-pca-loadings-and-biplots-9a7897f2e559
     """
 
@@ -63,23 +76,27 @@ EPILOG = """
 # Build argument parser.
 def _build_arg_parser():
     p = argparse.ArgumentParser(
-        description=__doc__,
-        formatter_class=argparse.RawTextHelpFormatter,
+        description=__doc__, formatter_class=argparse.RawTextHelpFormatter,
         epilog=EPILOG)
 
     p.add_argument('in_folder',
-                   help='Path to the input folder.')
+                   help='Path to the input folder. See explanation above for '
+                        'its expected organization.')
     p.add_argument('out_folder',
-                   help='Path to the output folder to export graphs, tables and principal components matrices.')
+                   help='Path to the output folder to export graphs, tables '
+                        'and principal \ncomponents matrices.')
     p.add_argument('--metrics', nargs='+', required=True,
-                   help='Suffixes of all metrics to include in PCA analysis (ex: ad md fa rd). They must be '
-                        'immediately followed by the .npy extension.')
+                   help='Suffixes of all metrics to include in PCA analysis '
+                        '(ex: ad md fa rd). \nThey must be immediately '
+                        'followed by the .npy extension.')
     p.add_argument('--list_ids', required=True, metavar='FILE',
                    help='Path to a .txt file containing a list of all ids.')
     p.add_argument('--not_only_common', action='store_true',
-                   help='If true, will include all edges from all subjects and not only common edges (Not recommended)')
+                   help='If true, will include all edges from all subjects '
+                        'and not only \ncommon edges (Not recommended)')
     p.add_argument('--input_connectoflow', action='store_true',
-                   help='If true, script will assume the input folder is a Connectoflow output.')
+                   help='If true, script will assume the input folder is a '
+                        'Connectoflow output.')
 
     add_verbose_arg(p)
     add_overwrite_arg(p)
