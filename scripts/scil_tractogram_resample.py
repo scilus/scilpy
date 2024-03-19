@@ -65,12 +65,12 @@ def _build_arg_parser():
                                        'points to generate new ones [%(default)s].')
     upsampling_group.add_argument('--tube_radius', type=float, default=1,
                                   help='Maximum distance to generate streamlines '
-                                       ' around the original ones [%(default)s].')
+                                       'around the original ones [%(default)s].')
     upsampling_group.add_argument('--gaussian', metavar='SIGMA', type=int,
                                   help='Sigma for smoothing. Use the value of '
                                        'surrounding X,Y,Z points on the '
                                        'streamline to blur the streamlines.\n'
-                                       'A good sigma choice would around 5.')
+                                       'A good sigma choice would be around 5.')
     upsampling_group.add_argument('-e', dest='error_rate', type=float, default=0.1,
                                   help='Maximum compression distance in mm '
                                        '[%(default)s].')
@@ -109,9 +109,9 @@ def main():
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
-    if (args.point_wise_std is not None and args.point_wise_std <= 0):
+    if args.point_wise_std is not None and args.point_wise_std <= 0:
         parser.error('argument --point_wise_std: must be > 0')
-    if (args.tube_radius is not None and args.tube_radius <= 0):
+    if args.tube_radius is not None and args.tube_radius <= 0:
         parser.error('argument --tube_radius: must be > 0')
 
     assert_inputs_exist(parser, args.in_tractogram, args.reference)
