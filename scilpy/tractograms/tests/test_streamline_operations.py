@@ -2,8 +2,11 @@
 import os
 import tempfile
 
+from dipy.io.streamline import load_tractogram
+from dipy.tracking.streamlinespeed import length
 import nibabel as nib
 import numpy as np
+from numpy.testing import assert_array_almost_equal
 import pytest
 from dipy.io.streamline import load_tractogram
 from dipy.tracking.streamlinespeed import length
@@ -16,7 +19,8 @@ from scilpy.tractograms.streamline_operations import (
     resample_streamlines_num_points,
     resample_streamlines_step_size,
     smooth_line_gaussian,
-    smooth_line_spline)
+    smooth_line_spline,
+    parallel_transport_streamline)
 from scilpy.tractograms.tractogram_operations import concatenate_sft
 
 
@@ -368,3 +372,23 @@ def test_smooth_line_spline():
     dist_2 = np.linalg.norm(noisy_streamline - smoothed_streamline)
 
     assert dist_1 < dist_2
+
+
+def test_parallel_transport_streamline():
+    sft, _ = _setup_files()
+    streamline = sft.streamlines[0]
+
+    rng = np.random.default_rng(3018)
+    pt_streamlines = parallel_transport_streamline(
+        streamline, 20, 5, rng)
+
+    avg_streamline = np.mean(pt_streamlines, axis=0)
+
+    assert_array_almost_equal(avg_streamline[0],
+                              [-26.999582, -116.320145, 6.3678055],
+                              decimal=4)
+    assert_array_almost_equal(avg_streamline[-1],
+                              [-155.99944, -116.56515, 6.2451267],
+                              decimal=4)
+    assert [len(s) for s in pt_streamlines] == [130] * 20
+    assert len(pt_streamlines) == 20
