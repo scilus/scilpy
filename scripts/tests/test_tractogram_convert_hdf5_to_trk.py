@@ -13,14 +13,13 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_save_connections_from_hdf5.py', '--help')
+    ret = script_runner.run('scil_tractogram_convert_hdf5_to_trk.py', '--help')
     assert ret.success
 
 
 def test_execution_connectivity(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    in_h5 = os.path.join(SCILPY_HOME, 'connectivity',
-                         'decompose.h5')
-    ret = script_runner.run('scil_save_connections_from_hdf5.py',
+    in_h5 = os.path.join(SCILPY_HOME, 'connectivity', 'decompose.h5')
+    ret = script_runner.run('scil_tractogram_convert_hdf5_to_trk.py',
                             in_h5, 'save_trk/')
     assert ret.success

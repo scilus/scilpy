@@ -7,6 +7,8 @@ from dipy.io.stateful_tractogram import StatefulTractogram
 from dipy.tracking.streamlinespeed import (length, set_number_of_points)
 from scipy.interpolate import splev, splprep
 
+from scilpy.utils.util import rotation_around_vector_matrix
+
 
 def _get_streamline_pt_index(points_to_index, vox_index, from_start=True):
     """Get the index of the streamline point in the voxel.
@@ -406,8 +408,6 @@ def generate_matched_points(sft):
     matched_points : ndarray
         An array where each element is set to the index of the streamline
         to which it belongs
-
-
     """
     tmp_len = [len(s) for s in sft.streamlines]
     total_points = np.sum(tmp_len)
@@ -421,3 +421,90 @@ def generate_matched_points(sft):
     matched_points[offsets[-1]:] = len(offsets) - 1
 
     return matched_points
+
+
+def parallel_transport_streamline(streamline, nb_streamlines, radius, rng=None):
+    """ Generate new streamlines by parallel transport of the input
+    streamline. See [0] and [1] for more details.
+
+    [0]: Hanson, A.J., & Ma, H. (1995). Parallel Transport Approach to 
+        Curve Framing. # noqa E501
+    [1]: TD Essentials: Parallel Transport.
+        https://www.youtube.com/watch?v=5LedteSEgOE
+
+    Parameters
+    ----------
+    streamline: ndarray (N, 3)
+        The streamline to transport.
+    nb_streamlines: int
+        The number of streamlines to generate.
+    radius: float
+        The radius of the circle around the original streamline in which the
+        new streamlines will be generated.
+    rng: numpy.random.Generator, optional
+        The random number generator to use. If None, the default numpy
+        random number generator will be used.
+
+    Returns
+    -------
+    new_streamlines: list of ndarray (N, 3)
+        The generated streamlines.
+    """
+
+    if rng is None:
+        rng = np.random.default_rng(0)
+
+    # Compute the tangent at each point of the streamline
+    T = np.gradient(streamline, axis=0)
+    # Normalize the tangents
+    T = T / np.linalg.norm(T, axis=1)[:, None]
+
+    # Placeholder for the normal vector at each point
+    V = np.zeros_like(T)
+    # Set the normal vector at the first point to kind of perpendicular to
+    # the first direction vector
+    V[0] = np.roll(streamline[0] - streamline[1], 1)
+    V[0] = V[0] / np.linalg.norm(V[0])
+    # For each point
+    for i in range(0, T.shape[0]-1):
+        # Compute the torsion vector
+        B = np.cross(T[i], T[i+1])
+        # If the torsion vector is 0, the normal vector does not change
+        if np.linalg.norm(B) < 1e-3:
+            V[i+1] = V[i]
+        # Else, the normal vector is rotated around the torsion vector by
+        # the torsion.
+        else:
+            B = B / np.linalg.norm(B)
+            theta = np.arccos(np.dot(T[i], T[i+1]))
+            # Rotate the vector V[i] around the vector B by theta
+            # radians.
+            V[i+1] = np.dot(rotation_around_vector_matrix(B, theta), V[i])
+
+    # Compute the binormal vector at each point
+    W = np.cross(T, V, axis=1)
+
+    # Generate the new streamlines
+    # TODO?: This could easily be optimized to avoid the for loop, we have to
+    # see if this becomes a bottleneck.
+    new_streamlines = []
+    for i in range(nb_streamlines):
+        # Get a random number between -1 and 1
+        rand_v = rng.uniform(-1, 1)
+        rand_w = rng.uniform(-1, 1)
+
+        # Compute the norm of the "displacement"
+        norm = np.sqrt(rand_v**2 + rand_w**2)
+        # Displace the normal and binormal vectors by a random amount
+        V_mod = V * rand_v
+        W_mod = W * rand_w
+        # Compute the displacement vector
+        VW = (V_mod + W_mod)
+        # Displace the streamline around the original one following the
+        # parallel frame. Make sure to normalize the displacement vector
+        # so that the new streamline is in a circle around the original one.
+
+        new_s = streamline + (rng.uniform(0, 1) * VW / norm) * radius
+        new_streamlines.append(new_s)
+
+    return new_streamlines

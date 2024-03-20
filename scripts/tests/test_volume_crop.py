@@ -13,13 +13,12 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_crop_volume.py', '--help')
+    ret = script_runner.run('scil_volume_crop.py', '--help')
     assert ret.success
 
 
 def test_execution_processing(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    in_dwi = os.path.join(SCILPY_HOME, 'processing',
-                          'dwi.nii.gz')
-    ret = script_runner.run('scil_crop_volume.py', in_dwi, 'dwi_crop.nii.gz')
+    in_dwi = os.path.join(SCILPY_HOME, 'processing', 'dwi.nii.gz')
+    ret = script_runner.run('scil_volume_crop.py', in_dwi, 'dwi_crop.nii.gz')
     assert ret.success

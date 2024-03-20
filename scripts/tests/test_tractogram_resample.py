@@ -48,3 +48,14 @@ def test_execution_upsample(script_runner):
                             '--point_wise_std', '0.5', '-f',
                             '--downsample_per_cluster')
     assert ret.success
+
+
+def test_execution_upsample_ptt(script_runner):
+    os.chdir(os.path.expanduser(tmp_dir.name))
+    in_tracto = os.path.join(SCILPY_HOME, 'tracking',
+                             'union_shuffle_sub.trk')
+
+    ret = script_runner.run('scil_tractogram_resample.py', in_tracto,
+                            '500', 'union_shuffle_sub_upsampled.trk', '-f',
+                            '--point_wise_std', '10', '--tube_radius', '5')
+    assert ret.success

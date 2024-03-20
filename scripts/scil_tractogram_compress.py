@@ -13,12 +13,12 @@ Formerly: scil_compress_streamlines.py
 import argparse
 import logging
 
-from dipy.tracking.streamlinespeed import compress_streamlines
 import nibabel as nib
 from nibabel.streamlines import LazyTractogram
 import numpy as np
 
 from scilpy.io.streamlines import check_tracts_same_format
+from scilpy.tractograms.tractogram_operations import compress_streamlines_wrapper
 from scilpy.io.utils import (add_overwrite_arg,
                              add_verbose_arg,
                              assert_inputs_exist,
@@ -42,11 +42,6 @@ def _build_arg_parser():
     return p
 
 
-def compress_streamlines_wrapper(tractogram, error_rate):
-    return lambda: (compress_streamlines(
-        s, error_rate) for s in tractogram.streamlines)
-
-
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
@@ -67,7 +62,6 @@ def main():
     in_tractogram = nib.streamlines.load(args.in_tractogram, lazy_load=True)
     compressed_streamlines = compress_streamlines_wrapper(in_tractogram,
                                                           args.error_rate)
-
     out_tractogram = LazyTractogram(compressed_streamlines,
                                     affine_to_rasmm=np.eye(4))
     nib.streamlines.save(out_tractogram, args.out_tractogram,
