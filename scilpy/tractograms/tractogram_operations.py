@@ -7,11 +7,10 @@ registration, suffling, etc), not on each point of the streamlines separately /
 individually. See scilpy.tractograms.streamline_operations.py for the latter.
 """
 
-import itertools
-
-import random
 from functools import reduce
+import itertools
 import logging
+import random
 
 from dipy.io.stateful_tractogram import StatefulTractogram, Space
 from dipy.io.utils import get_reference_info, is_header_compatible

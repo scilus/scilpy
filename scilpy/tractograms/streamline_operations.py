@@ -393,6 +393,36 @@ def smooth_line_spline(streamline, smoothing_parameter, nb_ctrl_points):
     return smoothed_streamline
 
 
+def generate_matched_points(sft):
+    """
+    Generates an array where each element i is set to the index of the
+    streamline to which it belongs
+
+    Parameters:
+    -----------
+    sft : StatefulTractogram
+        The stateful tractogram containing the streamlines.
+
+    Returns:
+    --------
+    matched_points : ndarray
+        An array where each element is set to the index of the streamline
+        to which it belongs
+    """
+    tmp_len = [len(s) for s in sft.streamlines]
+    total_points = np.sum(tmp_len)
+    offsets = np.insert(np.cumsum(tmp_len), 0, 0)
+
+    matched_points = np.zeros(total_points, dtype=np.uint64)
+
+    for i in range(len(offsets) - 1):
+        matched_points[offsets[i]:offsets[i+1]] = i
+
+    matched_points[offsets[-1]:] = len(offsets) - 1
+
+    return matched_points
+
+
 def parallel_transport_streamline(streamline, nb_streamlines, radius, rng=None):
     """ Generate new streamlines by parallel transport of the input
     streamline. See [0] and [1] for more details.

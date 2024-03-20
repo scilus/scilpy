@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+
 import logging
 import os
 import tempfile
@@ -27,7 +28,7 @@ from scilpy.tractograms.tractogram_operations import (
 
 
 # Prepare SFT
-fetch_data(get_testing_files_dict(), keys='surface_vtk_fib.zip')
+fetch_data(get_testing_files_dict(), keys=['surface_vtk_fib.zip'])
 tmp_dir = tempfile.TemporaryDirectory()
 in_sft = os.path.join(SCILPY_HOME, 'surface_vtk_fib', 'gyri_fanning.trk')
 
