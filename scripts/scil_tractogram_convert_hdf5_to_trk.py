@@ -33,7 +33,7 @@ import h5py
 import itertools
 import numpy as np
 
-from scilpy.io.streamlines import reconstruct_streamlines_from_hdf5
+from scilpy.io.hdf5 import reconstruct_streamlines_from_hdf5
 from scilpy.io.utils import (add_overwrite_arg,
                              add_verbose_arg,
                              assert_inputs_exist,
@@ -109,7 +109,7 @@ def main():
         voxel_sizes = hdf5_file.attrs['voxel_sizes']
         header = create_nifti_header(affine, dimensions, voxel_sizes)
         for key in selected_keys:
-            streamlines = reconstruct_streamlines_from_hdf5(hdf5_file, key)
+            streamlines = reconstruct_streamlines_from_hdf5(hdf5_file[key])
 
             if len(streamlines) == 0 and not args.save_empty:
                 continue
