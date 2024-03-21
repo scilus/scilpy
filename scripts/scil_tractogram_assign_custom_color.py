@@ -91,9 +91,7 @@ def _build_arg_parser():
     g1 = p.add_argument_group(title='Coloring method')
     p1 = g1.add_mutually_exclusive_group(required=True)
     p1.add_argument('--use_dps', metavar='DPS_KEY',
-                    help='Use the data_per_streamline (scalar) for coloring.\n'
-                         'Note. If we detect commit_weights or '
-                         'commit2_weights,')
+                    help='Use the data_per_streamline (scalar) for coloring.')
     p1.add_argument('--use_dpp', metavar='DPP_KEY',
                     help='Use the data_per_point (scalar) for coloring.')
     p1.add_argument('--load_dps', metavar='DPS_FILE',
@@ -116,6 +114,10 @@ def _build_arg_parser():
                     help='Select the colormap for colored trk (dps/dpp) '
                     '[%(default)s].\nUse two Matplotlib named color separeted '
                     'by a - to create your own colormap.')
+    g2.add_argument('--clip_outliers', action='store_true',
+                    help="If set, we will clip the outliers (first and last "
+                         "5%% quantile). Strongly suggested if your data "
+                         "comes from COMMIT!")
     g2.add_argument('--min_range', type=float,
                     help='Set the minimum value when using dps/dpp/anatomy.')
     g2.add_argument('--max_range', type=float,
@@ -178,36 +180,37 @@ def main():
         if args.use_dpp not in sft.data_per_point.keys():
             parser.error("DPP key {} not found in the loaded tractogram's "
                          "data_per_point.".format(args.use_dpp))
-        tmp = [np.squeeze(sft.data_per_point[args.use_dpp][s]) for s in
-               range(len(sft))]
-        data = np.hstack(tmp)
+        data = np.hstack(
+            [np.squeeze(sft.data_per_point[args.use_dpp][s]) for s in
+             range(len(sft))])
     elif args.load_dps:
         data = np.squeeze(load_matrix_in_any_format(args.load_dps))
         if len(data) != len(sft):
             parser.error('Wrong dps size! Expected one value per streamline '
                          '({}) but found {} values.'
                          .format(len(sft), len(data)))
-    elif args.load_dpp:
-        data = np.squeeze(load_matrix_in_any_format(args.load_dpp))
-        if len(data) != len(sft.streamlines._data):
-            parser.error('Wrong dpp size!')
-    elif args.from_anatomy:
-        data = nib.load(args.from_anatomy).get_fdata()
+    elif args.load_dpp or args.from_anatomy:
         sft.to_vox()
-        data = map_coordinates(data, sft.streamlines._data.T, order=0)
+        concat_points = np.vstack(sft.streamlines).T
+        expected_shape = len(concat_points)
         sft.to_rasmm()
+        if args.load_dpp:
+            data = np.squeeze(load_matrix_in_any_format(args.load_dpp))
+            if len(data) != expected_shape:
+                parser.error('Wrong dpp size! Expected a total of {} points, '
+                             'but got {}'.format(expected_shape, len(data)))
+        else:  # args.from_anatomy:
+            data = nib.load(args.from_anatomy).get_fdata()
+            data = map_coordinates(data, concat_points, order=0)
     elif args.along_profile:
-        values, lbound, ubound = get_values_along_length(
-            sft, args)
+        data = get_values_along_length(sft)
     else:  # args.local_angle:
-        values, lbound, ubound = get_angles(
-            sft, args)
+        data = get_angles(sft)
 
     # Processing
-    sft = add_data_as_color_dpp(sft, cmap, data, args.clip_outliers,
-                                args.min_range, args.max_range,
-                                args.min_cmap, args.max_cmap,
-                                args.log, LUT)
+    sft, lbound, ubound = add_data_as_color_dpp(
+        sft, cmap, data, args.clip_outliers, args.min_range, args.max_range,
+        args.min_cmap, args.max_cmap, args.log, LUT)
 
     # Saving
     save_tractogram(sft, args.out_tractogram)

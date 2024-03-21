@@ -6,6 +6,42 @@ from scilpy.viz.utils import clip_and_normalize_data_for_cmap
 
 def add_data_as_color_dpp(sft, cmap, data, clip_outliers, min_range, max_range,
                           min_cmap, max_cmap, log, LUT):
+    """
+    Normalizes data between 0 and 1 for an easier management with colormaps.
+    The real lower bound and upperbound are returned.
+
+    Data can be clipped to (min_range, max_range) before normalization.
+    Alternatively, data can be kept as is,
+
+    Parameters
+    ----------
+    sft: StatefulTractogram
+        The tractogram
+    cmap: plt colormap
+        The colormap
+    data: np.ndarray
+        The data to convert to color. Expecting one value per point to add as
+        dpp. If instead data has one value per streamline, setting the same
+        color to all points of the streamline (as dpp).
+    clip_outliers: bool
+        See description of the following parameters in
+        clip_and_normalize_data_for_cmap.
+    min_range: float
+    max_range: float
+    min_cmap: float
+    max_cmap: float
+    log: bool
+    LUT: np.ndarray
+
+    Returns
+    -------
+    sft: StatefulTractogram
+        The tractogram, with dpp 'color' added.
+    lbound: float
+        The lower bound of the associated colormap.
+    ubound: float
+        The upper bound of the associated colormap.
+    """
     values, lbound, ubound = clip_and_normalize_data_for_cmap(
         data, clip_outliers, min_range, max_range,
         min_cmap, max_cmap, log, LUT)
@@ -21,11 +57,11 @@ def add_data_as_color_dpp(sft, cmap, data, clip_outliers, min_range, max_range,
         sft.data_per_point['color']._data = color
     else:
         raise ValueError("Error in the code... Colors do not have the right "
-                         "shape. (this is our fault). Expecting either one"
-                         "color per streamline ({}) or one per point ({}) but "
-                         "got {}.".format(len(sft), len(sft.streamlines._data),
-                                          len(color)))
-    return sft
+                         "shape. Expecting either one color per streamline "
+                         "({}) or one per point ({}) but got {}."
+                         .format(len(sft), len(sft.streamlines._data),
+                                 len(color)))
+    return sft, lbound, ubound
 
 
 def convert_dps_to_dpp(sft, keys, overwrite=False):

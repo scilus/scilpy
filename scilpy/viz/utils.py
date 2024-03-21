@@ -115,8 +115,14 @@ def clip_and_normalize_data_for_cmap(
         If set, clips data to that value (lowest).
     max_range: float
         If set, clips data to that value (highest).
-    min_cmap: J'AIME PAS. ON SUPPRIME?
-    max_cmap: J'AIME PAS. ON SUPPRIME?
+    min_cmap: float
+        If set, will normalize between 0 and 1 so that 0 is min_cmap instead of
+        the minimal value. Usually, min_cmap should be <= to your minimal
+        value.
+    max_cmap: float
+        If set, will normalize between 0 and 1 so that 1 is max_cmap instead of
+        the maximal value. Usually, min_cmap should be >= to your maximal
+        value.
     log: bool
         If True, data is scaled to a logarithmic scale.
     LUT: np.ndarray
