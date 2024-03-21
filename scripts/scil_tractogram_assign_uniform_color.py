@@ -43,21 +43,24 @@ def _build_arg_parser():
 
     g1 = p.add_argument_group(title='Coloring Methods')
     p1 = g1.add_mutually_exclusive_group(required=True)
-    p1.add_argument('--fill_color',
+    p1.add_argument('--fill_color', metavar='str',
                     help='Can be hexadecimal (ie. either "#RRGGBB" '
                          'or 0xRRGGBB).')
-    p1.add_argument('--dict_colors',
-                    help='Dictionnary mapping basename to color.\n'
-                         'Same convention as --fill_color.')
+    p1.add_argument('--dict_colors', metavar='file.json',
+                    help="Json file: dictionnary mapping each tractogram's "
+                         "basename to a color.\nDo not put your file's "
+                         "extension in your dict.\n"
+                         "Same convention as --fill_color.")
 
     g2 = p.add_argument_group(title='Output options')
     p2 = g2.add_mutually_exclusive_group(required=True)
-    p2.add_argument('--out_suffix', default='colored',
+    p2.add_argument('--out_suffix', nargs='?', const='colored',
+                    metavar='suffix',
                     help='Specify suffix to append to input basename.\n'
                          'Mandatory choice if you run this script on multiple '
                          'tractograms.\nMandatory choice with --dict_colors.\n'
                          '[%(default)s]')
-    p2.add_argument('--out_tractogram',
+    p2.add_argument('--out_tractogram', metavar='file.trk',
                     help='Output filename of colored tractogram (.trk).')
 
     add_reference_arg(p)
@@ -100,6 +103,7 @@ def main():
                                  .format(base, args.out_suffix, '.trk'))
     assert_outputs_exist(parser, args, out_filenames)
 
+    # Loading (except tractograms, in loop)
     dict_colors = None
     if args.dict_colors:
         with open(args.dict_colors, 'r') as data:
@@ -109,15 +113,13 @@ def main():
     for i, filename in enumerate(args.in_tractograms):
         color = None
 
-        # Loading
         sft = load_tractogram_with_reference(parser, args, filename)
 
-        # Processing.
-        base, ext = os.path.splitext(filename)
-        pos = base.index('__') if '__' in base else -2
-        base = base[pos+2:]
-
         if args.dict_colors:
+            base, ext = os.path.splitext(filename)
+            pos = base.index('__') if '__' in base else -2
+            base = base[pos + 2:]
+
             for key in dict_colors.keys():
                 if key in base:
                     color = dict_colors[key]
