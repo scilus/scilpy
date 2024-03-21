@@ -63,7 +63,7 @@ from scilpy.io.utils import (add_bbox_arg,
                              assert_outputs_exist)
 from scilpy.tractograms.tractogram_operations import (flip_sft,
                                                       transform_warp_sft,
-                                                      _get_axis_flip_vector)
+                                                      get_axis_flip_vector)
 from scilpy.tractograms.streamline_operations import cut_invalid_streamlines
 
 softwares = ['dsi_studio', 'startrack']
@@ -149,7 +149,7 @@ def main():
         # Startrack flips the TRK
         flip_axis = ['x']
         new_sft.to_vox()
-        new_sft.streamlines._data -= _get_axis_flip_vector(flip_axis)
+        new_sft.streamlines._data -= get_axis_flip_vector(flip_axis)
         new_sft = flip_sft(new_sft, flip_axis)
         new_sft.to_rasmm()
 
@@ -169,7 +169,7 @@ def main():
         sft_fix = StatefulTractogram(sft.streamlines, args.in_dsi_fa,
                                      Space.VOXMM)
         sft_fix.to_vox()
-        sft_fix.streamlines._data -= _get_axis_flip_vector(flip_axis)
+        sft_fix.streamlines._data -= get_axis_flip_vector(flip_axis)
 
         sft_flip = flip_sft(sft_fix, flip_axis)
 

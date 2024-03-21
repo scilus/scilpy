@@ -25,8 +25,8 @@ from scipy.ndimage import map_coordinates
 from scipy.spatial import cKDTree
 
 from scilpy.tractograms.streamline_operations import smooth_line_gaussian, \
-    resample_streamlines_step_size, parallel_transport_streamline
-from scilpy.tractograms.streamlines_utils import cut_invalid_streamlines
+    resample_streamlines_step_size, parallel_transport_streamline, \
+    cut_invalid_streamlines
 
 MIN_NB_POINTS = 10
 KEY_INDEX = np.concatenate((range(5), range(-1, -6, -1)))
@@ -47,13 +47,13 @@ def shuffle_streamlines(sft, rng_seed=None):
     return shuffled_sft
 
 
-def _get_axis_flip_vector(flip_axes):
+def get_axis_flip_vector(flip_axes):
     """
-    Create a flip vector from a list of axes
+    Create a flip vector from a list of axes.
 
     Parameters
     ----------
-    flip_axis: list
+    flip_axes: list
         List of axis you want to flip
 
     Returns
@@ -97,7 +97,7 @@ def flip_sft(sft, flip_axes):
         # Could return sft. But creating new SFT (or deep copy).
         flipped_streamlines = sft.streamlines
     else:
-        flip_vector = _get_axis_flip_vector(flip_axes)
+        flip_vector = get_axis_flip_vector(flip_axes)
         shift_vector = _get_shift_vector(sft)
 
         flipped_streamlines = []
