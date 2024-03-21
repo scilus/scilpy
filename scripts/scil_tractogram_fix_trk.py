@@ -64,7 +64,7 @@ from scilpy.io.utils import (add_bbox_arg,
 from scilpy.tractograms.tractogram_operations import (flip_sft,
                                                       transform_warp_sft,
                                                       _get_axis_flip_vector)
-from scilpy.utils.streamlines import cut_invalid_streamlines
+from scilpy.tractograms.streamline_operations import cut_invalid_streamlines
 
 softwares = ['dsi_studio', 'startrack']
 

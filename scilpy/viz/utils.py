@@ -92,3 +92,62 @@ def prepare_colorbar_figure(cmap, lbound, ubound, nb_values=255, nb_ticks=10,
         ax.set_xticklabels(ticks_labels)
         ax.set_yticks([])
     return fig
+
+
+def clip_and_normalize_data_for_cmap(
+        data, clip_outliers=False, min_range=None, max_range=None,
+        min_cmap=None, max_cmap=None, log=False, LUT=None):
+    """
+    Normalizes data between 0 and 1 for an easier management with colormaps.
+    The real lower bound and upperbound are returned.
+
+    Data can be clipped to (min_range, max_range) before normalization.
+    Alternatively, data can be kept as is,
+
+    Parameters
+    ----------
+    data: np.ndarray
+        The data.
+    clip_outliers: bool
+        If True, clips the data to the lowest and highest 5% quantile before
+        normalizing and before any other clipping.
+    min_range: float
+        If set, clips data to that value (lowest).
+    max_range: float
+        If set, clips data to that value (highest).
+    min_cmap: J'AIME PAS. ON SUPPRIME?
+    max_cmap: J'AIME PAS. ON SUPPRIME?
+    log: bool
+        If True, data is scaled to a logarithmic scale.
+    LUT: np.ndarray
+        If set, replaces the data values by the Look-Up Table values. In order,
+        the first value of the LUT is set everywhere where data==1, etc.
+    """
+    if LUT is not None:
+        for i, val in enumerate(LUT):
+            data[data == i+1] = val
+
+    # Clipping
+    if clip_outliers:
+        data = np.clip(data, np.quantile(data, 0.05),
+                       np.quantile(data, 0.95))
+    if min_range is not None or max_range is not None:
+        data = np.clip(data, min_range, max_range)
+
+    # get data values range
+    if min_cmap is not None:
+        lbound = min_cmap
+    else:
+        lbound = np.min(data)
+    if max_cmap is not None:
+        ubound = max_cmap
+    else:
+        ubound = np.max(data)
+
+    if log:
+        data[data > 0] = np.log10(data[data > 0])
+
+    # normalize data between 0 and 1
+    data -= lbound
+    data = data / ubound if ubound > 0 else data
+    return data, lbound, ubound

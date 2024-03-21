@@ -62,8 +62,9 @@ from scilpy.io.utils import (assert_inputs_exist,
                              add_reference_arg,
                              add_verbose_arg,
                              load_matrix_in_any_format)
-from scilpy.utils.streamlines import get_color_streamlines_along_length, \
-    get_color_streamlines_from_angle, clip_and_normalize_data_for_cmap
+from scilpy.tractograms.dps_and_dpp_management import add_data_as_color_dpp
+from scilpy.tractograms.streamline_operations import (get_values_along_length,
+                                                      get_angles)
 from scilpy.viz.utils import get_colormap, prepare_colorbar_figure
 
 
@@ -88,10 +89,11 @@ def _build_arg_parser():
                         help='Draw horizontal colorbar (vertical by default).')
 
     g1 = p.add_argument_group(title='Coloring method')
-    p1 = g1.add_mutually_exclusive_group()
+    p1 = g1.add_mutually_exclusive_group(required=True)
     p1.add_argument('--use_dps', metavar='DPS_KEY',
-                    help='Use the data_per_streamline (scalar) for coloring,\n'
-                         'e.g. commit_weights.')
+                    help='Use the data_per_streamline (scalar) for coloring.\n'
+                         'Note. If we detect commit_weights or '
+                         'commit2_weights,')
     p1.add_argument('--use_dpp', metavar='DPP_KEY',
                     help='Use the data_per_point (scalar) for coloring.')
     p1.add_argument('--load_dps', metavar='DPS_FILE',
@@ -143,6 +145,7 @@ def main():
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
+    # Verifications
     assert_inputs_exist(parser, args.in_tractogram, args.reference)
     assert_outputs_exist(parser, args, args.out_tractogram,
                          optional=args.out_colorbar)
@@ -151,72 +154,64 @@ def main():
         logging.warning('Colorbar output not supplied. Ignoring '
                         '--horizontal_cbar.')
 
-    sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
+    if (args.use_dps is not None and
+            args.use_dps in ['commit_weights', 'commit2_weights'] and not
+            args.clip_outliers):
+        logging.warning("You seem to be using commit weights. They typically "
+                        "have outliers values. We suggest using "
+                        "--clip_outliers.")
 
-    if args.LUT:
-        LUT = load_matrix_in_any_format(args.LUT)
-        if np.any(sft.streamlines._lengths < len(LUT)):
-            logging.warning('Some streamlines have fewer point than the size '
-                            'of the provided LUT.\nConsider using '
-                            'scil_tractogram_resample_nb_points.py')
+    # Loading
+    sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
+    LUT = load_matrix_in_any_format(args.LUT) if args.LUT else None
 
     cmap = get_colormap(args.colormap)
-    if args.use_dps or args.use_dpp or args.load_dps or args.load_dpp:
-        if args.use_dps:
-            data = np.squeeze(sft.data_per_streamline[args.use_dps])
-            # I believe it works well for gaussian distribution, but
-            # COMMIT has very weird outliers values
-            if args.use_dps == 'commit_weights' \
-                    or args.use_dps == 'commit2_weights':
-                data = np.clip(data, np.quantile(data, 0.05),
-                               np.quantile(data, 0.95))
-        elif args.use_dpp:
-            tmp = [np.squeeze(sft.data_per_point[args.use_dpp][s]) for s in
-                   range(len(sft))]
-            data = np.hstack(tmp)
-        elif args.load_dps:
-            data = np.squeeze(load_matrix_in_any_format(args.load_dps))
-            if len(data) != len(sft):
-                parser.error('Wrong dps size!')
-        else:  # args.load_dpp
-            data = np.squeeze(load_matrix_in_any_format(args.load_dpp))
-            if len(data) != len(sft.streamlines._data):
-                parser.error('Wrong dpp size!')
-        values, lbound, ubound = clip_and_normalize_data_for_cmap(args, data)
+
+    # Loading data. Depending on the type of loading, format data now to a 1D
+    # array (one value per point or per streamline)
+    if args.use_dps:
+        if args.use_dps not in sft.data_per_streamline.keys():
+            parser.error("DPS key {} not found in the loaded tractogram's "
+                         "data_per_streamline.".format(args.use_dps))
+        data = np.squeeze(sft.data_per_streamline[args.use_dps])
+    elif args.use_dpp:
+        if args.use_dpp not in sft.data_per_point.keys():
+            parser.error("DPP key {} not found in the loaded tractogram's "
+                         "data_per_point.".format(args.use_dpp))
+        tmp = [np.squeeze(sft.data_per_point[args.use_dpp][s]) for s in
+               range(len(sft))]
+        data = np.hstack(tmp)
+    elif args.load_dps:
+        data = np.squeeze(load_matrix_in_any_format(args.load_dps))
+        if len(data) != len(sft):
+            parser.error('Wrong dps size! Expected one value per streamline '
+                         '({}) but found {} values.'
+                         .format(len(sft), len(data)))
+    elif args.load_dpp:
+        data = np.squeeze(load_matrix_in_any_format(args.load_dpp))
+        if len(data) != len(sft.streamlines._data):
+            parser.error('Wrong dpp size!')
     elif args.from_anatomy:
         data = nib.load(args.from_anatomy).get_fdata()
-        data, lbound, ubound = clip_and_normalize_data_for_cmap(args, data)
-
         sft.to_vox()
-        values = map_coordinates(data, sft.streamlines._data.T, order=0)
+        data = map_coordinates(data, sft.streamlines._data.T, order=0)
         sft.to_rasmm()
     elif args.along_profile:
-        values, lbound, ubound = get_color_streamlines_along_length(
+        values, lbound, ubound = get_values_along_length(
             sft, args)
-    elif args.local_angle:
-        values, lbound, ubound = get_color_streamlines_from_angle(
+    else:  # args.local_angle:
+        values, lbound, ubound = get_angles(
             sft, args)
-    else:
-        parser.error('No coloring method specified.')
 
-    color = cmap(values)[:, 0:3] * 255
-    if len(color) == len(sft):
-        tmp = [np.tile([color[i][0], color[i][1], color[i][2]],
-                       (len(sft.streamlines[i]), 1))
-               for i in range(len(sft.streamlines))]
-        sft.data_per_point['color'] = tmp
-    elif len(color) == len(sft.streamlines._data):
-        sft.data_per_point['color'] = sft.streamlines
-        sft.data_per_point['color']._data = color
-    else:
-        raise ValueError("Error in the code... Colors do not have the right "
-                         "shape. (this is our fault). Expecting either one"
-                         "color per streamline ({}) or one per point ({}) but "
-                         "got {}.".format(len(sft), len(sft.streamlines._data),
-                                          len(color)))
+    # Processing
+    sft = add_data_as_color_dpp(sft, cmap, data, args.clip_outliers,
+                                args.min_range, args.max_range,
+                                args.min_cmap, args.max_cmap,
+                                args.log, LUT)
+
+    # Saving
     save_tractogram(sft, args.out_tractogram)
 
-    # output colormap
     if args.out_colorbar:
         _ = prepare_colorbar_figure(
             cmap, lbound, ubound,

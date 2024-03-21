@@ -1,6 +1,32 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 
+from scilpy.viz.utils import clip_and_normalize_data_for_cmap
+
+
+def add_data_as_color_dpp(sft, cmap, data, clip_outliers, min_range, max_range,
+                          min_cmap, max_cmap, log, LUT):
+    values, lbound, ubound = clip_and_normalize_data_for_cmap(
+        data, clip_outliers, min_range, max_range,
+        min_cmap, max_cmap, log, LUT)
+
+    color = cmap(values)[:, 0:3] * 255
+    if len(color) == len(sft):
+        tmp = [np.tile([color[i][0], color[i][1], color[i][2]],
+                       (len(sft.streamlines[i]), 1))
+               for i in range(len(sft.streamlines))]
+        sft.data_per_point['color'] = tmp
+    elif len(color) == len(sft.streamlines._data):
+        sft.data_per_point['color'] = sft.streamlines
+        sft.data_per_point['color']._data = color
+    else:
+        raise ValueError("Error in the code... Colors do not have the right "
+                         "shape. (this is our fault). Expecting either one"
+                         "color per streamline ({}) or one per point ({}) but "
+                         "got {}.".format(len(sft), len(sft.streamlines._data),
+                                          len(color)))
+    return sft
+
 
 def convert_dps_to_dpp(sft, keys, overwrite=False):
     """

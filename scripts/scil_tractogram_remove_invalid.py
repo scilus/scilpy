@@ -23,7 +23,7 @@ from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg, add_verbose_arg,
                              add_reference_arg, assert_inputs_exist,
                              assert_outputs_exist)
-from scilpy.utils.streamlines import cut_invalid_streamlines
+from scilpy.tractograms.streamline_operations import cut_invalid_streamlines
 
 
 def _build_arg_parser():

@@ -14,7 +14,7 @@ from dipy.tracking.utils import length as compute_length
 from scilpy.io.image import get_data_as_mask
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.segment.streamlines import filter_grid_roi, filter_grid_roi_both
-from scilpy.tractanalysis.features import remove_loops_and_sharp_turns
+from scilpy.tractanalysis.bundle_operations import remove_loops_and_sharp_turns
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
 
 from scilpy.tractograms.streamline_and_mask_operations import \
