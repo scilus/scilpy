@@ -98,19 +98,12 @@ def get_angles(sft):
     Parameters
     ----------
     sft: StatefulTractogram
-        The tractogram that contains the list of streamlines to be colored
-    args: NameSpace
-        The colormap options.
+        The tractogram.
 
     Returns
     -------
-    color: np.ndarray
-        An array of shape (nb_streamlines, 3) containing the RGB values of
-        streamlines
-    lbound: float
-        Minimal value
-    ubound: float
-        Maximal value
+    angles: list[np.ndarray]
+        The angles per streamline, in degree.
     """
     angles = []
     for i in range(len(sft.streamlines)):
@@ -128,24 +121,17 @@ def get_angles(sft):
 
 
 def get_values_along_length(sft):
-    """Color streamlines according to their length.
+    """Get the streamlines' coordinate positions according to their length.
 
     Parameters
     ----------
     sft: StatefulTractogram
         The tractogram that contains the list of streamlines to be colored
-    args: NameSpace
-        The colormap options.
 
     Returns
     -------
-    color: np.ndarray
-        An array of shape (nb_streamlines, 3) containing the RGB values of
-        streamlines
-    lbound: int
-        Minimal value
-    ubound: int
-        Maximal value
+    positions: list[list]
+        For each streamline, the linear distribution of its length.
     """
     positions = []
     for i in range(len(sft.streamlines)):

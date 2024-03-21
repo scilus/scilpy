@@ -62,6 +62,26 @@ def _setup_files():
     return sft, rois
 
 
+def test_angles():
+    # toDo
+    pass
+
+
+def test_get_values_along_length():
+    # toDo
+    pass
+
+
+def test_compress_sft():
+    # toDo
+    pass
+
+
+def test_cut_invalid_streamlines():
+    # toDo
+    pass
+
+
 def test_filter_streamlines_by_length_max_length():
     """ Test the filter_streamlines_by_length function with a max length.
     """
@@ -372,6 +392,11 @@ def test_smooth_line_spline():
     dist_2 = np.linalg.norm(noisy_streamline - smoothed_streamline)
 
     assert dist_1 < dist_2
+
+
+def test_genearte_matched_points():
+    # toDo
+    pass
 
 
 def test_parallel_transport_streamline():
