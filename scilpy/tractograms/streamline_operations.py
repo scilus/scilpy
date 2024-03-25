@@ -261,7 +261,8 @@ def cut_invalid_streamlines(sft):
                         sft.data_per_streamline[key][ind])
                 for key in sft.data_per_point.keys():
                     new_data_per_point[key].append(
-                        sft.data_per_point[key][ind][best_pos[0]:best_pos[1]-1])
+                        sft.data_per_point[key][ind][
+                            best_pos[0]:best_pos[1]-1])
             else:
                 logging.warning('Streamlines entirely out of the volume.')
         else:
@@ -271,9 +272,9 @@ def cut_invalid_streamlines(sft):
                     sft.data_per_streamline[key][ind])
             for key in sft.data_per_point.keys():
                 new_data_per_point[key].append(sft.data_per_point[key][ind])
-    new_sft = StatefulTractogram.from_sft(new_streamlines, sft,
-                                          data_per_streamline=new_data_per_streamline,
-                                          data_per_point=new_data_per_point)
+    new_sft = StatefulTractogram.from_sft(
+        new_streamlines, sft, data_per_streamline=new_data_per_streamline,
+        data_per_point=new_data_per_point)
 
     # Move the streamlines back to the original space/origin
     sft.to_space(space)
@@ -621,7 +622,8 @@ def generate_matched_points(sft):
     return matched_points
 
 
-def parallel_transport_streamline(streamline, nb_streamlines, radius, rng=None):
+def parallel_transport_streamline(streamline, nb_streamlines, radius,
+                                  rng=None):
     """ Generate new streamlines by parallel transport of the input
     streamline. See [0] and [1] for more details.
 

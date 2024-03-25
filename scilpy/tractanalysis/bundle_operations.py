@@ -107,7 +107,8 @@ def uniformize_bundle_sft(sft, axis=None, ref_bundle=None, swap=False):
                 norm_direct = np.sum(
                     np.linalg.norm(res_centroid - res_streamlines, axis=0))
                 norm_flip = np.sum(
-                    np.linalg.norm(res_centroid - res_streamlines[::-1], axis=0))
+                    np.linalg.norm(res_centroid - res_streamlines[::-1],
+                                   axis=0))
                 if bool(norm_direct > norm_flip) ^ bool(swap):
                     sft.streamlines[i] = sft.streamlines[i][::-1]
                     for key in sft.data_per_point[i]:
@@ -115,8 +116,9 @@ def uniformize_bundle_sft(sft, axis=None, ref_bundle=None, swap=False):
                             sft.data_per_point[key][i][::-1]
             else:
                 # Bitwise XOR
-                if bool(labels[tuple(sft.streamlines[i][0].astype(int))] >
-                        labels[tuple(sft.streamlines[i][-1].astype(int))]) ^ bool(swap):
+                if (bool(labels[tuple(sft.streamlines[i][0].astype(int))] >
+                         labels[tuple(sft.streamlines[i][-1].astype(int))])
+                        ^ bool(swap)):
                     sft.streamlines[i] = sft.streamlines[i][::-1]
                     for key in sft.data_per_point[i]:
                         sft.data_per_point[key][i] = \
