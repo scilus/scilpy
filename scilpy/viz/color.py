@@ -103,6 +103,23 @@ def get_lookup_table(name):
 
 
 def lut_from_matplotlib_name(name, value_range, n_samples=256):
+    """
+    Create a linear VTK lookup table from a matplotlib colormap.
+
+    Parameters
+    ----------
+    name : str
+        Name of the matplotlib colormap.
+    value_range : tuple
+        Range of values to map the colors to.
+    n_samples : int
+        Number of samples to take in the matplotlib colormap.
+
+    Returns
+    -------
+    vtkLookupTable
+        A VTK lookup table (range: [0, 255]).
+    """
     lut = get_lookup_table(name)
     return lut_from_colors(
         lut(np.linspace(0., 1., n_samples)) * 255., value_range)

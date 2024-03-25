@@ -212,7 +212,7 @@ def fit_circle_in_space(positions, directions, dist_w=None):
 
 def snapshot(scene, win_dims, output_filename):
     snapshot = next(snapshot_scenes([scene], win_dims))
-    img = compose_image(snapshot, win_dims, "TODO")
+    img = compose_image(snapshot, win_dims, "NONE")
     img.save(output_filename)
 
 
