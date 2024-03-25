@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+from matplotlib.font_manager import findfont
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
@@ -175,8 +176,7 @@ def annotate_image(image, slice_number, display_slice_number,
         Left/right labels.
     """
     font_size = image.width // 10
-    font = ImageFont.truetype(
-        '/usr/share/fonts/truetype/freefont/FreeSans.ttf', font_size)
+    font = ImageFont.truetype(findfont("freesans", fontext="ttf"), font_size)
 
     stroke, padding = max(image.width // 200, 1), image.width // 100
     width, height = image.width, image.height
