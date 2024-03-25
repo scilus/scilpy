@@ -7,7 +7,7 @@ from scilpy.utils.util import get_axis_index
 from scilpy.viz.backends.fury import (create_scene,
                                       set_display_extent,
                                       set_viewport,
-                                      screenshot_slices)
+                                      snapshot_slices)
 from scilpy.viz.backends.pil import (annotate_image,
                                      any2grayscale,
                                      create_canvas,
@@ -41,7 +41,7 @@ def screenshot_volume(img, orientation, slice_ids, size, labelmap=None):
     slice_actor = create_texture_slicer(img.get_fdata(), orientation, 0,
                                         offset=0.0, lut=labelmap)
 
-    return screenshot_slices([slice_actor], slice_ids, orientation,
+    return snapshot_slices([slice_actor], slice_ids, orientation,
                              img.shape, size)
 
 
@@ -124,7 +124,7 @@ def screenshot_peaks(img, orientation, slice_ids, size, mask_img=None):
     peaks_actor = create_peaks_slicer(img.get_fdata(), orientation, 0,
                                       mask=mask)
 
-    return screenshot_slices([peaks_actor], slice_ids, orientation,
+    return snapshot_slices([peaks_actor], slice_ids, orientation,
                              img.shape, size)
 
 

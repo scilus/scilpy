@@ -239,7 +239,7 @@ def create_interactive_window(scene, window_size, interactor,
     return showm
 
 
-def screenshot_slices(actors, slice_ids, orientation, shape, size):
+def snapshot_slices(actors, slice_ids, orientation, shape, size):
     """
     Snapshot a series of slice_ids from a scene on a given axis_name
 
