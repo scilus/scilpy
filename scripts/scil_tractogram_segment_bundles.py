@@ -101,8 +101,8 @@ def main():
                                                     args.in_directory, x))]
 
     assert_inputs_exist(parser, args.in_tractograms +
-                        [args.in_config_file,
-                         args.in_transfo])
+                        [args.in_config_file, args.in_transfo],
+                        args.reference)
 
     for in_tractogram in args.in_tractograms:
         ext = os.path.splitext(in_tractogram)[1]

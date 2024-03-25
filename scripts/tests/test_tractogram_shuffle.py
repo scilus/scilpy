@@ -13,14 +13,13 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_shuffle_streamlines.py', '--help')
+    ret = script_runner.run('scil_tractogram_shuffle.py', '--help')
     assert ret.success
 
 
 def test_execution_tracking(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    in_tracto = os.path.join(SCILPY_HOME, 'tracking',
-                             'union.trk')
-    ret = script_runner.run('scil_shuffle_streamlines.py', in_tracto,
+    in_tracto = os.path.join(SCILPY_HOME, 'tracking', 'union.trk')
+    ret = script_runner.run('scil_tractogram_shuffle.py', in_tracto,
                             'union_shuffle.trk')
     assert ret.success

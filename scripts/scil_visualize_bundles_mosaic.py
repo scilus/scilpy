@@ -11,7 +11,6 @@ import logging
 import os
 import random
 
-from dipy.io.utils import is_header_compatible
 from fury import actor, window
 import nibabel as nib
 import numpy as np
@@ -21,13 +20,13 @@ from PIL import ImageFont
 from PIL import ImageDraw
 
 from scilpy.io.image import get_data_as_mask
-from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg,
                              add_reference_arg,
                              add_verbose_arg,
                              assert_inputs_exist,
                              assert_outputs_exist,
-                             assert_output_dirs_exist_and_empty)
+                             assert_output_dirs_exist_and_empty,
+                             assert_headers_compatible)
 from scilpy.utils.filenames import split_name_with_nii
 
 
@@ -176,8 +175,11 @@ def main():
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
-    assert_inputs_exist(parser, args.in_volume)
+    assert_inputs_exist(parser, args.in_bundles + [args.in_volume],
+                        args.reference)
     assert_outputs_exist(parser, args, args.out_image)
+    assert_headers_compatible(parser, args.in_bundles + [args.in_volume],
+                              reference=args.reference)
 
     output_names = ['axial_superior', 'axial_inferior',
                     'coronal_posterior', 'coronal_anterior',
@@ -186,19 +188,6 @@ def main():
         output_names = ['axial_superior',
                         'coronal_posterior',
                         'sagittal_left']
-
-    for filename in args.in_bundles:
-        _, ext = os.path.splitext(filename)
-        if ext == '.tck':
-            tractogram = load_tractogram_with_reference(parser, args, filename)
-        else:
-            tractogram = filename
-        if not is_header_compatible(args.in_volume, tractogram):
-            parser.error('{} does not have a compatible header with {}'.format(
-                filename, args.in_volume))
-        # Delete temporary tractogram
-        else:
-            del tractogram
 
     output_dir = os.path.dirname(args.out_image)
     if output_dir:

@@ -53,7 +53,7 @@ def main():
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
-    assert_inputs_exist(parser, args.in_bundle)
+    assert_inputs_exist(parser, args.in_bundle, args.reference)
     assert_outputs_exist(parser, args, args.out_bundle, args.remaining_bundle)
     if args.alpha <= 0 or args.alpha > 1:
         parser.error('--alpha should be ]0, 1]')

@@ -55,7 +55,7 @@ from scilpy.io.utils import (add_overwrite_arg, add_processes_arg,
                              add_sh_basis_args, add_skip_b0_check_arg,
                              add_tolerance_arg, add_verbose_arg,
                              assert_inputs_exist, assert_outputs_exist,
-                             parse_sh_basis_arg)
+                             parse_sh_basis_arg, assert_headers_compatible)
 from scilpy.reconst.fodf import (fit_from_model,
                                  verify_failed_voxels_shm_coeff,
                                  verify_frf_files)
@@ -152,6 +152,7 @@ def main():
     required += [args.in_wm_frf, args.in_gm_frf, args.in_csf_frf]
     assert_inputs_exist(parser, required, optional=args.mask)
     assert_outputs_exist(parser, args, arglist)
+    assert_headers_compatible(parser, args.in_dwis, args.mask)
 
     if not (len(args.in_dwis) == len(args.in_bvals)
             == len(args.in_bvecs) == len(args.in_bdeltas)):
@@ -175,12 +176,8 @@ def main():
         tol=args.tolerance, skip_b0_check=args.skip_b0_check)
 
     # Checking mask
-    if args.mask is None:
-        mask = None
-    else:
-        mask = get_data_as_mask(nib.load(args.mask), dtype=bool)
-        if mask.shape != data.shape[:-1]:
-            raise ValueError("Mask is not the same shape as data.")
+    mask = get_data_as_mask(nib.load(args.mask),
+                            dtype=bool) if args.mask else None
 
     # Checking data and sh_order
     verify_data_vs_sh_order(data, args.sh_order)
@@ -203,7 +200,7 @@ def main():
     # Computing memsmt-CSD
     memsmt_model = MultiShellDeconvModel(gtab, memsmt_response,
                                          reg_sphere=reg_sphere,
-                                         sh_order=args.sh_order)
+                                         sh_order_max=args.sh_order)
 
     # Computing memsmt-CSD fit
     memsmt_fit = fit_from_model(memsmt_model, data,

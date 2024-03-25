@@ -702,9 +702,7 @@ def assert_roi_radii_format(parser):
     return roi_radii
 
 
-def is_header_compatible_multiple_files(parser, list_files,
-                                        verbose_all_compatible=False,
-                                        reference=None):
+def assert_headers_compatible(parser, required, optional=None, reference=None):
     """
     Verifies the compatibility between the first item in list_files
     and the remaining files in list.
@@ -713,42 +711,58 @@ def is_header_compatible_multiple_files(parser, list_files,
     ---------
     parser: argument parser
         Will raise an error if a file is not compatible.
-    list_files: List[str]
+    required: List[str]
         List of files to test
-    verbose_all_compatible: bool
-        If true will print a message when everything is okay
+    optional: List[str or None]
+        List of files. May contain None, they will be discarted.
     reference: str
         Reference for any .tck passed in `list_files`
     """
     all_valid = True
 
-    # Gather "headers" for all files to compare against
-    # eachother later
+    # Format required and optional to lists if a single filename was sent.
+    if isinstance(required, str):
+        required = [required]
+    if optional is None:
+        optional = []
+    elif isinstance(optional, str):
+        optional = [optional]
+    else:
+        optional = [f for f in optional if f is not None]
+    list_files = required + optional
+
+    if reference is not None:
+        list_files.append(reference)
+
+    if len(list_files) <= 1:
+        return
+
+    # Gather "headers" for all files to compare against each other later
     headers = []
     for filepath in list_files:
         _, in_extension = split_name_with_nii(filepath)
         if in_extension in ['.trk', '.nii', '.nii.gz']:
             headers.append(filepath)
         elif in_extension == '.tck':
-            if reference:
-                headers.append(reference)
-            else:
+            if reference is None:
                 parser.error(
-                    '{} must be provided with a reference.'.format(
-                        filepath))
+                    '{} must be provided with a reference.'.format(filepath))
         else:
             parser.error('{} does not have a supported extension.'.format(
                 filepath))
 
+    # Verify again that we have more than one header (ex, if not all tck files)
+    if len(headers) <= 1:
+        return
+
     for curr in headers[1:]:
         if not is_header_compatible(headers[0], curr):
-            print('ERROR:\"{}\" and \"{}\" do not have compatible '
-                  'headers.'.format(headers[0], curr))
+            # Not raising error now. Allows to show all errors.
+            logging.error('ERROR:\"{}\" and \"{}\" do not have compatible '
+                          'headers.'.format(headers[0], curr))
             all_valid = False
 
-    if all_valid and verbose_all_compatible:
-        print('All input files have compatible headers.')
-    elif not all_valid:
+    if not all_valid:
         parser.error('Not all input files have compatible headers.')
 
 

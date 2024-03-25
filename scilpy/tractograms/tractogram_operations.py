@@ -7,23 +7,25 @@ registration, suffling, etc), not on each point of the streamlines separately /
 individually. See scilpy.tractograms.streamline_operations.py for the latter.
 """
 
-import itertools
-
-import random
 from functools import reduce
+import itertools
 import logging
+import random
 
 from dipy.io.stateful_tractogram import StatefulTractogram, Space
 from dipy.io.utils import get_reference_info, is_header_compatible
 from dipy.segment.clustering import qbx_and_merge
 from dipy.tracking.streamline import transform_streamlines
+from dipy.tracking.streamlinespeed import compress_streamlines
+from nibabel.streamlines import TrkFile, TckFile
 from nibabel.streamlines.array_sequence import ArraySequence
 import numpy as np
+from numpy.polynomial.polynomial import Polynomial
 from scipy.ndimage import map_coordinates
 from scipy.spatial import cKDTree
 
 from scilpy.tractograms.streamline_operations import smooth_line_gaussian, \
-    smooth_line_spline
+    resample_streamlines_step_size, parallel_transport_streamline
 from scilpy.utils.streamlines import cut_invalid_streamlines
 
 MIN_NB_POINTS = 10
@@ -603,8 +605,36 @@ def transform_warp_sft(sft, linear_transfo, target, inverse=False,
     return new_sft
 
 
-def upsample_tractogram(sft, nb, point_wise_std=None, streamline_wise_std=None,
-                        gaussian=None, spline=None, seed=None):
+def compress_streamlines_wrapper(tractogram, error_rate):
+    """
+    Compresses the streamlines of a tractogram.
+    Supports both nibabel.Tractogram dipy.StatefulTractogram
+    or list of streamlines.
+
+    Parameters
+    ----------
+    tractogram: TrkFile, TckFile, ArraySequence, list
+        The tractogram to compress.
+    error_rate: float
+        The maximum distance (in mm) for point displacement during compression.
+
+    Returns
+    -------
+    compressed_streamlines: list of np.ndarray
+        The compressed streamlines.
+    """
+    if isinstance(tractogram, (TrkFile, TckFile)):
+        return lambda: (compress_streamlines(
+            s, error_rate) for s in tractogram.streamlines)
+    else:
+        if hasattr(tractogram, 'streamlines'):
+            tractogram = tractogram.streamlines
+        return [compress_streamlines(
+            s, error_rate) for s in tractogram]
+
+
+def upsample_tractogram(sft, nb, point_wise_std=None, tube_radius=None,
+                        gaussian=None, error_rate=None, seed=None):
     """
     Generates new streamlines by either adding gaussian noise around
     streamlines' points, or by translating copies of existing streamlines
@@ -619,11 +649,12 @@ def upsample_tractogram(sft, nb, point_wise_std=None, streamline_wise_std=None,
     point_wise_std : float
         The standard deviation of the gaussian to use to generate point-wise
         noise on the streamlines.
-    streamline_wise_std : float
-        The standard deviation of the gaussian to use to generate
-        streamline-wise noise on the streamlines.
+    tube_radius : float
+        The radius of the tube used to model the streamlines.
     gaussian: float
         The sigma used for smoothing streamlines.
+    error_rate : float
+        The maximum distance (in mm) to the original position of any point.
     spline: (float, int)
         Pair of sigma and number of control points used to model each
         streamline as a spline and smooth it.
@@ -635,35 +666,49 @@ def upsample_tractogram(sft, nb, point_wise_std=None, streamline_wise_std=None,
     new_sft : StatefulTractogram
         The upsampled tractogram.
     """
-    assert bool(point_wise_std) ^ bool(streamline_wise_std), \
-        'Can only add either point-wise or streamline-wise noise' + \
-        ', not both nor none.'
-
-    rng = np.random.RandomState(seed)
-
-    # Get the number of streamlines to add
-    nb_new = nb - len(sft.streamlines)
+    rng = np.random.default_rng(seed)
 
     # Get the streamlines that will serve as a base for new ones
-    indices = rng.choice(
-        len(sft.streamlines), nb_new)
-    new_streamlines = sft.streamlines.copy()
+    resampled_sft = resample_streamlines_step_size(sft, 1)
+    new_streamlines = []
+    indices = rng.choice(len(resampled_sft), nb, replace=True)
+    unique_indices, count = np.unique(indices, return_counts=True)
 
     # For all selected streamlines, add noise and smooth
-    for s in sft.streamlines[indices]:
-        if point_wise_std:
-            noise = rng.normal(scale=point_wise_std, size=s.shape)
-        else:  # streamline_wise_std
-            noise = rng.normal(scale=streamline_wise_std, size=s.shape[-1])
-        new_s = s + noise
+    for i, c in zip(unique_indices, count):
+        s = resampled_sft.streamlines[i]
+        if len(s) < 3:
+            new_streamlines.extend(np.repeat(s, c).tolist())
+        new_s = parallel_transport_streamline(s, c, tube_radius)
+
+        # Generate smooth noise_factor
+        noise = rng.normal(loc=0, scale=point_wise_std,
+                           size=len(s))
+
+        # Instead of generating random noise, we fit a polynomial to the
+        # noise and use it to generate a spatially smooth noise along the
+        # streamline (simply to avoid sharp changes in the noise factor).
+        x = np.arange(len(noise))
+        poly_coeffs = np.polyfit(x, noise, 3)
+        polynomial = Polynomial(poly_coeffs[::-1])
+        noise_factor = polynomial(x)
+
+        vec = s - new_s
+        vec /= np.linalg.norm(vec, axis=0)
+        new_s += vec * np.expand_dims(noise_factor, axis=1)
+
         if gaussian:
-            new_s = smooth_line_gaussian(new_s, gaussian)
-        elif spline:
-            new_s = smooth_line_spline(new_s, spline[0], spline[1])
+            new_s = [smooth_line_gaussian(s, gaussian) for s in new_s]
 
-        new_streamlines.append(new_s)
+        new_streamlines.extend(new_s)
 
-    new_sft = StatefulTractogram.from_sft(new_streamlines, sft)
+    if error_rate:
+        compressed_streamlines = compress_streamlines_wrapper(new_streamlines,
+                                                              error_rate)
+    else:
+        compressed_streamlines = new_streamlines
+
+    new_sft = StatefulTractogram.from_sft(compressed_streamlines, sft)
     return new_sft
 
 
@@ -798,9 +843,10 @@ def split_sft_randomly_per_cluster(orig_sft, chunk_sizes, seed, thresholds):
     nb_chunks = len(chunk_sizes)
     percent_kept_per_chunk = [nb / len(orig_sft) for nb in chunk_sizes]
 
-    logging.info("Computing QBx")
+    logging.debug("Computing QBx")
+    rng = np.random.RandomState(seed)
     clusters = qbx_and_merge(orig_sft.streamlines, thresholds, nb_pts=20,
-                             verbose=False)
+                             verbose=False, rng=rng)
 
     logging.info("Done. Now getting list of indices in each of the {} "
                  "cluster.".format(len(clusters)))

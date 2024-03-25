@@ -9,23 +9,35 @@ from dipy.utils.optpkg import optional_package
 cl, have_opencl, _ = optional_package('pyopencl')
 
 
+def cl_device_type(device_type_str):
+    if device_type_str == 'cpu':
+        return cl.device_type.CPU
+    if device_type_str == 'gpu':
+        return cl.device_type.GPU
+    return -1
+
+
 class CLManager(object):
     """
-    Class for managing an OpenCL GPU program.
+    Class for managing an OpenCL program.
 
     Wraps a subset of pyopencl functions to simplify its
-    integration with python.
+    integration with python. The OpenCL program can be run
+    on the cpu or on the gpu, given the appropriate drivers
+    are installed.
+
+    When multiple cpu or gpu are available, the
+    one that first comes up in the list of available devices
+    is selected.
 
     Parameters
     ----------
     cl_kernel: CLKernel object
         The CLKernel containing the OpenCL program to manage.
-    n_inputs: int
-        Number of input buffers for the kernel.
-    n_outputs: int
-        Number of output buffers for the kernel.
+    device_type: string
+        The device onto which to run the program. One of 'cpu', 'gpu'.
     """
-    def __init__(self, cl_kernel, n_inputs, n_outputs):
+    def __init__(self, cl_kernel, device_type='gpu'):
         if not have_opencl:
             raise RuntimeError('pyopencl is not installed. '
                                'Cannot create CLManager instance.')
@@ -34,8 +46,12 @@ class CLManager(object):
         logging.getLogger('pytools.persistent_dict').setLevel(logging.CRITICAL)
         logging.getLogger('pyopencl').setLevel(logging.CRITICAL)
 
-        self.input_buffers = [0] * n_inputs
-        self.output_buffers = [0] * n_outputs
+        self.input_buffers = []
+        self.output_buffers = []
+
+        # maps key to index in buffers list
+        self.inputs_mapping = {}
+        self.outputs_mapping = {}
 
         # Find the best device for running GPU tasks
         platforms = cl.get_platforms()
@@ -43,8 +59,13 @@ class CLManager(object):
         for p in platforms:
             devices = p.get_devices()
             for d in devices:
-                if best_device is None:
-                    best_device = d
+                d_type = d.get_info(cl.device_info.TYPE)
+                if d_type == cl_device_type(device_type)\
+                   and best_device is None:
+                    best_device = d  # take the first device of right type
+
+        if best_device is None:
+            raise ValueError('No device of type {} found'.format(device_type))
 
         self.context = cl.Context(devices=[best_device])
         self.queue = cl.CommandQueue(self.context)
@@ -69,7 +90,7 @@ class CLManager(object):
             self.shape = shape
             self.dtype = dtype
 
-    def add_input_buffer(self, arg_pos, arr, dtype=np.float32):
+    def add_input_buffer(self, key, arr=None, dtype=np.float32):
         """
         Add an input buffer to the kernel program. Input buffers
         must be added in the same order as they are declared inside
@@ -77,18 +98,14 @@ class CLManager(object):
 
         Parameters
         ----------
-        arg_pos: int
-            Position of the buffer in the input buffers list.
+        key: string
+            Name of the buffer in the input buffers list. Used for
+            referencing when updating buffers.
         arr: numpy ndarray
             Data array.
         dtype: dtype, optional
             Optional type for array data. It is recommended to use float32
             whenever possible to avoid unexpected behaviours.
-
-        Returns
-        -------
-        indice: int
-            Index of the input buffer in the input buffers list.
 
         Note
         ----
@@ -98,30 +115,95 @@ class CLManager(object):
         For example, for a 3-dimensional array of shape (X, Y, Z), the flat
         index for position i, j, k is idx = i + j * X + z * X * Y.
         """
-        # convert to fortran ordered, dtype array
+        buf = None
+        if arr is not None:
+            # convert to fortran ordered, dtype array
+            arr = np.asfortranarray(arr, dtype=dtype)
+            buf = cl.Buffer(self.context, cl.mem_flags.READ_ONLY |
+                            cl.mem_flags.COPY_HOST_PTR, hostbuf=arr)
+
+        if key in self.inputs_mapping.keys():
+            raise ValueError('Invalid key for buffer!')
+
+        self.inputs_mapping[key] = len(self.input_buffers)
+        self.input_buffers.append(buf)
+
+    def update_input_buffer(self, key, arr, dtype=np.float32):
+        """
+        Update an input buffer. Input buffers must first be added
+        to program using `add_input_buffer`.
+
+        Parameters
+        ----------
+        key: string
+            Name of the buffer in the input buffers list.
+        arr: numpy ndarray
+            Data array.
+        dtype: dtype, optional
+            Optional type for array data. It is recommended to use float32
+            whenever possible to avoid unexpected behaviours.
+        """
+        if key not in self.inputs_mapping.keys():
+            raise ValueError('Invalid key for buffer!')
+        argpos = self.inputs_mapping[key]
+
         arr = np.asfortranarray(arr, dtype=dtype)
         buf = cl.Buffer(self.context,
                         cl.mem_flags.READ_ONLY | cl.mem_flags.COPY_HOST_PTR,
                         hostbuf=arr)
-        self.input_buffers[arg_pos] = buf
+        self.input_buffers[argpos] = buf
 
-    def add_output_buffer(self, arg_pos, shape, dtype=np.float32):
+    def add_output_buffer(self, key, shape=None, dtype=np.float32):
         """
-        Add an output buffer.
+        Add an output buffer to the kernel program. Output buffers
+        must be added in the same order as they are declared inside
+        the kernel code (.cl file).
 
         Parameters
         ----------
-        arg_pos: int
-            Position of the buffer in the output buffers list.
+        key: string
+            Name of the buffer in the output buffers list. Used for
+            referencing when updating buffers.
         shape: tuple
             Shape of the output array.
         dtype: dtype, optional
-            Data type for the output. It is recommended to keep
-            float32 to avoid unexpected behaviour.
+            Optional type for array data. It is recommended to use float32
+            whenever possible to avoid unexpected behaviours.
         """
+        if key in self.outputs_mapping.keys():
+            raise ValueError('Invalid key for buffer!')
+
+        buf = None
+        if shape is not None:
+            buf = cl.Buffer(self.context, cl.mem_flags.WRITE_ONLY,
+                            np.prod(shape) * np.dtype(dtype).itemsize)
+
+        self.outputs_mapping[key] = len(self.output_buffers)
+        self.output_buffers.append(self.OutBuffer(buf, shape, dtype))
+
+    def update_output_buffer(self, key, shape, dtype=np.float32):
+        """
+        Update an output buffer. Output buffers must first be added
+        to program using `add_output_buffer`.
+
+        Parameters
+        ----------
+        key: string
+            Name of the buffer in the output buffers list.
+        shape: tuple
+            New shape of the output array.
+        dtype: dtype, optional
+            Optional type for array data. It is recommended to use float32
+            whenever possible to avoid unexpected behaviours.
+        """
+        if key not in self.outputs_mapping.keys():
+            raise ValueError('Invalid key for buffer!')
+        argpos = self.outputs_mapping[key]
+
         buf = cl.Buffer(self.context, cl.mem_flags.WRITE_ONLY,
                         np.prod(shape) * np.dtype(dtype).itemsize)
-        self.output_buffers[arg_pos] = self.OutBuffer(buf, shape, dtype)
+        out_buf = self.OutBuffer(buf, shape, dtype)
+        self.output_buffers[argpos] = out_buf
 
     def run(self, global_size, local_size=None):
         """
@@ -174,7 +256,11 @@ class CLKernel(object):
     """
     def __init__(self, entrypoint, module, filename):
         path_to_kernel = self._get_kernel_path(module, filename)
-        f = open(path_to_kernel, 'r')
+        try:
+            f = open(path_to_kernel, 'r')
+        except Exception:
+            raise ValueError('OpenCL file not found in {}'
+                             .format(path_to_kernel))
         self.code = f.readlines()
         self.entrypoint = entrypoint
 

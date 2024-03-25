@@ -7,6 +7,9 @@ Requires Skull-Strip b0 and t1w images as input, the script will normalize the
 t1w's WM to 110, co-register both images, then register it to the appropriate
 template, run SyNb0 and then transform the result back to the original space.
 
+SyNb0 is a deep learning model that predicts a synthetic a distortion-free
+b0 image from a distorted b0 and T1w
+
 This script must be used carefully, as it is not meant to be used in an
 environment with the following dependencies already installed (not default
 in Scilpy):
@@ -15,11 +18,9 @@ in Scilpy):
 - tensorflow
 """
 
-
 import argparse
 import logging
 import os
-import sys
 import warnings
 
 # Disable tensorflow warnings
@@ -41,11 +42,16 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_outputs_exist)
 from scilpy.image.volume_operations import register_image
 
+EPILOG = """
+[1] Schilling, Kurt G., et al. "Synthesized b0 for diffusion distortion
+  correction (Synb0-DisCo)." Magnetic resonance imaging 64 (2019): 62-70.
+"""
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(
         description=__doc__,
-        formatter_class=argparse.RawTextHelpFormatter)
+        formatter_class=argparse.RawTextHelpFormatter,
+        epilog=EPILOG)
     p.add_argument('in_b0',
                    help='Input b0 image.')
     p.add_argument('in_b0_mask',

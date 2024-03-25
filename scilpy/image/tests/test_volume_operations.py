@@ -6,13 +6,15 @@ import tempfile
 import nibabel as nib
 import numpy as np
 from dipy.io.gradients import read_bvals_bvecs
-from numpy.testing import assert_equal
+from numpy.testing import assert_equal, assert_almost_equal
 
 from scilpy import SCILPY_HOME
 from scilpy.image.volume_operations import (apply_transform,
                                             compute_snr,
                                             crop_volume,
                                             flip_volume,
+                                            merge_metrics,
+                                            normalize_metric,
                                             resample_volume)
 from scilpy.io.fetcher import fetch_data, get_testing_files_dict
 from scilpy.utils.util import compute_nifti_bounding_box
@@ -127,3 +129,35 @@ def test_resample_volume():
     resampled_img = resample_volume(moving3d_img, res=(2, 2, 2), interp='nn')
 
     assert_equal(resampled_img.get_fdata(), ref3d)
+
+
+def test_normalize_metric_basic():
+    metric = np.array([1, 2, 3, 4, 5])
+    expected_output = np.array([0., 0.25, 0.5, 0.75, 1.])
+    normalized_metric = normalize_metric(metric)
+    assert_almost_equal(normalized_metric, expected_output)
+
+
+def test_normalize_metric_nan_handling():
+    metric = np.array([1, np.nan, 3, np.nan, 5])
+    expected_output = np.array([0., np.nan, 0.5, np.nan, 1.])
+    normalized_metric = normalize_metric(metric)
+
+    assert_almost_equal(normalized_metric, expected_output)
+
+
+def test_merge_metrics_basic():
+    arrays = [np.array([1, 2, 3]), np.array([4, 5, 6])]
+    # Geometric mean boosted by beta=1
+    expected_output = np.array([2.0, 3.162278, 4.242641])
+    merged_metric = merge_metrics(*arrays)
+
+    assert_almost_equal(merged_metric, expected_output, decimal=6)
+
+
+def test_merge_metrics_nan_propagation():
+    arrays = [np.array([1, np.nan, 3]), np.array([4, 5, 6])]
+    expected_output = np.array([2., np.nan, 4.242641])  # NaN replaced with -2
+    merged_metric = merge_metrics(*arrays)
+
+    assert_almost_equal(merged_metric, expected_output, decimal=6)

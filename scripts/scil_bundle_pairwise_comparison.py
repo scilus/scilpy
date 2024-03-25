@@ -43,7 +43,7 @@ from scilpy.io.utils import (add_json_args,
                              assert_inputs_exist,
                              assert_outputs_exist,
                              link_bundles_and_reference,
-                             validate_nbr_processes)
+                             validate_nbr_processes, assert_headers_compatible)
 from scilpy.tractanalysis.reproducibility_measures \
     import (compute_dice_voxel,
             compute_bundle_adjacency_streamlines,
@@ -166,10 +166,6 @@ def compute_all_measures(args):
     disable_streamline_distance = args[3]
     ratio = args[4]
 
-    if not is_header_compatible(reference_1, reference_2):
-        raise ValueError('{} and {} have incompatible headers'.format(
-            filename_1, filename_2))
-
     data_tuple_1 = load_data_tmp_saving([filename_1, reference_1, False,
                                          disable_streamline_distance])
     if data_tuple_1 is None:
@@ -286,8 +282,10 @@ def main():
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
-    assert_inputs_exist(parser, args.in_bundles)
+    assert_inputs_exist(parser, args.in_bundles, args.reference)
     assert_outputs_exist(parser, args, [args.out_json])
+    assert_headers_compatible(parser, args.in_bundles,
+                              reference=args.reference)
 
     if args.ratio and not args.single_compare:
         parser.error('Can only compute ratio if also using `single_compare`')

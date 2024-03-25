@@ -14,6 +14,7 @@ from dipy.reconst.utils import _mask_from_roi, _roi_in_volume
 from dipy.segment.mask import crop, median_otsu
 import nibabel as nib
 import numpy as np
+from numpy import ma
 from scipy.ndimage import binary_dilation, gaussian_filter
 
 from scilpy.image.reslice import reslice  # Don't use Dipy's reslice. Buggy.
@@ -343,8 +344,7 @@ def compute_snr(dwi, bval, bvec, b0_thr, mask,
         nib.save(nib.Nifti1Image(noise_mask, affine),
                  basename + '_noise_mask.nii.gz')
     elif noise_mask:
-        noise_mask = get_data_as_mask(noise_mask,
-                                      dtype=bool).squeeze()
+        noise_mask = get_data_as_mask(noise_mask, dtype=bool).squeeze()
     elif noise_map:
         data_noisemap = noise_map.get_fdata(dtype=np.float32)
 
@@ -529,3 +529,69 @@ def crop_data_with_default_cube(data):
     roi_mask = _mask_from_roi(shape, roi_center, roi_radii)
 
     return data * roi_mask
+
+
+def normalize_metric(metric, reverse=False):
+    """
+    Normalize a metric array to a range between 0 and 1,
+    optionally reversing the normalization.
+
+    Parameters
+    ----------
+    metric : ndarray
+        The input metric array to be normalized.
+    reverse : bool, optional
+        If True, reverse the normalization (i.e., 1 - normalized value).
+        Default is False.
+
+    Returns
+    -------
+    ndarray
+        The normalized (and possibly reversed) metric array.
+        NaN values in the input are retained.
+    """
+    mask = np.isnan(metric)
+    masked_metric = ma.masked_array(metric, mask)
+
+    min_val, max_val = masked_metric.min(), masked_metric.max()
+    normalized_metric = (masked_metric - min_val) / (max_val - min_val)
+
+    if reverse:
+        normalized_metric = 1 - normalized_metric
+
+    return ma.filled(normalized_metric, fill_value=np.nan)
+
+
+def merge_metrics(*arrays, beta=1.0):
+    """
+    Merge an arbitrary number of metrics into a single heatmap using a weighted
+    geometric mean, ignoring NaN values. Each input array contributes equally
+    to the geometric mean, and the result is boosted by a specified factor.
+
+    Parameters
+    ----------
+    *arrays : ndarray
+        An arbitrary number of input arrays (ndarrays).
+        All arrays must have the same shape.
+    beta : float, optional
+        Boosting factor for the geometric mean. The default is 1.0.
+
+    Returns
+    -------
+    ndarray
+        Boosted geometric mean of the inputs (same shape as the input arrays)
+        NaN values in any input array are propagated to the output.
+    """
+
+    # Create a mask for NaN values in any of the arrays
+    mask = np.any([np.isnan(arr) for arr in arrays], axis=0)
+    masked_arrays = [ma.masked_array(arr, mask) for arr in arrays]
+
+    # Calculate the product of the arrays for the geometric mean
+    array_product = np.prod(masked_arrays, axis=0)
+
+    # Calculate the geometric mean for valid data
+    geometric_mean = np.power(array_product, 1 / len(arrays))
+    boosted_mean = geometric_mean ** beta
+
+    return ma.filled(boosted_mean, fill_value=np.nan)

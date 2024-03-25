@@ -38,7 +38,8 @@ from scilpy.gradients.bvec_bval_tools import check_b0_threshold
 from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_overwrite_arg, add_skip_b0_check_arg,
                              add_verbose_arg, assert_inputs_exist,
-                             assert_outputs_exist, assert_roi_radii_format)
+                             assert_outputs_exist, assert_roi_radii_format,
+                             assert_headers_compatible)
 from scilpy.reconst.frf import compute_msmt_frf
 
 
@@ -147,9 +148,12 @@ def main():
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     # Verifications
-    assert_inputs_exist(parser, [args.in_dwi, args.in_bval, args.in_bvec])
+    masks = [args.mask, args.mask_wm, args.mask_gm, args.mask_csf]
+    assert_inputs_exist(parser, [args.in_dwi, args.in_bval, args.in_bvec],
+                        optional=masks)
     assert_outputs_exist(parser, args, [args.out_wm_frf, args.out_gm_frf,
                                         args.out_csf_frf])
+    assert_headers_compatible(parser, args.in_dwi, optional=masks)
 
     roi_radii = assert_roi_radii_format(parser)
 
@@ -176,20 +180,14 @@ def main():
         bvals_dti = None
         bvecs_dti = None
 
-    mask = None
-    if args.mask is not None:
-        mask = get_data_as_mask(nib.load(args.mask), dtype=bool)
-        if mask.shape != data.shape[:-1]:
-            raise ValueError("Mask is not the same shape as data.")
-    mask_wm = None
-    mask_gm = None
-    mask_csf = None
-    if args.mask_wm:
-        mask_wm = get_data_as_mask(nib.load(args.mask_wm), dtype=bool)
-    if args.mask_gm:
-        mask_gm = get_data_as_mask(nib.load(args.mask_gm), dtype=bool)
-    if args.mask_csf:
-        mask_csf = get_data_as_mask(nib.load(args.mask_csf), dtype=bool)
+    mask = get_data_as_mask(nib.load(args.mask),
+                            dtype=bool) if args.mask else None
+    mask_wm = get_data_as_mask(nib.load(args.mask_wm),
+                               dtype=bool) if args.mask_wm else None
+    mask_gm = get_data_as_mask(nib.load(args.mask_gm),
+                               dtype=bool) if args.mask_gm else None
+    mask_csf = get_data_as_mask(nib.load(args.mask_csf),
+                                dtype=bool) if args.mask_csf else None
 
     # Processing
     responses, frf_masks = compute_msmt_frf(data, bvals, bvecs,

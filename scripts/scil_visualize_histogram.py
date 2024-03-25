@@ -20,7 +20,8 @@ import numpy as np
 
 from scilpy.io.image import (get_data_as_mask, assert_same_resolution)
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
-                             assert_outputs_exist, add_verbose_arg)
+                             assert_outputs_exist, add_verbose_arg,
+                             assert_headers_compatible)
 
 
 def _build_arg_parser():
@@ -62,19 +63,17 @@ def main():
 
     assert_inputs_exist(parser, [args.in_metric, args.in_mask])
     assert_outputs_exist(parser, args, args.out_png)
+    assert_headers_compatible(parser, [args.in_metric, args.in_mask])
 
     # Load metric image
     metric_img = nib.load(args.in_metric)
     metric_img_data = metric_img.get_fdata(dtype=np.float32)
 
     # Load mask image
-    mask_img = nib.load(args.in_mask)
-    mask_img_data = get_data_as_mask(mask_img)
-
-    assert_same_resolution((metric_img, mask_img))
+    mask = get_data_as_mask(nib.load(args.in_mask))
 
     # Select value from mask
-    curr_data = metric_img_data[np.where(mask_img_data > 0)]
+    curr_data = metric_img_data[np.where(mask > 0)]
 
     # Display figure
     fig, ax = plt.subplots()

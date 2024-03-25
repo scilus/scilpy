@@ -87,8 +87,8 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, [args.in_tractogram] + args.in_maps)
-
+    assert_inputs_exist(parser, [args.in_tractogram] + args.in_maps,
+                        args.reference)
     assert_outputs_exist(parser, args, [args.out_tractogram])
 
     if args.verbose:

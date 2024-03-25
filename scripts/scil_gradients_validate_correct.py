@@ -31,9 +31,10 @@ import numpy as np
 import nibabel as nib
 
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
-                             assert_outputs_exist, add_verbose_arg)
+                             assert_outputs_exist, add_verbose_arg,
+                             assert_headers_compatible)
 from scilpy.io.image import get_data_as_mask
-from scilpy.reconst.fiber_coherence import compute_fiber_coherence_table
+from scilpy.reconst.fiber_coherence import compute_coherence_table_for_transforms
 
 
 EPILOG = """
@@ -77,11 +78,11 @@ def main():
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
-    inputs = [args.in_bvec, args.in_peaks, args.in_FA]
-    optional = [args.mask]
-
-    assert_inputs_exist(parser, inputs, optional=optional)
+    assert_inputs_exist(parser, [args.in_bvec, args.in_peaks, args.in_FA],
+                        optional=args.mask)
     assert_outputs_exist(parser, args, args.out_bvec)
+    assert_headers_compatible(parser, [args.in_peaks, args.in_FA],
+                              optional=args.mask)
 
     _, bvecs = read_bvals_bvecs(None, args.in_bvec)
     fa = nib.load(args.in_FA).get_fdata()
@@ -101,12 +102,12 @@ def main():
 
     peaks = np.squeeze(peaks)
     if args.mask:
-        mask = get_data_as_mask(nib.load(args.mask))
+        mask = get_data_as_mask(nib.load(args.mask), ref_shape=peaks.shape)
         fa[np.logical_not(mask)] = 0
         peaks[np.logical_not(mask)] = 0
 
     peaks[fa < args.fa_threshold] = 0
-    coherence, transform = compute_fiber_coherence_table(peaks, fa)
+    coherence, transform = compute_coherence_table_for_transforms(peaks, fa)
 
     best_t = transform[np.argmax(coherence)]
     if (best_t == np.eye(3)).all():

@@ -161,3 +161,34 @@ def recursive_print(data):
         recursive_print(data[list(data.keys())[0]])
     else:
         return
+
+
+def rotation_around_vector_matrix(vec, theta):
+    """ Rotation matrix around a 3D vector by an angle theta.
+    From https://stackoverflow.com/questions/6802577/rotation-of-3d-vector
+
+    Parameters
+    ----------
+    vec: ndarray (3,)
+        The vector to rotate around.
+    theta: float
+        The angle of rotation in radians.
+
+    Returns
+    -------
+    rot: ndarray (3, 3)
+        The rotation matrix.
+    """
+
+    vec = vec / np.linalg.norm(vec)
+    x, y, z = vec
+    c, s = np.cos(theta), np.sin(theta)
+    return np.array([[c + x**2 * (1 - c),
+                      x * y * (1 - c) - z * s,
+                      x * z * (1 - c) + y * s],
+                     [y * x * (1 - c) + z * s,
+                         c + y**2 * (1 - c),
+                         y * z * (1 - c) - x * s],
+                     [z * x * (1 - c) - y * s,
+                         z * y * (1 - c) + x * s,
+                         c + z**2 * (1 - c)]])
