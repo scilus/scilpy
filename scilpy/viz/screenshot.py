@@ -119,7 +119,7 @@ def screenshot_peaks(img, orientation, slice_ids, size, mask_img=None):
 
     mask = None
     if mask_img:
-        mask=mask_img.get_fdata().astype(bool)
+        mask = mask_img.get_fdata().astype(bool)
 
     peaks_actor = create_peaks_slicer(img.get_fdata(), orientation, 0,
                                       mask=mask)

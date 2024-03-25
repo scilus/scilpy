@@ -39,7 +39,7 @@ def lut_from_colors(colors, value_range):
     _cl.SetNumberOfComponents(len(colors[0]))
     _cl.SetNumberOfTuples(len(colors))
     for i, _v in enumerate(colors):
-        _cl.SetTuple(i,_v)
+        _cl.SetTuple(i, _v)
 
     lut.SetTable(_cl)
     lut.SetTableRange(*value_range)
