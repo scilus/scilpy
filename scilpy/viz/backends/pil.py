@@ -34,8 +34,8 @@ def any2grayscale(array_2d):
     return np.array(_gray * 255).astype("uint8")
 
 
-def create_image_from_2d_array(
-    array_2d, size, mode=None, resampling=Image.LANCZOS):
+def create_image_from_2d_array(array_2d, size, mode=None,
+                               resampling=Image.LANCZOS):
     """
     Create a `PIL.Image` from the 2d array data
     (in range [0, 255], if no colormap provided).
