@@ -32,6 +32,21 @@ def get_color_by_name(color_name):
 
 
 def lut_from_colors(colors, value_range):
+    """
+    Create a linear VTK lut from a list of colors and a range of values.
+
+    Parameters
+    ----------
+    colors : list
+        List of colors (grayscale or RGB).
+    value_range : tuple
+        Range of values to map the colors to.
+
+    Returns
+    -------
+    lut : vtkLookupTable
+        VTK lookup table.
+    """
     lut = vtk.vtkLookupTable()
     lut.SetNumberOfColors(len(colors))
 
