@@ -24,7 +24,7 @@ def any2grayscale(array_2d):
 
     if array_2d.max() > 1:
         raise ValueError(
-            "RGB conversion requires the input array to be in range [0, 1]")
+            "Grayscale conversion requires input data to be in range [0, 1]")
 
     # Convert from RGB to grayscale
     # TODO : PIL float images, can the uint8 conversion go ?
