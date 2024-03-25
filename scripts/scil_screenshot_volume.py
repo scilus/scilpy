@@ -16,12 +16,19 @@ the optional argument if only the former needs to be plot.
 Example:
 python scil_screenshot_volume.py \
   t1.nii.gz \
-  t1_axial.png
+  t1_axial_annotated.png \
+  --display_slice_number \
+  --display_lr
+
+python scil_screenshot_volume.py \
+  t1.nii.gz \
+  t1_axial_masked.png \
+  --transparency brainmask.nii.gz
 
 python scil_screenshot_volume.py \
   t1.nii.gz \
   t1_axial.png \
-  30 40 50 60 70 80 90 100
+  --slice_ids 30 40 50 60 70 80 90 100
 
 python scil_screenshot_volume.py \
   t1.nii.gz \
@@ -31,34 +38,41 @@ python scil_screenshot_volume.py \
 python scil_screenshot_volume.py \
   t1.nii.gz \
   t1_axial_plasma_cmap.png \
-  30 40 50 60 70 80 90 100 \
-  --vol_cmap_name plasma
+  --slice_ids 30 40 50 60 70 80 90 100 \
+  --volume_cmap_name plasma
 
 python scil_screenshot_volume.py \
   t1.nii.gz \
   t1_mask_overlay.png \
-  30 40 50 60 70 80 90 100
-  --in_mask brain_mask.nii.gz
+  --slice_ids 30 40 50 60 70 80 90 100
+  --overlays brain_mask.nii.gz
 
 python scil_screenshot_volume.py \
   t1.nii.gz \
   t1_mask_contour.png \
-  30 40 50 60 70 80 90 100
-  --in_mask brain_mask.nii.gz
-  --mask_as_contour
+  --slice_ids 30 40 50 60 70 80 90 100
+  --overlays brain_mask.nii.gz
+  --overlays_as_contours
 
 python scil_screenshot_volume.py \
   t1.nii.gz \
   t1_axial_tissue_map.png \
-  30 40 50 60 70 80 90 100 \
-  --in_labelmap tissue_map.nii.gz
+  --slice_ids 30 40 50 60 70 80 90 100 \
+  --labelmap tissue_map.nii.gz
 
 python scil_screenshot_volume.py \
   t1.nii.gz \
   t1_axial_tissue_viridis_cmap.png \
-  30 40 50 60 70 80 90 100 \
-  --in_labelmap tissue_map.nii.gz \
+  --slice_ids 30 40 50 60 70 80 90 100 \
+  --labelmap tissue_map.nii.gz \
   --labelmap_cmap_name viridis
+
+python scil_screenshot_volume.py \
+  t1.nii.gz \
+  t1_axial_peaks.png \
+  --slice_ids 30 40 50 60 70 80 90 100 \
+  --peaks peaks.nii.gz \
+  --volume_alpha 0.5
 """
 
 import argparse
@@ -70,14 +84,14 @@ import numpy as np
 from os.path import splitext
 
 from scilpy.io.image import assert_same_resolution
-from scilpy.io.utils import (add_nifti_screenshot_default_args,
-                             add_nifti_screenshot_overlays_args,
-                             add_nifti_screenshot_peaks_arg,
+from scilpy.io.utils import (add_default_screenshot_args,
+                             add_labelmap_screenshot_args,
+                             add_overlays_screenshot_args,
+                             add_peaks_screenshot_args,
                              add_verbose_arg,
-                             add_overwrite_arg,
-                             get_default_screenshotting_data,
                              assert_inputs_exist,
-                             assert_overlay_colors)
+                             assert_overlay_colors,
+                             get_default_screenshotting_data)
 from scilpy.image.utils import check_slice_indices
 from scilpy.utils.util import get_axis_index
 from scilpy.viz.screenshot import (compose_image,
@@ -91,11 +105,17 @@ def _build_arg_parser():
     p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawTextHelpFormatter)
 
-    add_nifti_screenshot_default_args(p, False, False)
-    add_nifti_screenshot_overlays_args(p, transparency_is_overlay=False)
-    add_nifti_screenshot_peaks_arg(p)
+    sg = p.add_argument_group(title="Slicing:")
+    vg = p.add_argument_group(title="Volume rendering:")
+    pg = p.add_argument_group(title="Peaks rendering:")
+    og = p.add_argument_group(title="Overlay rendering:")
+    ag = p.add_argument_group(title="Annotations:")
+
+    add_default_screenshot_args(p, False, False, sg, ag, vg, vg)
+    add_labelmap_screenshot_args(p, "viridis", 0.7, vg, vg)
+    add_overlays_screenshot_args(p, 0.7, og)
+    add_peaks_screenshot_args(p, rendering_parsing_group=pg)
     add_verbose_arg(p)
-    add_overwrite_arg(p)
 
     return p
 
@@ -103,18 +123,18 @@ def _build_arg_parser():
 def _parse_args(parser):
 
     args = parser.parse_args()
-    inputs = [args.in_volume]
+    inputs = [args.volume]
 
-    if args.in_masks:
-        inputs.extend(args.in_masks)
-    if args.in_labelmap:
-        inputs.append(args.in_labelmap)
-    if args.in_peaks:
-        inputs.extend(args.in_peaks)
+    if args.overlays:
+        inputs.extend(args.overlays)
+    if args.labelmap:
+        inputs.append(args.labelmap)
+    if args.peaks:
+        inputs.extend(args.peaks)
 
     assert_inputs_exist(parser, inputs)
     assert_same_resolution(inputs)
-    assert_overlay_colors(args.masks_colors, args.in_masks, parser)
+    assert_overlay_colors(args.overlays_colors, args.overlays, parser)
 
     # TODO : check outputs (we need to know the slicing), could be glob
 
@@ -129,7 +149,7 @@ def main():
     args = _parse_args(parser)
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
-    vol_img, t_mask_img, labelmap_img, mask_imgs, mask_colors, peaks_imgs = \
+    vol_img, trans_img, labelmap_img, ovl_imgs, ovl_colors, peaks_imgs = \
         get_default_screenshotting_data(args)
 
     # Check if the screenshots can be taken
@@ -142,43 +162,43 @@ def main():
 
     # Generate the image slices
     volume_screenhots_generator = screenshot_volume(vol_img, args.axis_name,
-                                                    slice_ids, args.win_dims,
+                                                    slice_ids, args.size,
                                                     args.volume_cmap_name)
 
     # Generate transparency, if requested
     transparency_screenshots_generator = empty_generator()
-    if t_mask_img is not None:
+    if trans_img is not None:
         transparency_screenshots_generator = screenshot_volume(
-            t_mask_img, args.axis_name, slice_ids, args.win_dims)
+            trans_img, args.axis_name, slice_ids, args.size)
 
     # Generate labelmap, if requested
     labelmap_screenshots_generator = empty_generator()
     if labelmap_img:
         labelmap_screenshots_generator = screenshot_volume(
-            labelmap_img, args.axis_name, slice_ids, args.win_dims,
+            labelmap_img, args.axis_name, slice_ids, args.size,
             args.labelmap_cmap_name)
 
     # Create the overlay screenshotter
     overlay_screenshotter = screenshot_volume
-    if args.masks_as_contours:
+    if args.overlays_as_contours:
         def _dual_screenshot(*args, **kwargs):
             return screenshot_contour(*args, **kwargs, bg_opacity=0.3)
 
         overlay_screenshotter = _dual_screenshot
 
     # Generate the overlay stack, if requested, zipping over all overlays
-    overlay_screenshots_generator, mask_overlay_colors = empty_generator(), []
-    if mask_imgs is not None:
-        mask_overlay_colors = mask_colors
+    overlay_screenshots_generator, overlays_colors = empty_generator(), []
+    if ovl_imgs is not None:
+        overlays_colors = ovl_colors
         overlay_screenshots_generator = zip(*itertools.starmap(
             overlay_screenshotter, ([mask, args.axis_name, slice_ids,
-                                     args.win_dims] for mask in mask_imgs)))
+                                     args.size] for mask in ovl_imgs)))
 
     peaks_screenshots_generator = empty_generator()
     if peaks_imgs is not None:
         peaks_screenshots_generator = zip(*itertools.starmap(
             screenshot_peaks, ([peaks, args.axis_name, slice_ids,
-                                args.win_dims] for peaks in peaks_imgs)))
+                                args.size] for peaks in peaks_imgs)))
 
     name, ext = splitext(args.out_fname)
     names = ["{}_slice_{}{}".format(name, s, ext) for s in slice_ids]
@@ -195,11 +215,11 @@ def main():
             slice_ids,
             fillvalue=None):
 
-        img = compose_image(volume, args.win_dims, slice_id,
+        img = compose_image(volume, args.size, slice_id,
                             transparency_scene=trans,
-                            mask_overlay_scene=contour,
-                            mask_overlay_color=mask_overlay_colors,
-                            mask_overlay_alpha=args.masks_alpha,
+                            overlays_scene=contour,
+                            overlays_colors=overlays_colors,
+                            overlays_alpha=args.overlays_alpha,
                             labelmap_scene=label,
                             labelmap_overlay_alpha=args.labelmap_alpha,
                             peaks_overlay_scene=peaks,

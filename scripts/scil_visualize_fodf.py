@@ -368,7 +368,7 @@ def main():
         image = compose_image(next(snapshots),
                               args.win_dims,
                               args.slice_index,
-                              mask_overlay_scene=_mask_arr)
+                              overlays_scene=_mask_arr)
 
         image.save(args.output)
 

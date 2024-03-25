@@ -207,9 +207,9 @@ def draw_2d_array_at_position(canvas, array_2d, size,
                               transparency=None,
                               labelmap_overlay=None,
                               labelmap_overlay_alpha=0.7,
-                              mask_overlay=None,
-                              mask_overlay_alpha=0.7,
-                              mask_overlay_color=None,
+                              overlays=None,
+                              overlays_alpha=0.7,
+                              overlays_colors=None,
                               peak_overlay=None,
                               peak_overlay_alpha=0.7):
     """
@@ -233,12 +233,12 @@ def draw_2d_array_at_position(canvas, array_2d, size,
         Labelmap overlay scene data to be drawn.
     labelmap_overlay_alpha : float
         Alpha value for labelmap overlay in range [0, 1].
-    mask_overlay : ndarray
-        Mask overlay scene data to be drawn.
-    mask_overlay_alpha : float
-        Alpha value for mask overlay in range [0, 1].
-    mask_overlay_color : list, optional
-        Color for the mask overlay as a list of 3 integers in range [0, 255].
+    overlays : ndarray
+        Overlays scene data to be drawn.
+    overlays_alpha : float
+        Alpha value for the overlays in range [0, 1].
+    overlays_color : list, optional
+        Color for the overlays as a list of 3 integers in range [0, 255].
     peaks_overlay : ndarray
         Peaks overlay scene data to be drawn.
     peaks_overlay_alpha : float
@@ -271,19 +271,19 @@ def draw_2d_array_at_position(canvas, array_2d, size,
                      mask=label_transparency)
 
     # Draw the mask overlay image if any
-    if mask_overlay is not None:
-        if mask_overlay_color is None:
+    if overlays is not None:
+        if overlays_colors is None:
             # Get a list of distinguishable colors if None are supplied
             # TODO : Muddles PIL with fury. Maybe another way to get colors
-            mask_overlay_color = generate_n_colors(len(mask_overlay))
+            overlays_colors = generate_n_colors(len(overlays))
 
-        for img, color in zip(mask_overlay, mask_overlay_color):
+        for img, color in zip(overlays, overlays_colors):
             overlay = create_image_from_2d_array(
                 (img * color).astype(np.uint8), size, "RGB")
 
             # Create transparency mask over the mask overlay image
             overlay_transparency = create_image_from_2d_array(
-                (img * mask_overlay_alpha).astype(np.uint8), size).convert("L")
+                (img * overlays_alpha).astype(np.uint8), size).convert("L")
 
             canvas.paste(overlay, (left_position, top_position),
                          mask=overlay_transparency)

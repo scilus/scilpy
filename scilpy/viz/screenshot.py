@@ -130,8 +130,8 @@ def screenshot_peaks(img, orientation, slice_ids, size, mask_img=None):
 
 def compose_image(img_scene, img_size, slice_number, corner_position=(0, 0),
                   transparency_scene=None, labelmap_scene=None,
-                  labelmap_overlay_alpha=0.7, mask_overlay_scene=None,
-                  mask_overlay_alpha=0.7, mask_overlay_color=None,
+                  labelmap_overlay_alpha=0.7, overlays_scene=None,
+                  overlays_alpha=0.7, overlays_colors=None,
                   peaks_overlay_scene=None, peaks_overlay_alpha=0.7,
                   display_slice_number=False, display_lr=False,
                   lr_labels=["L", "R"], canvas=None):
@@ -156,12 +156,12 @@ def compose_image(img_scene, img_size, slice_number, corner_position=(0, 0),
         Labelmap scene data.
     labelmap_alpha : float, optional
         Alpha value for labelmap overlay in range [0, 1].
-    mask_overlay_scene : np.ndarray, optional
-        Mask overlay scene data.
-    mask_overlay_alpha : float, optional
-        Alpha value for mask overlay in range [0, 1].
-    mask_overlay_color : list, optional
-        Color for the mask overlay as a list of 3 integers in range [0, 255].
+    overlays_scene : np.ndarray, optional
+        Overlays scene data.
+    overlays_alpha : float, optional
+        Alpha value for the overlays in range [0, 1].
+    overlays_colors : list, optional
+        Colors for the overlays as a list of 3 integers in range [0, 255].
     peaks_overlay_scene : np.ndarray, optional
         Peaks overlay scene data.
     peaks_overlay_alpha : float, optional
@@ -194,9 +194,9 @@ def compose_image(img_scene, img_size, slice_number, corner_position=(0, 0),
                               transparency=transparency_scene,
                               labelmap_overlay=labelmap_scene,
                               labelmap_overlay_alpha=labelmap_overlay_alpha,
-                              mask_overlay=mask_overlay_scene,
-                              mask_overlay_alpha=mask_overlay_alpha,
-                              mask_overlay_color=mask_overlay_color,
+                              overlays=overlays_scene,
+                              overlays_alpha=overlays_alpha,
+                              overlays_colors=overlays_colors,
                               peak_overlay=peaks_overlay_scene,
                               peak_overlay_alpha=peaks_overlay_alpha)
 
@@ -209,8 +209,8 @@ def compose_image(img_scene, img_size, slice_number, corner_position=(0, 0),
 def compose_mosaic(img_scene_container, cell_size, rows, cols, slice_numbers,
                    overlap_factor=None, transparency_scene_container=None,
                    labelmap_scene_container=None, labelmap_overlay_alpha=0.7,
-                   mask_overlay_scene_container=None, mask_overlay_alpha=0.7,
-                   mask_overlay_color=None, vol_cmap_name=None,
+                   overlays_scene_container=None, overlays_alpha=0.7,
+                   overlays_colors=None, vol_cmap_name=None,
                    labelmap_cmap_name=None, display_slice_number=False,
                    display_lr=False, lr_labels=["L", "R"]):
     """
@@ -233,12 +233,12 @@ def compose_mosaic(img_scene_container, cell_size, rows, cols, slice_numbers,
         Transaprency scene data container.
     labelmap_scene_container : list, optional
         Labelmap scene data container.
-    mask_overlay_scene_container : list, optional
-        Mask overlay scene data container.
-    mask_overlay_alpha : float, optional
-        Alpha value for mask overlay in range [0, 1].
-    mask_overlay_color : list, optional
-        Color for the mask overlay as a list of 3 integers in range [0, 255].
+    overlays_scene_container : list, optional
+        Overlays scene data container.
+    overlays_alpha : float, optional
+        Alpha value for the overlays in range [0, 1].
+    overlays_colors : list, optional
+        Color for the overlays as a list of 3 integers in range [0, 255].
     vol_cmap_name : str, optional
         Colormap name for the image scene data.
     labelmap_cmap_name : str, optional
@@ -274,12 +274,11 @@ def compose_mosaic(img_scene_container, cell_size, rows, cols, slice_numbers,
     offset_v = cell_height - overlap_v
     from itertools import zip_longest
     for idx, (img_arr, trans_arr, labelmap_arr,
-              mask_overlay_arr, slice_number) in enumerate(
-                                            list(zip_longest(
+              overlays_arr, slice_number) in enumerate(list(zip_longest(
                                                 img_scene_container,
                                                 transparency_scene_container,
                                                 labelmap_scene_container,
-                                                mask_overlay_scene_container,
+                                                overlays_scene_container,
                                                 slice_numbers,
                                                 fillvalue=tuple()))):
 
@@ -299,9 +298,9 @@ def compose_mosaic(img_scene_container, cell_size, rows, cols, slice_numbers,
         if len(labelmap_arr):
             _labelmap_arr = any2grayscale(labelmap_arr)
 
-        _mask_overlay_arr = None
-        if len(mask_overlay_arr):
-            _mask_overlay_arr = mask_overlay_arr
+        _overlays_arr = None
+        if len(overlays_arr):
+            _overlays_arr = overlays_arr
 
         # Draw the image (and labelmap overlay, if any) in the cell
         compose_image(_img_arr, (cell_width, cell_height), slice_number,
@@ -309,9 +308,9 @@ def compose_mosaic(img_scene_container, cell_size, rows, cols, slice_numbers,
                       transparency_scene=_trans_arr,
                       labelmap_scene=_labelmap_arr,
                       labelmap_overlay_alpha=labelmap_overlay_alpha,
-                      mask_overlay_scene=_mask_overlay_arr,
-                      mask_overlay_alpha=mask_overlay_alpha,
-                      mask_overlay_color=mask_overlay_color,
+                      overlays_scene=_overlays_arr,
+                      overlays_alpha=overlays_alpha,
+                      overlays_colors=overlays_colors,
                       vol_cmap_name=vol_cmap_name,
                       labelmap_cmap_name=labelmap_cmap_name,
                       display_slice_number=display_slice_number,
