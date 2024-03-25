@@ -57,15 +57,8 @@ def create_image_from_2d_array(
         Image.
     """
 
-    #if lut:
-    #    # data returned by cmap is normalized to the [0,1] range: scale to the
-    #    # [0, 255] range and convert to uint8 for Pillow
-    #    array_2d = (lut(array_2d) * 255).astype("uint8")
-
     # TODO : Need to flip the array due to some bug in the FURY image buffer.
     # Might be solved in newer versions of the package.
-    print(mode)
-    print(array_2d.shape)
     return Image.fromarray(array_2d, mode=mode) \
         .transpose(Image.FLIP_TOP_BOTTOM) \
         .resize(size, resampling)
