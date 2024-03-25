@@ -100,6 +100,9 @@ def main():
     if args.step_size is not None:
         sft = resample_streamlines_step_size(sft, args.step_size)
 
+    if len(sft.streamlines) == 0:
+        parser.error('Input tractogram is empty.')
+
     if args.mask:
         mask_img = nib.load(args.mask)
         binary_mask = get_data_as_mask(mask_img)
