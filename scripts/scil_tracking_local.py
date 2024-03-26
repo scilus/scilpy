@@ -96,9 +96,16 @@ def _build_arg_parser():
         description=__doc__,
         formatter_class=argparse.RawTextHelpFormatter)
 
+    # Options that are the same in this script and scil_tracking_local_dev:
     add_mandatory_options_tracking(p)
-
     track_g = add_tracking_options(p)
+    add_seeding_options(p)
+
+    # Other options, only available in this script:
+    track_g.add_argument('--sh_to_pmf', action='store_true',
+                         help='If set, map sherical harmonics to spherical '
+                              'function (pmf) before \ntracking (faster, '
+                              'requires more memory)')
     track_g.add_argument('--algo', default='prob',
                          choices=['det', 'prob', 'ptt', 'eudx'],
                          help='Algorithm to use. [%(default)s]')
@@ -107,7 +114,6 @@ def _build_arg_parser():
                          type=int, default=0,
                          help='Subdivides each face of the sphere into 4^s new'
                               ' faces. [%(default)s]')
-    add_seeding_options(p)
 
     gpu_g = p.add_argument_group('GPU options')
     gpu_g.add_argument('--use_gpu', action='store_true',

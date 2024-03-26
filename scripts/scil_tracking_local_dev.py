@@ -79,9 +79,12 @@ def _build_arg_parser():
         formatter_class=argparse.RawTextHelpFormatter,
         description=__doc__)
 
+    # Options common to both scripts
     add_mandatory_options_tracking(p)
-
     track_g = add_tracking_options(p)
+    add_seeding_options(p)
+
+    # Options only for here.
     track_g.add_argument('--algo', default='prob', choices=['det', 'prob'],
                          help='Algorithm to use. [%(default)s]')
     add_sphere_arg(track_g, symmetric_only=False)
@@ -126,8 +129,6 @@ def _build_arg_parser():
         help="By default, each seed position is used only once. This option\n"
              "allows for tracking from the exact same seed n_repeats_per_seed"
              "\ntimes. [%(default)s]")
-
-    add_seeding_options(p)
 
     r_g = p.add_argument_group('Random seeding options')
     r_g.add_argument('--rng_seed', type=int, default=0,
