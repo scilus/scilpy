@@ -437,7 +437,7 @@ def add_peaks_screenshot_args(parser, default_width=3.0, default_alpha=1.0,
     rpg = rendering_parsing_group or parser
     rpg.add_argument("--peaks_width", default=default_width, type=float,
                      help="Width of the peaks lines. [%(default)s]")
-    rpg.add_argument("--peaks_alpha", type=ranged_type(float, 0., 1.),
+    rpg.add_argument("--peaks_opacity", type=ranged_type(float, 0., 1.),
                      default=default_alpha,
                      help="Opacity value for the peaks overlay. [%(default)s]")
 
@@ -461,16 +461,20 @@ def add_overlays_screenshot_args(parser, default_alpha=0.7,
 
     rpg = rendering_parsing_group or parser
     rpg.add_argument("--overlays_as_contours", action='store_true',
-                     help="Create contours from masks instead of overlays.")
+                     help="Display overlays contours and reduce the opacity "
+                          "of their inner region (see the "
+                          "`--overlays_opacity` argument).")
     rpg.add_argument("--overlays_colors", nargs="+",
                      type=ranged_type(int, 0, 255),
                      default=None, metavar="R G B",
                      help="Colors for the overlays or contours, as either a "
                           "single color for all overlays or one for each.")
-    rpg.add_argument("--overlays_alpha", type=ranged_type(float, 0., 1.),
+    rpg.add_argument("--overlays_opacity", type=ranged_type(float, 0., 1.),
                      default=default_alpha,
-                     help="Opacity value for the masks overlays. "
-                          "[%(default)s].")
+                     help="Opacity value for the masks overlays. When "
+                          "combined with `--overlays_as_contours`, this will "
+                          "be the opacity of the region inside the computed "
+                          "contours. [%(default)s]")
 
 
 def add_volume_screenshot_args(parser, input_name, mandatory=True,
@@ -574,20 +578,20 @@ def add_default_screenshot_args(parser, slice_ids_mandatory=True,
     parser.add_argument("out_fname", help=_output_help)
 
     if slice_ids_mandatory:
-        parser.add_argument("slice_ids", nargs="+", type=int, metavar="SID",
+        parser.add_argument("slices", nargs="+", type=int, metavar="SID",
                             help="Slice indices to screenshot.")
 
-        parser.add_argument("--axis_name", default="axial",
+        parser.add_argument("--axis", default="axial",
                             type=str, choices=RAS_AXES_NAMES,
                             help="Name of the axis to visualize. [%(default)s]")
     else:
         sg = slicing_parsing_group or parser
-        sg.add_argument(f"--slice_ids", nargs="+", type=int, metavar="SID",
+        sg.add_argument(f"--slices", nargs="+", type=int, metavar="SID",
                         help="Slice indices to screenshot. If None are "
                              "supplied, all slices inside the transparency "
                              "mask are selected.")
 
-        sg.add_argument("--axis_name", default="axial",
+        sg.add_argument("--axis", default="axial",
                         type=str, choices=RAS_AXES_NAMES,
                         help="Name of the axis to visualize. [%(default)s]")
 

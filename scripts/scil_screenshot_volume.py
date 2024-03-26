@@ -28,51 +28,51 @@ python scil_screenshot_volume.py \
 python scil_screenshot_volume.py \
   t1.nii.gz \
   t1_axial.png \
-  --slice_ids 30 40 50 60 70 80 90 100
+  --slices 30 40 50 60 70 80 90 100
 
 python scil_screenshot_volume.py \
   t1.nii.gz \
   t1_sagittal.png \
-  --axis_name sagittal
+  --axis sagittal
 
 python scil_screenshot_volume.py \
   t1.nii.gz \
   t1_axial_plasma_cmap.png \
-  --slice_ids 30 40 50 60 70 80 90 100 \
+  --slices 30 40 50 60 70 80 90 100 \
   --volume_cmap_name plasma
 
 python scil_screenshot_volume.py \
   t1.nii.gz \
   t1_mask_overlay.png \
-  --slice_ids 30 40 50 60 70 80 90 100
+  --slices 30 40 50 60 70 80 90 100
   --overlays brain_mask.nii.gz
 
 python scil_screenshot_volume.py \
   t1.nii.gz \
   t1_mask_contour.png \
-  --slice_ids 30 40 50 60 70 80 90 100
+  --slices 30 40 50 60 70 80 90 100
   --overlays brain_mask.nii.gz
   --overlays_as_contours
 
 python scil_screenshot_volume.py \
   t1.nii.gz \
   t1_axial_tissue_map.png \
-  --slice_ids 30 40 50 60 70 80 90 100 \
+  --slices 30 40 50 60 70 80 90 100 \
   --labelmap tissue_map.nii.gz
 
 python scil_screenshot_volume.py \
   t1.nii.gz \
   t1_axial_tissue_viridis_cmap.png \
-  --slice_ids 30 40 50 60 70 80 90 100 \
+  --slices 30 40 50 60 70 80 90 100 \
   --labelmap tissue_map.nii.gz \
   --labelmap_cmap_name viridis
 
 python scil_screenshot_volume.py \
   t1.nii.gz \
   t1_axial_peaks.png \
-  --slice_ids 30 40 50 60 70 80 90 100 \
+  --slices 30 40 50 60 70 80 90 100 \
   --peaks peaks.nii.gz \
-  --volume_alpha 0.5
+  --volume_opacity 0.5
 """
 
 import argparse
@@ -105,16 +105,17 @@ def _build_arg_parser():
     p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawTextHelpFormatter)
 
-    sg = p.add_argument_group(title="Slicing:")
-    vg = p.add_argument_group(title="Volume rendering:")
-    pg = p.add_argument_group(title="Peaks rendering:")
-    og = p.add_argument_group(title="Overlay rendering:")
-    ag = p.add_argument_group(title="Annotations:")
+    sg = p.add_argument_group(title="Slicing")
+    xg = p.add_argument_group(title="Input overlays")
+    vg = p.add_argument_group(title="Volume rendering")
+    pg = p.add_argument_group(title="Peaks rendering")
+    og = p.add_argument_group(title="Overlay rendering")
+    ag = p.add_argument_group(title="Annotations")
 
-    add_default_screenshot_args(p, False, False, sg, ag, vg, vg)
-    add_labelmap_screenshot_args(p, "viridis", 0.7, vg, vg)
-    add_overlays_screenshot_args(p, 0.7, og)
-    add_peaks_screenshot_args(p, rendering_parsing_group=pg)
+    add_default_screenshot_args(p, False, False, False, sg, ag, vg, vg)
+    add_labelmap_screenshot_args(xg, "viridis", 0.7, vg, vg)
+    add_overlays_screenshot_args(xg, 0.7, og)
+    add_peaks_screenshot_args(xg, rendering_parsing_group=pg)
     add_verbose_arg(p)
 
     return p
@@ -153,15 +154,15 @@ def main():
         get_default_screenshotting_data(args)
 
     # Check if the screenshots can be taken
-    if args.slice_ids:
-        check_slice_indices(vol_img, args.axis_name, args.slice_ids)
-        slice_ids = args.slice_ids
+    if args.slices:
+        check_slice_indices(vol_img, args.axis, args.slices)
+        slice_ids = args.slices
     else:
-        ax_idx = get_axis_index(args.axis_name)
+        ax_idx = get_axis_index(args.axis)
         slice_ids = np.arange(vol_img.shape[ax_idx])
 
     # Generate the image slices
-    volume_screenhots_generator = screenshot_volume(vol_img, args.axis_name,
+    volume_screenhots_generator = screenshot_volume(vol_img, args.axis,
                                                     slice_ids, args.size,
                                                     args.volume_cmap_name)
 
@@ -169,40 +170,43 @@ def main():
     transparency_screenshots_generator = empty_generator()
     if trans_img is not None:
         transparency_screenshots_generator = screenshot_volume(
-            trans_img, args.axis_name, slice_ids, args.size)
+            trans_img, args.axis, slice_ids, args.size)
 
     # Generate labelmap, if requested
     labelmap_screenshots_generator = empty_generator()
     if labelmap_img:
         labelmap_screenshots_generator = screenshot_volume(
-            labelmap_img, args.axis_name, slice_ids, args.size,
+            labelmap_img, args.axis, slice_ids, args.size,
             args.labelmap_cmap_name)
 
     # Create the overlay screenshotter
     overlay_screenshotter = screenshot_volume
+    overlay_alpha = args.overlays_opacity
     if args.overlays_as_contours:
         def _dual_screenshot(*args, **kwargs):
-            return screenshot_contour(*args, **kwargs, bg_opacity=0.3)
+            return screenshot_contour(*args, **kwargs,
+                                      bg_opacity=overlay_alpha)
 
         overlay_screenshotter = _dual_screenshot
+        overlay_alpha = 1.0
 
     # Generate the overlay stack, if requested, zipping over all overlays
     overlay_screenshots_generator, overlays_colors = empty_generator(), []
     if ovl_imgs is not None:
         overlays_colors = ovl_colors
         overlay_screenshots_generator = zip(*itertools.starmap(
-            overlay_screenshotter, ([mask, args.axis_name, slice_ids,
-                                     args.size] for mask in ovl_imgs)))
+            overlay_screenshotter, ([ovl, args.axis, slice_ids,
+                                     args.size] for ovl in ovl_imgs)))
 
     peaks_screenshots_generator = empty_generator()
     if peaks_imgs is not None:
         peaks_screenshots_generator = zip(*itertools.starmap(
-            screenshot_peaks, ([peaks, args.axis_name, slice_ids,
+            screenshot_peaks, ([peaks, args.axis, slice_ids,
                                 args.size] for peaks in peaks_imgs)))
 
     name, ext = splitext(args.out_fname)
     names = ["{}_slice_{}{}".format(name, s, ext) for s in slice_ids]
-    sides_labels = ["P", "A"] if args.axis_name == "sagittal" else ["L", "R"]
+    sides_labels = ["P", "A"] if args.axis == "sagittal" else ["L", "R"]
 
     # Compose and save each slice
     for volume, trans, label, contour, peaks, name, slice_id in zip_longest(
@@ -217,13 +221,14 @@ def main():
 
         img = compose_image(volume, args.size, slice_id,
                             transparency_scene=trans,
+                            image_alpha=args.volume_opacity,
                             overlays_scene=contour,
                             overlays_colors=overlays_colors,
-                            overlays_alpha=args.overlays_alpha,
+                            overlays_alpha=overlay_alpha,
                             labelmap_scene=label,
-                            labelmap_overlay_alpha=args.labelmap_alpha,
+                            labelmap_overlay_alpha=args.labelmap_opacity,
                             peaks_overlay_scene=peaks,
-                            peaks_overlay_alpha=args.peaks_alpha,
+                            peaks_overlay_alpha=args.peaks_opacity,
                             display_slice_number=args.display_slice_number,
                             display_lr=args.display_lr,
                             lr_labels=sides_labels)

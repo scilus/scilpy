@@ -36,7 +36,8 @@ def any2grayscale(array_2d):
 
 
 def create_image_from_2d_array(array_2d, size, mode=None,
-                               resampling=Image.LANCZOS):
+                               resampling=Image.LANCZOS,
+                               pixel_dtype=np.uint8):
     """
     Create a `PIL.Image` from the 2d array data
     (in range [0, 255], if no colormap provided).
@@ -51,6 +52,9 @@ def create_image_from_2d_array(array_2d, size, mode=None,
         Type and depth of a pixel in the `Pillow` image.
     resampling : Literal, optional
         Resampling method to use when resizing the `Pillow` image.
+    pixel_dtype : type, optional
+        Pixel data type for PIL image. The input array will be cast to this
+        type before creating the image using the `Image.fromarray` method.
 
     Returns
     -------
@@ -60,7 +64,7 @@ def create_image_from_2d_array(array_2d, size, mode=None,
 
     # TODO : Need to flip the array due to some bug in the FURY image buffer.
     # Might be solved in newer versions of the package.
-    return Image.fromarray(array_2d, mode=mode) \
+    return Image.fromarray(array_2d.astype(pixel_dtype), mode=mode) \
         .transpose(Image.FLIP_TOP_BOTTOM) \
         .resize(size, resampling)
 
@@ -205,6 +209,7 @@ def annotate_image(image, slice_number, display_slice_number,
 def draw_2d_array_at_position(canvas, array_2d, size,
                               left_position, top_position,
                               transparency=None,
+                              image_alpha=1.0,
                               labelmap_overlay=None,
                               labelmap_overlay_alpha=0.7,
                               overlays=None,
@@ -253,9 +258,13 @@ def draw_2d_array_at_position(canvas, array_2d, size,
 
     _transparency = None
     if transparency is not None:
-        _transparency = create_image_from_2d_array(transparency, size,
-                                                   "RGB", Image.NEAREST)
+        _transparency = create_image_from_2d_array(transparency * image_alpha,
+                                                   size, "RGB", Image.NEAREST)
         _transparency = _transparency.convert("L")
+    else:
+        _transparency = create_image_from_2d_array(
+            np.ones(array_2d.shape[:2]) * image_alpha * 255.,
+            size, "L", Image.NEAREST)
 
     canvas.paste(image, (left_position, top_position), mask=_transparency)
 
@@ -264,8 +273,9 @@ def draw_2d_array_at_position(canvas, array_2d, size,
         labelmap = create_image_from_2d_array(labelmap_overlay, size, "RGB")
         # Create transparency mask over the labelmap overlay image
         label_mask = np.any(labelmap_overlay > 0, -1) * labelmap_overlay_alpha
-        label_transparency = create_image_from_2d_array(
-            (label_mask * 255.).astype(np.uint8), size, "L", Image.NEAREST)
+        label_transparency = create_image_from_2d_array(label_mask * 255.,
+                                                        size, "L",
+                                                        Image.NEAREST)
 
         canvas.paste(labelmap, (left_position, top_position),
                      mask=label_transparency)
@@ -278,24 +288,22 @@ def draw_2d_array_at_position(canvas, array_2d, size,
             overlays_colors = generate_n_colors(len(overlays))
 
         for img, color in zip(overlays, overlays_colors):
-            overlay = create_image_from_2d_array(
-                (img * color).astype(np.uint8), size, "RGB")
+            overlay = create_image_from_2d_array(img * color, size, "RGB")
 
             # Create transparency mask over the mask overlay image
             overlay_transparency = create_image_from_2d_array(
-                (img * overlays_alpha).astype(np.uint8), size).convert("L")
+                img * overlays_alpha, size).convert("L")
 
             canvas.paste(overlay, (left_position, top_position),
                          mask=overlay_transparency)
 
     if peak_overlay is not None:
         for img in peak_overlay:
-            overlay = create_image_from_2d_array(
-                (img * 255).astype(np.uint8), size, "RGB")
+            overlay = create_image_from_2d_array(img * 255, size, "RGB")
 
             # Create transparency mask over the mask overlay image
             overlay_transparency = create_image_from_2d_array(
-                (img * peak_overlay_alpha).astype(np.uint8), size).convert("L")
+                img * peak_overlay_alpha, size).convert("L")
 
             canvas.paste(overlay, (left_position, top_position),
                          mask=overlay_transparency)
