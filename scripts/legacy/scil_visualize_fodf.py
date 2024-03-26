@@ -10,6 +10,7 @@ This script has been renamed scil_fodf_visualize.py. Please change
 your existing pipelines accordingly.
 '''
 
+
 @deprecate_script("scil_visualize_fodf.py", DEPRECATION_MSG, '2.0.0')
 def main():
     new_main()
@@ -17,4 +18,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

@@ -15,20 +15,20 @@ LEGACY_SCRIPT_RENAMING_TEMPLATE = """\
 from scilpy.io.deprecator import deprecate_script
 from scripts.{new_name} import main as new_main
 
-
-DEPRECATION_MSG = '''
-This script has been renamed {new_name}.py. Please change
+OLD_NAME = '{existing_name}'
+DEPRECATION_MSG = f'''
+This script has been renamed {OLD_NAME}.py. Please change
 your existing pipelines accordingly.
 '''
 
-@deprecate_script("{existing_name}.py", DEPRECATION_MSG, '{version}')
+
+@deprecate_script(f"{OLD_NAME}.py", DEPRECATION_MSG, '{version}')
 def main():
     new_main()
 
 
 if __name__ == "__main__":
     main()
-
 """
 
 
@@ -36,7 +36,7 @@ def _build_arg_parser():
     p = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
     p.add_argument('existing_name', help='Name of an existing scilpy '
-                                           'script to rename.')
+                                         'script to rename.')
     p.add_argument('new_name', help='Name of the new script.')
     p.add_argument('deprecation_version', help='Version at which the script '
                                                'will display deprecation.')
