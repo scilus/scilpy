@@ -129,12 +129,12 @@ def screenshot_peaks(img, orientation, slice_ids, size, mask_img=None):
 
 
 def compose_image(img_scene, img_size, slice_number, corner_position=(0, 0),
-                  transparency_scene=None, labelmap_scene=None,
-                  labelmap_overlay_alpha=0.7, overlays_scene=None,
-                  overlays_alpha=0.7, overlays_colors=None,
-                  peaks_overlay_scene=None, peaks_overlay_alpha=0.7,
-                  display_slice_number=False, display_lr=False,
-                  lr_labels=["L", "R"], canvas=None):
+                  transparency_scene=None, image_alpha=1.0,
+                  labelmap_scene=None, labelmap_overlay_alpha=0.7,
+                  overlays_scene=None, overlays_alpha=0.7,
+                  overlays_colors=None, peaks_overlay_scene=None,
+                  peaks_overlay_alpha=0.7, display_slice_number=False,
+                  display_lr=False, lr_labels=["L", "R"], canvas=None):
     """
     Compose an image with the given scenes, with transparency, overlays,
     labelmap and annotations. If no canvas for the image is given, it will
@@ -152,6 +152,8 @@ def compose_image(img_scene, img_size, slice_number, corner_position=(0, 0),
         Image corner (pixels) (left, top).
     transparency_scene : np.ndarray, optional
         Transaprency scene data.
+    image_alpha : float, optional
+        Alpha value for the image in range [0, 1].
     labelmap_scene : np.ndarray, optional
         Labelmap scene data.
     labelmap_alpha : float, optional
@@ -192,6 +194,7 @@ def compose_image(img_scene, img_size, slice_number, corner_position=(0, 0),
     draw_2d_array_at_position(canvas, img_scene, img_size,
                               corner_position[0], corner_position[1],
                               transparency=transparency_scene,
+                              image_alpha=image_alpha,
                               labelmap_overlay=labelmap_scene,
                               labelmap_overlay_alpha=labelmap_overlay_alpha,
                               overlays=overlays_scene,
@@ -208,11 +211,12 @@ def compose_image(img_scene, img_size, slice_number, corner_position=(0, 0),
 
 def compose_mosaic(img_scene_container, cell_size, rows, cols, slice_numbers,
                    overlap_factor=None, transparency_scene_container=None,
-                   labelmap_scene_container=None, labelmap_overlay_alpha=0.7,
-                   overlays_scene_container=None, overlays_alpha=0.7,
-                   overlays_colors=None, vol_cmap_name=None,
-                   labelmap_cmap_name=None, display_slice_number=False,
-                   display_lr=False, lr_labels=["L", "R"]):
+                   image_alpha=1.0, labelmap_scene_container=None,
+                   labelmap_overlay_alpha=0.7, overlays_scene_container=None,
+                   overlays_alpha=0.7, overlays_colors=None,
+                   vol_cmap_name=None, labelmap_cmap_name=None,
+                   display_slice_number=False, display_lr=False,
+                   lr_labels=["L", "R"]):
     """
     Create the mosaic canvas for given number of rows and columns,
     and the requested cell size and overlap values.
@@ -231,6 +235,8 @@ def compose_mosaic(img_scene_container, cell_size, rows, cols, slice_numbers,
         Overlap factor (horizontal, vertical).
     transparency_scene_container : list, optional
         Transaprency scene data container.
+    image_alpha : float, optional
+        Alpha value for the image in range [0, 1].
     labelmap_scene_container : list, optional
         Labelmap scene data container.
     overlays_scene_container : list, optional
@@ -306,6 +312,7 @@ def compose_mosaic(img_scene_container, cell_size, rows, cols, slice_numbers,
         compose_image(_img_arr, (cell_width, cell_height), slice_number,
                       corner_position=(left_pos, top_pos),
                       transparency_scene=_trans_arr,
+                      image_alpha=image_alpha,
                       labelmap_scene=_labelmap_arr,
                       labelmap_overlay_alpha=labelmap_overlay_alpha,
                       overlays_scene=_overlays_arr,

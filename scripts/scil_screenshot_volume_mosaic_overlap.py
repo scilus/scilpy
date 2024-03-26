@@ -49,7 +49,7 @@ python scil_screenshot_volume_mosaic_overlap.py \
   brain_mask.nii.gz \
   mosaic_overlap_t1_sagittal_tissue_viridis_cmap.png \
   30 40 50 60 70 80 90 100 \
-  --axis_name sagittal \
+  --axis sagittal \
   --labelmap tissue_map.nii.gz \
   --labelmap_cmap_name viridis
 
@@ -59,7 +59,7 @@ python scil_screenshot_volume_mosaic_overlap.py \
   brain_mask.nii.gz \
   mosaic_overlap_t1_sagittal_tissue_contours.png \
   30 40 50 60 70 80 90 100 \
-  --axis_name sagittal \
+  --axis sagittal \
   --overlays wm_mask.nii.gz gm_mask.nii.gz csf_mask.nii.gz
 """
 
@@ -91,10 +91,9 @@ def _build_arg_parser():
     p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawTextHelpFormatter)
 
-    vg = p.add_argument_group(title="Volume rendering:")
-    pg = p.add_argument_group(title="Peaks rendering:")
-    og = p.add_argument_group(title="Overlay rendering:")
-    ag = p.add_argument_group(title="Annotations:")
+    xg = p.add_argument_group(title="Input overlays")
+    vg = p.add_argument_group(title="Volume rendering")
+    og = p.add_argument_group(title="Overlay rendering")
 
     p.add_argument("rows", type=int, help="The mosaic row count.")
     p.add_argument("cols", type=int, help="The mosaic column count.")
@@ -103,14 +102,13 @@ def _build_arg_parser():
                                       cmap_parsing_group=vg,
                                       opacity_parsing_group=vg)
 
-    add_labelmap_screenshot_args(p, "viridis", 0.7, vg, vg)
-    add_overlays_screenshot_args(p, 0.7, og)
+    add_labelmap_screenshot_args(xg, "viridis", 0.7, vg, vg)
+    add_overlays_screenshot_args(xg, 0.7, og)
 
-    p.add_argument("--overlap_factor", nargs=2,
-                   metavar=("OVERLAP_HORIZ", "OVERLAP_VERT"),
+    p.add_argument("--overlap", nargs=2, metavar=("rWIDTH", "rHEIGHT"),
                    default=(0.6, 0.0), type=ranged_type(float, 0.0, 1.0),
-                   help="The overlap factor with respect to "
-                        "the dimension. [%(default)s]")
+                   help="The overlap factor as a ratio of each image "
+                        "dimension. [%(default)s]")
 
     add_verbose_arg(p)
     add_overwrite_arg(p)
@@ -154,46 +152,47 @@ def main():
     rows, cols = args.rows, args.cols
 
     # Check if the mosaic can be built
-    check_slice_indices(vol_img, args.axis_name, args.slice_ids)
-    check_mosaic_layout(len(args.slice_ids), rows, cols)
+    check_slice_indices(vol_img, args.axis, args.slices)
+    check_mosaic_layout(len(args.slices), rows, cols)
 
     # Generate the images
     vol_scene_container = screenshot_volume(
-        vol_img, args.axis_name, args.slice_ids, args.size)
+        vol_img, args.axis, args.slices, args.size)
 
     transparency_scene_container = screenshot_volume(
-        trans_img, args.axis_name, args.slice_ids, args.size)
+        trans_img, args.axis, args.slices, args.size)
 
     labelmap_scene_container = []
     if labelmap_img:
         labelmap_scene_container = screenshot_volume(
-            labelmap_img, args.axis_name, args.slice_ids, args.size)
+            labelmap_img, args.axis, args.slices, args.size)
 
-    mask_screenshotter = screenshot_volume
+    overlays_screenshotter = screenshot_volume
     if args.overlays_as_contours:
-        mask_screenshotter = screenshot_contour
+        overlays_screenshotter = screenshot_contour
 
     overlays_scene_container = []
     if ovl_imgs:
         for img in ovl_imgs:
             overlays_scene_container.append(
-                mask_screenshotter(
-                    img, args.axis_name, args.slice_ids, args.size))
+                overlays_screenshotter(
+                    img, args.axis, args.slices, args.size))
 
         overlays_scene_container = np.swapaxes(overlays_scene_container, 0, 1)
 
     # Compose the mosaic
     img = compose_mosaic(
-        vol_scene_container, args.size, rows, cols, args.slice_ids,
-        overlap_factor=args.overlap_factor,
+        vol_scene_container, args.size, rows, cols, args.slices,
+        overlap_factor=args.overlap,
         vol_cmap_name=args.volume_cmap_name,
         transparency_scene_container=transparency_scene_container,
+        volume_alpha=args.volume_opacity,
         labelmap_scene_container=labelmap_scene_container,
         labelmap_cmap_name=args.labelmap_cmap_name,
-        labelmap_overlay_alpha=args.labelmap_alpha,
+        labelmap_overlay_alpha=args.labelmap_opacity,
         overlays_scene_container=overlays_scene_container,
         overlays_colors=ovl_colors,
-        overlays_alpha=args.overlays_alpha)
+        overlays_alpha=args.overlays_opacity)
 
     # Save the mosaic
     img.save(args.out_fname)
