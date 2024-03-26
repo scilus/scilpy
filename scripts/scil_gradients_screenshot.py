@@ -19,7 +19,7 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_gradients_filenames_valid,
                              assert_inputs_exist,
                              assert_outputs_exist)
-from scilpy.viz.gradient_sampling import (build_ms_from_shell_idx,
+from scilpy.viz.gradients import (build_ms_from_shell_idx,
                                           plot_each_shell,
                                           plot_proj_shell)
 
