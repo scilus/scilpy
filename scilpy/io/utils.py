@@ -522,7 +522,7 @@ def verify_compression_th(compress_th):
     -----------
     compress_th: float, the compression threshold.
     """
-    if compress_th:
+    if compress_th is not None:
         if compress_th < 0.001 or compress_th > 1:
             logging.warning(
                 'You are using an error rate of {}.\nWe recommend setting it '
