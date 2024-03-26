@@ -78,6 +78,7 @@ python scil_screenshot_volume.py \
 import argparse
 import logging
 
+from functools import partial
 from itertools import zip_longest
 import itertools
 import numpy as np
@@ -113,8 +114,8 @@ def _build_arg_parser():
     ag = p.add_argument_group(title="Annotations")
 
     add_default_screenshot_args(p, False, False, False, sg, ag, vg, vg)
-    add_labelmap_screenshot_args(xg, "viridis", 0.7, vg, vg)
-    add_overlays_screenshot_args(xg, 0.7, og)
+    add_labelmap_screenshot_args(xg, "viridis", 0.5, vg, vg)
+    add_overlays_screenshot_args(xg, 0.5, og)
     add_peaks_screenshot_args(xg, rendering_parsing_group=pg)
     add_verbose_arg(p)
 
@@ -183,11 +184,8 @@ def main():
     overlay_screenshotter = screenshot_volume
     overlay_alpha = args.overlays_opacity
     if args.overlays_as_contours:
-        def _dual_screenshot(*args, **kwargs):
-            return screenshot_contour(*args, **kwargs,
-                                      bg_opacity=overlay_alpha)
-
-        overlay_screenshotter = _dual_screenshot
+        overlay_screenshotter = partial(screenshot_contour,
+                                        bg_opacity=args.overlays_opacity)
         overlay_alpha = 1.0
 
     # Generate the overlay stack, if requested, zipping over all overlays
