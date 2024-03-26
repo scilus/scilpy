@@ -111,49 +111,48 @@ def _build_arg_parser():
 
     p.add_argument('--norm_off', action='store_true',
                    help='Disable normalization of ODF slicer.')
-    
+
     add_verbose_arg(p)
 
     # Background image options
     bg = p.add_argument_group('Background arguments')
     bg.add_argument('--background',
-                   help='Background image file. If RGB, values must '
-                        'be between 0 and 255.')
+                    help='Background image file. If RGB, values must '
+                         'be between 0 and 255.')
 
     bg.add_argument('--bg_range', nargs=2, metavar=('MIN', 'MAX'), type=float,
-                   help='The range of values mapped to range [0, 1] '
-                        'for background image. [(bg.min(), bg.max())]')
+                    help='The range of values mapped to range [0, 1] '
+                         'for background image. [(bg.min(), bg.max())]')
 
     bg.add_argument('--bg_opacity', type=float, default=1.0,
-                   help='The opacity of the background image. Opacity of 0.0 '
-                        'means transparent and 1.0 is completely visible. '
-                        '[%(default)s]')
+                    help='The opacity of the background image. Opacity of 0.0 '
+                         'means transparent and 1.0 is completely visible. '
+                         '[%(default)s]')
 
     bg.add_argument('--bg_offset', type=float, default=0.5,
-                   help='The offset of the background image. [%(default)s]')
+                    help='The offset of the background image. [%(default)s]')
 
     bg.add_argument('--bg_interpolation',
-                   default='nearest', choices={'linear', 'nearest'},
-                   help='Interpolation mode for the background image. '
-                        '[%(default)s]')
+                    default='nearest', choices={'linear', 'nearest'},
+                    help='Interpolation mode for the background image. '
+                         '[%(default)s]')
 
     bg.add_argument('--bg_color', nargs=3, type=float, default=(0, 0, 0),
-                   help='The color of the overall background, behind '
-                        'everything. Must be RGB values scaled between 0 and '
-                        '1. [%(default)s]')
+                    help='The color of the overall background, behind '
+                         'everything. Must be RGB values scaled between 0 and '
+                         '1. [%(default)s]')
 
     # Peaks input file options
     peaks = p.add_argument_group('Peaks arguments')
-    peaks.add_argument('--peaks',
-                   help='Peaks image file.')
+    peaks.add_argument('--peaks', help='Peaks image file.')
 
     peaks.add_argument('--peaks_color', nargs=3, type=float,
-                   help='Color used for peaks, as RGB values scaled between 0 '
-                        'and 1. If None, then a RGB colormap is used. '
-                        '[%(default)s]')
+                       help='Color used for peaks, as RGB values scaled '
+                            'between 0 and 1. If None, then a RGB colormap is '
+                            'used. [%(default)s]')
 
     peaks.add_argument('--peaks_width', default=1.0, type=float,
-                   help='Width of peaks segments. [%(default)s]')
+                       help='Width of peaks segments. [%(default)s]')
 
     peaks_scale = p.add_argument_group('Peaks scaling arguments', 'Choose '
                                        'between peaks values and arbitrary '
@@ -172,21 +171,19 @@ def _build_arg_parser():
                                'as follow: mean + k * sqrt(variance), where '
                                'mean is the input fodf (in_fodf) and k is the '
                                'scaling factor (variance_k).')
-    var.add_argument('--variance',
-                   help='FODF variance file.')
+    var.add_argument('--variance', help='FODF variance file.')
     var.add_argument('--variance_k', default=1, type=float,
-                   help='Scaling factor (k) for the computation of the fodf '
-                        'uncertainty. [%(default)s]')
+                     help='Scaling factor (k) for the computation of the fodf '
+                          'uncertainty. [%(default)s]')
     var.add_argument('--var_color', nargs=3, type=float, default=(1, 1, 1),
-                   help='Color of variance outline. Must be RGB values scaled '
-                        'between 0 and 1. [%(default)s]')
+                     help='Color of variance outline. Must be RGB values '
+                          'scaled between 0 and 1. [%(default)s]')
 
     return p
 
 
 def _parse_args(parser):
     args = parser.parse_args()
-    inputs = []
     output = []
     if args.output:
         output.append(args.output)

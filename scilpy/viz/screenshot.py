@@ -42,7 +42,7 @@ def screenshot_volume(img, orientation, slice_ids, size, labelmap=None):
                                         offset=0.0, lut=labelmap)
 
     return snapshot_slices([slice_actor], slice_ids, orientation,
-                             img.shape, size)
+                           img.shape, size)
 
 
 def screenshot_contour(bin_img, orientation, slice_ids, size, bg_opacity=0.):
@@ -125,7 +125,7 @@ def screenshot_peaks(img, orientation, slice_ids, size, mask_img=None):
                                       mask=mask)
 
     return snapshot_slices([peaks_actor], slice_ids, orientation,
-                             img.shape, size)
+                           img.shape, size)
 
 
 def compose_image(img_scene, img_size, slice_number, corner_position=(0, 0),

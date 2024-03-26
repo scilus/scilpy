@@ -3,12 +3,12 @@
 
 """
 Take screenshot(s) of one or more slices in a given image volume along the
-requested axis. If slice indices are not provided, all slices in the volume 
-are used. The name of the outputed images are suffixed with _slice_{id}, with 
-id being the slice number in the volume. If a labelmap image is provided (e.g. 
-a tissue segmentation map), it is overlaid on the volume slices. Same goes if 
-a mask is provided, with the difference that it can be rendered as a 
-transparency overlay as well as a contour. 
+requested axis. If slice indices are not provided, all slices in the volume
+are used. The name of the outputed images are suffixed with _slice_{id}, with
+id being the slice number in the volume. If a labelmap image is provided (e.g.
+a tissue segmentation map), it is overlaid on the volume slices. Same goes if
+a mask is provided, with the difference that it can be rendered as a
+transparency overlay as well as a contour.
 
 A labelmap image can be provided as the image volume, without requiring it as
 the optional argument if only the former needs to be plot.

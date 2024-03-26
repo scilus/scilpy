@@ -565,12 +565,12 @@ def add_default_screenshot_args(parser, slice_ids_mandatory=True,
                                opacity_parsing_group=opacity_parsing_group)
 
     if transparency_mask_mandatory:
-        parser.add_argument(f"transparency",
+        parser.add_argument("transparency",
                             help="Transparency Nifti image (.nii/.nii.gz). "
                                  "Can either be a binary mask or a scalar "
                                  "image in the range [0, 1].")
     else:
-        parser.add_argument(f"--transparency",
+        parser.add_argument("--transparency",
                             help="Transparency Nifti image (.nii/.nii.gz). "
                                  "Can either be a binary mask or a scalar "
                                  "image in the range [0, 1].")
@@ -583,10 +583,11 @@ def add_default_screenshot_args(parser, slice_ids_mandatory=True,
 
         parser.add_argument("--axis", default="axial",
                             type=str, choices=RAS_AXES_NAMES,
-                            help="Name of the axis to visualize. [%(default)s]")
+                            help="Name of the axis to visualize. "
+                                 "[%(default)s]")
     else:
         sg = slicing_parsing_group or parser
-        sg.add_argument(f"--slices", nargs="+", type=int, metavar="SID",
+        sg.add_argument("--slices", nargs="+", type=int, metavar="SID",
                         help="Slice indices to screenshot. If None are "
                              "supplied, all slices inside the transparency "
                              "mask are selected.")
@@ -603,10 +604,10 @@ def add_default_screenshot_args(parser, slice_ids_mandatory=True,
         ag = annotation_parsing_group or parser(title="Annotations")
         ag.add_argument("--display_slice_number", action="store_true",
                         help="If true, displays the slice number "
-                            "in the upper left corner.")
+                             "in the upper left corner.")
         ag.add_argument("--display_lr", action="store_true",
                         help="If true, add left and right "
-                            "annotations to the images.")
+                             "annotations to the images.")
 
 
 def validate_nbr_processes(parser, args):

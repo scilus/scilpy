@@ -6,8 +6,8 @@ Compose a mosaic of screenshots of the given image volume slices along the
 requested axis. The provided transparency mask (e.g. a brain mask volume) is
 used to set the screenshot values outside the mask non-zero values to full
 transparency. Additionally, if a labelmap image is provided (e.g. a tissue
-segmentation map), it is overlaid on the volume slices. Also, a series of 
-masks can be provided and will be used to generate contours overlaid on each 
+segmentation map), it is overlaid on the volume slices. Also, a series of
+masks can be provided and will be used to generate contours overlaid on each
 volume slice.
 
 A labelmap image can be provided as the image volume, without requiring it as
@@ -99,8 +99,8 @@ def _build_arg_parser():
     p.add_argument("cols", type=int, help="The mosaic column count.")
 
     add_default_screenshot_args(p, disable_annotations=True,
-                                      cmap_parsing_group=vg,
-                                      opacity_parsing_group=vg)
+                                cmap_parsing_group=vg,
+                                opacity_parsing_group=vg)
 
     add_labelmap_screenshot_args(xg, "viridis", 0.7, vg, vg)
     add_overlays_screenshot_args(xg, 0.7, og)
