@@ -2,9 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-Compute a density map from a streamlines file.
-
-A specific value can be assigned instead of using the tract count.
+Compute a density map from a streamlines file. Can be binary.
 
 This script correctly handles compressed streamlines.
 
@@ -49,6 +47,7 @@ def main():
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
+    # Verifications
     assert_inputs_exist(parser, args.in_bundle, optional=args.reference)
     assert_outputs_exist(parser, args, args.out_img)
 
@@ -58,14 +57,16 @@ def main():
                      'must be greater than 0 and smaller or equal to {}'
                      .format(args.binary, max_))
 
+    # Loading
     sft = load_tractogram_with_reference(parser, args, args.in_bundle)
     sft.to_vox()
     sft.to_corner()
-    streamlines = sft.streamlines
     transformation, dimensions, _, _ = sft.space_attributes
 
-    streamline_count = compute_tract_counts_map(streamlines, dimensions)
+    # Processing
+    streamline_count = compute_tract_counts_map(sft.streamlines, dimensions)
 
+    # Saving
     dtype_to_use = np.int32
     if args.binary is not None:
         if args.binary == 1:
