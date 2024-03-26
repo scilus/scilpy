@@ -379,7 +379,7 @@ def parse_sh_basis_arg(args):
         return sh_basis, is_legacy
 
 
-def add_labelmap_screenshot_args(parser, default_cmap=None, default_alpha=1.0,
+def add_labelmap_screenshot_args(parser, default_cmap=None, default_alpha=0.5,
                                  cmap_parsing_group=None,
                                  opacity_parsing_group=None):
     """
@@ -442,7 +442,7 @@ def add_peaks_screenshot_args(parser, default_width=3.0, default_alpha=1.0,
                      help="Opacity value for the peaks overlay. [%(default)s]")
 
 
-def add_overlays_screenshot_args(parser, default_alpha=0.7,
+def add_overlays_screenshot_args(parser, default_alpha=0.5,
                                  rendering_parsing_group=None):
     """
     Add default arguments for overlays screenshotting.

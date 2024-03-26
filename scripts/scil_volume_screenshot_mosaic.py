@@ -102,8 +102,8 @@ def _build_arg_parser():
                                 cmap_parsing_group=vg,
                                 opacity_parsing_group=vg)
 
-    add_labelmap_screenshot_args(xg, "viridis", 0.7, vg, vg)
-    add_overlays_screenshot_args(xg, 0.7, og)
+    add_labelmap_screenshot_args(xg, "viridis", 0.5, vg, vg)
+    add_overlays_screenshot_args(xg, 0.5, og)
 
     p.add_argument("--overlap", nargs=2, metavar=("rWIDTH", "rHEIGHT"),
                    default=(0.6, 0.0), type=ranged_type(float, 0.0, 1.0),
