@@ -216,6 +216,7 @@ def main():
 
     # Note. Seeds are in voxel world, center origin.
     # (See the examples in random_seeds_from_mask).
+    logging.info("Preparing seeds.")
     seeds = track_utils.random_seeds_from_mask(
         seed_img.get_fdata(dtype=np.float32),
         np.eye(4),
@@ -229,6 +230,7 @@ def main():
         # per direction, we need to filter post-tracking.
         max_steps_per_direction = int(args.max_length / args.step_size)
 
+        logging.info("Starting CPU local tracking.")
         streamlines_generator = LocalTracking(
             get_direction_getter(
                 args.in_odf, args.algo, args.sphere,
@@ -254,6 +256,7 @@ def main():
         # GPU tracking needs the full sphere
         sphere = get_sphere(args.sphere).subdivide(args.sub_sphere)
 
+        logging.info("Starting GPU local tracking.")
         streamlines_generator = GPUTacker(
             odf_sh, mask_data, seeds,
             vox_step_size, max_strl_len,
