@@ -47,13 +47,12 @@ from nibabel.streamlines.array_sequence import ArraySequence
 import numpy as np
 
 from scilpy.image.labels import get_data_as_labels
+from scilpy.io.hdf5 import (construct_hdf5_header,
+                            construct_hdf5_group_from_streamlines)
 from scilpy.io.streamlines import load_tractogram_with_reference
-from scilpy.io.utils import (add_bbox_arg,
-                             add_overwrite_arg,
-                             add_processes_arg,
-                             add_verbose_arg,
-                             add_reference_arg,
-                             assert_inputs_exist,
+from scilpy.io.utils import (add_bbox_arg, add_overwrite_arg,
+                             add_processes_arg, add_verbose_arg,
+                             add_reference_arg, assert_inputs_exist,
                              assert_outputs_exist,
                              assert_output_dirs_exist_and_empty,
                              validate_nbr_processes)
@@ -128,15 +127,8 @@ def _save_if_needed(sft, hdf5_file, args,
         sft = sft[indices]
 
         group = hdf5_file.create_group('{}_{}'.format(in_label, out_label))
-        group.create_dataset('data', data=sft.streamlines._data,
-                             dtype=np.float32)
-        group.create_dataset('offsets', data=sft.streamlines._offsets,
-                             dtype=np.int64)
-        group.create_dataset('lengths', data=sft.streamlines._lengths,
-                             dtype=np.int32)
-        for key in sft.data_per_streamline.keys():
-            group.create_dataset(key, data=sft.data_per_streamline[key],
-                                 dtype=np.float32)
+        construct_hdf5_group_from_streamlines(group, sft.streamlines,
+                                              dps=sft.data_per_streamline)
 
     if args.out_dir:
         saving_options = _get_saving_options(args)
@@ -327,11 +319,7 @@ def main():
 
     iteration_counter = 0
     with h5py.File(args.out_hdf5, 'w') as hdf5_file:
-        affine, dimensions, voxel_sizes, voxel_order = get_reference_info(sft)
-        hdf5_file.attrs['affine'] = affine
-        hdf5_file.attrs['dimensions'] = dimensions
-        hdf5_file.attrs['voxel_sizes'] = voxel_sizes
-        hdf5_file.attrs['voxel_order'] = voxel_order
+        construct_hdf5_header(hdf5_file, sft)
 
         # Each connection is processed independently. Multiprocessing would be
         # a burden on the I/O of most SSD/HD
