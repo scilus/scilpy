@@ -2,10 +2,12 @@
 # -*- coding: utf-8 -*-
 """
 Compute a Track Orientation Density Image (TODI).
-Each segment of the streamlines is weighted by its length
-(to support compressed streamlines).
-This script can afterwards output a Track Density Image (TDI)
-or a TODI with SF or SH representation, based on streamlines' segments.
+
+Each segment of the streamlines is weighted by its length (to support
+compressed streamlines).
+
+This script can afterwards output a Track Density Image (TDI) or a TODI with SF
+or SH representation, based on streamlines' segments.
 
 Formerly: scil_compute_todi.py
 """
@@ -26,12 +28,12 @@ from scilpy.tractanalysis.todi import TrackOrientationDensityImaging
 
 
 EPILOG = """
-    References:
-        [1] Dhollander T, Emsell L, Van Hecke W, Maes F, Sunaert S, Suetens P.
-            Track orientation density imaging (TODI) and
-            track orientation distribution (TOD) based tractography.
-            NeuroImage. 2014 Jul 1;94:312-36.
-    """
+References:
+    [1] Dhollander T, Emsell L, Van Hecke W, Maes F, Sunaert S, Suetens P.
+        Track orientation density imaging (TODI) and
+        track orientation distribution (TOD) based tractography.
+        NeuroImage. 2014 Jul 1;94:312-36.
+"""
 
 
 def _build_arg_parser():
@@ -41,44 +43,38 @@ def _build_arg_parser():
     p.add_argument('in_tractogram',
                    help='Input streamlines file.')
 
-    add_reference_arg(p)
-
-    p.add_argument('--sphere', default='repulsion724',
-                   help='sphere used for the angular discretization. '
+    g = p.add_argument_group("Computing options")
+    g.add_argument('--sphere', default='repulsion724',
+                   help='Sphere used for the angular discretization. '
                         '[%(default)s]')
-
-    p.add_argument('--mask',
-                   help='Use the given mask.')
-
-    p.add_argument('--out_mask',
-                   help='Mask showing where TDI > 0.')
-
-    p.add_argument('--out_tdi',
-                   help='Output Track Density Image (TDI).')
-
-    p.add_argument('--out_todi_sf',
-                   help='Output TODI, with SF (each directions\n'
-                        'on the sphere, requires a lot of memory)')
-
-    p.add_argument('--out_todi_sh',
-                   help='Output TODI, with SH coefficients.')
-
-    p.add_argument('--sh_order', type=int, default=8,
+    g.add_argument('--mask',
+                   help='If set, use the given mask.')
+    g.add_argument('--sh_order', type=int, default=8,
                    help='Order of the original SH. [%(default)s]')
-
-    p.add_argument('--normalize_per_voxel', action='store_true',
-                   help='Normalize each SF/SH at each voxel [%(default)s].')
-
-    p.add_argument('--smooth_todi', action='store_true',
-                   help='Smooth TODI (angular and spatial) [%(default)s].')
-
-    p.add_argument('--asymmetric', action='store_true',
-                   help='Compute asymmetric TODI [%(default)s].')
-
-    p.add_argument('--n_steps', default=1, type=int,
+    g.add_argument('--normalize_per_voxel', action='store_true',
+                   help='If set, normalize each SF/SH at each voxel.')
+    gg = g.add_mutually_exclusive_group()
+    gg.add_argument('--smooth_todi', action='store_true',
+                    help='If set, smooth TODI (angular and spatial).')
+    gg.add_argument('--asymmetric', action='store_true',
+                    help='If set, compute asymmetric TODI.\n'
+                         'Cannot be used with --smooth_todi.')
+    g.add_argument('--n_steps', default=1, type=int,
                    help='Number of steps for streamline segments '
                         'subdivision prior to binning [%(default)s].')
 
+    g = p.add_argument_group("Output files. Saves only when filename is set")
+    g.add_argument('--out_mask',
+                   help='Mask showing where TDI > 0.')
+    g.add_argument('--out_tdi',
+                   help='Output Track Density Image (TDI).')
+    g.add_argument('--out_todi_sf',
+                   help='Output TODI, with SF (each directions\n'
+                        'on the sphere, requires a lot of memory)')
+    g.add_argument('--out_todi_sh',
+                   help='Output TODI, with SH coefficients.')
+
+    add_reference_arg(p)
     add_sh_basis_args(p)
     add_verbose_arg(p)
     add_overwrite_arg(p)
@@ -90,40 +86,36 @@ def main():
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
+    # Verifications
     assert_inputs_exist(parser, args.in_tractogram,
                         [args.mask, args.reference])
     assert_headers_compatible(parser, args.in_tractogram, args.mask,
                               reference=args.reference)
 
-    output_file_list = []
-    if args.out_mask:
-        output_file_list.append(args.out_mask)
-    if args.out_tdi:
-        output_file_list.append(args.out_tdi)
-    if args.out_todi_sf:
-        output_file_list.append(args.out_todi_sf)
-    if args.out_todi_sh:
-        output_file_list.append(args.out_todi_sh)
+    out_files = [args.out_mask, args.out_tdi, args.out_todi_sf,
+                 args.out_todi_sh]
+    assert_outputs_exist(parser, args, [], out_files)
 
-    if not output_file_list:
-        parser.error('No output to be done')
+    if not np.any(out_files):
+        parser.error('No output to be done. Choose at least one output '
+                     'option.')
 
-    if args.smooth_todi and args.asymmetric:
-        parser.error('Invalid arguments combination. '
-                     'Cannot smooth asymmetric TODI.')
+    if args.normalize_per_voxel and not (args.out_todi_sh or args.out_todi_sf):
+        logging.warning("Option --normalize_per_voxel is only useful when "
+                        "saving output --out_todi_sh or --out_todi_sf. "
+                        "Ignoring.")
 
-    assert_outputs_exist(parser, args, output_file_list)
-
+    # Loading
     sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
     affine, data_shape, _, _ = sft.space_attributes
 
     sft.to_vox()
     # Because compute_todi expects streamline points (in voxel coordinates)
     # to be in the range (0..size) rather than (-0.5..size - 0.5), we shift
-    # the voxel origin to corner (will only be done if it's not already the
-    # case).
+    # the voxel origin to corner.
     sft.to_corner()
 
+    # Processing
     logging.info('Computing length-weighted TODI ...')
     todi_obj = TrackOrientationDensityImaging(tuple(data_shape), args.sphere)
     todi_obj.compute_todi(sft.streamlines, length_weights=True,
@@ -138,17 +130,19 @@ def main():
         mask = get_data_as_mask(nib.load(args.mask))
         todi_obj.mask_todi(mask)
 
+    if args.normalize_per_voxel:
+        # Normalizes mainly the SH, but, indirectly, changes the SF values.
+        todi_obj.normalize_todi_per_voxel()
+
+    # Saving
     logging.info('Saving Outputs ...')
     if args.out_mask:
-        data = todi_obj.get_mask()
-        img = todi_obj.reshape_to_3d(data)
+        img = todi_obj.reshape_to_3d(todi_obj.get_mask())
         img = nib.Nifti1Image(img.astype(np.int16), affine)
         img.to_filename(args.out_mask)
 
     if args.out_todi_sh:
         sh_basis, is_legacy = parse_sh_basis_arg(args)
-        if args.normalize_per_voxel:
-            todi_obj.normalize_todi_per_voxel()
         img = todi_obj.get_sh(sh_basis, args.sh_order,
                               full_basis=args.asymmetric,
                               is_legacy=is_legacy)

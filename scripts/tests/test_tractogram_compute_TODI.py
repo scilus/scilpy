@@ -21,6 +21,8 @@ def test_execution_bst(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_bundle = os.path.join(SCILPY_HOME, 'bst', 'rpt_m_warp.trk')
     in_mask = os.path.join(SCILPY_HOME, 'bst', 'mask.nii.gz')
+
+    # Note. For more coverage, could use option --out_todi_sf, but slower.
     ret = script_runner.run('scil_tractogram_compute_TODI.py', in_bundle,
                             '--mask', in_mask,
                             '--out_mask', 'todi_mask.nii.gz',

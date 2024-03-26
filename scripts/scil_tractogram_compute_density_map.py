@@ -32,9 +32,9 @@ def _build_arg_parser():
     p.add_argument('--binary', metavar='FIXED_VALUE', type=int,
                    nargs='?', const=1,
                    help='If set, will store the same value for all '
-                        'intersected voxels, creating a binary map.\n'
-                        'When set without a value, 1 is used (and dtype '
-                        'uint8). \nIf a value is given, will be used as the '
+                        'intersected voxels, \ncreating a binary map.'
+                        'When set without a value, 1 is used (and dtype \n'
+                        'uint8). If a value is given, will be used as the '
                         'stored value.')
     add_reference_arg(p)
     add_verbose_arg(p)
