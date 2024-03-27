@@ -9,30 +9,30 @@ from scilpy.viz.color import generate_n_colors
 
 def any2grayscale(array_2d):
     """
-    Convert a [0, 1] bounded array to `uint8` grayscale so that it can be
-    appropriately handled by `PIL`. Threshold will be applied to any data
-    that overflows a 8bit unsigned container.
+    Convert an array to `uint8` grayscale so that it can be appropriately
+    handled by `PIL`. The array is normalized to the range [0, 1] before
+    the conversion takes place.
 
     Parameters
     ----------
     array_2d : ndarray
-        Data in [0, 1] range.
+        Data in any range and datatype.
 
     Returns
     -------
         Grayscale `unit8` data in [0, 255] range.
     """
 
-    if array_2d.max() > 1:
-        raise ValueError(
-            "Grayscale conversion requires input data to be in range [0, 1]")
+    # Normalize the data to the range [0, 1]
+    def _normalized():
+        return (array_2d - np.min(array_2d)) / (
+            np.max(array_2d) - np.min(array_2d))
 
     # Convert from RGB to grayscale
-    # TODO : PIL float images, can the uint8 conversion go ?
-    _gray = Image.fromarray(np.uint8(array_2d * 255)).convert("L")
+    _gray = Image.fromarray(np.uint8(_normalized() * 255)).convert("L")
 
     # Relocate overflow values to the dynamic range
-    return np.array(_gray * 255).astype("uint8")
+    return np.array(_gray).astype("uint8")
 
 
 def create_image_from_2d_array(array_2d, size, mode=None,
@@ -280,7 +280,6 @@ def draw_2d_array_at_position(canvas, array_2d, size,
     if overlays is not None:
         if overlays_colors is None:
             # Get a list of distinguishable colors if None are supplied
-            # TODO : Muddles PIL with fury. Maybe another way to get colors
             overlays_colors = generate_n_colors(len(overlays))
 
         for img, color in zip(overlays, overlays_colors):

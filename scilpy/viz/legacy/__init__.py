@@ -45,5 +45,5 @@ def display_slices(volume_actor, slices,
                      focal_point=focal_point)
 
     snapshot = next(snapshot_scenes([scene], (1920, 1080)))
-    img = compose_image(snapshot, (1920, 1080), "TODO")
+    img = compose_image(snapshot, (1920, 1080), "NONE")
     img.save(output_filename)
