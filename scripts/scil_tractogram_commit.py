@@ -225,18 +225,7 @@ def _save_results(args, tmp_dir, ext, in_hdf5_file, offsets_list, sub_dir,
     commit_results_dir = os.path.join(tmp_dir.name,
                                       'Results_StickZeppelinBall')
 
-    # Create the output dir. Will contain:
-    # - fit_NRMSE.nii.gz
-    # - fit_RMSE.nii.gz
-    # - results.pickle
-    # - compartment_EC.nii.gz
-    # - compartment_IC.nii.gz
-    # - compartment_ISO.nii.gz
-    # - streamline_weights.txt -- ok
-    # - streamlines_length.txt -- ok
-    # - streamline_weights_by_length.txt -- ok
-    # - tot_streamline_weights
-    # - essential.trk / non_essential.trk
+    # Create the output dir.
     out_dir = os.path.join(args.out_dir, sub_dir)
     os.mkdir(out_dir)
 
