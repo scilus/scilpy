@@ -80,11 +80,16 @@ def main():
 
     # Loading
     sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
-    if args.step_size is not None:
-        sft = resample_streamlines_step_size(sft, args.step_size)
-
     mask_img = nib.load(args.in_mask)
     binary_mask = get_data_as_mask(mask_img)
+
+    # Streamlines must be in voxel space to deal correctly with bounding box.
+    sft.to_vox()
+    sft.to_corner()
+
+    # Processing
+    if args.step_size is not None:
+        sft = resample_streamlines_step_size(sft, args.step_size)
 
     # Segment into blobs, count each.
     bundle_disjoint, _ = ndi.label(binary_mask)

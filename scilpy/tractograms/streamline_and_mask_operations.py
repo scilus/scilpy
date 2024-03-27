@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import logging
 
 import numpy as np
 from dipy.io.stateful_tractogram import StatefulTractogram
@@ -98,12 +99,11 @@ def get_head_tail_density_maps(sft, point_to_select=1):
 
 
 def cut_outside_of_mask_streamlines(sft, binary_mask, min_len=0):
-    """ Cut streamlines so their longest segment are within the bounding box
-    or a binary mask.
-    This function erases the data_per_point and data_per_streamline.
+    """
+    Cut streamlines so their longest segment are within the bounding box or a
+    binary mask.
 
-    This function always returns streamlines in voxel space, and in corner.
-    TODO?: Return streamlines in their original space.
+    This function erases the data_per_point.
 
     Parameters
     ----------
@@ -119,29 +119,35 @@ def cut_outside_of_mask_streamlines(sft, binary_mask, min_len=0):
     new_sft : StatefulTractogram
         New object with the streamlines trimmed within the mask.
     """
+    orig_space = sft.space
+    orig_origin = sft.origin
     sft.to_vox()
     sft.to_corner()
-    streamlines = sft.streamlines
 
     # Cut streamlines within the mask and return the new streamlines
     # New endpoints may be generated
-    new_streamlines = _cut_streamlines_with_masks(
-        streamlines, binary_mask, binary_mask)
+    logging.info("Cutting streamlines. Data_per_point will not be kept.")
+    new_streamlines, kept_idx = _cut_streamlines_with_masks(
+        sft.streamlines, binary_mask, binary_mask)
+    if len(kept_idx) != len(sft.streamlines):
+        logging.info("{}/{} streamlines were kept."
+                     .format(len(kept_idx), len(sft.streamlines)))
 
     new_sft = StatefulTractogram.from_sft(
-        new_streamlines, sft, data_per_streamline=sft.data_per_streamline)
+        new_streamlines, sft,
+        data_per_streamline=sft.data_per_streamline[kept_idx])
+    new_sft.to_space(orig_space)
+    new_sft.to_origin(orig_origin)
     return filter_streamlines_by_length(new_sft, min_length=min_len)
 
 
 def cut_between_mask_two_blobs_streamlines(sft, binary_mask, min_len=0):
-    """ Cut streamlines so their segment are going from blob #1 to blob #2
-    in a binary mask. This function presumes strictly two blobs are present
-    in the mask.
+    """
+    Cut streamlines so their segment are going from blob #1 to blob #2 in a
+    binary mask. This function presumes strictly two blobs are present in the
+    mask.
 
-    This function erases the data_per_point and data_per_streamline.
-
-    This function always returns streamlines in voxel space, and in corner.
-    TODO?: Return streamlines in their original space.
+    This function erases the data_per_point.
 
     Parameters
     ----------
@@ -151,34 +157,46 @@ def cut_between_mask_two_blobs_streamlines(sft, binary_mask, min_len=0):
         Boolean array representing the region (must contain 2 entities)
     min_len: float
         Minimum length from the resulting streamlines.
+
     Returns
     -------
     new_sft : StatefulTractogram
         New object with the streamlines trimmed within the masks.
     """
+    orig_space = sft.space
+    orig_origin = sft.origin
     sft.to_vox()
     sft.to_corner()
-    streamlines = sft.streamlines
 
     # Split head and tail from mask
     roi_data_1, roi_data_2 = split_mask_blobs_kmeans(
         binary_mask, nb_clusters=2)
+
     # Cut streamlines with the masks and return the new streamlines
     # New endpoints may be generated
-    new_streamlines = _cut_streamlines_with_masks(streamlines, roi_data_1,
-                                                  roi_data_2)
+    logging.info("Cutting streamlines. Data_per_point will not be kept.")
+    new_streamlines, kept_idx = _cut_streamlines_with_masks(
+        sft.streamlines, roi_data_1, roi_data_2)
+    if len(kept_idx) != len(sft.streamlines):
+        logging.info("{}/{} streamlines were kept."
+                     .format(len(kept_idx), len(sft.streamlines)))
+
     new_sft = StatefulTractogram.from_sft(
-        new_streamlines, sft, data_per_streamline=sft.data_per_streamline)
+        new_streamlines, sft,
+        data_per_streamline=sft.data_per_streamline[kept_idx])
+    new_sft.to_space(orig_space)
+    new_sft.to_origin(orig_origin)
     return filter_streamlines_by_length(new_sft, min_length=min_len)
 
 
 def _cut_streamlines_with_masks(streamlines, roi_data_1, roi_data_2):
-    """ Cut streamlines so their segment are  going from binary mask #1
-    to binary mask #2. New endpoints may be generated to maximize the
-    streamline length within the masks.
     """
-
+    Cut streamlines so their segment are going from binary mask #1 to binary
+    mask #2. New endpoints may be generated to maximize the streamline length
+    within the masks.
+    """
     new_streamlines = []
+    kept_idx = []
     # Get the indices of the "voxels" intersected by the streamlines and the
     # mapping from points to indices.
     (indices, points_to_idx) = uncompress(streamlines, return_mapping=True)
@@ -201,8 +219,9 @@ def _cut_streamlines_with_masks(streamlines, roi_data_1, roi_data_2):
                                                   points_to_indices)
             # Add the new streamline to the sft
             new_streamlines.append(cut_strl)
+            kept_idx.append(strl_idx)
 
-    return new_streamlines
+    return new_streamlines, kept_idx
 
 
 def _get_longest_streamline_segment_in_roi(all_strl_indices):
