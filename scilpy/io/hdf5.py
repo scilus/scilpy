@@ -14,7 +14,7 @@ from scilpy.io.streamlines import reconstruct_streamlines
 def reconstruct_sft_from_hdf5(hdf5_handle, group_keys, space=Space.VOX,
                               origin=Origin.TRACKVIS, load_dps=False,
                               load_dpp=False, ref_img=None,
-                              merge_groups=False):
+                              merge_groups=False, allow_empty=False):
     """
     Reconstructs one or more SFT from the HDF5 data.
 
@@ -40,6 +40,10 @@ def reconstruct_sft_from_hdf5(hdf5_handle, group_keys, space=Space.VOX,
     merge_groups: bool
         If true, and if groups_keys refer to more than one group, will merge
         all bundles into one SFT. Else, returns one SFT per group.
+    allow_empty: bool
+        If true, if no streamlines are found, an empty tractogram will be
+        returned. If one or more group_keys does not exist, will NOT raise an
+        error anymore.
 
     Returns
     -------
@@ -75,24 +79,29 @@ def reconstruct_sft_from_hdf5(hdf5_handle, group_keys, space=Space.VOX,
     streamlines = []
     dps = []
     for i, group_key in enumerate(group_keys):
-        if group_key not in hdf5_handle:
-            raise ValueError("Group key {} not found in the hdf5. Possible "
-                             "choices: {}"
-                             .format(group_key, list(hdf5_handle.keys())))
-
         # Get streamlines
-        tmp_streamlines = reconstruct_streamlines_from_hdf5(
-            hdf5_handle[group_key])
+        if group_key not in hdf5_handle:
+            if allow_empty:
+                tmp_streamlines = []
+            else:
+                raise ValueError("Group key {} not found in the hdf5. "
+                                 "Possible choices: {}"
+                                 .format(group_key, list(hdf5_handle.keys())))
+        else:
+            # If key exists, tmp_streamlines should not be empty.
+            tmp_streamlines = reconstruct_streamlines_from_hdf5(
+                hdf5_handle[group_key])
+
         if merge_groups:
             streamlines.extend(tmp_streamlines)
             groups_len.append(len(tmp_streamlines))
         else:
             streamlines.append(tmp_streamlines)
 
+        # Load dps / dpp
+        if i == 0 or not merge_groups:
+            dps.append({})
         if len(tmp_streamlines) > 0:
-            # Load dps / dpp
-            if i == 0 or not merge_groups:
-                dps.append({})
             for sub_key in hdf5_handle[group_key].keys():
                 if sub_key not in ['data', 'offsets', 'lengths']:
                     data = hdf5_handle[group_key][sub_key]
@@ -112,7 +121,8 @@ def reconstruct_sft_from_hdf5(hdf5_handle, group_keys, space=Space.VOX,
 
     # 3) Format as SFT
     if merge_groups:
-        if len(streamlines) == 0:
+        if len(streamlines) == 0 and not allow_empty:
+            # Could raise an Error? Todo. Check all scripts first.
             logging.info("Empty SFT not reconstructed from hdf5.")
             return None
         sft = StatefulTractogram(streamlines, header, space=space,
@@ -121,8 +131,10 @@ def reconstruct_sft_from_hdf5(hdf5_handle, group_keys, space=Space.VOX,
     else:
         sfts = []
         for (sub_streamlines, sub_dps) in zip(streamlines, dps):
-            if len(streamlines) == 0:
+            if len(streamlines) == 0 and not allow_empty:
+                # Could raise an Error? Todo. Check all scripts first.
                 logging.info("Empty SFT not reconstructed from hdf5.")
+                sfts.append([])
             else:
                 sfts.append(
                     StatefulTractogram(sub_streamlines, header, space=space,

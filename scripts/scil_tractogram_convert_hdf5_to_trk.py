@@ -61,11 +61,11 @@ def _build_arg_parser():
 
     p.add_argument('--save_empty', metavar='labels_list', dest='labels_list',
                    help='Save empty connections. Then, the list of possible '
-                        'connections is \nnot found from the hdf5 but from '
-                        'labels_list, a txt file containing \na list saved by '
-                        'the decomposition script.\n'
+                        'connections is \nnot found from the hdf5 but '
+                        'inferred from labels_list, a txt file \ncontaining '
+                        'a list of nodes saved by the decomposition script.\n'
                         '*If used together with edge_keys or node_keys, the '
-                        'provided labels must \nexist in labels_list.')
+                        'provided nodes must \nexist in labels_list.')
 
     add_verbose_arg(p)
     add_overwrite_arg(p, will_delete_dirs=True)
@@ -85,15 +85,19 @@ def main():
 
     # Processing
     with h5py.File(args.in_hdf5, 'r') as hdf5_file:
+        all_hdf5_keys = list(hdf5_file.keys())
+
         if args.labels_list:
             all_labels = np.loadtxt(args.labels_list, dtype='str')
             comb_list = list(itertools.combinations(all_labels, r=2))
             comb_list.extend(zip(all_labels, all_labels))
             all_keys = [i[0]+'_'+i[1] for i in comb_list]
             keys_origin = "the labels_list file's labels combination"
+            allow_empty = True
         else:
-            all_keys = hdf5_file.keys()
+            all_keys = all_hdf5_keys
             keys_origin = "the hdf5 stored keys"
+            allow_empty = False
 
         if args.edge_keys is not None:
             selected_keys = args.edge_keys
@@ -115,9 +119,12 @@ def main():
                           .format(selected_keys))
         else:
             selected_keys = all_keys
+            logging.debug("All keys are: {}".format(selected_keys))
 
         for key in selected_keys:
-            sft, _ = reconstruct_sft_from_hdf5(hdf5_file, key, load_dps=True)
+            sft, _ = reconstruct_sft_from_hdf5(hdf5_file, key,
+                                               load_dps=args.include_dps,
+                                               allow_empty=allow_empty)
             save_tractogram(sft, '{}.trk'
                             .format(os.path.join(args.out_dir, key)))
 
