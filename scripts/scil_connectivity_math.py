@@ -23,7 +23,7 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_outputs_exist,
                              load_matrix_in_any_format,
                              save_matrix_in_any_format)
-from scilpy.utils.util import is_float
+from scilpy.utils import is_float
 
 OPERATIONS = get_array_ops()
 

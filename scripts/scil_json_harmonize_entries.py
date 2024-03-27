@@ -22,12 +22,12 @@ import logging
 
 from deepdiff import DeepDiff
 
-from scilpy.io.utils import (assert_inputs_exist,
-                             add_json_args,
-                             assert_outputs_exist,
+from scilpy.io.utils import (add_json_args,
                              add_overwrite_arg,
-                             add_verbose_arg)
-from scilpy.utils.util import recursive_update, recursive_print
+                             add_verbose_arg,
+                             assert_inputs_exist,
+                             assert_outputs_exist)
+from scilpy.utils import recursive_print, recursive_update
 
 
 def _build_arg_parser():
