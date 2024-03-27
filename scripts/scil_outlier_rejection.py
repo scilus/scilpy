@@ -22,7 +22,7 @@ from scilpy.io.utils import (add_json_args,
                              assert_inputs_exist,
                              assert_outputs_exist,
                              check_tracts_same_format)
-from scilpy.tractanalysis.features import remove_outliers
+from scilpy.tractanalysis.bundle_operations import remove_outliers
 
 
 def _build_arg_parser():

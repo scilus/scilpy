@@ -25,8 +25,8 @@ from scipy.ndimage import map_coordinates
 from scipy.spatial import cKDTree
 
 from scilpy.tractograms.streamline_operations import smooth_line_gaussian, \
-    resample_streamlines_step_size, parallel_transport_streamline
-from scilpy.utils.streamlines import cut_invalid_streamlines
+    resample_streamlines_step_size, parallel_transport_streamline, \
+    cut_invalid_streamlines
 
 MIN_NB_POINTS = 10
 KEY_INDEX = np.concatenate((range(5), range(-1, -6, -1)))
@@ -47,14 +47,14 @@ def shuffle_streamlines(sft, rng_seed=None):
     return shuffled_sft
 
 
-def _get_axis_flip_vector(flip_axes):
+def get_axis_flip_vector(flip_axes):
     """
-    Create a flip vector from a list of axes
+    Create a flip vector from a list of axes.
 
     Parameters
     ----------
-    flip_axis: list
-        List of axis you want to flip
+    flip_axes: list
+        List of axes you want to flip
 
     Returns
     -------
@@ -97,7 +97,7 @@ def flip_sft(sft, flip_axes):
         # Could return sft. But creating new SFT (or deep copy).
         flipped_streamlines = sft.streamlines
     else:
-        flip_vector = _get_axis_flip_vector(flip_axes)
+        flip_vector = get_axis_flip_vector(flip_axes)
         shift_vector = _get_shift_vector(sft)
 
         flipped_streamlines = []
@@ -877,6 +877,44 @@ def split_sft_randomly_per_cluster(orig_sft, chunk_sizes, seed, thresholds):
     final_sfts = [orig_sft[inds] for inds in total_indices]
 
     return final_sfts
+
+
+def filter_tractogram_data(tractogram, streamline_ids):
+    """
+    Filter a tractogram according to streamline ids and keep the data.
+
+    Parameters:
+    -----------
+    tractogram: StatefulTractogram
+        Tractogram containing the data to be filtered.
+    streamline_ids: array_like
+        List of streamline ids the data corresponds to.
+
+    Returns:
+    --------
+    new_tractogram: Tractogram or StatefulTractogram
+        Returns a new tractogram with only the selected streamlines and data.
+    """
+
+    streamline_ids = np.asarray(streamline_ids, dtype=int)
+
+    assert np.all(
+        np.in1d(streamline_ids, np.arange(len(tractogram.streamlines)))
+    ), "Received ids outside of streamline range"
+
+    new_streamlines = tractogram.streamlines[streamline_ids]
+    new_data_per_streamline = tractogram.data_per_streamline[streamline_ids]
+    new_data_per_point = tractogram.data_per_point[streamline_ids]
+
+    # Could have been nice to deepcopy the tractogram modify the attributes in
+    # place instead of creating a new one, but tractograms cant be subsampled
+    # if they have data.
+
+    return StatefulTractogram.from_sft(
+        new_streamlines,
+        tractogram,
+        data_per_point=new_data_per_point,
+        data_per_streamline=new_data_per_streamline)
 
 
 OPERATIONS = {

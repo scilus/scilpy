@@ -201,3 +201,8 @@ def test_split_sft_randomly_per_cluster():
                        [112.168, 35.259, 59.419])
     assert np.allclose(new_sft_list[1].streamlines[0][0],
                        [112.266, 35.4188, 59.0421])
+
+
+def filter_tractogram_data():
+    # toDo
+    pass

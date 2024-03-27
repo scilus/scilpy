@@ -57,12 +57,12 @@ from scilpy.io.utils import (add_bbox_arg,
                              assert_outputs_exist,
                              assert_output_dirs_exist_and_empty,
                              validate_nbr_processes)
-from scilpy.tractanalysis.features import (remove_outliers,
-                                           remove_loops_and_sharp_turns)
+from scilpy.tractanalysis.bundle_operations import remove_outliers
 from scilpy.tractanalysis.tools import (compute_connectivity,
                                         extract_longest_segments_from_profile)
 from scilpy.tractograms.uncompress import uncompress
-
+from scilpy.tractograms.streamline_operations import \
+    remove_loops_and_sharp_turns
 from scilpy.tractograms.streamline_and_mask_operations import \
     compute_streamline_segment
 

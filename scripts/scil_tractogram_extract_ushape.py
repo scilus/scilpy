@@ -28,7 +28,7 @@ from scilpy.io.utils import (add_json_args,
                              assert_inputs_exist,
                              assert_outputs_exist,
                              check_tracts_same_format)
-from scilpy.tractanalysis.features import detect_ushape
+from scilpy.tractanalysis.bundle_operations import detect_ushape
 
 
 def _build_arg_parser():
