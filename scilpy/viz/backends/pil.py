@@ -179,7 +179,7 @@ def annotate_image(image, slice_number, display_slice_number,
     lr_labels : list, optional
         Left/right labels.
     """
-    font_size = image.width // 10
+    font_size = max(1, image.width // 10)
     font = ImageFont.truetype(findfont("freesans", fontext="ttf"), font_size)
 
     stroke, padding = max(image.width // 200, 1), image.width // 100

@@ -1069,7 +1069,7 @@ def ranged_type(value_type, min_value, max_value):
     return range_checker
 
 
-def get_default_screenshotting_data(args):
+def get_default_screenshotting_data(args, peaks=True):
     volume_img = nib.load(args.volume)
 
     transparency_img = None
@@ -1094,7 +1094,7 @@ def get_default_screenshotting_data(args):
             ovl_colors = ovl_colors / 255.
 
     peaks_imgs = None
-    if args.peaks:
+    if peaks and args.peaks:
         peaks_imgs = [nib.load(f) for f in args.peaks]
 
     return volume_img, \

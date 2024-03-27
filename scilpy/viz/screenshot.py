@@ -214,7 +214,6 @@ def compose_mosaic(img_scene_container, cell_size, rows, cols, slice_numbers,
                    image_alpha=1.0, labelmap_scene_container=None,
                    labelmap_overlay_alpha=0.7, overlays_scene_container=None,
                    overlays_alpha=0.7, overlays_colors=None,
-                   vol_cmap_name=None, labelmap_cmap_name=None,
                    display_slice_number=False, display_lr=False,
                    lr_labels=["L", "R"]):
     """
@@ -245,10 +244,6 @@ def compose_mosaic(img_scene_container, cell_size, rows, cols, slice_numbers,
         Alpha value for the overlays in range [0, 1].
     overlays_colors : list, optional
         Color for the overlays as a list of 3 integers in range [0, 255].
-    vol_cmap_name : str, optional
-        Colormap name for the image scene data.
-    labelmap_cmap_name : str, optional
-        Colormap name for the labelmap scene data.
     display_slice_number : bool, optional
         If true, displays the slice number in the upper left corner.
     display_lr : bool or int, optional
@@ -274,7 +269,7 @@ def compose_mosaic(img_scene_container, cell_size, rows, cols, slice_numbers,
         overlap_h = _compute_overlap_length(cell_width, overlap_factor[0])
         overlap_v = _compute_overlap_length(cell_width, overlap_factor[1])
 
-    mosaic = create_canvas(*cell_size, overlap_h, overlap_v, rows, cols)
+    mosaic = create_canvas(*cell_size, rows, cols, overlap_h, overlap_v)
 
     offset_h = cell_width - overlap_h
     offset_v = cell_height - overlap_v
@@ -294,15 +289,15 @@ def compose_mosaic(img_scene_container, cell_size, rows, cols, slice_numbers,
 
         # Convert the scene data to grayscale and adjust for handling with
         # Pillow
-        _img_arr = any2grayscale(img_arr)
+        _img_arr = img_arr
 
         _trans_arr = None
         if len(trans_arr):
-            _trans_arr = any2grayscale(trans_arr)
+            _trans_arr = trans_arr
 
         _labelmap_arr = None
         if len(labelmap_arr):
-            _labelmap_arr = any2grayscale(labelmap_arr)
+            _labelmap_arr = labelmap_arr
 
         _overlays_arr = None
         if len(overlays_arr):
@@ -318,8 +313,6 @@ def compose_mosaic(img_scene_container, cell_size, rows, cols, slice_numbers,
                       overlays_scene=_overlays_arr,
                       overlays_alpha=overlays_alpha,
                       overlays_colors=overlays_colors,
-                      vol_cmap_name=vol_cmap_name,
-                      labelmap_cmap_name=labelmap_cmap_name,
                       display_slice_number=display_slice_number,
                       display_lr=display_lr,
                       lr_labels=lr_labels,
