@@ -766,12 +766,8 @@ def parallel_transport_streamline(streamline, nb_streamlines, radius,
     return new_streamlines
 
 
-def remove_loops_and_sharp_turns(streamlines,
-                                 max_angle,
-                                 use_qb=False,
-                                 qb_threshold=15.,
-                                 qb_seed=0,
-                                 num_processes=1):
+def remove_loops_and_sharp_turns(streamlines, max_angle, qb_threshold=None,
+                                 qb_seed=0, num_processes=1):
     """
     Remove loops and sharp turns from a list of streamlines.
 
@@ -782,12 +778,11 @@ def remove_loops_and_sharp_turns(streamlines,
     max_angle: float
         Maximal winding angle a streamline can have before
         being classified as a loop.
-    use_qb: bool
-        Set to True if the additional QuickBundles pass is done.
-        This will help remove sharp turns. Should only be used on
-        bundled streamlines, not on whole-brain tractograms.
-    qb_threshold: float
-        Quickbundles distance threshold, only used if use_qb is True.
+    qb_threshold: float, optional
+        If not None, do the additional QuickBundles pass. This will help remove
+        sharp turns. Should only be used on bundled streamlines, not on
+        whole-brain tractograms. If set, value is Quickbundles distance
+        threshold. Suggested default: 15.
     qb_seed: int
         Seed to initialize randomness in QuickBundles
     num_processes : int
@@ -798,17 +793,14 @@ def remove_loops_and_sharp_turns(streamlines,
     list: the ids of clean streamlines
         Only the ids are returned so proper filtering can be done afterwards
     """
-
-    streamlines_clean = []
-    ids = []
     pool = Pool(num_processes)
-
     windings = pool.map(tm.winding, streamlines)
     pool.close()
+
     streamlines_clean = streamlines[np.array(windings) < max_angle]
     ids = list(np.where(np.array(windings) < max_angle)[0])
 
-    if use_qb:
+    if qb_threshold is not None:
         ids = []
         if len(streamlines_clean) > 1:
             curvature = []
