@@ -43,7 +43,7 @@ from scilpy.tractograms.streamline_and_mask_operations import \
     cut_outside_of_mask_streamlines
 from scilpy.tractograms.streamline_operations import \
     resample_streamlines_num_points
-from scilpy.viz.utils import get_lookup_table
+from scilpy.viz.color import get_lookup_table
 
 
 def _build_arg_parser():

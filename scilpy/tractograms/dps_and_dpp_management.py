@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 
-from scilpy.viz.utils import clip_and_normalize_data_for_cmap
+from scilpy.viz.color import clip_and_normalize_data_for_cmap
 
 
 def add_data_as_color_dpp(sft, cmap, data, clip_outliers=False, min_range=None,
