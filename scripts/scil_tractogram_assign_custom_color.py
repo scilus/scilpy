@@ -58,8 +58,6 @@ from scipy.ndimage import map_coordinates
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg,
                              add_reference_arg,
-                             assert_inputs_exist,
-                             assert_outputs_exist,
                              add_verbose_arg,
                              assert_inputs_exist,
                              assert_outputs_exist,
@@ -67,7 +65,8 @@ from scilpy.io.utils import (add_overwrite_arg,
 from scilpy.tractograms.dps_and_dpp_management import add_data_as_color_dpp
 from scilpy.tractograms.streamline_operations import (get_values_along_length,
                                                       get_angles)
-from scilpy.viz.utils import get_colormap, prepare_colorbar_figure
+from scilpy.viz.color import get_lookup_table
+from scilpy.viz.color import prepare_colorbar_figure
 
 
 def _build_arg_parser():
@@ -169,7 +168,7 @@ def main():
     sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
     LUT = load_matrix_in_any_format(args.LUT) if args.LUT else None
 
-    cmap = get_colormap(args.colormap)
+    cmap = get_lookup_table(args.colormap)
 
     # Loading data. Depending on the type of loading, format data now to a 1D
     # array (one value per point or per streamline)

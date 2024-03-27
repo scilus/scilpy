@@ -3,7 +3,6 @@
 from enum import Enum
 import numpy as np
 from fury import actor, window
-from fury.colormap import orient2rgb
 from fury.utils import get_actor_from_polydata
 
 from scilpy.utils.util import get_axis_index
