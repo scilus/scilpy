@@ -6,7 +6,7 @@ import nibabel as nib
 import numpy as np
 import os
 
-from scilpy.utils.util import is_float
+from scilpy.utils import is_float
 
 
 def load_img(arg):
