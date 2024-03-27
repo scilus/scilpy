@@ -181,7 +181,7 @@ def create_scene(actors, orientation, slice_index, volume_shape, aspect_ratio,
         Shape of the sliced volume.
     aspect_ratio : float
         Ratio between viewport's width and height.
-    bg_color: tuple, optional
+    bg_color: tuple
         Background color expressed as RGB triplet in the range [0, 1].
 
     Returns
@@ -215,9 +215,9 @@ def create_interactive_window(scene, window_size, interactor,
         The dimensions for the vtk window.
     interactor : str
         Specify interactor mode for vtk window. Choices are image or trackball.
-    title : str, optional
+    title : str
         Title of the scene. Defaults to Viewer.
-    open_window : bool, optional
+    open_window : bool
         When true, initializes the interactor and opens the window
         (This suspends the current thread).
 
@@ -302,11 +302,11 @@ def create_contours_actor(contours, opacity=1., linewidth=3.,
     ------------
     contours : vtkPolyData
         Contours polydata.
-    opacity: float, optional
+    opacity: float
         Opacity of the contour.
-    linewidth : float, optional
+    linewidth : float
         Thickness of the contour line.
-    color : tuple, list of int, optional
+    color : tuple, list of int
         Color of the contour in RGB [0, 255].
 
     Returns
@@ -345,13 +345,13 @@ def create_odf_actors(sf_fodf, sphere, scale, sf_variance=None, mask=None,
         Spherical function of the variance fODF data.
     mask : np.ndarray, optional
         Only the data inside the mask will be displayed. Defaults to None.
-    radial_scale : bool, optional
+    radial_scale : bool
         If True, enables radial scale for ODF slicer.
-    norm : bool, optional
+    norm : bool
         If True, enables normalization of ODF slicer.
     colormap : str, optional
         Colormap for the ODF slicer. If None, a RGB colormap is used.
-    variance_k : float, optional
+    variance_k : float
         Factor that multiplies sqrt(variance).
     variance_color : tuple, optional
         Color of the variance fODF data, in RGB.
@@ -408,23 +408,23 @@ def create_peaks_actor(peaks, mask, opacity=1.0, linewidth=1.0, color=None,
         Peaks data.
     mask : np.ndarray
         Mask used to restrict the rendered data.
-    opacity : float, optional
+    opacity : float
         Opacity of the peaks.
-    linewidth : float, optional
+    linewidth : float
         Thickness of the peaks line.
-    color : tuple, list of int, optional
+    color : tuple, list of int
         Color of the peaks in RGB [0, 255]. If None, orientation
         coloring is used.
-    symmetric : bool, optional
+    symmetric : bool
         If True, the peaks are rendered symmetrically on both
         sides of the voxel's center.
     lut_values : np.ndarray, optional
         Use those values to color each peak.
-    lod : bool, optional
+    lod : bool
         If True, use level of detail rendering.
-    lod_nb_points : int, optional
+    lod_nb_points : int
         Number of points to use for level of detail rendering.
-    lod_points_size : float, optional
+    lod_points_size : float
         Size of the points for level of detail rendering.
 
     Returns

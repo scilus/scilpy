@@ -60,7 +60,7 @@ def screenshot_contour(bin_img, orientation, slice_ids, size, bg_opacity=0.):
         Slice indices.
     size : array-like
         Size of the screenshot image (pixels).
-    bg_opacity : float, optional
+    bg_opacity : float
         Background opacity in range [0, 1].
 
     Returns
@@ -148,36 +148,32 @@ def compose_image(img_scene, img_size, slice_number, corner_position=(0, 0),
         Image size (pixels) (width, height).
     slice_number : int
         Number of the current slice.
-    corner_position : array-like, optional
+    corner_position : array-like
         Image corner (pixels) (left, top).
     transparency_scene : np.ndarray, optional
         Transaprency scene data.
-    image_alpha : float, optional
+    image_alpha : float
         Alpha value for the image in range [0, 1].
     labelmap_scene : np.ndarray, optional
         Labelmap scene data.
-    labelmap_alpha : float, optional
+    labelmap_alpha : float
         Alpha value for labelmap overlay in range [0, 1].
     overlays_scene : np.ndarray, optional
         Overlays scene data.
-    overlays_alpha : float, optional
+    overlays_alpha : float
         Alpha value for the overlays in range [0, 1].
     overlays_colors : list, optional
         Colors for the overlays as a list of 3 integers in range [0, 255].
     peaks_overlay_scene : np.ndarray, optional
         Peaks overlay scene data.
-    peaks_overlay_alpha : float, optional
+    peaks_overlay_alpha : float
         Alpha value for peaks overlay in range [0, 1].
-    vol_cmap_name : str, optional
-        Colormap name for the image scene data.
-    labelmap_cmap_name : str, optional
-        Colormap name for the labelmap scene data.
-    display_slice_number : bool, optional
+    display_slice_number : bool
         If true, displays the slice number in the upper left corner.
-    display_lr : bool or int, optional
+    display_lr : bool or int
         If 1 or -1, annotates the left and right sides on the image. -1 flips
         left and right positions.
-    lr_labels : list, optional
+    lr_labels : list
         Labels used to annotate the left and right sides of the image.
     canvas : PIL.Image, optional
         Base canvas into which to paste the scene.
@@ -232,24 +228,24 @@ def compose_mosaic(img_scene_container, cell_size, rows, cols, slice_numbers,
         Column count.
     overlap_factor : array-like
         Overlap factor (horizontal, vertical).
-    transparency_scene_container : list, optional
+    transparency_scene_container : iterable
         Transaprency scene data container.
-    image_alpha : float, optional
+    image_alpha : float
         Alpha value for the image in range [0, 1].
-    labelmap_scene_container : list, optional
+    labelmap_scene_container : iterable
         Labelmap scene data container.
-    overlays_scene_container : list, optional
+    overlays_scene_container : iterable
         Overlays scene data container.
-    overlays_alpha : float, optional
+    overlays_alpha : float
         Alpha value for the overlays in range [0, 1].
     overlays_colors : list, optional
         Color for the overlays as a list of 3 integers in range [0, 255].
-    display_slice_number : bool, optional
+    display_slice_number : bool
         If true, displays the slice number in the upper left corner.
-    display_lr : bool or int, optional
+    display_lr : bool or int
         If 1 or -1, annotates the left and right sides on the image. -1 flips
         left and right positions.
-    lr_labels : list, optional
+    lr_labels : list
         Labels used to annotate the left and right sides of the image.
 
     Returns

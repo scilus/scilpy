@@ -35,14 +35,14 @@ def create_texture_slicer(texture, orientation, slice_index, mask=None,
     value_range : tuple (2,), optional
         The range of values mapped to range [0, 1] for the texture image. If
         None, it equals to (bg.min(), bg.max()). Defaults to None.
-    opacity : float, optional
+    opacity : float
         The opacity of the texture image. Opacity of 0.0 means transparent and
         1.0 is completely visible. Defaults to 1.0.
-    offset : float, optional
+    offset : float
         The offset of the texture image. Defaults to 0.5.
     lut : str, vtkLookupTable, optional
         Either a vtk lookup table or a matplotlib name for one.
-    interpolation : str, optional
+    interpolation : str
         Interpolation mode for the texture image. Choices are nearest or
         linear. Defaults to nearest.
 
@@ -90,14 +90,14 @@ def create_contours_slicer(data, contour_values, orientation, slice_index,
         Name of the axis to visualize. Choices are axial, coronal and sagittal.
     slice_index : int
         Index of the slice to visualize along the chosen orientation.
-    smoothing_radius : float, optional
+    smoothing_radius : float
         Pre-smoothing to apply to the image before
         computing the contour (in pixels).
-    opacity: float, optional
+    opacity: float
         Opacity of the contour.
-    linewidth : float, optional
+    linewidth : float
         Thickness of the contour line.
-    color : tuple, list of int, optional
+    color : tuple, list of int
         Color of the contour in RGB [0, 255].
 
     Returns
@@ -147,11 +147,11 @@ def create_peaks_slicer(data, orientation, slice_index, peak_values=None,
     color : tuple (3,), optional
         Color used for peaks. If None, a RGB colormap is used. Defaults to
         None.
-    peaks_width : float, optional
+    peaks_width : float
         Width of peaks segments. Defaults to 1.0.
-    opacity : float, optional
+    opacity : float
         Opacity of the peaks. Defaults to 1.0.
-    symmetric : bool, optional
+    symmetric : bool
         If True, peaks are drawn for both peaks_dirs and -peaks_dirs. Else,
         peaks are only drawn for directions given by peaks_dirs. Defaults to
         False.
@@ -225,13 +225,13 @@ def create_odf_slicer(sh_fodf, orientation, slice_index, sphere, sh_order,
     nb_subdivide : int, optional
         Number of subdivisions for given sphere. If None, uses the given sphere
         as is.
-    radial_scale : bool, optional
+    radial_scale : bool
         If True, enables radial scale for ODF slicer.
-    norm : bool, optional
+    norm : bool
         If True, enables normalization of ODF slicer.
     colormap : str, optional
         Colormap for the ODF slicer. If None, a RGB colormap is used.
-    variance_k : float, optional
+    variance_k : float
         Factor that multiplies sqrt(variance).
     variance_color : tuple, optional
         Color of the variance fODF data, in RGB.
@@ -279,7 +279,7 @@ def create_bingham_slicer(data, orientation, slice_index,
         Index of the slice of interest along the chosen orientation.
     sphere: DIPY Sphere
         Sphere used for visualization.
-    color_per_lobe: bool, optional
+    color_per_lobe: bool
         If true, each Bingham distribution is colored using a disting color.
         Else, Bingham distributions are colored by their orientation.
 

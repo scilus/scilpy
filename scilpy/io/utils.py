@@ -410,6 +410,8 @@ def add_peaks_screenshot_args(parser, default_width=3.0, default_alpha=1.0,
     """
     Add default arguments for peaks screenshotting.
 
+    TODO : add support for peaks scalars coloring.
+
     Parameters
     ----------
     parser: argparse.ArgumentParser object
@@ -423,16 +425,6 @@ def add_peaks_screenshot_args(parser, default_width=3.0, default_alpha=1.0,
     """
     parser.add_argument("--peaks", nargs="+",
                         help="Peaks Nifti image (.nii/.nii.gz).")
-
-    # TODO: check if possible, it would be cool to color by angular lut
-    # or peak intensity. Maybe we do need peeks scalars here, or
-    # its simple to use
-    # parser.add_argument(
-    #    "--peaks_cmap_name", default="viridis",
-    #    help="Colormap name for the peaks image data. [%(default)s]")
-    # parser.add_argument(
-    #    "--peaks_scalars", help="Peaks scalars Nifti image (.nii/.nii.gz) "
-    #                            "used as values for the LUT.")
 
     rpg = rendering_parsing_group or parser
     rpg.add_argument("--peaks_width", default=default_width, type=float,
@@ -1126,9 +1118,9 @@ def get_default_screenshotting_data(args, peaks=True):
     if peaks and args.peaks:
         peaks_imgs = [nib.load(f) for f in args.peaks]
 
-    return volume_img, \
-        transparency_img, \
-        labelmap_img, \
-        ovl_imgs, \
-        ovl_colors, \
-        peaks_imgs
+    return (volume_img,
+            transparency_img,
+            labelmap_img,
+            ovl_imgs,
+            ovl_colors,
+            peaks_imgs)
