@@ -15,7 +15,6 @@ Formerly: scil_remove_invalid_streamlines.py
 import argparse
 import logging
 
-from dipy.io.stateful_tractogram import StatefulTractogram
 from dipy.io.streamline import save_tractogram
 import numpy as np
 
@@ -23,7 +22,10 @@ from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg, add_verbose_arg,
                              add_reference_arg, assert_inputs_exist,
                              assert_outputs_exist)
-from scilpy.tractograms.streamline_operations import cut_invalid_streamlines
+from scilpy.tractograms.streamline_operations import (
+    cut_invalid_streamlines,
+    remove_overlapping_points_streamlines,
+    remove_single_point_streamlines)
 
 
 def _build_arg_parser():
@@ -43,8 +45,7 @@ def _build_arg_parser():
     p.add_argument('--remove_single_point', action='store_true',
                    help='Consider single point streamlines invalid.')
     p.add_argument('--remove_overlapping_points', action='store_true',
-                   help='Consider streamlines with overlapping points invalid.'
-                   )
+                   help='Consider streamlines with overlapping points invalid.')
     p.add_argument('--threshold', type=float, default=0.001,
                    help='Maximum distance between two points to be considered'
                         ' overlapping [%(default)s mm].')
@@ -75,35 +76,28 @@ def main():
 
     sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
     ori_len = len(sft)
+    ori_len_pts = len(sft.streamlines._data)
     if args.cut_invalid:
-        sft, cutting_counter = cut_invalid_streamlines(sft)
+        sft, cutting_counter = cut_invalid_streamlines(sft,
+                                                       epsilon=args.threshold)
         logging.warning('Cut {} invalid streamlines.'.format(cutting_counter))
     else:
         sft.remove_invalid_streamlines()
 
-    indices = []
     if args.remove_single_point:
-        # Will try to do a PR in Dipy
-        indices = [i for i in range(len(sft)) if len(sft.streamlines[i]) <= 1]
+        sft = remove_single_point_streamlines(sft)
 
     if args.remove_overlapping_points:
-        for i in np.setdiff1d(range(len(sft)), indices):
-            norm = np.linalg.norm(np.diff(sft.streamlines[i], axis=0),
-                                  axis=1)
-            if (norm < args.threshold).any():
-                indices.append(i)
-
-    indices = np.setdiff1d(range(len(sft)), indices).astype(np.uint32)
-    if len(indices):
-        new_sft = sft[indices]
-    else:
-        new_sft = StatefulTractogram.from_sft([], sft)
+        sft = remove_overlapping_points_streamlines(sft, args.threshold)
+        logging.warning("data_per_point will be discarded.")
+        logging.warning('Removed {} overlapping points from tractogram.'.format(
+            ori_len_pts - len(sft.streamlines._data)))
 
     logging.warning('Removed {} invalid streamlines.'.format(
-        ori_len - len(new_sft)))
+        ori_len - len(sft)))
 
-    if len(new_sft) > 0 or (not args.no_empty and len(new_sft) == 0):
-        save_tractogram(new_sft, args.out_tractogram)
+    if len(sft) > 0 or (not args.no_empty and len(sft) == 0):
+        save_tractogram(sft, args.out_tractogram)
     else:
         logging.warning('No valid streamline, not saving due to --no_empty.')
 

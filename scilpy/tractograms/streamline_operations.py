@@ -200,7 +200,7 @@ def compress_sft(sft, tol_error=0.01):
     return compressed_sft
 
 
-def cut_invalid_streamlines(sft):
+def cut_invalid_streamlines(sft, epsilon=0.001):
     """ Cut streamlines so their longest segment are within the bounding box.
     This function keeps the data_per_point and data_per_streamline.
 
@@ -227,7 +227,6 @@ def cut_invalid_streamlines(sft):
     sft.to_corner()
 
     copy_sft = copy.deepcopy(sft)
-    epsilon = 0.001
     indices_to_remove, _ = copy_sft.remove_invalid_streamlines()
 
     new_streamlines = []
@@ -284,6 +283,63 @@ def cut_invalid_streamlines(sft):
     new_sft.to_origin(origin)
 
     return new_sft, cutting_counter
+
+
+def remove_single_point_streamlines(sft):
+    """
+    Remove single point streamlines from a StatefulTractogram.
+
+    Parameters
+    ----------
+    sft: StatefulTractogram
+        The sft to remove single point streamlines from.
+
+    Returns
+    -------
+    new_sft : StatefulTractogram
+        New object with the single point streamlines removed.
+    """
+    indices = [i for i in range(len(sft)) if len(sft.streamlines[i]) > 1]
+    if len(indices):
+        new_sft = sft[indices]
+    else:
+        new_sft = StatefulTractogram.from_sft([], sft)
+
+    return new_sft
+
+
+def remove_overlapping_points_streamlines(sft, threshold=0.001):
+    """
+    Remove overlapping points from streamlines in a StatefulTractogram.
+
+    Parameters
+    ----------
+    sft: StatefulTractogram
+        The sft to remove overlapping points from.
+    threshold: float (optional)
+        Maximum distance between two points to be considered overlapping.
+        Default: 0.001 mm.
+
+    Returns
+    -------
+    new_sft : StatefulTractogram
+        New object with the overlapping points removed from each streamline.
+    """
+    new_streamlines = []
+    for streamline in sft.streamlines:
+        norm = np.linalg.norm(np.diff(streamline, axis=0),
+                              axis=1)
+
+        indices = np.where(norm < threshold)[0]
+        if len(indices) == 0:
+            new_streamlines.append(streamline.tolist())
+        else:
+            new_streamline = np.delete(streamline.tolist(),
+                                       indices, axis=0)
+            new_streamlines.append(new_streamline)
+    new_sft = StatefulTractogram.from_sft(new_streamlines, sft)
+
+    return new_sft
 
 
 def filter_streamlines_by_length(sft, min_length=0., max_length=np.inf):
