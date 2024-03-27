@@ -126,11 +126,11 @@ def main():
             if args.no_empty:
                 logging.warning('No loops found! Output {} not saved'
                                 .format(args.looping_tractogram))
+                return
             else:
                 logging.info("No loops found! Saving empty tractogram")
-        if not (len(ids_removed) == 0 and args.no_empty):
-            sft_l = filter_tractogram_data(sft, ids_removed)
-            save_tractogram(sft_l, args.looping_tractogram)
+        sft_l = filter_tractogram_data(sft, ids_removed)
+        save_tractogram(sft_l, args.looping_tractogram)
 
 
 if __name__ == "__main__":

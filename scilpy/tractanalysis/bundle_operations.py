@@ -176,7 +176,7 @@ def detect_ushape(sft, minU, maxU):
 
     Returns
     -------
-    list: the ids of clean streamlines
+    list: the ids of u-shaped streamlines
         Only the ids are returned so proper filtering can be done afterwards.
     """
     ids = []
