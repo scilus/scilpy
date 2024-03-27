@@ -29,7 +29,7 @@ import h5py
 import numpy as np
 import nibabel as nib
 
-from scilpy.io.streamlines import reconstruct_streamlines_from_hdf5
+from scilpy.io.hdf5 import reconstruct_streamlines_from_hdf5
 from scilpy.io.utils import (add_overwrite_arg,
                              add_verbose_arg,
                              add_processes_arg,
@@ -76,7 +76,7 @@ def _average_wrapper(args):
                     hdf5_filename))
             # scil_tractogram_segment_bundles_for_connectivity.py saves the
             # streamlines in VOX/CORNER
-            streamlines = reconstruct_streamlines_from_hdf5(hdf5_file, key)
+            streamlines = reconstruct_streamlines_from_hdf5(hdf5_file[key])
             if len(streamlines) == 0:
                 continue
             density = compute_tract_counts_map(streamlines, dimensions)

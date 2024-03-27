@@ -57,8 +57,8 @@ import numpy as np
 import scipy.ndimage as ndi
 
 from scilpy.image.labels import get_data_as_labels
+from scilpy.io.hdf5 import reconstruct_streamlines_from_hdf5
 from scilpy.io.image import get_data_as_mask
-from scilpy.io.streamlines import reconstruct_streamlines_from_hdf5
 from scilpy.io.utils import (add_overwrite_arg, add_processes_arg,
                              add_verbose_arg,
                              assert_inputs_exist, assert_outputs_exist,
@@ -97,7 +97,7 @@ def _processing_wrapper(args):
     key = '{}_{}'.format(in_label, out_label)
     if key not in hdf5_file:
         return
-    streamlines = reconstruct_streamlines_from_hdf5(hdf5_file, key)
+    streamlines = reconstruct_streamlines_from_hdf5(hdf5_file[key])
     if len(streamlines) == 0:
         return
 

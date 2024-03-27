@@ -68,12 +68,10 @@ from scilpy.io.utils import (add_json_args,
                              validate_nbr_processes, assert_headers_compatible)
 from scilpy.image.labels import get_data_as_labels
 from scilpy.segment.streamlines import filter_grid_roi
-from scilpy.tractanalysis.features import remove_loops_and_sharp_turns
 from scilpy.tractograms.streamline_operations import \
-    filter_streamlines_by_length
+    filter_streamlines_by_length, remove_loops_and_sharp_turns
 from scilpy.tractograms.tractogram_operations import \
-    perform_tractogram_operation_on_sft
-from scilpy.utils.streamlines import filter_tractogram_data
+    perform_tractogram_operation_on_sft, filter_tractogram_data
 
 
 EPILOG = """

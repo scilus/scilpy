@@ -32,7 +32,6 @@ import argparse
 import logging
 
 from dipy.io.streamline import save_tractogram
-from dipy.io.utils import is_header_compatible
 from dipy.io.stateful_tractogram import StatefulTractogram
 from dipy.tracking.streamlinespeed import compress_streamlines
 import nibabel as nib
@@ -67,7 +66,8 @@ def _build_arg_parser():
                     help='Label containing 2 blobs.')
 
     p.add_argument('out_tractogram',
-                   help='Output tractogram file.')
+                   help='Output tractogram file. Note: data_per_point will be '
+                        'discarded, if any!')
 
     p.add_argument('--label_ids', nargs=2, type=int,
                    help='List of labels indices to use to cut '
@@ -75,7 +75,7 @@ def _build_arg_parser():
     p.add_argument('--resample', dest='step_size', type=float, default=None,
                    help='Resample streamlines to a specific step-size in mm '
                         '[%(default)s].')
-    p.add_argument('--compress', dest='error_rate', type=float, default=None,
+    p.add_argument('--compress', dest='error_rate', type=float,
                    help='Maximum compression distance in mm [%(default)s].')
     p.add_argument('--biggest_blob', action='store_true',
                    help='Use the biggest entity and force the 1 ROI scenario.')
@@ -101,6 +101,7 @@ def main():
                                         args.label],
                               reference=args.reference)
 
+    # Loading
     sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
     if args.step_size is not None:
         sft = resample_streamlines_step_size(sft, args.step_size)
@@ -111,10 +112,6 @@ def main():
     if args.mask:
         mask_img = nib.load(args.mask)
         binary_mask = get_data_as_mask(mask_img)
-
-        if not is_header_compatible(sft, mask_img):
-            parser.error('Incompatible header between the tractogram'
-                         ' and mask.')
 
         bundle_disjoint, _ = ndi.label(binary_mask)
         unique, count = np.unique(bundle_disjoint, return_counts=True)
@@ -141,11 +138,6 @@ def main():
             new_sft = cut_between_mask_two_blobs_streamlines(sft, binary_mask)
     else:
         label_img = nib.load(args.label)
-
-        if not is_header_compatible(sft, label_img):
-            parser.error('Incompatible header between'
-                         ' the tractogram and label.')
-
         label_data = get_data_as_labels(label_img)
 
         if args.label_ids:
@@ -166,13 +158,15 @@ def main():
         new_sft = cut_between_mask_two_blobs_streamlines(sft, label_data_1,
                                                          label_data_2)
 
+    # Saving
     if len(new_sft) == 0:
         logging.warning('No streamline intersected the provided mask. '
                         'Saving empty tractogram.')
     elif args.error_rate is not None:
         compressed_strs = [compress_streamlines(
             s, args.error_rate) for s in new_sft.streamlines]
-        new_sft = StatefulTractogram.from_sft(compressed_strs, sft)
+        new_sft = StatefulTractogram.from_sft(
+            compressed_strs, sft, data_per_streamline=sft.data_per_streamline)
 
     save_tractogram(new_sft, args.out_tractogram)
 

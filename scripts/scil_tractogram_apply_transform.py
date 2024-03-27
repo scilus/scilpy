@@ -2,31 +2,35 @@
 # -*- coding: utf-8 -*-
 
 """
-Transform tractogram using an affine/rigid transformation and nonlinear
+Transform a tractogram using an affine/rigid transformation and nonlinear
 deformation (optional).
 
 For more information on how to use the registration script, follow this link:
 https://scilpy.readthedocs.io/en/latest/documentation/tractogram_registration.html
 
-Applying transformation to tractogram can lead to invalid streamlines (out of
-the bounding box), three strategies are available:
-1) default, crash at saving if invalid streamlines are present
+Applying transformation to a tractogram can lead to invalid streamlines (out of
+the bounding box), and thus three strategies are available:
+1) Do nothing, may crash at saving if invalid streamlines are present.
+   [This is the default]
 2) --keep_invalid, save invalid streamlines. Leave it to the user to run
     scil_tractogram_remove_invalid.py if needed.
 3) --remove_invalid, automatically remove invalid streamlines before saving.
-    Should not remove more than a few streamlines.
-4) --cut_invalid, automatically cut invalid streamlines before saving.
+    Should not remove more than a few streamlines. Typically, the streamlines
+    that are rejected are the ones reaching the limits of the brain, ex, near
+    the pons.
+4) --cut_invalid, automatically cut invalid streamlines before saving, i.e. the
+   streamlines are kept but the points out of the bounding box are cut.
 
 Example:
-To apply transform from ANTS to tractogram. If the ANTS commands was
-MOVING->REFERENCE, this will bring a tractogram from MOVING->REFERENCE
+To apply a transformation from ANTs to a tractogram, if the ANTs command was
+MOVING->REFERENCE...
+1) To apply the original transformation:
 scil_tractogram_apply_transform.py ${MOVING_FILE} ${REFERENCE_FILE}
                                    0GenericAffine.mat ${OUTPUT_NAME}
                                    --inverse
                                    --in_deformation 1InverseWarp.nii.gz
 
-If the ANTS commands was MOVING->REFERENCE, this will bring a tractogram
-from REFERENCE->MOVING
+2) To apply the inverse transformation, i.e. REFERENCE->MOVING:
 scil_tractogram_apply_transform.py ${MOVING_FILE} ${REFERENCE_FILE}
                                    0GenericAffine.mat ${OUTPUT_NAME}
                                    --in_deformation 1Warp.nii.gz
@@ -58,7 +62,7 @@ def _build_arg_parser():
 
     p.add_argument('in_moving_tractogram',
                    help='Path of the tractogram to be transformed.\n'
-                        'Bounding box validity will not be checked (could '
+                        'Bounding box validity will not be checked (could \n'
                         'contain invalid streamlines).')
     p.add_argument('in_target_file',
                    help='Path of the reference target file (trk or nii).')
@@ -68,14 +72,17 @@ def _build_arg_parser():
     p.add_argument('out_tractogram',
                    help='Output tractogram filename (transformed data).')
 
-    p.add_argument('--inverse', action='store_true',
+    g = p.add_argument_group("Transformation options")
+    g.add_argument('--inverse', action='store_true',
                    help='Apply the inverse linear transformation.')
-    p.add_argument('--in_deformation',
+    g.add_argument('--in_deformation', metavar='file',
                    help='Path to the file containing a deformation field.')
-    p.add_argument('--reverse_operation', action='store_true',
-                   help='Apply the transformation in reverse (see doc),'
-                        'warp first, then linear.')
-    invalid = p.add_mutually_exclusive_group()
+    g.add_argument('--reverse_operation', action='store_true',
+                   help='Apply the transformation in reverse (see doc), warp\n'
+                        'first, then linear.')
+
+    g = p.add_argument_group("Management of invalid streamlines")
+    invalid = g.add_mutually_exclusive_group()
     invalid.add_argument('--cut_invalid', action='store_true',
                          help='Cut invalid streamlines rather than removing '
                               'them.\nKeep the longest segment only.')
@@ -103,6 +110,7 @@ def main():
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
+    # Verifications
     assert_inputs_exist(parser, [args.in_moving_tractogram,
                                  args.in_target_file,
                                  args.in_transfo],
@@ -110,6 +118,8 @@ def main():
     assert_outputs_exist(parser, args, args.out_tractogram)
 
     args.bbox_check = False  # Adding manually bbox_check argument.
+
+    # Loading
     moving_sft = load_tractogram_with_reference(parser, args,
                                                 args.in_moving_tractogram)
 
@@ -119,6 +129,7 @@ def main():
         deformation_data = np.squeeze(nib.load(
             args.in_deformation).get_fdata(dtype=np.float32))
 
+    # Processing
     new_sft = transform_warp_sft(moving_sft, transfo,
                                  args.in_target_file,
                                  inverse=args.inverse,
@@ -127,21 +138,24 @@ def main():
                                  remove_invalid=args.remove_invalid,
                                  cut_invalid=args.cut_invalid)
 
-    if len(new_sft.streamlines) == 0:
-        if args.no_empty:
-            logging.info("The file {} won't be written "
-                         "(0 streamline).".format(args.out_tractogram))
-            return
+    # Saving
+    if len(new_sft.streamlines) == 0 and args.no_empty:
+        logging.info("The file {} won't be written "
+                     "(0 streamline).".format(args.out_tractogram))
+        return
 
+    # Default is to crash if invalid.
     if args.keep_invalid:
         if not new_sft.is_bbox_in_vox_valid():
             logging.warning('Saving tractogram with invalid streamlines.')
         save_tractogram(new_sft, args.out_tractogram, bbox_valid_check=False)
     else:
+        # Here, there should be no invalid streamlines left. Either option =
+        # to crash, or remove/cut, already managed.
         if not new_sft.is_bbox_in_vox_valid():
-            logging.warning('Removing invalid streamlines before '
-                            'saving tractogram.')
-            new_sft.remove_invalid_streamlines()
+            raise ValueError("The result has invalid streamlines. Please "
+                             "chose --keep_invalid, --cut_invalid or "
+                             "--remove_invalid.")
         save_tractogram(new_sft, args.out_tractogram)
 
 
