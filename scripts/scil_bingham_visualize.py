@@ -140,6 +140,8 @@ def main():
             scene, args.win_dims, args.interactor)
 
     if args.output:
+        # Legacy. When this snapshotting gets updated to align with the
+        # viz module, snapshot_scenes should be called directly
         snapshot = next(snapshot_scenes([scene], args.win_dims))
         image = compose_image(snapshot, args.win_dims, args.slice_index)
         image.save(args.output)
