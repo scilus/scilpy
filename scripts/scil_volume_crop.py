@@ -24,7 +24,7 @@ from scilpy.io.utils import (add_overwrite_arg,
                              add_verbose_arg,
                              assert_inputs_exist,
                              assert_outputs_exist)
-from scilpy.utils.util import compute_nifti_bounding_box
+from scilpy.image.utils import compute_nifti_bounding_box
 from scilpy.image.volume_operations import crop_volume
 
 

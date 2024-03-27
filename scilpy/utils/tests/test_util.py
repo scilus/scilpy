@@ -2,7 +2,7 @@
 import numpy as np
 from numpy.testing import assert_almost_equal
 
-from scilpy.utils.util import rotation_around_vector_matrix
+from scilpy.utils.spatial import rotation_around_vector_matrix
 
 
 def test_output_shape_and_type():

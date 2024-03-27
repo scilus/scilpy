@@ -21,7 +21,8 @@ from sklearn import linear_model
 from scilpy.image.reslice import reslice  # Don't use Dipy's reslice. Buggy.
 from scilpy.io.image import get_data_as_mask
 from scilpy.gradients.bvec_bval_tools import identify_shells
-from scilpy.utils.util import voxel_to_world, world_to_voxel
+from scilpy.utils.spatial import voxel_to_world
+from scilpy.utils.spatial import world_to_voxel
 
 
 def count_non_zero_voxels(image):
@@ -214,7 +215,7 @@ def register_image(static, static_grid2world, moving, moving_grid2world,
         The grid-to-world (vox2ras) transformation associated with the static
         image.
     moving : ndarray
-        The moving image volume that needs to be registered to the static image.
+        The moving image volume to register to the static image.
     moving_grid2world : ndarray
         The grid-to-world (vox2ras) transformation associated with the moving
         image.
@@ -236,7 +237,8 @@ def register_image(static, static_grid2world, moving, moving_grid2world,
     ndarray or tuple
         If `dwi` is None, returns transformed moving image and transformation
         matrix.
-        If `dwi` is not None, returns transformed DWI and transformation matrix.
+        If `dwi` is not None, returns transformed DWI and transformation
+        matrix.
     """
 
     if transformation_type not in ['rigid', 'affine']:

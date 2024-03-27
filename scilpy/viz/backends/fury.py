@@ -5,7 +5,7 @@ import numpy as np
 from fury import actor, window
 from fury.utils import get_actor_from_polydata
 
-from scilpy.utils.util import get_axis_index
+from scilpy.utils.spatial import get_axis_index
 
 
 class CamParams(Enum):

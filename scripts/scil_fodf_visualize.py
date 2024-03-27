@@ -30,7 +30,7 @@ from scilpy.io.utils import (add_overwrite_arg,
                              parse_sh_basis_arg,
                              assert_headers_compatible)
 from scilpy.io.image import assert_same_resolution, get_data_as_mask
-from scilpy.utils.util import RAS_AXES_NAMES
+from scilpy.utils.spatial import RAS_AXES_NAMES
 # TODO: There should not be as less backend in scripts as possible
 from scilpy.viz.backends.fury import (create_interactive_window,
                                       create_scene,
