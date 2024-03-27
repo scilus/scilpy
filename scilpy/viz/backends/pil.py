@@ -52,7 +52,7 @@ def create_image_from_2d_array(array_2d, size, mode=None,
         Type and depth of a pixel in the `Pillow` image.
     resampling : Literal, optional
         Resampling method to use when resizing the `Pillow` image.
-    pixel_dtype : type, optional
+    pixel_dtype : type
         Pixel data type for PIL image. The input array will be cast to this
         type before creating the image using the `Image.fromarray` method.
 
@@ -79,7 +79,7 @@ def create_mask_from_2d_array(array_2d, size, greater_threshold=0):
         2d scene data.
     size : array-like
         Image size (pixels) (width, height).
-    greater_threshold: Any, optional
+    greater_threshold: Any
         Threshold to use to binarize the data.
         Type must abide with the array dtype
 
@@ -176,7 +176,7 @@ def annotate_image(image, slice_number, display_slice_number,
     display_lr : int
         Display the left/right labels in the middle of the image. If
         negative, the labels are inverted.
-    lr_labels : list, optional
+    lr_labels : list
         Left/right labels.
     """
     font_size = max(1, image.width // 10)
@@ -248,10 +248,6 @@ def draw_2d_array_at_position(canvas, array_2d, size,
         Peaks overlay scene data to be drawn.
     peaks_overlay_alpha : float
         Alpha value for peaks overlay in range [0, 1].
-    vol_lut : function, optional
-        Lookup table (colormap) function for the image scene data.
-    labelmap_lut_table : function, optional
-        Lookup table (colormap) function for the labelmap overlay scene data.
     """
 
     image = create_image_from_2d_array(array_2d, size, "RGB")

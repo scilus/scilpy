@@ -150,7 +150,7 @@ def contours_from_data(data, contour_values=[1.], smoothing_radius=0.):
     ----------
     data : np.ndarray
         N-dimensional array of data (mask, binary image, labels).
-    contour_values : list, optional
+    contour_values : list
         Values at which to extract isocontours.
     smoothing_radius : float
         Pre-smoothing to apply to the image before
