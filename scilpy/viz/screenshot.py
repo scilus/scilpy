@@ -138,7 +138,7 @@ def compose_image(img_scene, img_size, slice_number, corner_position=(0, 0),
     """
     Compose an image with the given scenes, with transparency, overlays,
     labelmap and annotations. If no canvas for the image is given, it will
-    be automatically create with sizings to fit.
+    be automatically created with sizings to fit.
 
     Parameters
     ----------

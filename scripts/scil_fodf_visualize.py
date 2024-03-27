@@ -211,11 +211,11 @@ def _get_data_from_inputs(args):
     between the data for mask, background, peaks and fODF.
     """
 
-    fodf = nib.load(args.in_fodf).dataobj
+    fodf = nib.load(args.in_fodf).get_fdata()
     data = {'fodf': fodf}
     if args.background:
         assert_same_resolution([args.background, args.in_fodf])
-        bg = nib.load(args.background).dataobj
+        bg = nib.load(args.background).get_fdata()
         data['bg'] = bg
     if args.in_transparency_mask:
         transparency_mask = get_data_as_mask(
@@ -228,7 +228,7 @@ def _get_data_from_inputs(args):
         data['mask'] = mask
     if args.peaks:
         assert_same_resolution([args.peaks, args.in_fodf])
-        peaks = nib.load(args.peaks).dataobj
+        peaks = nib.load(args.peaks).get_fdata()
         if len(peaks.shape) == 4:
             last_dim = peaks.shape[-1]
             if last_dim % 3 == 0:
@@ -242,11 +242,11 @@ def _get_data_from_inputs(args):
         if args.peaks_values:
             assert_same_resolution([args.peaks_values, args.in_fodf])
             peak_vals =\
-                nib.load(args.peaks_values).dataobj
+                nib.load(args.peaks_values).get_fdata()
             data['peaks_values'] = peak_vals
     if args.variance:
         assert_same_resolution([args.variance, args.in_fodf])
-        variance = nib.load(args.variance).dataobj
+        variance = nib.load(args.variance).get_fdata()
         if len(variance.shape) == 3:
             variance = np.reshape(variance, variance.shape + (1,))
         if variance.shape != fodf.shape:

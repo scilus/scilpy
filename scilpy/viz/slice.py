@@ -78,7 +78,7 @@ def create_contours_slicer(data, contour_values, orientation, slice_index,
                            smoothing_radius=0., opacity=1., linewidth=3.,
                            color=[255, 0, 0]):
     """
-    Create a isocontour slicer at specifed contours values.
+    Create an isocontour slicer at specifed contours values.
 
     Parameters
     ----------

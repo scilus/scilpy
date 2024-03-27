@@ -132,8 +132,8 @@ def set_display_extent(slicer_actor, orientation, volume_shape, slice_index):
 
 def set_viewport(scene, orientation, slice_index, volume_shape, aspect_ratio):
     """
-    Place the camera in the scene to capture the all its
-    content at a given slice_index.
+    Place the camera in the scene to capture all its content at a given
+    slice_index.
 
     Parameters
     ----------
@@ -241,7 +241,7 @@ def create_interactive_window(scene, window_size, interactor,
 
 def snapshot_slices(actors, slice_ids, orientation, shape, size):
     """
-    Snapshot a series of slice_ids from a scene on a given axis_name
+    Snapshot a series of slice_ids from a scene on a given axis_name.
 
     Parameters
     ----------
@@ -274,7 +274,7 @@ def snapshot_slices(actors, slice_ids, orientation, shape, size):
 
 def snapshot_scenes(scenes, window_size):
     """
-    Snapshot a list of scenes inside a window of given size
+    Snapshot a list of scenes inside a window of given size.
 
     Parameters
     ----------
@@ -329,9 +329,9 @@ def create_odf_actors(sf_fodf, sphere, scale, sf_variance=None, mask=None,
                       variance_k=1.0, variance_color=None):
     """
     Create a ODF slicer actor displaying a fODF slice. The input volume is a
-    3-dimensional grid containing the SH coefficients of the fODF for each
-    voxel at each voxel, with the grid dimension having a size of 1 along the
-    axis corresponding to the selected orientation.
+    3-dimensional grid containing the SH coefficients of the fODF at each
+    voxel, with the grid dimension having a size of 1 along the axis
+    corresponding to the selected orientation.
 
     Parameters
     ----------

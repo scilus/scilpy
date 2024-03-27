@@ -9,7 +9,7 @@ from scilpy.utils.util import get_axis_index
 
 def affine_from_offset(orientation, offset):
     """
-    Create affine matrix from scalar offset in given orientation,
+    Create an affine matrix from a scalar offset in given orientation,
     in RPS coordinates for imaging.
 
     Parameters
