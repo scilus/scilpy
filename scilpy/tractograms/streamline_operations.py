@@ -285,7 +285,6 @@ def cut_invalid_streamlines(sft, epsilon=0.001):
     return new_sft, cutting_counter
 
 
-
 def remove_single_point_streamlines(sft):
     """
     Remove single point streamlines from a StatefulTractogram.
