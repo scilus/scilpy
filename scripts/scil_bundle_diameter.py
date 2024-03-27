@@ -211,6 +211,8 @@ def fit_circle_in_space(positions, directions, dist_w=None):
 
 
 def snapshot(scene, win_dims, output_filename):
+    # Legacy. When this snapshotting gets updated to align with the
+    # viz module, snapshot_scenes should be called directly
     snapshot = next(snapshot_scenes([scene], win_dims))
     img = compose_image(snapshot, win_dims, "NONE")
     img.save(output_filename)

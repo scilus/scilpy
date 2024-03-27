@@ -4,7 +4,7 @@
 Most code here is from https://github.com/fengwangPhysics/matplotlib-chord-diagram.
 It was adapted to our specific needs: size of matrix, order of magnitude of
 max/min values, alpha for visualisation, etc.
-"""
+""" # noqa
 
 import math
 from matplotlib.path import Path

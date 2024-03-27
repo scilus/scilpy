@@ -73,6 +73,8 @@ def plot_each_shell(ms, centroids, plot_sym_vecs=True, use_sphere=True,
 
         if ofile:
             filename = ofile + '_shell_' + str(int(centroids[i])) + '.png'
+            # Legacy. When this snapshotting gets updated to align with the
+            # viz module, snapshot_scenes should be called directly
             snapshot = next(snapshot_scenes([scene], ores))
             img = compose_image(snapshot, ores, "G")
             img.save(filename)
@@ -133,6 +135,8 @@ def plot_proj_shell(ms, use_sym=True, use_sphere=True, same_color=False,
     window.show(scene)
     if ofile:
         filename = ofile + '.png'
+        # Legacy. When this snapshotting gets updated to align with the
+        # viz module, snapshot_scenes should be called directly
         snapshot = next(snapshot_scenes([scene], ores))
         img = compose_image(snapshot, ores, "G")
         img.save(filename)

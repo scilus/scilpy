@@ -1,6 +1,4 @@
 
-from scilpy.viz.legacy.chord_chart import *
-
 
 def display_slices(volume_actor, slices,
                    output_filename, axis_name,
@@ -44,6 +42,8 @@ def display_slices(volume_actor, slices,
                      view_up=view_up_vector,
                      focal_point=focal_point)
 
+    # Legacy. When this snapshotting gets updated to align with the
+    # viz module, snapshot_scenes should be called directly
     snapshot = next(snapshot_scenes([scene], (1920, 1080)))
     img = compose_image(snapshot, (1920, 1080), "NONE")
     img.save(output_filename)
