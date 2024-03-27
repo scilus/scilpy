@@ -36,7 +36,6 @@ from scilpy.io.utils import (add_json_args,
                              assert_outputs_exist,
                              check_tracts_same_format,
                              validate_nbr_processes, ranged_type)
-from scilpy.tractograms.tractogram_operations import filter_tractogram_data
 from scilpy.tractograms.streamline_operations import \
     remove_loops_and_sharp_turns
 
@@ -101,7 +100,7 @@ def main():
         sft.streamlines, args.angle, qb_threshold=args.qb_threshold,
         num_processes=nbr_cpu)
     ids_removed = np.setdiff1d(np.arange(nb_streamlines), ids_clean)
-    sft_clean = filter_tractogram_data(sft, ids_clean)
+    sft_clean = sft[ids_clean]
 
     if args.display_counts:
         sc_af = len(sft_clean.streamlines)
