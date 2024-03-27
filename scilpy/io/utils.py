@@ -449,7 +449,7 @@ def add_overlays_screenshot_args(parser, default_alpha=0.5,
         Group to add rendering arguments to, defaults to parser.
     """
     parser.add_argument("--overlays", nargs="+",
-                        help="3D Nifti image to overlay (.nii/.nii.gz).")
+                        help="3D Nifti image(s) to overlay (.nii/.nii.gz).")
 
     rpg = rendering_parsing_group or parser
     rpg.add_argument("--overlays_as_contours", action='store_true',
@@ -457,10 +457,11 @@ def add_overlays_screenshot_args(parser, default_alpha=0.5,
                           "of their inner region (see the "
                           "`--overlays_opacity` argument).")
     rpg.add_argument("--overlays_colors", nargs="+",
-                     type=ranged_type(int, 0, 255),
-                     default=None, metavar="R G B",
-                     help="Colors for the overlays or contours, as either a "
-                          "single color for all overlays or one for each.")
+                     type=ranged_type(int, 0, 255), metavar="R G B",
+                     help="Colors for the overlays or contours. You may "
+                          "provide a single color, for all overlays/contours, "
+                          "or one color for each. Each color is given as "
+                          "three values: R G B")
     rpg.add_argument("--overlays_opacity", type=ranged_type(float, 0., 1.),
                      default=default_alpha,
                      help="Opacity value for the masks overlays. When "
@@ -1091,6 +1092,31 @@ def ranged_type(value_type, min_value=None, max_value=None):
 
 
 def get_default_screenshotting_data(args, peaks=True):
+    """
+    Load the data required for screenshotting from the argument parser.
+
+    Parameters
+    ----------
+    args: argparse.Namespace
+        Argument parser namespace.
+    peaks: bool, optional
+        Whether peaks are included in the inputs or not.
+
+    Returns
+    -------
+    volume_img: nibabel.Nifti1Image
+        Volume image.
+    transparency_img: nibabel.Nifti1Image
+        Transparency image.
+    labelmap_img: nibabel.Nifti1Image
+        Labelmap image.
+    ovl_imgs: List[nibabel.Nifti1Image]
+        List of overlay images.
+    ovl_colors: np.ndarray
+        Colors for the overlays.
+    peaks_imgs: List[nibabel.Nifti1Image]
+        List of peaks images.
+    """
     volume_img = nib.load(args.volume)
 
     transparency_img = None

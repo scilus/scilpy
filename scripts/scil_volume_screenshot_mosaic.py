@@ -18,48 +18,28 @@ The screenshots are overlapped according to the given factors.
 The mosaic supports either horizontal, vertical or matrix arrangements.
 
 Example:
-python scil_screenshot_volume_mosaic_overlap.py \
-  1 8 \
-  t1.nii.gz \
-  brain_mask.nii.gz \
-  mosaic_overlap_t1_axial.png \
+python scil_screenshot_volume_mosaic_overlap.py 1 8 \
+  t1.nii.gz brain_mask.nii.gz mosaic_overlap_t1_axial.png \
   30 40 50 60 70 80 90 100
 
+python scil_screenshot_volume_mosaic_overlap.py 2 4 \
+  t1.nii.gz brain_mask.nii.gz mosaic_overlap_t1_axial_plasma_cmap.png \
+  30 40 50 60 70 80 90 100 --overlap_factor 0.6 0.5 --volume_cmap_name plasma
 
-python scil_screenshot_volume_mosaic_overlap.py \
-  2 4 \
-  t1.nii.gz \
-  brain_mask.nii.gz \
-  mosaic_overlap_t1_axial_plasma_cmap.png \
-  30 40 50 60 70 80 90 100 \
-  --overlap_factor 0.6 0.5 \
-  --volume_cmap_name plasma
-
-python scil_screenshot_volume_mosaic_overlap.py \
-  2 4 \
-  tissue_map.nii.gz \
-  brain_mask.nii.gz \
+python scil_screenshot_volume_mosaic_overlap.py 2 4 \
+  tissue_map.nii.gz brain_mask.nii.gz \
   mosaic_overlap_tissue_axial_plasma_cmap.png \
-  30 40 50 60 70 80 90 100 \
-  --volume_cmap_name plasma
+  30 40 50 60 70 80 90 100 --volume_cmap_name plasma
 
-python scil_screenshot_volume_mosaic_overlap.py \
-  2 4 \
-  t1.nii.gz \
-  brain_mask.nii.gz \
+python scil_screenshot_volume_mosaic_overlap.py 2 4 \
+  t1.nii.gz brain_mask.nii.gz \
   mosaic_overlap_t1_sagittal_tissue_viridis_cmap.png \
-  30 40 50 60 70 80 90 100 \
-  --axis sagittal \
-  --labelmap tissue_map.nii.gz \
-  --labelmap_cmap_name viridis
+  30 40 50 60 70 80 90 100 --axis sagittal \
+  --labelmap tissue_map.nii.gz --labelmap_cmap_name viridis
 
-python scil_screenshot_volume_mosaic_overlap.py \
-  2 4 \
-  t1.nii.gz \
-  brain_mask.nii.gz \
-  mosaic_overlap_t1_sagittal_tissue_contours.png \
-  30 40 50 60 70 80 90 100 \
-  --axis sagittal \
+python scil_screenshot_volume_mosaic_overlap.py 2 4 \
+  t1.nii.gz brain_mask.nii.gz mosaic_overlap_t1_sagittal_tissue_contours.png \
+  30 40 50 60 70 80 90 100 --axis sagittal \
   --overlays wm_mask.nii.gz gm_mask.nii.gz csf_mask.nii.gz
 """
 
@@ -73,7 +53,7 @@ from scilpy.io.utils import (add_default_screenshot_args,
                              add_labelmap_screenshot_args,
                              add_overlays_screenshot_args,
                              add_overwrite_arg,
-                             add_verbose_arg,
+                             add_verbose_arg, assert_headers_compatible,
                              assert_inputs_exist,
                              assert_outputs_exist,
                              assert_overlay_colors,
@@ -132,9 +112,10 @@ def _parse_args(parser):
 
     output.append(args.out_fname)
 
-    assert_inputs_exist(parser, inputs)
+    assert_inputs_exist(parser, [args.volume], [args.overlays, args.labelmap])
     assert_outputs_exist(parser, args, output)
-    assert_same_resolution(inputs)
+    assert_headers_compatible(parser, [args.volume],
+                              [args.overlays, args.labelmap])
     assert_overlay_colors(args.overlays_colors, args.overlays, parser)
 
     return args

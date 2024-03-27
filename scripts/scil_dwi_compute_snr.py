@@ -14,7 +14,7 @@ or inside the same mask if a noise_map is provided.
 If it's not supplied, it will be estimated using the data outside the brain,
 computed with Dipy medotsu
 
-If verbose is True, the SNR for every DWI volume will be outputed.
+If verbose is True, the SNR for every DWI volume will be output.
 
 This works best in a well-defined ROI such as the corpus callosum.
 It is heavily dependent on the ROI and its quality.

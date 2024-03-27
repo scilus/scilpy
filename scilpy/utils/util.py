@@ -16,7 +16,7 @@ RAS_AXES_BASIS_VECTORS = ["i", "j", "k"]
 
 def get_axis_name(axis_index, affine=np.eye(4)):
     """
-    Get the axis name related to a given index (see RAS_AXES_NAMES)
+    Get the axis name in RAS_AXES_NAMES related to a given index.
 
     Parameters
     ----------
@@ -24,6 +24,11 @@ def get_axis_name(axis_index, affine=np.eye(4)):
         Index of the axis.
     affine : np.array, optional
         An affine used to compute axis reordering from RAS.
+
+    Returns
+    -------
+    axis_name : str
+        Name of the axis (see RAS_AXES_NAMES).
     """
     _ornt = ornt.io_orientation(affine)
     return RAS_AXES_NAMES[_ornt[axis_index, 0]]
@@ -31,7 +36,8 @@ def get_axis_name(axis_index, affine=np.eye(4)):
 
 def get_coordinate_name(axis_index, affine=np.eye(4)):
     """
-    Get the axis name related to a given index (see RAS_AXES_NAMES)
+    Get the signed coordinate in RAS_AXES_COORDINATES related to a given axis
+    index.
 
     Parameters
     ----------
@@ -39,6 +45,11 @@ def get_coordinate_name(axis_index, affine=np.eye(4)):
         Index of the axis.
     affine : np.array, optional
         An affine used to compute axis reordering from RAS.
+
+    Returns
+    -------
+    coordinate_name : str
+        Name of the coordinate suffixed with sign (see RAS_AXES_COORDINATES).
     """
     _ornt = ornt.io_orientation(affine)
     _sign = "" if _ornt[axis_index, 1] > 0 else "-"
@@ -47,7 +58,8 @@ def get_coordinate_name(axis_index, affine=np.eye(4)):
 
 def get_basis_vector_name(axis_index, affine=np.eye(4)):
     """
-    Get the axis name related to a given index (see RAS_AXES_NAMES)
+    Get the signed basis vector name in RAS_AXES_BASIS_VECTORS related to a
+    given axis index.
 
     Parameters
     ----------
@@ -55,6 +67,12 @@ def get_basis_vector_name(axis_index, affine=np.eye(4)):
         Index of the axis.
     affine : np.array, optional
         An affine used to compute axis reordering from RAS.
+
+    Returns
+    -------
+    basis_vector_name : str
+        Name of the basis vector suffixed with sign (see
+        RAS_AXES_BASIS_VECTORS).
     """
     _ornt = ornt.io_orientation(affine)
     _sign = "" if _ornt[axis_index, 1] > 0 else "-"
@@ -74,6 +92,7 @@ def get_axis_index(axis, affine=np.eye(4)):
         (see RAS_AXES_BASIS_VECTORS).
     affine : np.array, optional
         An affine used to compute axis reordering from RAS.
+
     Returns
     -------
     axis_index : int

@@ -4,7 +4,7 @@
 """
 Take screenshot(s) of one or more slices in a given image volume along the
 requested axis. If slice indices are not provided, all slices in the volume
-are used. The name of the outputed images are suffixed with _slice_{id}, with
+are used. The name of the output images are suffixed with _slice_{id}, with
 id being the slice number in the volume. If a labelmap image is provided (e.g.
 a tissue segmentation map), it is overlaid on the volume slices. Same goes if
 a mask is provided, with the difference that it can be rendered as a
@@ -14,65 +14,36 @@ A labelmap image can be provided as the image volume, without requiring it as
 the optional argument if only the former needs to be plot.
 
 Example:
-python scil_screenshot_volume.py \
-  t1.nii.gz \
-  t1_axial_annotated.png \
-  --display_slice_number \
-  --display_lr
+python scil_screenshot_volume.py t1.nii.gz t1_axial_annotated.png \
+  --display_slice_number --display_lr
 
-python scil_screenshot_volume.py \
-  t1.nii.gz \
-  t1_axial_masked.png \
+python scil_screenshot_volume.py t1.nii.gz t1_axial_masked.png \
   --transparency brainmask.nii.gz
 
-python scil_screenshot_volume.py \
-  t1.nii.gz \
-  t1_axial.png \
+python scil_screenshot_volume.py t1.nii.gz t1_axial.png \
   --slices 30 40 50 60 70 80 90 100
 
-python scil_screenshot_volume.py \
-  t1.nii.gz \
-  t1_sagittal.png \
-  --axis sagittal
+python scil_screenshot_volume.py t1.nii.gz t1_sagittal.png --axis sagittal
 
-python scil_screenshot_volume.py \
-  t1.nii.gz \
-  t1_axial_plasma_cmap.png \
+python scil_screenshot_volume.py t1.nii.gz t1_axial_plasma_cmap.png \
+  --slices 30 40 50 60 70 80 90 100 --volume_cmap_name plasma
+
+python scil_screenshot_volume.py t1.nii.gz t1_mask_overlay.png \
+  --slices 30 40 50 60 70 80 90 100 --overlays brain_mask.nii.gz
+
+python scil_screenshot_volume.py t1.nii.gz t1_mask_contour.png \
   --slices 30 40 50 60 70 80 90 100 \
-  --volume_cmap_name plasma
+  --overlays brain_mask.nii.gz --overlays_as_contours
 
-python scil_screenshot_volume.py \
-  t1.nii.gz \
-  t1_mask_overlay.png \
-  --slices 30 40 50 60 70 80 90 100
-  --overlays brain_mask.nii.gz
+python scil_screenshot_volume.py t1.nii.gz t1_axial_tissue_map.png \
+  --slices 30 40 50 60 70 80 90 100 --labelmap tissue_map.nii.gz
 
-python scil_screenshot_volume.py \
-  t1.nii.gz \
-  t1_mask_contour.png \
-  --slices 30 40 50 60 70 80 90 100
-  --overlays brain_mask.nii.gz
-  --overlays_as_contours
-
-python scil_screenshot_volume.py \
-  t1.nii.gz \
-  t1_axial_tissue_map.png \
+python scil_screenshot_volume.py t1.nii.gz t1_axial_tissue_viridis_cmap.png \
   --slices 30 40 50 60 70 80 90 100 \
-  --labelmap tissue_map.nii.gz
+  --labelmap tissue_map.nii.gz --labelmap_cmap_name viridis
 
-python scil_screenshot_volume.py \
-  t1.nii.gz \
-  t1_axial_tissue_viridis_cmap.png \
-  --slices 30 40 50 60 70 80 90 100 \
-  --labelmap tissue_map.nii.gz \
-  --labelmap_cmap_name viridis
-
-python scil_screenshot_volume.py \
-  t1.nii.gz \
-  t1_axial_peaks.png \
-  --slices 30 40 50 60 70 80 90 100 \
-  --peaks peaks.nii.gz \
-  --volume_opacity 0.5
+python scil_screenshot_volume.py t1.nii.gz t1_axial_peaks.png \
+  --slices 30 40 50 60 70 80 90 100 --peaks peaks.nii.gz --volume_opacity 0.5
 """
 
 import argparse
@@ -89,7 +60,7 @@ from scilpy.io.utils import (add_default_screenshot_args,
                              add_labelmap_screenshot_args,
                              add_overlays_screenshot_args,
                              add_peaks_screenshot_args,
-                             add_verbose_arg,
+                             add_verbose_arg, assert_headers_compatible,
                              assert_inputs_exist,
                              assert_overlay_colors,
                              get_default_screenshotting_data)
@@ -125,17 +96,11 @@ def _build_arg_parser():
 def _parse_args(parser):
 
     args = parser.parse_args()
-    inputs = [args.volume]
 
-    if args.overlays:
-        inputs.extend(args.overlays)
-    if args.labelmap:
-        inputs.append(args.labelmap)
-    if args.peaks:
-        inputs.extend(args.peaks)
-
-    assert_inputs_exist(parser, inputs)
-    assert_same_resolution(inputs)
+    assert_inputs_exist(parser, [args.volume],
+                        [args.overlays, args.labelmap, args.peaks])
+    assert_headers_compatible(parser, [args.volume],
+                              [args.overlays, args.labelmap, args.peaks])
     assert_overlay_colors(args.overlays_colors, args.overlays, parser)
 
     # TODO : check outputs (we need to know the slicing), could be glob

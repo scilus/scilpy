@@ -12,7 +12,6 @@ import argparse
 import logging
 
 import nibabel as nib
-import numpy as np
 
 from dipy.data import get_sphere, SPHERE_FILES
 
@@ -21,7 +20,7 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist,
                              assert_outputs_exist)
 from scilpy.utils.util import RAS_AXES_NAMES, get_axis_index
-# TODO: There should not be as less backend in scripts as possible
+
 from scilpy.viz.backends.fury import (create_interactive_window,
                                       create_scene,
                                       snapshot_scenes)
@@ -106,7 +105,7 @@ def _get_data_from_inputs(args):
     """
     Load data given by args.
     """
-    bingham = nib.nifti1.load(args.in_bingham).dataobj
+    bingham = nib.load(args.in_bingham).get_fdata()
     if not args.slice_index:
         slice_index = bingham.shape[get_axis_index(args.axis_name)] // 2
     else:
