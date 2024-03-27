@@ -32,7 +32,8 @@ from scilpy.io.image import get_data_as_mask
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg, add_reference_arg,
                              add_verbose_arg, assert_inputs_exist,
-                             assert_outputs_exist, assert_headers_compatible)
+                             assert_outputs_exist, assert_headers_compatible,
+                             add_compression_arg)
 from scilpy.tractograms.streamline_and_mask_operations import \
     cut_outside_of_mask_streamlines, cut_between_mask_two_blobs_streamlines
 from scilpy.tractograms.streamline_operations import \
@@ -54,11 +55,10 @@ def _build_arg_parser():
     p.add_argument('--resample', dest='step_size', type=float,
                    help='Resample streamlines to a specific step-size in mm '
                         '[%(default)s].')
-    p.add_argument('--compress', dest='error_rate', type=float,
-                   help='Maximum compression distance in mm [%(default)s].')
     p.add_argument('--biggest_blob', action='store_true',
                    help='Use the biggest entity and force the 1 ROI scenario.')
 
+    add_compression_arg(p)
     add_reference_arg(p)
     add_verbose_arg(p)
     add_overwrite_arg(p)
@@ -122,9 +122,9 @@ def main():
     if len(new_sft) == 0:
         logging.warning('No streamline intersected the provided mask. '
                         'Saving empty tractogram.')
-    elif args.error_rate is not None:
+    elif args.compress_th:
         compressed_strs = [compress_streamlines(
-            s, args.error_rate) for s in new_sft.streamlines]
+            s, args.compress_th) for s in new_sft.streamlines]
         new_sft = StatefulTractogram.from_sft(
             compressed_strs, sft, data_per_streamline=sft.data_per_streamline)
 
