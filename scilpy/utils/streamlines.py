@@ -346,7 +346,7 @@ def remove_single_point_streamlines(sft):
 def remove_overlapping_points_streamlines(sft, threshold=0.001):
     """
     Remove overlapping points from streamlines in a StatefulTractogram.
-    
+
     Parameters
     ----------
     sft: StatefulTractogram
@@ -354,7 +354,7 @@ def remove_overlapping_points_streamlines(sft, threshold=0.001):
     threshold: float (optional)
         Maximum distance between two points to be considered overlapping.
         Default: 0.001 mm.
-    
+
     Returns
     -------
     new_sft : StatefulTractogram
