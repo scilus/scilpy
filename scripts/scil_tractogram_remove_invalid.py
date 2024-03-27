@@ -22,9 +22,10 @@ from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg, add_verbose_arg,
                              add_reference_arg, assert_inputs_exist,
                              assert_outputs_exist)
-from scilpy.utils.streamlines import (cut_invalid_streamlines,
-                                      remove_overlapping_points_streamlines,
-                                      remove_single_point_streamlines)
+from scilpy.tractograms.streamline_operations import (
+    cut_invalid_streamlines,
+    remove_overlapping_points_streamlines,
+    remove_single_point_streamlines)
 
 
 def _build_arg_parser():
@@ -44,8 +45,7 @@ def _build_arg_parser():
     p.add_argument('--remove_single_point', action='store_true',
                    help='Consider single point streamlines invalid.')
     p.add_argument('--remove_overlapping_points', action='store_true',
-                   help='Consider streamlines with overlapping points invalid.'
-                   )
+                   help='Consider streamlines with overlapping points invalid.')
     p.add_argument('--threshold', type=float, default=0.001,
                    help='Maximum distance between two points to be considered'
                         ' overlapping [%(default)s mm].')
@@ -78,7 +78,8 @@ def main():
     ori_len = len(sft)
     ori_len_pts = len(sft.streamlines._data)
     if args.cut_invalid:
-        sft, cutting_counter = cut_invalid_streamlines(sft)
+        sft, cutting_counter = cut_invalid_streamlines(sft,
+                                                       epsilon=args.threshold)
         logging.warning('Cut {} invalid streamlines.'.format(cutting_counter))
     else:
         sft.remove_invalid_streamlines()
@@ -88,7 +89,7 @@ def main():
 
     if args.remove_overlapping_points:
         sft = remove_overlapping_points_streamlines(sft, args.threshold)
-
+        logging.warning("data_per_point will be discarded.")
         logging.warning('Removed {} overlapping points from tractogram.'.format(
             ori_len_pts - len(sft.streamlines._data)))
 

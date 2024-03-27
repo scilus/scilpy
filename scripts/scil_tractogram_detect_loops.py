@@ -38,8 +38,9 @@ from scilpy.io.utils import (add_json_args,
                              assert_outputs_exist,
                              check_tracts_same_format,
                              validate_nbr_processes)
-from scilpy.utils.streamlines import filter_tractogram_data
-from scilpy.tractanalysis.features import remove_loops_and_sharp_turns
+from scilpy.tractograms.tractogram_operations import filter_tractogram_data
+from scilpy.tractograms.streamline_operations import \
+    remove_loops_and_sharp_turns
 
 
 def _build_arg_parser():

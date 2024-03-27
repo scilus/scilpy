@@ -51,15 +51,13 @@ from scilpy.io.utils import (add_json_args, add_verbose_arg,
                              add_reference_arg, assert_inputs_exist,
                              assert_outputs_exist, link_bundles_and_reference,
                              validate_nbr_processes, assert_headers_compatible)
-
+from scilpy.tractanalysis.bundle_operations import uniformize_bundle_sft
 from scilpy.tractanalysis.reproducibility_measures \
     import (approximate_surface_node,
             compute_fractal_dimension)
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
-
 from scilpy.tractograms.streamline_and_mask_operations import \
     get_endpoints_density_map, get_head_tail_density_maps
-from scilpy.utils.streamlines import uniformize_bundle_sft
 
 EPILOG = """
 References:

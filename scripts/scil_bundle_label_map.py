@@ -36,13 +36,13 @@ from scilpy.io.utils import (add_overwrite_arg,
                              add_verbose_arg,
                              assert_inputs_exist,
                              assert_output_dirs_exist_and_empty)
+from scilpy.tractanalysis.bundle_operations import uniformize_bundle_sft
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
 from scilpy.tractanalysis.distance_to_centroid import min_dist_to_centroid
 from scilpy.tractograms.streamline_and_mask_operations import \
     cut_outside_of_mask_streamlines
 from scilpy.tractograms.streamline_operations import \
     resample_streamlines_num_points
-from scilpy.utils.streamlines import uniformize_bundle_sft
 from scilpy.viz.utils import get_colormap
 
 

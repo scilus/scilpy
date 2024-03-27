@@ -113,17 +113,15 @@ def test_cut_outside_of_mask_streamlines():
 
     sft, reference, _, _, center_roi = _setup_files()
 
-    cut_sft = cut_outside_of_mask_streamlines(
-        sft, center_roi)
+    cut_sft = cut_outside_of_mask_streamlines(sft, center_roi)
+    cut_sft.to_vox()
+    cut_sft.to_corner()
 
     in_result = os.path.join(SCILPY_HOME, 'tractograms',
                              'streamline_and_mask_operations',
                              'bundle_4_cut_center.tck')
 
     res = load_tractogram(in_result, reference)
-    # `cut_outside_of_mask_streamlines` always returns a voxel space sft
-    # with streamlines in corner, so move the expected result to the same
-    # space.
     res.to_vox()
     res.to_corner()
     assert np.allclose(cut_sft.streamlines._data, res.streamlines._data)
@@ -136,10 +134,11 @@ def test_cut_between_mask_two_blobs_streamlines():
     """
 
     sft, reference, head_tail_rois, *_ = _setup_files()
-    # head_tail_rois is a mask with two rois that correspond
-    # to the bundle's endpoints.
-    cut_sft = cut_between_mask_two_blobs_streamlines(
-        sft, head_tail_rois)
+    # head_tail_rois is a mask with two rois that correspond to the bundle's
+    # endpoints.
+    cut_sft = cut_between_mask_two_blobs_streamlines(sft, head_tail_rois)
+    cut_sft.to_vox()
+    cut_sft.to_corner()
 
     # The expected result is the input bundle.
     in_result = os.path.join(SCILPY_HOME, 'tractograms',
@@ -147,9 +146,6 @@ def test_cut_between_mask_two_blobs_streamlines():
                              'bundle_4.tck')
 
     res = load_tractogram(in_result, reference)
-    # `cut_between_mask_two_blobs_streamlines` always returns a voxel space sft
-    # with streamlines in corner, so move the expected result to the same
-    # space.
     res.to_vox()
     res.to_corner()
     # The streamlines should not have changed.
@@ -163,19 +159,18 @@ def test_cut_between_mask_two_blobs_streamlines_offset():
     """
 
     sft, reference, _, head_tail_offset_rois, _ = _setup_files()
-    # head_tail_offset_rois is a mask with two rois that are not
-    # exactly at the endpoints of the bundle.
+    # head_tail_offset_rois is a mask with two rois that are not exactly at the
+    # endpoints of the bundle.
     cut_sft = cut_between_mask_two_blobs_streamlines(
         sft, head_tail_offset_rois)
+    cut_sft.to_vox()
+    cut_sft.to_corner()
 
     in_result = os.path.join(SCILPY_HOME, 'tractograms',
                              'streamline_and_mask_operations',
                              'bundle_4_cut_endpoints.tck')
 
     res = load_tractogram(in_result, reference)
-    # `cut_between_mask_two_blobs_streamlines` always returns a voxel space sft
-    # with streamlines in corner, so move the expected result to the same
-    # space.
     res.to_vox()
     res.to_corner()
     assert np.allclose(cut_sft.streamlines._data, res.streamlines._data)

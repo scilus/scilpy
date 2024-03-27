@@ -26,7 +26,7 @@ import h5py
 import nibabel as nib
 import numpy as np
 
-from scilpy.io.streamlines import reconstruct_streamlines_from_hdf5
+from scilpy.io.hdf5 import reconstruct_streamlines_from_hdf5
 from scilpy.io.utils import (add_overwrite_arg,
                              add_processes_arg,
                              add_sh_basis_args,
@@ -60,7 +60,7 @@ def _afd_rd_wrapper(args):
         affine = in_hdf5_file.attrs['affine']
         dimensions = in_hdf5_file.attrs['dimensions']
         voxel_sizes = in_hdf5_file.attrs['voxel_sizes']
-        streamlines = reconstruct_streamlines_from_hdf5(in_hdf5_file, key)
+        streamlines = reconstruct_streamlines_from_hdf5(in_hdf5_file[key])
         if len(streamlines) == 0:
             return key, 0
 

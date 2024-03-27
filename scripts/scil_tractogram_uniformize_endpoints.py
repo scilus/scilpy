@@ -32,8 +32,8 @@ from scilpy.io.utils import (add_overwrite_arg,
                              add_verbose_arg,
                              assert_outputs_exist,
                              assert_inputs_exist, assert_headers_compatible)
-from scilpy.utils.streamlines import (uniformize_bundle_sft,
-                                      uniformize_bundle_sft_using_mask)
+from scilpy.tractanalysis.bundle_operations import \
+    uniformize_bundle_sft, uniformize_bundle_sft_using_mask
 
 
 def _build_arg_parser():

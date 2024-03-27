@@ -1,10 +1,15 @@
 # -*- coding: utf-8 -*-
+import copy
 import logging
+from multiprocessing import Pool
 
 import numpy as np
 import scipy.ndimage as ndi
 from dipy.io.stateful_tractogram import StatefulTractogram
-from dipy.tracking.streamlinespeed import (length, set_number_of_points)
+from dipy.segment.clustering import qbx_and_merge
+from dipy.tracking import metrics as tm
+from dipy.tracking.streamlinespeed import (length, set_number_of_points,
+                                           compress_streamlines)
 from scipy.interpolate import splev, splprep
 
 from scilpy.utils.util import rotation_around_vector_matrix
@@ -85,6 +90,257 @@ def _get_point_on_line(first_point, second_point, vox_lower_corner):
             t1 = min(t1, max(v0, v1))
 
     return first_point + ray * (t0 + t1) / 2.
+
+
+def get_angles(sft):
+    """Color streamlines according to their length.
+
+    Parameters
+    ----------
+    sft: StatefulTractogram
+        The tractogram.
+
+    Returns
+    -------
+    angles: list[np.ndarray]
+        The angles per streamline, in degree.
+    """
+    angles = []
+    for i in range(len(sft.streamlines)):
+        dirs = np.diff(sft.streamlines[i], axis=0)
+        dirs /= np.linalg.norm(dirs, axis=-1, keepdims=True)
+        cos_angles = np.sum(dirs[:-1, :] * dirs[1:, :], axis=1)
+        # Resolve numerical instability
+        cos_angles = np.minimum(np.maximum(-1.0, cos_angles), 1.0)
+        line_angles = [0.0] + list(np.arccos(cos_angles)) + [0.0]
+        angles.extend(line_angles)
+
+    angles = np.rad2deg(angles)
+
+    return angles
+
+
+def get_values_along_length(sft):
+    """Get the streamlines' coordinate positions according to their length.
+
+    Parameters
+    ----------
+    sft: StatefulTractogram
+        The tractogram that contains the list of streamlines to be colored
+
+    Returns
+    -------
+    positions: list[list]
+        For each streamline, the linear distribution of its length.
+    """
+    positions = []
+    for i in range(len(sft.streamlines)):
+        positions.extend(list(np.linspace(0, 1, len(sft.streamlines[i]))))
+
+    return positions
+
+
+def compress_sft(sft, tol_error=0.01):
+    """
+    Compress a stateful tractogram. Uses Dipy's compress_streamlines, but
+    deals with space better.
+
+    Dipy's description:
+    The compression consists in merging consecutive segments that are
+    nearly collinear. The merging is achieved by removing the point the two
+    segments have in common.
+
+    The linearization process [Presseau15] ensures that every point being
+    removed are within a certain margin (in mm) of the resulting streamline.
+    Recommendations for setting this margin can be found in [Presseau15]
+    (in which they called it tolerance error).
+
+    The compression also ensures that two consecutive points won't be too far
+    from each other (precisely less or equal than *max_segment_length* mm).
+    This is a tradeoff to speed up the linearization process [Rheault15]. A
+    low value will result in a faster linearization but low compression,
+    whereas a high value will result in a slower linearization but high
+    compression.
+
+    [Presseau C. et al., A new compression format for fiber tracking datasets,
+    NeuroImage, no 109, 73-83, 2015.]
+
+    Parameters
+    ----------
+    sft: StatefulTractogram
+        The sft to compress.
+    tol_error: float (optional)
+        Tolerance error in mm (default: 0.01). A rule of thumb is to set it
+        to 0.01mm for deterministic streamlines and 0.1mm for probabilitic
+        streamlines.
+
+    Returns
+    -------
+    compressed_sft: StatefulTractogram
+    """
+    # Go to world space
+    orig_space = sft.space
+    sft.to_rasmm()
+
+    # Compress streamlines
+    compressed_streamlines = compress_streamlines(sft.streamlines,
+                                                  tol_error=tol_error)
+    if sft.data_per_point is not None and sft.data_per_point.keys():
+        logging.warning("Initial StatefulTractogram contained data_per_point. "
+                        "This information will not be carried in the final "
+                        "tractogram.")
+
+    compressed_sft = StatefulTractogram.from_sft(
+        compressed_streamlines, sft,
+        data_per_streamline=sft.data_per_streamline)
+
+    # Return to original space
+    compressed_sft.to_space(orig_space)
+
+    return compressed_sft
+
+
+def cut_invalid_streamlines(sft, epsilon=0.001):
+    """ Cut streamlines so their longest segment are within the bounding box.
+    This function keeps the data_per_point and data_per_streamline.
+
+    Parameters
+    ----------
+    sft: StatefulTractogram
+        The sft to remove invalid points from.
+
+    Returns
+    -------
+    new_sft : StatefulTractogram
+        New object with the invalid points removed from each streamline.
+    cutting_counter : int
+        Number of streamlines that were cut.
+    """
+    if not len(sft):
+        return sft, 0
+
+    # Keep track of the streamlines' original space/origin
+    space = sft.space
+    origin = sft.origin
+
+    sft.to_vox()
+    sft.to_corner()
+
+    copy_sft = copy.deepcopy(sft)
+    indices_to_remove, _ = copy_sft.remove_invalid_streamlines()
+
+    new_streamlines = []
+    new_data_per_point = {}
+    new_data_per_streamline = {}
+    for key in sft.data_per_point.keys():
+        new_data_per_point[key] = []
+    for key in sft.data_per_streamline.keys():
+        new_data_per_streamline[key] = []
+
+    cutting_counter = 0
+    for ind in range(len(sft.streamlines)):
+        # No reason to try to cut if all points are within the volume
+        if ind in indices_to_remove:
+            best_pos = [0, 0]
+            cur_pos = [0, 0]
+            for pos, point in enumerate(sft.streamlines[ind]):
+                if (point < epsilon).any() or \
+                        (point >= sft.dimensions - epsilon).any():
+                    cur_pos = [pos+1, pos+1]
+                if cur_pos[1] - cur_pos[0] > best_pos[1] - best_pos[0]:
+                    best_pos = cur_pos
+                cur_pos[1] += 1
+
+            if not best_pos == [0, 0]:
+                new_streamlines.append(
+                    sft.streamlines[ind][best_pos[0]:best_pos[1]-1])
+                cutting_counter += 1
+                for key in sft.data_per_streamline.keys():
+                    new_data_per_streamline[key].append(
+                        sft.data_per_streamline[key][ind])
+                for key in sft.data_per_point.keys():
+                    new_data_per_point[key].append(
+                        sft.data_per_point[key][ind][
+                            best_pos[0]:best_pos[1]-1])
+            else:
+                logging.warning('Streamlines entirely out of the volume.')
+        else:
+            new_streamlines.append(sft.streamlines[ind])
+            for key in sft.data_per_streamline.keys():
+                new_data_per_streamline[key].append(
+                    sft.data_per_streamline[key][ind])
+            for key in sft.data_per_point.keys():
+                new_data_per_point[key].append(sft.data_per_point[key][ind])
+    new_sft = StatefulTractogram.from_sft(
+        new_streamlines, sft, data_per_streamline=new_data_per_streamline,
+        data_per_point=new_data_per_point)
+
+    # Move the streamlines back to the original space/origin
+    sft.to_space(space)
+    sft.to_origin(origin)
+
+    new_sft.to_space(space)
+    new_sft.to_origin(origin)
+
+    return new_sft, cutting_counter
+
+
+
+def remove_single_point_streamlines(sft):
+    """
+    Remove single point streamlines from a StatefulTractogram.
+
+    Parameters
+    ----------
+    sft: StatefulTractogram
+        The sft to remove single point streamlines from.
+
+    Returns
+    -------
+    new_sft : StatefulTractogram
+        New object with the single point streamlines removed.
+    """
+    indices = [i for i in range(len(sft)) if len(sft.streamlines[i]) > 1]
+    if len(indices):
+        new_sft = sft[indices]
+    else:
+        new_sft = StatefulTractogram.from_sft([], sft)
+
+    return new_sft
+
+
+def remove_overlapping_points_streamlines(sft, threshold=0.001):
+    """
+    Remove overlapping points from streamlines in a StatefulTractogram.
+
+    Parameters
+    ----------
+    sft: StatefulTractogram
+        The sft to remove overlapping points from.
+    threshold: float (optional)
+        Maximum distance between two points to be considered overlapping.
+        Default: 0.001 mm.
+
+    Returns
+    -------
+    new_sft : StatefulTractogram
+        New object with the overlapping points removed from each streamline.
+    """
+    new_streamlines = []
+    for streamline in sft.streamlines:
+        norm = np.linalg.norm(np.diff(streamline, axis=0),
+                              axis=1)
+
+        indices = np.where(norm < threshold)[0]
+        if len(indices) == 0:
+            new_streamlines.append(streamline.tolist())
+        else:
+            new_streamline = np.delete(streamline.tolist(),
+                                       indices, axis=0)
+            new_streamlines.append(new_streamline)
+    new_sft = StatefulTractogram.from_sft(new_streamlines, sft)
+
+    return new_sft
 
 
 def filter_streamlines_by_length(sft, min_length=0., max_length=np.inf):
@@ -423,7 +679,8 @@ def generate_matched_points(sft):
     return matched_points
 
 
-def parallel_transport_streamline(streamline, nb_streamlines, radius, rng=None):
+def parallel_transport_streamline(streamline, nb_streamlines, radius,
+                                  rng=None):
     """ Generate new streamlines by parallel transport of the input
     streamline. See [0] and [1] for more details.
 
@@ -508,3 +765,93 @@ def parallel_transport_streamline(streamline, nb_streamlines, radius, rng=None):
         new_streamlines.append(new_s)
 
     return new_streamlines
+
+
+def remove_loops_and_sharp_turns(streamlines,
+                                 max_angle,
+                                 use_qb=False,
+                                 qb_threshold=15.,
+                                 qb_seed=0,
+                                 num_processes=1):
+    """
+    Remove loops and sharp turns from a list of streamlines.
+
+    Parameters
+    ----------
+    streamlines: list of ndarray
+        The list of streamlines from which to remove loops and sharp turns.
+    max_angle: float
+        Maximal winding angle a streamline can have before
+        being classified as a loop.
+    use_qb: bool
+        Set to True if the additional QuickBundles pass is done.
+        This will help remove sharp turns. Should only be used on
+        bundled streamlines, not on whole-brain tractograms.
+    qb_threshold: float
+        Quickbundles distance threshold, only used if use_qb is True.
+    qb_seed: int
+        Seed to initialize randomness in QuickBundles
+    num_processes : int
+        Split the calculation to a pool of children processes.
+
+    Returns
+    -------
+    list: the ids of clean streamlines
+        Only the ids are returned so proper filtering can be done afterwards
+    """
+
+    streamlines_clean = []
+    ids = []
+    pool = Pool(num_processes)
+
+    windings = pool.map(tm.winding, streamlines)
+    pool.close()
+    streamlines_clean = streamlines[np.array(windings) < max_angle]
+    ids = list(np.where(np.array(windings) < max_angle)[0])
+
+    if use_qb:
+        ids = []
+        if len(streamlines_clean) > 1:
+            curvature = []
+
+            rng = np.random.RandomState(qb_seed)
+            clusters = qbx_and_merge(streamlines_clean,
+                                     [40, 30, 20, qb_threshold],
+                                     rng=rng, verbose=False)
+
+            for cc in clusters.centroids:
+                curvature.append(tm.mean_curvature(cc))
+            mean_curvature = sum(curvature)/len(curvature)
+
+            for i in range(len(clusters.centroids)):
+                if tm.mean_curvature(clusters.centroids[i]) <= mean_curvature:
+                    ids.extend(clusters[i].indices)
+        else:
+            logging.info("Impossible to use the use_qb option because " +
+                         "not more than one streamline left from the\n" +
+                         "input file.")
+    return ids
+
+
+def get_streamlines_bounding_box(streamlines):
+    """
+    Classify inliers and outliers from a list of streamlines.
+
+    Parameters
+    ----------
+    streamlines: list of ndarray
+        The list of streamlines from which inliers and outliers are separated.
+
+    Returns
+    -------
+    tuple: Minimum and maximum corner coordinate of the streamlines
+        bounding box
+    """
+    box_min = np.array([np.inf, np.inf, np.inf])
+    box_max = -np.array([np.inf, np.inf, np.inf])
+
+    for s in streamlines:
+        box_min = np.minimum(box_min, np.min(s, axis=0))
+        box_max = np.maximum(box_max, np.max(s, axis=0))
+
+    return box_min, box_max

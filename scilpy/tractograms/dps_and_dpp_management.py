@@ -1,6 +1,76 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 
+from scilpy.viz.utils import clip_and_normalize_data_for_cmap
+
+
+def add_data_as_color_dpp(sft, cmap, data, clip_outliers, min_range, max_range,
+                          min_cmap, max_cmap, log, LUT):
+    """
+    Normalizes data between 0 and 1 for an easier management with colormaps.
+    The real lower bound and upperbound are returned.
+
+    Data can be clipped to (min_range, max_range) before normalization.
+    Alternatively, data can be kept as is,
+
+    Parameters
+    ----------
+    sft: StatefulTractogram
+        The tractogram
+    cmap: plt colormap
+        The colormap
+    data: np.ndarray
+        The data to convert to color. Expecting one value per point to add as
+        dpp. If instead data has one value per streamline, setting the same
+        color to all points of the streamline (as dpp).
+    clip_outliers: bool
+        See description of the following parameters in
+        clip_and_normalize_data_for_cmap.
+    min_range: float
+        Data values below min_range will be clipped.
+    max_range: float
+        Data values above max_range will be clipped.
+    min_cmap: float
+        Minimum value of the colormap. Most useful when min_range and max_range
+        are not set; to fix the colormap range without modifying the data.
+    max_cmap: float
+        Maximum value of the colormap. Idem.
+    log: bool
+        If True, apply a logarithmic scale to the data.
+    LUT: np.ndarray
+        If set, replaces the data values by the Look-Up Table values. In order,
+        the first value of the LUT is set everywhere where data==1, etc.
+
+    Returns
+    -------
+    sft: StatefulTractogram
+        The tractogram, with dpp 'color' added.
+    lbound: float
+        The lower bound of the associated colormap.
+    ubound: float
+        The upper bound of the associated colormap.
+    """
+    values, lbound, ubound = clip_and_normalize_data_for_cmap(
+        data, clip_outliers, min_range, max_range,
+        min_cmap, max_cmap, log, LUT)
+
+    color = cmap(values)[:, 0:3] * 255
+    if len(color) == len(sft):
+        tmp = [np.tile([color[i][0], color[i][1], color[i][2]],
+                       (len(sft.streamlines[i]), 1))
+               for i in range(len(sft.streamlines))]
+        sft.data_per_point['color'] = tmp
+    elif len(color) == len(sft.streamlines._data):
+        sft.data_per_point['color'] = sft.streamlines
+        sft.data_per_point['color']._data = color
+    else:
+        raise ValueError("Error in the code... Colors do not have the right "
+                         "shape. Expecting either one color per streamline "
+                         "({}) or one per point ({}) but got {}."
+                         .format(len(sft), len(sft.streamlines._data),
+                                 len(color)))
+    return sft, lbound, ubound
+
 
 def convert_dps_to_dpp(sft, keys, overwrite=False):
     """

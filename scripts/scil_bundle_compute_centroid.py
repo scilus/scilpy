@@ -19,7 +19,7 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_outputs_exist,
                              add_verbose_arg,
                              add_reference_arg)
-from scilpy.tractanalysis.features import get_streamlines_centroid
+from scilpy.tractanalysis.bundle_operations import get_streamlines_centroid
 
 
 def _build_arg_parser():
