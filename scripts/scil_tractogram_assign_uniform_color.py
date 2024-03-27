@@ -2,14 +2,14 @@
 # -*- coding: utf-8 -*-
 
 """
-Assign an hexadecimal RGB color to one or more Trackvis TRK tractogram.
-The hexadecimal RGB color should be formatted as 0xRRGGBB or "#RRGGBB".
+Assign an hexadecimal RGB color to one or more Trackvis (.trk) tractogram.
+(If called with .tck, the output will always be .trk, because data_per_point
+has no equivalent in tck file.)
 
 Saves the RGB values in the data_per_point 'color' with values
 (color_x, color_y, color_z).
 
-If called with .tck, the output will always be .trk, because data_per_point has
-no equivalent in tck file.
+The hexadecimal RGB color should be formatted as 0xRRGGBB or "#RRGGBB".
 
 See also: scil_tractogram_assign_custom_color.py
 
@@ -92,13 +92,14 @@ def main():
         out_filenames = [args.out_tractogram]
         _, ext = os.path.splitext(args.out_tractogram)
         if not ext == '.trk':
-            parser.error("--out_tractogram should be a .trk file.")
+            parser.error("--out_tractogram must be a .trk file.")
     else:  # args.out_suffix
         out_filenames = []
         for filename in args.in_tractograms:
             base, ext = os.path.splitext(filename)
             if not ext == '.trk':
-                logging.warning('Input is TCK file, will be converted to TRK.')
+                logging.warning('Input is a .tck file, but output will be a '
+                                '.trk file.')
             out_filenames.append('{}{}{}'
                                  .format(base, args.out_suffix, '.trk'))
     assert_outputs_exist(parser, args, out_filenames)

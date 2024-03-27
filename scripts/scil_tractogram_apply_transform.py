@@ -2,15 +2,16 @@
 # -*- coding: utf-8 -*-
 
 """
-Transform tractogram using an affine/rigid transformation and nonlinear
+Transform a tractogram using an affine/rigid transformation and nonlinear
 deformation (optional).
 
 For more information on how to use the registration script, follow this link:
 https://scilpy.readthedocs.io/en/latest/documentation/tractogram_registration.html
 
 Applying transformation to a tractogram can lead to invalid streamlines (out of
-the bounding box), three strategies are available:
-1) default, crash at saving if invalid streamlines are present.
+the bounding box), and thus three strategies are available:
+1) Do nothing, may crash at saving if invalid streamlines are present.
+   [This is the default]
 2) --keep_invalid, save invalid streamlines. Leave it to the user to run
     scil_tractogram_remove_invalid.py if needed.
 3) --remove_invalid, automatically remove invalid streamlines before saving.
@@ -21,15 +22,15 @@ the bounding box), three strategies are available:
    streamlines are kept but the points out of the bounding box are cut.
 
 Example:
-To apply a transform from ANTS to a tractogram, if the ANTS command was
+To apply a transformation from ANTs to a tractogram, if the ANTs command was
 MOVING->REFERENCE...
-1) To apply the original transform, MOVING->REFERENCE
+1) To apply the original transformation:
 scil_tractogram_apply_transform.py ${MOVING_FILE} ${REFERENCE_FILE}
                                    0GenericAffine.mat ${OUTPUT_NAME}
                                    --inverse
                                    --in_deformation 1InverseWarp.nii.gz
 
-2) To apply the inverse transform, i.e. REFERENCE->MOVING
+2) To apply the inverse transformation, i.e. REFERENCE->MOVING:
 scil_tractogram_apply_transform.py ${MOVING_FILE} ${REFERENCE_FILE}
                                    0GenericAffine.mat ${OUTPUT_NAME}
                                    --in_deformation 1Warp.nii.gz
