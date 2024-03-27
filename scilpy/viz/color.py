@@ -39,7 +39,9 @@ BASE_10_COLORS = convert_color_names_to_rgb(["Blue",
 def generate_n_colors(n, generator=distinguishable_colormap,
                       pick_from_base10=True, shuffle=False):
     """
-    Generate a set of N colors (unicity not guaranteed, based on the generator)
+    Generate a set of N colors. When using the default parameters, colors will
+    always be unique. When using a custom generator, ensure it generates unique
+    colors, excluding the ones listed in BASE_10_COLORS, if unicity is desired.
 
     Parameters
     ----------

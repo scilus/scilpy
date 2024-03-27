@@ -9,7 +9,6 @@ from scilpy.viz.backends.fury import (create_scene,
                                       set_viewport,
                                       snapshot_slices)
 from scilpy.viz.backends.pil import (annotate_image,
-                                     any2grayscale,
                                      create_canvas,
                                      draw_2d_array_at_position)
 from scilpy.viz.utils import compute_cell_topleft_pos
