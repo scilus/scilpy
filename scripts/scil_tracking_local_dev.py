@@ -8,17 +8,19 @@ modified more easily by our team when testing new algorithms and parameters,
 and that can be used as parent classes in sub-projects of our lab such as in
 dwi_ml.
 
-As in scil_tracking_local:
+WARNING. MUCH SLOWER THAN scil_tracking_local.py. We recommand using multi-
+processing with option --nb_processes.
 
+Similar to scil_tracking_local:
     The tracking direction is chosen in the aperture cone defined by the
     previous tracking direction and the angular constraint.
     - Algo 'det': the maxima of the spherical function (SF) the most closely
     aligned to the previous direction.
     - Algo 'prob': a direction drawn from the empirical distribution function
     defined from the SF.
-    - Algo 'eudx' is not yet available!
 
 Contrary to scil_tracking_local:
+    - Algo 'eudx' is not yet available!
     - Input nifti files do not necessarily need to be in isotropic resolution.
     - The script works with asymmetric input ODF.
     - The interpolation for the tracking mask and spherical function can be
@@ -77,11 +79,13 @@ def _build_arg_parser():
         formatter_class=argparse.RawTextHelpFormatter,
         description=__doc__)
 
+    # Options common to both scripts
     add_mandatory_options_tracking(p)
-
     track_g = add_tracking_options(p)
-    track_g.add_argument('--algo', default='prob',
-                         choices=['det', 'prob'],
+    add_seeding_options(p)
+
+    # Options only for here.
+    track_g.add_argument('--algo', default='prob', choices=['det', 'prob'],
                          help='Algorithm to use. [%(default)s]')
     add_sphere_arg(track_g, symmetric_only=False)
     track_g.add_argument('--sfthres_init', metavar='sf_th', type=float,
@@ -118,18 +122,13 @@ def _build_arg_parser():
         help="If set, keep the last point (once out of the tracking mask) "
              "of \nthe streamline. Default: discard them. This is the default "
              " in \nDipy too. Note that points obtained after an invalid "
-             "direction \n(based on the propagator's definition of invalid; "
-             "ex when \nangle is too sharp of sh_threshold not reached) are "
-             "never added.\n")
-    # ToDo Our results (our endpoints) seem to differ from dipy's, with or
-    #  witout option. This should be investigated.
+             "direction \n(ex when angle is too sharp or sh_threshold not "
+             "reached) are \nnever added.")
     track_g.add_argument(
         "--n_repeats_per_seed", type=int, default=1,
         help="By default, each seed position is used only once. This option\n"
              "allows for tracking from the exact same seed n_repeats_per_seed"
              "\ntimes. [%(default)s]")
-
-    add_seeding_options(p)
 
     r_g = p.add_argument_group('Random seeding options')
     r_g.add_argument('--rng_seed', type=int, default=0,

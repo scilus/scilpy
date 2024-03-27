@@ -96,9 +96,16 @@ def _build_arg_parser():
         description=__doc__,
         formatter_class=argparse.RawTextHelpFormatter)
 
+    # Options that are the same in this script and scil_tracking_local_dev:
     add_mandatory_options_tracking(p)
-
     track_g = add_tracking_options(p)
+    add_seeding_options(p)
+
+    # Other options, only available in this script:
+    track_g.add_argument('--sh_to_pmf', action='store_true',
+                         help='If set, map sherical harmonics to spherical '
+                              'function (pmf) before \ntracking (faster, '
+                              'requires more memory)')
     track_g.add_argument('--algo', default='prob',
                          choices=['det', 'prob', 'ptt', 'eudx'],
                          help='Algorithm to use. [%(default)s]')
@@ -107,7 +114,6 @@ def _build_arg_parser():
                          type=int, default=0,
                          help='Subdivides each face of the sphere into 4^s new'
                               ' faces. [%(default)s]')
-    add_seeding_options(p)
 
     gpu_g = p.add_argument_group('GPU options')
     gpu_g.add_argument('--use_gpu', action='store_true',
@@ -216,6 +222,7 @@ def main():
 
     # Note. Seeds are in voxel world, center origin.
     # (See the examples in random_seeds_from_mask).
+    logging.info("Preparing seeds.")
     seeds = track_utils.random_seeds_from_mask(
         seed_img.get_fdata(dtype=np.float32),
         np.eye(4),
@@ -229,6 +236,7 @@ def main():
         # per direction, we need to filter post-tracking.
         max_steps_per_direction = int(args.max_length / args.step_size)
 
+        logging.info("Starting CPU local tracking.")
         streamlines_generator = LocalTracking(
             get_direction_getter(
                 args.in_odf, args.algo, args.sphere,
@@ -254,6 +262,7 @@ def main():
         # GPU tracking needs the full sphere
         sphere = get_sphere(args.sphere).subdivide(args.sub_sphere)
 
+        logging.info("Starting GPU local tracking.")
         streamlines_generator = GPUTacker(
             odf_sh, mask_data, seeds,
             vox_step_size, max_strl_len,

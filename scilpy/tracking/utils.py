@@ -35,6 +35,10 @@ class TrackingDirection(list):
 
 
 def add_mandatory_options_tracking(p):
+    """
+    Args that are required in both scil_tracking_local and
+    scil_tracking_local_dev scripts.
+    """
     p.add_argument('in_odf',
                    help='File containing the orientation diffusion function \n'
                         'as spherical harmonics file (.nii.gz). Ex: ODF or '
@@ -51,6 +55,10 @@ def add_mandatory_options_tracking(p):
 
 
 def add_tracking_options(p):
+    """
+    Options that are available in both scil_tracking_local and
+    scil_tracking_local_dev scripts.
+    """
     track_g = p.add_argument_group('Tracking options')
     track_g.add_argument('--step', dest='step_size', type=float, default=0.5,
                          help='Step size in mm. [%(default)s]')
@@ -71,16 +79,13 @@ def add_tracking_options(p):
                          type=float, default=0.1,
                          help='Spherical function relative threshold. '
                               '[%(default)s]')
-    track_g.add_argument('--sh_to_pmf', action='store_true',
-                         help='If set, map sherical harmonics to spherical '
-                              'function (pmf) before tracking (faster, '
-                              'requires more memory)')
     add_sh_basis_args(track_g)
 
     return track_g
 
 
 def add_tracking_ptt_options(p):
+    """ NOT USED IN SCILPY!!! TO DELETE??? """
     track_g = p.add_argument_group('PTT options')
     track_g.add_argument('--probe_length', dest='probe_length',
                          type=float, default=1.0,
@@ -114,6 +119,10 @@ def add_tracking_ptt_options(p):
 
 
 def add_seeding_options(p):
+    """
+    Options that are available in both scil_tracking_local and
+    scil_tracking_local_dev scripts.
+    """
     seed_group = p.add_argument_group(
         'Seeding options', 'When no option is provided, uses --npv 1.')
     seed_sub_exclusive = seed_group.add_mutually_exclusive_group()
@@ -124,6 +133,10 @@ def add_seeding_options(p):
 
 
 def add_out_options(p):
+    """
+    Options that are available in both scil_tracking_local and
+    scil_tracking_local_dev scripts.
+    """
     out_g = p.add_argument_group('Output options')
     out_g.add_argument('--compress', type=float, metavar='thresh',
                        help='If set, will compress streamlines. The parameter '
