@@ -154,3 +154,32 @@ def clip_and_normalize_data_for_cmap(
     data -= lbound
     data = data / ubound if ubound > 0 else data
     return data, lbound, ubound
+
+
+def format_hexadecimal_color_to_rgb(color):
+    """
+    Convert a hexadecimal color name (either "#RRGGBB" or 0xRRGGBB) to RGB
+    values.
+
+    Parameters
+    ----------
+    color: str
+        The hexadecimal name
+
+    Returns
+    -------
+    (R, G, B): int values.
+    """
+    if len(color) == 7:
+        color = '0x' + color.lstrip('#')
+
+    if len(color) == 8:
+        color_int = int(color, 0)
+        red = color_int >> 16
+        green = (color_int & 0x00FF00) >> 8
+        blue = color_int & 0x0000FF
+    else:
+        raise ValueError('Hexadecimal RGB color should be formatted as '
+                         '"#RRGGBB" or 0xRRGGBB.')
+
+    return red, green, blue

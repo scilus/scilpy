@@ -6,8 +6,8 @@ import os
 import tempfile
 
 from dipy.io.streamline import load_tractogram
-import nibabel as nib
 from dipy.io.utils import is_header_compatible
+import nibabel as nib
 from nibabel.streamlines.array_sequence import ArraySequence
 import numpy as np
 
@@ -314,42 +314,6 @@ def reconstruct_streamlines_from_memmap(memmap_filenames, indices=None,
     lengths = np.memmap(memmap_filenames[2],  dtype='int32', mode='r')
 
     return reconstruct_streamlines(data, offsets, lengths, indices=indices)
-
-
-def reconstruct_streamlines_from_hdf5(hdf5_filename, key=None):
-    """
-    Function to reconstruct streamlines from hdf5, mainly to facilitate
-    decomposition into thousand of connections and decrease I/O usage.
-
-    Parameters
-    ----------
-    hdf5_filename: str
-        Filepath to the hdf5 file.
-    key: str
-        Key of the connection of interest (LABEL1_LABEL2).
-
-    Returns
-    -------
-    streamlines : list of np.ndarray
-        List of streamlines.
-    """
-
-    hdf5_file = hdf5_filename
-
-    if key is not None:
-        if key not in hdf5_file:
-            return []
-        group = hdf5_file[key]
-        if 'data' not in group:
-            return []
-    else:
-        group = hdf5_file
-
-    data = np.array(group['data']).flatten()
-    offsets = np.array(group['offsets'])
-    lengths = np.array(group['lengths'])
-
-    return reconstruct_streamlines(data, offsets, lengths)
 
 
 def reconstruct_streamlines(data, offsets, lengths, indices=None):

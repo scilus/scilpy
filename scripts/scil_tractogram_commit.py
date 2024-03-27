@@ -85,8 +85,8 @@ import numpy as np
 import nibabel as nib
 
 from scilpy.io.gradients import fsl2mrtrix
-from scilpy.io.streamlines import (reconstruct_streamlines,
-                                   reconstruct_streamlines_from_hdf5)
+from scilpy.io.hdf5 import reconstruct_streamlines_from_hdf5
+from scilpy.io.streamlines import reconstruct_streamlines
 from scilpy.io.utils import (add_overwrite_arg,
                              add_processes_arg,
                              add_verbose_arg,
@@ -365,8 +365,7 @@ def main():
         hdf5_keys = list(hdf5_file.keys())
         streamlines = []
         for key in hdf5_keys:
-            tmp_streamlines = reconstruct_streamlines_from_hdf5(hdf5_file,
-                                                                key)
+            tmp_streamlines = reconstruct_streamlines_from_hdf5(hdf5_file[key])
             streamlines.extend(tmp_streamlines)
             bundle_groups_len.append(len(tmp_streamlines))
 
