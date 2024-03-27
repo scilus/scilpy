@@ -186,11 +186,9 @@ def main():
     img = compose_mosaic(
         volume_screenshots_generator, args.size, rows, cols, args.slices,
         overlap_factor=args.overlap,
-        vol_cmap_name=args.volume_cmap_name,
         transparency_scene_container=transparency_screenshots_generator,
         image_alpha=args.volume_opacity,
         labelmap_scene_container=labelmap_screenshots_generator,
-        labelmap_cmap_name=args.labelmap_cmap_name,
         labelmap_overlay_alpha=args.labelmap_opacity,
         overlays_scene_container=overlay_screenshots_generator,
         overlays_colors=ovl_colors,
