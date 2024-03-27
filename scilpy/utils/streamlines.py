@@ -321,6 +321,19 @@ def compress_sft(sft, tol_error=0.01):
 
 
 def remove_single_point_streamlines(sft):
+    """
+    Remove single point streamlines from a StatefulTractogram.
+
+    Parameters
+    ----------
+    sft: StatefulTractogram
+        The sft to remove single point streamlines from.
+
+    Returns
+    -------
+    new_sft : StatefulTractogram
+        New object with the single point streamlines removed.
+    """
     indices = [i for i in range(len(sft)) if len(sft.streamlines[i]) > 1]
     if len(indices):
         new_sft = sft[indices]
@@ -331,6 +344,22 @@ def remove_single_point_streamlines(sft):
 
 
 def remove_overlapping_points_streamlines(sft, threshold=0.001):
+    """
+    Remove overlapping points from streamlines in a StatefulTractogram.
+    
+    Parameters
+    ----------
+    sft: StatefulTractogram
+        The sft to remove overlapping points from.
+    threshold: float (optional)
+        Maximum distance between two points to be considered overlapping.
+        Default: 0.001 mm.
+    
+    Returns
+    -------
+    new_sft : StatefulTractogram
+        New object with the overlapping points removed from each streamline.
+    """
     new_streamlines = []
     for streamline in sft.streamlines:
         norm = np.linalg.norm(np.diff(streamline, axis=0),

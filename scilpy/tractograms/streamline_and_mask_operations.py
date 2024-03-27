@@ -216,13 +216,16 @@ def _get_longest_streamline_segment_in_roi(all_strl_indices):
     in_strl_idx : int
         Consectutive indices of the streamline that are in the ROI
     """
+    # If there is only one index, its likely invalid
+    if len(all_strl_indices) == 1:
+        return [None]
+
     # Find the gradient of the indices of the voxels intersecting with
     # the ROIs
-    if len(all_strl_indices) == 1:
-        return all_strl_indices
     strl_indices_grad = np.gradient(all_strl_indices)
     split_pos = np.where(strl_indices_grad != 1)[0]
 
+    # Covers weird cases where there is only non consecutive indices
     if len(strl_indices_grad) == len(split_pos) + 1:
         return [None]
 
