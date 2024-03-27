@@ -103,6 +103,10 @@ def main():
 
     # Loading
     sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
+    # Streamlines must be in voxel space to deal correctly with bounding box.
+    sft.to_vox()
+    sft.to_corner()
+
     if args.step_size is not None:
         sft = resample_streamlines_step_size(sft, args.step_size)
 
