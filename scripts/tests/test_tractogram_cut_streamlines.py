@@ -36,7 +36,7 @@ def test_execution_biggest(script_runner):
                                  'bundle_all_1mm.trk')
     in_mask = os.path.join(SCILPY_HOME, 'filtering', 'mask.nii.gz')
     ret = script_runner.run('scil_tractogram_cut_streamlines.py',
-                            in_tractogram, '--mask', in_mask, 
+                            in_tractogram, '--mask', in_mask,
                             'out_tractogram_cut2.trk',
                             '--resample', '0.2', '--compress', '0.1',
                             '--biggest')
