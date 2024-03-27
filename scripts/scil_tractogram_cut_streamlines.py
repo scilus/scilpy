@@ -128,7 +128,6 @@ def main():
                          'cut_between_mask_two_blobs_streamlines '
                          'function selected.')
             new_sft = cut_between_mask_two_blobs_streamlines(sft, binary_mask)
-
         else:
             logging.warning('The provided mask has MORE THAN 2 entity '
                             'cut_between_mask_two_blobs_streamlines function '
@@ -156,7 +155,7 @@ def main():
         label_data_2[mask] = 0
 
         new_sft = cut_between_mask_two_blobs_streamlines(sft, label_data_1,
-                                                         label_data_2)
+                                                         binary_mask_2=label_data_2)
 
     # Saving
     if len(new_sft) == 0:
