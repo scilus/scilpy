@@ -27,11 +27,19 @@ def add_data_as_color_dpp(sft, cmap, data, clip_outliers, min_range, max_range,
         See description of the following parameters in
         clip_and_normalize_data_for_cmap.
     min_range: float
+        Data values below min_range will be clipped.
     max_range: float
+        Data values above max_range will be clipped.
     min_cmap: float
+        Minimum value of the colormap. Most useful when min_range and max_range
+        are not set; to fix the colormap range without modifying the data.
     max_cmap: float
+        Maximum value of the colormap. Idem.
     log: bool
+        If True, apply a logarithmic scale to the data.
     LUT: np.ndarray
+        If set, replaces the data values by the Look-Up Table values. In order,
+        the first value of the LUT is set everywhere where data==1, etc.
 
     Returns
     -------

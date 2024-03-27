@@ -779,10 +779,12 @@ def remove_loops_and_sharp_turns(streamlines,
 def get_streamlines_bounding_box(streamlines):
     """
     Classify inliers and outliers from a list of streamlines.
+
     Parameters
     ----------
     streamlines: list of ndarray
         The list of streamlines from which inliers and outliers are separated.
+
     Returns
     -------
     tuple: Minimum and maximum corner coordinate of the streamlines

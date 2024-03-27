@@ -54,7 +54,7 @@ def get_axis_flip_vector(flip_axes):
     Parameters
     ----------
     flip_axes: list
-        List of axis you want to flip
+        List of axes you want to flip
 
     Returns
     -------
@@ -880,20 +880,20 @@ def split_sft_randomly_per_cluster(orig_sft, chunk_sizes, seed, thresholds):
 
 
 def filter_tractogram_data(tractogram, streamline_ids):
-    """Filter tractogram according to streamline ids and keep the data
+    """
+    Filter a tractogram according to streamline ids and keep the data.
 
     Parameters:
     -----------
     tractogram: StatefulTractogram
-        Tractogram containing the data to be filtered
+        Tractogram containing the data to be filtered.
     streamline_ids: array_like
-        List of streamline ids the data corresponds to
+        List of streamline ids the data corresponds to.
 
     Returns:
     --------
     new_tractogram: Tractogram or StatefulTractogram
-        Returns a new tractogram with only the selected streamlines
-        and data
+        Returns a new tractogram with only the selected streamlines and data.
     """
 
     streamline_ids = np.asarray(streamline_ids, dtype=int)
@@ -908,7 +908,7 @@ def filter_tractogram_data(tractogram, streamline_ids):
 
     # Could have been nice to deepcopy the tractogram modify the attributes in
     # place instead of creating a new one, but tractograms cant be subsampled
-    # if they have data
+    # if they have data.
 
     return StatefulTractogram.from_sft(
         new_streamlines,

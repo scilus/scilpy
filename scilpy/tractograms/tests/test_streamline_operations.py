@@ -394,7 +394,7 @@ def test_smooth_line_spline():
     assert dist_1 < dist_2
 
 
-def test_genearte_matched_points():
+def test_generate_matched_points():
     # toDo
     pass
 

@@ -112,19 +112,16 @@ def clip_and_normalize_data_for_cmap(
         If True, clips the data to the lowest and highest 5% quantile before
         normalizing and before any other clipping.
     min_range: float
-        If set, clips data to that value (lowest).
+        Data values below min_range will be clipped.
     max_range: float
-        If set, clips data to that value (highest).
+        Data values above max_range will be clipped.
     min_cmap: float
-        If set, will normalize between 0 and 1 so that 0 is min_cmap instead of
-        the minimal value. Usually, min_cmap should be <= to your minimal
-        value.
+        Minimum value of the colormap. Most useful when min_range and max_range
+        are not set; to fix the colormap range without modifying the data.
     max_cmap: float
-        If set, will normalize between 0 and 1 so that 1 is max_cmap instead of
-        the maximal value. Usually, min_cmap should be >= to your maximal
-        value.
+        Maximum value of the colormap. Idem.
     log: bool
-        If True, data is scaled to a logarithmic scale.
+        If True, apply a logarithmic scale to the data.
     LUT: np.ndarray
         If set, replaces the data values by the Look-Up Table values. In order,
         the first value of the LUT is set everywhere where data==1, etc.
