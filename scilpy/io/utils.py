@@ -513,6 +513,14 @@ def validate_sh_basis_choice(sh_basis):
                          "'tournier07'.")
 
 
+def add_compression_arg(p, additional_msg=''):
+    p.add_argument('--compress', dest='compress_th', const=0.1,
+                   type=ranged_type(float, 0, None),
+                   help='If set, compress the resulting streamline. Value is '
+                        'the maximum \ncompression distance in mm.'
+                        + additional_msg + '[%(const)s]')
+
+
 def verify_compression_th(compress_th):
     """
     Verify that the compression threshold is between 0.001 and 1. Else,
