@@ -879,46 +879,6 @@ def split_sft_randomly_per_cluster(orig_sft, chunk_sizes, seed, thresholds):
     return final_sfts
 
 
-def filter_tractogram_data(sft, streamline_ids):
-    """
-    Filter a tractogram according to streamline ids and keep the data.
-
-    Parameters:
-    -----------
-    sft: StatefulTractogram
-        Tractogram containing the data to be filtered.
-    streamline_ids: array_like
-        List of streamline ids the data corresponds to.
-
-    Returns:
-    --------
-    new_tractogram: Tractogram or StatefulTractogram
-        Returns a new tractogram with only the selected streamlines and data.
-    """
-    if len(streamline_ids) > 0:
-        streamline_ids = np.asarray(streamline_ids, dtype=int)
-
-        assert np.all(
-            np.in1d(streamline_ids, np.arange(len(sft.streamlines)))
-        ), "Received ids outside of streamline range"
-
-        new_streamlines = sft.streamlines[streamline_ids]
-        new_data_per_streamline = sft.data_per_streamline[streamline_ids]
-        new_data_per_point = sft.data_per_point[streamline_ids]
-    else:
-        new_streamlines = []
-        new_data_per_point = {}
-        new_data_per_streamline = {}
-
-    # Could have been nice to deepcopy the tractogram modify the attributes in
-    # place instead of creating a new one, but tractograms cant be subsampled
-    # if they have data.
-    return StatefulTractogram.from_sft(
-        new_streamlines, sft,
-        data_per_point=new_data_per_point,
-        data_per_streamline=new_data_per_streamline)
-
-
 OPERATIONS = {
     'difference_robust': difference_robust,
     'intersection_robust': intersection_robust,
