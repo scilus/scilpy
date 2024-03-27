@@ -38,14 +38,12 @@ def _build_arg_parser():
                    help='Tractogram input file name.')
     p.add_argument('out_tractogram',
                    help='Output tractogram file name.')
-    p.add_argument('--minU',
-                   default=0.5, type=float,
+    p.add_argument('--minU', default=0.5, type=float,
                    help='Min ufactor value. [%(default)s]')
-    p.add_argument('--maxU',
-                   default=1.0, type=float,
+    p.add_argument('--maxU', default=1.0, type=float,
                    help='Max ufactor value. [%(default)s]')
 
-    p.add_argument('--remaining_tractogram',
+    p.add_argument('--remaining_tractogram', metavar='filename',
                    help='If set, saves remaining streamlines.')
     p.add_argument('--no_empty', action='store_true',
                    help='Do not write file if there is no streamline.')
@@ -65,6 +63,7 @@ def main():
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
+    # Verifications
     assert_inputs_exist(parser, args.in_tractogram, args.reference)
     assert_outputs_exist(parser, args, args.out_tractogram,
                          optional=args.remaining_tractogram)

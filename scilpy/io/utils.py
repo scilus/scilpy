@@ -896,7 +896,7 @@ def snapshot(scene, filename, **kwargs):
     image.save(filename)
 
 
-def ranged_type(value_type, min_value, max_value):
+def ranged_type(value_type, min_value=None, max_value=None):
     """Return a function handle of an argument type function for ArgumentParser
     checking a range: `min_value` <= arg <= `max_value`.
 
@@ -923,9 +923,16 @@ def ranged_type(value_type, min_value, max_value):
             f = value_type(arg)
         except ValueError:
             raise argparse.ArgumentTypeError(f"must be a valid {value_type}")
-        if f < min_value or f > max_value:
-            raise argparse.ArgumentTypeError(
-                f"must be within [{min_value}, {max_value}]")
+        if min_value is not None and max_value is not None:
+            if f < min_value or f > max_value:
+                raise argparse.ArgumentTypeError(
+                    f"must be within [{min_value}, {max_value}]")
+        elif min_value is not None:
+            if f < min_value:
+                raise argparse.ArgumentTypeError(f"must be >= {min_value}")
+        elif max_value is not None:
+            if f > max_value:
+                raise argparse.ArgumentTypeError(f"must be <= {max_value}")
         return f
 
     # Return handle to checking function
