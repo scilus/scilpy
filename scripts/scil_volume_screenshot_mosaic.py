@@ -64,9 +64,9 @@ python scil_screenshot_volume_mosaic_overlap.py \
 """
 
 import argparse
+from functools import partial
+import itertools
 import logging
-
-import numpy as np
 
 from scilpy.io.image import assert_same_resolution
 from scilpy.io.utils import (add_default_screenshot_args,
@@ -117,7 +117,6 @@ def _build_arg_parser():
 
 
 def _parse_args(parser):
-
     args = parser.parse_args()
 
     inputs = []
@@ -142,12 +141,15 @@ def _parse_args(parser):
 
 
 def main():
+    def empty_generator():
+        yield from ()
+
     parser = _build_arg_parser()
     args = _parse_args(parser)
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
-    vol_img, trans_img, labelmap_img, ovl_imgs, ovl_colors = \
-        get_default_screenshotting_data(args)
+    vol_img, trans_img, labelmap_img, ovl_imgs, ovl_colors, _ = \
+        get_default_screenshotting_data(args, peaks=False)
 
     rows, cols = args.rows, args.cols
 
@@ -156,41 +158,41 @@ def main():
     check_mosaic_layout(len(args.slices), rows, cols)
 
     # Generate the images
-    vol_scene_container = screenshot_volume(
+    volume_screenshots_generator = screenshot_volume(
         vol_img, args.axis, args.slices, args.size)
 
-    transparency_scene_container = screenshot_volume(
+    transparency_screenshots_generator = screenshot_volume(
         trans_img, args.axis, args.slices, args.size)
 
-    labelmap_scene_container = []
+    labelmap_screenshots_generator = empty_generator()
     if labelmap_img:
-        labelmap_scene_container = screenshot_volume(
+        labelmap_screenshots_generator = screenshot_volume(
             labelmap_img, args.axis, args.slices, args.size)
 
-    overlays_screenshotter = screenshot_volume
+    # Create the overlay screenshotter
+    overlay_screenshotter = screenshot_volume
     if args.overlays_as_contours:
-        overlays_screenshotter = screenshot_contour
+        overlay_screenshotter = partial(screenshot_contour,
+                                        bg_opacity=0.3)
 
-    overlays_scene_container = []
-    if ovl_imgs:
-        for img in ovl_imgs:
-            overlays_scene_container.append(
-                overlays_screenshotter(
-                    img, args.axis, args.slices, args.size))
-
-        overlays_scene_container = np.swapaxes(overlays_scene_container, 0, 1)
+    # Generate the overlay stack, if requested, zipping over all overlays
+    overlay_screenshots_generator = empty_generator()
+    if ovl_imgs is not None:
+        overlay_screenshots_generator = zip(*itertools.starmap(
+            overlay_screenshotter, ([ovl, args.axis, args.slices,
+                                     args.size] for ovl in ovl_imgs)))
 
     # Compose the mosaic
     img = compose_mosaic(
-        vol_scene_container, args.size, rows, cols, args.slices,
+        volume_screenshots_generator, args.size, rows, cols, args.slices,
         overlap_factor=args.overlap,
         vol_cmap_name=args.volume_cmap_name,
-        transparency_scene_container=transparency_scene_container,
-        volume_alpha=args.volume_opacity,
-        labelmap_scene_container=labelmap_scene_container,
+        transparency_scene_container=transparency_screenshots_generator,
+        image_alpha=args.volume_opacity,
+        labelmap_scene_container=labelmap_screenshots_generator,
         labelmap_cmap_name=args.labelmap_cmap_name,
         labelmap_overlay_alpha=args.labelmap_opacity,
-        overlays_scene_container=overlays_scene_container,
+        overlays_scene_container=overlay_screenshots_generator,
         overlays_colors=ovl_colors,
         overlays_alpha=args.overlays_opacity)
 
