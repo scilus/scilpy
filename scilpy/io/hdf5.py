@@ -158,7 +158,7 @@ def assert_header_compatible_hdf5(hdf5_handle, ref):
         # Expecting nibabel reference
         ref_affine = ref.affine
         ref_dimension = ref.shape
-        name = ref.filename
+        name = ref.get_filename()
 
     affine = hdf5_handle.attrs['affine']
     dimensions = hdf5_handle.attrs['dimensions']
@@ -212,7 +212,7 @@ def construct_hdf5_from_sft(hdf5_handle, sfts, groups_keys='streamlines',
     """
     if isinstance(sfts, StatefulTractogram):
         sfts = [sfts]
-    if isinstance(groups_keys, list):
+    if isinstance(groups_keys, str):
         groups_keys = [groups_keys]
 
     assert len(sfts) == len(groups_keys)
