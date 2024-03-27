@@ -19,7 +19,8 @@ from scilpy.io.utils import (add_overwrite_arg,
                              add_verbose_arg,
                              assert_inputs_exist,
                              assert_outputs_exist)
-from scilpy.utils.util import RAS_AXES_NAMES, get_axis_index
+from scilpy.utils.spatial import RAS_AXES_NAMES
+from scilpy.utils.spatial import get_axis_index
 
 from scilpy.viz.backends.fury import (create_interactive_window,
                                       create_scene,

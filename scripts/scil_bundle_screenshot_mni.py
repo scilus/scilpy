@@ -37,7 +37,8 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist,
                              assert_outputs_exist)
 from scilpy.image.volume_operations import register_image
-from scilpy.utils.util import RAS_AXES_NAMES, get_axis_name
+from scilpy.utils.spatial import RAS_AXES_NAMES
+from scilpy.utils.spatial import get_axis_name
 from scilpy.viz.legacy import display_slices
 from scilpy.viz.color import get_lookup_table
 

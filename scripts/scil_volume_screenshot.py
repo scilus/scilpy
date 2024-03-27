@@ -55,7 +55,6 @@ import itertools
 import numpy as np
 from os.path import splitext
 
-from scilpy.io.image import assert_same_resolution
 from scilpy.io.utils import (add_default_screenshot_args,
                              add_labelmap_screenshot_args,
                              add_overlays_screenshot_args,
@@ -65,7 +64,7 @@ from scilpy.io.utils import (add_default_screenshot_args,
                              assert_overlay_colors,
                              get_default_screenshotting_data)
 from scilpy.image.utils import check_slice_indices
-from scilpy.utils.util import get_axis_index
+from scilpy.utils.spatial import get_axis_index
 from scilpy.viz.screenshot import (compose_image,
                                    screenshot_contour,
                                    screenshot_peaks,

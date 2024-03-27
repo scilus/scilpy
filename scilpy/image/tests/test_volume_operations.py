@@ -17,7 +17,7 @@ from scilpy.image.volume_operations import (apply_transform,
                                             normalize_metric,
                                             resample_volume)
 from scilpy.io.fetcher import fetch_data, get_testing_files_dict
-from scilpy.utils.util import compute_nifti_bounding_box
+from scilpy.image.utils import compute_nifti_bounding_box
 
 # Fetching testing dwi data.
 fetch_data(get_testing_files_dict(), keys='processing.zip')

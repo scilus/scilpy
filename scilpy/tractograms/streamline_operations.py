@@ -8,11 +8,12 @@ import scipy.ndimage as ndi
 from dipy.io.stateful_tractogram import StatefulTractogram
 from dipy.segment.clustering import qbx_and_merge
 from dipy.tracking import metrics as tm
-from dipy.tracking.streamlinespeed import (length, set_number_of_points,
-                                           compress_streamlines)
+from dipy.tracking.streamlinespeed import (compress_streamlines,
+                                           length,
+                                           set_number_of_points)
 from scipy.interpolate import splev, splprep
 
-from scilpy.utils.util import rotation_around_vector_matrix
+from scilpy.utils.spatial import rotation_around_vector_matrix
 
 
 def _get_streamline_pt_index(points_to_index, vox_index, from_start=True):

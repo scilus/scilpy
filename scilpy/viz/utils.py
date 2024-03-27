@@ -2,7 +2,7 @@
 
 import numpy as np
 
-from scilpy.utils.util import get_axis_index
+from scilpy.utils.spatial import get_axis_index
 
 
 def affine_from_offset(orientation, offset):

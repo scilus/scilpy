@@ -2,7 +2,7 @@
 
 import numpy as np
 from fury import window
-from scilpy.utils.util import get_axis_index
+from scilpy.utils.spatial import get_axis_index
 
 from scilpy.viz.backends.fury import (create_scene,
                                       set_display_extent,
