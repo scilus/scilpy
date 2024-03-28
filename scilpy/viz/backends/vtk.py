@@ -27,7 +27,7 @@ def get_color_by_name(color_name):
     try:
         color_wheel = vtk.vtkNamedColors()
         return color_wheel.GetColor3d(color_name)
-    except Exception as e:
+    except Exception:
         raise ValueError("Invalid VTK color name : {}".format(color_name))
 
 

@@ -482,11 +482,11 @@ def add_volume_screenshot_args(parser, input_name, mandatory=True,
     parser: argparse.ArgumentParser object
         Parser.
     input_name: str
-        Name of the principal input volumeand argument.
+        Name of the principal input volume and argument.
     mandatory: bool, optional
         Whether the input argument is mandatory.
     descriptor: str, optional
-        Descriptor for the input volume. Willbe used in help messages.
+        Descriptor for the input volume. Will be used in help messages.
     default_cmap: str, optional
         Default colormap name.
     default_alpha: float, optional
