@@ -18,8 +18,8 @@ def test_help_option(script_runner):
     assert ret.success
 
 
-def test_execution_processing(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution_processing(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_fodf = os.path.join(SCILPY_HOME, 'processing',
                            'fodf_descoteaux07.nii.gz')
     ret = script_runner.run('scil_fodf_to_bingham.py',
@@ -33,8 +33,8 @@ def test_execution_processing(script_runner):
     assert ret.success
 
 
-def test_execution_processing_mask(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution_processing_mask(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_fodf = os.path.join(SCILPY_HOME, 'processing',
                            'fodf_descoteaux07.nii.gz')
     in_mask = os.path.join(SCILPY_HOME, 'processing',

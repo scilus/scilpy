@@ -17,8 +17,8 @@ def test_help_option(script_runner):
     assert ret.success
 
 
-def test_execution_add(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution_add(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_img_1 = os.path.join(SCILPY_HOME, 'atlas',
                             'brainstem_173.nii.gz')
     in_img_2 = os.path.join(SCILPY_HOME, 'atlas',
@@ -30,24 +30,24 @@ def test_execution_add(script_runner):
     assert ret.success
 
 
-def test_execution_low_thresh(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution_low_thresh(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_img = os.path.join(SCILPY_HOME, 'atlas', 'brainstem.nii.gz')
     ret = script_runner.run('scil_volume_math.py', 'lower_threshold',
                             in_img, '1', 'brainstem_bin.nii.gz')
     assert ret.success
 
 
-def test_execution_low_mult(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution_low_mult(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_img = os.path.join(SCILPY_HOME, 'atlas', 'brainstem_bin.nii.gz')
     ret = script_runner.run('scil_volume_math.py', 'multiplication',
                             in_img, '16', 'brainstem_unified.nii.gz')
     assert ret.success
 
 
-def test_execution_concatenate(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution_concatenate(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_img_1 = os.path.join(SCILPY_HOME, 'atlas', 'ids', '10.nii.gz')
     in_img_2 = os.path.join(SCILPY_HOME, 'atlas', 'ids', '11.nii.gz')
     in_img_3 = os.path.join(SCILPY_HOME, 'atlas', 'ids', '12.nii.gz')
@@ -60,8 +60,8 @@ def test_execution_concatenate(script_runner):
     assert ret.success
 
 
-def test_execution_concatenate_4D(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution_concatenate_4D(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_img_1 = os.path.join(SCILPY_HOME, 'atlas', 'ids', '10.nii.gz')
     in_img_2 = os.path.join(SCILPY_HOME, 'atlas', 'ids', '8_10.nii.gz')
     in_img_3 = os.path.join(SCILPY_HOME, 'atlas', 'ids', '12.nii.gz')

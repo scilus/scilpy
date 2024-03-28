@@ -17,8 +17,8 @@ def test_help_option(script_runner):
     assert ret.success
 
 
-def test_execution_surface_vtk_fib(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution_surface_vtk_fib(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_fib = os.path.join(SCILPY_HOME, 'surface_vtk_fib',
                           'gyri_fanning.fib')
     in_fa = os.path.join(SCILPY_HOME, 'surface_vtk_fib',

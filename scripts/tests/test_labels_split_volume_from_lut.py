@@ -17,8 +17,8 @@ def test_help_option(script_runner):
     assert ret.success
 
 
-def test_execution_atlas(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution_atlas(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_atlas = os.path.join(SCILPY_HOME, 'atlas',
                             'atlas_freesurfer_v2.nii.gz')
     in_json = os.path.join(SCILPY_HOME, 'atlas',

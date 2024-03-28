@@ -18,12 +18,10 @@ def test_help_option(script_runner):
     assert ret.success
 
 
-def test_execution_bundles(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution_bundles(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_tractogram = os.path.join(SCILPY_HOME, 'bundles',
                                  'bundle_all_1mm.trk')
-    in_conf = os.path.join(SCILPY_HOME, 'bundles', 'fibercup_atlas',
-                           'default_config_sim.json')
     in_models = os.path.join(SCILPY_HOME, 'bundles', 'fibercup_atlas')
     in_aff = os.path.join(SCILPY_HOME, 'bundles',
                           'affine.txt')

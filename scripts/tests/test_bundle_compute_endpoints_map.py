@@ -17,8 +17,8 @@ def test_help_option(script_runner):
     assert ret.success
 
 
-def test_execution_tractometry(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution_tractometry(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_bundle = os.path.join(SCILPY_HOME, 'tractometry', 'IFGWM_uni.trk')
     ret = script_runner.run('scil_bundle_compute_endpoints_map.py', in_bundle,
                             'head.nii.gz', 'tail.nii.gz', '--binary')

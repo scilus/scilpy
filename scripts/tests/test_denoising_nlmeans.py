@@ -17,8 +17,8 @@ def test_help_option(script_runner):
     assert ret.success
 
 
-def test_execution_others(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution_others(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_img = os.path.join(SCILPY_HOME, 'others', 't1_resample.nii.gz')
     ret = script_runner.run('scil_denoising_nlmeans.py', in_img,
                             't1_denoised.nii.gz',  '4', '--processes', '1')

@@ -18,8 +18,8 @@ def test_help_option(script_runner):
     assert ret.success
 
 
-def test_execution_tractometry(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution_tractometry(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_label_map = os.path.join(SCILPY_HOME, 'tractometry',
                                 'IFGWM_labels_map.nii.gz')
     ret = script_runner.run('scil_bundle_volume_per_label.py',

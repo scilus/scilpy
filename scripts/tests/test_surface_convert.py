@@ -17,8 +17,8 @@ def test_help_option(script_runner):
     assert ret.success
 
 
-def test_execution_surface_vtk_fib(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution_surface_vtk_fib(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_surf = os.path.join(SCILPY_HOME, 'surface_vtk_fib',
                            'lhpialt.vtk')
     ret = script_runner.run('scil_surface_convert.py', in_surf,
@@ -26,8 +26,8 @@ def test_execution_surface_vtk_fib(script_runner):
     assert ret.success
 
 
-def test_execution_surface_vtk_xfrom(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution_surface_vtk_xfrom(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_surf = os.path.join(SCILPY_HOME, 'surface_vtk_fib',
                            'lh.pialt_xform')
     x_form = os.path.join(SCILPY_HOME, 'surface_vtk_fib',

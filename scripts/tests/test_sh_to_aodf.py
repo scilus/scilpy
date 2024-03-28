@@ -25,8 +25,8 @@ def test_help_option(script_runner):
     [os.path.join(test_data_root, "fodf_descoteaux07_sub.nii.gz"),
      os.path.join(test_data_root,
                   "fodf_descoteaux07_sub_unified_asym.nii.gz")]])
-def test_asym_basis_output_gpu(script_runner, in_fodf, expected_fodf):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_asym_basis_output_gpu(script_runner, in_fodf, expected_fodf, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
 
     ret = script_runner.run('scil_sh_to_aodf.py',
                             in_fodf, 'out_fodf1.nii.gz',
@@ -61,8 +61,8 @@ def test_asym_basis_output_gpu(script_runner, in_fodf, expected_fodf):
     [os.path.join(test_data_root, "fodf_descoteaux07_sub.nii.gz"),
      os.path.join(test_data_root,
                   "fodf_descoteaux07_sub_unified_asym.nii.gz")]])
-def test_asym_basis_output(script_runner, in_fodf, expected_fodf):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_asym_basis_output(script_runner, in_fodf, expected_fodf, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
 
     ret = script_runner.run('scil_sh_to_aodf.py',
                             in_fodf, 'out_fodf1.nii.gz',
@@ -88,8 +88,8 @@ def test_asym_basis_output(script_runner, in_fodf, expected_fodf):
                   "fodf_descoteaux07_sub_unified_asym.nii.gz"),
      os.path.join(test_data_root,
                   "fodf_descoteaux07_sub_unified_asym_twice.nii.gz")]])
-def test_asym_input(script_runner, in_fodf, expected_fodf):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_asym_input(script_runner, in_fodf, expected_fodf, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
 
     ret = script_runner.run('scil_sh_to_aodf.py',
                             in_fodf, 'out_fodf1.nii.gz',
@@ -114,8 +114,8 @@ def test_asym_input(script_runner, in_fodf, expected_fodf):
     [os.path.join(test_data_root, 'fodf_descoteaux07_sub.nii.gz'),
      os.path.join(test_data_root,
                   'fodf_descoteaux07_sub_cosine_asym.nii.gz')]])
-def test_cosine_method(script_runner, in_fodf, out_fodf):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_cosine_method(script_runner, in_fodf, out_fodf, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
 
     ret = script_runner.run('scil_sh_to_aodf.py',
                             in_fodf, 'out_fodf1.nii.gz',

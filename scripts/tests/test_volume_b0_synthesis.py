@@ -25,8 +25,8 @@ def test_help_option(script_runner):
 
 
 @pytest.mark.skipif(tensorflow is None, reason="Tensorflow not installed")
-def test_synthesis(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_synthesis(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_t1 = os.path.join(SCILPY_HOME, 'others',
                          't1.nii.gz')
     in_b0 = os.path.join(SCILPY_HOME, 'processing',

@@ -17,10 +17,11 @@ def test_help_option(script_runner):
     assert ret.success
 
 
-def test_execution_tractometry(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution_tractometry(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_bundle = os.path.join(SCILPY_HOME, 'tractometry', 'IFGWM.trk')
-    in_centroid = os.path.join(SCILPY_HOME, 'tractometry', 'IFGWM_uni_c_10.trk')
+    in_centroid = os.path.join(SCILPY_HOME, 'tractometry',
+                               'IFGWM_uni_c_10.trk')
     ret = script_runner.run('scil_bundle_label_map.py', in_bundle, in_centroid,
                             'results_dir/', '--colormap', 'viridis')
     assert ret.success

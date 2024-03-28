@@ -17,8 +17,8 @@ def test_help_option(script_runner):
     assert ret.success
 
 
-def test_execution_others(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution_others(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_bundle = os.path.join(SCILPY_HOME, 'others',
                              'IFGWM_sub.trk')
     ret = script_runner.run('scil_tractogram_count_streamlines.py', in_bundle)

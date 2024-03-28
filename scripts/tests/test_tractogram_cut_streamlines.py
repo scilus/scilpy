@@ -18,8 +18,8 @@ def test_help_option(script_runner):
     assert ret.success
 
 
-def test_execution_two_roi(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution_two_roi(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_tractogram = os.path.join(SCILPY_HOME, 'filtering',
                                  'bundle_all_1mm.trk')
     in_mask = os.path.join(SCILPY_HOME, 'filtering', 'mask.nii.gz')
@@ -29,8 +29,8 @@ def test_execution_two_roi(script_runner):
     assert ret.success
 
 
-def test_execution_biggest(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution_biggest(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_tractogram = os.path.join(SCILPY_HOME, 'filtering',
                                  'bundle_all_1mm.trk')
     in_mask = os.path.join(SCILPY_HOME, 'filtering', 'mask.nii.gz')

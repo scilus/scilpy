@@ -17,8 +17,8 @@ def test_help_option(script_runner):
     assert ret.success
 
 
-def test_execution_ihMT_no_option(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution_ihMT_no_option(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
 
     in_b1_map = os.path.join(SCILPY_HOME,
                              'MT', 'sub-001_run-01_B1map.nii.gz')

@@ -17,8 +17,8 @@ def test_help_option(script_runner):
     assert ret.success
 
 
-def test_execution_processing(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution_processing(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_dwi = os.path.join(SCILPY_HOME, 'processing', 'dwi.nii.gz')
     ret = script_runner.run('scil_volume_crop.py', in_dwi, 'dwi_crop.nii.gz')
     assert ret.success

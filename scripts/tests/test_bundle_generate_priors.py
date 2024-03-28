@@ -17,8 +17,8 @@ def test_help_option(script_runner):
     assert ret.success
 
 
-def test_execution_bst(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution_bst(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_bundle = os.path.join(SCILPY_HOME, 'bst', 'rpt_m_lin.trk')
     in_fodf = os.path.join(SCILPY_HOME, 'bst', 'fodf.nii.gz')
     in_mask = os.path.join(SCILPY_HOME, 'bst', 'mask.nii.gz')

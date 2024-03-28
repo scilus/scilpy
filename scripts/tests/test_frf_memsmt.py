@@ -16,8 +16,8 @@ def test_help_option(script_runner):
     assert ret.success
 
 
-def test_roi_center_shape_parameter(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_roi_center_shape_parameter(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_dwi_lin = os.path.join(SCILPY_HOME, 'btensor_testdata',
                               'dwi_linear.nii.gz')
     in_bval_lin = os.path.join(SCILPY_HOME, 'btensor_testdata',
@@ -48,8 +48,8 @@ def test_roi_center_shape_parameter(script_runner):
     assert (not ret.success)
 
 
-def test_roi_radii_shape_parameter(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_roi_radii_shape_parameter(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_dwi_lin = os.path.join(SCILPY_HOME, 'btensor_testdata',
                               'dwi_linear.nii.gz')
     in_bval_lin = os.path.join(SCILPY_HOME, 'btensor_testdata',
@@ -99,8 +99,8 @@ def test_roi_radii_shape_parameter(script_runner):
     assert (not ret.success)
 
 
-def test_inputs_check(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_inputs_check(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_dwi_lin = os.path.join(SCILPY_HOME, 'btensor_testdata',
                               'dwi_linear.nii.gz')
     in_bval_lin = os.path.join(SCILPY_HOME, 'btensor_testdata',
@@ -130,8 +130,8 @@ def test_inputs_check(script_runner):
     assert (not ret.success)
 
 
-def test_execution_processing(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution_processing(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_dwi_lin = os.path.join(SCILPY_HOME, 'btensor_testdata',
                               'dwi_linear.nii.gz')
     in_bval_lin = os.path.join(SCILPY_HOME, 'btensor_testdata',

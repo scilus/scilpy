@@ -13,7 +13,7 @@ def test_help_option(script_runner):
 
 # Tests including VTK do not work on a server without a display
 # def test_image_create(script_runner):
-#     os.chdir(os.path.expanduser(tmp_dir.name))
+#     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
 #     in_vol = os.path.join(
 #         SCILPY_HOME, 'bundles', 'fibercup_atlas', 'bundle_all_1mm.nii.gz')
 

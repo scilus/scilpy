@@ -16,8 +16,8 @@ def test_help_option(script_runner):
     assert ret.success
 
 
-def test_silent_without_output(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_silent_without_output(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_fodf = os.path.join(SCILPY_HOME, 'tracking', 'fodf.nii.gz')
 
     ret = script_runner.run('scil_visualize_fodf.py', in_fodf, '--silent')

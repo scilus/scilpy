@@ -18,8 +18,8 @@ def test_help_option(script_runner):
     assert ret.success
 
 
-def test_execution_bundles(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution_bundles(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_1 = os.path.join(SCILPY_HOME, 'bundles', 'bundle_0_reco.tck')
     in_2 = os.path.join(SCILPY_HOME, 'bundles', 'voting_results',
                         'bundle_0.trk')
@@ -32,8 +32,8 @@ def test_execution_bundles(script_runner):
     assert ret.success
 
 
-def test_single(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_single(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_1 = os.path.join(SCILPY_HOME, 'bundles', 'bundle_0_reco.tck')
     in_2 = os.path.join(SCILPY_HOME, 'bundles', 'voting_results',
                         'bundle_0.trk')
@@ -47,8 +47,8 @@ def test_single(script_runner):
     assert ret.success
 
 
-def test_no_overlap(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_no_overlap(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_1 = os.path.join(SCILPY_HOME, 'bundles', 'bundle_0_reco.tck')
     in_2 = os.path.join(SCILPY_HOME, 'bundles', 'voting_results',
                         'bundle_0.trk')
@@ -62,8 +62,8 @@ def test_no_overlap(script_runner):
     assert ret.success
 
 
-def test_ratio(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_ratio(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_1 = os.path.join(SCILPY_HOME, 'bundles', 'bundle_0_reco.tck')
     in_2 = os.path.join(SCILPY_HOME, 'bundles', 'voting_results',
                         'bundle_0.trk')
@@ -78,11 +78,11 @@ def test_ratio(script_runner):
     assert ret.success
 
 
-def test_ratio_fail(script_runner):
+def test_ratio_fail(script_runner, monkeypatch):
     """ Test ratio without single_compare argument.
     The test should fail.
     """
-    os.chdir(os.path.expanduser(tmp_dir.name))
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_1 = os.path.join(SCILPY_HOME, 'bundles',  'bundle_0_reco.tck')
     in_2 = os.path.join(SCILPY_HOME, 'bundles', 'voting_results',
                         'bundle_0.trk')

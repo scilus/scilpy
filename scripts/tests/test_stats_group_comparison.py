@@ -19,10 +19,11 @@ def test_help_option(script_runner):
     assert ret.success
 
 
-def test_execution_bundles(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution_bundles(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_json = os.path.join(SCILPY_HOME, 'stats/group', 'participants.tsv')
-    in_participants = os.path.join(SCILPY_HOME, 'stats/group', 'meanstd_all.json')
+    in_participants = os.path.join(SCILPY_HOME, 'stats/group',
+                                   'meanstd_all.json')
 
     ret = script_runner.run('scil_stats_group_comparison.py',
                             in_participants, in_json, 'Group',

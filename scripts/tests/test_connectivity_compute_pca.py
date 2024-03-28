@@ -17,8 +17,8 @@ def test_help_option(script_runner):
     assert ret.success
 
 
-def test_execution_pca(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution_pca(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     input_folder = os.path.join(SCILPY_HOME, 'stats/pca')
     output_folder = os.path.join(SCILPY_HOME, 'stats/pca_out')
     ids = os.path.join(SCILPY_HOME, 'stats/pca', 'list_id.txt')

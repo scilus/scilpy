@@ -18,8 +18,8 @@ def test_help_option(script_runner):
     assert ret.success
 
 
-def test_execution_filtering_all_options(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution_filtering_all_options(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_tractogram = os.path.join(SCILPY_HOME, 'anatomical_filtering',
                                  'tractogram_filter_ana.trk')
     in_wmparc = os.path.join(SCILPY_HOME, 'anatomical_filtering',
@@ -37,8 +37,8 @@ def test_execution_filtering_all_options(script_runner):
     assert ret.success
 
 
-def test_execution_filtering_rejected(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution_filtering_rejected(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_tractogram = os.path.join(SCILPY_HOME, 'anatomical_filtering',
                                  'tractogram_filter_ana.trk')
     in_wmparc = os.path.join(SCILPY_HOME, 'anatomical_filtering',
@@ -55,8 +55,8 @@ def test_execution_filtering_rejected(script_runner):
     assert ret.success
 
 
-def test_execution_filtering_save_intermediate(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution_filtering_save_intermediate(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_tractogram = os.path.join(SCILPY_HOME, 'anatomical_filtering',
                                  'tractogram_filter_ana.trk')
     in_wmparc = os.path.join(SCILPY_HOME, 'anatomical_filtering',

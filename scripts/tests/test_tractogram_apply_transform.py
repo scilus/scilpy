@@ -17,8 +17,8 @@ def test_help_option(script_runner):
     assert ret.success
 
 
-def test_execution_inverse(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution_inverse(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_model = os.path.join(SCILPY_HOME, 'bst', 'template', 'rpt_m.trk')
     in_fa = os.path.join(SCILPY_HOME, 'bst', 'fa.nii.gz')
     in_aff = os.path.join(SCILPY_HOME, 'bst', 'output0GenericAffine.mat')

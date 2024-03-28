@@ -18,8 +18,8 @@ def test_help_option(script_runner):
     assert ret.success
 
 
-def test_execution_processing_ssst(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution_processing_ssst(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_frf = os.path.join(SCILPY_HOME, 'processing',
                           'frf.txt')
     ret = script_runner.run('scil_frf_set_diffusivities.py', in_frf,
@@ -27,8 +27,8 @@ def test_execution_processing_ssst(script_runner):
     assert ret.success
 
 
-def test_execution_processing_msmt(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution_processing_msmt(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_frf = os.path.join(SCILPY_HOME, 'commit_amico',
                           'wm_frf.txt')
     ret = script_runner.run('scil_frf_set_diffusivities.py', in_frf,
@@ -36,8 +36,8 @@ def test_execution_processing_msmt(script_runner):
     assert ret.success
 
 
-def test_execution_processing__wrong_input(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution_processing__wrong_input(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_frf = os.path.join(SCILPY_HOME, 'commit_amico',
                           'wm_frf.txt')
     ret = script_runner.run('scil_frf_set_diffusivities.py', in_frf,

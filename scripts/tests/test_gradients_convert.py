@@ -18,8 +18,8 @@ def test_help_option(script_runner):
     assert ret.success
 
 
-def test_execution_processing_fsl(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution_processing_fsl(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_bval = os.path.join(SCILPY_HOME, 'processing',
                            '1000.bval')
     in_bvec = os.path.join(SCILPY_HOME, 'processing',
@@ -30,8 +30,8 @@ def test_execution_processing_fsl(script_runner):
     assert ret.success
 
 
-def test_execution_processing_mrtrix(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution_processing_mrtrix(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_encoding = os.path.join(SCILPY_HOME, 'processing',
                                '1000.b')
     ret = script_runner.run('scil_gradients_convert.py',
@@ -40,8 +40,8 @@ def test_execution_processing_mrtrix(script_runner):
     assert ret.success
 
 
-def test_name_validation_mrtrix(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_name_validation_mrtrix(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_bval = os.path.join(SCILPY_HOME, 'processing',
                            '1000.bval')
     in_bvec = os.path.join(SCILPY_HOME, 'processing',
@@ -58,8 +58,8 @@ def test_name_validation_mrtrix(script_runner):
     assert os.path.isfile(right_path)
 
 
-def test_name_validation_fsl_bval(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_name_validation_fsl_bval(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_encoding = os.path.join(SCILPY_HOME, 'processing',
                                '1000.b')
     ret = script_runner.run('scil_gradients_convert.py',
@@ -78,8 +78,8 @@ def test_name_validation_fsl_bval(script_runner):
     assert os.path.isfile(right_path_bvec)
 
 
-def test_name_validation_fsl_bvec(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_name_validation_fsl_bvec(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_encoding = os.path.join(SCILPY_HOME, 'processing',
                                '1000.b')
     ret = script_runner.run('scil_gradients_convert.py',

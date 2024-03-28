@@ -16,10 +16,10 @@ def test_help_option(script_runner):
     assert ret.success
 
 
-def test_execution(script_runner):
+def test_execution(script_runner, monkeypatch):
 
     # toDo: Add --mask.
-    os.chdir(os.path.expanduser(tmp_dir.name))
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_fodf = os.path.join(
         f"{test_data_root}/fodf_descoteaux07_sub_unified_asym.nii.gz")
 
@@ -29,8 +29,8 @@ def test_execution(script_runner):
     assert ret.success
 
 
-def test_assert_not_all(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_assert_not_all(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_fodf = os.path.join(
         f"{test_data_root}/fodf_descoteaux07_sub_unified_asym.nii.gz")
 
@@ -39,8 +39,8 @@ def test_assert_not_all(script_runner):
     assert not ret.success
 
 
-def test_execution_not_all(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution_not_all(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_fodf = os.path.join(
         f"{test_data_root}/fodf_descoteaux07_sub_unified_asym.nii.gz")
 
@@ -50,8 +50,8 @@ def test_execution_not_all(script_runner):
     assert ret.success
 
 
-def test_assert_symmetric_input(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_assert_symmetric_input(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_fodf = os.path.join(
         f"{test_data_root}/fodf_descoteaux07_sub.nii.gz")
 
@@ -61,8 +61,8 @@ def test_assert_symmetric_input(script_runner):
     assert not ret.success
 
 
-def test_execution_symmetric_input(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution_symmetric_input(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_fodf = os.path.join(
         f"{test_data_root}/fodf_descoteaux07_sub.nii.gz")
 
