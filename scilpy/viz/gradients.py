@@ -43,7 +43,6 @@ def plot_each_shell(ms, centroids, plot_sym_vecs=True, use_sphere=True,
     _colors = generate_n_colors(len(ms))
 
     if use_sphere:
-        # TODO : move memmap ODF to more global package, a class or something
         sphere = get_sphere('symmetric724')
         shape = (1, 1, 1, sphere.vertices.shape[0])
         _, fname = mkstemp(suffix='_odf_slicer.mmap')
@@ -53,7 +52,6 @@ def plot_each_shell(ms, centroids, plot_sym_vecs=True, use_sphere=True,
         affine = np.eye(4)
 
     for i, shell in enumerate(ms):
-        # TODO : use content of viz module to do the work
         logging.info('Showing shell {}'.format(int(centroids[i])))
         if same_color:
             i = 0
@@ -123,7 +121,6 @@ def plot_proj_shell(ms, use_sym=True, use_sphere=True, same_color=False,
 
         scene.add(sphere_actor)
 
-    # TODO : use content of viz module to do the work
     for i, shell in enumerate(ms):
         if same_color:
             i = 0
