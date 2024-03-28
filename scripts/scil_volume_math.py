@@ -17,7 +17,6 @@ Formerly: scil_image_math.py
 
 import argparse
 import logging
-import os
 
 from dipy.io.utils import is_header_compatible
 import nibabel as nib
@@ -28,7 +27,7 @@ from scilpy.io.image import load_img
 from scilpy.io.utils import (add_overwrite_arg,
                              add_verbose_arg,
                              assert_outputs_exist)
-from scilpy.utils.util import is_float
+from scilpy.utils import is_float
 
 OPERATIONS = get_image_ops()
 

@@ -7,7 +7,7 @@ The templates are on http://www.bic.mni.mcgill.ca/ServicesAtlases/ICBM152NLin200
 
 For quick quality control, the MNI template can be downsampled to 2mm iso.
 Axial, coronal and sagittal slices are captured.
-"""
+""" # noqa
 
 import argparse
 import logging
@@ -26,7 +26,9 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_outputs_exist)
 from scilpy.gradients.bvec_bval_tools import normalize_bvecs
 from scilpy.image.volume_operations import register_image
-from scilpy.viz.screenshot import display_slices
+from scilpy.utils.spatial import RAS_AXES_NAMES
+from scilpy.utils.spatial import get_axis_name
+from scilpy.viz.legacy import display_slices
 
 
 def _build_arg_parser():
@@ -40,13 +42,14 @@ def _build_arg_parser():
     p.add_argument('in_bvec',
                    help='Path of the bvec file, in FSL format.')
     p.add_argument('in_template',
-                   help='Path to the target MNI152 template for registration,\n'
-                        'use the one provided online.')
+                   help='Path to the target MNI152 template for \n'
+                        'registration, use the one provided online.')
     p.add_argument('--shells', type=int, nargs='+',
                    help='Shells to use for DTI fit (usually below 1200), '
                         'b0 must be listed.')
     p.add_argument('--out_suffix',
-                   help='Add a suffix to the output, else the axis name is used.')
+                   help='Add a suffix to the output, else the '
+                        'axis name is used.')
     p.add_argument('--out_dir', default='',
                    help='Put all images in a specific directory.')
 
@@ -103,12 +106,10 @@ def prepare_data_for_actors(dwi_filename, bvals_filename, bvecs_filename,
         shell_bvecs = bvecs
 
     # Register the DWI data to the template
-    transformed_dwi, transformation = register_image(target_template_data,
-                                                     target_template_affine,
-                                                     mean_b0,
-                                                     dwi_affine,
-                                                     transformation_type='rigid',
-                                                     dwi=shell_data)
+    transformed_dwi, transformation = register_image(
+        target_template_data, target_template_affine, mean_b0, dwi_affine,
+        transformation_type='rigid',
+        dwi=shell_data)
 
     # Rotate gradients
     rotated_bvecs = np.dot(shell_bvecs, transformation[0:3, 0:3])
@@ -150,7 +151,7 @@ def main():
     assert_inputs_exist(parser, required)
 
     output_filenames = []
-    for axis_name in ['sagittal', 'coronal', 'axial']:
+    for axis_name in RAS_AXES_NAMES:
         if args.out_suffix:
             output_filenames.append(os.path.join(args.out_dir,
                                                  '{0}_{1}.png'.format(
@@ -194,17 +195,17 @@ def main():
     # Take a snapshot of each dataset, camera setting are fixed for the
     # known template, won't work with another.
     display_slices(volume_actor, slices_choice,
-                   output_filenames[0], 'sagittal',
+                   output_filenames[0], get_axis_name(0),
                    view_position=tuple([x for x in (-125, 10, 10)]),
                    focal_point=tuple([x for x in (0, -10, 10)]),
                    peaks_actor=peaks_actor)
     display_slices(volume_actor, slices_choice,
-                   output_filenames[1], 'coronal',
+                   output_filenames[1], get_axis_name(1),
                    view_position=tuple([x for x in (0, 150, 30)]),
                    focal_point=tuple([x for x in (0, 0, 30)]),
                    peaks_actor=peaks_actor)
     display_slices(volume_actor, slices_choice,
-                   output_filenames[2], 'axial',
+                   output_filenames[2], get_axis_name(2),
                    view_position=tuple([x for x in (0, 25, 150)]),
                    focal_point=tuple([x for x in (0, 25, 0)]),
                    peaks_actor=peaks_actor)

@@ -6,7 +6,7 @@ import nibabel as nib
 import numpy as np
 import os
 
-from scilpy.utils.util import is_float
+from scilpy.utils import is_float
 
 
 def load_img(arg):
@@ -55,8 +55,8 @@ def merge_labels_into_mask(atlas, filtering_args):
         values = filtering_args.split(' ')
         for filter_opt in values:
             if ':' in filter_opt:
-                values = [int(x) for x in filter_opt.split(':')]
-                mask[(atlas >= int(min(values))) & (atlas <= int(max(values)))] = 1
+                vals = [int(x) for x in filter_opt.split(':')]
+                mask[(atlas >= int(min(vals))) & (atlas <= int(max(vals)))] = 1
             else:
                 mask[atlas == int(filter_opt)] = 1
     elif ':' in filtering_args:
@@ -85,7 +85,8 @@ def assert_same_resolution(images):
 
     for curr_image in images[1:]:
         if not is_header_compatible(images[0], curr_image):
-            raise Exception("Images are not of the same resolution/affine")
+            raise Exception(f"Images are not of the same resolution/affine : "
+                            f"({curr_image}) vs ({images[0]})")
 
 
 def get_data_as_mask(mask_img, dtype=np.uint8):

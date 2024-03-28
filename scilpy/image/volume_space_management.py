@@ -4,10 +4,6 @@ import numpy as np
 from dipy.core.interpolation import trilinear_interpolate4d, \
     nearestneighbor_interpolate
 from dipy.io.stateful_tractogram import Origin, Space
-from dipy.segment.mask import bounding_box
-
-
-from scilpy.utils.util import voxel_to_world
 
 
 class DataVolume(object):

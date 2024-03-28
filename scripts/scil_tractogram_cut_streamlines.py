@@ -114,7 +114,7 @@ def main():
     else:
         logging.warning('The provided mask has MORE THAN 2 blobs. '
                         'cut_between_mask_two_blobs_streamlines function '
-                        'selected. This may cause problems with the outputed '
+                        'selected. This may cause problems with the output '
                         'streamlines. Please inspect the output carefully.')
         new_sft = cut_between_mask_two_blobs_streamlines(sft, binary_mask)
 

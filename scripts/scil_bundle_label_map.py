@@ -43,7 +43,7 @@ from scilpy.tractograms.streamline_and_mask_operations import \
     cut_outside_of_mask_streamlines
 from scilpy.tractograms.streamline_operations import \
     resample_streamlines_num_points
-from scilpy.viz.utils import get_colormap
+from scilpy.viz.color import get_lookup_table
 
 
 def _build_arg_parser():
@@ -250,7 +250,7 @@ def main():
         labels_map[ind[0], ind[1], ind[2]] = winner
         distance_map[ind[0], ind[1], ind[2]] = np.average(dists_val)
 
-        cmap = get_colormap(args.colormap)
+        cmap = get_lookup_table(args.colormap)
 
     for i, sft in enumerate(sft_list):
         if len(sft_list) > 1:
