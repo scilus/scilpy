@@ -49,7 +49,8 @@ from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_overwrite_arg, add_sh_basis_args,
                              add_verbose_arg, assert_inputs_exist,
                              assert_outputs_exist, parse_sh_basis_arg,
-                             assert_headers_compatible)
+                             assert_headers_compatible, add_compression_arg,
+                             verify_compression_th)
 from scilpy.tracking.utils import get_theta
 
 
@@ -127,9 +128,6 @@ def _build_arg_parser():
                             '[%(default)s]')
 
     out_g = p.add_argument_group('Output options')
-    out_g.add_argument('--compress', type=float,
-                       help='If set, will compress streamlines.\n'
-                            'The parameter value is the distance threshold.')
     out_g.add_argument('--all', dest='keep_all', action='store_true',
                        help='If set, keeps "excluded" streamlines.\n'
                             'NOT RECOMMENDED, except for debugging.')
@@ -141,6 +139,7 @@ def _build_arg_parser():
                        help='If set, save the seeds used for the tracking \n '
                             'in the data_per_streamline property.')
 
+    add_compression_arg(out_g)
     add_verbose_arg(p)
 
     return p
@@ -168,13 +167,7 @@ def main():
         parser.error('maxL must be > than minL, (minL={}mm, maxL={}mm).'
                      .format(args.min_length, args.max_length))
 
-    if args.compress:
-        if args.compress < 0.001 or args.compress > 1:
-            logging.warning(
-                'You are using an error rate of {}.\nWe recommend setting it '
-                'between 0.001 and 1.\n0.001 will do almost nothing to the '
-                'tracts while 1 will higly compress/linearize the tracts'
-                .format(args.compress))
+    verify_compression_th(args.compress_th)
 
     if args.particles <= 0:
         parser.error('--particles must be >= 1.')
@@ -293,9 +286,9 @@ def main():
              if scaled_min_length <= length(s) <= scaled_max_length)
         data_per_streamlines = {}
 
-    if args.compress:
+    if args.compress_th:
         filtered_streamlines = (
-            compress_streamlines(s, args.compress)
+            compress_streamlines(s, args.compress_th)
             for s in filtered_streamlines)
 
     tractogram = LazyTractogram(lambda: filtered_streamlines,

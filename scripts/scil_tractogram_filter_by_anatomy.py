@@ -71,7 +71,7 @@ from scilpy.segment.streamlines import filter_grid_roi
 from scilpy.tractograms.streamline_operations import \
     filter_streamlines_by_length, remove_loops_and_sharp_turns
 from scilpy.tractograms.tractogram_operations import \
-    perform_tractogram_operation_on_sft, filter_tractogram_data
+    perform_tractogram_operation_on_sft
 
 
 EPILOG = """
@@ -511,7 +511,7 @@ def main():
     if args.angle != np.inf:
         ids_c = remove_loops_and_sharp_turns(sft.streamlines, args.angle,
                                              num_processes=nbr_cpu)
-        new_sft = filter_tractogram_data(sft, ids_c)
+        new_sft = sft[ids_c]
     else:
         new_sft = deepcopy(sft)
 

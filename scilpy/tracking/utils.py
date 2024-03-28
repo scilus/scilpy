@@ -20,7 +20,8 @@ from scilpy.reconst.utils import find_order_from_nb_coeff, get_maximas
 from nibabel.streamlines import TrkFile
 from nibabel.streamlines.tractogram import LazyTractogram, TractogramItem
 
-from scilpy.io.utils import add_sh_basis_args, add_overwrite_arg
+from scilpy.io.utils import add_sh_basis_args, add_overwrite_arg, \
+    add_compression_arg
 
 
 class TrackingDirection(list):
@@ -138,12 +139,10 @@ def add_out_options(p):
     scil_tracking_local_dev scripts.
     """
     out_g = p.add_argument_group('Output options')
-    out_g.add_argument('--compress', type=float, metavar='thresh',
-                       help='If set, will compress streamlines. The parameter '
-                            'value is the \ndistance threshold. A rule of '
-                            'thumb is to set it to 0.1mm for \ndeterministic '
-                            'streamlines and 0.2mm for probabilitic '
-                            'streamlines.')
+    msg = ("\nA rule of thumb is to set it to 0.1mm for deterministic \n"
+           "streamlines and to 0.2mm for probabilitic streamlines.")
+    add_compression_arg(out_g, additional_msg=msg)
+
     add_overwrite_arg(out_g)
     out_g.add_argument('--save_seeds', action='store_true',
                        help='If set, save the seeds used for the tracking \n '
@@ -178,8 +177,8 @@ def tqdm_if_verbose(generator: Iterable, verbose: bool, *args, **kwargs):
 
 
 def save_tractogram(
-    streamlines_generator, tracts_format, ref_img, total_nb_seeds,
-    out_tractogram, min_length, max_length, compress, save_seeds, verbose
+        streamlines_generator, tracts_format, ref_img, total_nb_seeds,
+        out_tractogram, min_length, max_length, compress, save_seeds, verbose
 ):
     """ Save the streamlines on-the-fly using a generator. Tracts are
     filtered according to their length and compressed if requested. Seeds
@@ -248,8 +247,8 @@ def save_tractogram(
                 else:
                     # Streamlines are dumped in true world space with
                     # origin center as expected by .tck files.
-                    strl = np.dot(strl, ref_img.affine[:3, :3]) +\
-                        ref_img.affine[:3, 3]
+                    strl = np.dot(strl, ref_img.affine[:3, :3]) + \
+                           ref_img.affine[:3, 3]
 
                 yield TractogramItem(strl, dps, {})
 
@@ -346,17 +345,17 @@ def get_direction_getter(in_img, algo, sphere, sub_sphere, theta, sh_basis,
             # find the closest direction on the sphere.
             logging.info('Input detected as peaks.')
             nb_peaks = img_data.shape[-1] // 3
-            slices = np.arange(0, 15+1, 3)
-            peak_values = np.zeros(img_shape_3d+(nb_peaks,))
-            peak_indices = np.zeros(img_shape_3d+(nb_peaks,))
+            slices = np.arange(0, 15 + 1, 3)
+            peak_values = np.zeros(img_shape_3d + (nb_peaks,))
+            peak_indices = np.zeros(img_shape_3d + (nb_peaks,))
 
             for idx in np.argwhere(np.sum(img_data, axis=-1)):
                 idx = tuple(idx)
                 for i in range(nb_peaks):
                     peak_values[idx][i] = np.linalg.norm(
-                        img_data[idx][slices[i]:slices[i+1]], axis=-1)
+                        img_data[idx][slices[i]:slices[i + 1]], axis=-1)
                     peak_indices[idx][i] = sphere.find_closest(
-                        img_data[idx][slices[i]:slices[i+1]])
+                        img_data[idx][slices[i]:slices[i + 1]])
 
             dg.peak_dirs = img_data
         else:
@@ -365,8 +364,8 @@ def get_direction_getter(in_img, algo, sphere, sub_sphere, theta, sh_basis,
             logging.info('Input detected as fodf.')
             npeaks = 5
             peak_dirs = np.zeros((img_shape_3d + (npeaks, 3)))
-            peak_values = np.zeros((img_shape_3d + (npeaks, )))
-            peak_indices = np.full((img_shape_3d + (npeaks, )), -1,
+            peak_values = np.zeros((img_shape_3d + (npeaks,)))
+            peak_indices = np.full((img_shape_3d + (npeaks,)), -1,
                                    dtype='int')
             b_matrix, _ = sh_to_sf_matrix(sphere,
                                           find_order_from_nb_coeff(img_data),
