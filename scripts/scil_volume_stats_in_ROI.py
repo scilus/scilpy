@@ -48,12 +48,12 @@ def _build_arg_parser():
                          'metrics file, \nin nifti format.')
 
     p.add_argument('--bin', action='store_true',
-                   help='If set, we will consider every value of the mask '
-                        'higher than 0 \nto be part of the mask '
-                        '(equivalent weighting for every voxel).')
+                   help='If set, will consider every value of the mask higher'
+                        'than 0 to be \npart of the mask (equivalent '
+                        'weighting for every voxel).')
     p.add_argument('--normalize_weights', action='store_true',
                    help='If set, the weights will be normalized to the [0,1] '
-                        'range. \n(We divide by the max,  ')
+                        'range.')
 
     add_json_args(p)
     add_verbose_arg(p)
