@@ -14,7 +14,8 @@ import logging
 import nibabel as nib
 
 from scilpy.io.utils import (add_verbose_arg, add_overwrite_arg,
-                             assert_inputs_exist, assert_outputs_exist)
+                             assert_inputs_exist, assert_outputs_exist,
+                             assert_headers_compatible)
 from scilpy.image.volume_operations import resample_volume
 
 
@@ -66,6 +67,8 @@ def main():
     # Checking args
     assert_inputs_exist(parser, args.in_image, args.ref)
     assert_outputs_exist(parser, args, args.out_image)
+    assert_headers_compatible(parser, args.in_image, args.ref)
+
     if args.enforce_dimensions and not args.ref:
         parser.error("Cannot enforce dimensions without a reference image")
 
