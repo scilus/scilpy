@@ -17,10 +17,10 @@ import argparse
 import json
 import logging
 
-from dipy.io.streamline import save_tractogram
 import numpy as np
 
-from scilpy.io.streamlines import load_tractogram_with_reference
+from scilpy.io.streamlines import load_tractogram_with_reference, \
+    check_empty_option_save_tractogram
 from scilpy.io.utils import (add_json_args,
                              add_verbose_arg,
                              add_overwrite_arg,
@@ -85,26 +85,13 @@ def main():
                          indent=args.indent))
 
     # Saving
-    if len(ids_ushaped) == 0:
-        if args.no_empty:
-            logging.warning("The file {} won't be written (0 streamline)."
-                            .format(args.out_tractogram))
-        else:
-            logging.info('The file {} contains 0 streamline.'
-                         .format(args.out_tractogram))
-    if not (len(ids_ushaped) == 0 and args.no_empty):
-        save_tractogram(sft[ids_ushaped], args.out_tractogram)
+    check_empty_option_save_tractogram(sft[ids_ushaped], args.out_tractogram,
+                                       args.no_empty)
 
     if args.remaining_tractogram:
-        if len(ids_others) == 0:
-            if args.no_empty:
-                logging.info("The file {} won't be written (0 streamline"
-                             ").".format(args.remaining_tractogram))
-                return
-            else:
-                logging.warning('No remaining streamlines. Saving an empty '
-                                'tractogram')
-        save_tractogram(sft[ids_others], args.remaining_tractogram)
+        check_empty_option_save_tractogram(sft[ids_others],
+                                           args.remaining_tractogram,
+                                           args.no_empty)
 
 
 if __name__ == "__main__":

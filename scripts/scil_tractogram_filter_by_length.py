@@ -11,10 +11,10 @@ import argparse
 import json
 import logging
 
-from dipy.io.streamline import save_tractogram
 import numpy as np
 
-from scilpy.io.streamlines import load_tractogram_with_reference
+from scilpy.io.streamlines import load_tractogram_with_reference, \
+    check_empty_option_save_tractogram
 from scilpy.io.utils import (add_json_args,
                              add_overwrite_arg,
                              add_reference_arg,
@@ -74,17 +74,8 @@ def main():
                          'streamline_count_after_filtering': int(sc_af)},
                          indent=args.indent))
 
-    if len(new_sft.streamlines) == 0:
-        if args.no_empty:
-            logging.info("The file {} won't be written "
-                         "(0 streamline).".format(args.out_tractogram))
-
-            return
-
-        logging.info('The file {} contains 0 streamline'.format(
-                     args.out_tractogram))
-
-    save_tractogram(new_sft, args.out_tractogram)
+    check_empty_option_save_tractogram(new_sft, args.out_tractogram,
+                                       args.no_empty)
 
 
 if __name__ == "__main__":
