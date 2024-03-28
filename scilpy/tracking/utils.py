@@ -139,10 +139,9 @@ def add_out_options(p):
     scil_tracking_local_dev scripts.
     """
     out_g = p.add_argument_group('Output options')
-    add_compression_arg(out_g, additional_msg=
-                        "\nA rule of thumb is to set it to 0.1mm for "
-                        "deterministic \nstreamlines and to 0.2mm for "
-                        "probabilitic streamlines.")
+    msg = ("\nA rule of thumb is to set it to 0.1mm for deterministic \n"
+           "streamlines and to 0.2mm for probabilitic streamlines.")
+    add_compression_arg(out_g, additional_msg=msg)
 
     add_overwrite_arg(out_g)
     out_g.add_argument('--save_seeds', action='store_true',
