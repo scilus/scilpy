@@ -514,7 +514,7 @@ def validate_sh_basis_choice(sh_basis):
 
 
 def add_compression_arg(p, additional_msg=''):
-    p.add_argument('--compress', dest='compress_th', const=0.1,
+    p.add_argument('--compress', dest='compress_th', nargs='?', const=0.1,
                    type=ranged_type(float, 0, None),
                    help='If set, compress the resulting streamline. Value is '
                         'the maximum \ncompression distance in mm.'
