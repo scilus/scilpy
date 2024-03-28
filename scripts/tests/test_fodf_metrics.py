@@ -17,8 +17,8 @@ def test_help_option(script_runner):
     assert ret.success
 
 
-def test_execution_processing(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution_processing(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_fodf = os.path.join(SCILPY_HOME, 'processing',
                            'fodf_descoteaux07.nii.gz')
     ret = script_runner.run('scil_fodf_metrics.py', in_fodf, '--not_al',

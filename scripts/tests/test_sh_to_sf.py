@@ -17,8 +17,8 @@ def test_help_option(script_runner):
     assert ret.success
 
 
-def test_execution_in_sphere(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution_in_sphere(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_sh = os.path.join(SCILPY_HOME, 'processing', 'sh_1000.nii.gz')
     in_b0 = os.path.join(SCILPY_HOME, 'processing', 'fa.nii.gz')
     in_bval = os.path.join(SCILPY_HOME, 'processing', '1000.bval')
@@ -32,8 +32,8 @@ def test_execution_in_sphere(script_runner):
     assert ret.success
 
 
-def test_execution_in_bvec(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution_in_bvec(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_sh = os.path.join(SCILPY_HOME, 'processing', 'sh_1000.nii.gz')
     in_bval = os.path.join(SCILPY_HOME, 'processing', '1000.bval')
     in_bvec = os.path.join(SCILPY_HOME, 'processing', '1000.bvec')
@@ -54,8 +54,8 @@ def test_execution_in_bvec(script_runner):
     assert not ret.success
 
 
-def test_execution_no_bval(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution_no_bval(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_sh = os.path.join(SCILPY_HOME, 'processing', 'sh_1000.nii.gz')
     in_b0 = os.path.join(SCILPY_HOME, 'processing', 'fa.nii.gz')
 

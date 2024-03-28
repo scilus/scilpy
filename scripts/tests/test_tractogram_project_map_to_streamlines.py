@@ -18,8 +18,8 @@ def test_help_option(script_runner):
     assert ret.success
 
 
-def test_execution_3D_map(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution_3D_map(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_t1 = os.path.join(SCILPY_HOME, 'tractometry', 'mni_masked.nii.gz')
     in_tracto_1 = os.path.join(SCILPY_HOME, 'others',
                                'IFGWM_sub.trk')
@@ -31,8 +31,8 @@ def test_execution_3D_map(script_runner):
     assert ret.success
 
 
-def test_execution_4D_map(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution_4D_map(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_rgb = os.path.join(SCILPY_HOME, 'others', 'rgb.nii.gz')
     in_tracto_1 = os.path.join(SCILPY_HOME, 'others',
                                'IFGWM_sub.trk')
@@ -44,8 +44,8 @@ def test_execution_4D_map(script_runner):
     assert ret.success
 
 
-def test_execution_3D_map_endpoints_only(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution_3D_map_endpoints_only(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_t1 = os.path.join(SCILPY_HOME, 'tractometry', 'mni_masked.nii.gz')
     in_tracto_1 = os.path.join(SCILPY_HOME, 'others',
                                'IFGWM_sub.trk')
@@ -59,8 +59,8 @@ def test_execution_3D_map_endpoints_only(script_runner):
     assert ret.success
 
 
-def test_execution_4D_map_endpoints_only(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution_4D_map_endpoints_only(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_rgb = os.path.join(SCILPY_HOME, 'others', 'rgb.nii.gz')
     in_tracto_1 = os.path.join(SCILPY_HOME, 'others',
                                'IFGWM_sub.trk')
@@ -74,8 +74,8 @@ def test_execution_4D_map_endpoints_only(script_runner):
     assert ret.success
 
 
-def test_execution_3D_map_trilinear(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution_3D_map_trilinear(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_t1 = os.path.join(SCILPY_HOME, 'tractometry', 'mni_masked.nii.gz')
     in_tracto_1 = os.path.join(SCILPY_HOME, 'others',
                                'IFGWM_sub.trk')

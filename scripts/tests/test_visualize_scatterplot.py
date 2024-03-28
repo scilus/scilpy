@@ -17,8 +17,8 @@ def test_help_option(script_runner):
     assert ret.success
 
 
-def test_execution_processing(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution_processing(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_x = os.path.join(SCILPY_HOME, 'plot',
                         'fa.nii.gz')
     in_y = os.path.join(SCILPY_HOME, 'plot',
@@ -28,8 +28,8 @@ def test_execution_processing(script_runner):
     assert ret.success
 
 
-def test_execution_processing_bin_mask(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution_processing_bin_mask(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_x = os.path.join(SCILPY_HOME, 'plot',
                         'fa.nii.gz')
     in_y = os.path.join(SCILPY_HOME, 'plot',
@@ -41,8 +41,8 @@ def test_execution_processing_bin_mask(script_runner):
     assert ret.success
 
 
-def test_execution_processing_prob_map(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution_processing_prob_map(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_x = os.path.join(SCILPY_HOME, 'plot',
                         'fa.nii.gz')
     in_y = os.path.join(SCILPY_HOME, 'plot',
@@ -57,8 +57,8 @@ def test_execution_processing_prob_map(script_runner):
     assert ret.success
 
 
-def test_execution_processing_atlas(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution_processing_atlas(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_x = os.path.join(SCILPY_HOME, 'plot',
                         'fa.nii.gz')
     in_y = os.path.join(SCILPY_HOME, 'plot',
@@ -73,8 +73,8 @@ def test_execution_processing_atlas(script_runner):
     assert ret.success
 
 
-def test_execution_processing_atlas_folder(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution_processing_atlas_folder(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_x = os.path.join(SCILPY_HOME, 'plot',
                         'fa.nii.gz')
     in_y = os.path.join(SCILPY_HOME, 'plot',
@@ -90,8 +90,9 @@ def test_execution_processing_atlas_folder(script_runner):
     assert ret.success
 
 
-def test_execution_processing_atlas_folder_specific_label(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution_processing_atlas_folder_specific_label(script_runner,
+                                                          monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_x = os.path.join(SCILPY_HOME, 'plot',
                         'fa.nii.gz')
     in_y = os.path.join(SCILPY_HOME, 'plot',

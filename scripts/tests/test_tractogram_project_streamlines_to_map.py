@@ -18,8 +18,8 @@ def test_help_option(script_runner):
     assert ret.success
 
 
-def test_execution_dpp(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution_dpp(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_bundle = os.path.join(SCILPY_HOME, 'tractometry', 'IFGWM_uni.trk')
     in_mni = os.path.join(SCILPY_HOME, 'tractometry', 'mni_masked.nii.gz')
     in_bundle_with_dpp = 'IFGWM_uni_with_dpp.trk'
@@ -50,8 +50,8 @@ def test_execution_dpp(script_runner):
     assert ret.success
 
 
-def test_execution_dps(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution_dps(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_bundle = os.path.join(SCILPY_HOME, 'tractometry', 'IFGWM_uni.trk')
     in_mni = os.path.join(SCILPY_HOME, 'tractometry', 'mni_masked.nii.gz')
     in_bundle_with_dpp = 'IFGWM_uni_with_dpp.trk'

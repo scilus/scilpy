@@ -18,8 +18,8 @@ def test_help_option(script_runner):
     assert ret.success
 
 
-def test_execution_processing(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution_processing(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_bval = os.path.join(SCILPY_HOME, 'processing', '1000.bval')
     ret = script_runner.run('scil_gradients_round_bvals.py',
                             in_bval, '0', '1000', '1000_resample.b', "20",

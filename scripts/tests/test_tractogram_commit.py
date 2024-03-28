@@ -19,8 +19,8 @@ def test_help_option(script_runner):
     assert ret.success
 
 
-def test_execution_commit_amico(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution_commit_amico(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_tracking = os.path.join(SCILPY_HOME, 'commit_amico',
                                'tracking.trk')
     in_dwi = os.path.join(SCILPY_HOME, 'commit_amico',
@@ -39,7 +39,8 @@ def test_execution_commit_amico(script_runner):
                             '--nbr_iter', '500', '--in_peaks', in_peaks,
                             '--in_tracking_mask', in_mask,
                             '--para_diff', '1.7E-3',
-                            '--perp_diff', '1.19E-3', '0.85E-3', '0.51E-3', '0.17E-3',
+                            '--perp_diff',
+                            '1.19E-3', '0.85E-3', '0.51E-3', '0.17E-3',
                             '--iso_diff', '1.7E-3', '3.0E-3',
                             '--processes', '1')
     assert ret.success

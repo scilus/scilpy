@@ -17,8 +17,8 @@ def test_help_option(script_runner):
     assert ret.success
 
 
-def test_execution_bundles(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution_bundles(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_tractogram = os.path.join(SCILPY_HOME, 'bundles',
                                  'bundle_all_1mm.trk')
     ret = script_runner.run('scil_tractogram_remove_invalid.py',

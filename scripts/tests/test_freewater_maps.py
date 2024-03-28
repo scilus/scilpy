@@ -17,8 +17,8 @@ def test_help_option(script_runner):
     assert ret.success
 
 
-def test_execution_commit_amico(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution_commit_amico(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_dwi = os.path.join(SCILPY_HOME, 'commit_amico',
                           'dwi.nii.gz')
     in_bval = os.path.join(SCILPY_HOME, 'commit_amico',

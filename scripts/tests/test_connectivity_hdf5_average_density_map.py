@@ -18,8 +18,8 @@ def test_help_option(script_runner):
     assert ret.success
 
 
-def test_execution_connectivity(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution_connectivity(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_h5 = os.path.join(SCILPY_HOME, 'connectivity', 'decompose.h5')
     ret = script_runner.run('scil_connectivity_hdf5_average_density_map.py',
                             in_h5, 'avg_density_maps/', '--binary',

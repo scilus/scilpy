@@ -18,8 +18,8 @@ def test_help_option(script_runner):
     assert ret.success
 
 
-def test_execution_extract_half(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution_extract_half(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_bvec = os.path.join(SCILPY_HOME, 'processing', 'dwi.bvec')
     in_bval = os.path.join(SCILPY_HOME, 'processing', 'dwi.bval')
     ret = script_runner.run('scil_gradients_validate_correct_eddy.py',
@@ -29,8 +29,8 @@ def test_execution_extract_half(script_runner):
                             '-f')
     assert ret.success
 
-def test_execution_extract_total(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution_extract_total(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_bvec = os.path.join(SCILPY_HOME, 'processing', 'dwi.bvec')
     in_bval = os.path.join(SCILPY_HOME, 'processing', 'dwi.bval')
     ret = script_runner.run('scil_gradients_validate_correct_eddy.py',

@@ -62,8 +62,8 @@ def test_help_option(script_runner):
     assert ret.success
 
 
-def test_execution_MT_no_option(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution_MT_no_option(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
 
     # no option
     ret = script_runner.run('scil_mti_maps_MT.py', tmp_dir.name,
@@ -79,8 +79,8 @@ def test_execution_MT_no_option(script_runner):
     assert ret.success
 
 
-def test_execution_MT_prefix(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution_MT_prefix(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
 
     # --out_prefix
     ret = script_runner.run('scil_mti_maps_MT.py', tmp_dir.name,
@@ -97,8 +97,8 @@ def test_execution_MT_prefix(script_runner):
     assert ret.success
 
 
-def test_execution_MT_extended(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution_MT_extended(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
 
     # --extended
     ret = script_runner.run('scil_mti_maps_MT.py', tmp_dir.name,
@@ -115,8 +115,8 @@ def test_execution_MT_extended(script_runner):
     assert ret.success
 
 
-def test_execution_MT_filtering(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution_MT_filtering(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
 
     # --filtering
     ret = script_runner.run('scil_mti_maps_MT.py', tmp_dir.name,
@@ -133,8 +133,8 @@ def test_execution_MT_filtering(script_runner):
     assert ret.success
 
 
-def test_execution_MT_B1_map(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution_MT_B1_map(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
 
     out_b1_map = tmp_dir.name + '/B1map.nii.gz'
 
@@ -161,8 +161,8 @@ def test_execution_MT_B1_map(script_runner):
     assert ret.success
 
 
-def test_execution_MT_wrong_echoes(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution_MT_wrong_echoes(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
 
     # Wrong number of echoes for negative
     ret = script_runner.run('scil_mti_maps_MT.py', tmp_dir.name,
@@ -180,8 +180,8 @@ def test_execution_MT_wrong_echoes(script_runner):
     assert (not ret.success)
 
 
-def test_execution_MT_single_echoe(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution_MT_single_echoe(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
 
     # Single echoe
     ret = script_runner.run('scil_mti_maps_MT.py', tmp_dir.name,
@@ -195,8 +195,8 @@ def test_execution_MT_single_echoe(script_runner):
     assert ret.success
 
 
-def test_execution_MT_B1_not_T1(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution_MT_B1_not_T1(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
 
     out_b1_map = tmp_dir.name + '/B1map.nii.gz'
 
@@ -217,8 +217,8 @@ def test_execution_MT_B1_not_T1(script_runner):
     assert ret.success
 
 
-def test_execution_MT_B1_no_fit(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution_MT_B1_no_fit(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
 
     out_b1_map = tmp_dir.name + '/B1map.nii.gz'
 
@@ -240,8 +240,8 @@ def test_execution_MT_B1_no_fit(script_runner):
     assert (not ret.success)
 
 
-def test_execution_MT_acq_params(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution_MT_acq_params(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
 
     # Acquisition parameters
     ret = script_runner.run('scil_mti_maps_MT.py', tmp_dir.name,

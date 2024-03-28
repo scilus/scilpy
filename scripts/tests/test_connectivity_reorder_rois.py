@@ -17,8 +17,8 @@ def test_help_option(script_runner):
     assert ret.success
 
 
-def test_execution_compute_OLO(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution_compute_OLO(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_sc = os.path.join(SCILPY_HOME, 'connectivity',
                          'sc_norm.npy')
     in_labels_list = os.path.join(SCILPY_HOME, 'connectivity',
@@ -30,8 +30,8 @@ def test_execution_compute_OLO(script_runner):
     assert ret.success
 
 
-def test_execution_apply_ordering(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution_apply_ordering(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_sc = os.path.join(SCILPY_HOME, 'connectivity', 'sc_norm.npy')
     in_txt = os.path.join(SCILPY_HOME, 'connectivity', 'reorder.txt')
     in_labels_list = os.path.join(SCILPY_HOME, 'connectivity',

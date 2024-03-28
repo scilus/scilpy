@@ -17,8 +17,8 @@ def test_help_option(script_runner):
     assert ret.success
 
 
-def test_execution(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_1 = os.path.join(SCILPY_HOME, 'filtering', 'bundle_4.trk')
     in_2 = os.path.join(SCILPY_HOME, 'filtering', 'bundle_4_filtered.trk')
     in_3 = os.path.join(SCILPY_HOME, 'filtering',

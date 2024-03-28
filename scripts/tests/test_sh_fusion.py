@@ -17,8 +17,8 @@ def test_help_option(script_runner):
     assert ret.success
 
 
-def test_execution_processing(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution_processing(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_sh_1 = os.path.join(SCILPY_HOME, 'processing',
                            'sh_1000.nii.gz')
     in_sh_2 = os.path.join(SCILPY_HOME, 'processing',

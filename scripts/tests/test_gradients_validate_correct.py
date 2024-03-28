@@ -17,8 +17,8 @@ def test_help_option(script_runner):
     assert ret.success
 
 
-def test_execution_processing_dti_peaks(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution_processing_dti_peaks(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_dwi = os.path.join(SCILPY_HOME, 'processing',
                           'dwi_crop_1000.nii.gz')
     in_bval = os.path.join(SCILPY_HOME, 'processing',
@@ -36,8 +36,8 @@ def test_execution_processing_dti_peaks(script_runner):
     assert ret.success
 
 
-def test_execution_processing_fodf_peaks(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution_processing_fodf_peaks(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_bvec = os.path.join(SCILPY_HOME, 'processing',
                            'dwi.bvec')
     in_peaks = os.path.join(SCILPY_HOME, 'processing',

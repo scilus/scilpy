@@ -18,8 +18,9 @@ def test_help_option(script_runner):
     assert ret.success
 
 
-def test_execution_tractogram_point_math_mean_3D_defaults(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution_tractogram_point_math_mean_3D_defaults(script_runner,
+                                                          monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_bundle = os.path.join(SCILPY_HOME, 'tractometry',
                              'IFGWM_uni.trk')
     in_t1 = os.path.join(SCILPY_HOME, 'tractometry',
@@ -43,8 +44,9 @@ def test_execution_tractogram_point_math_mean_3D_defaults(script_runner):
     assert ret.success
 
 
-def test_execution_tractogram_point_math_mean_4D_correlation(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution_tractogram_point_math_mean_4D_correlation(script_runner,
+                                                             monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_bundle = os.path.join(SCILPY_HOME, 'tracking',
                              'local_split_0.trk')
 

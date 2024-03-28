@@ -18,12 +18,13 @@ def test_help_option(script_runner):
     assert ret.success
 
 
-def test_execution_processing(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution_processing(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_trk = os.path.join(SCILPY_HOME, 'tracking', 'union.trk')
     out_trk = 'ushape.trk'
     remaining_trk = 'remaining.trk'
-    ret = script_runner.run('scil_tractogram_extract_ushape.py', in_trk, out_trk,
+    ret = script_runner.run('scil_tractogram_extract_ushape.py',
+                            in_trk, out_trk,
                             '--minU', '0.5',
                             '--maxU', '1',
                             '--remaining_tractogram', remaining_trk,

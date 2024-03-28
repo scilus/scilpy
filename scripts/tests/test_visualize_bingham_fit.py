@@ -16,8 +16,8 @@ def test_help_option(script_runner):
     assert ret.success
 
 
-def test_silent_without_output(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_silent_without_output(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
 
     # dummy dataset (the script should raise an error before using it)
     in_dummy = os.path.join(SCILPY_HOME, 'tracking', 'fodf.nii.gz')

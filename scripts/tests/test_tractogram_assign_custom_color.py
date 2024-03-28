@@ -23,8 +23,8 @@ def test_help_option(script_runner):
     assert ret.success
 
 
-def test_execution_from_anat(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution_from_anat(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_anat = os.path.join(SCILPY_HOME, 'tractometry',
                            'IFGWM_labels_map.nii.gz')
 
@@ -34,16 +34,16 @@ def test_execution_from_anat(script_runner):
     assert ret.success
 
 
-def test_execution_along_profile(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution_along_profile(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
 
     ret = script_runner.run('scil_tractogram_assign_custom_color.py',
                             in_bundle, 'colored2.trk', '--along_profile')
     assert ret.success
 
 
-def test_execution_from_angle(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution_from_angle(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
 
     ret = script_runner.run('scil_tractogram_assign_custom_color.py',
                             in_bundle, 'colored3.trk', '--local_angle')

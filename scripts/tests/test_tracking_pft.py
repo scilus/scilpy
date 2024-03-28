@@ -18,8 +18,8 @@ def test_help_option(script_runner):
     assert ret.success
 
 
-def test_execution_tracking(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution_tracking(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_fodf = os.path.join(SCILPY_HOME, 'tracking',
                            'fodf.nii.gz')
     in_interface = os.path.join(SCILPY_HOME, 'tracking',

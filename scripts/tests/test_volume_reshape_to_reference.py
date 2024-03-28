@@ -17,8 +17,8 @@ def test_help_option(script_runner):
     assert ret.success
 
 
-def test_execution_others(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution_others(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_img = os.path.join(SCILPY_HOME, 'others', 't1_crop.nii.gz')
     in_ref = os.path.join(SCILPY_HOME, 'others', 't1.nii.gz')
     ret = script_runner.run('scil_volume_reshape_to_reference.py', in_img,
@@ -27,8 +27,8 @@ def test_execution_others(script_runner):
     assert ret.success
 
 
-def test_execution_4D(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution_4D(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_img = os.path.join(SCILPY_HOME, 'commit_amico', 'dwi.nii.gz')
     in_ref = os.path.join(SCILPY_HOME, 'others', 't1.nii.gz')
     ret = script_runner.run('scil_volume_reshape_to_reference.py', in_img,

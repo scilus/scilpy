@@ -17,8 +17,8 @@ def test_help_option(script_runner):
     assert ret.success
 
 
-def test_execution_downsample(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution_downsample(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_tracto = os.path.join(SCILPY_HOME, 'tracking',
                              'union_shuffle_sub.trk')
     ret = script_runner.run('scil_tractogram_resample.py', in_tracto,
@@ -26,8 +26,8 @@ def test_execution_downsample(script_runner):
     assert ret.success
 
 
-def test_execution_upsample(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution_upsample(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_tracto = os.path.join(SCILPY_HOME, 'tracking',
                              'union_shuffle_sub.trk')
 
@@ -50,8 +50,8 @@ def test_execution_upsample(script_runner):
     assert ret.success
 
 
-def test_execution_upsample_ptt(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution_upsample_ptt(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_tracto = os.path.join(SCILPY_HOME, 'tracking',
                              'union_shuffle_sub.trk')
 

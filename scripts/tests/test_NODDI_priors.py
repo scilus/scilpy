@@ -17,8 +17,8 @@ def test_help_option(script_runner):
     assert ret.success
 
 
-def test_execution_commit_amico(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution_commit_amico(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_fa = os.path.join(SCILPY_HOME, 'processing',
                          'fa.nii.gz')
     in_ad = os.path.join(SCILPY_HOME, 'processing',

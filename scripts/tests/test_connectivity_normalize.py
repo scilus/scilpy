@@ -17,8 +17,8 @@ def test_help_option(script_runner):
     assert ret.success
 
 
-def test_execution_connectivity(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution_connectivity(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_sc = os.path.join(SCILPY_HOME, 'connectivity', 'sc.npy')
     in_len = os.path.join(SCILPY_HOME, 'connectivity', 'len.npy')
     in_atlas = os.path.join(SCILPY_HOME, 'connectivity',

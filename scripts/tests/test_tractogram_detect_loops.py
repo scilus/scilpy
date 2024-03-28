@@ -17,8 +17,8 @@ def test_help_option(script_runner):
     assert ret.success
 
 
-def test_execution_filtering(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution_filtering(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_bundle = os.path.join(SCILPY_HOME, 'filtering',
                              'bundle_4_filtered.trk')
     ret = script_runner.run('scil_tractogram_detect_loops.py',

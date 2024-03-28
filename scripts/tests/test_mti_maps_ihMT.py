@@ -71,8 +71,8 @@ def test_help_option(script_runner):
     assert ret.success
 
 
-def test_execution_ihMT_no_option(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution_ihMT_no_option(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
 
     # no option
     ret = script_runner.run('scil_mti_maps_ihMT.py', tmp_dir.name,
@@ -93,8 +93,8 @@ def test_execution_ihMT_no_option(script_runner):
     assert ret.success
 
 
-def test_execution_ihMT_prefix(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution_ihMT_prefix(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
 
     # --out_prefix
     ret = script_runner.run('scil_mti_maps_ihMT.py', tmp_dir.name,
@@ -118,8 +118,8 @@ def test_execution_ihMT_prefix(script_runner):
     assert ret.success
 
 
-def test_execution_ihMT_extended(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution_ihMT_extended(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
 
     # --extended
     ret = script_runner.run('scil_mti_maps_ihMT.py', tmp_dir.name,
@@ -143,8 +143,8 @@ def test_execution_ihMT_extended(script_runner):
     assert ret.success
 
 
-def test_execution_ihMT_filtering(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution_ihMT_filtering(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
 
     # --filtering
     ret = script_runner.run('scil_mti_maps_ihMT.py', tmp_dir.name,
@@ -167,8 +167,8 @@ def test_execution_ihMT_filtering(script_runner):
     assert ret.success
 
 
-def test_execution_ihMT_B1_map(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution_ihMT_B1_map(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
 
     out_b1_map = tmp_dir.name + '/B1map.nii.gz'
 
@@ -197,8 +197,8 @@ def test_execution_ihMT_B1_map(script_runner):
     assert ret.success
 
 
-def test_execution_ihMT_B1_no_T1(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution_ihMT_B1_no_T1(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
 
     out_b1_map = tmp_dir.name + '/B1map.nii.gz'
 
@@ -224,8 +224,8 @@ def test_execution_ihMT_B1_no_T1(script_runner):
     assert ret.success
 
 
-def test_execution_ihMT_wrong_echoes(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution_ihMT_wrong_echoes(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
 
     ret = script_runner.run('scil_mti_maps_ihMT.py', tmp_dir.name,
                             '--mask', in_mask,
@@ -244,8 +244,8 @@ def test_execution_ihMT_wrong_echoes(script_runner):
     assert (not ret.success)
 
 
-def test_execution_ihMT_B1_no_fit(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution_ihMT_B1_no_fit(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
 
     out_b1_map = tmp_dir.name + '/B1map.nii.gz'
 
@@ -274,8 +274,8 @@ def test_execution_ihMT_B1_no_fit(script_runner):
     assert (not ret.success)
 
 
-def test_execution_ihMT_single_echo(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution_ihMT_single_echo(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
 
     ret = script_runner.run('scil_mti_maps_ihMT.py', tmp_dir.name,
                             '--mask', in_mask,
@@ -291,8 +291,8 @@ def test_execution_ihMT_single_echo(script_runner):
     assert ret.success
 
 
-def test_execution_ihMT_acq_params(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution_ihMT_acq_params(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
 
     ret = script_runner.run('scil_mti_maps_ihMT.py', tmp_dir.name,
                             '--mask', in_mask,

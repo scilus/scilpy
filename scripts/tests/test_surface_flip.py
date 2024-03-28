@@ -17,10 +17,10 @@ def test_help_option(script_runner):
     assert ret.success
 
 
-def test_execution_surface_vtk_fib(script_runner):
+def test_execution_surface_vtk_fib(script_runner, monkeypatch):
     # Weird behavior, flip around the origin in RASMM rather than the center of
     # the volume in VOX
-    os.chdir(os.path.expanduser(tmp_dir.name))
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_surf = os.path.join(SCILPY_HOME, 'surface_vtk_fib',
                            'lhpialt.vtk')
     ret = script_runner.run('scil_surface_flip.py', in_surf, 'rhpialt.vtk',

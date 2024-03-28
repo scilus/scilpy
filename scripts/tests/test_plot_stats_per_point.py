@@ -17,8 +17,8 @@ def test_help_option(script_runner):
     assert ret.success
 
 
-def test_execution_tractometry(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution_tractometry(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_json = os.path.join(SCILPY_HOME, 'tractometry',
                            'metric_label.json')
     ret = script_runner.run('scil_plot_stats_per_point.py', in_json,

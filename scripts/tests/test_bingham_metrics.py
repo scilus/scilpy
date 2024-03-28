@@ -18,8 +18,8 @@ def test_help_option(script_runner):
     assert ret.success
 
 
-def test_execution_processing(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution_processing(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_bingham = os.path.join(SCILPY_HOME, 'processing',
                               'fodf_bingham.nii.gz')
 
@@ -30,8 +30,8 @@ def test_execution_processing(script_runner):
     assert ret.success
 
 
-def test_execution_processing_mask(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution_processing_mask(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_bingham = os.path.join(SCILPY_HOME, 'processing',
                               'fodf_bingham.nii.gz')
     in_mask = os.path.join(SCILPY_HOME, 'processing',
@@ -44,8 +44,8 @@ def test_execution_processing_mask(script_runner):
     assert ret.success
 
 
-def test_execution_processing_not_all(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution_processing_not_all(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_bingham = os.path.join(SCILPY_HOME, 'processing',
                               'fodf_bingham.nii.gz')
 
