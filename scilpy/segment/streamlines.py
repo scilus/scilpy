@@ -105,24 +105,37 @@ def filter_grid_roi_both(sft, mask_1, mask_2):
     return new_sft, line_based_indices
 
 
-def filter_grid_roi(sft, mask, filter_type, is_exclude, filter_distance=0):
+def filter_grid_roi(sft, mask, filter_type, is_exclude, filter_distance=0,
+                    return_sft=False, return_rejected_sft=False):
     """
     Parameters
     ----------
     sft : StatefulTractogram
-        StatefulTractogram containing the streamlines to segment.
+        Tractogram containing the streamlines to segment.
     mask : numpy.ndarray
         Binary mask in which the streamlines should pass.
     filter_type: str
-        One of the 4 following choices, 'any', 'all', 'either_end', 'both_ends'.
+        One of the 4 following choices:
+            'any', 'all', 'either_end', 'both_ends'
     is_exclude: bool
         Value to indicate if the ROI is an AND (false) or a NOT (true).
+    filter_distance: int
+        The number of passes for dilation.
+    return_sft: bool
+        If true, returns a StatefulTractogram rather than the list of indices.
+    return_rejected_sft: bool
+        If true, aslo returns a StatefulTractogram of the rejected streamlines.
+        (Only if return_sft also true).
+
     Returns
     -------
-    new_sft: StatefulTractogram
-        Filtered sft.
-    ids: list
+    list of ids: list or StatefulTractogram
         Ids of the streamlines passing through the mask.
+    new_sft: StatefulTractogram
+        Filtered sft (if return_sft)
+    rejected: StatefulTractogram
+        sft of rejected streamlines (if return_rejected_sft)
+
     """
 
     if filter_distance != 0:
@@ -165,17 +178,14 @@ def filter_grid_roi(sft, mask, filter_type, is_exclude, filter_distance=0):
                                           np.unique(line_based_indices))
     line_based_indices = np.asarray(line_based_indices, dtype=np.int32)
 
-    # From indices to sft
-    streamlines = sft.streamlines[line_based_indices]
-    data_per_streamline = sft.data_per_streamline[line_based_indices]
-    data_per_point = sft.data_per_point[line_based_indices]
+    if return_sft:
+        new_sft = sft[line_based_indices]
 
-    new_sft = StatefulTractogram.from_sft(
-        streamlines, sft,
-        data_per_streamline=data_per_streamline,
-        data_per_point=data_per_point)
-
-    return new_sft, line_based_indices
+        if return_rejected_sft:
+            rejected_sft = sft[~line_based_indices]
+            return line_based_indices, new_sft, rejected_sft
+        return line_based_indices, new_sft
+    return line_based_indices
 
 
 def pre_filtering_for_geometrical_shape(sft, size,
@@ -194,6 +204,7 @@ def pre_filtering_for_geometrical_shape(sft, size,
         One of the 3 following choices, 'any', 'all', 'either_end', 'both_ends'.
     is_in_vox: bool
         Value to indicate if the ROI is in voxel space.
+
     Returns
     -------
     ids : tuple
@@ -225,7 +236,8 @@ def pre_filtering_for_geometrical_shape(sft, size,
 
     pre_mask[min_x:max_x, min_y:max_y, min_z:max_z] = 1
 
-    return filter_grid_roi(sft, pre_mask, filter_type, False)
+    return filter_grid_roi(sft, pre_mask, filter_type, is_exclude=False,
+                           return_sft=True)
 
 
 def filter_ellipsoid(sft, ellipsoid_radius, ellipsoid_center,
