@@ -15,10 +15,6 @@ This script can be used to remove loops in two types of streamline datasets:
 Formerly: scil_detect_streamlines_loops.py
 """
 
-REFERENCE = """
-QuickBundles, based on [Garyfallidis12] Frontiers in Neuroscience, 2012.
-"""
-
 import argparse
 import json
 import logging
@@ -40,9 +36,15 @@ from scilpy.tractograms.streamline_operations import \
     remove_loops_and_sharp_turns
 
 
+EPILOG = """
+References:
+    QuickBundles, based on [Garyfallidis12] Frontiers in Neuroscience, 2012.
+"""
+
+
 def _build_arg_parser():
     p = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
-                                description=__doc__, epilog=REFERENCE)
+                                description=__doc__, epilog=EPILOG)
     p.add_argument('in_tractogram',
                    help='Tractogram input file name.')
     p.add_argument('out_tractogram',
