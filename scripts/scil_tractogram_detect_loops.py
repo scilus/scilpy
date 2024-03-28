@@ -23,10 +23,10 @@ import argparse
 import json
 import logging
 
-from dipy.io.streamline import save_tractogram
 import numpy as np
 
-from scilpy.io.streamlines import load_tractogram_with_reference
+from scilpy.io.streamlines import load_tractogram_with_reference, \
+    check_empty_option_save_tractogram
 from scilpy.io.utils import (add_json_args,
                              add_verbose_arg,
                              add_overwrite_arg,
@@ -99,7 +99,10 @@ def main():
     ids_clean = remove_loops_and_sharp_turns(
         sft.streamlines, args.angle, qb_threshold=args.qb_threshold,
         num_processes=nbr_cpu)
-    ids_removed = np.setdiff1d(np.arange(nb_streamlines), ids_clean)
+    if len(ids_clean) == 0:
+        logging.warning('No clean streamlines in {}. They are all looping '
+                        'streamlines? Check your parameters.'
+                        .format(args.in_tractogram))
     sft_clean = sft[ids_clean]
 
     if args.display_counts:
@@ -109,27 +112,13 @@ def main():
                          indent=args.indent))
 
     # Saving
-    if len(ids_clean) == 0:
-        msg = ('No clean streamlines in {}. They are all looping streamlines? '
-               'Check your parameters.'.format(args.in_tractogram))
-        if args.no_empty:
-            logging.warning(msg + " Not saving the tractogram.")
-        else:
-            logging.info(msg + " Saving empty tractogram.")
-
-    if not (len(ids_clean) == 0 and args.no_empty):
-        save_tractogram(sft_clean, args.out_tractogram)
-
+    check_empty_option_save_tractogram(sft_clean, args.out_tractogram,
+                                       args.no_empty)
     if args.looping_tractogram:
-        if len(ids_removed) == 0:
-            if args.no_empty:
-                logging.warning('No loops found! Output {} not saved'
-                                .format(args.looping_tractogram))
-                return
-            else:
-                logging.info("No loops found! Saving empty tractogram")
-        sft_l = filter_tractogram_data(sft, ids_removed)
-        save_tractogram(sft_l, args.looping_tractogram)
+        ids_removed = np.setdiff1d(np.arange(nb_streamlines), ids_clean)
+        sft_l = sft[ids_removed]
+        check_empty_option_save_tractogram(sft_l, args.looping_tractogram,
+                                           args.no_empty)
 
 
 if __name__ == "__main__":
