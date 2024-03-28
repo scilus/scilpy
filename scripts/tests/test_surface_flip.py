@@ -17,7 +17,7 @@ def test_help_option(script_runner):
     assert ret.success
 
 
-def test_execution_surface_vtk_fib(script_runner):
+def test_execution_surface_vtk_fib(script_runner, monkeypatch):
     # Weird behavior, flip around the origin in RASMM rather than the center of
     # the volume in VOX
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))

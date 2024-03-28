@@ -17,7 +17,7 @@ def test_help_option(script_runner):
     assert ret.success
 
 
-def test_execution_tracking_fodf_prob(script_runner):
+def test_execution_tracking_fodf_prob(script_runner, monkeypatch):
     # Our tests use -nt 100.
     # Our testing seeding mask has 125 286 voxels, this would be long.
     # Only testing option npv in our first gpu test, below
