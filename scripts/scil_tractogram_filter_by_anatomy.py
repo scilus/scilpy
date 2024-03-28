@@ -5,8 +5,16 @@
 This script filters streamlines in a tractogram according to their geometrical
 properties (i.e. limiting their length and looping angle) and their anatomical
 ending properties (i.e. the anatomical tissue or region their endpoints lie
-in). The filtering is performed sequentially in four steps, each step
-processing the data on the output of the previous step:
+in).
+
+See also:
+    - scil_tractogram_detect_loops.py
+    - scil_tractogram_filter_by_length.py
+    - scil_tractogram_filter_by_orientation.py
+    - scil_tractogram_filter_by_roi.py
+
+The filtering is performed sequentially in four steps, each step processing the
+data on the output of the previous step:
 
     Step 1 - Remove streamlines below the minimum length and above the
              maximum length. These thresholds must be set with the ``--minL``
@@ -49,7 +57,6 @@ from copy import deepcopy
 import json
 import logging
 import os
-import importlib.resources as resources
 
 from dipy.io.streamline import save_tractogram
 import nibabel as nib
@@ -58,15 +65,14 @@ from scipy.spatial import cKDTree
 
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.image import get_data_as_mask
-from scilpy.io.utils import (add_json_args,
-                             add_overwrite_arg,
-                             add_processes_arg,
-                             add_reference_arg,
-                             add_verbose_arg,
-                             assert_inputs_exist,
+from scilpy.io.utils import (add_json_args, add_overwrite_arg,
+                             add_processes_arg, add_reference_arg,
+                             add_verbose_arg, assert_inputs_exist,
                              assert_output_dirs_exist_and_empty,
-                             validate_nbr_processes, assert_headers_compatible)
-from scilpy.image.labels import get_data_as_labels
+                             validate_nbr_processes, assert_headers_compatible,
+                             ranged_type)
+from scilpy.image.labels import (get_data_as_labels, load_wmparc_labels,
+                                 get_binary_mask_from_labels)
 from scilpy.segment.streamlines import filter_grid_roi
 from scilpy.tractograms.streamline_operations import \
     filter_streamlines_by_length, remove_loops_and_sharp_turns
@@ -93,23 +99,25 @@ def _build_arg_parser():
     p.add_argument('in_tractogram',
                    help='Path of the input tractogram file.')
     p.add_argument('in_wmparc',
-                   help='Path of the white matter parcellation atlas\n' +
+                   help='Path of the white matter parcellation atlas '
                         '(.nii or .nii.gz)')
     p.add_argument('out_path',
                    help='Path to the output files.')
 
-    p.add_argument('--minL', default=0., type=float,
+    p.add_argument('--minL', default=0., type=ranged_type(float, 0, None),
                    help='Minimum length of streamlines, in mm. [%(default)s]')
     p.add_argument('--maxL', default=np.inf, type=float,
                    help='Maximum length of streamlines, in mm. [%(default)s]')
-    p.add_argument('-a', dest='angle', default=np.inf, type=float,
+    p.add_argument('-a', dest='angle', default=np.inf,
+                   type=ranged_type(float, 0, None),
                    help='Maximum looping (or turning) angle of\n' +
                         'a streamline, in degrees. [%(default)s]')
 
     p.add_argument('--csf_bin',
                    help='Allow CSF endings filtering with this binary\n' +
                         'mask instead of using the atlas (.nii or .nii.gz)')
-    p.add_argument('--ctx_dilation_radius', type=float, default=0.,
+    p.add_argument('--ctx_dilation_radius', default=0.,
+                   type=ranged_type(float, 0, None),
                    help='Cortical labels dilation radius, in mm.\n' +
                         ' [%(default)s]')
     p.add_argument('--save_intermediate_tractograms', action='store_true',
@@ -132,30 +140,6 @@ def _build_arg_parser():
     add_overwrite_arg(p)
 
     return p
-
-
-def load_wmparc_labels():
-    """
-    Load labels dictionary of different parcellations from the
-    Desikan-Killiany atlas
-    """
-    lut_package = resources.files('data').joinpath('LUT')
-    labels_path = lut_package.joinpath('dk_aggregate_structures.json')
-    with open(labels_path) as labels_file:
-        labels = json.load(labels_file)
-    return labels
-
-
-def binarize_labels(atlas, label_list):
-    """
-    Create a binary mask from specific labels in an atlas (numpy array)
-    """
-    mask = np.zeros(atlas.shape, dtype=np.uint16)
-    for label in label_list:
-        is_label = atlas == label
-        mask[is_label] = 1
-
-    return mask
 
 
 def dilate_mask(mask, mask_shape, vox_size, radius):
@@ -274,6 +258,7 @@ def main():
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
+    # Verifications
     assert_inputs_exist(parser, [args.in_tractogram, args.in_wmparc],
                         [args.csf_bin, args.reference])
     assert_output_dirs_exist_and_empty(parser, args, args.out_path,
@@ -282,20 +267,6 @@ def main():
                               args.csf_bin, reference=args.reference)
 
     nbr_cpu = validate_nbr_processes(parser, args)
-
-    if args.angle <= 0:
-        parser.error('Angle "{}" '.format(args.angle) +
-                     'must be greater than or equal to 0')
-    if args.ctx_dilation_radius < 0:
-        parser.error('Cortex dilation radius "{}" '.format(
-                     args.ctx_dilation_radius) + 'must be greater than 0')
-    sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
-    sft.to_vox()
-    sft.to_corner()
-
-    img_wmparc = nib.load(args.in_wmparc)
-    if args.csf_bin:
-        img_csf = nib.load(args.csf_bin)
 
     if args.minL == 0 and np.isinf(args.maxL):
         logging.info("You have not specified minL nor maxL. Output will "
@@ -307,8 +278,16 @@ def main():
         logging.info("You have not specified the cortex dilation radius. "
                      "The wmparc atlas will not be dilated!")
 
-    o_dict = {}
-    step_dict = ['length', 'no_csf', 'end_in_atlas', 'no_loops']
+    # Loading
+    sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
+    sft.to_vox()
+    sft.to_corner()
+
+    img_wmparc = nib.load(args.in_wmparc)
+    if args.csf_bin:
+        img_csf = nib.load(args.csf_bin)
+
+    # Load labels from our own data
     wm_labels = load_wmparc_labels()
 
     in_sft_name = os.path.splitext(os.path.basename(args.in_tractogram))[0]
@@ -322,6 +301,10 @@ def main():
         rejected_sft_name = os.path.join(args.out_path,
                                          in_sft_name +
                                          "_rejected" + ext)
+
+    # Processing
+    step_dict = ['length', 'no_csf', 'end_in_atlas', 'no_loops']
+    o_dict = {}
 
     # STEP 1 - Filter length
     step = step_dict[0]
@@ -376,13 +359,13 @@ def main():
 
     # Mask creation
     if args.csf_bin:
-        mask = get_data_as_mask(img_csf)
+        csf_mask = get_data_as_mask(img_csf)
     else:
         atlas = get_data_as_labels(img_wmparc)
-        mask = binarize_labels(atlas, wm_labels["csf_labels"])
+        csf_mask = get_binary_mask_from_labels(atlas, wm_labels["csf_labels"])
 
     # Filter tractogram
-    new_sft, _ = filter_grid_roi(sft, mask, 'any', True)
+    new_sft, _ = filter_grid_roi(sft, csf_mask, 'any', True)
     # Streamline count after filtering CSF endings
     o_dict[in_sft_name + '_' + steps_combined + ext] =\
         dict({'streamline_count': len(new_sft.streamlines)})
@@ -390,7 +373,7 @@ def main():
     if args.save_volumes:
         new_path = create_dir(args.out_path, '02-' + step)
         if not args.csf_bin:
-            nib.save(nib.Nifti1Image(mask, img_wmparc.affine,
+            nib.save(nib.Nifti1Image(csf_mask, img_wmparc.affine,
                                      img_wmparc.header),
                      os.path.join(new_path, 'csf_bin' + '.nii.gz'))
 
@@ -441,8 +424,9 @@ def main():
     vox_size = np.reshape(img_wmparc.header.get_zooms(), (1, 3))
     atlas_wm = get_data_as_labels(img_wmparc)
     atlas_shape = atlas_wm.shape
-    wmparc_ctx = binarize_labels(atlas_wm, ctx_fs_labels)
-    wmparc_nuclei = binarize_labels(atlas_wm, wm_labels["nuclei_fs_labels"])
+    wmparc_ctx = get_binary_mask_from_labels(atlas_wm, ctx_fs_labels)
+    wmparc_nuclei = get_binary_mask_from_labels(atlas_wm,
+                                                wm_labels["nuclei_fs_labels"])
 
     # Dilation of cortex
     if args.ctx_dilation_radius:

@@ -1,10 +1,24 @@
 # -*- coding: utf-8 -*-
+import importlib.resources as resources
 import inspect
+import json
 import logging
 import os
 
 import numpy as np
 from scipy.spatial import cKDTree
+
+
+def load_wmparc_labels():
+    """
+    Load labels dictionary of different parcellations from the Desikan-Killiany
+    atlas.
+    """
+    lut_package = resources.files('data').joinpath('LUT')
+    labels_path = lut_package.joinpath('dk_aggregate_structures.json')
+    with open(labels_path) as labels_file:
+        labels = json.load(labels_file)
+    return labels
 
 
 def get_data_as_labels(in_img):
@@ -31,6 +45,26 @@ def get_data_as_labels(in_img):
         raise IOError('The image {} cannot be loaded as label because '
                       'its format {} is not compatible with a label '
                       'image'.format(basename, curr_type))
+
+
+def get_binary_mask_from_labels(atlas, label_list):
+    """
+    Get a binary mask from labels.
+
+    Parameters
+    ----------
+    atlas: numpy.ndarray
+        The image will all labels as values (ex, result from
+        get_data_as_labels).
+    label_list: list[int]
+        The labels to get.
+    """
+    mask = np.zeros(atlas.shape, dtype=np.uint16)
+    for label in label_list:
+        is_label = atlas == label
+        mask[is_label] = 1
+
+    return mask
 
 
 def get_lut_dir():
