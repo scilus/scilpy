@@ -11,7 +11,6 @@ See also:
     - scil_tractogram_filter_by_orientation.py
     - scil_tractogram_filter_by_roi.py
 
-
 Formerly: scil_filter_streamlines_by_length.py
 """
 
