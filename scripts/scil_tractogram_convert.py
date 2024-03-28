@@ -24,11 +24,11 @@ def _build_arg_parser():
     p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawTextHelpFormatter)
 
-    p.add_argument('in_tractogram', metavar='IN_TRACTOGRAM',
+    p.add_argument('in_tractogram',
                    help='Tractogram filename. Format must be one of \n'
                         'trk, tck, vtk, fib, dpy')
 
-    p.add_argument('output_name', metavar='OUTPUT_NAME',
+    p.add_argument('output_name',
                    help='Output filename. Format must be one of \n'
                         'trk, tck, vtk, fib, dpy')
 

@@ -20,21 +20,16 @@ import multiprocessing
 import os
 import shutil
 
-from dipy.io.stateful_tractogram import Space, Origin, StatefulTractogram
-from dipy.io.utils import create_nifti_header
 import h5py
 import nibabel as nib
 import numpy as np
 
-from scilpy.io.hdf5 import reconstruct_streamlines_from_hdf5
-from scilpy.io.utils import (add_overwrite_arg,
-                             add_processes_arg,
-                             add_sh_basis_args,
-                             add_verbose_arg,
-                             assert_inputs_exist,
-                             assert_outputs_exist,
-                             parse_sh_basis_arg,
-                             validate_nbr_processes)
+from scilpy.io.hdf5 import (assert_header_compatible_hdf5,
+                            reconstruct_sft_from_hdf5)
+from scilpy.io.utils import (add_overwrite_arg, add_processes_arg,
+                             add_sh_basis_args, add_verbose_arg,
+                             assert_inputs_exist, assert_outputs_exist,
+                             parse_sh_basis_arg, validate_nbr_processes)
 from scilpy.tractanalysis.afd_along_streamlines \
     import afd_map_along_streamlines
 
@@ -57,16 +52,11 @@ def _afd_rd_wrapper(args):
     is_legacy = args[5]
 
     with h5py.File(in_hdf5_filename, 'r') as in_hdf5_file:
-        affine = in_hdf5_file.attrs['affine']
-        dimensions = in_hdf5_file.attrs['dimensions']
-        voxel_sizes = in_hdf5_file.attrs['voxel_sizes']
-        streamlines = reconstruct_streamlines_from_hdf5(in_hdf5_file[key])
-        if len(streamlines) == 0:
-            return key, 0
+        sft, _ = reconstruct_sft_from_hdf5(in_hdf5_file, key)
 
-    header = create_nifti_header(affine, dimensions, voxel_sizes)
-    sft = StatefulTractogram(streamlines, header, Space.VOX,
-                             origin=Origin.TRACKVIS)
+    if sft is None:  # No streamlines in group
+        return key, 0
+
     afd_mean_map, rd_mean_map = afd_map_along_streamlines(sft, fodf_img,
                                                           sh_basis,
                                                           length_weighting,
@@ -114,16 +104,10 @@ def main():
         os.remove(args.out_hdf5)
 
     fodf_img = nib.load(args.in_fodf)
-    in_hdf5_file = h5py.File(args.in_hdf5, 'r')
-    if not (np.allclose(in_hdf5_file.attrs['affine'], fodf_img.affine,
-                        atol=1e-03)
-            and np.array_equal(in_hdf5_file.attrs['dimensions'],
-                               fodf_img.shape[0:3])):
-        parser.error('{} does not have a compatible header with {}'.format(
-            args.in_hdf5, args.in_fodf))
-
-    keys = list(in_hdf5_file.keys())
-    in_hdf5_file.close()
+    with h5py.File(args.in_hdf5, 'r') as in_hdf5_file:
+        assert_header_compatible_hdf5(in_hdf5_file, fodf_img)
+        keys = list(in_hdf5_file.keys())
+        in_hdf5_file.close()
 
     if nbr_cpu == 1:
         results_list = []

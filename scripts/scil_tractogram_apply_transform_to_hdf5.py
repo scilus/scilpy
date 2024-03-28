@@ -25,11 +25,13 @@ import nibabel as nib
 import numpy as np
 
 from scilpy.io.hdf5 import (reconstruct_sft_from_hdf5,
-                            construct_hdf5_from_sft, construct_hdf5_header,
-                            construct_hdf5_group_from_streamlines)
-from scilpy.io.utils import (add_overwrite_arg, add_reference_arg,
-                             add_verbose_arg, assert_inputs_exist,
-                             assert_outputs_exist, load_matrix_in_any_format)
+                            construct_hdf5_from_sft)
+from scilpy.io.utils import (add_overwrite_arg,
+                             add_reference_arg,
+                             add_verbose_arg,
+                             assert_inputs_exist,
+                             assert_outputs_exist,
+                             load_matrix_in_any_format)
 from scilpy.tractograms.tractogram_operations import transform_warp_sft
 
 
@@ -104,11 +106,10 @@ def main():
             target_img = nib.load(args.in_target_file)
 
             # For each bundle / tractogram in the hdf5:
-            for i, key in enumerate(in_hdf5_file.keys()):
+            for key in in_hdf5_file.keys():
                 # Get the bundle as sft
                 moving_sft, _ = reconstruct_sft_from_hdf5(
                     in_hdf5_file, key, load_dps=True, load_dpp=False)
-
                 if moving_sft is None:
                     continue
 
@@ -120,9 +121,6 @@ def main():
                     reverse_op=args.reverse_operation,
                     remove_invalid=args.remove_invalid,
                     cut_invalid=args.cut_invalid)
-
-                if i == 0:
-                    construct_hdf5_header(out_hdf5_file, new_sft)
 
                 # Default is to crash if invalid.
                 if args.keep_invalid:
@@ -139,10 +137,8 @@ def main():
                             "--remove_invalid.")
 
                 # Save result to the hdf5
-                group = out_hdf5_file.create_group(key)
-                construct_hdf5_group_from_streamlines(
-                    group, new_sft.streamlines,
-                    dps=new_sft.data_per_streamline)
+                construct_hdf5_from_sft(out_hdf5_file, new_sft, key,
+                                        save_dps=True, save_dpp=False)
 
 
 if __name__ == "__main__":

@@ -29,11 +29,10 @@ import h5py
 import numpy as np
 import nibabel as nib
 
-from scilpy.io.hdf5 import reconstruct_streamlines_from_hdf5
-from scilpy.io.utils import (add_overwrite_arg,
-                             add_verbose_arg,
-                             add_processes_arg,
-                             assert_inputs_exist,
+from scilpy.io.hdf5 import assert_header_compatible_hdf5, \
+    reconstruct_streamlines_from_hdf5
+from scilpy.io.utils import (add_overwrite_arg, add_verbose_arg,
+                             add_processes_arg, assert_inputs_exist,
                              assert_output_dirs_exist_and_empty,
                              validate_nbr_processes)
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
@@ -67,13 +66,11 @@ def _average_wrapper(args):
         affine = hdf5_file_ref.attrs['affine']
         dimensions = hdf5_file_ref.attrs['dimensions']
         density_data = np.zeros(dimensions, dtype=np.float32)
+
     for hdf5_filename in hdf5_filenames:
         with h5py.File(hdf5_filename, 'r') as hdf5_file:
-            if not (np.allclose(hdf5_file.attrs['affine'], affine, atol=1e-03)
-                    and np.array_equal(hdf5_file.attrs['dimensions'],
-                                       dimensions)):
-                raise IOError('{} do not have a compatible header'.format(
-                    hdf5_filename))
+            assert_header_compatible_hdf5(hdf5_file, (affine, dimensions))
+
             # scil_tractogram_segment_bundles_for_connectivity.py saves the
             # streamlines in VOX/CORNER
             streamlines = reconstruct_streamlines_from_hdf5(hdf5_file[key])

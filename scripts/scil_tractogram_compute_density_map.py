@@ -2,9 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-Compute a density map from a streamlines file.
-
-A specific value can be assigned instead of using the tract count.
+Compute a density map from a streamlines file. Can be binary.
 
 This script correctly handles compressed streamlines.
 
@@ -34,9 +32,9 @@ def _build_arg_parser():
     p.add_argument('--binary', metavar='FIXED_VALUE', type=int,
                    nargs='?', const=1,
                    help='If set, will store the same value for all '
-                        'intersected voxels, creating a binary map.\n'
-                        'When set without a value, 1 is used (and dtype '
-                        'uint8). \nIf a value is given, will be used as the '
+                        'intersected voxels, \ncreating a binary map.'
+                        'When set without a value, 1 is used (and dtype \n'
+                        'uint8). If a value is given, will be used as the '
                         'stored value.')
     add_reference_arg(p)
     add_verbose_arg(p)
@@ -49,6 +47,7 @@ def main():
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
+    # Verifications
     assert_inputs_exist(parser, args.in_bundle, optional=args.reference)
     assert_outputs_exist(parser, args, args.out_img)
 
@@ -58,14 +57,16 @@ def main():
                      'must be greater than 0 and smaller or equal to {}'
                      .format(args.binary, max_))
 
+    # Loading
     sft = load_tractogram_with_reference(parser, args, args.in_bundle)
     sft.to_vox()
     sft.to_corner()
-    streamlines = sft.streamlines
     transformation, dimensions, _, _ = sft.space_attributes
 
-    streamline_count = compute_tract_counts_map(streamlines, dimensions)
+    # Processing
+    streamline_count = compute_tract_counts_map(sft.streamlines, dimensions)
 
+    # Saving
     dtype_to_use = np.int32
     if args.binary is not None:
         if args.binary == 1:

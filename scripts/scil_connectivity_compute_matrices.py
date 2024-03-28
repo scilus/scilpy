@@ -57,7 +57,8 @@ import numpy as np
 import scipy.ndimage as ndi
 
 from scilpy.image.labels import get_data_as_labels
-from scilpy.io.hdf5 import reconstruct_streamlines_from_hdf5
+from scilpy.io.hdf5 import (assert_header_compatible_hdf5,
+                            reconstruct_streamlines_from_hdf5)
 from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_overwrite_arg, add_processes_arg,
                              add_verbose_arg,
@@ -103,10 +104,7 @@ def _processing_wrapper(args):
 
     affine, dimensions, voxel_sizes, _ = get_reference_info(labels_img)
     measures_to_return = {}
-
-    if not (np.allclose(hdf5_file.attrs['affine'], affine, atol=1e-03)
-            and np.array_equal(hdf5_file.attrs['dimensions'], dimensions)):
-        raise ValueError('Provided hdf5 have incompatible headers.')
+    assert_header_compatible_hdf5(hdf5_file, (affine, dimensions))
 
     # Precompute to save one transformation, insert later
     if 'length' in measures_to_compute:

@@ -18,11 +18,11 @@ from nibabel.streamlines import LazyTractogram
 import numpy as np
 
 from scilpy.io.streamlines import check_tracts_same_format
-from scilpy.tractograms.tractogram_operations import compress_streamlines_wrapper
-from scilpy.io.utils import (add_overwrite_arg,
-                             add_verbose_arg,
-                             assert_inputs_exist,
-                             assert_outputs_exist)
+from scilpy.tractograms.tractogram_operations import \
+    compress_streamlines_wrapper
+from scilpy.io.utils import (add_overwrite_arg, add_verbose_arg,
+                             assert_inputs_exist, assert_outputs_exist,
+                             verify_compression_th)
 
 
 def _build_arg_parser():
@@ -50,14 +50,7 @@ def main():
     assert_inputs_exist(parser, args.in_tractogram)
     assert_outputs_exist(parser, args, args.out_tractogram)
     check_tracts_same_format(parser, args.in_tractogram, args.out_tractogram)
-
-    if args.error_rate < 0.001 or args.error_rate > 1:
-        logging.warning(
-            'You are using an error rate of {}.\n'
-            'We recommend setting it between 0.001 and 1.\n'
-            '0.001 will do almost nothing to the streamlines\n'
-            'while 1 will highly compress/linearize the streamlines'
-            .format(args.error_rate))
+    verify_compression_th(args.error_rate)
 
     in_tractogram = nib.streamlines.load(args.in_tractogram, lazy_load=True)
     compressed_streamlines = compress_streamlines_wrapper(in_tractogram,
