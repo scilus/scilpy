@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 
+from matplotlib import colors
+import matplotlib.colors as mcolors
 import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib import colors
+from scipy.spatial import KDTree
 
 
 RAS_AXES = {
@@ -183,3 +185,26 @@ def format_hexadecimal_color_to_rgb(color):
                          '"#RRGGBB" or 0xRRGGBB.')
 
     return red, green, blue
+
+
+def ambiant_occlusion(sft, colors, factor=8):
+    pts = sft.streamlines._data
+    hsv = mcolors.rgb_to_hsv(colors)
+
+    tree = KDTree(pts)
+    nb_neighbor = np.array(tree.query_ball_point(pts, 1,
+                                                 return_length=True),
+                           dtype=float)
+    nb_neighbor /= np.max(nb_neighbor)
+    occlusion_w = np.exp(-factor * nb_neighbor)
+
+    hsv[:, 1] = np.clip(hsv[:, 1], max(1 / factor, np.min(hsv[:, 1])),
+                        min(1 - 1 / factor, np.max(hsv[:, 1])))
+    hsv[:, 1] -= (occlusion_w / factor)
+
+    occlusion_w = np.clip(occlusion_w, 0.5 + (1 / factor), 1)
+    hsv[:, 2] *= occlusion_w
+    hsv[:, 0:2] = np.clip(hsv[:, 0:2], 0, 1)
+    hsv[:, 2] = np.clip(hsv[:, 2], 0, 255)
+
+    return mcolors.hsv_to_rgb(hsv)

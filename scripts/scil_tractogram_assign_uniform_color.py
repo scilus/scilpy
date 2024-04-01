@@ -30,7 +30,8 @@ from scilpy.io.utils import (assert_inputs_exist,
                              add_overwrite_arg,
                              add_verbose_arg,
                              add_reference_arg, assert_headers_compatible)
-from scilpy.viz.utils import format_hexadecimal_color_to_rgb
+from scilpy.viz.utils import (ambiant_occlusion,
+                              format_hexadecimal_color_to_rgb)
 
 
 def _build_arg_parser():
@@ -40,6 +41,11 @@ def _build_arg_parser():
 
     p.add_argument('in_tractograms', nargs='+',
                    help='Input tractograms (.trk or .tck).')
+
+    p.add_argument('--ambiant_occlusion', nargs='?', const=8, type=int,
+                   help='Impact factor of the ambiant occlusion '
+                   'approximation.\n Use factor or 2. Decrease for '
+                   'lighter and increase for darker [%(default)s].')
 
     g1 = p.add_argument_group(title='Coloring Methods')
     p1 = g1.add_mutually_exclusive_group(required=True)
@@ -116,6 +122,10 @@ def main():
 
         sft = load_tractogram_with_reference(parser, args, filename)
 
+        sft.data_per_point['color'] = sft.streamlines.copy()
+        sft.data_per_point['color']._data = np.zeros(
+            (len(sft.streamlines._data), 3), dtype=np.uint8)
+
         if args.dict_colors:
             base, ext = os.path.splitext(filename)
             pos = base.index('__') if '__' in base else -2
@@ -132,11 +142,11 @@ def main():
 
         red, green, blue = format_hexadecimal_color_to_rgb(color)
 
-        tmp = [np.tile([red, green, blue], (len(i), 1))
-               for i in sft.streamlines]
-        sft.data_per_point['color'] = tmp
-
-        # Saving
+        colors = np.tile([red, green, blue], (len(sft.streamlines._data), 1))
+        if args.ambiant_occlusion:
+            colors = ambiant_occlusion(sft, colors,
+                                       factor=args.ambiant_occlusion)
+        sft.data_per_point['color']._data = colors
         save_tractogram(sft, out_filenames[i])
 
 

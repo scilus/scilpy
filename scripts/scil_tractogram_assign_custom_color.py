@@ -65,7 +65,9 @@ from scilpy.io.utils import (assert_inputs_exist,
 from scilpy.tractograms.dps_and_dpp_management import add_data_as_color_dpp
 from scilpy.tractograms.streamline_operations import (get_values_along_length,
                                                       get_angles)
-from scilpy.viz.utils import get_colormap, prepare_colorbar_figure
+from scilpy.viz.utils import (ambiant_occlusion,
+                              get_colormap,
+                              prepare_colorbar_figure)
 
 
 def _build_arg_parser():
@@ -110,6 +112,9 @@ def _build_arg_parser():
                          "last points are set to 0.")
 
     g2 = p.add_argument_group(title='Coloring options')
+    g2.add_argument('--ambiant_occlusion', nargs='?', const=8, type=int,
+                    help='Impact factor of the ambiant occlusion '
+                    'approximation. [%(default)s]')
     g2.add_argument('--colormap', default='jet',
                     help='Select the colormap for colored trk (dps/dpp) '
                     '[%(default)s].\nUse two Matplotlib named color separeted '
@@ -127,8 +132,7 @@ def _build_arg_parser():
     g2.add_argument('--max_cmap', type=float,
                     help='Set the maximum value of the colormap.')
     g2.add_argument('--log', action='store_true',
-                    help='Apply a base 10 logarithm for colored trk (dps/dpp).'
-                    )
+                    help='Apply a base 10 logarithm for colored trk (dps/dpp).')
     g2.add_argument('--LUT', metavar='FILE',
                     help='If the dps/dpp or anatomy contain integer labels, '
                          'the value will be substituted.\nIf the LUT has 20 '
@@ -213,6 +217,9 @@ def main():
         args.min_cmap, args.max_cmap, args.log, LUT)
 
     # Saving
+    if args.ambiant_occlusion:
+        sft.data_per_point['color']._data = ambiant_occlusion(
+            sft, sft.data_per_point['color']._data, args.ambiant_occlusion)
     save_tractogram(sft, args.out_tractogram)
 
     if args.out_colorbar:
