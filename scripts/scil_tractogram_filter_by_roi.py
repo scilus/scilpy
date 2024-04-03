@@ -156,15 +156,18 @@ def _build_arg_parser():
 
 
 def _convert_filering_list_to_roi_args(parser, args):
-    with open(args.filtering_list) as txt:
+    assert_inputs_exist(parser, args.filtering_list)
+
+    with open(args.filtering_list, 'r') as txt:
         content = txt.readlines()
+
     for roi_opt in content:
-        if "\"" in roi_opt:
-            # Hein?? À tester
-            tmp_opt = [i.strip() for i in roi_opt.strip().split("\"")]
-            tmp_opt = [tmp_opt[0].split() + [tmp_opt[1]] + tmp_opt[2].split()]
-        else:
-            tmp_opt = roi_opt.strip().split()
+        # Convert the line with spaces to a list of args.
+        tmp_opt = roi_opt.split()
+
+        # Manage cases with " " or ' ' around options
+        tmp_opt = [i.replace("\"", '') for i in tmp_opt]
+        tmp_opt = [i.replace("'", '') for i in tmp_opt]
 
         if tmp_opt[0] == 'drawn_roi':
             args.drawn_roi.append(tmp_opt[1:])
@@ -221,6 +224,7 @@ def _read_and_check_overwrite_distance(parser, args):
 def _check_values(parser, mode, criteria, distance):
     if mode not in ['any', 'all', 'either_end', 'both_ends']:
         parser.error('{} is not a valid option for filter_mode'.format(mode))
+
     if criteria not in ['include', 'exclude']:
         parser.error('{} is not a valid option for filter_criteria'
                      .format(criteria))
@@ -251,28 +255,34 @@ def _prepare_filtering_criteria(
     for roi_opt in bdo:
         roi_opt_list.append(['bdo'] + roi_opt)
     for roi_opt in x_plane:
-        if not (0 <= roi_opt[0] < dim[0]):
+        roi_opt[0] = float(roi_opt[0])
+        if not roi_opt[0].is_integer():
+            parser.error("x_plane's plane number must be and integer.")
+        roi_opt[0] = int(roi_opt[0])
+        if not (0 <= roi_opt[0] < int(dim[0])):
             parser.error('x_plane is not valid according to the tractogram '
                          'header. Expecting a value between {} and {}'
                          .format(0, dim[0]))
-        if not roi_opt.is_integer():
-            parser.error("x_plane must be an integer value")
         roi_opt_list.append(['x_plane'] + roi_opt)
     for roi_opt in y_plane:
-        if not (0 <= roi_opt[0] < dim[1]):
+        roi_opt[0] = float(roi_opt[0])
+        if not roi_opt[0].is_integer():
+            parser.error("y_plane's plane number must be and integer.")
+        roi_opt[0] = int(roi_opt[0])
+        if not (0 <= roi_opt[0] < int(dim[1])):
             parser.error('y_plane is not valid according to the tractogram '
                          'header. Expecting a value between {} and {}'
                          .format(0, dim[1]))
-        if not roi_opt.is_integer():
-            parser.error("y_plane must be an integer value")
         roi_opt_list.append(['y_plane'] + roi_opt)
     for roi_opt in z_plane:
-        if not (0 <= roi_opt[0] < dim[2]):
+        roi_opt[0] = float(roi_opt[0])
+        if not roi_opt[0].is_integer():
+            parser.error("z_plane's plane number must be and integer.")
+        roi_opt[0] = int(roi_opt[0])
+        if not (0 <= roi_opt[0] < int(dim[2])):
             parser.error('z_plane is not valid according to the tractogram '
                          'header. Expecting a value between {} and {}'
                          .format(0, dim[2]))
-        if not roi_opt.is_integer():
-            parser.error("z_plane must be an integer value")
         roi_opt_list.append(['z_plane'] + roi_opt)
 
     # b) Format to 4-item list, with 0 distance if not specified.
@@ -326,12 +336,11 @@ def main():
 
     assert_inputs_exist(parser, args.in_tractogram,
                         roi_files_with_header + roi_files_no_header +
-                        [args.reference, args.filtering_list])
+                        [args.reference])
     assert_outputs_exist(parser, args, args.out_tractogram,
                          [args.save_rejected] + other_outputs)
     assert_headers_compatible(parser, args.in_tractogram,
-                              roi_files_with_header + [args.filtering_list],
-                              reference=args.reference)
+                              roi_files_with_header, reference=args.reference)
 
     dict_overwrite_distance = _read_and_check_overwrite_distance(parser, args)
 
