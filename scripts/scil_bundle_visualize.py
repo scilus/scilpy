@@ -88,9 +88,9 @@ def _build_arg_parser():
                    default=[0, 0, 0], type=parser_color_type,
                    help='RBG values [0, 255] of the color of the background.'
                    '\n[Default: %(default)s]')
-    
+
     add_verbose_arg(p)
-    
+
     return p
 
 

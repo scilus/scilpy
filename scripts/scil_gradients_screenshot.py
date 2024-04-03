@@ -20,11 +20,11 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist,
                              assert_outputs_exist)
 from scilpy.viz.gradients import (build_ms_from_shell_idx,
-                                          plot_each_shell,
-                                          plot_proj_shell)
+                                  plot_each_shell,
+                                  plot_proj_shell)
 
 sphere_choices = ['symmetric362', 'symmetric642', 'symmetric724',
-                  'repulsion724','repulsion100', 'repulsion200']
+                  'repulsion724', 'repulsion100', 'repulsion200']
 
 
 def _build_arg_parser():

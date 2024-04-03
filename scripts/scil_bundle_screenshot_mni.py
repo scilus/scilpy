@@ -37,8 +37,7 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist,
                              assert_outputs_exist)
 from scilpy.image.volume_operations import register_image
-from scilpy.utils.spatial import RAS_AXES_NAMES
-from scilpy.utils.spatial import get_axis_name
+from scilpy.utils.spatial import get_axis_name, RAS_AXES_NAMES
 from scilpy.viz.legacy import display_slices
 from scilpy.viz.color import get_lookup_table
 
@@ -187,23 +186,24 @@ def main():
                                                        '{0}_glass.png'.format(
                                                            axis_name)))
     assert_outputs_exist(parser, args,
-                         output_filenames_3d+output_filenames_glass)
+                         output_filenames_3d + output_filenames_glass)
 
-    roi_list_uniform = []
-    for roi in args.roi:
-        if len(roi) not in [1, 4, 5]:
-            parser.error('--roi must be used either with PATH or with '
-                         'PATH R G B  or PATH R G B A')
-        if len(roi) == 1:
-            roi_list_uniform.append([roi[0], 1.0, 1.0, 1.0, 1.0])
-        elif len(roi) == 4:
-            roi_list_uniform.append([roi[0], float(roi[1]) / 255,
-                                     float(roi[2]) / 255,
-                                     float(roi[3]) / 255, 1.0])
-        else:
-            for i in range(4):
-                roi[i+1] = float(roi[i+1]) / 255
-            roi_list_uniform.append(roi)
+    if args.roi is not None:
+        roi_list_uniform = []
+        for roi in args.roi:
+            if len(roi) not in [1, 4, 5]:
+                parser.error('--roi must be used either with PATH or with '
+                             'PATH R G B  or PATH R G B A')
+            if len(roi) == 1:
+                roi_list_uniform.append([roi[0], 1.0, 1.0, 1.0, 1.0])
+            elif len(roi) == 4:
+                roi_list_uniform.append([roi[0], float(roi[1]) / 255,
+                                        float(roi[2]) / 255,
+                                        float(roi[3]) / 255, 1.0])
+            else:
+                for i in range(4):
+                    roi[i+1] = float(roi[i+1]) / 255
+                roi_list_uniform.append(roi)
 
     if args.out_dir and not os.path.isdir(args.out_dir):
         os.mkdir(args.out_dir)

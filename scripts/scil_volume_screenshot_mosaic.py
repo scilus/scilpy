@@ -48,7 +48,6 @@ from functools import partial
 import itertools
 import logging
 
-from scilpy.io.image import assert_same_resolution
 from scilpy.io.utils import (add_default_screenshot_args,
                              add_labelmap_screenshot_args,
                              add_overlays_screenshot_args,
