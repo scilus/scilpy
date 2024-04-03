@@ -455,7 +455,6 @@ def main():
                 no_qb_curv_ids = remove_loops_and_sharp_turns(
                     inliers,
                     args.loop_max_angle,
-                    use_qb=True,
                     qb_threshold=args.curv_qb_distance,
                     num_processes=nbr_cpu)
                 qb_curv_ids = np.setdiff1d(np.arange(len(inliers)),
