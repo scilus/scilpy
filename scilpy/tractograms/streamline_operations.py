@@ -389,7 +389,7 @@ def filter_streamlines_by_length(sft, min_length=0., max_length=np.inf,
     sft.to_space(orig_space)
     filtered_sft.to_space(orig_space)
     if return_rejected:
-        rejected_sft.to_spaec(orig_space)
+        rejected_sft.to_space(orig_space)
         return filtered_sft, rejected_sft
     else:
         return filtered_sft

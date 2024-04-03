@@ -197,13 +197,15 @@ def _read_and_check_overwrite_distance(parser, args):
                              'CRITERIA {} has been set multiple times.'
                              .format(distance[0], distance[1]))
             elif distance[0] in MODES and distance[1] in CRITERIA:
+                distance[2] = float(distance[2])
                 if not distance[2].is_integer():
                     parser.error(
-                        "Distance must be an int. {} is not a valid option.")
+                        "Distance in --overwrite_distance must be an int. {} "
+                        "is not a valid option.".format(distance[2]))
                 if distance[2] < 0:
                     parser.error(
-                        "Distance should be positive. {} is not a valid "
-                        "option.".format(distance[2]))
+                        "Distance in --overwrite_distance should be positive. "
+                        "{} is not a valid option.".format(distance[2]))
 
                 curr_key = '-'.join([distance[0], distance[1]])
                 dict_distance[curr_key] = distance[2]
@@ -216,6 +218,21 @@ def _read_and_check_overwrite_distance(parser, args):
     return dict_distance
 
 
+def _check_values(parser, mode, criteria, distance):
+    if mode not in ['any', 'all', 'either_end', 'both_ends']:
+        parser.error('{} is not a valid option for filter_mode'.format(mode))
+    if criteria not in ['include', 'exclude']:
+        parser.error('{} is not a valid option for filter_criteria'
+                     .format(criteria))
+
+    distance = float(distance)
+    if not distance.is_integer():
+        parser.error("Distance must be an int. {} is not a valid option.")
+    if distance < 0:
+        parser.error("Distance should be positive. {} is not a valid "
+                     "option.".format(distance))
+
+
 def _prepare_filtering_criteria(
         parser, drawn_roi, atlas_roi, bdo, x_plane, y_plane, z_plane, dim):
     """
@@ -225,20 +242,6 @@ def _prepare_filtering_criteria(
     roi_opt_list: list
         List of criteria (roi_type MODE CRITERIA DISTANCE)
     """
-    def _check_values(_mode, _criteria, _distance):
-        if _mode not in ['any', 'all', 'either_end', 'both_ends']:
-            parser.error('{} is not a valid option for filter_mode'
-                         .format(_mode))
-        if _criteria not in ['include', 'exclude']:
-            parser.error('{} is not a valid option for filter_criteria'
-                         .format(_criteria))
-
-        if not _distance.is_integer():
-            parser.error("Distance must be an int. {} is not a valid option.")
-        if _distance < 0:
-            parser.error("Distance should be positive. {} is not a valid "
-                         "option.".format(_distance))
-
     roi_opt_list = []
 
     # 1) Three-values criteria (or 4 with distance)
@@ -273,7 +276,7 @@ def _prepare_filtering_criteria(
         roi_opt_list.append(['z_plane'] + roi_opt)
 
     # b) Format to 4-item list, with 0 distance if not specified.
-    for roi_opt in roi_opt_list:
+    for i, roi_opt in enumerate(roi_opt_list):
         if len(roi_opt) == 4:
             filter_type, file, mode, criteria = roi_opt
             distance = 0
@@ -282,7 +285,8 @@ def _prepare_filtering_criteria(
         else:
             raise ValueError("Please specify 3 or 4 values for {}."
                              .format(roi_opt[1]))
-        _check_values(mode, criteria, distance)
+        _check_values(parser, mode, criteria, distance)
+        roi_opt_list[i] = filter_type, file, mode, criteria, distance
 
     # 2) Four-values criteria (atlas_roi)
     # Get them all and format to 5-item list, with 0 distance if not specified.
@@ -294,8 +298,9 @@ def _prepare_filtering_criteria(
             atlas_id, file, mode, criteria, distance = roi_opt
         else:
             raise ValueError("Please specify 4 or 5 values for atlas_roi.")
-        _check_values(mode, criteria, distance)
-        roi_opt_list.append(['atlas_roi'] + roi_opt)
+        _check_values(parser, mode, criteria, distance)
+        roi_opt_list.append(['atlas_roi'] +
+                            [atlas_id, file, mode, criteria, int(distance)])
 
     return roi_opt_list
 
@@ -306,7 +311,8 @@ def main():
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     # Verifications
-    args = _convert_filering_list_to_roi_args(parser, args)
+    if args.filtering_list is not None:
+        args = _convert_filering_list_to_roi_args(parser, args)
 
     # Get all filenames
     roi_files_with_header = [drawn_roi[0] for drawn_roi in args.drawn_roi] + \
@@ -370,6 +376,7 @@ def main():
             distance = dict_overwrite_distance[key_distance]
         else:
             distance = distance
+        distance = int(distance)
 
         is_exclude = True if criteria == 'exclude' else False
 
@@ -389,8 +396,8 @@ def main():
                     img = nib.Nifti1Image(mask, img.affine)
                     img.to_filename(filename)
 
-            filtered_sft, kept_ids = filter_grid_roi(
-                sft, mask, mode, is_exclude, distance)
+            kept_ids, filtered_sft = filter_grid_roi(
+                sft, mask, mode, is_exclude, distance, return_sft=True)
 
         elif filter_type in ['x_plane', 'y_plane', 'z_plane']:
             # FILTERING FROM PLANE
@@ -403,8 +410,8 @@ def main():
             elif filter_type == 'z_plane':
                 mask[:, :, plane_id] = 1
 
-            filtered_sft, kept_ids = filter_grid_roi(
-                sft, mask, mode, is_exclude, distance)
+            kept_ids, filtered_sft = filter_grid_roi(
+                sft, mask, mode, is_exclude, distance, return_sft=True)
 
         else:  # filter_type == 'bdo':
             # FILTERING FROM BOUNDING BOX

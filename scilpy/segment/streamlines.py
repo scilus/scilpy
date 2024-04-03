@@ -188,14 +188,13 @@ def filter_grid_roi(sft, mask, filter_type, is_exclude, filter_distance=0,
     return line_based_indices
 
 
-def pre_filtering_for_geometrical_shape(sft, size,
-                                        center, filter_type,
+def pre_filtering_for_geometrical_shape(sft, size, center, filter_type,
                                         is_in_vox):
     """
     Parameters
     ----------
     sft : StatefulTractogram
-        StatefulTractogram containing the streamlines to segment.
+        Tractogram containing the streamlines to segment.
     size : numpy.ndarray (3)
         Size in mm, x/y/z of the ROI.
     center: numpy.ndarray (3)
@@ -207,9 +206,10 @@ def pre_filtering_for_geometrical_shape(sft, size,
 
     Returns
     -------
-    ids : tuple
-        Filtered sft.
+    ids : list
         Ids of the streamlines passing through the mask.
+    sft: StatefulTractogram
+        Filtered sft
     """
     transfo, dim, _, _ = sft.space_attributes
     inv_transfo = np.linalg.inv(transfo)
@@ -246,7 +246,7 @@ def filter_ellipsoid(sft, ellipsoid_radius, ellipsoid_center,
     Parameters
     ----------
     sft : StatefulTractogram
-        StatefulTractogram containing the streamlines to segment.
+        Tractogram containing the streamlines to segment.
     ellipsoid_radius : numpy.ndarray (3)
         Size in mm, x/y/z of the ellipsoid.
     ellipsoid_center: numpy.ndarray (3)
@@ -257,13 +257,15 @@ def filter_ellipsoid(sft, ellipsoid_radius, ellipsoid_center,
         Value to indicate if the ROI is an AND (false) or a NOT (true).
     is_in_vox: bool
         Value to indicate if the ROI is in voxel space.
+
     Returns
     -------
-    ids : tuple
-        Filtered sft.
+    ids : list
         Ids of the streamlines passing through the mask.
+    sft: StatefulTractogram
+        Filtered sft
     """
-    pre_filtered_sft, pre_filtered_indices = \
+    pre_filtered_indices, pre_filtered_sft = \
         pre_filtering_for_geometrical_shape(sft, ellipsoid_radius,
                                             ellipsoid_center, filter_type,
                                             is_in_vox)
@@ -282,7 +284,7 @@ def filter_ellipsoid(sft, ellipsoid_radius, ellipsoid_center,
     # This is still point based (but resampled), I had a ton of problems trying
     # to use something with intersection, but even if I could do it :
     # The result won't be identical to MI-Brain since I am not using the
-    # vtkPolydata. Also it won't be identical to TrackVis either,
+    # vtkPolydata. Also, it won't be identical to TrackVis either,
     # because TrackVis is point-based for Spherical ROI...
     ellipsoid_radius = np.asarray(ellipsoid_radius, dtype=float)
     ellipsoid_center = np.asarray(ellipsoid_center, dtype=float)
@@ -367,10 +369,10 @@ def filter_cuboid(sft, cuboid_radius, cuboid_center,
         Filtered sft.
         Ids of the streamlines passing through the mask.
     """
-    pre_filtered_sft, pre_filtered_indices = \
+    pre_filtered_indices, pre_filtered_sft = \
         pre_filtering_for_geometrical_shape(sft, cuboid_radius,
                                             cuboid_center, filter_type,
-                                            False)
+                                            is_in_vox=False)
     pre_filtered_sft.to_rasmm()
     pre_filtered_sft.to_center()
     pre_filtered_streamlines = pre_filtered_sft.streamlines
