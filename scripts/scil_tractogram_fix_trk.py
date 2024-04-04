@@ -155,8 +155,7 @@ def main():
         # Startrack flips the TRK
         flip_axis = ['x']
         sft.to_vox()
-        sft.streamlines._data -= get_axis_flip_vector(
-            flip_axis)  # --------------------_> HEin?
+        sft.streamlines._data -= get_axis_flip_vector(flip_axis)  # --------------------_> HEin?
         sft = flip_sft(sft, flip_axis)
 
     else:  # args.software == 'dsi_studio':
@@ -181,8 +180,7 @@ def main():
         flip_axis = ['x', 'y']
         sft = StatefulTractogram(sft.streamlines, args.in_dsi_fa, Space.VOXMM)
         sft.to_vox()
-        sft.streamlines._data -= get_axis_flip_vector(
-            flip_axis)  # --------------------_> HEin?
+        sft.streamlines._data -= get_axis_flip_vector(flip_axis)  # --------------------_> HEin?
 
         sft = flip_sft(sft, flip_axis)
 
@@ -242,8 +240,9 @@ def main():
                                             sigmas=sigmas,
                                             factors=factors)
                 transform = RigidTransform3D()
+                params0 = None
                 rigid = affreg.optimize(static_data, moving_data, transform,
-                                        None, static_img.affine,
+                                        params0, static_img.affine,
                                         moving_img.affine,
                                         starting_affine=c_of_mass.affine)
                 transfo = rigid.affine
