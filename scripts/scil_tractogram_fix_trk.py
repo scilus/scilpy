@@ -6,6 +6,11 @@ This script is made to fix DSI-Studio or Startrack TRK file (unknown space /
 convention) to make it compatible with TrackVis, MI-Brain, Dipy Horizon
 (Stateful Tractogram).
 
+The conversion may result in invalid streamlines. By default, the script will
+raise an error. You may choose to keep invalid streamlines (--no_bbox_check),
+discard them or cut them. We recommand the --cut_invalid to remove invalid
+points of streamlines rather removing entire streamlines.
+
 DSI-Studio
 ==========
 
@@ -25,9 +30,6 @@ Registration is more robust at resolution above 2mm (iso), be careful.
 If you are fixing many files, use this script once with --save_transfo and
 verify results. Once satisfied, call the scripts on all files with
 --load_transfo to save computation.
-
-We recommand the --cut_invalid to remove invalid points of streamlines rather
-removing entire streamlines.
 
 Startrack
 ==========
@@ -89,9 +91,10 @@ def _build_arg_parser():
                         'Choices: {}'.format(softwares))
 
     invalid = p.add_mutually_exclusive_group()
+    add_bbox_arg(invalid)
     invalid.add_argument('--cut_invalid', action='store_true',
-                         help='Cut invalid streamlines rather than removing '
-                              'them.\nKeep the longest segment only.')
+                         help='Cut invalid streamlines. Keep the longest '
+                              'segment only.')
     invalid.add_argument('--remove_invalid', action='store_true',
                          help='Remove the streamlines landing out of the '
                               'bounding box.')
@@ -120,7 +123,6 @@ def _build_arg_parser():
     g2.add_argument('--reference',
                     help='Reference anatomy (.nii or .nii.gz).')
 
-    add_bbox_arg(p)
     add_verbose_arg(p)
     add_overwrite_arg(p)
 
@@ -139,11 +141,11 @@ def main():
     assert_outputs_exist(parser, args, args.out_tractogram)
 
     if args.software == 'startrack':
-        if (args.in_dsi_fa or args.in_native_fa or args.auto_crep or
+        if (args.in_dsi_fa or args.in_native_fa or args.auto_crop or
                 args.save_transfo or args.load_transfo):
             parser.error("For the startrack software, please only set the "
                          "--reference option.")
-        if args.in_reference is None:
+        if args.reference is None:
             parser.error("For the startrack software, please set the "
                          "--reference option.")
         assert_inputs_exist(parser, [args.in_tractogram, args.reference])
