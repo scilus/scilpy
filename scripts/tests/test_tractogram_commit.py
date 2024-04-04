@@ -7,8 +7,6 @@ import tempfile
 from scilpy import SCILPY_HOME
 from scilpy.io.fetcher import fetch_data, get_testing_files_dict
 
-# Due to commit limitations we cannot run mutliple test of this script
-
 # If they already exist, this only takes 5 seconds (check md5sum)
 fetch_data(get_testing_files_dict(), keys=['commit_amico.zip'])
 
@@ -45,7 +43,7 @@ def test_execution_commit2(script_runner, monkeypatch):
     tmp_dir = tempfile.TemporaryDirectory()
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
 
-    # TODO Modify to use with hdf5. Currently impossible.
+    # TODO Add a HDF5 in our test data that could be used here.
     ret = script_runner.run(
         'scil_tractogram_commit.py', in_tracking, in_dwi, in_bval, in_bvec,
         'results_bzs/', '--tol', '30', '--nbr_dir', '500',
