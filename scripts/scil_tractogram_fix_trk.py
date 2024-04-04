@@ -2,42 +2,47 @@
 # -*- coding: utf-8 -*-
 
 """
-This script is made to fix DSI-Studio or Startrack TRK file
-(unknown space/convention) to make it compatible with TrackVis,
-MI-Brain, Dipy Horizon (Stateful Tractogram).
+This script is made to fix DSI-Studio or Startrack TRK file (unknown space /
+convention) to make it compatible with TrackVis, MI-Brain, Dipy Horizon
+(Stateful Tractogram).
 
 DSI-Studio
 ==========
 
-The script either make it match with an anatomy from DSI-Studio (AC-PC aligned,
-sometimes flipped) or if --in_native_fa is provided it moves it back to native
-DWI space (this involved registration).
+Ref: https://dsi-studio.labsolver.org/
+The script will create a new stateful tractogram using the --in_dsi_fa
+reference in order to fix the missing information in the header of the trk.
+Will flip the x and y axes to change from LPS -> RAS convention in voxel space,
+and add a 0.5 shift to the origin.
+
+Then, if --in_native_fa is provided, will move back the tractogram to native
+DWI space through registration.
 
 Since DSI-Studio sometimes leaves some skull around the brain, the --auto_crop
 aims to stabilize registration. If this option fails, manually BET both FA.
 Registration is more robust at resolution above 2mm (iso), be careful.
 
-If you are fixing bundles, use this script once with --save_transfo and verify
-results. Once satisfied, call the scripts on bundles using a bash for loop with
+If you are fixing many files, use this script once with --save_transfo and
+verify results. Once satisfied, call the scripts on all files with
 --load_transfo to save computation.
 
 We recommand the --cut_invalid to remove invalid points of streamlines rather
 removing entire streamlines.
 
-This script was tested on various datasets and worked on all of them. However,
-always verify the results and if a specific case does not work. Open an issue
-on the Scilpy GitHub repository.
-
 Startrack
 ==========
 
+Ref: https://www.mr-startrack.com/
 The script will create a new stateful tractogram using the reference in
-order to fix the missing information in the header of the trk.
+order to fix the missing information in the header of the trk. Will flip the
+x-axis.
 
 
-WARNING: This script is still experimental, DSI-Studio and Startrack
-evolve quickly and results may vary depending on the data itself
-as well as DSI-studio/Startrack version.
+WARNING: This script is not fully tested, DSI-Studio and Startrack evolve
+quickly and results may vary depending on the data itself as well as
+DSI-studio / Startrack version. But it was tested on various datasets and
+worked on all of them. However, always verify the results and if a specific
+case does not work. Open an issue on the Scilpy GitHub repository.
 
 Formerly: scil_fix_dsi_studio_trk.py
 """
@@ -78,8 +83,8 @@ def _build_arg_parser():
                         '(.trk).')
     p.add_argument('out_tractogram',
                    help='Path of the output tractogram file.')
-    p.add_argument('--software', metavar='string', default='None',
-                   choices=softwares,
+    p.add_argument('--software', metavar='string', choices=softwares,
+                   required=True,
                    help='Software used to create in_tractogram.\n'
                         'Choices: {}'.format(softwares))
 
@@ -93,17 +98,16 @@ def _build_arg_parser():
 
     g1 = p.add_argument_group(title='DSI options')
     g1.add_argument('--in_dsi_fa',
-                    help='Path of the input FA from DSI Studio (.nii.gz).')
-
+                    help='Path of the input FA from DSI Studio (.nii.gz).'
+                         'Required for dsi_studio software.')
     g1.add_argument('--in_native_fa',
                     help='Path of the input FA from Dipy/MRtrix (.nii.gz).\n'
-                         'Move the tractogram back to a "proper" space, '
-                         'include registration.')
+                         'If provided, move the tractogram back to a "proper" '
+                         'space (includes registration).')
     g1.add_argument('--auto_crop', action='store_true',
-                    help='If both FA are not already BET, '
-                         'perform registration \n'
-                         'using a centered-cube crop to ignore the skull.\n'
-                         'A good BET for both is more robust.')
+                    help='If both FA files are not already BET, perform '
+                         'registration \nusing a centered-cube crop to ignore '
+                         'the skull.\nA good BET for both is more robust.')
     transfo = g1.add_mutually_exclusive_group()
     transfo.add_argument('--save_transfo', metavar='FILE',
                          help='Save estimated transformation to avoid '
@@ -128,62 +132,66 @@ def main():
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
-    warning_msg = """
-        # This script is still experimental, DSI-Studio and Startrack
-        # evolve quickly and results may vary depending on the data itself
-        # as well as DSI-studio/Startrack version.
-    """
-
-    logging.warning(warning_msg)
-
+    logging.warning("This script is not fully tested, DSI-Studio and "
+                    "Startrack evolve quickly and results may vary depending "
+                    "on the data itself as well as DSI-studio/Startrack "
+                    "version.")
     assert_outputs_exist(parser, args, args.out_tractogram)
 
     if args.software == 'startrack':
+        if (args.in_dsi_fa or args.in_native_fa or args.auto_crep or
+                args.save_transfo or args.load_transfo):
+            parser.error("For the startrack software, please only set the "
+                         "--reference option.")
+        if args.in_reference is None:
+            parser.error("For the startrack software, please set the "
+                         "--reference option.")
         assert_inputs_exist(parser, [args.in_tractogram, args.reference])
         sft = load_tractogram(args.in_tractogram, 'same',
                               bbox_valid_check=args.bbox_check,
                               trk_header_check=False)
-        new_sft = StatefulTractogram(sft.streamlines, args.reference,
-                                     Space.VOX)
+        sft = StatefulTractogram(sft.streamlines, args.reference, Space.VOX)
 
         # Startrack flips the TRK
         flip_axis = ['x']
-        new_sft.to_vox()
-        new_sft.streamlines._data -= get_axis_flip_vector(flip_axis)
-        new_sft = flip_sft(new_sft, flip_axis)
-        new_sft.to_rasmm()
+        sft.to_vox()
+        sft.streamlines._data -= get_axis_flip_vector(
+            flip_axis)  # --------------------_> HEin?
+        sft = flip_sft(sft, flip_axis)
 
-    else:
+    else:  # args.software == 'dsi_studio':
+        if args.reference is not None:
+            parser.error("--reference should only be set with the startrack "
+                         "software.")
+        if args.in_dsi_fa is None:
+            parser.error("For the dsi_studio software, please provide "
+                         "minimally the --in_dsi_fa option.")
         if args.load_transfo and args.in_native_fa is None:
             parser.error('When loading a transformation, the final '
                          'reference is needed, use --in_native_fa.')
 
         assert_inputs_exist(parser, [args.in_tractogram, args.in_dsi_fa],
-                            optional=args.in_native_fa)
+                            optional=[args.load_transfo, args.in_native_fa])
 
         sft = load_tractogram(args.in_tractogram, 'same',
                               bbox_valid_check=args.bbox_check)
+
         # LPS -> RAS convention in voxel space
         sft.to_vox()
         flip_axis = ['x', 'y']
-        sft_fix = StatefulTractogram(sft.streamlines, args.in_dsi_fa,
-                                     Space.VOXMM)
-        sft_fix.to_vox()
-        sft_fix.streamlines._data -= get_axis_flip_vector(flip_axis)
+        sft = StatefulTractogram(sft.streamlines, args.in_dsi_fa, Space.VOXMM)
+        sft.to_vox()
+        sft.streamlines._data -= get_axis_flip_vector(
+            flip_axis)  # --------------------_> HEin?
 
-        sft_flip = flip_sft(sft_fix, flip_axis)
+        sft = flip_sft(sft, flip_axis)
 
-        sft_flip.to_rasmm()
-        sft_flip.streamlines._data -= [0.5, 0.5, -0.5]
+        # Fix origin.
+        sft.to_rasmm()
+        sft.streamlines._data -= [0.5, 0.5, -0.5]
 
-        if not args.in_native_fa:
-            if args.cut_invalid:
-                sft_flip, _ = cut_invalid_streamlines(sft_flip)
-            elif args.remove_invalid:
-                sft_flip.remove_invalid_streamlines()
-            save_tractogram(sft_flip, args.out_tractogram,
-                            bbox_valid_check=args.bbox_check)
-        else:
+        if args.in_native_fa:
+            logging.info("Preparing for registration.")
             static_img = nib.load(args.in_native_fa)
             static_data = static_img.get_fdata()
             moving_img = nib.load(args.in_dsi_fa)
@@ -191,6 +199,7 @@ def main():
 
             # DSI-Studio flips the volume without changing the affine (I think)
             # So this has to be reversed (not the same problem as above)
+            # Flipping again the SFT to fit with volume.
             vox_order = get_reference_info(moving_img)[3]
             flip_axis = []
             if vox_order[0] == 'L':
@@ -202,11 +211,12 @@ def main():
             if vox_order[2] == 'I':
                 moving_data = moving_data[:, :, ::-1]
                 flip_axis.append('z')
-            sft_flip_back = flip_sft(sft_flip, flip_axis)
+            sft = flip_sft(sft, flip_axis)
 
             if args.load_transfo:
                 transfo = np.loadtxt(args.load_transfo)
             else:
+                logging.info("Computing the transformation.")
                 # Sometimes DSI studio has quite a lot of skull left
                 # Dipy Median Otsu does not work with FA/GFA
                 if args.auto_crop:
@@ -240,17 +250,15 @@ def main():
                 if args.save_transfo:
                     np.savetxt(args.save_transfo, transfo)
 
-            new_sft = transform_warp_sft(sft_flip_back, transfo,
-                                         static_img, inverse=True,
-                                         remove_invalid=args.remove_invalid,
-                                         cut_invalid=args.cut_invalid)
+            logging.info("Applying the transformation.")
+            sft = transform_warp_sft(sft, transfo, static_img, inverse=True)
 
     if args.cut_invalid:
-        new_sft, _ = cut_invalid_streamlines(new_sft)
+        sft, _ = cut_invalid_streamlines(sft)
     elif args.remove_invalid:
-        new_sft.remove_invalid_streamlines()
+        sft.remove_invalid_streamlines()
 
-    save_tractogram(new_sft, args.out_tractogram,
+    save_tractogram(sft, args.out_tractogram,
                     bbox_valid_check=args.bbox_check)
 
 
