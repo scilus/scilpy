@@ -240,8 +240,6 @@ def main():
     num_digits_labels = 3
     actor_list = []
     spatial_shape = nib.load(args.in_labels[0]).shape[:3]
-    scene = window.Scene()
-    scene.background(tuple(map(int, args.background)))
     for i, filename in enumerate(args.in_bundles):
         sft = load_tractogram_with_reference(parser, args, filename)
         sft.to_vox()
