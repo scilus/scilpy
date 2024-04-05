@@ -91,12 +91,12 @@ def main():
                         [args.mask, args.reference])
     assert_headers_compatible(parser, args.in_tractogram, args.mask,
                               reference=args.reference)
+    assert_outputs_exist(parser, args, [],
+                         [args.out_mask, args.out_tdi, args.out_todi_sf,
+                          args.out_todi_sh])
 
-    out_files = [args.out_mask, args.out_tdi, args.out_todi_sf,
-                 args.out_todi_sh]
-    assert_outputs_exist(parser, args, [], out_files)
-
-    if not np.any(out_files):
+    if not (args.out_mask or args.out_tdi or args.out_todi_sf or
+            args.out_todi_sh):
         parser.error('No output to be done. Choose at least one output '
                      'option.')
 
