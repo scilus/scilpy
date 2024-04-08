@@ -79,11 +79,10 @@ def main():
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
-    # roi_file = args.target_roi[0] if args.ta
-    assert_inputs_exist(parser, args.in_bundle,
-                        args.target_roi or [] + [args.reference])
+    roi_file = args.target_roi[0] if args.target_roi else None
+    assert_inputs_exist(parser, args.in_bundle, [roi_file, args.reference])
     assert_outputs_exist(parser, args, args.out_bundle)
-    assert_headers_compatible(parser, args.in_bundle, args.target_roi,
+    assert_headers_compatible(parser, args.in_bundle, roi_file,
                               reference=args.reference)
 
     sft = load_tractogram_with_reference(parser, args, args.in_bundle)
