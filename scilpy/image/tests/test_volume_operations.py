@@ -119,6 +119,16 @@ def test_compute_snr():
     assert np.allclose(snr[0]['snr'], target_val, atol=0.00005)
 
 
+def test_remove_outliers_ransac():
+    # Could test, but uses mainly sklearn. Not testing again.
+    pass
+
+
+def smooth_to_fwhm():
+    # toDo
+    pass
+
+
 def test_resample_volume():
     moving3d = np.pad(np.ones((4, 4, 4)), pad_width=1,
                       mode='constant', constant_values=0)

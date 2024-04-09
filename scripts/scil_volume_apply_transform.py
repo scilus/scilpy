@@ -53,13 +53,10 @@ def main():
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
+    # Verifications
     assert_inputs_exist(parser, [args.in_file, args.in_target_file,
                                  args.in_transfo])
     assert_outputs_exist(parser, args, args.out_name)
-
-    transfo = load_matrix_in_any_format(args.in_transfo)
-    if args.inverse:
-        transfo = np.linalg.inv(transfo)
 
     _, ref_extension = split_name_with_nii(args.in_target_file)
     _, in_extension = split_name_with_nii(args.in_file)
@@ -69,16 +66,14 @@ def main():
     if in_extension not in ['.nii', '.nii.gz']:
         parser.error('{} is an unsupported format.'.format(args.in_file))
 
-    # Load images and validate input type.
+    # Loading
+    transfo = load_matrix_in_any_format(args.in_transfo)
+    if args.inverse:
+        transfo = np.linalg.inv(transfo)
     moving = nib.load(args.in_file)
-
-    if moving.get_fdata().ndim == 4:
-        logging.warning('You are applying a transform to a 4D dwi volume, '
-                        'make sure to rotate your bvecs with '
-                        'scil_gradients_apply_transform.py')
-
     reference = nib.load(args.in_target_file)
 
+    # Processing, saving
     warped_img = apply_transform(
         transfo, reference, moving, keep_dtype=args.keep_dtype)
 

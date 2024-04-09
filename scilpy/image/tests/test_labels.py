@@ -157,3 +157,8 @@ def test_split_labels():
     assert len(out_labels) == 3
     assert_equal(np.unique(out_labels[0]), [0, 6])
     assert_equal(np.unique(out_labels[1]), [0])
+
+
+def test_stats_in_labels():
+    # toDO. Will need to create a fake LUT.
+    pass
