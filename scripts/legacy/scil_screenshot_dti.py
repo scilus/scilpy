@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from scilpy.io.deprecator import deprecate_script
-from scripts.scil_dti_screenshot import main as new_main
+from scripts.scil_viz_dti_screenshot import main as new_main
 
 
 DEPRECATION_MSG = '''

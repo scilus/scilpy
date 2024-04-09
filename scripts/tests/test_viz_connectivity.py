@@ -13,7 +13,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_visualize_connectivity.py', '--help')
+    ret = script_runner.run('scil_viz_connectivity.py', '--help')
     assert ret.success
 
 
@@ -23,7 +23,7 @@ def test_execution_connectivity(script_runner, monkeypatch):
                          'sc_norm.npy')
     in_labels_list = os.path.join(SCILPY_HOME, 'connectivity',
                                   'labels_list.txt')
-    ret = script_runner.run('scil_visualize_connectivity.py', in_sc,
+    ret = script_runner.run('scil_viz_connectivity.py', in_sc,
                             'sc_norm.png', '--log', '--display_legend',
                             '--labels_list', in_labels_list,
                             '--histogram', 'hist.png', '--nb_bins', '50',

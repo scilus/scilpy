@@ -13,18 +13,12 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_screenshot(script_runner):
-    in_fa = os.path.join(SCILPY_HOME, 'bst',
-                         'fa.nii.gz')
+    in_fa = os.path.join(SCILPY_HOME, 'bst', 'fa.nii.gz')
 
-    ret = script_runner.run(
-        "scil_screenshot_volume.py", in_fa, 'fa.png'
-    )
+    ret = script_runner.run("scil_viz_volume_screenshot.py", in_fa, 'fa.png')
     assert ret.success
 
 
 def test_help_option(script_runner):
-
-    ret = script_runner.run(
-        "scil_screenshot_volume.py", "--help"
-    )
+    ret = script_runner.run("scil_viz_volume_screenshot.py", "--help")
     assert ret.success

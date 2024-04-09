@@ -12,17 +12,14 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_visualize_bingham_fit.py', '--help')
+    ret = script_runner.run('scil_viz_fodf.py', '--help')
     assert ret.success
 
 
 def test_silent_without_output(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
+    in_fodf = os.path.join(SCILPY_HOME, 'tracking', 'fodf.nii.gz')
 
-    # dummy dataset (the script should raise an error before using it)
-    in_dummy = os.path.join(SCILPY_HOME, 'tracking', 'fodf.nii.gz')
-
-    ret = script_runner.run('scil_visualize_bingham_fit.py', in_dummy,
-                            '--silent')
+    ret = script_runner.run('scil_viz_fodf.py', in_fodf, '--silent')
 
     assert (not ret.success)

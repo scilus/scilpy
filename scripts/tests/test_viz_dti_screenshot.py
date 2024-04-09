@@ -3,8 +3,5 @@
 
 
 def test_help_option(script_runner):
-
-    ret = script_runner.run(
-        "scil_screenshot_volume_mosaic_overlap.py", "--help"
-    )
+    ret = script_runner.run('scil_viz_dti_screenshot.py', '--help')
     assert ret.success
