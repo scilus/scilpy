@@ -11,9 +11,9 @@ If the input bundle is poorly defined, it is possible heuristic will be wrong.
 The default is to flip each streamline so their first point's coordinate in the
 defined axis is smaller than their last point (--swap does the opposite).
 
-The --target option will use the barycenter of the target mask to define the
-axis. The target mask can be a binary mask or an atlas. If an atlas is
-used, labels are expected in the form of --target atlas.nii.gz 2 3 5:7.
+The --target_roi option will use the barycenter of the target mask to define
+the axis. The target mask can be a binary mask or an atlas. If an atlas is
+used, labels are expected in the form of --target_roi atlas.nii.gz 2 3 5:7.
 
 Formerly: scil_uniformize_streamlines_endpoints.py
 """
@@ -57,10 +57,12 @@ def _build_arg_parser():
                         help='Match endpoints of the streamlines to align it '
                              'to a reference unique streamline (centroid).')
     method.add_argument('--target_roi', nargs='+',
-                        help='Provide a target ROI and the labels to use.\n'
-                             'Align heads to be closest to the mask barycenter'
-                             '.\nIf no labels are provided, all labels will be'
-                             ' used.')
+                        help='Provide a target ROI: either a binary mask or a '
+                             'label map and the labels to use.\n'
+                             'Will align heads to be closest to the mask '
+                             'barycenter.\n'
+                             '(atlas: if no labels are provided, all labels '
+                             'will be used.')
     p.add_argument('--swap', action='store_true',
                    help='Swap head <-> tail convention. '
                         'Can be useful when the reference is not in RAS.')
@@ -77,10 +79,10 @@ def main():
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
-    assert_inputs_exist(parser, args.in_bundle,
-                        args.target_roi or [] + [args.reference])
+    roi_file = args.target_roi[0] if args.target_roi else None
+    assert_inputs_exist(parser, args.in_bundle, [roi_file, args.reference])
     assert_outputs_exist(parser, args, args.out_bundle)
-    assert_headers_compatible(parser, args.in_bundle, args.target_roi,
+    assert_headers_compatible(parser, args.in_bundle, roi_file,
                               reference=args.reference)
 
     sft = load_tractogram_with_reference(parser, args, args.in_bundle)
