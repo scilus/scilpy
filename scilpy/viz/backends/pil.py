@@ -193,15 +193,14 @@ def fetch_truetype_font(fontconfig, size, fontface_index=0, encoding="unic",
 
     try:
         font_path = findfont(fontconfig, fallback_to_default=False)
+        return ImageFont.truetype(font_path, size, fontface_index, encoding)
     except Exception as e:
         if use_default_if_not_found:
             logging.info(f'Font {fontconfig} was not found. Default font '
                          f'will be used.')
-            font_path = ImageFont.load_default(size)
+            return ImageFont.load_default(size)
         else:
             raise e
-
-    return ImageFont.truetype(font_path, size, fontface_index, encoding)
 
 
 def annotate_image(image, slice_number, display_slice_number,
