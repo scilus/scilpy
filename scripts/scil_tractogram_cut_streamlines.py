@@ -148,7 +148,9 @@ def main():
         else:
             unique_vals = np.unique(label_data[label_data != 0])
             if len(unique_vals) != 2:
-                parser.error('More than two values in the label file.')
+                parser.error('More than two values in the label file, '
+                             'please use --label_ids to select '
+                             'specific label ids.')
 
         label_data_1 = np.copy(label_data)
         mask = label_data_1 != unique_vals[0]
