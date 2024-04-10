@@ -91,12 +91,10 @@ def main():
                         [args.mask, args.reference])
     assert_headers_compatible(parser, args.in_tractogram, args.mask,
                               reference=args.reference)
-    assert_outputs_exist(parser, args, [],
-                         [args.out_mask, args.out_tdi, args.out_todi_sf,
-                          args.out_todi_sh])
+    outputs = [args.out_mask, args.out_tdi, args.out_todi_sf, args.out_todi_sh]
+    assert_outputs_exist(parser, args, [], outputs)
 
-    if not (args.out_mask or args.out_tdi or args.out_todi_sf or
-            args.out_todi_sh):
+    if np.all([f is None for f in outputs]):
         parser.error('No output to be done. Choose at least one output '
                      'option.')
 
@@ -111,7 +109,7 @@ def main():
 
     sft.to_vox()
     # Because compute_todi expects streamline points (in voxel coordinates)
-    # to be in the range (0..size) rather than (-0.5..size - 0.5), we shift
+    # to be in the range [0, size] rather than [-0.5, size - 0.5], we shift
     # the voxel origin to corner.
     sft.to_corner()
 
@@ -131,7 +129,8 @@ def main():
         todi_obj.mask_todi(mask)
 
     if args.normalize_per_voxel:
-        # Normalizes mainly the SH, but, indirectly, changes the SF values.
+        # Normalization is done on the SH, but, indirectly, it may change the
+        # SF values. So, applying even if we don't have --out_todi_sh.
         todi_obj.normalize_todi_per_voxel()
 
     # Saving
