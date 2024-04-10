@@ -141,7 +141,9 @@ def cut_outside_of_mask_streamlines(sft, binary_mask, min_len=0):
     return filter_streamlines_by_length(new_sft, min_length=min_len)
 
 
-def cut_between_mask_two_blobs_streamlines(sft, binary_mask, min_len=0):
+def cut_between_mask_two_blobs_streamlines(sft, binary_mask_1,
+                                           binary_mask_2=None,
+                                           min_len=0):
     """
     Cut streamlines so their segment are going from blob #1 to blob #2 in a
     binary mask. This function presumes strictly two blobs are present in the
@@ -153,7 +155,9 @@ def cut_between_mask_two_blobs_streamlines(sft, binary_mask, min_len=0):
     ----------
     sft: StatefulTractogram
         The sft to cut streamlines (using a single mask with 2 entities) from.
-    binary_mask: np.ndarray
+    binary_mask_1: np.ndarray
+        Boolean array representing the region (must contain 2 entities)
+    binary_mask_2: np.ndarray
         Boolean array representing the region (must contain 2 entities)
     min_len: float
         Minimum length from the resulting streamlines.
@@ -168,9 +172,13 @@ def cut_between_mask_two_blobs_streamlines(sft, binary_mask, min_len=0):
     sft.to_vox()
     sft.to_corner()
 
-    # Split head and tail from mask
-    roi_data_1, roi_data_2 = split_mask_blobs_kmeans(
-        binary_mask, nb_clusters=2)
+    if binary_mask_2:
+        roi_data_1 = binary_mask_1
+        roi_data_2 = binary_mask_2
+    else:
+        # Split head and tail from mask
+        roi_data_1, roi_data_2 = split_mask_blobs_kmeans(
+            binary_mask_1, nb_clusters=2)
 
     # Cut streamlines with the masks and return the new streamlines
     # New endpoints may be generated

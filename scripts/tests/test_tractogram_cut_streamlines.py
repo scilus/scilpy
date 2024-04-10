@@ -24,7 +24,8 @@ def test_execution_two_roi(script_runner, monkeypatch):
                                  'bundle_all_1mm.trk')
     in_mask = os.path.join(SCILPY_HOME, 'filtering', 'mask.nii.gz')
     ret = script_runner.run('scil_tractogram_cut_streamlines.py',
-                            in_tractogram, in_mask, 'out_tractogram_cut.trk',
+                            in_tractogram, 'out_tractogram_cut.trk',
+                            '--mask', in_mask,
                             '--resample', '0.2', '--compress', '0.1')
     assert ret.success
 
@@ -35,7 +36,8 @@ def test_execution_biggest(script_runner, monkeypatch):
                                  'bundle_all_1mm.trk')
     in_mask = os.path.join(SCILPY_HOME, 'filtering', 'mask.nii.gz')
     ret = script_runner.run('scil_tractogram_cut_streamlines.py',
-                            in_tractogram, in_mask, 'out_tractogram_cut2.trk',
+                            in_tractogram, '--mask', in_mask,
+                            'out_tractogram_cut2.trk',
                             '--resample', '0.2', '--compress', '0.1',
                             '--biggest')
     assert ret.success
