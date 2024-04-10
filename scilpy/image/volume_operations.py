@@ -319,16 +319,23 @@ def compute_snr(dwi, bval, bvec, b0_thr, mask, noise_mask=None, noise_map=None,
     mask: nib.Nifti1Image
         Mask file in nibabel format.
     noise_mask: nib.Nifti1Image, optional
-        Noise mask file in nibabel format.
+        Noise mask file in nibabel format. If none of noise_mask and noise_map
+        are given, we will try to discover a noise_mask automatically in the
+        background (from the upper half, to avoid using neck and shoulder).
     noise_map: nib.Nifti1Image, optional
         Noise map file in nibabel format. Only one of noise_mask or noise_map
         may be used.
     split_shells: bool
-        If true,
+        If true, we will only work with one b-value per shell (the discovered
+        centroids).
 
     Return
     ------
-    Dictionary of values (bvec, bval, mean, std, snr) for all volumes.
+    val: dict
+        Dictionary of values (bvec, bval, mean, std, snr) for all volumes.
+    noise_mask: np.ndarray or None
+        The noise_mask that was used; either None (if noise_map was given), or
+        the given mask, or the discovered mask.
     """
     data = dwi.get_fdata(dtype=np.float32)
     mask = get_data_as_mask(mask, dtype=bool)
@@ -342,8 +349,8 @@ def compute_snr(dwi, bval, bvec, b0_thr, mask, noise_mask=None, noise_map=None,
     b0s_location = bval <= b0_thr
 
     if not np.any(b0s_location):
-        raise ValueError('You should ajust --b0_thr={} '
-                         'since no b0s where find.'.format(b0_thr))
+        raise ValueError('You should ajust b0_thr (currently {}). No b0 was '
+                         'found.'.format(b0_thr))
 
     if noise_map and noise_mask:
         raise ValueError("Please only use either noise_map or noise_mask, not "
