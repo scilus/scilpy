@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import logging
 from matplotlib.font_manager import findfont
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
@@ -160,6 +161,49 @@ def create_canvas(cell_width, cell_height, rows, columns,
     return Image.new("RGBA", (width, height), (0, 0, 0, 0))
 
 
+def fetch_truetype_font(fontconfig, size, fontface_index=0, encoding="unic",
+                        use_default_if_not_found=True):
+    """
+    Fetch a truetype font using either a `fontconfig pattern` or a
+    FontProperties object (see `Matplotlib.font_manager.findfont`_). For
+    all other parameters see the `PIL.ImageFont.truetype` method.
+
+    Parameters
+    ----------
+    fontconfig : str or FontProperties
+        Font configuration.
+    size : int
+        Font size.
+    fontface_index : int
+        Font face index.
+    encoding : str
+        Font encoding.
+    use_default_if_not_found : bool
+
+    Returns
+    -------
+    font : ImageFont
+        Font.
+
+    .. _Matplotlib.font_manager.findfont:
+        https://matplotlib.org/stable/api/font_manager_api.html#matplotlib.font_manager.findfont # noqa
+    .. _fontconfig pattern:
+        https://www.freedesktop.org/software/fontconfig/fontconfig-user.html
+    """
+
+    try:
+        font_path = findfont(fontconfig, fallback_to_default=False)
+    except Exception as e:
+        if use_default_if_not_found:
+            logging.info(f'Font {fontconfig} was not found. Default font '
+                         f'will be used.')
+            font_path = ImageFont.load_default(size)
+        else:
+            raise e
+
+    return ImageFont.truetype(font_path, size, fontface_index, encoding)
+
+
 def annotate_image(image, slice_number, display_slice_number,
                    display_lr, lr_labels=["L", "R"]):
     """
@@ -179,9 +223,7 @@ def annotate_image(image, slice_number, display_slice_number,
     lr_labels : list
         Left/right labels.
     """
-    font_size = max(1, image.width // 10)
-    font = ImageFont.truetype(findfont("freesans", fontext="ttf"), font_size)
-
+    font = fetch_truetype_font("freesans", max(1, image.width // 10))
     stroke, padding = max(image.width // 200, 1), image.width // 100
     width, height = image.width, image.height
     image = ImageDraw.Draw(image)

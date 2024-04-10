@@ -28,6 +28,7 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_output_dirs_exist_and_empty,
                              assert_headers_compatible)
 from scilpy.utils.filenames import split_name_with_nii
+from scilpy.viz.backends.pil import fetch_truetype_font
 
 
 def _build_arg_parser():
@@ -82,35 +83,6 @@ def _build_arg_parser():
     add_overwrite_arg(p)
 
     return p
-
-
-def get_font(args):
-    """ Returns a ttf font object. """
-    if args.ttf is not None:
-        try:
-            font = ImageFont.truetype(args.ttf, args.ttf_size)
-        except Exception:
-            logging.error('Font {} was not found. '
-                          'Default font will be used.'.format(args.ttf))
-            font = ImageFont.load_default()
-    elif args.ttf_size is not None:
-        # default font is not a truetype font, so size can't be changed.
-        # to allow users to change the size without having to know where fonts
-        # are in their computer, we could try to find a truetype font
-        # ourselves. They are often present in /usr/share/fonts/
-        font_path = '/usr/share/fonts/truetype/freefont/FreeSans.ttf'
-        try:
-            font = ImageFont.truetype(font_path, args.ttf_size)
-        except Exception:
-            logging.error('You did not specify a font. It is difficult'
-                          'for us to adjust size. We tried on font {} '
-                          'but it was not found.'
-                          'Default font will be used, for which font '
-                          'cannot be changed.'.format(font_path))
-            font = ImageFont.load_default()
-    else:
-        font = ImageFont.load_default()
-    return font
 
 
 def draw_column_with_names(draw, output_names, text_pos_x,
@@ -216,7 +188,7 @@ def main():
 
     # Prepare draw and font objects to render text
     draw = ImageDraw.Draw(mosaic)
-    font = get_font(args)
+    font = fetch_truetype_font(args.ttf or "freesans", args.ttf_size)
 
     # Data of the volume used as background
     ref_img = nib.load(args.in_volume)
