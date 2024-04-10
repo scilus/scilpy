@@ -209,10 +209,15 @@ def add_sphere_arg(parser, symmetric_only=False, default='repulsion724'):
                              'Default: [%(default)s]')
 
 
-def add_overwrite_arg(parser):
+def add_overwrite_arg(parser, will_delete_dirs=False):
+    if will_delete_dirs:
+        _help = ('Force overwriting of the output files.\n'
+                 'CAREFUL. The whole output directory will be deleted if it '
+                 'exists.')
+    else:
+        _help = 'Force overwriting of the output files.'
     parser.add_argument(
-        '-f', dest='overwrite', action='store_true',
-        help='Force overwriting of the output files.')
+        '-f', dest='overwrite', action='store_true', help=_help)
 
 
 def add_tolerance_arg(parser):
@@ -522,7 +527,7 @@ def verify_compression_th(compress_th):
     -----------
     compress_th: float, the compression threshold.
     """
-    if compress_th:
+    if compress_th is not None:
         if compress_th < 0.001 or compress_th > 1:
             logging.warning(
                 'You are using an error rate of {}.\nWe recommend setting it '
