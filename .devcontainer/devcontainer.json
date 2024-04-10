@@ -15,10 +15,8 @@
             "extensions": [
                 "GitHub.vscode-pull-request-github",
                 "ms-azuretools.vscode-docker",
-                "ms-python.python",
                 "ms-python.isort",
                 "ms-python.vscode-pylance",
-                "njpwerner.autodocstring",
                 "ms-vscode.cmake-tools",
                 "ms-vscode.cpptools",
                 "ms-vscode.cpptools-extension-pack",
@@ -28,10 +26,5 @@
                 "yzhang.markdown-all-in-one"
             ]
         }
-    },
-    "runArgs": [
-        "--cap-add=SYS_PTRACE",
-        "--security-opt",
-        "seccomp=unconfined" // For improved performance
-    ]
+    }
 }
