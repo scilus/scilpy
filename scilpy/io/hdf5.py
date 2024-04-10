@@ -42,8 +42,8 @@ def reconstruct_sft_from_hdf5(hdf5_handle, group_keys, space=Space.VOX,
         all bundles into one SFT. Else, returns one SFT per group.
     allow_empty: bool
         If true, if no streamlines are found, an empty tractogram will be
-        returned. If one or more group_keys does not exist, will NOT raise an
-        error anymore.
+        returned. If one or more group_keys do not exist, no error will be
+        raised.
 
     Returns
     -------
@@ -122,9 +122,8 @@ def reconstruct_sft_from_hdf5(hdf5_handle, group_keys, space=Space.VOX,
     # 3) Format as SFT
     if merge_groups:
         if len(streamlines) == 0 and not allow_empty:
-            raise ValueError("Empty SFT cannot reconstructed from hdf5. "
-                             "Set allow_empty to true to allow loading an "
-                             "empty tractogram.")
+            raise ValueError("Cannot load an empty tractogram from HDF5. Set "
+                             "`allow_empty` to True if you want to force it.")
         sft = StatefulTractogram(streamlines, header, space=space,
                                  origin=origin, data_per_streamline=dps[0])
         return sft, groups_len
@@ -132,9 +131,9 @@ def reconstruct_sft_from_hdf5(hdf5_handle, group_keys, space=Space.VOX,
         sfts = []
         for (sub_streamlines, sub_dps) in zip(streamlines, dps):
             if len(streamlines) == 0 and not allow_empty:
-                raise ValueError("Empty SFT cannot reconstructed from hdf5. "
-                                 "Set allow_empty to true to allow loading an "
-                                 "empty tractogram.")
+                raise ValueError("Cannot load an empty tractogram from HDF5. "
+                                 "Set `allow_empty` to True if you want to "
+                                 "force it.")
             else:
                 sfts.append(
                     StatefulTractogram(sub_streamlines, header, space=space,

@@ -95,8 +95,7 @@ def main():
     assert_outputs_exist(parser, args, [], outputs)
 
     if np.all([f is None for f in outputs]):
-        parser.error('No output to be done. Choose at least one output '
-                     'option.')
+        parser.error('No output selected. Choose at least one output option.')
 
     if args.normalize_per_voxel and not (args.out_todi_sh or args.out_todi_sf):
         logging.warning("Option --normalize_per_voxel is only useful when "

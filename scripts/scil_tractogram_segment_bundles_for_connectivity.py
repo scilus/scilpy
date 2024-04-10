@@ -11,7 +11,8 @@ robust to compressed streamlines.
 
 The output file is a hdf5 (.h5) where the keys are 'LABEL1_LABEL2' and each
 group is composed of 'data', 'offsets' and 'lengths' from the array_sequence.
-The 'data' is stored in VOX/CORNER for simplicity and efficiency.
+The 'data' is stored in VOX/CORNER for simplicity and efficiency. See script
+scil_tractogram_convert_hdf5_to_trk.py to convert to a list of .trk bundles.
 
 For the --outlier_threshold option the default is a recommended good trade-off
 for a freesurfer parcellation. With smaller parcels (brainnetome, glasser) the
