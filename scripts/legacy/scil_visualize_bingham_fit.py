@@ -6,7 +6,7 @@ from scripts.scil_viz_bingham_fit import main as new_main
 
 
 DEPRECATION_MSG = '''
-This script has been renamed scil_bingham_visualize.py. Please change
+This script has been renamed scil_viz_bingham_fit.py. Please change
 your existing pipelines accordingly.
 '''
 

@@ -6,7 +6,7 @@ from scripts.scil_viz_connectivity import main as new_main
 
 
 DEPRECATION_MSG = '''
-This script has been renamed scil_connectivity_visualize.py. Please change
+This script has been renamed scil_viz_connectivity.py. Please change
 your existing pipelines accordingly.
 '''
 

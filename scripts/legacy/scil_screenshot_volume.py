@@ -6,7 +6,7 @@ from scripts.scil_viz_volume_screenshot import main as new_main
 
 
 DEPRECATION_MSG = '''
-This script has been renamed scil_volume_screenshot.py. Please change
+This script has been renamed scil_viz_volume_screenshot.py. Please change
 your existing pipelines accordingly.
 '''
 

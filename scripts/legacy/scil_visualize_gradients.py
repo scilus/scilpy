@@ -6,7 +6,7 @@ from scripts.scil_viz_gradients_screenshot import main as new_main
 
 
 DEPRECATION_MSG = '''
-This script has been renamed scil_gradients_screenshot.py. Please change
+This script has been renamed scil_viz_gradients_screenshot.py. Please change
 your existing pipelines accordingly.
 '''
 

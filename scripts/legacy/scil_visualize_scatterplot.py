@@ -6,7 +6,7 @@ from scripts.scil_viz_volume_scatterplot import main as new_main
 
 
 DEPRECATION_MSG = '''
-This script has been renamed scil_volume_visualize_scatter.py. Please change
+This script has been renamed scil_viz_volume_scatterplot.py. Please change
 your existing pipelines accordingly.
 '''
 

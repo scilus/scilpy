@@ -6,7 +6,7 @@ from scripts.scil_viz_fodf import main as new_main
 
 
 DEPRECATION_MSG = '''
-This script has been renamed scil_fodf_visualize.py. Please change
+This script has been renamed scil_viz_fodf.py. Please change
 your existing pipelines accordingly.
 '''
 

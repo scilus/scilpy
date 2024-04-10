@@ -6,7 +6,7 @@ from scripts.scil_viz_tractogram_seeds import main as new_main
 
 
 DEPRECATION_MSG = '''
-This script has been renamed scil_tractogram_visualize_seeds.py. Please change
+This script has been renamed scil_viz_tractogram_seeds.py. Please change
 your existing pipelines accordingly.
 '''
 

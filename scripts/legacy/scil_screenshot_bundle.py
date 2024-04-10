@@ -6,7 +6,7 @@ from scripts.scil_viz_bundle_screenshot_mni import main as new_main
 
 
 DEPRECATION_MSG = '''
-This script has been renamed scil_bundle_screenshot_mni.py. Please change
+This script has been renamed scil_viz_bundle_screenshot_mni.py. Please change
 your existing pipelines accordingly.
 '''
 

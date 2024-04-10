@@ -6,7 +6,7 @@ from scripts.scil_viz_bundle import main as new_main
 
 
 DEPRECATION_MSG = '''
-This script has been renamed scil_bundle_visualize.py. Please change
+This script has been renamed scil_viz_bundle.py. Please change
 your existing pipelines accordingly.
 '''
 

@@ -6,8 +6,8 @@ from scripts.scil_viz_volume_screenshot_mosaic import main as new_main
 
 
 DEPRECATION_MSG = '''
-This script has been renamed scil_volume_screenshot_mosaic.py. Please change
-your existing pipelines accordingly.
+This script has been renamed scil_viz_volume_screenshot_mosaic.py. Please
+change your existing pipelines accordingly.
 '''
 
 
