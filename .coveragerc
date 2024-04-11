@@ -4,6 +4,7 @@ concurrency = multiprocessing
 data_file = .coverage
 source_pkgs =
     scilpy
+    scripts
 relative_files = True
 omit =
     scripts/tests/*.py
