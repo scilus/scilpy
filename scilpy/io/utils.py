@@ -17,7 +17,6 @@ from dipy.io.utils import is_header_compatible
 from fury import window
 from PIL import Image
 from scipy.io import loadmat
-from tqdm import tqdm
 import six
 
 from scilpy.gradients.bvec_bval_tools import DEFAULT_B0_THRESHOLD
@@ -967,10 +966,3 @@ def get_default_screenshotting_data(args):
         labelmap_img, \
         mask_imgs, \
         masks_colors
-
-
-def v_enumerate(x, verbose):
-    if verbose:
-        return enumerate(tqdm(x))
-    else:
-        return enumerate(x)
