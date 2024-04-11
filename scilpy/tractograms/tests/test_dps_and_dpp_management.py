@@ -4,14 +4,16 @@ import numpy as np
 from dipy.io.stateful_tractogram import StatefulTractogram, Space, Origin
 
 from scilpy.image.volume_space_management import DataVolume
-from scilpy.tractograms.dps_and_dpp_management import add_data_as_color_dpp, \
-    convert_dps_to_dpp, project_map_to_streamlines
+from scilpy.tractograms.dps_and_dpp_management import (
+    add_data_as_color_dpp, convert_dps_to_dpp, project_map_to_streamlines,
+    project_dpp_to_map, perform_operation_on_dpp, perform_operation_dpp_to_dps,
+    perform_correlation_on_endpoints)
 from scilpy.viz.utils import get_colormap
 
 
-# SFT = 2 streamlines: [3 points, 4 points]
 def _get_small_sft():
-    fake_ref = nib.Nifti1Image(np.zeros((3, 3)), affine=np.eye(4))
+    # SFT = 2 streamlines: [3 points, 4 points]
+    fake_ref = nib.Nifti1Image(np.zeros((3, 3, 3)), affine=np.eye(4))
     fake_sft = StatefulTractogram(streamlines=[[[0.1, 0.1, 0.1],
                                                 [0.2, 0.2, 0.2],
                                                 [0.3, 0.3, 0.3]],
@@ -22,6 +24,18 @@ def _get_small_sft():
                                   reference=fake_ref,
                                   space=Space.VOX, origin=Origin('corner'))
     return fake_sft
+
+
+def nan_array_equal(a, b):
+    a = np.asarray(a)
+    b = np.asarray(b)
+
+    nan_a = np.argwhere(np.isnan(a))
+    nan_b = np.argwhere(np.isnan(a))
+
+    a = a[~np.isnan(a)]
+    b = b[~np.isnan(b)]
+    return np.array_equal(a, b) and np.array_equal(nan_a, nan_b)
 
 
 def test_add_data_as_color_dpp():
@@ -67,8 +81,6 @@ def test_add_data_as_color_dpp():
 
 def test_convert_dps_to_dpp():
     fake_sft = _get_small_sft()
-
-    # Adding fake dps:
     fake_sft.data_per_streamline['my_dps'] = [5, 6]
 
     # Converting
@@ -89,17 +101,6 @@ def test_convert_dps_to_dpp():
 
 
 def test_project_map_to_streamlines():
-    def nan_array_equal(a, b):
-        a = np.asarray(a)
-        b = np.asarray(b)
-
-        nan_a = np.argwhere(np.isnan(a))
-        nan_b = np.argwhere(np.isnan(a))
-
-        a = a[~np.isnan(a)]
-        b = b[~np.isnan(b)]
-        return np.array_equal(a, b) and np.array_equal(nan_a, nan_b)
-
     # All points of SFT are in voxel #0 or #1 in all dimensions.
     fake_sft = _get_small_sft()
 
@@ -112,13 +113,13 @@ def test_project_map_to_streamlines():
 
     # Test 1A. All points
     dpp = project_map_to_streamlines(fake_sft, map_volume)
-    fake_sft.data_per_point['test1A'] = dpp  # Will fail if not right shape
+    fake_sft.data_per_point['test1A'] = dpp  # Will fail if not the right shape
     assert np.array_equal(dpp[0].squeeze(), [1] * 3)
     assert np.array_equal(dpp[1].squeeze(), [2] * 4)
 
     # Test 1B. Endpoints
     dpp = project_map_to_streamlines(fake_sft, map_volume, endpoints_only=True)
-    fake_sft.data_per_point['test1B'] = dpp  # Will fail if not right shape
+    fake_sft.data_per_point['test1B'] = dpp  # Will fail if not the right shape
     assert nan_array_equal(dpp[0].squeeze(), [1, np.nan, 1.0])
     assert nan_array_equal(dpp[1].squeeze(), [2, np.nan, np.nan, 2.0])
 
@@ -133,32 +134,79 @@ def test_project_map_to_streamlines():
                             interpolation='nearest')
 
     dpp = project_map_to_streamlines(fake_sft, map_volume)
-
-    # Checking that this data can indeed be added as dpp (must be the right
-    # shape)
-    fake_sft.data_per_point['test2A'] = dpp  # Will fail if not right shape
+    fake_sft.data_per_point['test2A'] = dpp  # Will fail if not the right shape
     assert np.array_equal(dpp[0], [[1, 1]] * 3)
     assert np.array_equal(dpp[1], [[2, 2]] * 4)
 
 
 def test_project_dpp_to_map():
-    pass
+    fake_sft = _get_small_sft()
+    fake_sft.data_per_point['my_dpp'] = [[1]*3, [2]*4]
+
+    map_data = project_dpp_to_map(fake_sft, 'my_dpp', sum_lines=True)
+
+    expected = np.zeros((3, 3, 3))  # fake_ref is 3x3x3
+    expected[0, 0, 0] = 3 * 1  # the 3 points of the first streamline
+    expected[1, 1, 1] = 4 * 2  # the 4 points of the second streamline
+    assert np.array_equal(map_data, expected)
 
 
 def test_perform_operation_on_dpp():
-    # toDo
-    pass
+    fake_sft = _get_small_sft()
+    fake_sft.data_per_point['my_dpp'] = [[[1, 0]]*3,
+                                         [[2, 0]]*4]
+
+    # Mean:
+    dpp = perform_operation_on_dpp('mean', fake_sft, 'my_dpp')
+    assert np.array_equal(dpp[0], [0.5] * 3)
+    assert np.array_equal(dpp[1], [1] * 4)
+
+    # Sum:
+    dpp = perform_operation_on_dpp('sum', fake_sft, 'my_dpp')
+    assert np.array_equal(dpp[0], [1] * 3)
+    assert np.array_equal(dpp[1], [2] * 4)
+
+    # Min:
+    dpp = perform_operation_on_dpp('min', fake_sft, 'my_dpp')
+    assert np.array_equal(dpp[0], [0] * 3)
+    assert np.array_equal(dpp[1], [0] * 4)
+
+    # Max:
+    dpp = perform_operation_on_dpp('max', fake_sft, 'my_dpp')
+    assert np.array_equal(dpp[0], [1] * 3)
+    assert np.array_equal(dpp[1], [2] * 4)
 
 
 def test_perform_operation_dpp_to_dps():
-    # toDo
-    pass
+    fake_sft = _get_small_sft()
+    fake_sft.data_per_point['my_dpp'] = [[[1, 0]]*3,
+                                         [[2, 0]]*4]
+
+    # Mean:
+    dps = perform_operation_dpp_to_dps('mean', fake_sft, 'my_dpp')
+    assert np.array_equal(dps[0], [1, 0])
+    assert np.array_equal(dps[1], [2, 0])
+
+    # Sum:
+    dps = perform_operation_dpp_to_dps('sum', fake_sft, 'my_dpp')
+    assert np.array_equal(dps[0], [3 * 1, 0])
+    assert np.array_equal(dps[1], [4 * 2, 0])
+
+    # Min:
+    dps = perform_operation_dpp_to_dps('min', fake_sft, 'my_dpp')
+    assert np.array_equal(dps[0], [1, 0])
+    assert np.array_equal(dps[1], [2, 0])
+
+    # Max:
+    dps = perform_operation_dpp_to_dps('max', fake_sft, 'my_dpp')
+    assert np.array_equal(dps[0], [1, 0])
+    assert np.array_equal(dps[1], [2, 0])
 
 
-def test_pairwise_streamline_operation_on_endpoints():
-    pass
-
-
-def test_perform_streamline_operation_on_endpoints():
-    # toDo
-    pass
+def test_perform_correlation_on_endpoints():
+    fake_sft = _get_small_sft()
+    fake_sft.data_per_point['my_dpp'] = [[[1, 0]]*3,
+                                         [[2, 0], [0, 0], [0, 0], [0, 0]]]
+    dps = perform_correlation_on_endpoints(fake_sft, 'my_dpp')
+    assert np.allclose(dps[0], [1])
+    assert nan_array_equal(dps[1], [np.nan])

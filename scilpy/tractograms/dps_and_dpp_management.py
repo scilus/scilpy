@@ -180,10 +180,12 @@ def project_dpp_to_map(sft, dpp_key, sum_lines=False, endpoints_only=False):
     the values of various streamlines in each voxel. Returns one map per key.
     The streamlines are not preprocessed here. You should probably first
     uncompress your streamlines to have smoother maps.
+    Note: If a streamline has two points in the same voxel, it counts twice!
 
     Parameters
     ----------
     sft: StatefulTractogram
+        The tractogram
     dpp_key: str
         The data_per_point key to project to a map.
     sum_lines: bool
@@ -227,30 +229,32 @@ def project_dpp_to_map(sft, dpp_key, sum_lines=False, endpoints_only=False):
 def perform_operation_on_dpp(op_name, sft, dpp_name, endpoints_only=False):
     """
     Peforms an operation on the data per point for all streamlines (mean, sum,
-    min, max, correlation). The operation is applied on each point invidiually,
-    and thus makes sense if the data_per_point at each point is a vector. The
-    result is a new data_per_point.
+    min, max). The operation is applied on each point invidiually, and thus
+    makes sense if the data_per_point at each point is a vector. The result is
+    a new data_per_point.
 
     Parameters
     ----------
     op_name: str
-        A callable that takes a list of streamline data per point (4D) and
+        Name of one possible operation (mean, sum, min, max). Will refer to a
+        callable that takes a list of streamline data per point (4D) and
         returns a list of streamline data per point.
     sft: StatefulTractogram
         The streamlines used in the operation.
     dpp_name: str
         The name of the data per point to be used in the operation.
+        sft.data_per_point[dpp_name][s] must be a 2D vector: (N, M)
+        with s, a given streamline; N the number of points; M the number of
+        features in the dpp.
     endpoints_only: bool
         If True, will only perform operation on endpoints. Values at other
         points will be set to NaN.
 
     Returns
     -------
-    new_data_per_point: list
+    new_data_per_point: list[np.ndarray]
         The values that could now be associated to a new data_per_point key.
     """
-
-    # Performing operation
     call_op = OPERATIONS[op_name]
     if endpoints_only:
         new_data_per_point = []
@@ -258,16 +262,14 @@ def perform_operation_on_dpp(op_name, sft, dpp_name, endpoints_only=False):
             this_data_per_point = np.nan * np.ones((len(s), 1))
             this_data_per_point[0] = call_op(s[0])
             this_data_per_point[-1] = call_op(s[-1])
-            new_data_per_point.append(
-                np.reshape(this_data_per_point, (len(this_data_per_point), 1)))
+            new_data_per_point.append(np.asarray(this_data_per_point))
     else:
         new_data_per_point = []
         for s in sft.data_per_point[dpp_name]:
             this_data_per_point = []
             for p in s:
                 this_data_per_point.append(call_op(p))
-            new_data_per_point.append(
-                np.reshape(this_data_per_point, (len(this_data_per_point), 1)))
+            new_data_per_point.append(np.asarray(this_data_per_point))
 
     return new_data_per_point
 
@@ -277,7 +279,10 @@ def perform_operation_dpp_to_dps(op_name, sft, dpp_name, endpoints_only=False):
     Converts dpp to dps, using a chosen operation.
 
     Performs an operation across all data_per_points for each streamline (mean,
-    sum, min, max, correlation). The result is a data_per_streamline.
+    sum, min, max). The result is a data_per_streamline.
+
+    If the data_per_point at each point is a vector, operation is done on each
+    feature individually. The data_per_streamline will have the same shape.
 
     Parameters
     ----------
@@ -298,7 +303,6 @@ def perform_operation_dpp_to_dps(op_name, sft, dpp_name, endpoints_only=False):
         The values that could now be associated to a new data_per_streamline
         key.
     """
-    # Performing operation
     call_op = OPERATIONS[op_name]
     if endpoints_only:
         new_data_per_streamline = []
@@ -316,15 +320,12 @@ def perform_operation_dpp_to_dps(op_name, sft, dpp_name, endpoints_only=False):
     return new_data_per_streamline
 
 
-def perform_pairwise_streamline_operation_on_endpoints(op_name, sft,
-                                                       dpp_name='metric'):
-    """Peforms an operation across endpoints for each streamline.
+def perform_correlation_on_endpoints(sft, dpp_name='metric'):
+    """Peforms correlation across endpoints for each streamline. The
+    data_per_point at each point must be a vector.
 
     Parameters
     ----------
-    op_name: str
-        A callable that takes a list of streamline data per streamline and
-        returns a list of data per streamline.
     sft: StatefulTractogram
         The streamlines used in the operation.
     dpp_name: str
@@ -332,42 +333,36 @@ def perform_pairwise_streamline_operation_on_endpoints(op_name, sft,
 
     Returns
     -------
-    new_sft: StatefulTractogram
-        sft with data per streamline resulting from the operation.
+    new_dpp: List
+        The correlation values that could now be associated to a new
+        data_per_streamline key.
     """
-    # Performing operation
-    call_op = OPERATIONS[op_name]
     new_data_per_streamline = []
     for s in sft.data_per_point[dpp_name]:
-        new_data_per_streamline.append(call_op(s[0], s[-1])[0, 1])
+        new_data_per_streamline.append(np.corrcoef(s[0], s[-1])[0, 1])
 
     return new_data_per_streamline
 
 
-def stream_mean(array):
+def _stream_mean(array):
     return np.squeeze(np.mean(array, axis=0))
 
 
-def stream_sum(array):
+def _stream_sum(array):
     return np.squeeze(np.sum(array, axis=0))
 
 
-def stream_min(array):
+def _stream_min(array):
     return np.squeeze(np.min(array, axis=0))
 
 
-def stream_max(array):
+def _stream_max(array):
     return np.squeeze(np.max(array, axis=0))
 
 
-def stream_correlation(array1, array2):
-    return np.corrcoef(array1, array2)
-
-
 OPERATIONS = {
-    'mean': stream_mean,
-    'sum': stream_sum,
-    'min': stream_min,
-    'max': stream_max,
-    'correlation': stream_correlation,
+    'mean': _stream_mean,
+    'sum': _stream_sum,
+    'min': _stream_min,
+    'max': _stream_max,
 }

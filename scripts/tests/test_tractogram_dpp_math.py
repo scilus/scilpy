@@ -63,7 +63,8 @@ def test_execution_tractogram_point_math_mean_4D_correlation(script_runner,
     ret = script_runner.run('scil_tractogram_dpp_math.py',
                             'correlation', fodf_on_bundle,
                             'fodf_correlation_on_streamlines.trk',
-                            '--mode', 'dps', '--in_dpp_name', 'fodf',
+                            '--mode', 'dps', '--endpoints_only',
+                            '--in_dpp_name', 'fodf',
                             '--out_keys', 'fodf_correlation')
 
     assert ret.success

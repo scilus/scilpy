@@ -39,7 +39,7 @@ from scilpy.io.utils import (add_bbox_arg,
                              assert_inputs_exist,
                              assert_outputs_exist)
 from scilpy.tractograms.dps_and_dpp_management import (
-    perform_pairwise_streamline_operation_on_endpoints,
+    perform_correlation_on_endpoints,
     perform_operation_on_dpp,
     perform_operation_dpp_to_dps)
 
@@ -142,8 +142,10 @@ def main():
             parser.error('Correlation operation requires multivalued data per '
                          'point. Exiting.')
 
-        if args.operation == 'correlation' and args.mode == 'dpp':
-            parser.error('Correlation operation requires dps mode. Exiting.')
+        if args.operation == 'correlation' and not (
+                args.mode == 'dps' and args.endpoints_only):
+            parser.error('Correlation operation requires dps mode AND '
+                         '--endpoints_only option. Exiting.')
 
         if not args.overwrite_dpp_dps and in_dpp_name in args.out_keys:
             parser.error('out_key {} already exists in input tractogram. '
@@ -158,8 +160,7 @@ def main():
         if args.operation == 'correlation':
             logging.info('Performing {} across endpoint data and saving as '
                          'new dpp {}'.format(args.operation, out_keys))
-            new_dps = perform_pairwise_streamline_operation_on_endpoints(
-                args.operation, sft, in_dpp_name)
+            new_dps = perform_correlation_on_endpoints(sft, in_dpp_name)
 
             data_per_streamline[out_keys] = new_dps
         elif args.mode == 'dpp':
