@@ -16,6 +16,7 @@ import nibabel as nib
 import numpy as np
 from numpy import ma
 from scipy.ndimage import binary_dilation, gaussian_filter
+from sklearn import linear_model
 
 from scilpy.image.reslice import reslice  # Don't use Dipy's reslice. Buggy.
 from scilpy.io.image import get_data_as_mask
@@ -152,6 +153,10 @@ def apply_transform(transfo, reference, moving,
     elif moving_data.ndim == 4:
         if isinstance(moving_data[0, 0, 0], np.void):
             raise ValueError('Does not support TrackVis RGB')
+        else:
+            logging.warning('You are applying a transform to a 4D volume. If'
+                            'it is a DWI volume, make sure to rotate your '
+                            'bvecs with scil_gradients_apply_transform.py')
 
         affine_map = AffineMap(np.linalg.inv(transfo),
                                dim[0:3], grid2world,
@@ -366,6 +371,47 @@ def compute_snr(dwi, bval, bvec, b0_thr, mask,
         val[idx]['snr'] = val[idx]['mean'] / val[idx]['std']
 
     return val
+
+
+def remove_outliers_ransac(in_data, min_fit, fit_thr, max_iter):
+    """
+    Remove outliers from image using the RANSAC algorithm.
+
+    Parameters
+    ----------
+    in_data: np.ndarray
+        The input.
+    min_fit: int
+        The minimum number of data values required to fit the model.
+    fit_thr: float
+        Threshold value for determining when a data point fits a model.
+    max_iter: int
+        The maximum number of iterations allowed in the algorithm.
+
+    Returns
+    -------
+    out_data: np.ndarray
+        Data without outliers.
+    """
+    init_shape = in_data.shape
+    in_data_flat = in_data.flatten()
+    in_nzr_ind = np.nonzero(in_data_flat)
+    in_nzr_val = np.array(in_data_flat[in_nzr_ind])
+
+    X = in_nzr_ind[0][:, np.newaxis]
+    model_ransac = linear_model.RANSACRegressor(
+        base_estimator=linear_model.LinearRegression(), min_samples=min_fit,
+        residual_threshold=fit_thr, max_trials=max_iter)
+    model_ransac.fit(X, in_nzr_val)
+
+    outlier_mask = np.logical_not(model_ransac.inlier_mask_)
+    outliers = X[outlier_mask]
+    logging.info('# outliers: {}'.format(len(outliers)))
+
+    in_data_flat[outliers] = 0
+    out_data = np.reshape(in_data_flat, init_shape)
+
+    return out_data
 
 
 def smooth_to_fwhm(data, fwhm):
