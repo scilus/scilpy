@@ -3,9 +3,11 @@ import nibabel as nib
 import numpy as np
 from dipy.io.stateful_tractogram import StatefulTractogram, Space, Origin
 
+from scilpy.image.volume_space_management import DataVolume
 from scilpy.tractograms.dps_and_dpp_management import add_data_as_color_dpp, \
-    convert_dps_to_dpp
+    convert_dps_to_dpp, project_map_to_streamlines
 from scilpy.viz.utils import get_colormap
+
 
 # SFT = 2 streamlines: [3 points, 4 points]
 def _get_small_sft():
@@ -87,8 +89,56 @@ def test_convert_dps_to_dpp():
 
 
 def test_project_map_to_streamlines():
-    # toDo
-    pass
+    def nan_array_equal(a, b):
+        a = np.asarray(a)
+        b = np.asarray(b)
+
+        nan_a = np.argwhere(np.isnan(a))
+        nan_b = np.argwhere(np.isnan(a))
+
+        a = a[~np.isnan(a)]
+        b = b[~np.isnan(b)]
+        return np.array_equal(a, b) and np.array_equal(nan_a, nan_b)
+
+    # All points of SFT are in voxel #0 or #1 in all dimensions.
+    fake_sft = _get_small_sft()
+
+    # Test 1. Verify on 3D volume = 1 value per point.
+    map_data = np.zeros((3, 3, 3))
+    map_data[0, 0, 0] = 1
+    map_data[1, 1, 1] = 2
+    map_volume = DataVolume(map_data, voxres=[1, 1, 1],
+                            interpolation='nearest')
+
+    # Test 1A. All points
+    dpp = project_map_to_streamlines(fake_sft, map_volume)
+    fake_sft.data_per_point['test1A'] = dpp  # Will fail if not right shape
+    assert np.array_equal(dpp[0].squeeze(), [1] * 3)
+    assert np.array_equal(dpp[1].squeeze(), [2] * 4)
+
+    # Test 1B. Endpoints
+    dpp = project_map_to_streamlines(fake_sft, map_volume, endpoints_only=True)
+    fake_sft.data_per_point['test1B'] = dpp  # Will fail if not right shape
+    assert nan_array_equal(dpp[0].squeeze(), [1, np.nan, 1.0])
+    assert nan_array_equal(dpp[1].squeeze(), [2, np.nan, np.nan, 2.0])
+
+    # -----------------
+
+    # Test 2. Verify on 4D volume = N values per point.
+    # (all points)
+    map_data = np.zeros((3, 3, 3, 2))
+    map_data[0, 0, 0, :] = 1
+    map_data[1, 1, 1, :] = 2
+    map_volume = DataVolume(map_data, voxres=[1, 1, 1],
+                            interpolation='nearest')
+
+    dpp = project_map_to_streamlines(fake_sft, map_volume)
+
+    # Checking that this data can indeed be added as dpp (must be the right
+    # shape)
+    fake_sft.data_per_point['test2A'] = dpp  # Will fail if not right shape
+    assert np.array_equal(dpp[0], [[1, 1]] * 3)
+    assert np.array_equal(dpp[1], [[2, 2]] * 4)
 
 
 def test_project_dpp_to_map():

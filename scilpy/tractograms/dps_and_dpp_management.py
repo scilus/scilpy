@@ -126,12 +126,12 @@ def project_map_to_streamlines(sft, map_volume, endpoints_only=False):
         Input map.
     endpoints_only: bool, optional
         If True, will only project the map_volume onto the endpoints of the
-        streamlines (all values along streamlines set to zero). If False,
+        streamlines (all values along streamlines set to NaN). If False,
         will project the map_volume onto all points of the streamlines.
 
     Returns
     -------
-    streamline_data: List
+    streamline_data: List[List]
         The values that could now be associated to a data_per_point key.
         The map_volume projected to each point of the streamlines.
     """
@@ -140,6 +140,7 @@ def project_map_to_streamlines(sft, map_volume, endpoints_only=False):
     else:
         dimension = 1
 
+    # toDo: double loop. Could be faster?
     streamline_data = []
     if endpoints_only:
         for s in sft.streamlines:
