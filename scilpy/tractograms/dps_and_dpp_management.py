@@ -4,25 +4,29 @@ import numpy as np
 from scilpy.viz.utils import clip_and_normalize_data_for_cmap
 
 
-def add_data_as_color_dpp(sft, cmap, data, clip_outliers, min_range, max_range,
-                          min_cmap, max_cmap, log, LUT):
+def add_data_as_color_dpp(sft, cmap, data, clip_outliers=False, min_range=None,
+                          max_range=None, min_cmap=None, max_cmap=None,
+                          log=False, LUT=None):
     """
     Normalizes data between 0 and 1 for an easier management with colormaps.
     The real lower bound and upperbound are returned.
 
     Data can be clipped to (min_range, max_range) before normalization.
-    Alternatively, data can be kept as is,
+    Alternatively, data can be kept as is, but the colormap be fixed to
+    (min_cmap, max_cmap).
 
     Parameters
     ----------
     sft: StatefulTractogram
         The tractogram
     cmap: plt colormap
-        The colormap
-    data: np.ndarray
+        The colormap. Ex, see scilpy.viz.utils.get_colormap().
+    data: np.ndarray or list[list] or list[np.ndarray]
         The data to convert to color. Expecting one value per point to add as
         dpp. If instead data has one value per streamline, setting the same
         color to all points of the streamline (as dpp).
+        Either a vector numpy array (all streamlines concatenated), or a list
+        of arrays per streamline.
     clip_outliers: bool
         See description of the following parameters in
         clip_and_normalize_data_for_cmap.
@@ -50,11 +54,16 @@ def add_data_as_color_dpp(sft, cmap, data, clip_outliers, min_range, max_range,
     ubound: float
         The upper bound of the associated colormap.
     """
+    # If data is a list of lists, merge.
+    if isinstance(data[0], list) or isinstance(data[0], np.ndarray):
+        data = np.hstack(data)
+
     values, lbound, ubound = clip_and_normalize_data_for_cmap(
         data, clip_outliers, min_range, max_range,
         min_cmap, max_cmap, log, LUT)
 
-    color = cmap(values)[:, 0:3] * 255
+    # Important. values are in float!
+    color = np.asarray(cmap(values)[:, 0:3]) * 255
     if len(color) == len(sft):
         tmp = [np.tile([color[i][0], color[i][1], color[i][2]],
                        (len(sft.streamlines[i]), 1))
@@ -80,14 +89,19 @@ def convert_dps_to_dpp(sft, keys, overwrite=False):
     Parameters
     ----------
     sft: StatefulTractogram
-    keys: List[str], optional
+    keys: str or List[str], optional
         The list of dps keys to convert to dpp.
     overwrite: bool
         If true, allow continuing even if the key already existed as dpp.
     """
+    if isinstance(keys, str):
+        keys = [keys]
+
     for key in keys:
         if key not in sft.data_per_streamline:
-            raise ValueError("Dps key {} not found!".format(key))
+            raise ValueError(
+                "Dps key {} not found! Existing dps keys: {}"
+                .format(key, list(sft.data_per_streamline.keys())))
         if key in sft.data_per_point and not overwrite:
             raise ValueError("Dpp key {} already existed. Please allow "
                              "overwriting.".format(key))

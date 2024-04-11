@@ -14,6 +14,8 @@ RAS_AXES = {
 
 def get_colormap(name):
     """Get a matplotlib colormap from a name or a list of named colors.
+    For a list of possible names, see
+    https://matplotlib.org/stable/gallery/color/colormap_reference.html
 
     Parameters
     ----------
@@ -102,12 +104,13 @@ def clip_and_normalize_data_for_cmap(
     The real lower bound and upperbound are returned.
 
     Data can be clipped to (min_range, max_range) before normalization.
-    Alternatively, data can be kept as is,
+    Alternatively, data can be kept as is, but the colormap be fixed to
+    (min_cmap, max_cmap).
 
     Parameters
     ----------
-    data: np.ndarray
-        The data.
+    data: np.array
+        The data: a vector array.
     clip_outliers: bool
         If True, clips the data to the lowest and highest 5% quantile before
         normalizing and before any other clipping.
@@ -126,6 +129,8 @@ def clip_and_normalize_data_for_cmap(
         If set, replaces the data values by the Look-Up Table values. In order,
         the first value of the LUT is set everywhere where data==1, etc.
     """
+    data = data.astype(float)
+
     if LUT is not None:
         for i, val in enumerate(LUT):
             data[data == i+1] = val
@@ -151,8 +156,7 @@ def clip_and_normalize_data_for_cmap(
         data[data > 0] = np.log10(data[data > 0])
 
     # normalize data between 0 and 1
-    data -= lbound
-    data = data / ubound if ubound > 0 else data
+    data = (data - lbound) / (ubound - lbound)
     return data, lbound, ubound
 
 
