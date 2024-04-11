@@ -24,7 +24,7 @@ def get_data_as_labels(in_img):
     curr_type = in_img.get_data_dtype()
 
     if np.issubdtype(curr_type, np.signedinteger) or \
-       np.issubdtype(curr_type, np.unsignedinteger):
+            np.issubdtype(curr_type, np.unsignedinteger):
         return np.asanyarray(in_img.dataobj).astype(np.uint16)
     else:
         basename = os.path.basename(in_img.get_filename())
@@ -300,3 +300,48 @@ def dilate_labels(data, vox_size, distance, nbr_processes,
     data = data.reshape(img_shape)
 
     return data
+
+
+def get_stats_in_label(map_data, label_data, label_lut):
+    """
+    Get statistics about a map for each label in an atlas.
+
+    Parameters
+    ----------
+    map_data: np.ndarray
+        The map from which to get statistics.
+    label_data: np.ndarray
+        The loaded atlas.
+    label_lut: dict
+        The loaded label LUT (look-up table).
+
+    Returns
+    -------
+    out_dict: dict
+        A dict with one key per label name, and its values are the computed
+        statistics.
+    """
+    (label_indices, label_names) = zip(*label_lut.items())
+
+    out_dict = {}
+    for label, name in zip(label_indices, label_names):
+        label = int(label)
+        if label != 0:
+            curr_data = (map_data[np.where(label_data == label)])
+            nb_vx_roi = np.count_nonzero(label_data == label)
+            nb_seed_vx = np.count_nonzero(curr_data)
+
+            if nb_seed_vx != 0:
+                mean_seed = np.sum(curr_data) / nb_seed_vx
+                max_seed = np.max(curr_data)
+                std_seed = np.sqrt(np.mean(abs(curr_data[curr_data != 0] -
+                                               mean_seed) ** 2))
+
+                out_dict[name] = {'ROI-idx': label,
+                                  'ROI-name': str(name),
+                                  'nb-vx-roi': int(nb_vx_roi),
+                                  'nb-vx-seed': int(nb_seed_vx),
+                                  'max': int(max_seed),
+                                  'mean': float(mean_seed),
+                                  'std': float(std_seed)}
+    return out_dict

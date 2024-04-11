@@ -20,7 +20,8 @@ import nibabel as nib
 import numpy as np
 
 from scilpy.image.volume_operations import count_non_zero_voxels
-from scilpy.io.utils import assert_inputs_exist, add_verbose_arg
+from scilpy.io.utils import assert_inputs_exist, add_verbose_arg, \
+    assert_outputs_exist, add_overwrite_arg
 
 
 def _build_arg_parser():
@@ -31,13 +32,14 @@ def _build_arg_parser():
 
     p.add_argument(
         '--out', metavar='OUT_FILE', dest='out_filename',
-        help='name of the output file, which will be saved as a text file.')
+        help='Name of the output file, which will be saved as a text file.')
     p.add_argument(
         '--stats', action='store_true', dest='stats_format',
-        help='output the value using a stats format. Using this syntax will '
-             'append\na line to the output file, instead of creating a file '
-             'with only one line.\nThis is useful to create a file to be used '
-             'as the source of data for a graph.\nCan be combined with --id')
+        help='If set, output the value using a stats format. Using this '
+             'synthax will append\na line to the output file, instead of '
+             'creating a file with only one line.\nThis is useful to create '
+             'a file to be used as the source of data for a graph.\nCan be '
+             'combined with --id')
     p.add_argument(
         '--id', dest='value_id',
         help='Id of the current count. If used, the value of this argument '
@@ -45,6 +47,7 @@ def _build_arg_parser():
              'Mostly useful with --stats.')
 
     add_verbose_arg(p)
+    add_overwrite_arg(p)
 
     return p
 
@@ -55,7 +58,12 @@ def main():
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     assert_inputs_exist(parser, args.in_image)
-    # out_filename can exist or not
+    if not args.stats_format:
+        assert_outputs_exist(parser, args, [], args.out_filename)
+    elif args.overwrite:
+        parser.error("Using -f together with --stats is unclear. Please "
+                     "either remove --stats to start anew, or remove -f to "
+                     "append to existing file.")
 
     # Load image file
     im = nib.load(args.in_image).get_fdata(dtype=np.float32)

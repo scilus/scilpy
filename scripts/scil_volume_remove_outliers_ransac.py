@@ -15,8 +15,8 @@ import logging
 
 import nibabel as nib
 import numpy as np
-from sklearn import linear_model
 
+from scilpy.image.volume_operations import remove_outliers_ransac
 from scilpy.io.utils import (add_overwrite_arg,
                              add_verbose_arg,
                              assert_inputs_exist,
@@ -33,14 +33,14 @@ def _build_arg_parser():
                    help='Corrected Nifti image.')
 
     p.add_argument('--min_fit', type=int, default=50,
-                   help='The minimum number of data values required ' +
-                        'to fit the model. [%(default)s]')
+                   help='The minimum number of data values required to fit '
+                        'the model. [%(default)s]')
     p.add_argument('--max_iter', type=int, default=1000,
-                   help='The maximum number of iterations allowed ' +
-                        'in the algorithm. [%(default)s]')
+                   help='The maximum number of iterations allowed in the '
+                        'algorithm. [%(default)s]')
     p.add_argument('--fit_thr', type=float, default=1e-2,
-                   help='Threshold value for determining when a data ' +
-                        'point fits a model. [%(default)s]')
+                   help='Threshold value for determining when a data point '
+                        'fits a model. [%(default)s]')
 
     add_verbose_arg(p)
     add_overwrite_arg(p)
@@ -53,6 +53,7 @@ def main():
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
+    # Verifications
     assert_inputs_exist(parser, args.in_image)
     assert_outputs_exist(parser, args, args.out_image)
 
@@ -66,6 +67,7 @@ def main():
         parser.error('--fit_thr should be greater than 0. Current value: {}'
                      .format(args.fit_thr))
 
+    # Loading
     in_img = nib.load(args.in_image)
     in_data = in_img.get_fdata(dtype=np.float32)
 
@@ -73,26 +75,11 @@ def main():
         logging.warning('Be careful, your image doesn\'t seem to be an ad, '
                         'md or rd.')
 
-    in_data_flat = in_data.flatten()
-    in_nzr_ind = np.nonzero(in_data_flat)
-    in_nzr_val = np.array(in_data_flat[in_nzr_ind])
+    # Processing
+    out_data = remove_outliers_ransac(in_data, args.min_fit, args.fit_thr,
+                                      args.max_iter)
 
-    X = in_nzr_ind[0][:, np.newaxis]
-    model_ransac = linear_model.RANSACRegressor(
-        base_estimator=linear_model.LinearRegression(),
-        min_samples=args.min_fit,
-        residual_threshold=args.fit_thr,
-        max_trials=args.max_iter)
-    model_ransac.fit(X, in_nzr_val)
-
-    outlier_mask = np.logical_not(model_ransac.inlier_mask_)
-    outliers = X[outlier_mask]
-
-    logging.info('# outliers: {}'.format(len(outliers)))
-
-    in_data_flat[outliers] = 0
-
-    out_data = np.reshape(in_data_flat, in_img.shape)
+    # Saving
     nib.save(nib.Nifti1Image(out_data, in_img.affine, in_img.header),
              args.out_image)
 
