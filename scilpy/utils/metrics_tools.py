@@ -377,30 +377,3 @@ def plot_metrics_stats(means, stds, title=None, xlabel=None,
 
     plt.close(fig)
     return fig
-
-
-def get_roi_metrics_mean_std(density_map, metrics_files):
-    """
-    Returns the mean and standard deviation of each metric, using the
-    provided density map. This can be a binary mask,
-    or contain weighted values between 0 and 1.
-
-    Parameters
-    ------------
-    density_map : ndarray
-        3D numpy array containing a density map.
-    metrics_files : sequence
-        list of nibabel objects representing the metrics files.
-
-    Returns
-    ---------
-    stats : list
-        list of tuples where the first element of the tuple is the mean
-        of a metric, and the second element is the standard deviation.
-
-    """
-
-    return map(lambda metric_file:
-               weighted_mean_std(density_map,
-                                 metric_file.get_fdata(dtype=np.float64)),
-               metrics_files)
