@@ -129,6 +129,9 @@ def clip_and_normalize_data_for_cmap(
         If set, replaces the data values by the Look-Up Table values. In order,
         the first value of the LUT is set everywhere where data==1, etc.
     """
+    # Make sure data type is float
+    if isinstance(data, list):
+        data = np.asarray(data)
     data = data.astype(float)
 
     if LUT is not None:

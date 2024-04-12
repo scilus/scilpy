@@ -62,7 +62,7 @@ def add_data_as_color_dpp(sft, cmap, data, clip_outliers=False, min_range=None,
         data, clip_outliers, min_range, max_range,
         min_cmap, max_cmap, log, LUT)
 
-    # Important. values are in float!
+    # Important: values are in float after clip_and_normalize.
     color = np.asarray(cmap(values)[:, 0:3]) * 255
     if len(color) == len(sft):
         tmp = [np.tile([color[i][0], color[i][1], color[i][2]],
