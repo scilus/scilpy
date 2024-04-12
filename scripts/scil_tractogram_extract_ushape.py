@@ -20,7 +20,7 @@ import logging
 import numpy as np
 
 from scilpy.io.streamlines import load_tractogram_with_reference, \
-    check_empty_option_save_tractogram
+    save_tractogram
 from scilpy.io.utils import (add_json_args,
                              add_verbose_arg,
                              add_overwrite_arg,
@@ -85,13 +85,13 @@ def main():
                          indent=args.indent))
 
     # Saving
-    check_empty_option_save_tractogram(sft[ids_ushaped], args.out_tractogram,
-                                       args.no_empty)
+    save_tractogram(sft[ids_ushaped], args.out_tractogram,
+                    args.no_empty)
 
     if args.remaining_tractogram:
-        check_empty_option_save_tractogram(sft[ids_others],
-                                           args.remaining_tractogram,
-                                           args.no_empty)
+        save_tractogram(sft[ids_others],
+                        args.remaining_tractogram,
+                        args.no_empty)
 
 
 if __name__ == "__main__":

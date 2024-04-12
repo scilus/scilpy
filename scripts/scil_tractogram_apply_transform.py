@@ -46,7 +46,7 @@ import nibabel as nib
 import numpy as np
 
 from scilpy.io.streamlines import load_tractogram_with_reference, \
-    check_empty_option_save_tractogram
+    save_tractogram
 from scilpy.io.utils import (add_overwrite_arg,
                              add_reference_arg,
                              add_verbose_arg,
@@ -145,9 +145,9 @@ def main():
         if not new_sft.is_bbox_in_vox_valid():
             logging.warning('Saving tractogram with invalid streamlines.')
 
-        check_empty_option_save_tractogram(new_sft, args.out_tractogram,
-                                           args.no_empty,
-                                           bbox_valid_check=False)
+        save_tractogram(new_sft, args.out_tractogram,
+                        args.no_empty,
+                        bbox_valid_check=False)
     else:
         # Here, there should be no invalid streamlines left. Either option =
         # to crash, or remove/cut, already managed.
@@ -155,9 +155,9 @@ def main():
             raise ValueError("The result has invalid streamlines. Please "
                              "chose --keep_invalid, --cut_invalid or "
                              "--remove_invalid.")
-        check_empty_option_save_tractogram(new_sft, args.out_tractogram,
-                                           args.no_empty,
-                                           bbox_valid_check=True)
+        save_tractogram(new_sft, args.out_tractogram,
+                        args.no_empty,
+                        bbox_valid_check=True)
 
 
 if __name__ == "__main__":

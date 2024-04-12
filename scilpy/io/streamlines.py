@@ -5,7 +5,8 @@ import logging
 import os
 import tempfile
 
-from dipy.io.streamline import load_tractogram, save_tractogram
+from dipy.io.streamline import load_tractogram
+from dipy.io.streamline import save_tractogram as _save_tractogram
 from dipy.io.utils import is_header_compatible
 import nibabel as nib
 from nibabel.streamlines.array_sequence import ArraySequence
@@ -118,8 +119,7 @@ def load_tractogram_with_reference(parser, args, filepath, arg_name=None):
     return sft
 
 
-def check_empty_option_save_tractogram(sft, filename, no_empty,
-                                       bbox_valid_check=True):
+def save_tractogram(sft, filename, no_empty, bbox_valid_check=True):
     if len(sft.streamlines) == 0 and no_empty:
         logging.info("The file {} won't be written (0 streamlines)"
                      .format(filename))
@@ -127,7 +127,7 @@ def check_empty_option_save_tractogram(sft, filename, no_empty,
         if len(sft.streamlines) == 0:
             logging.info("Writing an empty file (0 streamlines): {} "
                          .format(filename))
-        save_tractogram(sft, filename, bbox_valid_check=bbox_valid_check)
+        _save_tractogram(sft, filename, bbox_valid_check=bbox_valid_check)
 
 
 def verify_compatibility_with_reference_sft(ref_sft, files_to_verify,

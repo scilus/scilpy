@@ -16,7 +16,7 @@ import argparse
 import logging
 
 from scilpy.io.streamlines import load_tractogram_with_reference, \
-    check_empty_option_save_tractogram
+    save_tractogram
 from scilpy.io.utils import (add_overwrite_arg, add_verbose_arg,
                              add_reference_arg, assert_inputs_exist,
                              assert_outputs_exist)
@@ -94,7 +94,7 @@ def main():
     logging.warning('Removed {} invalid streamlines.'.format(
         ori_len - len(sft)))
 
-    check_empty_option_save_tractogram(sft, args.out_tractogram, args.no_empty)
+    save_tractogram(sft, args.out_tractogram, args.no_empty)
 
 
 if __name__ == "__main__":

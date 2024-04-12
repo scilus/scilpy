@@ -22,7 +22,7 @@ import logging
 import numpy as np
 
 from scilpy.io.streamlines import load_tractogram_with_reference, \
-    check_empty_option_save_tractogram
+    save_tractogram
 from scilpy.io.utils import (add_json_args,
                              add_verbose_arg,
                              add_overwrite_arg,
@@ -114,13 +114,13 @@ def main():
                          indent=args.indent))
 
     # Saving
-    check_empty_option_save_tractogram(sft_clean, args.out_tractogram,
-                                       args.no_empty)
+    save_tractogram(sft_clean, args.out_tractogram,
+                    args.no_empty)
     if args.looping_tractogram:
         ids_removed = np.setdiff1d(np.arange(nb_streamlines), ids_clean)
         sft_l = sft[ids_removed]
-        check_empty_option_save_tractogram(sft_l, args.looping_tractogram,
-                                           args.no_empty)
+        save_tractogram(sft_l, args.looping_tractogram,
+                        args.no_empty)
 
 
 if __name__ == "__main__":

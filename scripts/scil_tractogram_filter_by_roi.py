@@ -50,7 +50,7 @@ from scilpy.io.image import (get_data_as_mask,
                              merge_labels_into_mask)
 from scilpy.image.labels import get_data_as_labels
 from scilpy.io.streamlines import load_tractogram_with_reference, \
-    check_empty_option_save_tractogram
+    save_tractogram
 from scilpy.io.utils import (add_json_args,
                              add_overwrite_arg,
                              add_reference_arg,
@@ -381,16 +381,16 @@ def main():
     if args.display_counts:
         print(json.dumps(o_dict, indent=args.indent))
 
-    check_empty_option_save_tractogram(sft, args.out_tractogram,
-                                       args.no_empty)
+    save_tractogram(sft, args.out_tractogram,
+                    args.no_empty)
 
     if args.save_rejected:
         rejected_ids = np.setdiff1d(np.arange(len(initial_sft.streamlines)),
                                     total_kept_ids)
 
         sft = initial_sft[rejected_ids]
-        check_empty_option_save_tractogram(sft, args.save_rejected,
-                                           args.no_empty)
+        save_tractogram(sft, args.save_rejected,
+                        args.no_empty)
 
 
 if __name__ == "__main__":

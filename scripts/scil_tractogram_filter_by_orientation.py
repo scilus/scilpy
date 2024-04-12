@@ -25,7 +25,7 @@ import logging
 import numpy as np
 
 from scilpy.io.streamlines import load_tractogram_with_reference, \
-    check_empty_option_save_tractogram
+    save_tractogram
 from scilpy.io.utils import (add_json_args,
                              add_overwrite_arg,
                              add_reference_arg,
@@ -111,12 +111,12 @@ def main():
                          'streamline_count_after_filtering': int(sc_af)},
                          indent=args.indent))
 
-    check_empty_option_save_tractogram(new_sft, args.out_tractogram,
-                                       args.no_empty)
+    save_tractogram(new_sft, args.out_tractogram,
+                    args.no_empty)
 
     if computed_rejected_sft:
-        check_empty_option_save_tractogram(rejected_sft, args.save_rejected,
-                                           args.no_empty)
+        save_tractogram(rejected_sft, args.save_rejected,
+                        args.no_empty)
 
 
 if __name__ == "__main__":
