@@ -14,6 +14,8 @@ from scilpy.tractanalysis.reproducibility_measures import \
 
 fetch_data(get_testing_files_dict(), keys=['bst.zip'])
 
+fetch_data(get_testing_files_dict(), keys=['bst.zip'])
+
 
 def test_tractogram_pairwise_comparison():
     logging.getLogger().setLevel('DEBUG')
