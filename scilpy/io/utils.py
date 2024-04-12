@@ -519,6 +519,15 @@ def validate_sh_basis_choice(sh_basis):
 
 
 def add_compression_arg(p, additional_msg=''):
+    """
+    Parameters
+    ----------
+    p: ArgumentParser
+        Paser
+    additional_msg: str
+        Any additional message to be displayed after explanation on the
+        compress arg.
+    """
     p.add_argument('--compress', dest='compress_th', nargs='?', const=0.1,
                    type=ranged_type(float, 0, None),
                    help='If set, compress the resulting streamline. Value is '

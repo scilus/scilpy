@@ -566,7 +566,9 @@ def _warn_and_save(new_streamlines, sft):
 
 
 def smooth_line_gaussian(streamline, sigma):
-    """ Smooth a streamline using a gaussian filter.
+    """
+    Smooths a streamline using a gaussian filter. Enforces the endpoints to
+    remain the same.
 
     Parameters
     ----------
@@ -602,8 +604,11 @@ def smooth_line_gaussian(streamline, sigma):
 
 
 def smooth_line_spline(streamline, smoothing_parameter, nb_ctrl_points):
-    """ Smooth a streamline using a spline. The number of control points
-    can be specified, but must be at least 3.
+    """
+    Smooths a streamline using a spline. The number of control points can be
+    specified, but must be at least 3. The final streamline will have the same
+    number of points as the input streamline. Enforces the endpoints to remain
+    the same.
 
     Parameters
     ----------

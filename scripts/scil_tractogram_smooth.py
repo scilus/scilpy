@@ -12,8 +12,8 @@ array. The sigma will be indicative of the  number of points surrounding the
 center points to be used for blurring.
 - Spline will fit a spline curve to every streamline using a sigma and the
 number of control points. The sigma represents the allowed distance from the
-control points. The control points for the spline fit will be the resampled
-streamline.
+control points. The final streamlines are obtained by evaluating the spline at
+constant intervals so that it will have the same number of points as initially.
 
 This script enforces endpoints to remain the same.
 
