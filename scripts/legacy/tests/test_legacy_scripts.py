@@ -116,7 +116,7 @@ legacy_scripts_list_tag_1_6_0 = [
     "scil_merge_json.py",
     "scil_merge_sh.py",
     "scil_normalize_connectivity.py",
-    "scil_outlier_rejection.py",
+    "scil_bundle_reject_outliers.py",
     "scil_perform_majority_vote.py",
     "scil_plot_mean_std_per_point.py",
     "scil_prepare_eddy_command.py",
