@@ -7,9 +7,12 @@ from dipy.io.streamline import load_tractogram
 import numpy as np
 
 from scilpy import SCILPY_HOME
+from scilpy.io.fetcher import fetch_data, get_testing_files_dict
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
 from scilpy.tractanalysis.reproducibility_measures import \
     tractogram_pairwise_comparison
+
+fetch_data(get_testing_files_dict(), keys=['bst.zip'])
 
 
 def test_tractogram_pairwise_comparison():
