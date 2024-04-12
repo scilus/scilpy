@@ -14,7 +14,7 @@ legacy_scripts_list_tag_1_6_0 = [
     "scil_apply_transform_to_tractogram.py",
     "scil_assign_custom_color_to_tractogram.py",
     "scil_assign_uniform_color_to_tractograms.py",
-    "scil_clean_qbx_clusters.py",
+    "scil_bundle_clean_qbx_clusters.py",
     "scil_combine_labels.py",
     "scil_compare_connectivity.py",
     "scil_compress_streamlines.py",
