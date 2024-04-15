@@ -97,12 +97,10 @@ def _parse_args(parser):
     args = parser.parse_args()
 
     assert_inputs_exist(parser, [args.volume],
-                        [args.overlays, args.labelmap, args.peaks])
+                        [args.labelmap] + args.overlays + args.peaks)
     assert_headers_compatible(parser, [args.volume],
-                              [args.overlays, args.labelmap, args.peaks])
+                              [args.labelmap] + args.overlays + args.peaks)
     assert_overlay_colors(args.overlays_colors, args.overlays, parser)
-
-    # TODO : check outputs (we need to know the slicing), could be glob
 
     return args
 

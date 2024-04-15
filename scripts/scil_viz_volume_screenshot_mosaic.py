@@ -111,10 +111,10 @@ def _parse_args(parser):
 
     output.append(args.out_fname)
 
-    assert_inputs_exist(parser, [args.volume], [args.overlays, args.labelmap])
+    assert_inputs_exist(parser, [args.volume], [args.labelmap] + args.overlays)
     assert_outputs_exist(parser, args, output)
     assert_headers_compatible(parser, [args.volume],
-                              [args.overlays, args.labelmap])
+                              [args.labelmap] + args.overlays)
     assert_overlay_colors(args.overlays_colors, args.overlays, parser)
 
     return args
