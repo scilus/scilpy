@@ -1,6 +1,4 @@
 # -*- coding: utf-8 -*-
-import logging
-
 import nibabel as nib
 import numpy as np
 from numpy.testing import (assert_array_equal,
@@ -33,7 +31,8 @@ from scilpy.image.volume_math import (_validate_imgs_type,
                                       difference, invert,
                                       concatenate, gaussian_blur,
                                       dilation, erosion,
-                                      closing, opening, neighborhood_correlation)
+                                      closing, opening,
+                                      neighborhood_correlation)
 
 
 EPSILON = np.finfo(float).eps
@@ -447,7 +446,6 @@ def test_concatenate():
     assert_array_almost_equal(img_data_1.shape+(2,), output_data.shape)
 
 
-
 def test_get_neighbors():
     # Input data: small data with NOT the same dimension in each direction.
     data = np.arange(3 * 4 * 5).reshape((3, 4, 5)) + 1
@@ -506,9 +504,9 @@ def test_neighborhood_correlation():
 
     img_data_2 = np.ones((3, 3, 3), dtype=float) * 2
     img2 = nib.Nifti1Image(img_data_2, affine)
-    #output = neighborhood_correlation([img1, img2], img1)
-    #assert np.allclose(output, 1), \
-    #    "Expected a perfect correlation, got: {}".format(output)
+    output = neighborhood_correlation([img1, img2], img1)
+    assert np.allclose(output, 1), \
+        "Expected a perfect correlation, got: {}".format(output)
 
     # Test 2: Bad correlation.
     # Compares uniform patch of ones with a noisy patch of twos.
@@ -527,7 +525,7 @@ def test_neighborhood_correlation():
 
     # Test 2: Different backgrounds.
     # Image 1 = only ones. Image 2 = only background.
-    # Expecting a poor correlation were backgrounds are not the same.
+    # Expecting a poor correlation where backgrounds are not the same.
     # But we get a one in the middle (two uniform patches)
     img_data_2 = np.zeros((3, 3, 3)).astype(float)
     img2 = nib.Nifti1Image(img_data_2, affine)
