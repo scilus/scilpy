@@ -58,7 +58,7 @@ class Tracker(object):
         max_invalid_dirs: int
             Number of consecutives invalid directions allowed during tracking.
         compression_th : float,
-            Maximal distance threshold for compression. If None or 0, no
+            Maximal distance threshold for compression. If None, no
             compression is applied.
         nbr_processes: int
             Number of sub processes to use.
@@ -141,7 +141,7 @@ class Tracker(object):
             streamline.
         """
         if self.nbr_processes < 2:
-            chunk_id = 1
+            chunk_id = 0
             lines, seeds = self._get_streamlines(chunk_id)
         else:
             # Each process will use get_streamlines_at_seeds
@@ -347,7 +347,7 @@ class Tracker(object):
             if line is not None:
                 streamline = np.array(line, dtype='float32')
 
-                if self.compression_th and self.compression_th > 0:
+                if self.compression_th is not None:
                     # Compressing. Threshold is in mm. Verifying space.
                     if self.space == Space.VOX:
                         # Equivalent of sft.to_voxmm:

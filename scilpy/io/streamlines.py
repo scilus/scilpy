@@ -47,7 +47,7 @@ def ichunk(sequence, n):
     Return
     ------
 
-    chunck: list
+    chunk: list
         subset of streamlines
     """
 
@@ -70,7 +70,7 @@ def load_tractogram_with_reference(parser, args, filepath, arg_name=None):
     parser: Argument Parser
         Used to print errors, if any.
     args: Namespace
-        Parsed arguments. Used to get the 'ref' and 'bbox_check' args.
+        Parsed arguments. Used to get the 'reference' and 'bbox_check' args.
         See scilpy.io.utils to add the arguments to your parser.
     filepath: str
         Path of the tractogram file.

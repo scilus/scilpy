@@ -332,11 +332,8 @@ class ODFPropagator(PropagatorOnSphere):
             The step size for tracking.
         rk_order: int
             Order for the Runge Kutta integration.
-        theta: float
-            Maximum angle (radians) between two steps.
-        dipy_sphere: string, optional
-            If necessary, name of the DIPY sphere object to use to evaluate
-            directions.
+        algo: string
+            Type of algorithm. Choices are 'det' or 'prob'
         basis: string
             SH basis name. One of 'tournier07' or 'descoteaux07'
         sf_threshold: float
