@@ -824,7 +824,7 @@ def assert_output_dirs_exist_and_empty(parser, args, required,
 
 
 def assert_overlay_colors(colors, overlays, parser):
-    if colors is None:
+    if colors is None or len(colors) == 0:
         return
 
     if len(colors) % 3 != 0:

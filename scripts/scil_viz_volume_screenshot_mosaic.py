@@ -98,23 +98,17 @@ def _build_arg_parser():
 def _parse_args(parser):
     args = parser.parse_args()
 
-    inputs = []
-    output = []
+    required = [args.volume, args.transparency]
+    output = [args.out_fname]
+    optional = []
 
-    inputs.append(args.volume)
-    inputs.append(args.transparency)
-
+    optional.extend(args.overlays)
     if args.labelmap:
-        inputs.append(args.labelmap)
-    if args.overlays:
-        inputs.extend(args.overlays)
+        optional.append(args.labelmap)
 
-    output.append(args.out_fname)
-
-    assert_inputs_exist(parser, [args.volume], [args.labelmap] + args.overlays)
+    assert_inputs_exist(parser, required, optional)
     assert_outputs_exist(parser, args, output)
-    assert_headers_compatible(parser, [args.volume],
-                              [args.labelmap] + args.overlays)
+    assert_headers_compatible(parser, required, optional)
     assert_overlay_colors(args.overlays_colors, args.overlays, parser)
 
     return args
