@@ -102,7 +102,8 @@ def _parse_args(parser):
     output = [args.out_fname]
     optional = []
 
-    optional.extend(args.overlays)
+    if args.overlays:
+        optional.extend(args.overlays)
     if args.labelmap:
         optional.append(args.labelmap)
 

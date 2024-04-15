@@ -99,8 +99,10 @@ def _parse_args(parser):
     required = [args.volume]
     optional = []
 
-    optional.extend(args.overlays)
-    optional.extend(args.peaks)
+    if args.overlays:
+        optional.extend(args.overlays)
+    if args.peaks:
+        optional.extend(args.peaks)
     if args.labelmap:
         optional.append(args.labelmap)
     if args.transparency:
