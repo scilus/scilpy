@@ -158,23 +158,23 @@ def test_perform_operation_on_dpp():
 
     # Mean:
     dpp = perform_operation_on_dpp('mean', fake_sft, 'my_dpp')
-    assert np.array_equal(dpp[0], [0.5] * 3)
-    assert np.array_equal(dpp[1], [1] * 4)
+    assert np.array_equal(dpp[0].squeeze(), [0.5] * 3)
+    assert np.array_equal(dpp[1].squeeze(), [1] * 4)
 
     # Sum:
     dpp = perform_operation_on_dpp('sum', fake_sft, 'my_dpp')
-    assert np.array_equal(dpp[0], [1] * 3)
-    assert np.array_equal(dpp[1], [2] * 4)
+    assert np.array_equal(dpp[0].squeeze(), [1] * 3)
+    assert np.array_equal(dpp[1].squeeze(), [2] * 4)
 
     # Min:
     dpp = perform_operation_on_dpp('min', fake_sft, 'my_dpp')
-    assert np.array_equal(dpp[0], [0] * 3)
-    assert np.array_equal(dpp[1], [0] * 4)
+    assert np.array_equal(dpp[0].squeeze(), [0] * 3)
+    assert np.array_equal(dpp[1].squeeze(), [0] * 4)
 
     # Max:
     dpp = perform_operation_on_dpp('max', fake_sft, 'my_dpp')
-    assert np.array_equal(dpp[0], [1] * 3)
-    assert np.array_equal(dpp[1], [2] * 4)
+    assert np.array_equal(dpp[0].squeeze(), [1] * 3)
+    assert np.array_equal(dpp[1].squeeze(), [2] * 4)
 
 
 def test_perform_operation_dpp_to_dps():

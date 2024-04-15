@@ -262,14 +262,14 @@ def perform_operation_on_dpp(op_name, sft, dpp_name, endpoints_only=False):
             this_data_per_point = np.nan * np.ones((len(s), 1))
             this_data_per_point[0] = call_op(s[0])
             this_data_per_point[-1] = call_op(s[-1])
-            new_data_per_point.append(np.asarray(this_data_per_point))
+            new_data_per_point.append(np.asarray(this_data_per_point)[:, None])
     else:
         new_data_per_point = []
         for s in sft.data_per_point[dpp_name]:
             this_data_per_point = []
             for p in s:
                 this_data_per_point.append(call_op(p))
-            new_data_per_point.append(np.asarray(this_data_per_point))
+            new_data_per_point.append(np.asarray(this_data_per_point)[:, None])
 
     return new_data_per_point
 
