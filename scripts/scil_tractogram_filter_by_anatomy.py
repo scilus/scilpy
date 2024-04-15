@@ -63,7 +63,7 @@ import numpy as np
 from scipy.ndimage import binary_dilation
 
 from scilpy.io.streamlines import (load_tractogram_with_reference,
-                                   check_empty_option_save_tractogram)
+                                   save_tractogram)
 from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_json_args, add_overwrite_arg,
                              add_processes_arg, add_reference_arg,
@@ -165,9 +165,8 @@ def _finalize_step(args, sft, outliers_sft, step_nb, step_name,
         sft_filename = os.path.join(new_path, intermediate_name)
         outliers_filename = os.path.join(new_path, intermediate_outliers_name)
 
-        check_empty_option_save_tractogram(sft, sft_filename, args.no_empty)
-        check_empty_option_save_tractogram(outliers_sft, outliers_filename,
-                                           args.no_empty)
+        save_tractogram(sft, sft_filename, args.no_empty)
+        save_tractogram(outliers_sft, outliers_filename, args.no_empty)
 
 
 def _finish_all(args, final_sft, total_outliers, o_dict, out_sft_name,
@@ -185,10 +184,9 @@ def _finish_all(args, final_sft, total_outliers, o_dict, out_sft_name,
             json.dump(o_dict, outfile, indent=args.indent,
                       sort_keys=args.sort_keys)
 
-    check_empty_option_save_tractogram(final_sft, out_sft_name, args.no_empty)
+    save_tractogram(final_sft, out_sft_name, args.no_empty)
     if args.save_rejected:
-        check_empty_option_save_tractogram(total_outliers, rejected_sft_name,
-                                           args.no_empty)
+        save_tractogram(total_outliers, rejected_sft_name, args.no_empty)
 
     exit(0)
 
@@ -326,8 +324,8 @@ def main():
                          wm_labels["nuclei_fs_labels"]))
 
     # Mask creation
-    ctx_fs_labels = wm_labels["ctx_lh_fs_labels"] + \
-                    wm_labels["ctx_rh_fs_labels"]
+    ctx_fs_labels = (wm_labels["ctx_lh_fs_labels"] +
+                     wm_labels["ctx_rh_fs_labels"])
     atlas_wm = get_data_as_labels(img_wmparc)
     wmparc_ctx = get_binary_mask_from_labels(atlas_wm, ctx_fs_labels)
     wmparc_nuclei = get_binary_mask_from_labels(atlas_wm,
@@ -384,6 +382,8 @@ def main():
     outliers_sft = sft[outliers_ids]
     _finalize_step(args, sft, outliers_sft, step_nb, step, steps_combined,
                    in_sft_name, ext, o_dict)
+
+    # Final saving
     total_outliers += outliers_sft
     _finish_all(args, sft, total_outliers, o_dict, out_sft_name,
                 rejected_sft_name)
