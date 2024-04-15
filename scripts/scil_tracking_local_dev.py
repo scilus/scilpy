@@ -165,7 +165,7 @@ def main():
     assert_outputs_exist(parser, args, args.out_tractogram)
 
     verify_streamline_length_options(parser, args)
-    verify_compression_th(args.compress)
+    verify_compression_th(args.compress_th)
     verify_seed_options(parser, args)
 
     tracts_format = detect_format(args.out_tractogram)
@@ -245,7 +245,7 @@ def main():
     logging.info("Instantiating tracker.")
     tracker = Tracker(propagator, mask, seed_generator, nbr_seeds, min_nbr_pts,
                       max_nbr_pts, args.max_invalid_nb_points,
-                      compression_th=args.compress,
+                      compression_th=args.compress_th,
                       nbr_processes=args.nbr_processes,
                       save_seeds=args.save_seeds,
                       mmap_mode='r+', rng_seed=args.rng_seed,

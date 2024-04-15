@@ -6,17 +6,11 @@ This script can be used to remove loops in two types of streamline datasets:
 
   - Whole brain: For this type, the script removes streamlines if they
     make a loop with an angle of more than 360 degrees. It's possible to change
-    this angle with the -a option. Warning: Don't use --qb option for a
+    this angle with the --angle option. Warning: Don't use --qb option for a
     whole brain tractography.
 
   - Bundle dataset: For this type, it is possible to remove loops and
-    streamlines outside of the bundle. For the sharp angle turn, use --qb
-    option.
-
-----------------------------------------------------------------------------
-Reference:
-QuickBundles based on [Garyfallidis12] Frontiers in Neuroscience, 2012.
-----------------------------------------------------------------------------
+    streamlines outside the bundle. For the sharp angle turn, use --qb option.
 
 Formerly: scil_detect_streamlines_loops.py
 """
@@ -25,10 +19,10 @@ import argparse
 import json
 import logging
 
-from dipy.io.streamline import save_tractogram
 import numpy as np
 
-from scilpy.io.streamlines import load_tractogram_with_reference
+from scilpy.io.streamlines import load_tractogram_with_reference, \
+    save_tractogram
 from scilpy.io.utils import (add_json_args,
                              add_verbose_arg,
                              add_overwrite_arg,
@@ -37,35 +31,40 @@ from scilpy.io.utils import (add_json_args,
                              assert_inputs_exist,
                              assert_outputs_exist,
                              check_tracts_same_format,
-                             validate_nbr_processes)
-from scilpy.tractograms.tractogram_operations import filter_tractogram_data
+                             validate_nbr_processes, ranged_type)
 from scilpy.tractograms.streamline_operations import \
     remove_loops_and_sharp_turns
 
 
+EPILOG = """
+References:
+    QuickBundles, based on [Garyfallidis12] Frontiers in Neuroscience, 2012.
+"""
+
+
 def _build_arg_parser():
     p = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
-                                description=__doc__)
+                                description=__doc__, epilog=EPILOG)
     p.add_argument('in_tractogram',
                    help='Tractogram input file name.')
     p.add_argument('out_tractogram',
                    help='Output tractogram without loops.')
-    p.add_argument('--looping_tractogram',
+    p.add_argument('--looping_tractogram', metavar='out_filename',
                    help='If set, saves detected looping streamlines.')
-    p.add_argument('--qb', action='store_true',
-                   help='If set, uses QuickBundles to detect\n' +
-                        'outliers (loops, sharp angle turns).\n' +
-                        'Should mainly be used with bundles. '
-                        '[%(default)s]')
-    p.add_argument('--threshold', default=8., type=float,
-                   help='Maximal streamline to bundle distance\n' +
-                        'for a streamline to be considered as\n' +
-                        'a tracking error. [%(default)s]')
-    p.add_argument('-a', dest='angle', default=360, type=float,
+    p.add_argument('--qb', nargs='?', metavar='threshold', dest='qb_threshold',
+                   const=8., type=ranged_type(float, 0.0, None),
+                   help='If set, uses QuickBundles to detect outliers (loops, '
+                        'sharp angle \nturns). Given threshold is the maximal '
+                        'streamline to bundle \ndistance for a streamline to '
+                        'be considered as a tracking error.\nDefault if '
+                        'set: [%(const)s]')
+    p.add_argument('--angle', default=360, type=ranged_type(float, 0.0, 360.0),
                    help='Maximum looping (or turning) angle of\n' +
                         'a streamline in degrees. [%(default)s]')
     p.add_argument('--display_counts', action='store_true',
                    help='Print streamline count before and after filtering')
+    p.add_argument('--no_empty', action='store_true',
+                   help="If set, will not save outputs if they are empty.")
 
     add_json_args(p)
     add_processes_arg(p)
@@ -81,6 +80,7 @@ def main():
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
+    # Verifications
     assert_inputs_exist(parser, args.in_tractogram, args.reference)
     assert_outputs_exist(parser, args, args.out_tractogram,
                          optional=args.looping_tractogram)
@@ -88,53 +88,39 @@ def main():
                                       args.looping_tractogram])
     nbr_cpu = validate_nbr_processes(parser, args)
 
-    if args.threshold <= 0:
-        parser.error('Threshold "{}" '.format(args.threshold) +
-                     'must be greater than 0')
+    # Loading
+    sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
+    nb_streamlines = len(sft.streamlines)
 
-    if args.angle <= 0:
-        parser.error('Angle "{}" '.format(args.angle) +
-                     'must be greater than 0')
-
-    tractogram = load_tractogram_with_reference(
-        parser, args, args.in_tractogram)
-
-    streamlines = tractogram.streamlines
-
-    ids_c = []
-
-    ids_l = []
-
-    if len(streamlines) > 1:
-        ids_c = remove_loops_and_sharp_turns(
-            streamlines, args.angle, use_qb=args.qb,
-            qb_threshold=args.threshold,
-            num_processes=nbr_cpu)
-        ids_l = np.setdiff1d(np.arange(len(streamlines)), ids_c)
-    else:
+    if nb_streamlines < 1:
         parser.error(
-            'Zero or one streamline in {}'.format(args.in_tractogram) +
-            '. The file must have more than one streamline.')
+            'Zero or one streamline in {}. The file must have more than one '
+            'streamline.'.format(args.in_tractogram))
 
-    if len(ids_c) > 0:
-        sft_c = filter_tractogram_data(tractogram, ids_c)
-        save_tractogram(sft_c, args.out_tractogram)
-    else:
-        logging.warning(
-            'No clean streamlines in {}'.format(args.in_tractogram))
+    # Processing
+    ids_clean = remove_loops_and_sharp_turns(
+        sft.streamlines, args.angle, qb_threshold=args.qb_threshold,
+        num_processes=nbr_cpu)
+    if len(ids_clean) == 0:
+        logging.warning('No clean streamlines in {}. They are all looping '
+                        'streamlines? Check your parameters.'
+                        .format(args.in_tractogram))
+    sft_clean = sft[ids_clean]
 
     if args.display_counts:
-        sc_bf = len(tractogram.streamlines)
-        sc_af = len(sft_c.streamlines)
-        print(json.dumps({'streamline_count_before_filtering': int(sc_bf),
+        sc_af = len(sft_clean.streamlines)
+        print(json.dumps({'streamline_count_before_filtering': nb_streamlines,
                          'streamline_count_after_filtering': int(sc_af)},
                          indent=args.indent))
 
-    if len(ids_l) == 0:
-        logging.warning('No loops in {}'.format(args.in_tractogram))
-    elif args.looping_tractogram:
-        sft_l = filter_tractogram_data(tractogram, ids_l)
-        save_tractogram(sft_l, args.looping_tractogram)
+    # Saving
+    save_tractogram(sft_clean, args.out_tractogram,
+                    args.no_empty)
+    if args.looping_tractogram:
+        ids_removed = np.setdiff1d(np.arange(nb_streamlines), ids_clean)
+        sft_l = sft[ids_removed]
+        save_tractogram(sft_l, args.looping_tractogram,
+                        args.no_empty)
 
 
 if __name__ == "__main__":

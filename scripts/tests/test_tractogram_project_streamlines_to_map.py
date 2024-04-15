@@ -64,7 +64,7 @@ def test_execution_dps(script_runner, monkeypatch):
                       '--in_maps', in_mni, '--out_dpp_name', 'some_metric')
     script_runner.run('scil_tractogram_dpp_math.py', 'min', in_bundle_with_dpp,
                       in_bundle_with_dps, '--in_dpp_name', 'some_metric',
-                      '--out_name', 'some_metric_dps', '--mode', 'dps',
+                      '--out_keys', 'some_metric_dps', '--mode', 'dps',
                       '--keep_all')
 
     # Tests with dps.

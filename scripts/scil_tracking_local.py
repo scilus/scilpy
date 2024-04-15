@@ -175,7 +175,7 @@ def main():
                      'tck): {0}'.format(args.out_tractogram))
 
     verify_streamline_length_options(parser, args)
-    verify_compression_th(args.compress)
+    verify_compression_th(args.compress_th)
     verify_seed_options(parser, args)
 
     tracts_format = detect_format(args.out_tractogram)
@@ -279,7 +279,7 @@ def main():
     # save streamlines on-the-fly to file
     save_tractogram(streamlines_generator, tracts_format,
                     odf_sh_img, total_nb_seeds, args.out_tractogram,
-                    args.min_length, args.max_length, args.compress,
+                    args.min_length, args.max_length, args.compress_th,
                     args.save_seeds, args.verbose)
     # Final logging
     logging.info('Saved tractogram to {0}.'.format(args.out_tractogram))
