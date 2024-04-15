@@ -410,8 +410,6 @@ def add_peaks_screenshot_args(parser, default_width=3.0, default_alpha=1.0,
     """
     Add default arguments for peaks screenshotting.
 
-    TODO : add support for peaks scalars coloring.
-
     Parameters
     ----------
     parser: argparse.ArgumentParser object

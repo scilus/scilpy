@@ -63,7 +63,7 @@ def create_image_from_2d_array(array_2d, size, mode=None,
         Image.
     """
 
-    # TODO : Need to flip the array due to some bug in the FURY image buffer.
+    # Need to flip the array due to some bug in the FURY image buffer.
     # Might be solved in newer versions of the package.
     return Image.fromarray(array_2d.astype(pixel_dtype), mode=mode) \
         .transpose(Image.FLIP_TOP_BOTTOM) \
