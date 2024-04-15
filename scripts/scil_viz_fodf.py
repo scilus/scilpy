@@ -31,7 +31,6 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_headers_compatible)
 from scilpy.io.image import assert_same_resolution, get_data_as_mask
 from scilpy.utils.spatial import RAS_AXES_NAMES
-# TODO: There should not be as less backend in scripts as possible
 from scilpy.viz.backends.fury import (create_interactive_window,
                                       create_scene,
                                       snapshot_scenes)
@@ -211,7 +210,7 @@ def _get_data_from_inputs(args):
     between the data for mask, background, peaks and fODF.
     """
 
-    fodf = nib.load(args.in_fodf).get_fdata()
+    fodf = nib.load(args.in_fodf).get_fdata(dtype=np.float32)
     data = {'fodf': fodf}
     if args.background:
         assert_same_resolution([args.background, args.in_fodf])
@@ -246,7 +245,7 @@ def _get_data_from_inputs(args):
             data['peaks_values'] = peak_vals
     if args.variance:
         assert_same_resolution([args.variance, args.in_fodf])
-        variance = nib.load(args.variance).get_fdata()
+        variance = nib.load(args.variance).get_fdata(dtype=np.float32)
         if len(variance.shape) == 3:
             variance = np.reshape(variance, variance.shape + (1,))
         if variance.shape != fodf.shape:

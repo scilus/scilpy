@@ -20,6 +20,6 @@ def test_help_option(script_runner):
 #     in_bundle = os.path.join(
 #         SCILPY_HOME, 'bundles', 'fibercup_atlas', 'subj_1', 'bundle_0.trk')
 
-#     ret = script_runner.run('scil_viz_bundles.py',
+#     ret = script_runner.run('scil_viz_bundle.py',
 #                             in_vol, in_bundle, 'out.png')
 #     assert ret.success

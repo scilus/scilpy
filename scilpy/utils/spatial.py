@@ -38,7 +38,8 @@ def _any2ras_index(axis_index, affine=np.eye(4)):
 
 def get_axis_name(axis_index, affine=np.eye(4)):
     """
-    Get the axis name in RAS_AXES_NAMES related to a given index.
+    Get the axis name in :py:const:`~scilpy.utils.spatial.RAS_AXES_NAMES`
+    related to a given index.
 
     Parameters
     ----------
@@ -50,7 +51,7 @@ def get_axis_name(axis_index, affine=np.eye(4)):
     Returns
     -------
     axis_name : str
-        Name of the axis (see RAS_AXES_NAMES).
+        Name of the axis.
     """
     _ix, _ = _any2ras_index(axis_index, affine)
     return RAS_AXES_NAMES[_ix]
@@ -58,8 +59,8 @@ def get_axis_name(axis_index, affine=np.eye(4)):
 
 def get_coordinate_name(axis_index, affine=np.eye(4)):
     """
-    Get the signed coordinate in RAS_AXES_COORDINATES related to a given axis
-    index.
+    Get the signed coordinate in :py:const:`~scilpy.utils.spatial.RAS_AXES_COORDINATES`
+    related to a given axis index.
 
     Parameters
     ----------
@@ -72,7 +73,7 @@ def get_coordinate_name(axis_index, affine=np.eye(4)):
     -------
     coordinate_name : str
         Name of the coordinate suffixed with sign (see RAS_AXES_COORDINATES).
-    """
+    """ # noqa
     _ix, _sgn = _any2ras_index(axis_index, affine)
     return RAS_AXES_COORDINATES[_ix] + _sgn
 
@@ -173,6 +174,7 @@ def compute_distance_barycenters(ref_1, ref_2, ref_2_transfo):
         Any type supported by the sft as reference (e.g .nii of .trk).
     ref_2_transfo: np.ndarray
         Transformation that modifies the barycenter of ref_2.
+
     Returns
     -------
     distance: float or tuple (2,)
@@ -195,6 +197,18 @@ def compute_distance_barycenters(ref_1, ref_2, ref_2_transfo):
 
 
 class WorldBoundingBox(object):
+    """
+    Class to store the bounding box of a volume in world space.
+
+    Parameters
+    ----------
+    minimums: np.ndarray
+        Minimums of the bounding box.
+    maximums: np.ndarray
+        Maximums of the bounding box.
+    voxel_size: np.ndarray
+        Voxel size of the bounding box.
+    """
     def __init__(self, minimums, maximums, voxel_size):
         self.minimums = minimums
         self.maximums = maximums

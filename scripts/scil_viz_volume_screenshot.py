@@ -14,35 +14,35 @@ A labelmap image can be provided as the image volume, without requiring it as
 the optional argument if only the former needs to be plot.
 
 Example:
-python scil_screenshot_volume.py t1.nii.gz t1_axial_annotated.png \
+scil_screenshot_volume.py t1.nii.gz t1_axial_annotated.png \
   --display_slice_number --display_lr
 
-python scil_screenshot_volume.py t1.nii.gz t1_axial_masked.png \
+scil_screenshot_volume.py t1.nii.gz t1_axial_masked.png \
   --transparency brainmask.nii.gz
 
-python scil_screenshot_volume.py t1.nii.gz t1_axial.png \
+scil_screenshot_volume.py t1.nii.gz t1_axial.png \
   --slices 30 40 50 60 70 80 90 100
 
-python scil_screenshot_volume.py t1.nii.gz t1_sagittal.png --axis sagittal
+scil_screenshot_volume.py t1.nii.gz t1_sagittal.png --axis sagittal
 
-python scil_screenshot_volume.py t1.nii.gz t1_axial_plasma_cmap.png \
+scil_screenshot_volume.py t1.nii.gz t1_axial_plasma_cmap.png \
   --slices 30 40 50 60 70 80 90 100 --volume_cmap_name plasma
 
-python scil_screenshot_volume.py t1.nii.gz t1_mask_overlay.png \
+scil_screenshot_volume.py t1.nii.gz t1_mask_overlay.png \
   --slices 30 40 50 60 70 80 90 100 --overlays brain_mask.nii.gz
 
-python scil_screenshot_volume.py t1.nii.gz t1_mask_contour.png \
+scil_screenshot_volume.py t1.nii.gz t1_mask_contour.png \
   --slices 30 40 50 60 70 80 90 100 \
   --overlays brain_mask.nii.gz --overlays_as_contours
 
-python scil_screenshot_volume.py t1.nii.gz t1_axial_tissue_map.png \
+scil_screenshot_volume.py t1.nii.gz t1_axial_tissue_map.png \
   --slices 30 40 50 60 70 80 90 100 --labelmap tissue_map.nii.gz
 
-python scil_screenshot_volume.py t1.nii.gz t1_axial_tissue_viridis_cmap.png \
+scil_screenshot_volume.py t1.nii.gz t1_axial_tissue_viridis_cmap.png \
   --slices 30 40 50 60 70 80 90 100 \
   --labelmap tissue_map.nii.gz --labelmap_cmap_name viridis
 
-python scil_screenshot_volume.py t1.nii.gz t1_axial_peaks.png \
+scil_screenshot_volume.py t1.nii.gz t1_axial_peaks.png \
   --slices 30 40 50 60 70 80 90 100 --peaks peaks.nii.gz --volume_opacity 0.5
 """
 

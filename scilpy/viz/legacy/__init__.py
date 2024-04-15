@@ -5,7 +5,34 @@ def display_slices(volume_actor, slices,
                    view_position, focal_point,
                    peaks_actor=None, streamlines_actor=None,
                    roi_actors=None):
+    """
+    Display the slices of the volume actor and take a snapshot. This
+    function is a legacy function and should not be used in new code.
+    Instead, use the functions in :py:mod:`~scilpy.viz.screenshot` for
+    screenshotting, or in :py:mod:`~scilpy.viz.slice` for volume slicing
+    using vtk and fury.
 
+    Parameters
+    ----------
+    volume_actor : Volume
+        The volume actor to display.
+    slices : tuple of int
+        The slices to display.
+    output_filename : str
+        The output filename.
+    axis_name : str
+        The axis name. See :py:const:`~scilpy.utils.spatial.RAS_AXES_NAMES`.
+    view_position : tuple of float
+        The view position.
+    focal_point : tuple of float
+        The focal point.
+    peaks_actor : vtkActor, optional
+        The peaks actor to display.
+    streamlines_actor : vtkActor, optional
+        The streamlines actor to display.
+    roi_actors : list of vtkActor, optional
+        The ROI actors to display.
+    """
     from scilpy.viz.backends.fury import snapshot_scenes
     from scilpy.viz.screenshot import compose_image
     from fury import window
