@@ -58,7 +58,6 @@ def _build_arg_parser():
              "with -nt 1,000,000, \nyou can create tractogram_2 "
              "with \n--skip 1,000,000.")
 
-
     add_processes_arg(p)
     add_out_options(p)
     add_verbose_arg(p)

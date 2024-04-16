@@ -127,6 +127,7 @@ def add_out_options(p):
 
     add_overwrite_arg(out_g)
 
+
 def add_random_options(p):
     rand_g = p.add_argument_group('Randomization options')
     rand_g.add_argument(
@@ -185,7 +186,9 @@ def segment_tractogram(streamlines, verbose=False):
 def rotation_between_vectors_matrix(vec1, vec2):
     """
     Rotation matrix that aligns vec1 to vec2. Numba compatible.
-    From https://math.stackexchange.com/questions/180418/calculate-rotation-matrix-to-align-vector-a-to-vector-b-in-3d
+
+    https://math.stackexchange.com/questions/180418/calculate-
+    rotation-matrix-to-align-vector-a-to-vector-b-in-3d
 
     Parameters
     ----------
@@ -282,7 +285,7 @@ def sample_cylinder(center, axis, radius: float, length: float,
         x = random_generator.uniform(-radius, radius)
         y = random_generator.uniform(-radius, radius)
         z = random_generator.uniform(-half_length, half_length)
-        sample = np.array([x, y, z,], dtype=np.float32)
+        sample = np.array([x, y, z], dtype=np.float32)
 
         # Rotation
         rotation_matrix = np.eye(4, dtype=np.float32)

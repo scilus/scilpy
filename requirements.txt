@@ -45,3 +45,5 @@ spams==2.6.*
 statsmodels==0.13.*
 trimeshpy==0.0.3
 vtk==9.2.*
+numba==0.59.1
+numba-kdtree==0.4.0
