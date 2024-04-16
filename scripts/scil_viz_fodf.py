@@ -11,6 +11,9 @@ peaks on top of fODF.
 
 If a transparency_mask is given (e.g. a brain mask), all values outside the
 mask non-zero values are set to full transparency in the saved scene.
+
+!!! CAUTION !!! The script is memory intensive about (9kB of allocated RAM per
+voxel, or 9GB for a 1M voxel volume) with a sphere interpolated to 362 points.
 """
 
 import argparse
@@ -80,7 +83,7 @@ def _build_arg_parser():
 
     sphere_choices = {'symmetric362', 'symmetric642', 'symmetric724',
                       'repulsion724', 'repulsion100', 'repulsion200'}
-    p.add_argument('--sphere', default='symmetric724', choices=sphere_choices,
+    p.add_argument('--sphere', default='symmetric362', choices=sphere_choices,
                    help='Name of the sphere used to reconstruct SF. '
                         '[%(default)s]')
 
@@ -334,7 +337,8 @@ def main():
     scene = create_scene(actors, args.axis_name,
                          args.slice_index,
                          data['fodf'].shape[:3],
-                         args.bg_color)
+                         args.win_dims[0] / args.win_dims[1],
+                         bg_color=args.bg_color)
 
     mask_scene = None
     if 'transparency_mask' in data:
@@ -350,10 +354,9 @@ def main():
             args.axis_name,
             args.slice_index,
             data['transparency_mask'].shape,
-            args.bg_color,
-        )
+            args.win_dims[0] / args.win_dims[1],
+            bg_color=args.bg_color)
 
-    # TODO : fuse with visualize bingham fit and export to viz module in utils
     if not args.silent:
         create_interactive_window(
             scene, args.win_dims, args.interactor)

@@ -250,8 +250,11 @@ def create_odf_slicer(sh_fodf, orientation, slice_index, sphere, sh_order,
 
     fodf = sh_to_sf(sh_fodf, sphere, sh_order, sh_basis,
                     full_basis=full_basis, legacy=is_legacy)
-    fodf_var = sh_to_sf(sh_variance, sphere, sh_order, sh_basis,
-                        full_basis=full_basis, legacy=is_legacy)
+
+    fodf_var = None
+    if sh_variance is not None:
+        fodf_var = sh_to_sf(sh_variance, sphere, sh_order, sh_basis,
+                            full_basis=full_basis, legacy=is_legacy)
 
     odf_actor, var_actor = create_odf_actors(fodf, sphere, scale, fodf_var,
                                              mask, radial_scale,
@@ -259,7 +262,9 @@ def create_odf_slicer(sh_fodf, orientation, slice_index, sphere, sh_order,
                                              variance_k, variance_color)
 
     set_display_extent(odf_actor, orientation, sh_fodf.shape[:3], slice_index)
-    set_display_extent(var_actor, orientation, sh_fodf.shape[:3], slice_index)
+    if sh_variance is not None:
+        set_display_extent(var_actor, orientation,
+                           sh_fodf.shape[:3], slice_index)
 
     return odf_actor, var_actor
 

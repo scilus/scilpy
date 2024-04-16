@@ -162,7 +162,7 @@ def set_viewport(scene, orientation, slice_index, volume_shape, aspect_ratio):
 
 
 def create_scene(actors, orientation, slice_index, volume_shape, aspect_ratio,
-                 bg_color=(0, 0, 0),):
+                 bg_color=(0, 0, 0)):
     """
     Create a 3D scene containing actors fitting inside a grid. The camera is
     placed based on the orientation supplied by the user. The projection mode

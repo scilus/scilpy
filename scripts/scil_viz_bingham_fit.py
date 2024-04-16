@@ -134,7 +134,6 @@ def main():
                          data.shape[:3],
                          args.win_dims[0] / args.win_dims[1])
 
-    # TODO : fuse with visualize fodf and export to viz module utils
     if not args.silent:
         create_interactive_window(
             scene, args.win_dims, args.interactor)
