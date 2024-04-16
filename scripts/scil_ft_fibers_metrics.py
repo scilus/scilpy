@@ -81,6 +81,10 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
+    if args.verbose:
+        logging.getLogger().setLevel(logging.DEBUG)
+        logging.getLogger('numba').setLevel(logging.WARNING)
+
     if not nib.streamlines.is_supported(args.in_centroids):
         parser.error('Invalid input streamline file format (must be trk ' +
                      'or tck): {0}'.format(args.in_centroids))
@@ -102,7 +106,8 @@ def main():
     fibers = list(in_sft.get_streamlines_copy())
     diameters = np.loadtxt(args.in_diameters, dtype=np.float64)
     if args.single_diameter:
-        diameters = [diameters[0]]*len(fibers)
+        diameter = diameters if np.ndim(diameters) == 0 else diameters[0]
+        diameters = np.full(len(fibers), diameter)
 
     min_ext_dist, min_ext_dist_vect = (
         min_external_distance(fibers, diameters, args.verbose))
@@ -110,6 +115,8 @@ def main():
         max_voxels(min_ext_dist_vect))
     tmv_rot, tmv_edge = (
         true_max_voxel(min_ext_dist_vect))
+
+    print(tmv_rot)
 
     metrics = {
         'min_external_distance': min_ext_dist,

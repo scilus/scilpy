@@ -115,7 +115,8 @@ def main():
     fibers = list(in_sft.get_streamlines_copy())
     diameters = np.loadtxt(args.in_diameters, dtype=np.float64)
     if args.single_diameter:
-        diameters = [diameters[0]]*len(fibers)
+        diameter = diameters if np.ndim(diameters) == 0 else diameters[0]
+        diameters = np.full(len(fibers), diameter)
 
     if args.shuffle:
         logging.debug('Shuffling fibers')
@@ -130,7 +131,7 @@ def main():
             new_diameters.append(diameters[index])
 
         fibers = new_fibers
-        diameters = new_diameters
+        diameters = np.array(new_diameters)
         in_sft = StatefulTractogram.from_sft(fibers, in_sft)
 
     print(diameters[:5])

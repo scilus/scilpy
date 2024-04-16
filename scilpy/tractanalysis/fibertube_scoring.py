@@ -3,8 +3,9 @@ from numba import objmode
 
 from math import sqrt, acos
 from numba import njit
-from numba_kdtree import KDTree
-from scipy.spatial.transform.rotation import Rotation
+from numba_kdtree import KDTree as nbKDTree
+from scipy.spatial import KDTree
+from scipy.spatial.transform import Rotation
 from scilpy.tracking.fibertube import (segment_tractogram,
                                        point_in_cylinder,
                                        dist_segment_segment,
@@ -19,7 +20,6 @@ def min_external_distance(fibers, diameters, verbose):
     seg_centers, seg_indices, max_seg_length = segment_tractogram(fibers,
                                                                   verbose)
     tree = KDTree(seg_centers)
-
     min_external_distance = np.float32('inf')
     min_external_distance_vec = np.zeros(0, dtype=np.float32)
 
@@ -85,7 +85,7 @@ def true_max_voxel(diagonal):
     v = np.cross(diag, dest)
     v /= np.linalg.norm(v)
     theta = acos(np.dot(diag, dest))
-    rotation_matrix = Rotation.from_rotvec(v * theta)
+    rotation_matrix = Rotation.from_rotvec(v * theta).as_matrix()
 
     return (rotation_matrix, edge)
 
@@ -176,7 +176,7 @@ def mean_reconstruction_error(fibers, fibers_length, diameters, streamlines,
         centers, indices, _ = segment_tractogram(fibers)
     centers_fixed_length = len(fibers[0])-1
 
-    tree = KDTree(centers[:fibers_length[0]-1])
+    tree = nbKDTree(centers[:fibers_length[0]-1])
     tree_fi = 0
 
     for si, streamline_fixed in enumerate(streamlines):
@@ -189,7 +189,7 @@ def mean_reconstruction_error(fibers, fibers_length, diameters, streamlines,
 
         # Rebuild tree for current fiber.
         if tree_fi != seeded_fi:
-            tree = KDTree(
+            tree = nbKDTree(
                 centers[centers_fixed_length * seeded_fi:
                         (centers_fixed_length * seeded_fi +
                          fibers_length[seeded_fi] - 1)])

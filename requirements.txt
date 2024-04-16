@@ -22,6 +22,8 @@ kiwisolver==1.4.*
 matplotlib==3.6.*
 nibabel==5.2.*
 nilearn==0.9.*
+numba==0.59.1
+numba-kdtree==0.4.0
 numpy==1.23.*
 openpyxl==3.0.*
 packaging == 23.2.*
@@ -45,5 +47,3 @@ spams==2.6.*
 statsmodels==0.13.*
 trimeshpy==0.0.3
 vtk==9.2.*
-numba==0.59.1
-numba-kdtree==0.4.0

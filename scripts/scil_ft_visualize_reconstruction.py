@@ -82,7 +82,8 @@ def main():
     fibers = list(truth_sft.get_streamlines_copy())
     diameters = np.loadtxt(args.in_diameters, dtype=np.float64)
     if args.single_diameter:
-        diameters = [diameters[0]]*len(fibers)
+        diameter = diameters if np.ndim(diameters) == 0 else diameters[0]
+        diameters = np.full(len(fibers), diameter)
 
     logging.debug('Loading reconstruction tractogram')
     in_sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
