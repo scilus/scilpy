@@ -738,15 +738,27 @@ def neighborhood_correlation(input_list, ref_img):
     _validate_length(input_list, 2, at_least=True)
     _validate_imgs_type(*input_list, ref_img)
     _validate_same_shape(*input_list, ref_img)
+    return neighborhood_correlation_(input_list)
 
-    data_shape = input_list[0].header.get_data_shape()
+
+def neighborhood_correlation_(input_list):
+    """
+    Same as above (neighborhood_correlation) but without the verifications
+    required for scil_volume_math.py.
+
+    input_list can be a list of images or a list of arrays.
+    """
+    data_shape = input_list[0].shape
     combs = list(combinations(range(len(input_list)), r=2))
     all_corr = np.zeros(data_shape + (len(combs),), dtype=np.float32)
 
     patch_radius = 1  # Using a 3x3x3 neighborhood. Slow enough as it is.
     patch_size = 2 * patch_radius + 1
     np.random.seed(0)
+
     # For each pair of input images:
+    # Possibly loads images twice. Other option is to load all images in
+    # memory at once.
     for i, comb in enumerate(combs):
         img_1 = input_list[comb[0]]
         img_2 = input_list[comb[1]]

@@ -505,7 +505,7 @@ def test_neighborhood_correlation():
     img_data_2 = np.ones((3, 3, 3), dtype=float) * 2
     img2 = nib.Nifti1Image(img_data_2, affine)
     output = neighborhood_correlation([img1, img2], img1)
-    assert np.allclose(output, 1), \
+    assert np.allclose(output, np.ones((3, 3, 3))), \
         "Expected a perfect correlation, got: {}".format(output)
 
     # Test 2: Bad correlation.

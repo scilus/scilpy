@@ -24,7 +24,7 @@ from scilpy.tractograms.tractogram_operations import (difference_robust,
                                                       intersection_robust,
                                                       union_robust)
 from scilpy.image.volume_operations import (normalize_metric, merge_metrics)
-from scilpy.image.volume_math import neighborhood_correlation
+from scilpy.image.volume_math import neighborhood_correlation_
 
 
 def binary_classification(segmentation_indices,
@@ -619,7 +619,7 @@ def tractogram_pairwise_comparison(sft_one, sft_two, mask, nbr_cpu=1,
     mask[mask > 0] = 1
 
     logging.info('Computing correlation map...')
-    corr_data = neighborhood_correlation([density_1, density_2], None) * mask
+    corr_data = neighborhood_correlation_([density_1, density_2]) * mask
     corr_data[mask == 0] = np.nan
 
     logging.info('Computing TODI from tractogram #1...')

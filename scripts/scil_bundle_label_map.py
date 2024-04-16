@@ -29,7 +29,7 @@ import numpy as np
 import scipy.ndimage as ndi
 from scipy.spatial import cKDTree
 
-from scilpy.image.volume_math import neighborhood_correlation
+from scilpy.image.volume_math import neighborhood_correlation_
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg,
                              add_reference_arg,
@@ -127,7 +127,7 @@ def main():
             args.in_centroid, args.in_bundle))
 
     if len(density_list) > 1:
-        corr_map = neighborhood_correlation(density_list, None)
+        corr_map = neighborhood_correlation_(density_list)
     else:
         corr_map = density_list[0].astype(float)
         corr_map[corr_map > 0] = 1
