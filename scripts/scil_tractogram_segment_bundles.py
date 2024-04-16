@@ -47,9 +47,10 @@ from scilpy.io.utils import (add_overwrite_arg,
 from scilpy.segment.voting_scheme import VotingScheme
 
 EPILOG = """
-[1] Etienne St-Onge, Kurt Schilling, Francois Rheault, "BundleSeg: A versatile,
-    reliable and reproducible approach to white matter bundle segmentation.",
-    arXiv, 2308.10958 (2023)
+[1] St-Onge, Etienne, Kurt G. Schilling, and Francois Rheault.
+"BundleSeg: A versatile,reliable and reproducible approach to white
+matter bundle segmentation." International Workshop on Computational
+Diffusion MRI. Cham: Springer Nature Switzerland (2023)
 """
 
 
