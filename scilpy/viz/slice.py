@@ -307,7 +307,9 @@ def create_bingham_slicer(data, orientation, slice_index,
         sf[lmaxnorm > 0] /= lmaxnorm[lmaxnorm > 0][:, None]
         color = colors[nn] if color_per_lobe else None
 
-        odf_actor, _ = create_odf_actors(sf, sphere, 1., colormap=color)
+        odf_actor, _ = create_odf_actors(sf, sphere, 0.5, colormap=color,
+                                         radial_scale=True)
+
         set_display_extent(odf_actor, orientation, shape[:3], slice_index)
         actors.append(odf_actor)
 
