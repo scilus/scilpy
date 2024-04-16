@@ -132,6 +132,53 @@ def _validate_float(x):
         raise ValueError('The input must be float/int for this operation.')
 
 
+def _get_neighbors(data, radius):
+    """
+    For each voxel of the input data, returns a patch of the local
+    neighborhood. Data is padded with zeros for the neighborhood of border
+    voxels.
+
+    Parameters
+    ----------
+    data: np.ndarray
+        The data of shape [X, Y, Z].
+    radius: int
+        Neighborhoods will be cubes of size M = 2 * patch_radius + 1 centered
+        at each voxel.
+
+    Returns
+    -------
+    data: np.ndarray
+        The shape of the output will be 6D: [X, Y, Z, M, M, M]
+        Ex: data[0, 0, 0, :, :, :] is the neighborhood at voxel [0, 0, 0].
+    """
+    patch_size = 2 * radius + 1
+
+    # Padding first dimension to have 2 patches fitting on first dimension.
+    # (If pad_size is 0, will at least ensure that data is a np.array.)
+    pad_size = (patch_size - 1) // 2
+    data = np.pad(data, (pad_size, pad_size),
+                  mode='constant', constant_values=(0, 0))
+
+    # Preparing types for the call.
+    padded_shape = np.array(data.shape)
+    patch_size = np.asanyarray([patch_size] * 3)
+
+    # Note. np.r_: Stacks arrays along their first axis.
+
+    # Preparing strides: 6 dimensions.  [sx*strd, sy*strd, sz*strd, sx, sy, sz]
+    strides = np.r_[data.strides, data.strides]
+
+    # Preparing dims: 6 dimensions. [nb1, nb2, nb3, B1, B2, B3]
+    nbl = (padded_shape - patch_size) + 1
+    dims = np.r_[nbl, patch_size]
+
+    # Splitting data
+    data = stride_tricks.as_strided(data, strides=strides, shape=dims)
+
+    return data
+
+
 def lower_threshold_otsu(input_list, ref_img):
     """
     lower_threshold_otsu: IMG
@@ -632,57 +679,10 @@ def concatenate(input_list, ref_img):
     return np.rollaxis(np.stack(input_data), axis=0, start=4)
 
 
-def _get_neighbors(data, radius):
-    """
-    For each voxel of the input data, returns a patch of the local
-    neighborhood. Data is padded with zeros for the neighborhood of border
-    voxels.
-
-    Parameters
-    ----------
-    data: np.ndarray
-        The data of shape [X, Y, Z].
-    radius: int
-        Neighborhoods will be cubes of size M = 2 * patch_radius + 1 centered
-        at each voxel.
-
-    Returns
-    -------
-    data: np.ndarray
-        The shape of the output will be 6D: [X, Y, Z, M, M, M]
-        Ex: data[0, 0, 0, :, :, :] is the neighborhood at voxel [0, 0, 0].
-    """
-    patch_size = 2 * radius + 1
-
-    # Padding first dimension to have 2 patches fitting on first dimension.
-    # (If pad_size is 0, will at least ensure that data is a np.array.)
-    pad_size = (patch_size - 1) // 2
-    data = np.pad(data, (pad_size, pad_size),
-                  mode='constant', constant_values=(0, 0))
-
-    # Preparing types for the call.
-    padded_shape = np.array(data.shape)
-    patch_size = np.asanyarray([patch_size] * 3)
-
-    # Note. np.r_: Stacks arrays along their first axis.
-
-    # Preparing strides: 6 dimensions.  [sx*strd, sy*strd, sz*strd, sx, sy, sz]
-    strides = np.r_[data.strides, data.strides]
-
-    # Preparing dims: 6 dimensions. [nb1, nb2, nb3, B1, B2, B3]
-    nbl = (padded_shape - patch_size) + 1
-    dims = np.r_[nbl, patch_size]
-
-    # Splitting data
-    data = stride_tricks.as_strided(data, strides=strides, shape=dims)
-
-    return data
-
-
 def _corrcoef_no_nan(data):
     """
     Correlation between two small data arrays, but with our management of NaNs.
-    See explanation in correlation docstring.
+    See explanation in neighborhood_correlation docstring.
 
     Parameters
     ----------
@@ -692,22 +692,21 @@ def _corrcoef_no_nan(data):
     """
     a, b = np.split(data, 2)
 
-    # If, in a least one patch, all values are the same, we get NaN.
-    # (Ex: compare a patch of ones with a patch of twos:
-    # >> np.corrcoef(np.ones(27), 2*np.ones(27))  gives NaN.).
-
+    # If, in at least one patch, all values are the same, we get NaN.
+    # Ex: compare a patch of ones with a patch of twos:
+    # >> np.corrcoef(np.ones(27), 2*np.ones(27))
     corr = np.corrcoef(a, b, dtype=np.float32)[0, 1]
     eps = 1e-6
     if np.isnan(corr):
         if np.std(a) < eps and np.std(b) < eps:  # Both uniform.
             if not np.any(a) or not np.any(b):  # if not any = if all zero
                 # At least one patch is entirely background
-                return 0
+                return 0.0
             else:
                 # Both uniform and non-background
-                return 1
+                return 1.0
         else:  # Only one of them is uniform.
-            return 0
+            return 0.0
     return corr
 
 
@@ -760,6 +759,8 @@ def neighborhood_correlation_(input_list):
     # Possibly loads images twice. Other option is to load all images in
     # memory at once.
     for i, comb in enumerate(combs):
+        logging.debug("Computing correlation map for one pair of input "
+                      "images.")
         img_1 = input_list[comb[0]]
         img_2 = input_list[comb[1]]
 
@@ -782,7 +783,16 @@ def neighborhood_correlation_(input_list):
         patches_2 = patches_2.reshape((nb_patches, patch_size ** 3))
         patches = np.concatenate((patches_1, patches_2), axis=-1)
 
-        results = np.apply_along_axis(_corrcoef_no_nan, axis=1, arr=patches)
+        # Removing union of background from data. Already managed in the
+        # _corrcoef_no_nan method, but accelerating the process
+        non_zeros_patches = np.sum(patches, axis=-1)
+        non_zeros_ids = np.where(np.abs(non_zeros_patches) > 1e-6)[0]
+
+        results = np.zeros((len(patches)), dtype=np.float32)
+
+        tmp = np.apply_along_axis(
+            _corrcoef_no_nan, axis=1, arr=patches[non_zeros_ids, :])
+        results[non_zeros_ids] = tmp
 
         all_corr[..., i] = results.reshape(patches_shape[0:3])
 
