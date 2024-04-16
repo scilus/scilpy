@@ -41,7 +41,8 @@ def test_execution_single_diameter(script_runner, monkeypatch):
     np.savetxt(in_diameters, diameters)
 
     ret = script_runner.run('scil_ft_fibers_metrics.py', in_tractogram,
-                            in_diameters, 'metrics.txt', '--single_diameter', '-f')
+                            in_diameters, 'metrics.txt', '--single_diameter',
+                            '-f')
 
     assert ret.success
 
