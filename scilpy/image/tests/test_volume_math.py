@@ -523,18 +523,12 @@ def test_neighborhood_correlation():
         ("Expected a bad correlation at central point, good around the border,"
          " got: {}").format(output)
 
-    # Test 2: Different backgrounds.
-    # Image 1 = only ones. Image 2 = only background.
-    # Expecting a poor correlation where backgrounds are not the same.
-    # But we get a one in the middle (two uniform patches)
+    # Test 2: Comparing with only background: should be 0 everywhere.
     img_data_2 = np.zeros((3, 3, 3)).astype(float)
     img2 = nib.Nifti1Image(img_data_2, affine)
     output = neighborhood_correlation([img1, img2], img1)
-    expected = np.zeros((3, 3, 3))
-    expected[1, 1, 1] = 1
-    assert np.allclose(output, expected), \
-        ("Expected a good correlation at central point, bad around the border,"
-         " got: {}").format(output)
+    assert np.allclose(output, np.zeros((3, 3, 3))), \
+        "Expected a 0 correlation everywhere, got {}".format(output)
 
 
 def test_dilation():
