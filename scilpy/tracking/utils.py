@@ -86,7 +86,7 @@ def add_tracking_ptt_options(p):
     track_g = p.add_argument_group('PTT options')
     track_g.add_argument('--probe_length', dest='probe_length',
                          type=float, default=1.0,
-                         help='The length of the probes. Shorter probe_length\n'
+                         help='The length of the probes. Smaller value\n'
                               'yields more dispersed fibers. [%(default)s]')
     track_g.add_argument('--probe_radius', dest='probe_radius',
                          type=float, default=0,
