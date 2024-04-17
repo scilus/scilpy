@@ -3,13 +3,13 @@
 
 """
 Visualize collisions found through the intersection filtering process of
-fibertubes (see ft_filter_collisions.py). The previously obtained
-"colliders" tractogram is to be used as input in the present script. The
-collision points need to be stored as data_per_streamline on each of its
-streamlines.
+scil_ft_filter_collisions.py (with the --save_colliders option).
+
+The obtained "colliders" tractogram is to be used as input in the present
+script. The collision points need to be stored as data_per_streamline on
+each of the streamlines.
 """
 import argparse
-import nibabel as nib
 
 from dipy.io.streamline import load_tractogram
 from scilpy.io.streamlines import load_tractogram_with_reference
@@ -17,7 +17,6 @@ from fury import window, actor
 from nibabel.streamlines import detect_format, TrkFile
 
 from scilpy.io.utils import (add_overwrite_arg,
-                             add_verbose_arg,
                              add_reference_arg,
                              assert_inputs_exist,
                              assert_outputs_exist)
@@ -34,17 +33,18 @@ def _build_arg_parser():
 
     p.add_argument('--collided',
                    help='Tractogram file containing the streamlines that \n'
-                   'have been collided with (must be .trk).')
+                   'have been collided with (must be .trk). Will be \n'
+                   'overlaid in the viewing window.')
 
     p.add_argument('--ref_tractogram',
                    help='Tractogram file containing the full tractogram \n'
-                   'as spatial reference (must be .trk or .tck).')
+                   'as visual reference (must be .trk or .tck). It will be'
+                   'overlaid in white and very low opacity.')
 
     p.add_argument('--save',
                    help='If set, save a screenshot of the result in the \n'
-                   'specified filename')
+                   'specified filename (.png, .bmp, .jpeg or .jpg).')
 
-    add_verbose_arg(p)
     add_overwrite_arg(p)
     add_reference_arg(p)
 
@@ -69,12 +69,6 @@ def main():
         if tracts_format is not TrkFile:
             raise ValueError("Invalid input streamline file format " +
                              "(must be trk): {0}".format(args.colliders))
-
-    if args.ref_tractogram:
-        if not nib.streamlines.is_supported(args.ref_tractogram):
-            raise ValueError("Invalid input streamline file format " +
-                             "(must be trk or tck): {0}".format(
-                                 args.ref_tractogram))
 
     colliders_sft = load_tractogram(args.colliders, 'same',
                                     bbox_valid_check=False)

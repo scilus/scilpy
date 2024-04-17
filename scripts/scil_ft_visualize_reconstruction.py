@@ -48,7 +48,7 @@ def _build_arg_parser():
 
     p.add_argument('--save',
                    help='If set, save a screenshot of the result in the \n'
-                   'specified filename')
+                   'specified filename (.png, .bmp, .jpeg or .jpg).')
 
     add_verbose_arg(p)
     add_overwrite_arg(p)
