@@ -2,6 +2,7 @@
 import numpy as np
 
 from dipy.io.stateful_tractogram import Space, Origin
+from scilpy.tracking.fibertube import sample_cylinder
 
 
 class SeedGenerator:
@@ -264,3 +265,72 @@ class SeedGenerator:
         random_generator.random_sample(random_numbers_to_skip)
 
         return random_generator, indices
+
+
+class FibertubeSeedGenerator(SeedGenerator):
+    """
+    Adaptation of the scilpy.tracking.seed.SeedGenerator interface for
+    fibertube tracking. Generates a given number of seed within the first
+    segment of a given number of fibers.
+    """
+    def __init__(self, fibers, diameters, nb_seeds_per_fiber):
+        """
+        Parameters
+        ----------
+        fibers: list
+            Tractogram containing the fibertube centroids
+        diameters: list
+            Diameters of each fibertube
+        nb_seeds_per_fiber: int
+        """
+        self.space = Space.VOXMM
+        self.origin = Origin.NIFTI
+
+        self.fibers = fibers
+        self.diameters = diameters
+        self.nb_seeds_per_fiber = nb_seeds_per_fiber
+
+    def init_generator(self, rng_seed, numbers_to_skip):
+        self.generator = np.random.default_rng(rng_seed)
+        self.nb_seeds = numbers_to_skip
+
+        return self.generator, [0]
+
+    def get_next_pos(self, random_generator: np.random.Generator,
+                     shuffled_indices, which_seed):
+        # Acts as a skip by going to the next fiber
+        next_fi = self.nb_seeds // self.nb_seeds_per_fiber
+        # Acts as a skip within the current fiber by generating
+        # and only keeping last
+        next_local = self.nb_seeds % self.nb_seeds_per_fiber
+
+        fiber = self.fibers[next_fi]
+        radius = self.diameters[next_fi] / 2
+        center = (fiber[0] + fiber[1]) / 2
+        axis = fiber[1] - fiber[0]
+
+        seed = sample_cylinder(center, axis, radius, np.linalg.norm(axis),
+                               next_local + 1, random_generator)[next_local]
+        self.nb_seeds += 1
+
+        return seed[0], seed[1], seed[2]
+
+    def get_next_n_pos(self, random_generator, shuffled_indices,
+                       which_seed_start, n):
+        # Acts as a skip by going to the next fiber
+        next_fi = self.nb_seeds // self.nb_seeds_per_fiber
+        # Acts as a skip within the current fiber by generating
+        # and only keeping last
+        next_local = self.nb_seeds % self.nb_seeds_per_fiber
+
+        fiber = self.fibers[next_fi]
+        radius = self.diameters[next_fi] / 2
+        center = (fiber[0] + fiber[1]) / 2
+        axis = fiber[1] - fiber[0]
+
+        seeds = sample_cylinder(center, axis, radius, np.linalg.norm(axis),
+                                next_local + n,
+                                random_generator)[next_local:next_local + n]
+        self.nb_seeds += n
+
+        return seeds

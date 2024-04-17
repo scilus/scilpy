@@ -1,13 +1,16 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 
+from numba_kdtree import KDTree
+from numba import njit
+from scilpy.tracking.fibertube import (segment_tractogram,
+                                       point_in_cylinder,
+                                       sphere_cylinder_intersection)
+from scilpy.tractograms.streamline_operations import \
+    get_streamlines_as_fixed_array
 from dipy.core.interpolation import trilinear_interpolate4d, \
     nearestneighbor_interpolate
 from dipy.io.stateful_tractogram import Origin, Space
-from dipy.segment.mask import bounding_box
-
-
-from scilpy.utils.util import voxel_to_world
 
 
 class DataVolume(object):
@@ -361,3 +364,180 @@ class DataVolume(object):
             True if position is in dataset range and false otherwise.
         """
         return self.is_idx_in_bound(*self.voxmm_to_idx(x, y, z, origin))
+
+
+class FibertubeDataVolume(DataVolume):
+    """
+    Adaptation of the scilpy.image.volume_space_management.AbstractDataVolume
+    interface for fibertube tracking. Instead of a spherical function,
+    provides direction and intersection volume of close-by fiber segments.
+    """
+    def __init__(self, fibers, diameters, mask, voxres, sampling_radius,
+                 origin, random_generator):
+        """
+        Parameters
+        ----------
+        fibers: list
+            Tractogram containing the fibertube centroids
+        diameters: list
+            Diameters of each fibertube
+        mask: any
+        voxres: np.array(3,)
+            The pixel resolution, ex, using img.header.get_zooms()[:3].
+        sampling_radius: float
+            Radius of the sampling sphere to be used for degrading resolution.
+        origin: dipy Origin
+        random_generator: any
+        """
+        self._prepare_and_store_data(fibers)
+        self.diameters = diameters
+        self.data = mask
+        self.dim = mask.shape[:3]
+        self.voxres = voxres
+        self.sampling_radius = sampling_radius
+        self.origin = origin
+        self.random_generator = random_generator
+
+    def _prepare_and_store_data(self, fibers):
+        if fibers is None:
+            self.tree = None
+            self.segments_indices = None
+            self.max_seg_length = None
+            self.fibers = None
+            return
+
+        # Flatten all segments of tractogram
+        segments_centers, segments_indices, max_seg_length = (
+            segment_tractogram(fibers, False))
+
+        self.tree = KDTree(segments_centers)
+        self.segments_indices = segments_indices
+        self.max_seg_length = max_seg_length
+        self.fibers, _ = get_streamlines_as_fixed_array(fibers)
+
+    def _validate_origin(self, origin):
+        if self.origin is not origin:
+            raise ValueError('The provided origin is not the same as'
+                             'the origin used for instantiation.')
+
+    def get_value_at_idx(self, i, j, k):
+        i, j, k = self._clip_idx_to_bound(i, j, k)
+        return self._voxmm_to_value(i, j, k)
+
+    def get_value_at_coordinate(self, x, y, z, space, origin):
+        self._validate_origin(origin)
+
+        if space == Space.VOX:
+            return self._voxmm_to_value(*self.vox_to_voxmm(x, y, z), origin)
+        elif space == Space.VOXMM:
+            return self._voxmm_to_value(x, y, z, origin)
+        else:
+            raise NotImplementedError("We have not prepared the DataVolume "
+                                      "to work in RASMM space yet.")
+
+    def is_idx_in_bound(self, i, j, k):
+        return super().is_idx_in_bound(i, j, k)
+
+    def is_coordinate_in_bound(self, x, y, z, space, origin):
+        self._validate_origin(origin)
+        return super().is_coordinate_in_bound(x, y, z, space, origin)
+
+    # TODO: Figure out how to validate origin within vox_to_idx
+
+    def voxmm_to_idx(self, x, y, z, origin):
+        self._validate_origin(origin)
+        return super().voxmm_to_idx(x, y, z, origin)
+
+    def vox_to_voxmm(self, x, y, z):
+        """
+        Get mm space coordinates at position x, y, z (vox).
+
+        Parameters
+        ----------
+        x, y, z: floats
+            Position coordinate (vox) along x, y, z axis.
+
+        Return
+        ------
+        x, y, z: floats
+            mm space coordinates for position x, y, z.
+        """
+
+        # Does not depend on origin!
+        # In each dimension:
+        #   In corner: 0 to 1 will become 0 to voxres.
+        #   In center: -0.5 to 0.5 will become -0.5*voxres to 0.5*voxres.
+        return [x * self.voxres[0],
+                y * self.voxres[1],
+                z * self.voxres[2]]
+
+    def _clip_voxmm_to_bound(self, x, y, z, origin):
+        return self.vox_to_voxmm(*self._clip_vox_to_bound(
+            *self.voxmm_to_vox(x, y, z), origin))
+
+    def _vox_to_value(self, x, y, z, origin):
+        return self._voxmm_to_value(*self.vox_to_voxmm(x, y, z), origin)
+
+    def _voxmm_to_value(self, x, y, z, origin):
+        x, y, z = self._clip_voxmm_to_bound(x, y, z, origin)
+
+        pos = np.array([x, y, z], dtype=np.float64)
+
+        neighbors = self.tree.query_radius(
+            pos, self.sampling_radius + self.max_seg_length / 2)[0]
+
+        return self.extract_directions(pos, neighbors, self.sampling_radius,
+                                       self.segments_indices, self.fibers,
+                                       self.diameters, self.random_generator)
+
+    def get_absolute_direction(self, x, y, z):
+        pos = np.array([x, y, z], np.float64)
+
+        neighbors = self.tree.query_radius(
+            pos, self.sampling_radius + self.max_seg_length / 2)[0]
+
+        for segi in neighbors:
+            fi, pi = self.segments_indices[segi]
+            fiber = self.fibers[fi]
+            radius = self.diameters[fi] / 2
+
+            if point_in_cylinder(fiber[pi], fiber[pi+1], radius, pos):
+                return fiber[pi+1] - fiber[pi]
+
+        return None
+
+    @staticmethod
+    @njit
+    def extract_directions(pos, neighbors, sampling_radius, segments_indices,
+                           fibers, diameters, random_generator):
+        directions = []
+        volumes = []
+
+        for segi in neighbors:
+            fi, pi = segments_indices[segi]
+            fiber = fibers[fi]
+            fib_pt1 = fiber[pi]
+            fib_pt2 = fiber[pi+1]
+            dir = fib_pt2 - fib_pt1
+            radius = diameters[fi] / 2
+
+            volume, is_estimated = sphere_cylinder_intersection(
+                    pos, sampling_radius, fib_pt1,
+                    fib_pt2, radius, 1000, random_generator)
+
+            # Catch estimation error when using very small sampling_radius.
+            if volume == 0 and is_estimated:
+                volume, _ = sphere_cylinder_intersection(
+                    pos, sampling_radius, fib_pt1,
+                    fib_pt2, radius, 10000, random_generator)
+
+            if volume > 0:
+                directions.append(dir / np.linalg.norm(dir))
+                volumes.append(volume)
+
+        if len(volumes) > 0:
+            max_vol = max(volumes)
+            for vol in volumes:
+                vol /= max_vol
+
+        return (directions, volumes)
