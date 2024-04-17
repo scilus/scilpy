@@ -16,7 +16,6 @@ import nibabel as nib
 import numpy as np
 
 from PIL import Image
-from PIL import ImageFont
 from PIL import ImageDraw
 
 from scilpy.io.image import get_data_as_mask
