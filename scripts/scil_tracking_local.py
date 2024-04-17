@@ -61,28 +61,27 @@ import argparse
 import logging
 from time import perf_counter
 
+import nibabel as nib
+import numpy as np
+from nibabel.streamlines import TrkFile, detect_format
+
 from dipy.data import get_sphere
+from dipy.tracking import utils as track_utils
 from dipy.tracking.local_tracking import LocalTracking
 from dipy.tracking.stopping_criterion import BinaryStoppingCriterion
-from dipy.tracking import utils as track_utils
-import nibabel as nib
-from nibabel.streamlines import detect_format, TrkFile
-import numpy as np
-
 from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_sphere_arg, add_verbose_arg,
-                             assert_inputs_exist, assert_outputs_exist,
-                             parse_sh_basis_arg, verify_compression_th,
-                             assert_headers_compatible)
+                             assert_headers_compatible, assert_inputs_exist,
+                             assert_outputs_exist, parse_sh_basis_arg,
+                             verify_compression_th)
+from scilpy.tracking.tracker import GPUTacker
 from scilpy.tracking.utils import (add_mandatory_options_tracking,
                                    add_out_options, add_seeding_options,
                                    add_tracking_options,
-                                   get_theta,
-                                   get_direction_getter,
-                                   save_tractogram,
-                                   verify_streamline_length_options,
-                                   verify_seed_options)
-from scilpy.tracking.tracker import GPUTacker
+                                   add_tracking_ptt_options,
+                                   get_direction_getter, get_theta,
+                                   save_tractogram, verify_seed_options,
+                                   verify_streamline_length_options)
 
 # GPU tracking arguments default values
 DEFAULT_BATCH_SIZE = 10000
@@ -114,7 +113,7 @@ def _build_arg_parser():
                          type=int, default=0,
                          help='Subdivides each face of the sphere into 4^s new'
                               ' faces. [%(default)s]')
-
+    add_tracking_ptt_options(p)
     gpu_g = p.add_argument_group('GPU options')
     gpu_g.add_argument('--use_gpu', action='store_true',
                        help='Enable GPU tracking (experimental).')
@@ -242,7 +241,9 @@ def main():
                 args.in_odf, args.algo, args.sphere,
                 args.sub_sphere, args.theta, sh_basis,
                 voxel_size, args.sf_threshold, args.sh_to_pmf,
-                is_legacy=is_legacy),
+                args.probe_length, args.probe_radius,
+                args.probe_quality, args.probe_count,
+                args.support_exponent, is_legacy=is_legacy),
             BinaryStoppingCriterion(mask_data),
             seeds, np.eye(4),
             step_size=vox_step_size, max_cross=1,
