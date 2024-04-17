@@ -9,9 +9,9 @@ from scilpy.io.utils import add_overwrite_arg
 
 
 def add_mandatory_tracking_options(p):
-    p.add_argument('in_centroids',
+    p.add_argument('in_centerlines',
                    help='Path to the tractogram file containing the \n'
-                        'fibertubes\' centroids (must be .trk or .tck). \n'
+                        'fibertube centerlines (must be .trk or .tck). \n'
                         'This tractogram must be void of any intersection \n'
                         'given the diameter supplied for each streamline \n'
                         '(see scil_filter_intersections.py).')

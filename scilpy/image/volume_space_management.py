@@ -378,7 +378,7 @@ class FibertubeDataVolume(DataVolume):
         Parameters
         ----------
         fibers: list
-            Tractogram containing the fibertube centroids
+            Tractogram containing the fibertube centerlines
         diameters: list
             Diameters of each fibertube
         mask: any

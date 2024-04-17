@@ -92,7 +92,7 @@ def true_max_voxel(diagonal):
 
 @njit
 def get_external_distance_vec(vector, rp, rq):
-    # Given a distance vector between two fiber centroids, find their
+    # Given a distance vector between two fibertube centerlines, find their
     # external distance
     unit_distance_vec = vector / np.linalg.norm(vector)
     external_distance_vec = (vector - rp * unit_distance_vec - rq *
@@ -111,7 +111,7 @@ def resolve_origin_seeding(seeds, fibers, diameters):
     ----------
     seeds: ndarray
     fibers: ndarray
-        Fibertube centroids given as a fixed array
+        Fibertube centerlines given as a fixed array
         (see streamlines_as_fixed_array).
     diameters: ndarray
 
@@ -143,10 +143,10 @@ def mean_reconstruction_error(fibers, fibers_length, diameters, streamlines,
     Parameters
     ----------
     fibers: ndarray
-        Fixed array containing ground-truth fibertube centroids.
+        Fixed array containing ground-truth fibertube centerlines.
     fibers_length: ndarray
         Fixed array containing the number of coordinates of each fibertube
-        centroids.
+        centerlines.
     diameters: list,
         Diameters of the fibertubes
     streamlines: ndarray
@@ -246,10 +246,10 @@ def endpoint_connectivity(step_size, sampling_radius, fibers,
     step_size: any
     sampling_radius: any
     fibers: ndarray
-        Fixed array containing ground-truth fibertube centroids.
+        Fixed array containing ground-truth fibertube centerlines.
     fibers_length: ndarray
         Fixed array containing the number of coordinates of each fibertube
-        centroids.
+        centerlines.
     diameters: list,
         Diameters of the fibertubes
     streamlines: ndarray

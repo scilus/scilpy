@@ -79,9 +79,9 @@ def main():
         logging.getLogger().setLevel(logging.DEBUG)
         logging.getLogger('numba').setLevel(logging.WARNING)
 
-    if not nib.streamlines.is_supported(args.in_centroids):
+    if not nib.streamlines.is_supported(args.in_centerlines):
         parser.error('Invalid input streamline file format (must be trk ' +
-                     'or tck): {0}'.format(args.in_centroids))
+                     'or tck): {0}'.format(args.in_centerlines))
 
     if not nib.streamlines.is_supported(args.out_tractogram):
         parser.error('Invalid output streamline file format (must be trk ' +
@@ -93,7 +93,7 @@ def main():
     if args.save_seeds:
         outputs.append(out_tractogram_no_ext + '_seeds' + ext)
 
-    assert_inputs_exist(parser, [args.in_centroids, args.in_diameters])
+    assert_inputs_exist(parser, [args.in_centerlines, args.in_diameters])
     assert_outputs_exist(parser, args, outputs)
 
     algo = 'prob'
@@ -105,8 +105,8 @@ def main():
     our_space = Space.VOXMM
     our_origin = Origin('center')
 
-    logging.debug('Loading centroid tractogram & diameters')
-    in_sft = load_tractogram_with_reference(parser, args, args.in_centroids)
+    logging.debug('Loading centerline tractogram & diameters')
+    in_sft = load_tractogram_with_reference(parser, args, args.in_centerlines)
     in_sft.to_voxmm()
     in_sft.to_center()
     # Casting ArraySequence as a list to improve speed

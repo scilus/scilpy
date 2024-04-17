@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-Computes several metrics from an input centroid tractogram and a text file
+Computes several metrics from an input centerline tractogram and a text file
 containing the diameters of each fiber.
 
 Computed metrics:
@@ -19,7 +19,7 @@ Computed metrics:
         would not intersect two streamlines. (Rotated from streamline ref)
     - tmv_rotation [optional]
         4D transformation matrix representing the rotation to be applied on
-        in_centroids for the alignment of true_max_voxel with the coordinate
+        in_centerlines for the alignment of true_max_voxel with the coordinate
         system. (see scil_tractogram_apply_transform.py)
 """
 import os
@@ -46,14 +46,14 @@ def _build_arg_parser():
         description=__doc__,
         formatter_class=argparse.RawTextHelpFormatter)
 
-    p.add_argument('in_centroids',
+    p.add_argument('in_centerlines',
                    help='Path to the tractogram file containing the \n'
-                   'fibertubes\' centroids (must be .trk or .tck).')
+                   'fibertube centerlines (must be .trk or .tck).')
 
     p.add_argument('in_diameters',
                    help='Path to a text file containing a list of the \n'
                    'diameters of each fibertube in mm (.txt). Each line \n'
-                   'corresponds to the identically numbered centroid.')
+                   'corresponds to the identically numbered centerline.')
 
     p.add_argument('out_metrics',
                    help='Output file containing the computed metrics \n'
@@ -85,9 +85,9 @@ def main():
         logging.getLogger().setLevel(logging.DEBUG)
         logging.getLogger('numba').setLevel(logging.WARNING)
 
-    if not nib.streamlines.is_supported(args.in_centroids):
+    if not nib.streamlines.is_supported(args.in_centerlines):
         parser.error('Invalid input streamline file format (must be trk ' +
-                     'or tck): {0}'.format(args.in_centroids))
+                     'or tck): {0}'.format(args.in_centerlines))
 
     out_metrics_no_ext, ext = os.path.splitext(args.out_metrics)
 
@@ -95,11 +95,11 @@ def main():
     if args.save_tmv_rotation:
         outputs.append(out_metrics_no_ext + '_tmv_rotation' + ext)
 
-    assert_inputs_exist(parser, [args.in_centroids, args.in_diameters])
+    assert_inputs_exist(parser, [args.in_centerlines, args.in_diameters])
     assert_outputs_exist(parser, args, outputs)
 
-    logging.debug('Loading centroid tractogram & diameters')
-    in_sft = load_tractogram_with_reference(parser, args, args.in_centroids)
+    logging.debug('Loading centerline tractogram & diameters')
+    in_sft = load_tractogram_with_reference(parser, args, args.in_centerlines)
     in_sft.to_voxmm()
     in_sft.to_center()
     # Casting ArraySequence as a list to improve speed

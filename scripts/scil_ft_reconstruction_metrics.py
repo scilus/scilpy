@@ -60,14 +60,14 @@ def _build_arg_parser():
         description=__doc__,
         formatter_class=argparse.RawTextHelpFormatter)
 
-    p.add_argument('in_centroids',
+    p.add_argument('in_centerlines',
                    help='Path to the tractogram file containing the \n'
-                   'fibertubes\' centroids (must be .trk or .tck).')
+                   'fibertube centerlines (must be .trk or .tck).')
 
     p.add_argument('in_diameters',
                    help='Path to a text file containing a list of the \n'
                    'diameters of each fibertube in mm (.txt). Each line \n'
-                   'corresponds to the identically numbered centroid.')
+                   'corresponds to the identically numbered centerline.')
 
     p.add_argument('in_tractogram',
                    help='Path to a text file containing the ground-truth \n'
@@ -116,9 +116,9 @@ def main():
         logging.getLogger().setLevel(logging.DEBUG)
         logging.getLogger('numba').setLevel(logging.WARNING)
 
-    if not nib.streamlines.is_supported(args.in_centroids):
+    if not nib.streamlines.is_supported(args.in_centerlines):
         parser.error('Invalid input streamline file format (must be trk ' +
-                     'or tck): {0}'.format(args.in_centroids))
+                     'or tck): {0}'.format(args.in_centerlines))
 
     out_metrics_no_ext, ext = os.path.splitext(args.out_metrics)
 
@@ -126,14 +126,14 @@ def main():
         parser.error('Invalid output file format (must be txt): {0}'
                      .format(args.out_metrics))
 
-    assert_inputs_exist(parser, [args.in_centroids, args.in_diameters,
+    assert_inputs_exist(parser, [args.in_centerlines, args.in_diameters,
                                  args.in_seeds, args.in_config,
                                  args.in_tractogram])
     assert_outputs_exist(parser, args, [args.out_metrics])
 
-    logging.debug('Loading centroid tractogram & diameters')
+    logging.debug('Loading centerline tractogram & diameters')
     truth_sft = load_tractogram_with_reference(parser, args,
-                                               args.in_centroids)
+                                               args.in_centerlines)
     truth_sft.to_voxmm()
     truth_sft.to_center()
     fibers, fibers_length = get_streamlines_as_fixed_array(

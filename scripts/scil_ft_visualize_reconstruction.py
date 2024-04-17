@@ -25,14 +25,14 @@ def _build_arg_parser():
         description=__doc__,
         formatter_class=argparse.RawTextHelpFormatter)
 
-    p.add_argument('in_centroids',
+    p.add_argument('in_centerlines',
                    help='Path to the tractogram file containing the \n'
-                   'fibertubes\' centroids (must be .trk or .tck).')
+                   'fibertube centerlines (must be .trk or .tck).')
 
     p.add_argument('in_diameters',
                    help='Path to a text file containing a list of the \n'
                    'diameters of each fibertube in mm (.txt). Each line \n'
-                   'corresponds to the identically numbered centroid.')
+                   'corresponds to the identically numbered centerline.')
 
     p.add_argument('in_tractogram',
                    help='Tractogram file containing the ground truth fiber \n'
@@ -60,22 +60,22 @@ def _build_arg_parser():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
-    assert_inputs_exist(parser, [args.in_centroids, args.in_diameters,
+    assert_inputs_exist(parser, [args.in_centerlines, args.in_diameters,
                                  args.in_tractogram])
     assert_outputs_exist(parser, args, [], [args.save])
 
-    if not nib.streamlines.is_supported(args.in_centroids):
+    if not nib.streamlines.is_supported(args.in_centerlines):
         raise ValueError("Invalid input streamline file format " +
                          "(must be trk or tck): {0}".format(
-                             args.in_centroids))
+                             args.in_centerlines))
 
     if not nib.streamlines.is_supported(args.in_tractogram):
         raise ValueError("Invalid input streamline file format " +
                          "(must be trk or tck): {0}".format(
-                             args.in_centroids))
+                             args.in_centerlines))
 
-    logging.debug('Loading centroid tractogram & diameters')
-    truth_sft = load_tractogram_with_reference(parser, args, args.in_centroids)
+    logging.debug('Loading centerline tractogram & diameters')
+    truth_sft = load_tractogram_with_reference(parser, args, args.in_centerlines)
     truth_sft.to_voxmm()
     truth_sft.to_center()
     # Casting ArraySequence as a list to improve speed

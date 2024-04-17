@@ -107,7 +107,7 @@ def main():
     assert_inputs_exist(parser, args.in_tractogram)
     assert_outputs_exist(parser, args, outputs)
 
-    logging.debug('Loading centroids & diameters')
+    logging.debug('Loading tractogram & diameters')
     in_sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
     in_sft.to_voxmm()
     in_sft.to_center()
@@ -119,7 +119,7 @@ def main():
         diameters = np.full(len(fibers), diameter)
 
     if args.shuffle:
-        logging.debug('Shuffling fibers')
+        logging.debug('Shuffling streamlines')
         indexes = list(range(len(fibers)))
         gen = np.random.default_rng(args.rng_seed)
         gen.shuffle(indexes)
