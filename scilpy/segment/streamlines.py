@@ -172,17 +172,21 @@ def filter_grid_roi(sft, mask, filter_type, is_exclude, filter_distance=0,
             line_based_indices = np.union1d(line_based_indices_1,
                                             line_based_indices_2)
 
+    line_based_indices = np.asarray(line_based_indices, dtype=np.int32)
+    outliers_indices = np.setdiff1d(range(len(sft)),
+                                    np.unique(line_based_indices))
+
     # If the 'exclude' option is used, the selection is inverted
     if is_exclude:
-        line_based_indices = np.setdiff1d(range(len(sft)),
-                                          np.unique(line_based_indices))
-    line_based_indices = np.asarray(line_based_indices, dtype=np.int32)
+        tmp = line_based_indices
+        line_based_indices = outliers_indices
+        outliers_indices = tmp
 
     if return_sft:
         new_sft = sft[line_based_indices]
 
         if return_rejected_sft:
-            rejected_sft = sft[~line_based_indices]
+            rejected_sft = sft[outliers_indices]
             return line_based_indices, new_sft, rejected_sft
         return line_based_indices, new_sft
     return line_based_indices

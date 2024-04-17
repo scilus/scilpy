@@ -270,9 +270,12 @@ def main():
     step = step_dict[0]
     steps_combined = step
     step_nb = '01-'
-    logging.info("STEP 1: Filtering by length.")
+    logging.info("STEP 1: Filtering by length: {} - {} mm"
+                 .format(args.minL, args.maxL))
     sft, outliers_sft = filter_streamlines_by_length(
         sft, args.minL, args.maxL, return_rejected=True)
+    logging.info("  -> Found {} good streamlines (rejected {})"
+                 .format(len(sft), len(outliers_sft)))
     _finalize_step(args, sft, outliers_sft, step_nb, step,
                    steps_combined, in_sft_name, ext, o_dict)
     total_outliers = outliers_sft
@@ -304,6 +307,8 @@ def main():
                                            is_exclude=True,
                                            return_sft=True,
                                            return_rejected_sft=True)
+    logging.info("  -> Found {} good streamlines (rejected {})"
+                 .format(len(sft), len(outliers_sft)))
     _finalize_step(args, sft, outliers_sft, step_nb, step,
                    steps_combined, in_sft_name, ext, o_dict)
     total_outliers += outliers_sft
@@ -316,12 +321,12 @@ def main():
     step = step_dict[2]
     steps_combined += "_" + step
     step_nb = '03-'
-    logging.info("STEP 3: Filtering out streamlines ending in the WM.\n"
-                 "(i.e. not in the GM, based on labels {}-ctx_lh_fs_labels, "
-                 "{}-ctx_rh_fs_labels or {}-nuclei_fs_labels)"
-                 .format(wm_labels["ctx_lh_fs_labels"],
-                         wm_labels["ctx_rh_fs_labels"],
-                         wm_labels["nuclei_fs_labels"]))
+    logging.info("STEP 3: Filtering out streamlines ending in the WM.")
+    logging.debug("(i.e. not in the GM, based on ctx_lh_fs_labels: {}, "
+                  "ctx_rh_fs_labels: {} or nuclei_fs_labels: {})"
+                  .format(wm_labels["ctx_lh_fs_labels"],
+                          wm_labels["ctx_rh_fs_labels"],
+                          wm_labels["nuclei_fs_labels"]))
 
     # Mask creation
     ctx_fs_labels = (wm_labels["ctx_lh_fs_labels"] +
@@ -357,6 +362,8 @@ def main():
                                            is_exclude=False,
                                            return_sft=True,
                                            return_rejected_sft=True)
+    logging.info("  -> Found {} good streamlines (rejected {})"
+                 .format(len(sft), len(outliers_sft)))
     _finalize_step(args, sft, outliers_sft, step_nb, step,
                    steps_combined, in_sft_name, ext, o_dict)
     total_outliers += outliers_sft
@@ -381,6 +388,8 @@ def main():
 
     outliers_ids = np.setdiff1d(np.arange(len(sft)), ids_c)
     outliers_sft = sft[outliers_ids]
+    logging.info("  -> Found {} good streamlines (rejected {})"
+                 .format(len(sft), len(outliers_sft)))
     _finalize_step(args, sft, outliers_sft, step_nb, step, steps_combined,
                    in_sft_name, ext, o_dict)
 
