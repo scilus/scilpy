@@ -188,8 +188,6 @@ def _finish_all(args, final_sft, total_outliers, o_dict, out_sft_name,
     if args.save_rejected:
         save_tractogram(total_outliers, rejected_sft_name, args.no_empty)
 
-    exit(0)
-
 
 def _create_subdir(out_path, dir_name):
     """
@@ -281,6 +279,7 @@ def main():
     if len(sft.streamlines) == 0:
         _finish_all(args, sft, total_outliers, o_dict, out_sft_name,
                     rejected_sft_name)
+        exit(0)
 
     # STEP 2 - Filter CSF
     step = step_dict[1]
@@ -311,6 +310,7 @@ def main():
     if len(sft.streamlines) == 0:
         _finish_all(args, sft, total_outliers, o_dict, out_sft_name,
                     rejected_sft_name)
+        exit(0)
 
     # STEP 3 - Filter WM endings
     step = step_dict[2]
@@ -363,6 +363,7 @@ def main():
     if len(sft.streamlines) == 0:
         _finish_all(args, sft, total_outliers, o_dict, out_sft_name,
                     rejected_sft_name)
+        exit(0)
 
     # STEP 4 - Filter loops
     step = step_dict[3]
