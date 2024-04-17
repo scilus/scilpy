@@ -38,7 +38,7 @@ class IntersectionFinder:
     @property
     def excluded(self):
         """Streamlines that don't collide, but should be excluded for
-        other reasons. (see --tmv_size_threshold)"""
+        other reasons. (see min_distance)"""
         return self._excluded
 
     def __init__(self, in_sft: StatefulTractogram, diameters: list,
@@ -69,7 +69,7 @@ class IntersectionFinder:
         self._collided = []
         self._excluded = []
 
-    def find_intersections(self, tmv_size_threshold: float = None):
+    def find_intersections(self, min_distance: float = None):
         """
         Finds intersections within the initialized data of the object
 
@@ -84,13 +84,14 @@ class IntersectionFinder:
                 are flagged simply for visualization.
             excluded : ndarray[bool]
                 Streamlines that don't collide, but should be excluded for
-                other reasons. (see --tmv_size_threshold)
+                other reasons. (see min_distance)
 
         Parameters
         ----------
-        tmv_size_threshold: float
-            If set, will filter more aggressively so that the true_max_voxel
-            metric will be at most a given value. (see ft_fibers_metrics.py)
+        min_distance: float
+            If set, streamtubes will be filtered more aggressively so that
+            they are a certain distance apart. In other words, enforces a
+            resolution at which the data is void of partial-volume effect.
         """
         start_time = time.time()
         streamlines = self.streamlines
@@ -150,8 +151,8 @@ class IntersectionFinder:
                     collided[neighbor_si] = True
                     break
 
-                if (tmv_size_threshold is not None and
-                        external_distance < (tmv_size_threshold /
+                if (min_distance is not None and
+                        external_distance < (min_distance /
                                              (math.sqrt(2) / 2))):
                     excluded[si] = True
                     break

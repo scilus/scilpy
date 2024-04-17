@@ -87,7 +87,7 @@ def test_execution_filtering_tmv_threshold(script_runner, monkeypatch):
 
     ret = script_runner.run('scil_tractogram_filter_collisions.py',
                             in_tractogram, in_diameters, 'local_clean.trk',
-                            '--tmv_size_threshold', '0.1', '-f')
+                            '--min_distance', '0.1', '-f')
 
     assert ret.success
 
@@ -103,6 +103,6 @@ def test_execution_filtering_all_options(script_runner, monkeypatch):
                             in_tractogram, in_diameters, 'local_clean.trk',
                             '--save_colliders', '--save_collided',
                             '--shuffle', '--single_diameter',
-                            '--tmv_size_threshold', '0.1', '-f')
+                            '--min_distance', '0.1', '-f')
 
     assert ret.success
