@@ -32,7 +32,7 @@ import json
 import logging
 import os
 
-from fury import window, actor
+from fury import actor
 import nibabel as nib
 import numpy as np
 from scipy.linalg import svd

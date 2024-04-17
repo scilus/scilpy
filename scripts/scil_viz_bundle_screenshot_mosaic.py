@@ -220,7 +220,8 @@ def main():
             i = (idx_bundle + 1) * width
 
         if not os.path.isfile(bundle_file) and not args.no_information:
-            print('\nInput file {} doesn\'t exist.'.format(bundle_file))
+            logging.warning(
+                '\nInput file {} doesn\'t exist.'.format(bundle_file))
 
             number_streamlines = 0
         else:
