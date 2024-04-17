@@ -864,19 +864,20 @@ def assert_roi_radii_format(parser):
 
 def assert_headers_compatible(parser, required, optional=None, reference=None):
     """
-    Verifies the compatibility between the first item in list_files
-    and the remaining files in list.
+    Verifies the compatibility between the first item in the required argument
+    and the remaining ones, as well as with those in optional. If any .tck
+    is present, a reference must be provided.
 
     Arguments
     ---------
     parser: argument parser
         Will raise an error if a file is not compatible.
-    required: List[str]
-        List of files to test
-    optional: List[str or None]
+    required: str or List[str]
+        List of files to test, the first one is used as base for comparison.
+    optional: str or List[str or None], optional
         List of files. May contain None, they will be discarted.
-    reference: str
-        Reference for any .tck passed in `list_files`
+    reference: str, optional
+        Reference for any .tck passed.
     """
     all_valid = True
 

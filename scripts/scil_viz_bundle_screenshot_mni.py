@@ -33,7 +33,7 @@ from scipy.ndimage import map_coordinates
 
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
 from scilpy.io.utils import (add_overwrite_arg,
-                             add_verbose_arg,
+                             add_verbose_arg, assert_headers_compatible,
                              assert_inputs_exist,
                              assert_outputs_exist)
 from scilpy.image.volume_operations import register_image
@@ -87,7 +87,7 @@ def _build_arg_parser():
 
 
 def prepare_data_for_actors(bundle_filename, reference_filename,
-                            target_template_filename, rois=None):
+                            target_template_filename, rois):
     sft = load_tractogram(bundle_filename, reference_filename)
     streamlines = sft.streamlines
 
@@ -164,7 +164,9 @@ def main():
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     required = [args.in_bundle, args.in_anat]
-    assert_inputs_exist(parser, required, args.target_template)
+    optional = [args.target_template] + args.roi or []
+    assert_inputs_exist(parser, required, optional)
+    assert_headers_compatible(parser, args.in_bundle, optional, args.in_anat)
 
     output_filenames_3d = []
     output_filenames_glass = []
