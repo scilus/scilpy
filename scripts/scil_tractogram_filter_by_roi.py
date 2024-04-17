@@ -136,10 +136,11 @@ def _build_arg_parser():
                         'If set, it will overwrite the distance associated to '
                         'a specific mode/criteria.')
 
-    p.add_argument('--extract_masks_atlas_roi',
-                   help='Extract atlas roi masks. Provided value is the '
-                        'prefix, \nex: my_path/atlas_roi_. Whole filename '
-                        'will be my_path/atlas_roi_{id}.nii.gz')
+    p.add_argument('--save_masks_atlas_roi',
+                   help='If set, will save the atlas roi masks. The value to '
+                        'provide is the \nprefix, ex: my_path/atlas_roi_. '
+                        'Whole filename will be \n'
+                        'my_path/atlas_roi_{id}.nii.gz')
     p.add_argument('--no_empty', action='store_true',
                    help='Do not write file if there is no streamline.')
     p.add_argument('--display_counts', action='store_true',
@@ -331,8 +332,8 @@ def main():
 
     # Any existing atlas roi:
     other_outputs = []
-    if args.extract_masks_atlas_roi:
-        other_outputs = glob.glob(args.extract_masks_atlas_roi + '*.nii.gz')
+    if args.save_masks_atlas_roi:
+        other_outputs = glob.glob(args.save_masks_atlas_roi + '*.nii.gz')
 
     assert_inputs_exist(parser, args.in_tractogram,
                         roi_files_with_header + roi_files_no_header +
@@ -398,9 +399,9 @@ def main():
                 atlas = get_data_as_labels(img)
                 mask = merge_labels_into_mask(atlas, atlas_id)
 
-                if args.extract_masks_atlas_roi:
+                if args.save_masks_atlas_roi:
                     atlas_roi_item += 1  # Counting how many files.
-                    filename = args.extract_masks_atlas_roi + \
+                    filename = args.save_masks_atlas_roi + \
                         '{}.nii.gz'.format(atlas_roi_item)
                     img = nib.Nifti1Image(mask, img.affine)
                     img.to_filename(filename)

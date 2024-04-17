@@ -124,7 +124,7 @@ def filter_grid_roi(sft, mask, filter_type, is_exclude, filter_distance=0,
     return_sft: bool
         If true, returns a StatefulTractogram rather than the list of indices.
     return_rejected_sft: bool
-        If true, aslo returns a StatefulTractogram of the rejected streamlines.
+        If true, also returns a StatefulTractogram of the rejected streamlines.
         (Only if return_sft also true).
 
     Returns
