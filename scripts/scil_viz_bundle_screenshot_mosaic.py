@@ -85,43 +85,47 @@ def _build_arg_parser():
     return p
 
 
-def draw_column_with_names(draw, output_names, text_pos_x,
-                           text_pos_y, height, font, view_number):
+def draw_column_with_names(draw, output_names, cell_width, cell_height,
+                           font, row_count, no_bundle_name, no_elements_count):
     """
     Draw the first column with row's description
     (views and bundle information to display).
     """
+    cell_half_width = cell_width / 2.
+    cell_half_height = cell_height / 2.
+
     # Orientation's names
     for num, name in enumerate(output_names):
-        j = height * num + 50
-        i = 0
-        # Name splited in two lines
-        draw.text((i + text_pos_x, j + text_pos_y),
-                  name[:name.find('_')], font=font)
-        h = font.getbbox(' ')[3] - font.getbbox(' ')[1]
-        draw.text((i + text_pos_x, j + text_pos_y + h*1.5),
-                  name[1+name.find('_'):], font=font)
+        j = cell_height * num
+        draw.multiline_text((cell_half_width, j + cell_half_height),
+                            name.replace('_', '\n'), font=font,
+                            anchor='mm', align='center')
 
     # First column, last row: description of the information to show
-    j = height * view_number
-    i = 0
-    draw.text((i + text_pos_x, j + text_pos_y),
-              ('Bundle'), font=font)
-    h = font.getbbox(' ')[3] - font.getbbox(' ')[1]
-    draw.text((i + text_pos_x, j + text_pos_y + h*1.5),
-              ('Elements'), font=font)
+    if not (no_bundle_name and no_elements_count):
+        text = []
+        if not no_bundle_name:
+            text.append('Bundle')
+        if not no_elements_count:
+            text.append('Elements')
+
+        j = cell_height * row_count
+        padding = np.clip(cell_width // 10, 1, font.size)
+        spacing = np.clip(cell_height // 10, 1, font.size)
+        draw.multiline_text((cell_width - padding, j + cell_half_height),
+                            '\n'.join(text), font=font, anchor='rm',
+                            align='right', spacing=spacing)
 
 
-def draw_bundle_information(draw, bundle_file_name, nbr_of_elem,
-                            pos_x, pos_y, font):
+def draw_bundle_information(draw, bundle_name, nbr_of_elem, col_center,
+                            cell_height, font, view_number):
     """ Draw text with bundle information. """
-    if bundle_file_name is not None:
-        draw.text((pos_x, pos_y),
-                  (bundle_file_name), font=font)
-    if nbr_of_elem is not None:
-        h = font.getbbox(' ')[3] - font.getbbox(' ')[1]
-        draw.text((pos_x, pos_y + h*1.5),
-                  ('{}'.format(nbr_of_elem)), font=font)
+    row_center = cell_height / 2.
+    spacing = np.clip(cell_height // 10, 1, font.size)
+    draw.multiline_text((col_center, cell_height * view_number + row_center),
+                        "\n".join(filter(None, [bundle_name, nbr_of_elem])),
+                        font=font, anchor='mm', align='center',
+                        spacing=spacing)
 
 
 def set_img_in_cell(mosaic, ren, view_number, width, height, i):
@@ -166,23 +170,23 @@ def main():
         assert_output_dirs_exist_and_empty(parser, args, output_dir,
                                            create_dir=True)
 
-    _, extension = os.path.splitext(args.out_image)
-
     # ----------------------------------------------------------------------- #
     # Mosaic, column 0: orientation names and data description
     # ----------------------------------------------------------------------- #
     width = args.resolution_of_thumbnails
     height = args.resolution_of_thumbnails
+    cell_half_width = width / 2.
+
     rows = 6
     if args.light_screenshot:
         rows = 3
     cols = len(args.in_bundles)
-    text_pos_x = 50
-    text_pos_y = 50
 
     # Creates a new empty image, RGB mode
     if args.no_information:
         mosaic = Image.new('RGB', (cols * width, rows * height))
+    elif args.no_bundle_name and args.no_streamline_number:
+        mosaic = Image.new('RGB', ((cols + 1) * width, rows * height))
     else:
         mosaic = Image.new('RGB', ((cols + 1) * width, (rows + 1) * height))
 
@@ -199,8 +203,8 @@ def main():
 
     # First column with rows description
     if not args.no_information:
-        draw_column_with_names(draw, output_names, text_pos_x,
-                               text_pos_y, height, font, rows)
+        draw_column_with_names(draw, output_names, width, height, font, rows,
+                               args.no_bundle_name, args.no_streamline_number)
 
     # ----------------------------------------------------------------------- #
     # Columns with bundles
@@ -220,13 +224,6 @@ def main():
             print('\nInput file {} doesn\'t exist.'.format(bundle_file))
 
             number_streamlines = 0
-
-            view_number = rows
-            j = height * view_number
-
-            draw_bundle_information(draw, bundle_file_name, number_streamlines,
-                                    i + text_pos_x, j + text_pos_y, font)
-
         else:
             if args.uniform_coloring:
                 colors = args.uniform_coloring
@@ -241,7 +238,7 @@ def main():
                 streamlines = bundle_tractogram_file.streamlines
                 if len(streamlines):
                     bundle_actor = actor.line(streamlines, colors)
-                nbr_of_elem = len(streamlines)
+                number_streamlines = str(len(streamlines))
             # Select the volume to plot
             elif bundle_ext in ['.nii.gz', '.nii']:
                 if not args.random_coloring and not args.uniform_coloring:
@@ -251,7 +248,7 @@ def main():
                 bundle_actor = actor.contour_from_roi(roi,
                                                       bundle_img_file.affine,
                                                       colors)
-                nbr_of_elem = np.count_nonzero(roi)
+                number_streamlines = str(np.count_nonzero(roi))
 
             # Render
             ren = window.Scene()
@@ -318,17 +315,21 @@ def main():
                 view_number += 1
                 set_img_in_cell(mosaic, ren, view_number, width, height, i)
 
-            if not args.no_information:
-                view_number = rows
-                j = height * view_number
-                if args.no_bundle_name:
-                    bundle_file_name = None
-                if args.no_streamline_number:
-                    nbr_of_elem = None
+        if not args.no_information:
+            if args.no_bundle_name:
+                bundle_name = None
+            if args.no_streamline_number:
+                number_streamlines = None
+            if not (args.no_bundle_name and args.no_streamline_number):
+                draw_bundle_information(draw, bundle_name, number_streamlines,
+                                        i + cell_half_width, height,
+                                        font, rows)
 
-                draw_bundle_information(draw, bundle_file_name,
-                                        nbr_of_elem, i + text_pos_x,
-                                        j + text_pos_y, font)
+    if not args.no_information:
+        j = rows * height
+        draw.line([(width, 0), (width, j)], fill='white')
+        if not (args.no_bundle_name and args.no_streamline_number):
+            draw.line([(0, j), ((cols + 1) * width, j)], fill='white')
 
     # Save image to file
     mosaic.save(args.out_image)
