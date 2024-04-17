@@ -18,24 +18,23 @@ Different options are available to mask or threshold data:
 Be careful, you can not use all of them at the same time.
 
 For general scatter plot without mask:
->>> scil_visualize_scatterplot.py FA.nii.gz MD.nii.gz out_filename_image.png
+>>> scil_viz_volume_scatterplot.py FA.nii.gz MD.nii.gz out_filename_image.png
 
 For scatter plot with mask:
->>> scil_visualize_scatterplot.py FA.nii.gz MD.nii.gz out_filename_image.png
+>>> scil_viz_volume_scatterplot.py FA.nii.gz MD.nii.gz out_filename_image.png
     --in_bin_mask mask_wm.nii.gz
 
 For tissue probability scatter plot:
->>> scil_visualize_scatterplot.py FA.nii.gz MD.nii.gz out_filename_image.png
+>>> scil_viz_volume_scatterplot.py FA.nii.gz MD.nii.gz out_filename_image.png
     --prob_maps wm_map.nii.gz gm_map.nii.gz
 
 For scatter plot using atlas:
->>> scil_visualize_scatterplot.py FA.nii.gz MD.nii.gz out_filename_image.png
+>>> scil_viz_volume_scatterplot.py FA.nii.gz MD.nii.gz out_filename_image.png
     --in_atlas atlas.nii.gz --atlas_lut atlas.json
 
->>> scil_visualize_scatterplot.py FA.nii.gz MD.nii.gz out_filename_image.png
+>>> scil_viz_volume_scatterplot.py FA.nii.gz MD.nii.gz out_filename_image.png
     --in_atlas atlas.nii.gz --atlas_lut atlas.json
     --specific_label 34 67 87
-
 """
 
 import argparse

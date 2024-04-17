@@ -6,9 +6,8 @@ Script to display a histogram of a metric (FA, MD, etc.) from a binary mask
 (wm mask, vascular mask, ect.).
 These two images must be coregister with each other.
 
->>> scil_visualize_histogram.py metric.nii.gz mask_bin.nii.gz 8
+>>> scil_viz_volume_histogram.py metric.nii.gz mask_bin.nii.gz 8
     out_filename_image.png
-
 """
 
 import argparse
