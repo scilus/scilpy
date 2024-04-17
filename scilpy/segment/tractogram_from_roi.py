@@ -626,7 +626,7 @@ def segment_tractogram_from_roi(
             comb_filename.remove(vb_roi_pair)
         ib_sft_list, ic_ids_list, ib_names = _extract_ib_all_bundles(
             comb_filename, sft[remaining_ids], args)
-        if args.unique:
+        if args.unique and len(ic_ids_list) > 0:
             for i in range(len(ic_ids_list)):
                 # Assign actual ids
                 ic_ids_list[i] = remaining_ids[ic_ids_list[i]]
