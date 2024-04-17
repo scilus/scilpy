@@ -86,29 +86,29 @@ def add_tracking_ptt_options(p):
     track_g = p.add_argument_group('PTT options')
     track_g.add_argument('--probe_length', dest='probe_length',
                          type=float, default=1.0,
-                         help='The length of the probes. Shorter probe_length '
+                         help='The length of the probes. Shorter probe_length\n'
                               'yields more dispersed fibers. [%(default)s]')
     track_g.add_argument('--probe_radius', dest='probe_radius',
                          type=float, default=0,
-                         help='The radius of the probe. A large probe_radius '
-                              'helps mitigate noise in the pmf but it might '
-                              'make it harder to sample thin and intricate '
-                              'connections, also the boundary of fiber '
+                         help='The radius of the probe. A large probe_radius\n'
+                              'helps mitigate noise in the pmf but it might\n'
+                              'make it harder to sample thin and intricate\n'
+                              'connections, also the boundary of fiber\n'
                               'bundles might be eroded. [%(default)s]')
     track_g.add_argument('--probe_quality', dest='probe_quality',
                          type=int, default=3,
-                         help='The quality of the probe. This parameter sets '
-                              'the number of segments to split the cylinder '
+                         help='The quality of the probe. This parameter sets\n'
+                              'the number of segments to split the cylinder\n'
                               'along the length of the probe (minimum=2) '
                               '[%(default)s]')
     track_g.add_argument('--probe_count', dest='probe_count',
                          type=int, default=1,
-                         help='The number of probes. This parameter sets the '
-                              'number of parallel lines used to model the '
+                         help='The number of probes. This parameter sets the\n'
+                              'number of parallel lines used to model the\n'
                               'cylinder (minimum=1). [%(default)s]')
     track_g.add_argument('--support_exponent',
                          type=float, default=3,
-                         help='Data support exponent, used for rejection '
+                         help='Data support exponent, used for rejection\n'
                               'sampling. [%(default)s]')
 
     return track_g
