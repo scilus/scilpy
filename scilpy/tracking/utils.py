@@ -243,7 +243,7 @@ def save_tractogram(
                     # Streamlines are dumped in true world space with
                     # origin center as expected by .tck files.
                     strl = np.dot(strl, ref_img.affine[:3, :3]) + \
-                           ref_img.affine[:3, 3]
+                        ref_img.affine[:3, 3]
 
                 yield TractogramItem(strl, dps, {})
 
@@ -340,9 +340,9 @@ def get_direction_getter(in_img, algo, sphere, sub_sphere, theta, sh_basis,
             # can be set as the voxel size.
             kwargs = {'probe_length': probe_length,
                       'probe_radius': probe_radius,
-                      'probe_quality' : probe_quality,
-                      'probe_count' : probe_count,
-                      'data_support_exponent' : support_exponent}
+                      'probe_quality': probe_quality,
+                      'probe_count': probe_count,
+                      'data_support_exponent': support_exponent}
         elif algo == 'det':
             dg_class = DeterministicMaximumDirectionGetter
         else:
