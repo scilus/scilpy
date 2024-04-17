@@ -11,7 +11,7 @@ from scilpy.io.fetcher import fetch_data, get_testing_files_dict
 fetch_data(get_testing_files_dict(), keys=['filtering.zip'])
 tmp_dir = tempfile.TemporaryDirectory()
 
-# toDo. Add an altas and test option --atlas_roi
+# toDo. Add an atlas and test option --atlas_roi
 in_tractogram = os.path.join(SCILPY_HOME, 'filtering',
                              'bundle_all_1mm_inliers.trk')
 in_roi = os.path.join(SCILPY_HOME, 'filtering', 'mask.nii.gz')

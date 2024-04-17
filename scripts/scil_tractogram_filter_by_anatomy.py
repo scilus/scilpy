@@ -50,6 +50,10 @@ Example usages:
     path/to/output/directory --csf_bin csf_bin.nii.gz --ctx_dilation_radius 2
 
 Formerly: scil_filter_streamlines_anatomically.py
+
+NOTE: As of version 2.0.0, the dilation of the cortical mask has changed; from
+an in-house process to scipy's dilation. Results may differ from previous
+versions.
 """
 
 import argparse
