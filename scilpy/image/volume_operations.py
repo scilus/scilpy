@@ -688,36 +688,3 @@ def merge_metrics(*arrays, beta=1.0):
     boosted_mean = geometric_mean ** beta
 
     return ma.filled(boosted_mean, fill_value=np.nan)
-
-
-def dilate_mask(mask, mask_shape, vox_size, radius):
-    """
-    Dilate the foreground in a binary mask according to a radius (in mm)
-
-    toDo: in scil_volume_math, the DILATION option calls binary_dilation from
-     scipy.ndimage. Couldn't we use the same??
-    """
-    is_to_dilate = mask == 1
-    is_background = mask == 0
-
-    # Get the list of indices
-    background_pos = np.argwhere(is_background) * vox_size
-    label_pos = np.argwhere(is_to_dilate) * vox_size
-    ckd_tree = cKDTree(label_pos)
-
-    # Compute the nearest labels for each voxel of the background
-    dist, indices = ckd_tree.query(
-        background_pos, k=1, distance_upper_bound=radius,
-        workers=-1)
-
-    # Associate indices to the nearest label (in distance)
-    valid_nearest = np.squeeze(np.isfinite(dist))
-    id_background = np.flatnonzero(is_background)[valid_nearest]
-    id_label = np.flatnonzero(is_to_dilate)[indices[valid_nearest]]
-
-    # Change values of those background
-    mask = mask.flatten()
-    mask[id_background.T] = mask[id_label.T]
-    mask = mask.reshape(mask_shape)
-
-    return mask
