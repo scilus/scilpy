@@ -140,7 +140,6 @@ def project_map_to_streamlines(sft, map_volume, endpoints_only=False):
     else:
         dimension = 1
 
-    # toDo: double loop. Could be faster?
     streamline_data = []
     if endpoints_only:
         for s in sft.streamlines:
@@ -161,6 +160,7 @@ def project_map_to_streamlines(sft, map_volume, endpoints_only=False):
                 np.reshape(thisstreamline_data,
                            (len(thisstreamline_data), dimension)))
     else:
+        # toDo: there is a double loop. Could be faster?
         for s in sft.streamlines:
             thisstreamline_data = []
             for p in s:
@@ -333,7 +333,7 @@ def perform_correlation_on_endpoints(sft, dpp_name='metric'):
 
     Returns
     -------
-    new_dpp: List
+    new_data_per_streamline: List
         The correlation values that could now be associated to a new
         data_per_streamline key.
     """
