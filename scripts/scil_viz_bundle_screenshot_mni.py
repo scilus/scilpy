@@ -188,8 +188,8 @@ def main():
     assert_outputs_exist(parser, args,
                          output_filenames_3d + output_filenames_glass)
 
+    roi_list_uniform = []
     if args.roi is not None:
-        roi_list_uniform = []
         for roi in args.roi:
             if len(roi) not in [1, 4, 5]:
                 parser.error('--roi must be used either with PATH or with '
