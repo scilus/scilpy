@@ -8,7 +8,7 @@ from scilpy.tractograms.dps_and_dpp_management import (
     add_data_as_color_dpp, convert_dps_to_dpp, project_map_to_streamlines,
     project_dpp_to_map, perform_operation_on_dpp, perform_operation_dpp_to_dps,
     perform_correlation_on_endpoints)
-from scilpy.viz.utils import get_colormap
+from scilpy.viz.color import get_lookup_table
 
 
 def _get_small_sft():
@@ -39,11 +39,11 @@ def nan_array_equal(a, b):
 
 
 def test_add_data_as_color_dpp():
-    cmap = get_colormap('viridis')
+    lut = get_lookup_table('viridis')
 
     # Important. cmap(1) != cmap(1.0)
-    lowest_color = np.asarray(cmap(0.0)[0:3]) * 255
-    highest_color = np.asarray(cmap(1.0)[0:3]) * 255
+    lowest_color = np.asarray(lut(0.0)[0:3]) * 255
+    highest_color = np.asarray(lut(1.0)[0:3]) * 255
 
     fake_sft = _get_small_sft()
 
@@ -53,7 +53,7 @@ def test_add_data_as_color_dpp():
     # Lowest cmap color should be first point of second streamline.
     some_data = [[2, 20, 200], [0.1, 0.3, 22, 5]]
     colored_sft, lbound, ubound = add_data_as_color_dpp(
-        fake_sft, cmap, some_data)
+        fake_sft, lut, some_data)
     assert len(colored_sft.data_per_streamline.keys()) == 0
     assert list(colored_sft.data_per_point.keys()) == ['color']
     assert lbound == 0.1
@@ -67,7 +67,7 @@ def test_add_data_as_color_dpp():
     # Lowest cmap color should be every point in first streamline
     some_data = np.asarray([4, 5])
     colored_sft, lbound, ubound = add_data_as_color_dpp(
-        fake_sft, cmap, some_data)
+        fake_sft, lut, some_data)
     assert len(colored_sft.data_per_streamline.keys()) == 0
     assert list(colored_sft.data_per_point.keys()) == ['color']
     assert lbound == 4
