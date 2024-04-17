@@ -11,8 +11,8 @@ The filtering is deterministic and follows this approach:
     - Iterate over its segments
         - If current segment collides with any other streamline segment given
           their diameters
-            - Deem current streamline as a "collider" and filter it out
-            - Deem other streamline as a "collided" and keep it
+            - Deem current streamline a "collider" and filter it out
+            - Deem other streamline a "collided" and keep it
     - Repeat
 
 This means that the order of the streamlines within the tractogram will have
