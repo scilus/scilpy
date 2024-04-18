@@ -76,11 +76,14 @@ def main():
     seed_map_affine = seed_map_img.affine
 
     # Load seed density as labels
-    values = np.delete(np.unique(seed_map_data), 0)
+    values = np.unique(seed_map_data)
 
     # Create colormap based on labels
     lut = lut_from_matplotlib_name(args.colormap, [values.min(), values.max()],
                                    len(values))
+
+    # Delete 0 from values
+    values = np.delete(values, 0)
 
     colors = np.zeros((len(values), 4))
     for i, v in enumerate(values):
@@ -89,7 +92,7 @@ def main():
 
     scene = window.Scene()
     scene.background(tuple(map(int, args.background)))
-
+    print(colors)
     seedroi_actor = actor.contour_from_label(
         seed_map_data, seed_map_affine, color=colors)
     scene.add(seedroi_actor)
