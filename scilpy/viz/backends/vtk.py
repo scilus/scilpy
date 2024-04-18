@@ -49,6 +49,8 @@ def lut_from_colors(colors, value_range):
     """
     lut = vtk.vtkLookupTable()
     lut.SetNumberOfColors(len(colors))
+    lut.SetTableRange(*value_range)
+    lut.Build()
 
     _cl = vtk.vtkUnsignedCharArray()
     _cl.SetNumberOfComponents(len(colors[0]))
@@ -57,8 +59,6 @@ def lut_from_colors(colors, value_range):
         _cl.SetTuple(i, _v)
 
     lut.SetTable(_cl)
-    lut.SetTableRange(*value_range)
-    lut.Build()
 
     return lut
 

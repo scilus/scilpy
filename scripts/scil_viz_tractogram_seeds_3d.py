@@ -19,6 +19,7 @@ from fury import window, actor
 from scilpy.io.utils import (assert_inputs_exist,
                              add_verbose_arg,
                              parser_color_type)
+from scilpy.viz.color import lut_from_matplotlib_name
 
 
 streamline_actor = {'tube': actor.streamtube,
@@ -76,18 +77,21 @@ def main():
 
     # Load seed density as labels
     values = np.delete(np.unique(seed_map_data), 0)
+
     # Create colormap based on labels
-    cmap = actor.create_colormap(values, name=args.colormap, auto=False)
-    # Append opacity to colormap
-    cmap = np.concatenate(
-        (cmap, np.full((cmap.shape[0], 1), args.seed_opacity)),
-        axis=-1)
+    lut = lut_from_matplotlib_name(args.colormap, [values.min(), values.max()],
+                                   len(values))
+
+    colors = np.zeros((len(values), 4))
+    for i, v in enumerate(values):
+        lut.GetColor(v, colors[i, :3])
+        colors[i, 3] = lut.GetOpacity(v)
 
     scene = window.Scene()
     scene.background(tuple(map(int, args.background)))
 
     seedroi_actor = actor.contour_from_label(
-        seed_map_data, seed_map_affine, color=cmap)
+        seed_map_data, seed_map_affine, color=colors)
     scene.add(seedroi_actor)
 
     # Load tractogram as tubes or lines, with color if specified
