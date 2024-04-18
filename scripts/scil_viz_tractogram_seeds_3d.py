@@ -92,7 +92,7 @@ def main():
 
     scene = window.Scene()
     scene.background(tuple(map(int, args.background)))
-    print(colors)
+
     seedroi_actor = actor.contour_from_label(
         seed_map_data, seed_map_affine, color=colors)
     scene.add(seedroi_actor)
