@@ -13,7 +13,7 @@ Please change your existing pipelines accordingly.
 
 
 @deprecate_script("scil_convert_gradients_fsl_to_mrtrix.py",
-                  DEPRECATION_MSG, '2.1.0')
+                  DEPRECATION_MSG, '2.0.0')
 def main():
     new_main()
 

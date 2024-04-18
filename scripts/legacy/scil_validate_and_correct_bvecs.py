@@ -12,7 +12,7 @@ Please change your existing pipelines accordingly.
 
 
 @deprecate_script("scil_validate_and_correct_bvecs.py", DEPRECATION_MSG,
-                  '2.1.0')
+                  '2.0.0')
 def main():
     new_main()
 

@@ -14,7 +14,7 @@ Please change your existing pipelines accordingly.
 
 
 @deprecate_script("scil_print_connectivity_filenames.py",
-                  DEPRECATION_MSG, '2.1.0')
+                  DEPRECATION_MSG, '2.0.0')
 def main():
     new_main()
 

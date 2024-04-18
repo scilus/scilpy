@@ -12,7 +12,7 @@ have changed, too.
 """
 
 
-@deprecate_script("scil_flip_gradients.py", DEPRECATION_MSG, '2.1.0')
+@deprecate_script("scil_flip_gradients.py", DEPRECATION_MSG, '2.0.0')
 def main():
     new_main()
 

@@ -13,7 +13,7 @@ your existing pipelines accordingly.
 
 
 @deprecate_script("scil_remove_invalid_streamlines.py", DEPRECATION_MSG,
-                  '2.1.0')
+                  '2.0.0')
 def main():
     new_main()
 
