@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 """
-Utility operations provided for scil_image_math.py
+Utility operations provided for scil_volume_math.py
 and scil_connectivity_math.py
 
 They basically act as wrappers around numpy to avoid installing MRtrix/FSL
