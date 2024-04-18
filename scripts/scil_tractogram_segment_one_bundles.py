@@ -34,7 +34,7 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist,
                              assert_outputs_exist,
                              load_matrix_in_any_format)
-from scilpy.utils.util import compute_distance_barycenters
+from scilpy.utils.spatial import compute_distance_barycenters
 
 EPILOG = """
 Garyfallidis, E., Cote, M. A., Rheault, F., ... &

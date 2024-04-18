@@ -19,7 +19,7 @@ from scipy.ndimage import (binary_closing, binary_dilation,
                            gaussian_filter)
 from skimage.filters import threshold_otsu
 
-from scilpy.utils.util import is_float
+from scilpy.utils import is_float
 
 
 EPSILON = np.finfo(float).eps

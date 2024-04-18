@@ -32,21 +32,27 @@ import json
 import logging
 import os
 
-from fury import window, actor
+from fury import actor
 import nibabel as nib
 import numpy as np
 from scipy.linalg import svd
 from scipy.ndimage import map_coordinates, gaussian_filter
 
 from scilpy.io.streamlines import load_tractogram_with_reference
-from scilpy.io.utils import (add_overwrite_arg, add_reference_arg,
-                             add_json_args, add_verbose_arg,
+from scilpy.io.utils import (add_json_args,
+                             add_overwrite_arg,
+                             add_reference_arg,
+                             add_verbose_arg,
+                             assert_headers_compatible,
                              assert_inputs_exist,
                              assert_output_dirs_exist_and_empty,
-                             parser_color_type, snapshot,
-                             assert_headers_compatible)
-from scilpy.viz.scene_utils import create_tube_with_radii
-from scilpy.viz.utils import get_colormap
+                             parser_color_type)
+from scilpy.viz.backends.fury import (create_interactive_window,
+                                      create_scene,
+                                      snapshot_scenes)
+from scilpy.viz.backends.vtk import create_tube_with_radii
+from scilpy.viz.color import get_lookup_table
+from scilpy.viz.screenshot import compose_image
 
 
 def _build_arg_parser():
@@ -78,6 +84,9 @@ def _build_arg_parser():
     p2.add_argument('--opacity', type=float, default=0.2,
                     help='Opacity for the streamlines rendered with the tube.'
                     '\n[Default: %(default)s]')
+    p2.add_argument("--win_dims", nargs=2, metavar=("WIDTH", "HEIGHT"),
+                    default=(1920, 1080), type=int,
+                    help="The dimensions for the vtk window. [%(default)s]")
     p2.add_argument('--background', metavar=('R', 'G', 'B'), nargs=3,
                     default=[1, 1, 1], type=parser_color_type,
                     help='RBG values [0, 255] of the color of the background.'
@@ -201,6 +210,14 @@ def fit_circle_in_space(positions, directions, dist_w=None):
     return center, radius, error
 
 
+def snapshot(scene, win_dims, output_filename):
+    # Legacy. When this snapshotting gets updated to align with the
+    # viz module, snapshot_scenes should be called directly
+    snapshot = next(snapshot_scenes([scene], win_dims))
+    img = compose_image(snapshot, win_dims, "NONE")
+    img.save(output_filename)
+
+
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
@@ -221,8 +238,8 @@ def main():
 
     stats = {}
     num_digits_labels = 3
-    scene = window.Scene()
-    scene.background(tuple(map(int, args.background)))
+    actor_list = []
+    spatial_shape = nib.load(args.in_labels[0]).shape[:3]
     for i, filename in enumerate(args.in_bundles):
         sft = load_tractogram_with_reference(parser, args, filename)
         sft.to_vox()
@@ -286,58 +303,64 @@ def main():
 
         if args.show_rendering or args.save_rendering:
             tube_actor = create_tube_with_radii(
-                            centroid_smooth, radius, error,
-                            wireframe=args.wireframe,
-                            error_coloring=args.error_coloring)
-            scene.add(tube_actor)
-            cmap = get_colormap('jet')
+                centroid_smooth, radius, error,
+                wireframe=args.wireframe,
+                error_coloring=args.error_coloring)
+            actor_list.append(tube_actor)
+            # TODO : move streamline actor to fury backend
+            cmap = get_lookup_table('jet')
             coloring = cmap(pts_labels / np.max(pts_labels))[:, 0:3]
             streamlines_actor = actor.streamtube(sft.streamlines,
                                                  linewidth=args.width,
                                                  opacity=args.opacity,
                                                  colors=coloring)
-            scene.add(streamlines_actor)
+            actor_list.append(streamlines_actor)
 
             slice_actor = actor.slicer(data_labels, np.eye(4))
             slice_actor.opacity(0.0)
-            scene.add(slice_actor)
+            actor_list.append(slice_actor)
+
+    scene = create_scene(actor_list, "axial",
+                         spatial_shape[2] // 2, spatial_shape,
+                         args.win_dims[0] / args.win_dims[1],
+                         bg_color=tuple(map(int, args.background)))
 
     # If there's actually streamlines to display
     if args.show_rendering:
-        showm = window.ShowManager(scene, reset_camera=True)
-        showm.initialize()
-        showm.start()
+        create_interactive_window(scene, args.win_dims, "image")
     elif args.save_rendering:
+        # TODO : transform screenshotting to abide with viz module
         scene.reset_camera()
-        snapshot(scene, os.path.join(args.save_rendering, 'superior.png'),
-                 size=(1920, 1080), offscreen=True)
+        snapshot(scene, args.win_dims,
+                 os.path.join(args.save_rendering, 'superior.png'))
 
         scene.pitch(180)
         scene.reset_camera()
-        snapshot(scene, os.path.join(args.save_rendering, 'inferior.png'),
-                 size=(1920, 1080), offscreen=True)
+        snapshot(scene, args.win_dims,
+                 os.path.join(args.save_rendering, 'inferior.png'))
 
         scene.pitch(90)
         scene.set_camera(view_up=(0, 0, 1))
         scene.reset_camera()
-        snapshot(scene, os.path.join(args.save_rendering, 'posterior.png'),
-                 size=(1920, 1080), offscreen=True)
+        snapshot(scene, args.win_dims,
+                 os.path.join(args.save_rendering, 'posterior.png'))
 
         scene.pitch(180)
         scene.set_camera(view_up=(0, 0, 1))
         scene.reset_camera()
-        snapshot(scene, os.path.join(args.save_rendering, 'anterior.png'),
-                 size=(1920, 1080), offscreen=True)
+        snapshot(scene, args.win_dims,
+                 os.path.join(args.save_rendering, 'anterior.png'))
 
         scene.yaw(90)
         scene.reset_camera()
-        snapshot(scene, os.path.join(args.save_rendering, 'right.png'),
-                 size=(1920, 1080), offscreen=True)
+        snapshot(scene, args.win_dims,
+                 os.path.join(args.save_rendering, 'right.png'))
 
         scene.yaw(180)
         scene.reset_camera()
-        snapshot(scene, os.path.join(args.save_rendering, 'left.png'),
-                 size=(1920, 1080), offscreen=True)
+        snapshot(scene, args.win_dims,
+                 os.path.join(args.save_rendering, 'left.png'))
+
     print(json.dumps(stats, indent=args.indent, sort_keys=args.sort_keys))
 
 

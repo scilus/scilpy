@@ -8,11 +8,11 @@ import scipy.ndimage as ndi
 from dipy.io.stateful_tractogram import StatefulTractogram
 from dipy.segment.clustering import qbx_and_merge
 from dipy.tracking import metrics as tm
-from dipy.tracking.streamlinespeed import (length, set_number_of_points,
-                                           compress_streamlines)
+from dipy.tracking.streamlinespeed import (compress_streamlines,
+                                           length,
+                                           set_number_of_points)
 from scipy.interpolate import splev, splprep
-
-from scilpy.utils.util import rotation_around_vector_matrix
+from scipy.spatial.transform import Rotation
 
 
 def _get_streamline_pt_index(points_to_index, vox_index, from_start=True):
@@ -727,7 +727,7 @@ def parallel_transport_streamline(streamline, nb_streamlines, radius,
     V[0] = np.roll(streamline[0] - streamline[1], 1)
     V[0] = V[0] / np.linalg.norm(V[0])
     # For each point
-    for i in range(0, T.shape[0]-1):
+    for i in range(0, T.shape[0] - 1):
         # Compute the torsion vector
         B = np.cross(T[i], T[i+1])
         # If the torsion vector is 0, the normal vector does not change
@@ -740,7 +740,8 @@ def parallel_transport_streamline(streamline, nb_streamlines, radius,
             theta = np.arccos(np.dot(T[i], T[i+1]))
             # Rotate the vector V[i] around the vector B by theta
             # radians.
-            V[i+1] = np.dot(rotation_around_vector_matrix(B, theta), V[i])
+            rotation = Rotation.from_rotvec(B * theta).as_matrix()
+            V[i+1] = np.dot(rotation, V[i])
 
     # Compute the binormal vector at each point
     W = np.cross(T, V, axis=1)
