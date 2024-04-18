@@ -27,7 +27,7 @@ def test_execution_bundles(script_runner, monkeypatch):
                           'affine.txt')
     in_ref = os.path.join(SCILPY_HOME, 'bundles',
                           'bundle_all_1mm.nii.gz')
-    ret = script_runner.run('scil_tractogram_segment_one_bundles.py',
+    ret = script_runner.run('scil_tractogram_segment_one_bundle.py',
                             in_tractogram, in_model, in_aff,
                             'bundle_0_reco.tck', '--inverse',
                             '--tractogram_clustering_thr', '12',
