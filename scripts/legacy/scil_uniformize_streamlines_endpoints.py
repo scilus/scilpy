@@ -12,7 +12,7 @@ change your existing pipelines accordingly.
 
 
 @deprecate_script("scil_uniformize_streamlines_endpoints.py", DEPRECATION_MSG,
-                  '1.7.0')
+                  '2.1.0')
 def main():
     new_main()
 

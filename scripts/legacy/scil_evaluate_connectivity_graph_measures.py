@@ -14,7 +14,7 @@ Please change your existing pipelines accordingly.
 
 
 @deprecate_script("scil_evaluate_connectivity_graph_measures.py",
-                  DEPRECATION_MSG, '1.7.0')
+                  DEPRECATION_MSG, '2.1.0')
 def main():
     new_main()
 

@@ -11,7 +11,7 @@ Please change your existing pipelines accordingly.
 """
 
 
-@deprecate_script("scil_compute_rish_from_sh.py", DEPRECATION_MSG, '1.7.0')
+@deprecate_script("scil_compute_rish_from_sh.py", DEPRECATION_MSG, '2.1.0')
 def main():
     new_main()
 
