@@ -119,12 +119,13 @@ def main():
         noise_map = nib.load(args.noise_map)
         noise_mask = None
 
+    automatic_mask_discovery = noise_mask is None and noise_map is None
     values, noise_mask = compute_snr(dwi, bvals, bvecs, args.b0_thr,
                                      mask, noise_mask=noise_mask,
                                      noise_map=noise_map,
                                      split_shells=args.split_shells)
 
-    if noise_mask is None and noise_map is None:
+    if automatic_mask_discovery:
         filename = basename + '_noise_mask.nii.gz'
         logging.info("Saving computed noise mask as {}".format(filename))
         nib.save(nib.Nifti1Image(noise_mask, dwi.affine), filename)

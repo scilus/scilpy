@@ -136,8 +136,8 @@ def apply_transform(transfo, reference, moving,
         If True, keeps the data_type of the input moving image when saving
         the output image
 
-    Return
-    ------
+    Returns
+    -------
     moved_im: nib.Nifti1Image
         The warped moving image.
     """
@@ -195,8 +195,8 @@ def transform_dwi(reg_obj, static, dwi, interpolation='linear'):
         the type of interpolation to be used, either 'linear'
         (for k-linear interpolation) or 'nearest' for nearest neighbor
 
-    Return
-    ------
+    Returns
+    -------
     trans_dwi: nib.Nifti1Image
         The warped 4D volume.
     """
@@ -304,7 +304,17 @@ def register_image(static, static_grid2world, moving, moving_grid2world,
 def compute_snr(dwi, bval, bvec, b0_thr, mask, noise_mask=None, noise_map=None,
                 split_shells=False):
     """
-    Computes the SNR. Saves
+    Computes the SNR. One SNR per DWI volume is computed, with
+                     SNR = mean(data) / std(noise)
+    Where
+    - mean is the mean of all DWI voxels inside your given mask.
+    - std is the standard deviatation of the noise. For instance, you could
+      want to use std of the background. Here, we use:
+         - noise_map[mask] if noise_map is provided
+         - data[noise_mask] if noise_mask is provided
+         - data[automatic_mask] if neither are provided: we will try to
+         discover a noise_mask automatically in the background (from the upper
+         half, to avoid using neck and shoulder).
 
     Parameters
     ----------
@@ -319,9 +329,8 @@ def compute_snr(dwi, bval, bvec, b0_thr, mask, noise_mask=None, noise_map=None,
     mask: nib.Nifti1Image
         Mask file in nibabel format.
     noise_mask: nib.Nifti1Image, optional
-        Noise mask file in nibabel format. If none of noise_mask and noise_map
-        are given, we will try to discover a noise_mask automatically in the
-        background (from the upper half, to avoid using neck and shoulder).
+        Noise mask file in nibabel format. Only one of noise_mask or noise_map
+        may be used.
     noise_map: nib.Nifti1Image, optional
         Noise map file in nibabel format. Only one of noise_mask or noise_map
         may be used.
@@ -329,8 +338,8 @@ def compute_snr(dwi, bval, bvec, b0_thr, mask, noise_mask=None, noise_map=None,
         If true, we will only work with one b-value per shell (the discovered
         centroids).
 
-    Return
-    ------
+    Returns
+    -------
     val: dict
         Dictionary of values (bvec, bval, mean, std, snr) for all volumes.
     noise_mask: np.ndarray or None
@@ -387,10 +396,9 @@ def compute_snr(dwi, bval, bvec, b0_thr, mask, noise_mask=None, noise_map=None,
     # Val = np array (mean_signal, std_noise)
     val = {0: {'bvec': [0, 0, 0], 'bval': 0, 'mean': 0, 'std': 0}}
     for idx in range(data.shape[-1]):
-        val[idx] = {}
-        val[idx]['bvec'] = bvec[idx]
-        val[idx]['bval'] = bval[idx]
-        val[idx]['mean'] = np.mean(data[..., idx][mask > 0])
+        val[idx] = {'bvec': bvec[idx],
+                    'bval': bval[idx],
+                    'mean': np.mean(data[..., idx][mask > 0])}
         if noise_map:
             val[idx]['std'] = np.std(data_noisemap[mask > 0])
         else:
