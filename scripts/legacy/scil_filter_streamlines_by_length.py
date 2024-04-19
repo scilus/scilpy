@@ -12,7 +12,7 @@ your existing pipelines accordingly.
 
 
 @deprecate_script("scil_filter_streamlines_by_length.py", DEPRECATION_MSG,
-                  '1.7.0')
+                  '2.0.0')
 def main():
     new_main()
 
