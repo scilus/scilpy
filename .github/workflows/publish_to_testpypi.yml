@@ -42,7 +42,7 @@ jobs:
         with:
           package-dir: ${{ steps.workspace.outputs.path }}/scilpy
           output-dir: ${{ steps.workspace.outputs.path }}/sdist
-          config-file: ${{ steps.workspace.outputs.path }}/scilpypi/cibuildwheel.toml
+          config-file: ${{ steps.workspace.outputs.path }}/scilpy/cibuildwheel.toml
         env:
           CIBW_ARCHS_LINUX: auto64
           CIBW_SKIP: "*-musllinux* pp* *-win* *-win32* *aarch64"
