@@ -64,9 +64,9 @@ jobs:
             ${{ steps.workspace.outputs.path }}/sdist/*.tar.gz
             ${{ steps.workspace.outputs.path }}/sdist/*.whl
       
-    - name: Publish package distributions to PyPI
-      uses: pypa/gh-action-pypi-publish@release/v1
-      with:
-        password: ${{ secrets.TESTPYPI_PASSWORD }}
-        repository-url: https://test.pypi.org/scilpy/
-        packages-dir: ${{ steps.workspace.outputs.path }}/sdist/
+      - name: Publish package distributions to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          password: ${{ secrets.TESTPYPI_PASSWORD }}
+          repository-url: https://test.pypi.org/scilpy/
+          packages-dir: ${{ steps.workspace.outputs.path }}/sdist/
