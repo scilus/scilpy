@@ -11,7 +11,7 @@ build-frontend = "build"
 # We build for all those python versions, plus extras
 # (see below for skipped implementations)
 # TODO: add back *311-* when we pass to h5py >=3.8
-build = "*38-* *39-* *310-*"
+build = "*39-* *310-* *311-*"
 
 # By default, we skip :
 #  - All Pypa builds, since we have C extensions (not fully supported)
