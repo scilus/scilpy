@@ -13,7 +13,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_tractogram_segment_one_bundles.py', '--help')
+    ret = script_runner.run('scil_tractogram_segment_one_bundle.py', '--help')
     assert ret.success
 
 
