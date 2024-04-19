@@ -16,7 +16,7 @@ class IntersectionFinder:
     a diameter for each streamline.
     """
 
-    FLOAT_EPSILON = 0.0000001
+    FLOAT_EPSILON = 1e-7
 
     @property
     def colliders(self):
