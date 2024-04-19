@@ -27,7 +27,7 @@ jobs:
 
       - name: Fetch python version from repository
         id: python-selector
-        run: echo "python-version=$(cat .python-version)" >> $GITHUB_OUTPUT
+        run: echo "python-version=$(head -1 .python-version)" >> $GITHUB_OUTPUT
 
       - name: Set up Python for Scilpy
         uses: actions/setup-python@v5.0.0
