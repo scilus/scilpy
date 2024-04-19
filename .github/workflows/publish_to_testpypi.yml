@@ -68,5 +68,5 @@ jobs:
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           password: ${{ secrets.TESTPYPI_PASSWORD }}
-          repository-url: https://test.pypi.org/p/scilpy
+          repository-url: https://test.pypi.org/p/scilpy/
           packages-dir: ${{ steps.workspace.outputs.path }}/sdist/
