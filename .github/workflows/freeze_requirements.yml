@@ -9,24 +9,27 @@ jobs:
   freeze_requirements:
     runs-on: scilus-runners
     steps:
-      - 
-        name: Checkout scilpy
+      - name: Checkout scilpy
         uses: actions/checkout@v3
-      -
-        name: Install python
-        uses: actions/setup-python@v4
+
+      - name: Fetch python version from repository
+        id: python-selector
+        run: echo "python-version=$(head -1 .python-version)" >> $GITHUB_OUTPUT
+
+      - name: Set up Python for Scilpy
+        uses: actions/setup-python@v5.0.0
         with:
-          python-version-file: '.python-version'
+          python-version: ${{ steps.python-selector.outputs.python-version }}
           cache: 'pip'
-      -
-        name: Freeze requirements
+      
+      - name: Freeze requirements
         id: requirements-freezer
         run: |
           pip install pip-tools
           pip-compile --no-upgrade --allow-unsafe -o requirements.${{ github.ref_name }}.frozen
           echo "requirements=$PWD/requirements.${{ github.ref_name }}.frozen" >> $GITHUB_OUTPUT
-      -
-        name: Upload frozen requirements to release
+      
+      - name: Upload frozen requirements to release
         uses: softprops/action-gh-release@v1
         with:
           files : ${{ steps.requirements-freezer.outputs.requirements }}

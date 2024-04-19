@@ -60,10 +60,6 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         with:
           tag_name: ${{ github.ref_name }}
-          body: |
-            # Wheels and Source Distribution for Scilpy ${{ github.ref_name }}.
-
-            ${{ steps.scilpy-release-info.outputs.body }}
           files: |
             ${{ steps.workspace.outputs.path }}/sdist/*.tar.gz
             ${{ steps.workspace.outputs.path }}/sdist/*.whl
