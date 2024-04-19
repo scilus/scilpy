@@ -1,9 +1,8 @@
 name : Freeze release requirements
 
 on: 
-  push:
-    tags:
-      - '*'
+  release:
+    types: [published]
 
 jobs:
   freeze_requirements:
