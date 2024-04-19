@@ -3,7 +3,7 @@ name: Build
 on:
   release:
     types: [published]
-
+  
 jobs:
   build_wheels:
     permissions:
@@ -26,11 +26,6 @@ jobs:
           repository: scilus/scilpy
           ref: ${{ github.ref_name }}
           path: ${{ steps.workspace.outputs.path }}/scilpy
-
-      - name: Checkout Scilpypi
-        uses: actions/checkout@v4
-        with:
-          path: ${{ steps.workspace.outputs.path }}/scilpypi
 
       - name: Create source distribution for Scilpy
         run: pipx run build --sdist --outdir ${{ steps.workspace.outputs.path }}/sdist ${{ steps.workspace.outputs.path }}/scilpy
@@ -58,16 +53,6 @@ jobs:
           path: |
             ${{ steps.workspace.outputs.path }}/sdist/*.whl
             ${{ steps.workspace.outputs.path }}/sdist/*.tar.gz
-
-      - name: Get release information from Scilpy release
-        id: scilpy-release-info
-        uses: cardinalby/git-get-release-action@v1
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-        with:
-          repo: scilus/scilpy
-          tag: ${{ github.ref_name }}
-          doNotFailIfNotFound: true
 
       - name: Add wheels and sdist to release
         uses: softprops/action-gh-release@v1
