@@ -142,10 +142,11 @@ def compute_msmt_frf(data, bvals, bvecs, btens=None, data_dti=None,
                      fa_thr_wm=0.7, fa_thr_gm=0.2, fa_thr_csf=0.1,
                      md_thr_gm=0.0007, md_thr_csf=0.003, min_nvox=300,
                      roi_radii=10, roi_center=None, tol=20):
-    """Compute a multi-shell, multi-tissue single Fiber
-    Response Function from a DWI volume.
-    A DTI fit is made, and voxels containing a single fiber population are
-    found using a threshold on the FA and MD.
+    """
+    Computes a multi-shell, multi-tissue single Fiber Response Function from a
+    DWI volume. A DTI fit is made, and voxels containing a single fiber
+    population are found using a threshold on the FA and MD, inside a mask of
+    each tissue type.
 
     Parameters
     ----------
@@ -307,26 +308,36 @@ def compute_msmt_frf(data, bvals, bvecs, btens=None, data_dti=None,
     return responses, frf_masks
 
 
-def replace_frf(old_frf, new_frf, no_factor):
+def replace_frf(old_frf, new_frf, no_factor=False):
     """
-    Replace old_frf with new_frf
+    Replaces the 3 first values of old_frf with new_frf. Formats the new_frf
+    from a string value and verifies that the number of shells corresponds.
 
     Parameters
     ----------
     old_frf: np.ndarray
-        A loaded frf file, of shape (n, 4).
-    new_frf: tuple
-        The new frf, to be interpreted with a 10**-4 factor. Ex: (15,4,4)
+        A loaded frf file, of shape (N, 4), where N is the number of shells.
+    new_frf: str
+        The new frf, to be interpreted with a 10**-4 factor. Ex: 15,4,4. With
+        multishell: all values, concatenated into one string.
+        Ex: 15,4,4,13,5,5,12,5,5.
     no_factor: bool
         If true, the fiber response function is evaluated without the
         10**-4 factor.
-    """
-    old_frf = old_frf.T
-    new_frf = np.array(literal_eval(new_frf), dtype=np.float64)
 
+    Returns
+    -------
+    response: np.ndarray
+        Formatted new frf, of shape (n, 4)
+    """
+    if len(old_frf.shape) == 1:   # When loading from one shell, we get (4, )
+        old_frf = old_frf[None, :]
+    old_nb_shells = old_frf.shape[0]
+    b0_mean = old_frf[:, 3]
+
+    new_frf = np.array(literal_eval(new_frf), dtype=np.float64)
     if not no_factor:
         new_frf *= 10 ** -4
-    b0_mean = old_frf[3]
 
     if new_frf.shape[0] % 3 != 0:
         raise ValueError('Inputed new frf is not valid. There should be '
@@ -334,6 +345,10 @@ def replace_frf(old_frf, new_frf, no_factor):
                          'of values should be a multiple of three.')
 
     nb_shells = int(new_frf.shape[0] / 3)
+    if nb_shells != old_nb_shells:
+        raise ValueError("The old frf contained {} shell(s). Cannot replace "
+                         "with {} shell(s).".format(old_nb_shells, nb_shells))
+
     new_frf = new_frf.reshape((nb_shells, 3))
 
     response = np.empty((nb_shells, 4))
