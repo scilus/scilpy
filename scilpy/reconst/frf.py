@@ -19,10 +19,13 @@ from scilpy.gradients.bvec_bval_tools import (check_b0_threshold,
 def compute_ssst_frf(data, bvals, bvecs, b0_threshold=DEFAULT_B0_THRESHOLD,
                      mask=None, mask_wm=None, fa_thresh=0.7, min_fa_thresh=0.5,
                      min_nvox=300, roi_radii=10, roi_center=None):
-    """Compute a single-shell (under b=1500), single-tissue single Fiber
-    Response Function from a DWI volume.
-    A DTI fit is made, and voxels containing a single fiber population are
-    found using a threshold on the FA.
+    """
+    Computes a single-shell (under b=1500), single-tissue single Fiber
+    Response Function from a DWI volume. A DTI fit is made, and voxels
+    containing a single fiber population are found using either a threshold on
+    the FA, inside a white matter mask.
+
+    Requires
 
     Parameters
     ----------
@@ -43,7 +46,7 @@ def compute_ssst_frf(data, bvals, bvecs, b0_threshold=DEFAULT_B0_THRESHOLD,
         3D mask with shape (X,Y,Z)
         Binary white matter mask. Only the data inside this mask and above the
         threshold defined by fa_thresh will be used to estimate the fiber
-        response function.
+        response function. If not given, all voxels inside `mask` will be used.
     fa_thresh : float, optional
         Use this threshold as the initial threshold to select single fiber
         voxels. Defaults to 0.7
@@ -63,7 +66,7 @@ def compute_ssst_frf(data, bvals, bvecs, b0_threshold=DEFAULT_B0_THRESHOLD,
 
     Returns
     -------
-    full_reponse : ndarray
+    full_response : ndarray
         Fiber Response Function, with shape (4,)
 
     Raises
