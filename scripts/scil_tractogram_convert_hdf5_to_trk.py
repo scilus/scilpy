@@ -59,8 +59,9 @@ def _build_arg_parser():
                             'interest.\nEquivalent to adding any --edge_keys '
                             'node_LABEL2 or LABEL2_node.')
 
-    p.add_argument('--save_empty', metavar='labels_list', dest='labels_list',
-                   help='Save empty connections. Then, the list of possible '
+    p.add_argument('--save_empty', nargs='?', metavar='labels_list',
+                   dest='labels_list', const=True,
+                   help='Save empty connections. The list of possible '
                         'connections is \nnot found from the hdf5 but '
                         'inferred from labels_list, a txt file \ncontaining '
                         'a list of nodes saved by the decomposition script.\n'
@@ -79,7 +80,8 @@ def main():
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     # Verifications
-    assert_inputs_exist(parser, args.in_hdf5, args.labels_list)
+    check_labels = args.labels_list if isinstance(args.labels_list, str) else None
+    assert_inputs_exist(parser, args.in_hdf5, check_labels)
     assert_output_dirs_exist_and_empty(parser, args, args.out_dir,
                                        create_dir=True)
 
@@ -87,12 +89,16 @@ def main():
     with h5py.File(args.in_hdf5, 'r') as hdf5_file:
         all_hdf5_keys = list(hdf5_file.keys())
 
-        if args.labels_list:
+        if isinstance(args.labels_list, str):
             all_labels = np.loadtxt(args.labels_list, dtype='str')
             comb_list = list(itertools.combinations(all_labels, r=2))
             comb_list.extend(zip(all_labels, all_labels))
             all_keys = [i[0]+'_'+i[1] for i in comb_list]
             keys_origin = "the labels_list file's labels combination"
+            allow_empty = True
+        elif args.labels_list:
+            all_keys = all_hdf5_keys
+            keys_origin = "the hdf5 stored keys"
             allow_empty = True
         else:
             all_keys = all_hdf5_keys
