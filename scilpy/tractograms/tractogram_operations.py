@@ -632,7 +632,7 @@ def compress_streamlines_wrapper(tractogram, error_rate):
             s, error_rate) for s in tractogram]
 
 
-def upsample_tractogram(sft, nb, point_wise_std=None, tube_radius=None,
+def upsample_tractogram(sft, nb, point_wise_std, tube_radius,
                         gaussian=None, error_rate=None, seed=None):
     """
     Generates new streamlines by either adding gaussian noise around
@@ -651,12 +651,10 @@ def upsample_tractogram(sft, nb, point_wise_std=None, tube_radius=None,
     tube_radius : float
         The radius of the tube used to model the streamlines.
     gaussian: float
-        The sigma used for smoothing streamlines.
+        The sigma used for smoothing streamlines. If None, streamlines are not
+        smoothed.
     error_rate : float
         The maximum distance (in mm) to the original position of any point.
-    spline: (float, int)
-        Pair of sigma and number of control points used to model each
-        streamline as a spline and smooth it.
     seed: int
         Seed for RNG.
 
@@ -681,8 +679,7 @@ def upsample_tractogram(sft, nb, point_wise_std=None, tube_radius=None,
         new_s = parallel_transport_streamline(s, c, tube_radius)
 
         # Generate smooth noise_factor
-        noise = rng.normal(loc=0, scale=point_wise_std,
-                           size=len(s))
+        noise = rng.normal(loc=0, scale=point_wise_std, size=len(s))
 
         # Instead of generating random noise, we fit a polynomial to the
         # noise and use it to generate a spatially smooth noise along the
