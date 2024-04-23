@@ -72,7 +72,7 @@ def get_ventricles_max_fodf(data, fa, md, zoom, sh_basis,
         max_number_of_voxels = 1000 * 8 // vol
     else:
         max_number_of_voxels = 1000
-    logging.debug("We will search ventricle voxels, up to a maximum of {} "
+    logging.debug("Searching for ventricle voxels, up to a maximum of {} "
                   "voxels.".format(max_number_of_voxels))
 
     # In the case of 2D-like data (3D data with one dimension size of 1), or

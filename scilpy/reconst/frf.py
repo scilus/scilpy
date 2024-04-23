@@ -25,8 +25,6 @@ def compute_ssst_frf(data, bvals, bvecs, b0_threshold=DEFAULT_B0_THRESHOLD,
     containing a single fiber population are found using either a threshold on
     the FA, inside a white matter mask.
 
-    Requires
-
     Parameters
     ----------
     data : ndarray
