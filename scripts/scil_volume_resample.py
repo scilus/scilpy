@@ -68,6 +68,7 @@ def main():
     assert_inputs_exist(parser, args.in_image, args.ref)
     assert_outputs_exist(parser, args, args.out_image)
     assert_headers_compatible(parser, args.in_image, args.ref)
+    assert_headers_compatible(parser, args.in_image, args.ref)
 
     if args.enforce_dimensions and not args.ref:
         parser.error("Cannot enforce dimensions without a reference image")
