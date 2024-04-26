@@ -88,7 +88,7 @@ def main():
     if args.ref:
         ref_img = nib.load(args.ref)
         # Must not verify that headers are compatible. But can verify that, at
-        # least, that the last column of their affine are compatible.
+        # least, the last columns of their affines are compatible.
         if not np.array_equal(img.affine[:, -1], ref_img.affine[:, -1]):
             parser.error("The --ref image should have the same affine as the "
                          "input image (but with a different sampling).")
