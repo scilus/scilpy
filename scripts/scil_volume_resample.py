@@ -94,8 +94,10 @@ def main():
                          "input image (but with a different sampling).")
 
     # Resampling volume
-    resampled_img = resample_volume(img, ref_img=ref_img, res=args.volume_size,
-                                    iso_min=args.iso_min, zoom=args.voxel_size,
+    resampled_img = resample_volume(img, ref_img=ref_img,
+                                    volume_shape=args.volume_size,
+                                    iso_min=args.iso_min,
+                                    voxel_res=args.voxel_size,
                                     interp=args.interp,
                                     enforce_dimensions=args.enforce_dimensions)
 
