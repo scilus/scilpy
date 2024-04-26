@@ -452,7 +452,7 @@ def _interp_code_to_order(interp_code):
     return orders[interp_code]
 
 
-def resample_volume(img, ref=None, res=None, iso_min=False, zoom=None,
+def resample_volume(img, ref_img=None, res=None, iso_min=False, zoom=None,
                     interp='lin', enforce_dimensions=False):
     """
     Function to resample a dataset to match the resolution of another
@@ -463,7 +463,7 @@ def resample_volume(img, ref=None, res=None, iso_min=False, zoom=None,
     ----------
     img: nib.Nifti1Image
         Image to resample.
-    ref: nib.Nifti1Image
+    ref_img: nib.Nifti1Image, optional
         Reference volume to resample to. This method is used only if ref is not
         None. (default: None)
     res: tuple, shape (3,) or int, optional
@@ -492,11 +492,10 @@ def resample_volume(img, ref=None, res=None, iso_min=False, zoom=None,
     affine = img.affine
     original_zooms = img.header.get_zooms()[:3]
 
-    if ref is not None:
+    if ref_img is not None:
         if iso_min or zoom or res:
             raise ValueError('Please only provide one option amongst ref, res '
                              ', zoom or iso_min.')
-        ref_img = nib.load(ref)
         new_zooms = ref_img.header.get_zooms()[:3]
     elif res is not None:
         if iso_min or zoom:
