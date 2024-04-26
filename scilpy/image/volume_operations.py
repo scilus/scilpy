@@ -452,29 +452,32 @@ def _interp_code_to_order(interp_code):
     return orders[interp_code]
 
 
-def resample_volume(img, ref=None, res=None, iso_min=False, zoom=None,
+def resample_volume(img, ref_img=None, volume_shape=None, iso_min=False,
+                    voxel_res=None,
                     interp='lin', enforce_dimensions=False):
     """
-    Function to resample a dataset to match the resolution of another
-    reference dataset or to the resolution specified as in argument.
-    One of the following options must be chosen: ref, res or iso_min.
+    Function to resample a dataset to match the resolution of another reference
+    dataset or to the resolution specified as in argument.
+
+    One (and only one) of the following options must be chosen:
+    ref, volume_shape, iso_min or voxel_res.
 
     Parameters
     ----------
     img: nib.Nifti1Image
         Image to resample.
-    ref: nib.Nifti1Image
+    ref_img: nib.Nifti1Image, optional
         Reference volume to resample to. This method is used only if ref is not
         None. (default: None)
-    res: tuple, shape (3,) or int, optional
-        Resolution to resample to. If the value it is set to is Y, it will
-        resample to an isotropic resolution of Y x Y x Y. This method is used
-        only if res is not None. (default: None)
+    volume_shape: tuple, shape (3,) or int, optional
+        Final shape to resample to. If the value it is set to is Y, it will
+        resample to an isotropic shape of Y x Y x Y. This method is used
+        only if volume_shape is not None. (default: None)
     iso_min: bool, optional
-        If true, resample the volume to R x R x R with R being the smallest
-        current voxel dimension. If false, this method is not used.
-    zoom: tuple, shape (3,) or float, optional
-        Set the zoom property of the image at the value specified.
+        If true, resample the volume to R x R x R resolution, with R being the
+        smallest current voxel dimension. If false, this method is not used.
+    voxel_res: tuple, shape (3,) or float, optional
+        Set the zoom property of the image at the specified resolution.
     interp: str, optional
         Interpolation mode. 'nn' = nearest neighbour, 'lin' = linear,
         'quad' = quadratic, 'cubic' = cubic. (Default: linear)
@@ -488,40 +491,38 @@ def resample_volume(img, ref=None, res=None, iso_min=False, zoom=None,
         Resampled image.
     """
     data = np.asanyarray(img.dataobj)
-    original_res = data.shape
+    original_shape = data.shape
     affine = img.affine
     original_zooms = img.header.get_zooms()[:3]
 
-    if ref is not None:
-        if iso_min or zoom or res:
-            raise ValueError('Please only provide one option amongst ref, res '
-                             ', zoom or iso_min.')
-        ref_img = nib.load(ref)
+    error_msg = ('Please only provide one option amongst ref_img, '
+                 'volume_shape, voxel_res or iso_min.')
+    if ref_img is not None:
+        if iso_min or voxel_res or volume_shape:
+            raise ValueError(error_msg)
         new_zooms = ref_img.header.get_zooms()[:3]
-    elif res is not None:
-        if iso_min or zoom:
-            raise ValueError('Please only provide one option amongst ref, res '
-                             ', zoom or iso_min.')
-        if len(res) == 1:
-            res = res * 3
-        new_zooms = tuple((o / r) * z for o, r,
-                          z in zip(original_res, res, original_zooms))
+    elif volume_shape is not None:
+        if iso_min or voxel_res:
+            raise ValueError(error_msg)
+        if len(volume_shape) == 1:
+            volume_shape = volume_shape * 3
+
+        new_zooms = tuple((o / v) * z for o, v, z in
+                          zip(original_shape, volume_shape, original_zooms))
 
     elif iso_min:
-        if zoom:
-            raise ValueError('Please only provide one option amongst ref, res '
-                             ', zoom or iso_min.')
+        if voxel_res:
+            raise ValueError(error_msg)
         min_zoom = min(original_zooms)
         new_zooms = (min_zoom, min_zoom, min_zoom)
-    elif zoom:
-        new_zooms = zoom
-        if len(zoom) == 1:
-            new_zooms = zoom * 3
+    elif voxel_res:
+        new_zooms = voxel_res
+        if len(voxel_res) == 1:
+            new_zooms = voxel_res * 3
     else:
         raise ValueError("You must choose the resampling method. Either with"
-                         "a reference volume, or a chosen isometric resolution"
-                         ", or an isometric resampling to the smallest current"
-                         " voxel dimension!")
+                         "a reference volume, or a chosen image shape, "
+                         "or chosen resolution, or option iso_min.")
 
     interp_choices = ['nn', 'lin', 'quad', 'cubic']
     if interp not in interp_choices:
@@ -540,7 +541,7 @@ def resample_volume(img, ref=None, res=None, iso_min=False, zoom=None,
     logging.info('Resampled data affine setup: %s', nib.aff2axcodes(affine2))
 
     if enforce_dimensions:
-        if ref is None:
+        if ref_img is None:
             raise ValueError('enforce_dimensions can only be used with the ref'
                              'method.')
         else:

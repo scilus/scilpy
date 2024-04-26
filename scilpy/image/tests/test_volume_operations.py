@@ -130,15 +130,36 @@ def smooth_to_fwhm():
 
 
 def test_resample_volume():
+    # Input image: 6x6x6 (4x4x4 with zeros around)
+    # affine as np.eye => voxel size 1x1x1
     moving3d = np.pad(np.ones((4, 4, 4)), pad_width=1,
                       mode='constant', constant_values=0)
-    ref3d = np.ones((2, 2, 2))
-
     moving3d_img = nib.Nifti1Image(moving3d, np.eye(4))
 
-    resampled_img = resample_volume(moving3d_img, res=(2, 2, 2), interp='nn')
+    # Ref: 2x2x2, voxel size 3x3x3
+    ref3d = np.ones((2, 2, 2))
+    ref_affine = np.eye(4)*3
+    ref_affine[-1, -1] = 1
 
+    # 1) Option volume_shape: expecting an output of 2x2x2, which means
+    # voxel resolution 3x3x3
+    resampled_img = resample_volume(moving3d_img, volume_shape=(2, 2, 2),
+                                    interp='nn')
     assert_equal(resampled_img.get_fdata(), ref3d)
+    assert resampled_img.affine[0, 0] == 3
+
+    # 2) Option reference image that is 2x2x2, resolution 3x3x3.
+    ref_img = nib.Nifti1Image(ref3d, ref_affine)
+    resampled_img = resample_volume(moving3d_img, ref_img=ref_img,
+                                    interp='nn')
+    assert_equal(resampled_img.get_fdata(), ref3d)
+    assert resampled_img.affine[0, 0] == 3
+
+    # 3) Option final resolution 3x3x3, should be of shape 2x2x2
+    resampled_img = resample_volume(moving3d_img, voxel_res=(3, 3, 3),
+                                    interp='nn')
+    assert_equal(resampled_img.get_fdata(), ref3d)
+    assert resampled_img.affine[0, 0] == 3
 
 
 def test_normalize_metric_basic():
