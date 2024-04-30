@@ -4,7 +4,6 @@ import logging
 
 import numpy as np
 
-import dipy
 from dipy.core.sphere import HemiSphere
 from dipy.data import get_sphere
 from dipy.io.stateful_tractogram import Space, Origin
@@ -46,7 +45,8 @@ class AbstractPropagator(object):
             value.
         origin: dipy Origin
             Origin of the streamlines during tracking. All coordinates received
-            in the propagator's methods will be expected to respect that origin.
+            in the propagator's methods will be expected to respect
+            that origin.
 
         A note on space and origin: All coordinates received in the
         propagator's methods will be expected to respect those values.
@@ -68,7 +68,8 @@ class AbstractPropagator(object):
         # By default, normalizing directions. Adding option for child classes.
         self.normalize_directions = True
 
-        self.line_rng_generator = None   # Will be reset at each new streamline.
+        # Will be reset at each new streamline.
+        self.line_rng_generator = None
 
     def reset_data(self, new_data=None):
         """

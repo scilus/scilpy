@@ -52,7 +52,6 @@ import dipy.core.geometry as gm
 import nibabel as nib
 import numpy as np
 
-from dipy.data import get_sphere
 from dipy.io.stateful_tractogram import StatefulTractogram, Space
 from dipy.io.stateful_tractogram import Origin
 from dipy.io.streamline import save_tractogram
