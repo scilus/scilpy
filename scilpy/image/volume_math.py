@@ -691,22 +691,32 @@ def _corrcoef_no_nan(data):
         [data1_flattened, data2_flattened]
     """
     a, b = np.split(data, 2)
+    eps = 1e-6
 
     # If, in at least one patch, all values are the same, we get NaN.
     # Ex: compare a patch of ones with a patch of twos:
     # >> np.corrcoef(np.ones(27), 2*np.ones(27))
+    # We chose to return:
+    # - 0 if at least one neighborhood was entirely containing background
+    #  (note that here, we will never have both backgrounds because of the
+    #  indices in the function call, but it is still covered)
+    # - 1 if the voxel's neighborhoods are uniform in both images (ex, uniform
+    #  gray matter in both images).
+    # - 0 if the voxel's neighborhoods is uniform in one image, but not the
+    # other (ex, uniform gray matter in a, noisy gray matter in b).
+    is_background_a = not np.any(a)
+    is_background_b = not np.any(b)
+    if is_background_a or is_background_b:
+        return 0.0
+    if np.std(a) < eps and np.std(b) < eps:
+        # Both uniform and non-background
+        return 1.0
+    elif np.std(a) < eps or np.std(b) < eps:
+        # Only one is uniform
+        return 0.0
+
+    # If we reach here, corrcoef should not return a NaN
     corr = np.corrcoef(a, b, dtype=np.float32)[0, 1]
-    eps = 1e-6
-    if np.isnan(corr):
-        if np.std(a) < eps and np.std(b) < eps:  # Both uniform.
-            if not np.any(a) or not np.any(b):  # if not any = if all zero
-                # At least one patch is entirely background
-                return 0.0
-            else:
-                # Both uniform and non-background
-                return 1.0
-        else:  # Only one of them is uniform.
-            return 0.0
     return corr
 
 
