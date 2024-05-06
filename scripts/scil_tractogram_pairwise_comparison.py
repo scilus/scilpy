@@ -19,7 +19,7 @@ The difference is computed in terms of
 - A patch-wise correlation between streamline density maps from both
     tractograms. This compares where the high/low density regions agree or not
     (out_corr.nii.gz)
-- A heatmap combining all the previous metrics using an harmonic means of the
+- A heatmap combining all the previous metrics using a harmonic means of the
     normalized metrics to summarize general agreement (out_heatmap.nii.gz)
 """
 
@@ -38,7 +38,8 @@ from scilpy.io.utils import (add_overwrite_arg, add_reference_arg,
                              add_verbose_arg,
                              assert_headers_compatible,
                              validate_nbr_processes)
-from scilpy.tractanalysis.reproducibility_measures import tractogram_pairwise_comparison
+from scilpy.tractanalysis.reproducibility_measures import \
+    tractogram_pairwise_comparison
 
 
 def _build_arg_parser():
@@ -88,14 +89,14 @@ def main():
 
     if args.out_prefix and args.out_prefix[-1] == '_':
         args.out_prefix = args.out_prefix[:-1]
-    out_corr_filename = os.path.join(args.out_dir,
-                                     '{}_correlation.nii.gz'.format(args.out_prefix))
-    out_acc_filename = os.path.join(args.out_dir,
-                                    '{}_acc.nii.gz'.format(args.out_prefix))
-    out_diff_filename = os.path.join(args.out_dir,
-                                     '{}_diff.nii.gz'.format(args.out_prefix))
-    out_merge_filename = os.path.join(args.out_dir,
-                                      '{}_heatmap.nii.gz'.format(args.out_prefix))
+    out_corr_filename = os.path.join(
+        args.out_dir, '{}_correlation.nii.gz'.format(args.out_prefix))
+    out_acc_filename = os.path.join(
+        args.out_dir, '{}_acc.nii.gz'.format(args.out_prefix))
+    out_diff_filename = os.path.join(
+        args.out_dir, '{}_diff.nii.gz'.format(args.out_prefix))
+    out_merge_filename = os.path.join(
+        args.out_dir, '{}_heatmap.nii.gz'.format(args.out_prefix))
     assert_output_dirs_exist_and_empty(parser, args, [], optional=args.out_dir)
     assert_outputs_exist(parser, args, [out_corr_filename,
                                         out_acc_filename,
@@ -108,7 +109,7 @@ def main():
     sft_2 = load_tractogram_with_reference(parser, args, args.in_tractogram_2)
     mask = nib.load(args.in_mask) if args.in_mask else None
 
-    acc_data, corr_data, diff_data, heatmap = \
+    acc_data, corr_data, diff_data, heatmap, _ = \
         tractogram_pairwise_comparison(sft_1, sft_2, mask, nbr_cpu,
                                        args.skip_streamlines_distance)
 

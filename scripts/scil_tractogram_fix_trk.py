@@ -55,7 +55,7 @@ from dipy.io.streamline import save_tractogram, load_tractogram
 import nibabel as nib
 import numpy as np
 
-from scilpy.image.volume_operations import crop_data_with_default_cube
+from scilpy.image.volume_operations import mask_data_with_default_cube
 from scilpy.io.utils import (add_bbox_arg,
                              add_verbose_arg,
                              add_overwrite_arg,
@@ -210,8 +210,8 @@ def main():
                 # Sometimes DSI studio has quite a lot of skull left
                 # Dipy Median Otsu does not work with FA/GFA
                 if args.auto_crop:
-                    moving_data = crop_data_with_default_cube(moving_data)
-                    static_data = crop_data_with_default_cube(static_data)
+                    moving_data = mask_data_with_default_cube(moving_data)
+                    static_data = mask_data_with_default_cube(static_data)
 
                 # Since DSI Studio register to AC/PC and does not save the
                 # transformation We must estimate the transformation,

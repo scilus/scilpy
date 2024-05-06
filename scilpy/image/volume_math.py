@@ -3,16 +3,22 @@
 """
 Utility operations provided for scil_image_math.py
 and scil_connectivity_math.py
+
 They basically act as wrappers around numpy to avoid installing MRtrix/FSL
 to apply simple operations on nibabel images or numpy arrays.
+
+Docstrings here are NOT typical docstrings: they are the doc printed with the
+--help argument in those scripts.
+
+Headers compatibility is NOT verified here. Verified in the main scripts.
 """
-
-
+import logging
 from itertools import combinations
 from collections import OrderedDict
 
 import nibabel as nib
 import numpy as np
+from dipy.io.utils import is_header_compatible
 from numpy.lib import stride_tricks
 from scipy.ndimage import (binary_closing, binary_dilation,
                            binary_erosion, binary_opening,
@@ -52,7 +58,7 @@ def get_array_ops():
         ('division', division),
         ('mean', mean),
         ('std', std),
-        ('correlation', correlation),
+        ('correlation', neighborhood_correlation),
         ('union', union),
         ('intersection', intersection),
         ('difference', difference),
@@ -82,25 +88,25 @@ def get_operations_doc(ops: dict):
     return "".join(full_doc)
 
 
-def _validate_imgs(*imgs):
-    """Make sure that all inputs are images, and that their shapes match."""
+def _validate_same_shape(*imgs):
+    """Make sure that all shapes match."""
     ref_img = imgs[-1]
     for img in imgs:
-        if isinstance(img, nib.Nifti1Image) and \
-                not np.all(ref_img.header.get_data_shape() ==
-                           img.header.get_data_shape()):
+        if not np.all(ref_img.header.get_data_shape() ==
+                      img.header.get_data_shape()):
             raise ValueError('Not all inputs have the same shape!')
 
 
-def _validate_imgs_concat(*imgs):
+def _validate_imgs_type(*imgs):
     """Make sure that all inputs are images."""
     for img in imgs:
         if not isinstance(img, nib.Nifti1Image):
-            raise ValueError('Inputs are not all images')
+            raise ValueError('Inputs are not all images. Received a {} when '
+                             'we were expecting an image.'.format(type(img)))
 
 
 def _validate_length(input_list, length, at_least=False):
-    """Make sure the the input list has the right number of arguments
+    """Make sure that the input list has the right number of arguments
     (length)."""
     if at_least:
         if not len(input_list) >= length:
@@ -121,29 +127,53 @@ def _validate_type(x, dtype):
 
 
 def _validate_float(x):
-    """Make sure that the input can be casted to a float."""
+    """Make sure that the input can be cast to a float."""
     if not is_float(x):
         raise ValueError('The input must be float/int for this operation.')
 
 
-def cut_up_cube(data, blck):
+def _get_neighbors(data, radius):
     """
-    cut_up_cube: DATA BLOCK STRIDE
-        Cut up a cube of data into patches.
-        - blck is the size of the patches.
-        - strd is the stride between patches.
-        The last cube will be padded with zeros to ensure identical dimensions.
+    For each voxel of the input data, returns a patch of the local
+    neighborhood. Data is padded with zeros for the neighborhood of border
+    voxels.
+
+    Parameters
+    ----------
+    data: np.ndarray
+        The data of shape [X, Y, Z].
+    radius: int
+        Neighborhoods will be cubes of size M = 2 * patch_radius + 1 centered
+        at each voxel.
+
+    Returns
+    -------
+    data: np.ndarray
+        The shape of the output will be 6D: [X, Y, Z, M, M, M]
+        Ex: data[0, 0, 0, :, :, :] is the neighborhood at voxel [0, 0, 0].
     """
-    strd = 1
-    pad_size = (blck[0] - 1) // 2
+    patch_size = 2 * radius + 1
+
+    # Padding first dimension to have 2 patches fitting on first dimension.
+    # (If pad_size is 0, will at least ensure that data is a np.array.)
+    pad_size = (patch_size - 1) // 2
     data = np.pad(data, (pad_size, pad_size),
-                  'constant', constant_values=(0, 0))
-    sh = np.array(data.shape)
-    blck = np.asanyarray(blck)
-    strd = np.asanyarray(strd)
-    nbl = (sh - blck) // strd + 1
-    strides = np.r_[data.strides * strd, data.strides]
-    dims = np.r_[nbl, blck]
+                  mode='constant', constant_values=(0, 0))
+
+    # Preparing types for the call.
+    padded_shape = np.array(data.shape)
+    patch_size = np.asanyarray([patch_size] * 3)
+
+    # Note. np.r_: Stacks arrays along their first axis.
+
+    # Preparing strides: 6 dimensions.  [sx*strd, sy*strd, sz*strd, sx, sy, sz]
+    strides = np.r_[data.strides, data.strides]
+
+    # Preparing dims: 6 dimensions. [nb1, nb2, nb3, B1, B2, B3]
+    nbl = (padded_shape - patch_size) + 1
+    dims = np.r_[nbl, patch_size]
+
+    # Splitting data
     data = stride_tricks.as_strided(data, strides=strides, shape=dims)
 
     return data
@@ -154,6 +184,8 @@ def lower_threshold_otsu(input_list, ref_img):
     lower_threshold_otsu: IMG
         All values below or equal to the Otsu threshold will be set to zero.
         All values above the Otsu threshold will be set to one.
+        (Otsu's method is an algorithm to perform automatic image thresholding
+         of the background.)
     """
     _validate_length(input_list, 1)
     _validate_type(input_list[0], nib.Nifti1Image)
@@ -405,7 +437,8 @@ def addition(input_list, ref_img):
         Add multiple images together.
     """
     _validate_length(input_list, 2, at_least=True)
-    _validate_imgs(*input_list, ref_img)
+    _validate_imgs_type(*input_list)
+    _validate_same_shape(*input_list, ref_img)
 
     output_data = np.zeros(ref_img.header.get_data_shape(), dtype=np.float64)
     for img in input_list:
@@ -425,7 +458,8 @@ def subtraction(input_list, ref_img):
         Subtract first image by the second (IMG_1 - IMG_2).
     """
     _validate_length(input_list, 2)
-    _validate_imgs(*input_list, ref_img)
+    _validate_imgs_type(*input_list)
+    _validate_same_shape(*input_list, ref_img)
 
     output_data = np.zeros(ref_img.header.get_data_shape(), dtype=np.float64)
     if isinstance(input_list[0], nib.Nifti1Image):
@@ -447,7 +481,8 @@ def multiplication(input_list, ref_img):
         Multiply multiple images together (danger of underflow and overflow)
     """
     _validate_length(input_list, 2, at_least=True)
-    _validate_imgs(*input_list, ref_img)
+    _validate_imgs_type(*input_list)
+    _validate_same_shape(*input_list, ref_img)
 
     output_data = np.ones(ref_img.header.get_data_shape())
     if isinstance(input_list[0], nib.Nifti1Image):
@@ -472,7 +507,8 @@ def division(input_list, ref_img):
         Ignore zeros values, excluded from the operation.
     """
     _validate_length(input_list, 2)
-    _validate_imgs(*input_list, ref_img)
+    _validate_imgs_type(*input_list)
+    _validate_same_shape(*input_list, ref_img)
 
     output_data = np.zeros(ref_img.header.get_data_shape(), dtype=np.float64)
     if isinstance(input_list[0], nib.Nifti1Image):
@@ -496,7 +532,8 @@ def mean(input_list, ref_img):
         If a single 4D image is provided, average along the last dimension.
     """
     _validate_length(input_list, 1, at_least=True)
-    _validate_imgs(*input_list, ref_img)
+    _validate_imgs_type(*input_list)
+    _validate_same_shape(*input_list, ref_img)
 
     if len(input_list[0].header.get_data_shape()) > 3:
         if not len(input_list) == 1:
@@ -521,7 +558,8 @@ def std(input_list, ref_img):
         dimension.
     """
     _validate_length(input_list, 1, at_least=True)
-    _validate_imgs(*input_list, ref_img)
+    _validate_imgs_type(*input_list)
+    _validate_same_shape(*input_list, ref_img)
 
     if len(input_list[0].header.get_data_shape()) > 3:
         if not len(input_list) == 1:
@@ -553,6 +591,7 @@ def union(input_list, ref_img):
         Operation on binary image to keep voxels, that are non-zero, in at
         least one file.
     """
+    # Tests and checks done in addition.
     output_data = addition(input_list, ref_img)
     output_data[output_data != 0] = 1
 
@@ -565,6 +604,7 @@ def intersection(input_list, ref_img):
         Operation on binary image to keep the voxels, that are non-zero,
         are present in all files.
     """
+    # Tests and checks done in multiplication
     output_data = multiplication(input_list, ref_img)
     output_data[output_data != 0] = 1
 
@@ -578,7 +618,8 @@ def difference(input_list, ref_img):
         not in the second file (non-zeros).
     """
     _validate_length(input_list, 2)
-    _validate_imgs(*input_list, ref_img)
+    _validate_imgs_type(*input_list)
+    _validate_same_shape(*input_list, ref_img)
 
     output_data = np.zeros(ref_img.header.get_data_shape(), dtype=np.float64)
     if isinstance(input_list[0], nib.Nifti1Image):
@@ -616,10 +657,10 @@ def concatenate(input_list, ref_img):
     concatenate: IMGs
         Concatenate a list of 3D and 4D images into a single 4D image.
     """
-
-    _validate_imgs_concat(*input_list, ref_img)
+    _validate_imgs_type(*input_list, ref_img)
     if len(input_list[0].header.get_data_shape()) > 4:
-        raise ValueError('Concatenate require 3D or 4D arrays.')
+        raise ValueError('Concatenate requires 3D or 4D arrays, but got '
+                         '{}'.format(input_list[0].header.get_data_shape()))
 
     input_data = []
     for img in input_list:
@@ -638,25 +679,98 @@ def concatenate(input_list, ref_img):
     return np.rollaxis(np.stack(input_data), axis=0, start=4)
 
 
-def correlation(input_list, ref_img, patch_radius=1):
+def _corrcoef_no_nan(data):
+    """
+    Correlation between two small data arrays, but with our management of NaNs.
+    See explanation in neighborhood_correlation docstring.
+
+    Parameters
+    ----------
+    data: np.array of shape (patch_size**3 * 2, )
+        The concatenated, flattened, vectors:
+        [data1_flattened, data2_flattened]
+    """
+    a, b = np.split(data, 2)
+    eps = 1e-6
+
+    # If, in at least one patch, all values are the same, we get NaN.
+    # Ex: compare a patch of ones with a patch of twos:
+    # >> np.corrcoef(np.ones(27), 2*np.ones(27))
+    # We chose to return:
+    # - 0 if at least one neighborhood was entirely containing background
+    #  (note that here, we will never have both backgrounds because of the
+    #  indices in the function call, but it is still covered)
+    # - 1 if the voxel's neighborhoods are uniform in both images (ex, uniform
+    #  gray matter in both images).
+    # - 0 if the voxel's neighborhoods is uniform in one image, but not the
+    # other (ex, uniform gray matter in a, noisy gray matter in b).
+    is_background_a = not np.any(a)
+    is_background_b = not np.any(b)
+    if is_background_a or is_background_b:
+        return 0.0
+    if np.std(a) < eps and np.std(b) < eps:
+        # Both uniform and non-background
+        return 1.0
+    elif np.std(a) < eps or np.std(b) < eps:
+        # Only one is uniform
+        return 0.0
+
+    # If we reach here, corrcoef should not return a NaN
+    corr = np.corrcoef(a, b, dtype=np.float32)[0, 1]
+    return corr
+
+
+def neighborhood_correlation(input_list, ref_img):
     """
     correlation: IMGs
-        Compute the correlation average of multiple images.
+        Computes the correlation of the 3x3x3 neighborhood of each voxel, for
+        all pair of input images. The final image is the average correlation
+        (through all pairs).
+        For a given pair of images
+        - Background is considered as 0. May lead to very high correlations
+        close to the border of the background regions, or very poor ones if the
+        background in both images differ.
+        - Images are zero-padded. For the same reason as higher, may lead to
+        very high correlations if you have data close to the border of the
+        image.
+        - NaN values (if a voxel's neighborhood is entirely uniform; std 0) are
+        replaced by
+           - 0 if at least one neighborhood was entirely containing background.
+           - 1 if the voxel's neighborhoods are uniform in both images
+           - 0 if the voxel's neighborhoods is uniform in one image, but not
+           the other.
+
+        UPDATE AS OF VERSION 2.0: Random noise was previously added in the
+        process to help avoid NaN values. Now replaced by either 0 or 1 as
+        explained above.
     """
     _validate_length(input_list, 2, at_least=True)
+    _validate_imgs_type(*input_list, ref_img)
+    _validate_same_shape(*input_list, ref_img)
+    return neighborhood_correlation_(input_list)
 
-    if isinstance(input_list[0], nib.Nifti1Image):
-        _validate_imgs(*input_list, ref_img)
-        data_shape = input_list[0].header.get_data_shape()
-    else:
-        data_shape = input_list[0].shape
 
-    sizes = (patch_radius * 2 + 1, patch_radius * 2 + 1, patch_radius * 2 + 1)
+def neighborhood_correlation_(input_list):
+    """
+    Same as above (neighborhood_correlation) but without the verifications
+    required for scil_volume_math.py.
+
+    input_list can be a list of images or a list of arrays.
+    """
+    data_shape = input_list[0].shape
     combs = list(combinations(range(len(input_list)), r=2))
     all_corr = np.zeros(data_shape + (len(combs),), dtype=np.float32)
 
+    patch_radius = 1  # Using a 3x3x3 neighborhood. Slow enough as it is.
+    patch_size = 2 * patch_radius + 1
     np.random.seed(0)
+
+    # For each pair of input images:
+    # Possibly loads images twice. Other option is to load all images in
+    # memory at once.
     for i, comb in enumerate(combs):
+        logging.debug("Computing correlation map for one pair of input "
+                      "images.")
         img_1 = input_list[comb[0]]
         img_2 = input_list[comb[1]]
 
@@ -669,32 +783,26 @@ def correlation(input_list, ref_img, patch_radius=1):
         else:
             data_2 = img_2
 
-        patches_1 = cut_up_cube(data_1, sizes)
-        patches_2 = cut_up_cube(data_2, sizes)
+        patches_1 = _get_neighbors(data_1, patch_radius)
+        patches_2 = _get_neighbors(data_2, patch_radius)
 
         patches_shape = patches_1.shape
         nb_patches = np.prod(patches_shape[0:3])
 
-        patches_1 = patches_1.reshape((nb_patches, np.prod(sizes)))
-        patches_2 = patches_2.reshape((nb_patches, np.prod(sizes)))
+        patches_1 = patches_1.reshape((nb_patches, patch_size ** 3))
+        patches_2 = patches_2.reshape((nb_patches, patch_size ** 3))
         patches = np.concatenate((patches_1, patches_2), axis=-1)
 
+        # Removing union of background from data. Already managed in the
+        # _corrcoef_no_nan method, but accelerating the process
         non_zeros_patches = np.sum(patches, axis=-1)
-        non_zeros_ids = np.where(np.abs(non_zeros_patches) > 0.001)[0]
-
-        def correlate(data):
-            data += np.random.rand(data.shape[0]) * 0.001
-            a, b = np.split(data, 2)
-
-            if np.allclose(a, b):
-                return 1
-
-            corr = np.corrcoef(a, b, dtype=np.float32)[0, 1]
-            return corr
+        non_zeros_ids = np.where(np.abs(non_zeros_patches) > 1e-6)[0]
 
         results = np.zeros((len(patches)), dtype=np.float32)
-        results[non_zeros_ids] = np.apply_along_axis(correlate, 1,
-                                                     patches[non_zeros_ids, :])
+
+        tmp = np.apply_along_axis(
+            _corrcoef_no_nan, axis=1, arr=patches[non_zeros_ids, :])
+        results[non_zeros_ids] = tmp
 
         all_corr[..., i] = results.reshape(patches_shape[0:3])
 
@@ -706,6 +814,8 @@ def dilation(input_list, ref_img):
     dilation: IMG, VALUE
         Binary morphological operation to spatially extend the values of an
         image to their neighbors. VALUE is in voxels.
+        If VALUE is 0, the dilation is repeated until the result does not
+        change anymore.
     """
     _validate_length(input_list, 2)
     _validate_type(input_list[0], nib.Nifti1Image)
@@ -720,6 +830,8 @@ def erosion(input_list, ref_img):
     erosion: IMG, VALUE
         Binary morphological operation to spatially shrink the volume contained
         in a binary image. VALUE is in voxels.
+        If VALUE is 0, the erosion is repeated until the result does not
+        change anymore.
     """
     _validate_length(input_list, 2)
     _validate_type(input_list[0], nib.Nifti1Image)
@@ -758,7 +870,8 @@ def opening(input_list, ref_img):
 def gaussian_blur(input_list, ref_img):
     """
     blur: IMG, VALUE
-        Apply a gaussian blur to a single image.
+        Apply a gaussian blur to a single image. VALUE is sigma, the standard
+        deviation of the Gaussian kernel.
     """
     _validate_length(input_list, 2)
     _validate_type(input_list[0], nib.Nifti1Image)
