@@ -70,7 +70,13 @@ def test_tractogram_pairwise_comparison():
     assert np.mean(heatmap[~np.isnan(heatmap)]) == 0.7395923591441349
 
     # Supervise the number of NaNs in each output.
-    # toDo. Why not the same?
+    # Note. Not the same because:
+    # - diff looks at streamlines (with a small radius around the voxel),
+    # - TODI looks at the segment of streamlines in the voxels,
+    # - Correlation works patch-wise,
+    # - Heatmap combines all three.
+    # So they all have different regional interaction, which leads to NaN being
+    # different
     assert np.count_nonzero(np.isnan(acc_norm)) == 877513
     assert np.count_nonzero(np.isnan(corr_norm)) == 877003
     assert np.count_nonzero(np.isnan(diff_norm)) == 877024
