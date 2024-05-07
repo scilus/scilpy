@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from scilpy.io.deprecator import deprecate_script
-from scilpy.scripts.scil_tractogram_segment_one_bundle import main as new_main
+from scripts.scil_tractogram_segment_one_bundle import main as new_main
 
 
 DEPRECATION_MSG = """
