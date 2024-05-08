@@ -81,7 +81,7 @@ def main():
         polydata = convert_freesurfer_into_polydata(args.in_surface,
                                                     xform_translation)
     else:
-        polydata = load_polydata(args.out_surface)
+        polydata = load_polydata(args.in_surface)
 
     if args.to_lps:
         polydata = flip_LPS(polydata)
