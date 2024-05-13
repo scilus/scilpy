@@ -68,11 +68,13 @@ def _build_arg_parser():
 
     # For upsampling:
     up_group = p.add_argument_group('Upsampling params')
-    up_group.add_argument('--point_wise_std', type=ranged_type(float, 0, None),
+    up_group.add_argument('--point_wise_std',
+                          type=ranged_type(float, 0, None, min_excluded=True),
                           default=1,
                           help='Noise to add to existing streamlines '
                                'points to generate new ones [%(default)s].')
-    up_group.add_argument('--tube_radius', type=ranged_type(float, 0, None),
+    up_group.add_argument('--tube_radius',
+                          type=ranged_type(float, 0, None, min_excluded=True),
                           default=1,
                           help='Maximum distance to generate streamlines '
                                'around the original ones [%(default)s].')
@@ -119,11 +121,6 @@ def main():
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     # Verifications
-    if args.point_wise_std <= 0:
-        parser.error('argument --point_wise_std: must be > 0')
-    if args.tube_radius <= 0:
-        parser.error('argument --tube_radius: must be > 0')
-
     assert_inputs_exist(parser, args.in_tractogram, args.reference)
     assert_outputs_exist(parser, args, args.out_tractogram)
 
@@ -137,14 +134,10 @@ def main():
         if args.never_upsample:
             logging.info(
                 "Number of streamlines is higher than in the original "
-                "tractogram. Cannot downsample. To upsample, remove option "
-                "--never_upsample. Out_tractogram will be a copy of "
-                "in_tractogram.")
+                "tractogram. Cannot downsample. Out_tractogram will be a copy "
+                "of in_tractogram. To upsample, remove option "
+                "--never_upsample.")
         else:
-            # Check is done here because it is not required if downsampling
-            if not args.point_wise_std and not args.tube_radius:
-                parser.error("one of the arguments --point_wise_std " +
-                             "--tube_radius is required")
             sft = upsample_tractogram(sft, args.nb_streamlines,
                                       args.point_wise_std, args.tube_radius,
                                       args.gaussian, args.compress_th,
