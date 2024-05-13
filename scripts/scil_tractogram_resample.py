@@ -77,7 +77,7 @@ def _build_arg_parser():
                           help='Maximum distance to generate streamlines '
                                'around the original ones [%(default)s].')
     up_group.add_argument('--gaussian', metavar='SIGMA',
-                          type=ranged_type(float, 0, None),
+                          type=ranged_type(float, 0, None, min_excluded=True),
                           help='Sigma for smoothing. Use the value of '
                                'surrounding X,Y,Z points on the '
                                'streamline to blur the streamlines.\n'
