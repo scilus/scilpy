@@ -23,7 +23,6 @@ import numpy as np
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg, add_reference_arg,
                              assert_inputs_exist, assert_outputs_exist,
-                             assert_output_dirs_exist_and_empty,
                              add_verbose_arg)
 from scilpy.tractograms.tractogram_operations import (
     split_sft_sequentially,
@@ -41,10 +40,8 @@ def _build_arg_parser():
     p.add_argument('out_prefix',
                    help='Prefix for the output tractogram, index will be '
                         'appended \nautomatically (ex, _0.trk), based on '
-                        'input type.')
-
-    p.add_argument('--out_dir', default='',
-                   help='Put all output tractogram in a specific directory.')
+                        'input type. \nMay contain the path. Else, will be '
+                        'saved in current directory.')
 
     group = p.add_mutually_exclusive_group(required=True)
     group.add_argument('--chunk_size', type=int,
@@ -84,15 +81,17 @@ def main():
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
+    # Verifications
     assert_inputs_exist(parser, args.in_tractogram, args.reference)
-    _, out_extension = os.path.splitext(args.in_tractogram)
 
-    assert_output_dirs_exist_and_empty(parser, args, [], optional=args.out_dir)
+    # out_names are: out_dir/out_prefix_0.trk, etc.
     # Check only the first potential output filename, we don't know how many
     # there are yet.
-    assert_outputs_exist(parser, args, os.path.join(
-        args.out_dir, '{}_0{}'.format(args.out_prefix, out_extension)))
+    _, out_extension = os.path.splitext(args.in_tractogram)
+    assert_outputs_exist(parser, args, '{}_0{}'
+                         .format(args.out_prefix, out_extension))
 
+    # Loading
     logging.info("Loading sft.")
     sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
     streamlines_count = len(sft.streamlines)
@@ -103,14 +102,15 @@ def main():
     else:
         chunk_size = args.chunk_size
         nb_chunks = int(streamlines_count/chunk_size)+1
+    logging.info("Will split the tractogram into {} files of {} streamlines."
+                 .format(nb_chunks, chunk_size))
 
     # Check other outputs
     out_names = ['{0}_{1}{2}'.format(args.out_prefix, i, out_extension) for
                  i in range(nb_chunks)]
-    assert_outputs_exist(parser, args,
-                         [os.path.join(args.out_dir, out_names[i]) for i in
-                          range(1, nb_chunks)])
+    assert_outputs_exist(parser, args, out_names)
 
+    # Processing
     # All chunks will be equal except the last one
     chunk_sizes = np.ones((nb_chunks,), dtype=np.int16) * chunk_size
     chunk_sizes[-1] += (streamlines_count - chunk_size * nb_chunks)
@@ -122,12 +122,16 @@ def main():
         # streamlines. Should be of size close to 0. Not using it.
         sfts = split_sft_randomly_per_cluster(
             sft, chunk_sizes, args.seed, args.qbx_thresholds)
+        logging.info("Splitting per cluster may lead to a small variability "
+                     "in the final tractogram sizes. We got sizes: {}. "
+                     "({} streamlines were not included in any tractogram)."
+                     .format([len(sft) for sft in sfts[:-1]], len(sfts[-1])))
     else:
         sfts = split_sft_randomly(sft, chunk_sizes, args.seed)
 
+    # Saving
     for i in range(nb_chunks):
-        out_name = os.path.join(args.out_dir, out_names[i])
-        save_tractogram(sfts[i], out_name)
+        save_tractogram(sfts[i], out_names[i])
 
 
 if __name__ == "__main__":
