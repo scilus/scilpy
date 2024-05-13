@@ -4,6 +4,15 @@
 """
 Compute a density map of seeds saved in .trk file.
 
+* They are saved as a data_per_streamline 'seeds' when using our tractography
+scripts with option --save_seeds.
+- scil_tracking_local.py
+- scil_tracking_local_dev.py
+- scil_tracking_pft.py.
+
+If you use your own tractograms, you can create a 'seeds' data_per_streamline.
+Don't forget to save the coordinates in voxel space, corner origin.
+
 Formerly: scil_compute_seed_density_map.py
 """
 
@@ -19,7 +28,7 @@ from scilpy.io.utils import (add_bbox_arg,
                              add_verbose_arg,
                              add_overwrite_arg,
                              assert_inputs_exist,
-                             assert_outputs_exist)
+                             assert_outputs_exist, ranged_type)
 
 
 def _build_arg_parser():
@@ -33,11 +42,14 @@ def _build_arg_parser():
     p.add_argument('seed_density_filename',
                    help='Output seed density filename. Format must be Nifti.')
     p.add_argument('--binary',
-                   metavar='FIXED_VALUE', type=int, nargs='?', const=1,
+                   metavar='FIXED_VALUE',
+                   type=ranged_type(int, 0, np.iinfo(np.int16).max,
+                                    min_excluded=True),
+                   nargs='?', const=1,
                    help='If set, will store the same value for all intersected'
                         ' voxels, creating a binary map.\n'
                         'When set without a value, 1 is used (and dtype '
-                        'uint8).\nIf a value is given, will be used as the '
+                        'uint8).\nIf a value is given, it will be used as the '
                         'stored value.')
 
     add_bbox_arg(p)
@@ -60,14 +72,9 @@ def main():
         raise ValueError("Invalid input streamline file format " +
                          "(must be trk): {0}".format(args.tractogram_filename))
 
-    max_ = np.iinfo(np.int16).max
-    if args.binary is not None and (args.binary <= 0 or args.binary > max_):
-        parser.error('The value of --binary ({}) '
-                     'must be greater than 0 and smaller or equal to {}'
-                     .format(args.binary, max_))
-
     # Load files and data. TRKs can have 'same' as reference
     # Can handle streamlines outside of bbox, if asked by user.
+    logging.info("Loading tractogram")
     sft = load_tractogram(args.tractogram_filename, 'same',
                           bbox_valid_check=args.bbox_check)
 
@@ -89,11 +96,9 @@ def main():
     if 'seeds' not in sft.data_per_streamline:
         parser.error('Tractogram does not contain seeds.')
 
-    seeds = sft.data_per_streamline['seeds']
-
     # Create seed density map
     seed_density = np.zeros(shape, dtype=np.int32)
-    for seed in seeds:
+    for seed in sft.data_per_streamline['seeds']:
         # Set value at mask, either binary or increment
         seed_voxel = np.round(seed).astype(int)
         dtype_to_use = np.int32
@@ -105,6 +110,7 @@ def main():
             seed_density[tuple(seed_voxel)] += 1
 
     # Save seed density map
+    logging.info("Saving out density map.")
     dm_img = Nifti1Image(seed_density.astype(dtype_to_use), affine)
     dm_img.to_filename(args.seed_density_filename)
 
