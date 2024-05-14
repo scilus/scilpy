@@ -110,24 +110,23 @@ def _build_arg_parser():
                    help='Minimum length of streamlines, in mm. [%(default)s]')
     p.add_argument('--maxL', default=np.inf, type=ranged_type(float, 0, None),
                    help='Maximum length of streamlines, in mm. [%(default)s]')
-    p.add_argument('-a', dest='angle', default=np.inf,
-                   type=ranged_type(float, 0, None),
-                   help='Maximum looping (or turning) angle of\n' +
-                        'a streamline, in degrees. [%(default)s]')
+    p.add_argument('--angle', default=np.inf, type=ranged_type(float, 0, None),
+                   help='Maximum looping (or turning) angle of a streamline, '
+                        '\nin degrees. [%(default)s]')
 
     p.add_argument('--csf_bin',
-                   help='Allow CSF endings filtering with this binary\n' +
+                   help='Allow CSF endings filtering with this binary\n' 
                         'mask instead of using the atlas (.nii or .nii.gz)')
-    p.add_argument('--ctx_dilation_radius', default=0.,
-                   type=ranged_type(float, 0, None),
-                   help='Cortical labels dilation radius, in mm.\n' +
-                        ' [%(default)s]')
+    p.add_argument('--dilate_ctx', metavar='value',
+                   type=ranged_type(int, 1, None),
+                   help='If set, dilate the cortical labels. Value is the '
+                        'dilation \nradius, in voxels (an integer > 0)')
     p.add_argument('--save_intermediate_tractograms', action='store_true',
-                   help='Save accepted and discarded streamlines\n' +
-                        ' after each step.')
+                   help='Save accepted and discarded streamlines after each ' 
+                        'step.')
     p.add_argument('--save_volumes', action='store_true',
-                   help='Save volumetric images (e.g. binarised label\n' +
-                        ' images, etc) in the filtering process.')
+                   help='Save volumetric images (e.g. binarised label \n' 
+                        'images, etc) in the filtering process.')
     p.add_argument('--save_counts', action='store_true',
                    help='Save the streamline counts to a file (.json)')
     p.add_argument('--save_rejected', action='store_true',
@@ -224,8 +223,8 @@ def main():
     if np.isinf(args.angle):
         logging.info("You have not specified the angle. Loops will "
                      "not be filtered!")
-    if args.ctx_dilation_radius == 0:
-        logging.info("You have not specified the cortex dilation radius. "
+    if args.dilate_ctx is None:
+        logging.info("You have not chosen a value for --dilate_ctx. "
                      "The wmparc atlas will not be dilated!")
 
     # Prepare output names
@@ -235,17 +234,6 @@ def main():
 
     # Loading
     img_wmparc = nib.load(args.in_wmparc)
-    vox_size = np.reshape(img_wmparc.header.get_zooms(), (1, 3))
-    dilation_nb_pass = 0
-    if args.ctx_dilation_radius:
-        res = np.max(vox_size)
-        dilation_nb_pass = int(args.ctx_dilation_radius // res)
-        if dilation_nb_pass < 1:
-            parser.error("Cannot do a dilation of {}mm! The voxel size is "
-                         "{}mm. Even doing a one-pass dilation would dilate "
-                         "more than wanted."
-                         .format(args.ctx_dilation_radius, res))
-
     sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
     wm_labels = load_wmparc_labels()  # Loads labels from our own data
 
@@ -341,14 +329,8 @@ def main():
                                                 wm_labels["nuclei_fs_labels"])
 
     # Dilation of cortex
-    if dilation_nb_pass >= 1:
-        if not np.all(vox_size == res):
-            logging.warning("Voxels are not isotropic (resolution: {})."
-                            "We dilate with a {}-pass dilation, equivalent, "
-                            "in each direction, to: {}"
-                            .format(res, dilation_nb_pass,
-                                    res * dilation_nb_pass))
-        ctx_mask = binary_dilation(wmparc_ctx, iterations=dilation_nb_pass)
+    if args.dilate_ctx is not None:
+        ctx_mask = binary_dilation(wmparc_ctx, iterations=args.dilate_ctx)
     else:
         ctx_mask = wmparc_ctx
 

@@ -813,32 +813,48 @@ def dilation(input_list, ref_img):
     """
     dilation: IMG, VALUE
         Binary morphological operation to spatially extend the values of an
-        image to their neighbors. VALUE is in voxels.
-        If VALUE is 0, the dilation is repeated until the result does not
-        change anymore.
+        image to their neighbors. VALUE is in voxels: an integer > 0.
     """
     _validate_length(input_list, 2)
     _validate_type(input_list[0], nib.Nifti1Image)
-    _validate_float(input_list[1])
+    _validate_float(input_list[1])  # scipy will raise an error if not an int.
+
+    # Scipy's definition of iteration:
+    # If iterations is less than 1, the dilation is repeated until the result
+    # does not change anymore.
+    # Not want we want, here.
+    nb_pass = int(input_list[1])
+    if nb_pass < 1:
+        raise ValueError("Dilation value (radius in number of voxels) "
+                         "should be an integer of at least 1, but got {}."
+                         .format(nb_pass))
 
     return binary_dilation(input_list[0].get_fdata(dtype=np.float64),
-                           iterations=int(input_list[1]))
+                           iterations=nb_pass)
 
 
 def erosion(input_list, ref_img):
     """
     erosion: IMG, VALUE
         Binary morphological operation to spatially shrink the volume contained
-        in a binary image. VALUE is in voxels.
-        If VALUE is 0, the erosion is repeated until the result does not
-        change anymore.
+        in a binary image. VALUE is in voxels: an integer > 0.
     """
     _validate_length(input_list, 2)
     _validate_type(input_list[0], nib.Nifti1Image)
-    _validate_float(input_list[1])
+    _validate_float(input_list[1])  # scipy will raise an error if not an int.
+
+    # Scipy's definition of iteration:
+    # If iterations is less than 1, the erosion is repeated until the result
+    # does not change anymore.
+    # Not want we want, here.
+    nb_pass = int(input_list[1])
+    if nb_pass < 1:
+        raise ValueError("Erosion value (radius in number of voxels) "
+                         "should be an integer of at least 1, but got {}."
+                         .format(nb_pass))
 
     return binary_erosion(input_list[0].get_fdata(dtype=np.float64),
-                          iterations=int(input_list[1]))
+                          iterations=nb_pass)
 
 
 def closing(input_list, ref_img):
