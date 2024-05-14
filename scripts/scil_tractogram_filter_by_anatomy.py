@@ -115,17 +115,17 @@ def _build_arg_parser():
                         '\nin degrees. [%(default)s]')
 
     p.add_argument('--csf_bin',
-                   help='Allow CSF endings filtering with this binary\n' 
+                   help='Allow CSF endings filtering with this binary\n'
                         'mask instead of using the atlas (.nii or .nii.gz)')
     p.add_argument('--dilate_ctx', metavar='value',
                    type=ranged_type(int, 1, None),
                    help='If set, dilate the cortical labels. Value is the '
                         'dilation \nradius, in voxels (an integer > 0)')
     p.add_argument('--save_intermediate_tractograms', action='store_true',
-                   help='Save accepted and discarded streamlines after each ' 
+                   help='Save accepted and discarded streamlines after each '
                         'step.')
     p.add_argument('--save_volumes', action='store_true',
-                   help='Save volumetric images (e.g. binarised label \n' 
+                   help='Save volumetric images (e.g. binarised label \n'
                         'images, etc) in the filtering process.')
     p.add_argument('--save_counts', action='store_true',
                    help='Save the streamline counts to a file (.json)')
