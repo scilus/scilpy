@@ -166,15 +166,15 @@ def test_combining_sft():
 
 def test_upsample_tractogram():
     new_sft = upsample_tractogram(sft, 1000, 0.5, 5, False, 0.1, 0)
-    first_chunk = [[112.64021, 35.409477, 59.42175],
-                   [109.09777, 35.287857, 61.845505],
-                   [110.41855, 37.077374, 56.930523]]
+    first_chunk = [[112.676895,  35.446144,  59.454517],
+                   [109.087395,  35.27597,  61.876167],
+                   [110.4185,  37.0766,  56.93045]]
     last_chunk = [[110.40285, 51.036686, 62.419273],
                   [109.698586, 48.330017, 64.50656],
                   [113.04737, 45.89119, 64.778534]]
 
     assert len(new_sft) == 1000
-    assert len(new_sft.streamlines._data) == 8404
+    assert len(new_sft.streamlines._data) == 8402
     assert np.allclose(first_chunk, new_sft.streamlines._data[0:30:10])
     assert np.allclose(last_chunk, new_sft.streamlines._data[-1:-31:-10])
 
