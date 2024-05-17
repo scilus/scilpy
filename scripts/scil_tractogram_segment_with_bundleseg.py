@@ -37,13 +37,11 @@ import os
 import coloredlogs
 import numpy as np
 
-from scilpy.io.utils import (add_overwrite_arg,
-                             add_processes_arg,
+from scilpy.io.utils import (add_overwrite_arg, add_processes_arg,
+                             add_reference_arg, add_verbose_arg,
                              assert_inputs_exist,
                              assert_output_dirs_exist_and_empty,
-                             load_matrix_in_any_format,
-                             add_verbose_arg,
-                             add_reference_arg)
+                             load_matrix_in_any_format, ranged_type)
 from scilpy.segment.voting_scheme import VotingScheme
 
 EPILOG = """
@@ -66,7 +64,7 @@ def _build_arg_parser():
                    help='Path of the config file (.json)')
     p.add_argument('in_directory',
                    help='Path of parent folder of models directories.\n'
-                        'Each folder inside will be considered as a'
+                        'Each folder inside will be considered as a '
                         'different atlas.')
     p.add_argument('in_transfo',
                    help='Path for the transformation to model space '
@@ -74,7 +72,8 @@ def _build_arg_parser():
 
     p.add_argument('--out_dir', default='voting_results',
                    help='Path for the output directory [%(default)s].')
-    p.add_argument('--minimal_vote_ratio', type=float, default=0.5,
+    p.add_argument('--minimal_vote_ratio',
+                   type=ranged_type(float, 0, 1), default=0.5,
                    help='Streamlines will only be considered for saving if\n'
                         'recognized often enough.\n'
                         'The ratio is a value between 0 and 1. Ex: If you '
@@ -100,28 +99,35 @@ def main():
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
-    args.in_models_directories = [os.path.join(args.in_directory, x)
-                                  for x in os.listdir(args.in_directory)
-                                  if os.path.isdir(os.path.join(
-                                                    args.in_directory, x))]
+    # Verifications
+    in_models_directories = [
+        os.path.join(args.in_directory, x) 
+        for x in os.listdir(args.in_directory)
+        if os.path.isdir(os.path.join(args.in_directory, x))]
+    if len(in_models_directories) == 0:
+        parser.error("Found no model in {}".format(args.in_directory))
+    logging.info("Found {} models in your model directory!"
+                 .format(len(in_models_directories)))
 
     assert_inputs_exist(parser, args.in_tractograms +
                         [args.in_config_file, args.in_transfo],
                         args.reference)
+    assert_output_dirs_exist_and_empty(parser, args, args.out_dir)
 
+    # Loading
+    transfo = load_matrix_in_any_format(args.in_transfo)
+    with open(args.in_config_file) as json_data:
+        config = json.load(json_data)
+
+    # (verifying now tractograms' extensions. Loading will only be later.)
     for in_tractogram in args.in_tractograms:
         ext = os.path.splitext(in_tractogram)[1]
         if ext not in ['.trk', '.trx'] and args.reference is None:
-            parser.error('A reference is needed for {} file'.format(ext))
+            parser.error('A reference is needed for {} files'.format(ext))
 
-    for directory in args.in_models_directories:
-        if not os.path.isdir(directory):
-            parser.error('Input folder {0} does not exist'.format(directory))
-
-    assert_output_dirs_exist_and_empty(parser, args, args.out_dir)
-
-    file_handler = logging.FileHandler(filename=os.path.join(args.out_dir,
-                                                             'logfile.txt'))
+    # Managing the logging
+    file_handler = logging.FileHandler(
+        filename=os.path.join(args.out_dir, 'logfile.txt'))
     formatter = logging.Formatter(
         fmt='%(asctime)s, %(name)s %(levelname)s %(message)s',
         datefmt='%H:%M:%S')
@@ -129,16 +135,14 @@ def main():
     logging.getLogger().addHandler(file_handler)
     coloredlogs.install(level=logging.getLevelName(args.verbose))
 
-    transfo = load_matrix_in_any_format(args.in_transfo)
+    # Processing.
     if args.inverse:
-        transfo = np.linalg.inv(load_matrix_in_any_format(args.in_transfo))
+        transfo = np.linalg.inv(transfo)
 
-    with open(args.in_config_file) as json_data:
-        config = json.load(json_data)
-
+    # Note. Loading and saving are managed through the VotingScheme class.
     # For code simplicity, it is still RecobundlesX class and all, but
     # the last pruning step was modified to be in line with BundleSeg.
-    voting = VotingScheme(config, args.in_models_directories,
+    voting = VotingScheme(config, in_models_directories,
                           transfo, args.out_dir,
                           minimal_vote_ratio=args.minimal_vote_ratio)
 
