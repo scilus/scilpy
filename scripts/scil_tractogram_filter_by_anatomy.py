@@ -12,6 +12,8 @@ See also:
     - scil_tractogram_filter_by_length.py
     - scil_tractogram_filter_by_orientation.py
     - scil_tractogram_filter_by_roi.py
+    - scil_labels_dilate.py
+    (This script is a combination of all these scripts, in one step).
 
 The filtering is performed sequentially in four steps, each step processing the
 data on the output of the previous step:
@@ -28,7 +30,7 @@ data on the output of the previous step:
              dilated using the ``--ctx_dilation_radius``.
     Step 4 - Remove streamlines if they make a loop with an angle above a
              certain threshold. It's possible to change this angle with the
-             ``-a`` option.
+             ``--angle`` option.
 
 Length and loop-based filtering (steps 1 and 2) will not have practical effects
 if no specific thresholds are provided (but will be still executed), since
@@ -40,12 +42,15 @@ file including the cerebrospinal fluid and gray matter (cortical) regions
 according to the Desikan-Killiany atlas. Intermediate tractograms (results of
 each step and outliers) and volumes can be saved throughout the process.
 
-Example usages:
+Usage examples:
 
-# Filter length, looping angle and anatomical ending region
+-  Filter out "bad streamlines" using length, looping angle and anatomical
+ending region (must end in the gray matter).
 >>> scil_tractogram_filter_by_anatomy.py tractogram.trk wmparc.nii.gz
-    path/to/output/directory --minL 20 --maxL 200 -a 300
-# Filter only anatomical ending region, with WM dilation and provided csf mask
+    path/to/output/directory --minL 20 --maxL 200 --angle 300
+
+- Filter out "bad streamline" using only anatomical ending region, with WM
+dilation and provided CSF mask.
 >>> scil_tractogram_filter_by_anatomy.py tractogram.trk wmparc.nii.gz
     path/to/output/directory --csf_bin csf_bin.nii.gz --ctx_dilation_radius 2
 

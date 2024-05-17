@@ -63,6 +63,21 @@ Anisotropic data will affect each direction differently.
     When using --overwrite_distance, any filtering option with given criteria
 will have its DISTANCE value replaced.
 
+Usage examples:
+---------------
+- Filter out "bad streamlines" that have points out of the brain mask.
+>>> scil_tractogram_filter_by_roi.py my_tractogram.trk bettter_tractogram.trk \
+    --drawn_roi t1_bet_mask.nii.gz 'all' 'include'
+
+- Segment a bundle or reject outliers from a roughly segmented bundles by
+keeping only streamlines connecting region1 and region2 and entirely situated
+in the frontal part of the brain, not touching some lesion ROI.
+>>> scil_tractogram_filter_by_roi.py my_tractogram.trk segmented_bundle.trk \
+   --drawn_roi region1.nii.gz 'either_end' 'include' \
+   --drawn_roi region2.nii.gz 'either_end' 'include' \
+   --drawn_roi frontal_lobe.nii.gz 'all' 'include' \
+   --drawn_roi lesion.nii.gz 'any' 'exclude'
+
 Formerly: scil_filter_tractogram.py
 """
 
