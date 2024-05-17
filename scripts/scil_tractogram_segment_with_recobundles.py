@@ -126,6 +126,13 @@ def main():
     if args.inverse:
         transfo = np.linalg.inv(transfo)
 
+    # Dipy's method below use RASMM space, CENTER origin. This is the default.
+    # But, just to be sure:
+    wb_sft.to_rasmm()
+    wb_sft.to_center()
+    model_sft.to_rasmm()
+    model_sft.to_center()
+
     # 1) Register the streamlines to the model space (apply transform)
     before, after = compute_distance_barycenters(wb_sft, model_sft, transfo)
     if after > before:
