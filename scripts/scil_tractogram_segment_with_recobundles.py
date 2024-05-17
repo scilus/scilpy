@@ -24,14 +24,13 @@ import argparse
 import logging
 import pickle
 
-from dipy.io.stateful_tractogram import Space, StatefulTractogram
-from dipy.io.streamline import save_tractogram
 from dipy.segment.bundles import RecoBundles
 from dipy.tracking.streamline import transform_streamlines
 from nibabel.streamlines.array_sequence import ArraySequence
 import numpy as np
 
-from scilpy.io.streamlines import load_tractogram_with_reference
+from scilpy.io.streamlines import (load_tractogram_with_reference,
+                                   save_tractogram)
 from scilpy.io.utils import (add_overwrite_arg,
                              add_reference_arg,
                              add_verbose_arg,
@@ -92,7 +91,8 @@ def _build_arg_parser():
     group.add_argument('--out_pickle',
                        help='Output pickle clusters map file.')
 
-    add_reference_arg(p)
+    add_reference_arg(p, 'in_tractogram')
+    add_reference_arg(p, 'in_model')
     add_verbose_arg(p)
     add_overwrite_arg(p)
 
@@ -118,8 +118,10 @@ def main():
         args.tractogram_clustering_thr = 8.0
 
     # Loading
-    wb_sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
-    model_sft = load_tractogram_with_reference(parser, args, args.in_model)
+    wb_sft = load_tractogram_with_reference(parser, args, args.in_tractogram,
+                                            arg_name='in_tractogram')
+    model_sft = load_tractogram_with_reference(parser, args, args.in_model,
+                                               arg_name='in_model')
     transfo = load_matrix_in_any_format(args.in_transfo)
 
     # Processing
@@ -172,13 +174,7 @@ def main():
 
     # Save results
     bundle_sft = wb_sft[indices]
-    save_tractogram(sft, filename, no_empty)
-    if not args.no_empty or new_streamlines:
-        sft = StatefulTractogram(new_streamlines, wb_sft.space_attributes,
-                                 Space.RASMM,
-                                 data_per_streamline=new_data_per_streamlines,
-                                 data_per_point=new_data_per_points)
-        save_tractogram(sft, args.out_tractogram)
+    save_tractogram(bundle_sft, args.out_tractogram, args.no_empty)
 
 
 if __name__ == '__main__':
