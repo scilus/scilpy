@@ -31,12 +31,10 @@ import numpy as np
 
 from scilpy.io.streamlines import (load_tractogram_with_reference,
                                    save_tractogram)
-from scilpy.io.utils import (add_overwrite_arg,
-                             add_reference_arg,
-                             add_verbose_arg,
-                             assert_inputs_exist,
-                             assert_outputs_exist,
-                             load_matrix_in_any_format, ranged_type)
+from scilpy.io.utils import (add_overwrite_arg, add_reference_arg,
+                             add_verbose_arg, assert_inputs_exist,
+                             assert_outputs_exist, load_matrix_in_any_format,
+                             ranged_type)
 from scilpy.utils.spatial import compute_distance_barycenters
 
 EPILOG = """
@@ -64,7 +62,7 @@ def _build_arg_parser():
     g = p.add_argument_group("Recobundles options")
     g.add_argument('--tractogram_clustering_thr',
                    type=ranged_type(float, 0, None),
-                   help='Clustering threshold used for the whole brain '
+                   help='Clustering threshold used for the whole brain. '
                         'Default: 8.')
     g.add_argument('--model_clustering_thr',
                    type=ranged_type(float, 0, None), default=4,
@@ -106,7 +104,8 @@ def main():
 
     # Verifications
     assert_inputs_exist(parser, [args.in_tractogram, args.in_transfo],
-                        [args.reference, args.in_pickle])
+                        [args.in_tractogram_ref, args.in_model_ref,
+                         args.in_pickle])
     assert_outputs_exist(parser, args, args.out_tractogram,
                          args.out_pickle)
 
