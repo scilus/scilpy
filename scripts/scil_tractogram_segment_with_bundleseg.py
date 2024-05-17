@@ -3,21 +3,21 @@
 
 """
 Compute BundleSeg & supports multi-atlas & multi-parameters (RBx-like).
-The model needs to be cleaned and lightweight.
-Transform should come from ANTs: (using the --inverse flag)
-AntsRegistrationSyNQuick.sh -d 3 -m MODEL_REF -f SUBJ_REF
 
-If you are not sure about the transformation 'direction' you can try
-scil_tractogram_segment_bundles.py (with the -v option), a warning will popup
-if the provided transformation is not used correctly.
+For a single bundle segmentation, see the lighter version:
+>>> scil_tractogram_segment_with_recobundles.py
 
-The number of folders inside 'models_directories' will increase the number of
+Hints:
+- The model needs to be cleaned and lightweight.
+- The transform should come from ANTs: (using the --inverse flag)
+  >>> AntsRegistrationSyNQuick.sh -d 3 -m MODEL_REF -f SUBJ_REF
+  If you are not sure about the transformation 'direction' you can try
+scil_tractogram_segment_with_recobundles.py. See its documentation for
+explanation on how to verify the direction.
+- The number of folders inside 'models_directories' will increase the number of
 runs. Each folder is considered like an atlas and bundles inside will initiate
 more BundleSeg executions. The more atlases you have, the more robust the
 recognition will be.
-
---minimal_vote_ratio is a value between 0 and 1. If you have 5 input model
-directories and a minimal_vote_ratio of 0.5, you will need at least 3 votes
 
 Example data and usage available at: https://zenodo.org/record/7950602
 
@@ -76,7 +76,11 @@ def _build_arg_parser():
                    help='Path for the output directory [%(default)s].')
     p.add_argument('--minimal_vote_ratio', type=float, default=0.5,
                    help='Streamlines will only be considered for saving if\n'
-                        'recognized often enough [%(default)s].')
+                        'recognized often enough.\n'
+                        'The ratio is a value between 0 and 1. Ex: If you '
+                        'have 5 input model directories and a '
+                        'minimal_vote_ratio of 0.5, you will need at least 3'
+                        'votes. [%(default)s]')
 
     p.add_argument('--seed', type=int, default=0,
                    help='Random number generator seed %(default)s.')

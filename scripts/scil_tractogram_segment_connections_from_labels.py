@@ -2,31 +2,58 @@
 # -*- coding: utf-8 -*-
 
 """
-Compute a connectivity matrix from a tractogram and a parcellation.
+Divide a tractogram into its various connections using a brain parcellation
+(labels). Allows using our connectivity scripts. See for instance:
+>>> scil_connectivity_compute_matrices.py
 
-Current strategy is to keep the longest streamline segment connecting 2
+The hdf5 output format allows to store other information required for
+connectivity, such as the associated labels. To visualize the segmented
+bundles, it is possible to convert the result using:
+>>> scil_tractogram_convert_hdf5_to_trk.py
+
+Cleaning your tractogram
+------------------------
+Outliers may influence strongly the connectivity analysis. We recommand
+cleaning your tractogram as much as possible beforehand. Options are offered in
+this script and are activated by default.
+For the --outlier_threshold option, the default is our recommended trade-off
+for a good freesurfer parcellation. With smaller parcels (brainnetome, glasser)
+the threshold should most likely be reduced.
+
+See also:
+    - scil_tractogram_filter_by_anatomy.py
+    - scil_tractogram_filter_by_length.py
+    - scil_tractogram_filter_by_roi.py
+    - scil_tractogram_detect_loops.py
+
+The segmentation process
+------------------------
+Segmenting a tractogram based on its endpoints is not as straighforward as one
+could imagine. [EXPLAIN THE ISSUES]
+The current strategy is to keep the longest streamline segment connecting 2
 regions. If the streamline crosses other gray matter regions before reaching
 its final connected region, the kept connection is still the longest. This is
 robust to compressed streamlines.
-
-The output file is a hdf5 (.h5) where the keys are 'LABEL1_LABEL2' and each
-group is composed of 'data', 'offsets' and 'lengths' from the array_sequence.
-The 'data' is stored in VOX/CORNER for simplicity and efficiency. See script
-scil_tractogram_convert_hdf5_to_trk.py to convert to a list of .trk bundles.
-
-For the --outlier_threshold option the default is a recommended good trade-off
-for a freesurfer parcellation. With smaller parcels (brainnetome, glasser) the
-threshold should most likely be reduced.
-
-Good candidate connections to QC are the brainstem to precentral gyrus
-connection and precentral left to precentral right connection, or equivalent
-in your parcellation.
 
 NOTE: this script can take a while to run. Please be patient.
 Example: on a tractogram with 1.8M streamlines, running on a SSD:
 - 15 minutes without post-processing, only saving final bundles.
 - 30 minutes with full post-processing, only saving final bundles.
 - 60 minutes with full post-processing, saving all possible files.
+
+Verifying the results
+---------------------
+Good candidate connections to use for quality control (QC) are 1) the brainstem
+to precentral gyrus connection and 2) the precentral left to precentral right
+connection, or equivalent in your parcellation.
+
+The output hdf5 architecture (nerdy stuff)
+----------------------------
+The output file is a hdf5 (.h5) where each bundle is a group with key
+'LABEL1_LABEL2' and each. The array_sequence format cannot be stored directly
+in a hdf5, so each group is composed of 'data', 'offsets' and 'lengths' from
+the array_sequence. The 'data' is stored in VOX/CORNER for simplicity and
+efficiency.
 
 Formerly: scil_decompose_connectivity.py
 """
@@ -238,7 +265,8 @@ def main():
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
     coloredlogs.install(level=logging.getLevelName(args.verbose))
 
-    assert_inputs_exist(parser, args.in_tractograms+[args.in_labels],
+    # Verifications
+    assert_inputs_exist(parser, args.in_tractograms + [args.in_labels],
                         args.reference)
     assert_outputs_exist(parser, args, args.out_hdf5)
     nbr_cpu = validate_nbr_processes(parser, args)

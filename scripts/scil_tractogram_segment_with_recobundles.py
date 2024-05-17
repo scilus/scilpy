@@ -2,16 +2,21 @@
 # -*- coding: utf-8 -*-
 
 """
-Compute a simple Recobundles (single-atlas & single-parameters).
-The model need to be cleaned and lightweight.
-Transform should come from ANTs: (using the --inverse flag)
-AntsRegistrationSyNQuick.sh -d 3 -m MODEL_REF -f SUBJ_REF
+Segment a single bundle by computing a simple Recobundles (single-atlas &
+single-parameters).
 
-If you are unsure about the transformation 'direction' use the verbose
+For multiple bundles segmentation (using RecobundlesX / BundleSeg), see instead
+>>> scil_tractogram_segment_with_bundleseg.py
+
+Hints:
+- The model needs to be cleaned and lightweight.
+- The transform should come from ANTs: (using the --inverse flag)
+  >>> AntsRegistrationSyNQuick.sh -d 3 -m MODEL_REF -f SUBJ_REF
+  If you are unsure about the transformation 'direction' use the verbose
 option (-v) and try with and without the --inverse flag. If you are not using
 the right transformation 'direction' a warning will popup. If there is no
-warning in both case it means the transformation is very close to identity and
-both 'direction' will work.
+warning in both case, it means the transformation is very close to identity and
+both 'directions' will work.
 
 Formerly: scil_recognize_single_bundles.py
 """
@@ -37,18 +42,16 @@ from scilpy.io.utils import (add_overwrite_arg,
 from scilpy.utils.spatial import compute_distance_barycenters
 
 EPILOG = """
-Garyfallidis, E., Cote, M. A., Rheault, F., ... &
-Descoteaux, M. (2018). Recognition of white matter
-bundles using local and global streamline-based registration and
-clustering. NeuroImage, 170, 283-295.
+Garyfallidis, E., Cote, M. A., Rheault, F., ... & Descoteaux, M. (2018). 
+Recognition of white matter bundles using local and global streamline-based 
+registration and clustering. NeuroImage, 170, 283-295.
 """
 
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(
         formatter_class=argparse.RawTextHelpFormatter,
-        description=__doc__,
-        epilog=EPILOG)
+        description=__doc__, epilog=EPILOG)
 
     p.add_argument('in_tractogram',
                    help='Input tractogram filename.')
