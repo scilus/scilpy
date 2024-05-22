@@ -29,7 +29,7 @@ import shutil
 
 from dipy.io.stateful_tractogram import StatefulTractogram
 from dipy.io.streamline import load_tractogram, save_tractogram
-from dipy.io.utils import is_header_compatible, get_reference_info
+from dipy.io.utils import get_reference_info
 from dipy.segment.clustering import qbx_and_merge
 import nibabel as nib
 import numpy as np
@@ -79,8 +79,7 @@ def _build_arg_parser():
     p.add_argument('--ratio', action='store_true',
                    help='Compute overlap and overreach as a ratio over the\n'
                         'reference tractogram in a Tractometer-style way.\n'
-                        'Can only be used if also using the `single_compare` '
-                        'option.')
+                        'Can only be used if also using --single_compare.')
 
     add_processes_arg(p)
     add_reference_arg(p)
@@ -105,7 +104,7 @@ def load_data_tmp_saving(args):
                                         '{}_density.nii.gz'.format(hash_tmp))
     tmp_endpoints_filename = os.path.join('tmp_measures/',
                                           '{}_endpoints.nii.gz'.format(
-                                                                    hash_tmp))
+                                              hash_tmp))
     tmp_centroids_filename = os.path.join('tmp_measures/',
                                           '{}_centroids.trk'.format(hash_tmp))
 
@@ -308,8 +307,8 @@ def main():
         single_compare_reference_tuple = \
             bundles_references_tuple_extended.pop()
         comb_dict_keys = list(itertools.product(
-                                        bundles_references_tuple_extended,
-                                        [single_compare_reference_tuple]))
+            bundles_references_tuple_extended,
+            [single_compare_reference_tuple]))
     else:
         bundles_list = args.in_bundles
         # Pre-compute the needed files, to avoid conflict when the number
@@ -336,9 +335,9 @@ def main():
 
     if nbr_cpu == 1:
         all_measures_dict = []
-        for i in comb_dict_keys:
+        for curr_tuple in comb_dict_keys:
             all_measures_dict.append(compute_all_measures([
-                i, args.streamline_dice,
+                curr_tuple, args.streamline_dice,
                 args.bundle_adjency_no_overlap,
                 args.disable_streamline_distance,
                 args.ratio]))
