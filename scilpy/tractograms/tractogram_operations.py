@@ -31,7 +31,8 @@ from scilpy.tractograms.streamline_operations import smooth_line_gaussian, \
     resample_streamlines_step_size, parallel_transport_streamline, \
     cut_invalid_streamlines, compress_sft, cut_invalid_streamlines, \
     remove_overlapping_points_streamlines, remove_single_point_streamlines
-from scilpy.tractograms.streamline_and_mask_operations import cut_outside_of_mask_streamlines
+from scilpy.tractograms.streamline_and_mask_operations import \
+    cut_outside_of_mask_streamlines
 from scilpy.utils.spatial import generate_rotation_matrix
 
 MIN_NB_POINTS = 10
@@ -1107,8 +1108,6 @@ def replace_streamlines_alter(sft, min_dice=0.90, epsilon=0.01):
         The tractogram with replaced streamlines in the same space as the input
         tractogram.
     """
-    # Import in function to avoid circular import error
-    from scilpy.tractanalysis.reproducibility_measures import compute_dice_voxel
     set_sft_logger_level(logging.ERROR)
 
     logging.debug('Upsampling the streamlines by a factor 2x to then '
@@ -1129,8 +1128,8 @@ def trim_streamlines_alter(sft, min_dice=0.90, epsilon=0.01):
 
     sft.to_vox()
     sft.to_corner()
-    original_density_map = compute_tract_counts_map(sft.streamlines,
-                                                    sft.dimensions).astype(np.uint64)
+    original_density_map = compute_tract_counts_map(
+        sft.streamlines, sft.dimensions).astype(np.uint64)
     thr_density = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024]
     thr_pos = 0
     voxels_to_remove = np.where(

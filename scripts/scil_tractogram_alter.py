@@ -33,7 +33,6 @@ until the minimum dice is reached. This affect the whole bundle.
 
 import argparse
 import logging
-import os
 
 from dipy.io.streamline import save_tractogram
 import numpy as np
@@ -44,17 +43,17 @@ from scilpy.io.utils import (add_overwrite_arg,
                              add_verbose_arg,
                              assert_inputs_exist,
                              assert_outputs_exist)
-from scilpy.tractograms.streamline_operations import remove_overlapping_points_streamlines, \
+from scilpy.tractograms.streamline_operations import \
+    remove_overlapping_points_streamlines, \
     remove_single_point_streamlines, cut_invalid_streamlines
 from scilpy.tractograms.tractogram_operations import transform_streamlines_alter, \
     trim_streamlines_alter, cut_streamlines_alter, subsample_streamlines_alter, \
-        replace_streamlines_alter, shuffle_streamlines, shuffle_streamlines_orientation
-
+    replace_streamlines_alter, shuffle_streamlines, shuffle_streamlines_orientation
 
 
 def buildArgsParser():
     p = argparse.ArgumentParser(description=__doc__,
-                                formatter_class = argparse.RawTextHelpFormatter)
+                                formatter_class=argparse.RawTextHelpFormatter)
     p.add_argument('in_bundle',
                    help='Input bundle filename (.trk, .tck).')
     p.add_argument('out_bundle',
@@ -83,10 +82,10 @@ def buildArgsParser():
                         'Only available with --cut.')
 
     p.add_argument('--seed', '-s', type=int, default=None,
-                help='Seed for RNG. Default based on --min_dice.')
+                   help='Seed for RNG. Default based on --min_dice.')
     p.add_argument('--shuffle', action='store_true',
-                     help='Shuffle the streamlines and orientation after'
-                          'alteration.')
+                   help='Shuffle the streamlines and orientation after'
+                   'alteration.')
     add_overwrite_arg(p)
     add_verbose_arg(p)
     add_reference_arg(p)
@@ -125,11 +124,11 @@ def main():
                                             from_start=not args.from_end)
     elif args.replace:
         altered_sft = replace_streamlines_alter(sft, args.min_dice,
-                                                 epsilon=args.epsilon)
+                                                epsilon=args.epsilon)
     elif args.transform:
         altered_sft = transform_streamlines_alter(sft, args.min_dice,
                                                   epsilon=args.epsilon)
-        
+
     # Some operations could have generated invalid streamlines
     altered_sft, _ = cut_invalid_streamlines(altered_sft)
     altered_sft = remove_single_point_streamlines(altered_sft)
