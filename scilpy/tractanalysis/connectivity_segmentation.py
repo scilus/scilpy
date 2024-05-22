@@ -15,7 +15,7 @@ from scilpy.tractograms.streamline_and_mask_operations import \
     compute_streamline_segment
 from scilpy.tractograms.streamline_operations import \
     (remove_loops as perform_remove_loops,
-     remove_loops_and_sharp_turns, remove_shap_turns_qb)
+     remove_shap_turns_qb, remove_streamlines_with_invalid_points)
 
 
 def extract_longest_segments_from_profile(strl_indices, atlas_data):
@@ -140,7 +140,7 @@ def compute_connectivity(indices, atlas_data, real_labels, segmenting_func):
 
 
 def construct_hdf5_from_connectivity(
-        whole_sft, vox_sizes, indices, points_to_idx,
+        sft, vox_sizes, indices, points_to_idx,
         real_labels, con_info, hdf5_file, saving_options, out_paths,
         prune_from_length, min_length, max_length,  # step 1
         remove_loops, loop_max_angle,               # step 2
@@ -151,7 +151,7 @@ def construct_hdf5_from_connectivity(
     """
     Parameters
     ----------
-    whole_sft: StatefulTractogram
+    sft: StatefulTractogram
         The tractogram.
     vox_sizes: list
         The 3D voxel size.
@@ -190,8 +190,8 @@ def construct_hdf5_from_connectivity(
     nbr_cpu: int
         Number of cpu for steps allowing multiprocessing.
     """
-    whole_sft.to_vox()
-    whole_sft.to_corner()
+    sft.to_vox()
+    sft.to_corner()
 
     comb_list = list(itertools.combinations(real_labels, r=2))
     comb_list.extend(zip(real_labels, real_labels))
@@ -204,7 +204,7 @@ def construct_hdf5_from_connectivity(
         if iteration_counter > 0 and iteration_counter % 100 == 0:
             logging.info('Processing connection {}/{}'
                          .format(iteration_counter, len(comb_list)))
-        logging.debug('Processing connection {}/{}: {} - {}'
+        logging.debug('Processing connection {}/{}: labels {} - {}'
                       .format(iteration_counter, len(comb_list),
                               in_label, out_label))
 
@@ -229,15 +229,15 @@ def construct_hdf5_from_connectivity(
         for connection in pair_info:
             strl_idx = connection['strl_idx']
             curr_streamlines = compute_streamline_segment(
-                whole_sft.streamlines[strl_idx],
+                sft.streamlines[strl_idx],
                 indices[strl_idx],
                 connection['in_idx'],
                 connection['out_idx'],
                 points_to_idx[strl_idx])
             current_streamlines.append(curr_streamlines)
             connecting_ids.append(strl_idx)
-        raw_dps = whole_sft.data_per_streamline[connecting_ids]
-        current_sft = StatefulTractogram.from_sft(current_streamlines, whole_sft,
+        raw_dps = sft.data_per_streamline[connecting_ids]
+        current_sft = StatefulTractogram.from_sft(current_streamlines, sft,
                                                   data_per_streamline=raw_dps,
                                                   data_per_point={})
         _save_intermediate(current_sft, saving_options, out_paths,
@@ -267,6 +267,8 @@ def construct_hdf5_from_connectivity(
                                step_name='invalid_length')
 
             # Remaining:
+            logging.debug("  Streamlines with valid length: {} / {}"
+                          .format(len(valid_length_ids), len(current_sft)))
             current_sft = current_sft[valid_length_ids]
             _save_intermediate(current_sft, saving_options, out_paths,
                                in_label, out_label, save_type='intermediate',
@@ -293,6 +295,8 @@ def construct_hdf5_from_connectivity(
                                step_name='loops')
 
             # Remaining:
+            logging.debug("  Streamlines with no loops: {} / {}"
+                          .format(len(no_loop_ids), len(current_sft)))
             no_loops_sft = current_sft[no_loop_ids]
             _save_intermediate(no_loops_sft, saving_options, out_paths,
                                in_label, out_label, save_type='intermediate',
@@ -319,6 +323,8 @@ def construct_hdf5_from_connectivity(
                                step_name='outliers')
 
             # Remaining:
+            logging.debug("  Streamlines with no outliers: {} / {}"
+                          .format(len(inliers_ids), len(current_sft)))
             current_sft = current_sft[inliers_ids]
             _save_intermediate(current_sft, saving_options, out_paths,
                                in_label, out_label, save_type='intermediate',
@@ -346,6 +352,8 @@ def construct_hdf5_from_connectivity(
                                step_name='qb_curv')
 
             # Remaining:
+            logging.debug("  Streamlines with no sharp turns: {} / {}"
+                          .format(len(no_qb_curv_ids), len(current_sft)))
             current_sft = current_sft[no_qb_curv_ids]
             # (Saving below; they are the final streamlines, saved even if
             # step 4 not done.)
@@ -353,18 +361,13 @@ def construct_hdf5_from_connectivity(
             logging.debug("- Step 4 skipped (not removing sharp turns)")
 
         # Final streamlines.
-        # Due to the cutting, streamlines can become invalid.
-        # toDo DEMANDER A FRANCOIS CA FAIT QUOI CA
-        indices = []
-        for i in range(len(current_sft)):
-            norm = np.linalg.norm(
-                np.gradient(current_sft.streamlines[i], axis=0), axis=1)
-            if (norm < 0.001).any():  # or len(sft.streamlines[i]) <= 1:
-                indices.append(i)
-        indices = np.setdiff1d(range(len(current_sft)),
-                               indices).astype(np.uint32)
-        current_sft = current_sft[indices]
+        # Due to the cutting, streamlines can become invalid (meaning, they
+        # could have overlapping points)
+        logging.debug("Cleaning final streamlines: verifying that cutting the "
+                      "longest segment did not lead to overlapping points.")
+        current_sft = remove_streamlines_with_invalid_points(current_sft)
 
+        logging.debug("  Final streamlines: {}".format(len(current_sft)))
         _save_intermediate(current_sft, saving_options, out_paths,
                            in_label, out_label, save_type='final',
                            step_name='final')

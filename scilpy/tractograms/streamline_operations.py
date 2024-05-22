@@ -892,6 +892,32 @@ def remove_loops_and_sharp_turns(streamlines, max_angle, qb_threshold=None,
     return ids
 
 
+def remove_streamlines_with_invalid_points(sft, eps=0.001):
+    """
+    Remove streamlines with overlapping points (step size < eps)
+
+    Parameters
+    ----------
+    sft: StatefulTractogram
+        The tractogram.
+    eps: float
+        The minimal step size.
+
+    Returns
+    -------
+    sft: StatefulTractogram
+    """
+    indices = []
+    for i in range(len(sft)):
+        norm = np.linalg.norm(
+            np.gradient(sft.streamlines[i], axis=0), axis=1)
+        if (norm < eps).any():  # or len(sft.streamlines[i]) <= 1:
+            indices.append(i)
+    indices = np.setdiff1d(range(len(sft)), indices).astype(np.uint32)
+    sft = sft[indices]
+    return sft
+
+
 def get_streamlines_bounding_box(streamlines):
     """
     Classify inliers and outliers from a list of streamlines.

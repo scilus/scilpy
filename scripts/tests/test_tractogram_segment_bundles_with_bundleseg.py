@@ -14,7 +14,8 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_tractogram_segment_with_bundleseg.py', '--help')
+    ret = script_runner.run('scil_tractogram_segment_with_bundleseg.py',
+                            '--help')
     assert ret.success
 
 

@@ -79,9 +79,10 @@ from scilpy.io.utils import (add_bbox_arg, add_overwrite_arg,
                              assert_outputs_exist,
                              assert_output_dirs_exist_and_empty,
                              validate_nbr_processes, assert_headers_compatible)
-from scilpy.tractanalysis.connectivity_segmentation import (compute_connectivity,
-                                                            extract_longest_segments_from_profile,
-                                                            construct_hdf5_from_connectivity)
+from scilpy.tractanalysis.connectivity_segmentation import (
+    compute_connectivity,
+    construct_hdf5_from_connectivity,
+    extract_longest_segments_from_profile)
 from scilpy.tractograms.uncompress import uncompress
 
 
@@ -103,7 +104,7 @@ def _get_saving_options(args):
     saving_options = {'raw': args.save_raw_connections,
                       'intermediate': args.save_intermediate,
                       'discarded': args.save_discarded,
-                      'final': True}
+                      'final': args.save_final}
 
     return saving_options
 
@@ -179,8 +180,8 @@ def _build_arg_parser():
 
     s = p.add_argument_group('Saving options')
     s.add_argument('--out_dir',
-                   help='Output directory for each connection as separate '
-                        'file (.trk).')
+                   help='Output directory for each file based on options '
+                        'below, as separate files (.trk).')
     s.add_argument('--save_raw_connections', action='store_true',
                    help='If set, will save all raw cut connections in a '
                         'subdirectory.')
@@ -191,6 +192,9 @@ def _build_arg_parser():
                    help='If set, will save discarded streamlines in '
                         'subdirectories.\n'
                         'Includes loops, outliers and qb_loops.')
+    s.add_argument('--save_final', action='store_true',
+                   help='If set, will save the final bundles (connections) '
+                        'on disk (.trk) as well as in the hdf5.')
 
     p.add_argument('--out_labels_list', metavar='OUT_FILE',
                    help='Save the labels list as text file.\n'
@@ -224,21 +228,20 @@ def main():
     if os.path.isfile(args.out_hdf5):
         os.remove(args.out_hdf5)
 
+    out_paths = {}
     if (args.save_raw_connections or args.save_intermediate
-            or args.save_discarded) and not args.out_dir:
-        parser.error('To save outputs in the streamlines form, provide the '
-                     'output directory using --out_dir.')
+            or args.save_discarded or args.save_final):
+        if not args.out_dir:
+            parser.error('To save outputs in the streamlines form, provide '
+                         'the output directory using --out_dir.')
+        out_paths = _get_output_paths(args)
+        _create_required_output_dirs(args, out_paths)
 
     if args.out_dir:
         if os.path.abspath(args.out_dir) == os.getcwd():
             parser.error('Do not use the current path as output directory.')
         assert_output_dirs_exist_and_empty(parser, args, args.out_dir,
                                            create_dir=True)
-
-    # Prepare directories and information needed to save.
-    out_paths = _get_output_paths(args)
-    _create_required_output_dirs(args, out_paths)
-    saving_options = _get_saving_options(args)
 
     # Load everything
     img_labels = nib.load(args.in_labels)
@@ -298,10 +301,10 @@ def main():
         construct_hdf5_from_connectivity(
             sft, vox_sizes, indices, points_to_idx,
             real_labels, con_info,
-            hdf5_file, saving_options, out_paths,
+            hdf5_file, _get_saving_options(args), out_paths,
             prune_length, args.min_length, args.max_length,
             remove_loops, args.loop_max_angle,
-            remove_outliers, args.outliers_threshold,
+            remove_outliers, args.outlier_threshold,
             remove_curv_dev, args.curv_qb_distance,
             nbr_cpu)
     time2 = time.time()
