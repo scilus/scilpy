@@ -2,19 +2,14 @@
 # -*- coding: utf-8 -*-
 
 """
-Evaluate pair-wise similarity measures of bundles.
-All tractograms must be in the same space (aligned to one reference).
+Evaluate pair-wise similarity measures of masks and atlas.
+All volumes must be in the same space.
 
 For the voxel representation, the computed similarity measures are:
-    bundle_adjacency_voxels, dice_voxels, w_dice_voxels, density_correlation
-    volume_overlap, volume_overreach
-The same measures are also evluated for the endpoints.
+    adjacency_voxels, dice_voxels, volume_overlap, volume_overreach.
 
-For the streamline representation, the computed similarity measures are:
-    bundle_adjacency_streamlines, dice_streamlines, streamlines_count_overlap,
-    streamlines_count_overreach
-
-Formerly: scil_evaluate_bundles_pairwise_agreement_measures.py
+This can work for BET mask, WMPARC, bundle label maps. The datatype of the
+input volumes must be uint8 (mask) or uint16 (label map and atlas).
 """
 
 
@@ -121,7 +116,7 @@ def compute_all_measures(args):
         dice_vox, _ = compute_dice_voxel(binary_1,
                                          binary_2)
 
-        measures_name = ['bundle_adjacency_voxels',
+        measures_name = ['adjacency_voxels',
                          'dice_voxels',
                          'volume_overlap',
                          'volume_overreach']
