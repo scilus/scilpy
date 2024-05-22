@@ -119,7 +119,7 @@ def main():
     assert_headers_compatible(parser, args.in_tractograms,
                               reference=args.reference)
 
-    # Lazy: Loading and processing are done on-the-fly. Then exit script.
+    # Lazy operations:
     if args.operation == 'lazy_concatenate':
         logging.info('Using lazy_concatenate, no metadata related checks are '
                      'performed.\nMetadata will be lost.\nOnly '
@@ -133,12 +133,14 @@ def main():
         if os.path.isfile(args.out_tractogram) and args.overwrite:
             os.remove(args.out_tractogram)
 
+        # Reminder: loading and processing are done on-the-fly.
         out_tractogram, header = lazy_concatenate(args.in_tractograms, out_ext)
         nib.streamlines.save(out_tractogram, args.out_tractogram,
                              header=header)
+
         return
 
-    # Non-lazy:
+    # Non-lazy operations:
 
     # Loading
     sft_list = []

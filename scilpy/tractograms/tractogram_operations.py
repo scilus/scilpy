@@ -201,7 +201,6 @@ def perform_tractogram_operation_on_sft(op_name, sft_list, precision,
     sft: StatefulTractogram
         The final SFT
     """
-    # Performing operation
     streamlines_list = [sft.streamlines for sft in sft_list]
     _, indices = perform_tractogram_operation_on_lines(
         OPERATIONS[op_name], streamlines_list, precision=precision)
