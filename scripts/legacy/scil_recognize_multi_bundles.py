@@ -6,7 +6,7 @@ from scripts.scil_tractogram_segment_with_bundleseg import main as new_main
 
 
 DEPRECATION_MSG = """
-This script has been renamed scil_tractogram_segment_with_bundleseg.py. Please 
+This script has been renamed scil_tractogram_segment_with_bundleseg.py. Please
 change your existing pipelines accordingly.
 """
 
