@@ -39,6 +39,20 @@ KEY_INDEX = np.concatenate((range(5), range(-1, -6, -1)))
 
 
 def shuffle_streamlines(sft, rng_seed=None):
+    """
+    Shuffle the streamlines of a tractogram.
+
+    Parameters
+    ----------
+    sft: StatefulTractogram
+        The tractogram to shuffle (will slice the streamline, DPS and DPP).
+    rng_seed: int
+
+    Returns
+    -------
+    shuffled_sft: StatefulTractogram
+        The shuffled tractogram.
+    """
     indices = np.arange(len(sft.streamlines))
     random.shuffle(indices, random=rng_seed)
 
@@ -50,6 +64,47 @@ def shuffle_streamlines(sft, rng_seed=None):
         streamlines, sft,
         data_per_streamline=data_per_streamline,
         data_per_point=data_per_point)
+    return shuffled_sft
+
+
+def shuffle_streamlines_orientation(sft, rng_seed=None):
+    """
+    Shuffle the orientation of the streamlines. The streamlines are not
+    reversed, only the orientation of the points within the streamlines is
+    shuffled.
+
+    Parameters
+    ----------
+    sft: StatefulTractogram
+        The tractogram that will have its streamlines' orientation shuffled.
+    rng_seed: int
+        Random seed.
+
+    Returns
+    -------
+    shuffled_sft: StatefulTractogram
+        The shuffled tractogram.
+    """
+    if sft.data_per_point is not None and len(sft.data_per_point) > 0:
+        logging.warning('Shuffling streamlines orientation. DDP will be '
+                        'lost.')
+
+    rng = np.random.RandomState(rng_seed)
+    streamlines = sft.streamlines
+    shuffled_streamlines = []
+    for s in streamlines:
+        if len(s) < 2:
+            shuffled_streamlines.append(s)
+        else:
+            # flip a coin
+            if rng.randint(0, 2):
+                shuffled_streamlines.append(s[::-1])
+            else:
+                shuffled_streamlines.append(s)
+
+    shuffled_sft = StatefulTractogram.from_sft(
+        shuffled_streamlines, sft,
+        data_per_streamline=sft.data_per_streamline)
     return shuffled_sft
 
 
@@ -1166,7 +1221,7 @@ def transform_streamlines_alter(sft, min_dice=0.90, epsilon=0.01):
     epsilon: float
         Stopping criteria for convergence. The maximum difference between the
         dice similarity and min_dice.
-    
+
     Returns
     -------
     new_sft: StatefulTractogram

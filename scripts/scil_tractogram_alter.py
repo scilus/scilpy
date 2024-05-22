@@ -35,7 +35,7 @@ import argparse
 import logging
 import os
 
-from dipy.io.streamline import load_tractogram, save_tractogram
+from dipy.io.streamline import save_tractogram
 import numpy as np
 
 from scilpy.io.streamlines import load_tractogram_with_reference
@@ -48,7 +48,7 @@ from scilpy.tractograms.streamline_operations import remove_overlapping_points_s
     remove_single_point_streamlines, cut_invalid_streamlines
 from scilpy.tractograms.tractogram_operations import transform_streamlines_alter, \
     trim_streamlines_alter, cut_streamlines_alter, subsample_streamlines_alter, \
-        replace_streamlines_alter
+        replace_streamlines_alter, shuffle_streamlines, shuffle_streamlines_orientation
 
 
 
@@ -84,6 +84,9 @@ def buildArgsParser():
 
     p.add_argument('--seed', '-s', type=int, default=None,
                 help='Seed for RNG. Default based on --min_dice.')
+    p.add_argument('--shuffle', action='store_true',
+                     help='Shuffle the streamlines and orientation after'
+                          'alteration.')
     add_overwrite_arg(p)
     add_verbose_arg(p)
     add_reference_arg(p)
@@ -131,6 +134,10 @@ def main():
     altered_sft, _ = cut_invalid_streamlines(altered_sft)
     altered_sft = remove_single_point_streamlines(altered_sft)
     altered_sft = remove_overlapping_points_streamlines(altered_sft)
+
+    if args.shuffle:
+        altered_sft = shuffle_streamlines(altered_sft)
+        altered_sft = shuffle_streamlines_orientation(altered_sft)
 
     save_tractogram(altered_sft, args.out_bundle)
 
