@@ -101,7 +101,7 @@ def main():
 
     # Verifications
     in_models_directories = [
-        os.path.join(args.in_directory, x) 
+        os.path.join(args.in_directory, x)
         for x in os.listdir(args.in_directory)
         if os.path.isdir(os.path.join(args.in_directory, x))]
     if len(in_models_directories) == 0:

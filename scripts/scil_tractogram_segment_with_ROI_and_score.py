@@ -109,7 +109,7 @@ from scilpy.tractanalysis.scoring import __doc__ as tractometry_description
 EPILOG = """
 [1] Côté, M.-A., et al. (2013). Tractometer: Towards Validation of Tractography
 Pipelines, Medical Image Analysis, 17(7), 844-857.
-[2] Renauld, E., et al. (2023) Validate your white matter tractography 
+[2] Renauld, E., et al. (2023) Validate your white matter tractography
 algorithms with a reappraised ISMRM 2015 Tractography Challenge scoring system,
 Scientific Reports, 13:2347 (2023). Online Enhanced PDF, or Download PDF.
 """

@@ -38,8 +38,8 @@ from scilpy.io.utils import (add_overwrite_arg, add_reference_arg,
 from scilpy.utils.spatial import compute_distance_barycenters
 
 EPILOG = """
-Garyfallidis, E., Cote, M. A., Rheault, F., ... & Descoteaux, M. (2018). 
-Recognition of white matter bundles using local and global streamline-based 
+Garyfallidis, E., Cote, M. A., Rheault, F., ... & Descoteaux, M. (2018).
+Recognition of white matter bundles using local and global streamline-based
 registration and clustering. NeuroImage, 170, 283-295.
 """
 
