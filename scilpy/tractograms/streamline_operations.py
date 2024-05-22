@@ -783,32 +783,26 @@ def parallel_transport_streamline(streamline, nb_streamlines, radius,
     return new_streamlines
 
 
-def remove_loops_and_sharp_turns(streamlines, max_angle, qb_threshold=None,
-                                 qb_seed=0, num_processes=1):
+def remove_loops(streamlines, max_angle, num_processes=1):
     """
-    Remove loops and sharp turns from a list of streamlines.
+    Remove loops from a list of streamlines.
 
     Parameters
     ----------
-    streamlines: list of ndarray
+    streamlines: list or ndarray
         The list of streamlines from which to remove loops and sharp turns.
     max_angle: float
-        Maximal winding angle a streamline can have before
-        being classified as a loop.
-    qb_threshold: float, optional
-        If not None, do the additional QuickBundles pass. This will help remove
-        sharp turns. Should only be used on bundled streamlines, not on
-        whole-brain tractograms. If set, value is Quickbundles distance
-        threshold. Suggested default: 15.
-    qb_seed: int
-        Seed to initialize randomness in QuickBundles
+        Maximal winding angle a streamline can have before being classified as
+        a loop.
     num_processes : int
         Split the calculation to a pool of children processes.
 
     Returns
     -------
-    list: the ids of clean streamlines
-        Only the ids are returned so proper filtering can be done afterwards
+    ids: list
+        Ids of the streamlines with no loop.
+    streamlines_clean: list or ndarray
+        The remaining streamlines.
     """
     pool = Pool(num_processes)
     windings = pool.map(tm.winding, streamlines)
@@ -817,27 +811,84 @@ def remove_loops_and_sharp_turns(streamlines, max_angle, qb_threshold=None,
     streamlines_clean = streamlines[np.array(windings) < max_angle]
     ids = list(np.where(np.array(windings) < max_angle)[0])
 
+    return ids, streamlines_clean
+
+
+def remove_shap_turns_qb(streamlines, qb_threshold=15.0, qb_seed=0):
+    """
+    Remove sharp turns from a list of streamlines. Should only be used on
+    bundled streamlines, not on whole-brain tractograms.
+
+    Parameters
+    ----------
+    streamlines: list or ndarray
+        The list of streamlines from which to remove loops and sharp turns.
+    qb_threshold: float
+        The Quickbundles distance threshold.
+    qb_seed: int
+        Seed to initialize randomness in QuickBundles
+
+    Returns
+    -------
+    ids: list
+        Ids of good streamlines.
+    """
+    ids = []
+    if len(streamlines) > 1:
+        curvature = []
+
+        rng = np.random.RandomState(qb_seed)
+        clusters = qbx_and_merge(streamlines, [40, 30, 20, qb_threshold],
+                                 rng=rng, verbose=False)
+
+        for cc in clusters.centroids:
+            curvature.append(tm.mean_curvature(cc))
+        mean_curvature = sum(curvature) / len(curvature)
+
+        for i in range(len(clusters.centroids)):
+            if tm.mean_curvature(clusters.centroids[i]) <= mean_curvature:
+                ids.extend(clusters[i].indices)
+    else:
+        logging.info("Impossible to remove sharp turns using Quickbundles "
+                     "because the tractogram does not contain at least 2 "
+                     "streamlines.")
+        ids = [0]
+    return ids
+
+
+def remove_loops_and_sharp_turns(streamlines, max_angle, qb_threshold=None,
+                                 qb_seed=0, num_processes=1):
+    """
+    Remove loops and sharp turns from a list of streamlines.
+
+    Parameters
+    ----------
+    streamlines: list or ndarray
+        The list of streamlines from which to remove loops and sharp turns.
+    max_angle: float
+        Maximal winding angle a streamline can have before being classified as
+        a loop.
+    qb_threshold: float, optional
+        If not None, do the additional QuickBundles pass. This will help remove
+        sharp turns. Should only be used on bundled streamlines, not on
+        whole-brain tractograms. If set, value is the Quickbundles distance
+        threshold. Suggested default: 15.
+    qb_seed: int
+        Seed to initialize randomness in QuickBundles
+    num_processes : int
+        Split the calculation to a pool of children processes.
+
+    Returns
+    -------
+    ids: list
+        Ids of good streamlines. Only the ids are returned so proper filtering
+        can be done afterwards.
+    """
+    ids, streamlines_clean = remove_loops(streamlines, max_angle,
+                                          num_processes)
+
     if qb_threshold is not None:
-        ids = []
-        if len(streamlines_clean) > 1:
-            curvature = []
-
-            rng = np.random.RandomState(qb_seed)
-            clusters = qbx_and_merge(streamlines_clean,
-                                     [40, 30, 20, qb_threshold],
-                                     rng=rng, verbose=False)
-
-            for cc in clusters.centroids:
-                curvature.append(tm.mean_curvature(cc))
-            mean_curvature = sum(curvature)/len(curvature)
-
-            for i in range(len(clusters.centroids)):
-                if tm.mean_curvature(clusters.centroids[i]) <= mean_curvature:
-                    ids.extend(clusters[i].indices)
-        else:
-            logging.info("Impossible to use the use_qb option because " +
-                         "not more than one streamline left from the\n" +
-                         "input file.")
+        ids = remove_shap_turns_qb(streamlines_clean, qb_threshold, qb_seed)
     return ids
 
 

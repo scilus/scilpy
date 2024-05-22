@@ -314,8 +314,8 @@ def outliers_removal_using_hierarchical_quickbundles(streamlines,
     return summary
 
 
-def remove_outliers(streamlines, threshold, nb_points=12, nb_samplings=30,
-                    fast_approx=False):
+def remove_outliers_qb(streamlines, threshold, nb_points=12, nb_samplings=30,
+                       fast_approx=False):
     """
     Wrapper to classify inliers and outliers from a list of streamlines.
 
