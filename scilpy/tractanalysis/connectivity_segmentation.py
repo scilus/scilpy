@@ -15,7 +15,8 @@ from scilpy.tractograms.streamline_and_mask_operations import \
     compute_streamline_segment
 from scilpy.tractograms.streamline_operations import \
     (remove_loops as perform_remove_loops,
-     remove_shap_turns_qb, remove_streamlines_with_invalid_points)
+     remove_shap_turns_qb,
+     remove_streamlines_with_overlapping_points, filter_streamlines_by_length)
 
 
 def extract_longest_segments_from_profile(strl_indices, atlas_data):
@@ -140,8 +141,8 @@ def compute_connectivity(indices, atlas_data, real_labels, segmenting_func):
 
 
 def construct_hdf5_from_connectivity(
-        sft, vox_sizes, indices, points_to_idx,
-        real_labels, con_info, hdf5_file, saving_options, out_paths,
+        sft, indices, points_to_idx, real_labels, con_info,
+        hdf5_file, saving_options, out_paths,
         prune_from_length, min_length, max_length,  # step 1
         remove_loops, loop_max_angle,               # step 2
         remove_outliers, outlier_threshold,         # step 3
@@ -153,8 +154,6 @@ def construct_hdf5_from_connectivity(
     ----------
     sft: StatefulTractogram
         The tractogram.
-    vox_sizes: list
-        The 3D voxel size.
     indices: ArraySequence
         Results from uncompress.
     points_to_idx: ArraySequence
@@ -257,8 +256,10 @@ def construct_hdf5_from_connectivity(
         if prune_from_length:
             logging.debug("- Step 1: Pruning by length: [{}, {}]"
                           .format(min_length, max_length))
-            valid_length_ids, invalid_length_ids = _prune_segments(
-                current_sft.streamlines, min_length, max_length, vox_sizes[0])
+            _, valid_length_ids = filter_streamlines_by_length(
+                current_sft, min_length, max_length)
+            invalid_length_ids = np.setdiff1d(np.arange(len(current_sft)),
+                                              valid_length_ids)
 
             # Discarded:
             discarded_sft = current_sft[invalid_length_ids]
@@ -365,7 +366,7 @@ def construct_hdf5_from_connectivity(
         # could have overlapping points)
         logging.debug("Cleaning final streamlines: verifying that cutting the "
                       "longest segment did not lead to overlapping points.")
-        current_sft = remove_streamlines_with_invalid_points(current_sft)
+        current_sft = remove_streamlines_with_overlapping_points(current_sft)
 
         logging.debug("  Final streamlines: {}".format(len(current_sft)))
         _save_intermediate(current_sft, saving_options, out_paths,
@@ -377,21 +378,6 @@ def construct_hdf5_from_connectivity(
         construct_hdf5_group_from_streamlines(
             group, current_sft.streamlines,
             dps=current_sft.data_per_streamline)
-
-
-def _prune_segments(segments, min_length, max_length, vox_size):
-    # A REMPLACER PAR FONCTION OFFICIELLE DANS TRACTOGRAMME.
-    lengths = list(length(segments) * vox_size)
-    valid = []
-    invalid = []
-
-    for i, tuple_zip in enumerate(zip(segments, lengths)):
-        _, le = tuple_zip
-        if min_length <= le <= max_length:
-            valid.append(i)
-        else:
-            invalid.append(i)
-    return valid, invalid
 
 
 def _save_intermediate(sft, saving_options, out_paths, in_label, out_label,

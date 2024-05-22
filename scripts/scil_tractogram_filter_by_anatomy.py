@@ -264,7 +264,7 @@ def main():
     step_nb = '01-'
     logging.info("STEP 1: Filtering by length: {} - {} mm"
                  .format(args.minL, args.maxL))
-    sft, outliers_sft = filter_streamlines_by_length(
+    sft, _, outliers_sft = filter_streamlines_by_length(
         sft, args.minL, args.maxL, return_rejected=True)
     logging.info("  -> Found {} good streamlines (rejected {})"
                  .format(len(sft), len(outliers_sft)))

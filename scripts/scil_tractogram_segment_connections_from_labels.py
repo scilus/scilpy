@@ -299,8 +299,7 @@ def main():
         remove_outliers = not args.no_remove_outliers
         remove_curv_dev = not args.no_remove_curv_dev
         construct_hdf5_from_connectivity(
-            sft, vox_sizes, indices, points_to_idx,
-            real_labels, con_info,
+            sft, indices, points_to_idx, real_labels, con_info,
             hdf5_file, _get_saving_options(args), out_paths,
             prune_length, args.min_length, args.max_length,
             remove_loops, args.loop_max_angle,

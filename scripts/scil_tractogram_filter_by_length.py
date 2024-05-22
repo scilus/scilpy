@@ -75,7 +75,7 @@ def main():
     sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
 
     # Processing
-    new_sft, outliers_sft = filter_streamlines_by_length(
+    new_sft, _, outliers_sft = filter_streamlines_by_length(
         sft, args.minL, args.maxL, return_rejected=True)
 
     if args.display_counts:

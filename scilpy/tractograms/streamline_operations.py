@@ -362,8 +362,11 @@ def filter_streamlines_by_length(sft, min_length=0., max_length=np.inf,
     ------
     filtered_sft : StatefulTractogram
         A tractogram without short/long streamlines.
+    valid_length_ids: list
+        The ids of kept streamlines.
     rejected_sft: StatefulTractogram
         The rejected (short/long) streamlines. (If return_rejected)
+        A tractogram without short streamlines.
     """
 
     # Make sure we are in world space
@@ -371,28 +374,30 @@ def filter_streamlines_by_length(sft, min_length=0., max_length=np.inf,
     sft.to_rasmm()
 
     rejected_sft = None
-    if sft.streamlines:
+    if len(sft.streamlines) > 0:
         # Compute streamlines lengths
         lengths = length(sft.streamlines)
 
         # Filter lengths
-        filter_ids_mask = np.logical_and(lengths >= min_length,
-                                         lengths <= max_length)
-        filtered_sft = sft[filter_ids_mask]
+        valid_length_ids = np.logical_and(lengths >= min_length,
+                                          lengths <= max_length)
+        filtered_sft = sft[valid_length_ids]
 
         if return_rejected:
-            rejected_sft = sft[~filter_ids_mask]
+            rejected_sft = sft[~valid_length_ids]
     else:
+        valid_length_ids = []
         filtered_sft = sft
 
     # Return to original space
     sft.to_space(orig_space)
     filtered_sft.to_space(orig_space)
+
     if return_rejected:
         rejected_sft.to_space(orig_space)
-        return filtered_sft, rejected_sft
+        return filtered_sft, valid_length_ids, rejected_sft
     else:
-        return filtered_sft
+        return filtered_sft, valid_length_ids
 
 
 def filter_streamlines_by_total_length_per_dim(
@@ -892,7 +897,7 @@ def remove_loops_and_sharp_turns(streamlines, max_angle, qb_threshold=None,
     return ids
 
 
-def remove_streamlines_with_invalid_points(sft, eps=0.001):
+def remove_streamlines_with_overlapping_points(sft, eps=0.001):
     """
     Remove streamlines with overlapping points (step size < eps)
 
