@@ -6,18 +6,23 @@ Save connections as TRK to HDF5.
 
 This script is useful to convert a set of connections or bundles to a single
 HDF5 file. The HDF5 file will contain a group for each input file, with the
-streamlines stored in the specified space and origin.
+streamlines stored in the specified space and origin (keep the default if you
+are going to use the connectivity scripts in scilpy).
 
 To make a file compatible with scil_tractogram_commit.py or
-scil_connectivity_compute_matrices.py. you will have to follow this nomenclature
+scil_connectivity_compute_matrices.py you will have to follow this nomenclature
 for the input files:
 in_dir/
     |-- LABEL1_LABEL1.trk
     |-- LABEL1_LABEL2.trk
     |-- [...]
     |-- LABEL90_LABEL90.trk
+The value of first labels should be smaller or equal to the second labels.
+Connectivity scripts in scilpy only consider the upper triangular part of the
+connectivity matrix.
 
-By default, ignores the empty connections. To save them, use the --save_empty.
+By default, ignores the empty connections. To save them, use --save_empty.
+Note that data_per_point is never included.
 """
 
 import argparse
@@ -40,7 +45,7 @@ def _build_arg_parser():
     p = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
     p.add_argument('in_bundles', nargs='+',
-                   help='Path of the input connections or bundles.')
+                   help='Path of the input connection(s) or bundle(s).')
     p.add_argument('out_hdf5',
                    help='Output HDF5 filename (.h5).')
 
@@ -73,6 +78,10 @@ def main():
     assert_outputs_exist(parser, args, args.out_hdf5)
 
     ref_sft = load_tractogram_with_reference(parser, args, args.in_bundles[0])
+
+    # Convert STR to the Space and Origin ENUMS
+    target_space = Space[args.stored_space.upper()]
+    target_origin = Origin[args.stored_origin.upper()]
     with h5py.File(args.out_hdf5, 'w') as hdf5_file:
         for i, in_bundle in enumerate(args.in_bundles):
             in_basename = os.path.splitext(os.path.basename(in_bundle))[0]
@@ -83,10 +92,6 @@ def main():
 
             if not is_header_compatible(ref_sft, curr_sft):
                 parser.error(f"Header of {in_bundle} is not compatible")
-
-            # COnvert my str to the Space and Origin enums
-            target_space = Space[args.stored_space.upper()]
-            target_origin = Origin[args.stored_origin.upper()]
 
             curr_sft.to_space(target_space)
             curr_sft.to_origin(target_origin)

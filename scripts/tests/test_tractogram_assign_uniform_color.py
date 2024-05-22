@@ -37,7 +37,11 @@ def test_execution_dict(script_runner, monkeypatch):
     json_file = 'my_json_dict.json'
     with open(json_file, "w+") as f:
         json.dump(my_dict, f)
-
+    
+    filename = os.path.splitext(in_bundle)[0]
+    filename = f'{filename}_colored.trk'
+    if os.path.isfile(filename):
+        os.remove(filename)
     ret = script_runner.run('scil_tractogram_assign_uniform_color.py',
                             in_bundle, '--dict_colors', json_file,
                             '--out_suffix', 'colored')
