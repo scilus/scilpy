@@ -12,6 +12,9 @@ This script can be used to remove loops in two types of streamline datasets:
   - Bundle dataset: For this type, it is possible to remove loops and
     streamlines outside the bundle. For the sharp angle turn, use --qb option.
 
+See also:
+    scil_tractogram_filter_by_anatomy.py
+
 Formerly: scil_detect_streamlines_loops.py
 """
 

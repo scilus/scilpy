@@ -342,7 +342,8 @@ def remove_overlapping_points_streamlines(sft, threshold=0.001):
     return new_sft
 
 
-def filter_streamlines_by_length(sft, min_length=0., max_length=np.inf):
+def filter_streamlines_by_length(sft, min_length=0., max_length=np.inf,
+                                 return_rejected=False):
     """
     Filter streamlines using minimum and max length.
 
@@ -354,34 +355,44 @@ def filter_streamlines_by_length(sft, min_length=0., max_length=np.inf):
         Minimum length of streamlines, in mm.
     max_length: float
         Maximum length of streamlines, in mm.
+    return_rejected: bool
+        If true, also returns the sft of rejected streamlines.
 
     Return
     ------
     filtered_sft : StatefulTractogram
-        A tractogram without short streamlines.
+        A tractogram without short/long streamlines.
+    rejected_sft: StatefulTractogram
+        The rejected (short/long) streamlines. (If return_rejected)
     """
 
     # Make sure we are in world space
     orig_space = sft.space
     sft.to_rasmm()
 
+    rejected_sft = None
     if sft.streamlines:
         # Compute streamlines lengths
         lengths = length(sft.streamlines)
 
         # Filter lengths
-        filter_stream = np.logical_and(lengths >= min_length,
-                                       lengths <= max_length)
-    else:
-        filter_stream = []
+        filter_ids_mask = np.logical_and(lengths >= min_length,
+                                         lengths <= max_length)
+        filtered_sft = sft[filter_ids_mask]
 
-    filtered_sft = sft[filter_stream]
+        if return_rejected:
+            rejected_sft = sft[~filter_ids_mask]
+    else:
+        filtered_sft = sft
 
     # Return to original space
     sft.to_space(orig_space)
     filtered_sft.to_space(orig_space)
-
-    return filtered_sft
+    if return_rejected:
+        rejected_sft.to_space(orig_space)
+        return filtered_sft, rejected_sft
+    else:
+        return filtered_sft
 
 
 def filter_streamlines_by_total_length_per_dim(
