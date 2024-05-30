@@ -123,7 +123,7 @@ def main():
         sfts = split_sft_randomly_per_cluster(
             sft, chunk_sizes, args.seed, args.qbx_thresholds)
         logging.info("Splitting per cluster may lead to a small variability "
-                     "in the final tractogram sizes. We got sizes: {}. "
+                     "in the final tractogram sizes. Sizes are: {}. "
                      "({} streamlines were not included in any tractogram)."
                      .format([len(sft) for sft in sfts[:-1]], len(sfts[-1])))
     else:
