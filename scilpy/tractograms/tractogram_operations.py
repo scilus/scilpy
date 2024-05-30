@@ -184,11 +184,12 @@ def perform_tractogram_operation_on_sft(op_name, sft_list, precision,
         A callable that takes two streamlines dicts as inputs and preduces a
         new streamline dict.
     sft_list: list[StatefulTractogram]
-        The streamlines used in the operation.
+        The tractograms used in the operation.
     precision: int, optional
         The number of decimals to keep when hashing the points of the
         streamlines. Allows a soft comparison of streamlines. If None, no
-        rounding is performed.
+        rounding is performed. Precision should be in the same space as
+        sfts (ex, mm).
     no_metadata: bool
         If true, remove all metadata.
     fake_metadata: bool
@@ -200,9 +201,7 @@ def perform_tractogram_operation_on_sft(op_name, sft_list, precision,
     sft: StatefulTractogram
         The final SFT
     """
-    # Performing operation
-    streamlines_list = [sft.streamlines if sft is not None else []
-                        for sft in sft_list]
+    streamlines_list = [sft.streamlines for sft in sft_list]
     _, indices = perform_tractogram_operation_on_lines(
         OPERATIONS[op_name], streamlines_list, precision=precision)
 

@@ -4,10 +4,10 @@
 """
 Projects maps extracted from a map onto the points of streamlines.
 
-The default options will take data from a nifti image (3D or 4D) and
-project it onto the points of streamlines. If the image is 4D, the data
-is stored as a list of 1D arrays per streamline. If the image is 3D,
-the data is stored as a list of values per streamline.
+The default options will take data from a nifti image (3D or 4D) and project it
+onto the points of streamlines. If the image is 4D, the data is stored as a
+list of 1D arrays per streamline. If the image is 3D, the data is stored as a
+list of values per streamline.
 
 See also scil_tractogram_project_streamlines_to_map.py for the reverse action.
 
@@ -17,6 +17,7 @@ two consecutive points is not used. If your streamlines are strongly
 compressed, or if they have a very big step size, the result will possibly
 reflect poorly your map. You may use scil_tractogram_resample.py to upsample
 your streamlines first.
+
 * Hint: The streamlines themselves are not modified here, only their dpp. To
 avoid multiplying data on disk, you could use the following arguments to save
 the new dpp in your current tractogram:
@@ -35,7 +36,7 @@ from scilpy.io.utils import (add_overwrite_arg,
                              add_reference_arg,
                              add_verbose_arg,
                              assert_inputs_exist,
-                             assert_outputs_exist)
+                             assert_outputs_exist, assert_headers_compatible)
 from scilpy.image.volume_space_management import DataVolume
 from scilpy.tractograms.dps_and_dpp_management import (
     project_map_to_streamlines)
@@ -86,14 +87,16 @@ def _build_arg_parser():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
+    logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
+    # Verifications
     assert_inputs_exist(parser, [args.in_tractogram] + args.in_maps,
                         args.reference)
     assert_outputs_exist(parser, args, [args.out_tractogram])
+    assert_headers_compatible(parser, [args.in_tractogram] + args.in_maps,
+                              reference=args.reference)
 
-    if args.verbose:
-        logging.getLogger().setLevel(logging.INFO)
-
+    # Loading
     logging.info("Loading the tractogram...")
     sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
     sft.to_voxmm()
@@ -116,14 +119,14 @@ def main():
     if not args.overwrite_dpp:
         for out_dpp_name in args.out_dpp_name:
             if out_dpp_name in sft.data_per_point:
-                logging.info('out_name {} already exists in input tractogram. '
+                parser.error('out_name {} already exists in input tractogram. '
                              'Set overwrite_data or choose a different '
-                             'out_name. Exiting.'.format(out_dpp_name))
-                return
+                             'out_name.'.format(out_dpp_name))
 
+    # Processing
     data_per_point = {}
     for fmap, dpp_name in zip(args.in_maps, args.out_dpp_name):
-        logging.info("Loading the map...")
+        logging.info("Loading the map {}...".format(fmap))
         map_img = nib.load(fmap)
         map_data = map_img.get_fdata(caching='unchanged', dtype=float)
         map_res = map_img.header.get_zooms()[:3]
@@ -137,13 +140,10 @@ def main():
 
         logging.info("Projecting map onto streamlines")
         streamline_data = project_map_to_streamlines(
-            sft, map_volume,
-            endpoints_only=args.endpoints_only)
-
-        logging.info("Saving the tractogram...")
-
+            sft, map_volume, endpoints_only=args.endpoints_only)
         data_per_point[dpp_name] = streamline_data
 
+    # Saving
     if args.keep_all_dpp:
         sft.data_per_point.update(data_per_point)
         out_sft = sft
@@ -151,11 +151,12 @@ def main():
         out_sft = sft.from_sft(sft.streamlines, sft,
                                data_per_point=data_per_point)
 
-    print("New data_per_point keys are: ")
+    logging.info("New data_per_point keys are: ")
     for key in args.out_dpp_name:
-        print("  - {} with shape per point {}"
-              .format(key, out_sft.data_per_point[key][0].shape[1:]))
+        logging.info("  - {} with shape per point {}"
+                     .format(key, out_sft.data_per_point[key][0].shape[1:]))
 
+    logging.info("Saving tractogram")
     save_tractogram(out_sft, args.out_tractogram)
 
 
