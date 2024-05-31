@@ -52,7 +52,8 @@ def _build_arg_parser():
     p.add_argument('in_tractogram',
                    help='Input tractogram filename.')
     p.add_argument('in_model',
-                   help='Model to use for recognition.')
+                   help='Model bundle to use for recognition. (Ex, a .trk '
+                        'file.')
     p.add_argument('in_transfo',
                    help='Path for the transformation to model space '
                         '(.txt, .npy or .mat).')
