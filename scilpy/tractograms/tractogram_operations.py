@@ -632,12 +632,15 @@ def compress_streamlines_wrapper(tractogram, error_rate):
             s, error_rate) for s in tractogram]
 
 
-def upsample_tractogram(sft, nb, point_wise_std, tube_radius,
+def upsample_tractogram(sft, nb, point_wise_std=None, tube_radius=None,
                         gaussian=None, error_rate=None, seed=None):
     """
     Generates new streamlines by either adding gaussian noise around
     streamlines' points, or by translating copies of existing streamlines
     by a random amount.
+
+    The first streamlines of the returned tractogram are the initial
+    streamlines, unchanged (if error_rate is None).
 
     Parameters
     ----------
@@ -645,19 +648,20 @@ def upsample_tractogram(sft, nb, point_wise_std, tube_radius,
         The tractogram to upsample
     nb : int
         The target number of streamlines in the tractogram.
-    point_wise_std : float
+    point_wise_std : float, optional
         The standard deviation of the gaussian to use to generate point-wise
         noise on the streamlines. If None or zero, this is skipped.
-    tube_radius : float
+    tube_radius : float, optional
         The radius of the tube used to model the streamlines. If None or zero,
         this is skipped.
-    gaussian: float
-        The sigma used for smoothing streamlines. If None, streamlines are not
-        smoothed.
-    error_rate : float
-        The maximum distance (in mm) to the original position of any point.
-    seed: int
-        Seed for RNG.
+    gaussian: float, optional
+        The sigma used for smoothing streamlines. Only the newly created
+        streamlines are smoothed. If None, streamlines are not smoothed.
+    error_rate : float, optional
+        The compression error. The whole final tractogram is compressed. If
+        None, no compression is done.
+    seed: int, optional
+        Seed for RNG. If None, uses random seed.
 
     Returns
     -------
@@ -666,50 +670,60 @@ def upsample_tractogram(sft, nb, point_wise_std, tube_radius,
     """
     rng = np.random.default_rng(seed)
 
+    if nb < len(sft):
+        logging.warning("Wrong call of this upsampling method: the "
+                        "tractogram already contains more streamlines than "
+                        "wanted.")
+    if nb <= len(sft):
+        return sft
+
+    nb = nb - len(sft)
+
     # Get the streamlines that will serve as a base for new ones
     indices = rng.choice(len(sft), nb, replace=True)
     unique_indices, count = np.unique(indices, return_counts=True)
     resampled_sft = resample_streamlines_step_size(sft[unique_indices], 1)
 
     # For all selected streamlines, add noise and smooth
-    new_streamlines = []
+    new_streamlines = sft.streamlines
     for s, c in zip(resampled_sft.streamlines, count):
         if len(s) < 3:
             new_streamlines.extend([s] * c)
+            continue
+
+        # 1. Translate the streamline, up to a tube_radius distance.
+        if tube_radius is not None and tube_radius > 0:
+            new_s = parallel_transport_streamline(s, c, tube_radius)
         else:
-            # 1. Translate the streamline, up to a tube_radius distance.
-            if tube_radius is not None and tube_radius > 0:
-                new_s = parallel_transport_streamline(s, c, tube_radius)
-            else:
-                new_s = [s] * c
+            new_s = [s] * c
 
-            # 2. Add point-wise noise.
-            if point_wise_std is not None and point_wise_std > 0:
-                # Generate smooth noise_factor
-                noise = rng.normal(loc=0, scale=point_wise_std, size=len(s))
+        # 2. Add point-wise noise.
+        if point_wise_std is not None and point_wise_std > 0:
+            # Generate smooth noise_factor
+            noise = rng.normal(loc=0, scale=point_wise_std, size=len(s))
 
-                # Instead of generating random noise, we fit a polynomial to
-                # the noise and use it to generate a spatially smooth noise
-                # along the streamline (simply to avoid sharp changes in the
-                # noise factor).
-                x = np.arange(len(noise))
-                poly_coeffs = np.polyfit(x, noise, 3)
-                polynomial = Polynomial(poly_coeffs[::-1])
-                noise_factor = polynomial(x)
+            # Instead of generating random noise, we fit a polynomial to
+            # the noise and use it to generate a spatially smooth noise
+            # along the streamline (simply to avoid sharp changes in the
+            # noise factor).
+            x = np.arange(len(noise))
+            poly_coeffs = np.polyfit(x, noise, 3)
+            polynomial = Polynomial(poly_coeffs[::-1])
+            noise_factor = polynomial(x)
 
-                vec = s - new_s
-                vec /= np.linalg.norm(vec, axis=0)
-                new_s += vec * np.expand_dims(noise_factor, axis=1)
-            print("AFTER GAUSSIAN NOISE", new_s[0:1, :])
+            vec = s - new_s
+            vec /= np.linalg.norm(vec, axis=0)
 
-            # 3. Smooth the result.
-            if gaussian:
-                new_s = [smooth_line_gaussian(s, gaussian) for s in new_s]
-            print("AFTER SMOOTHING", new_s[0:1, :])
+            new_s += vec * np.expand_dims(noise_factor, axis=1)
 
-            new_streamlines.extend(new_s)
+            # Result is of shape [c, len(s), 3]. Splitting back
+            new_s = list(new_s)
 
-    new_streamlines += sft.streamlines
+        # 3. Smooth the result.
+        if gaussian:
+            new_s = [smooth_line_gaussian(s, gaussian) for s in new_s]
+
+        new_streamlines.extend(new_s)
 
     if error_rate:
         compressed_streamlines = compress_streamlines_wrapper(new_streamlines,

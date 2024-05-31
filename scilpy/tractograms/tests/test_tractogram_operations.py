@@ -10,6 +10,8 @@ from dipy.io.streamline import load_tractogram
 
 from scilpy import SCILPY_HOME
 from scilpy.io.fetcher import fetch_data, get_testing_files_dict
+from scilpy.tractograms.streamline_operations import \
+    resample_streamlines_step_size
 from scilpy.tractograms.tractogram_operations import (
     concatenate_sft,
     difference,
@@ -165,18 +167,45 @@ def test_combining_sft():
 
 
 def test_upsample_tractogram():
-    new_sft = upsample_tractogram(sft, 1000, 0.5, 5, False, 0.1, 0)
-    first_chunk = [[112.64021, 35.409477, 59.42175],
-                   [109.09777, 35.287857, 61.845505],
-                   [110.41855, 37.077374, 56.930523]]
-    last_chunk = [[110.40285, 51.036686, 62.419273],
-                  [109.698586, 48.330017, 64.50656],
-                  [113.04737, 45.89119, 64.778534]]
+    # Add at least one small streamline (len < 3mm) to the test
+    sft2 = sft.from_sft(sft.streamlines, sft)
+    sft2.to_vox()
+    sft2.streamlines.append([[3.0, 3.0, 3.0],
+                             [3.2, 3.0, 3.0]])
+
+    # sft2 contains 5 streamlines.
+    nb_init = len(sft2)
+
+    # 1. Both point_wise and tube_radius
+    new_sft = upsample_tractogram(sft2, nb=1000, point_wise_std=0.5,
+                                  tube_radius=5, gaussian=True,
+                                  error_rate=None, seed=0)
 
     assert len(new_sft) == 1000
-    assert len(new_sft.streamlines._data) == 8404
-    assert np.allclose(first_chunk, new_sft.streamlines._data[0:30:10])
-    assert np.allclose(last_chunk, new_sft.streamlines._data[-1:-31:-10])
+    for i in range(nb_init):
+        assert np.array_equal(sft2.streamlines[i], new_sft.streamlines[i])
+
+    # 2. Using only one streamline, so that we know the reference, verify that
+    # result is in the correct range. Need the length of the output streamlines
+    # to fit the input streamline. The method uses a resampling to 1 mm.
+    sft2 = sft2[0]
+    sft2 = resample_streamlines_step_size(sft2, 1)
+    sft2.to_rasmm()
+
+    # 2A) tube-radius only: expecting new streamlines in a tube of 5 mm
+    new_sft = upsample_tractogram(sft2, nb=10, tube_radius=5, seed=0)
+    ref_s = sft2.streamlines[0]
+    for s in new_sft.streamlines[1:]:
+        assert np.all(s - ref_s < 5)
+        assert not np.array_equal(s, ref_s)
+
+    # 2b) point-wise only: expecting new streamlines to be modified by a normal
+    # of sigma=0.5. More difficult to test. So, comparing with values the day
+    # of creating this test. Maximum point-wise difference was 4.26
+    new_sft = upsample_tractogram(sft2, nb=10, point_wise_std=0.5, seed=0)
+    for s in new_sft.streamlines[1:]:
+        assert np.max(s - ref_s) < 4.3
+        assert not np.array_equal(s, ref_s)
 
 
 def test_split_sft_randomly():
