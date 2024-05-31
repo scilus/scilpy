@@ -167,7 +167,8 @@ def test_combining_sft():
 
 
 def test_upsample_tractogram():
-    # Add at least one small streamline (len < 3mm) to the test
+    # Add at least one small streamline (len < 3mm) to the test, because
+    # previously this was buggy. Fixed, but keeping the test on short lines.
     sft2 = sft.from_sft(sft.streamlines, sft)
     sft2.to_vox()
     sft2.streamlines.append([[3.0, 3.0, 3.0],

@@ -687,10 +687,6 @@ def upsample_tractogram(sft, nb, point_wise_std=None, tube_radius=None,
     # For all selected streamlines, add noise and smooth
     new_streamlines = sft.streamlines
     for s, c in zip(resampled_sft.streamlines, count):
-        if len(s) < 3:
-            new_streamlines.extend([s] * c)
-            continue
-
         # 1. Translate the streamline, up to a tube_radius distance.
         if tube_radius is not None and tube_radius > 0:
             new_s = parallel_transport_streamline(s, c, tube_radius)
