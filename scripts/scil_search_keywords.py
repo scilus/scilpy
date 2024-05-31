@@ -19,7 +19,6 @@ import logging
 import pathlib
 import re
 import subprocess
-
 import numpy as np
 
 from scilpy.io.utils import add_verbose_arg
@@ -57,77 +56,111 @@ def main():
 
     # Use directory of this script, should work with most installation setups
     script_dir = pathlib.Path(__file__).parent
+    hidden_dir = script_dir / '.hidden'
     matches = []
 
     keywords_regexes = [re.compile('(' + re.escape(kw) + ')', re.IGNORECASE)
                         for kw in args.keywords]
+    
 
-    for script in sorted(script_dir.glob('*.py')):
-        filename = script.name
-        if filename == '__init__.py':
-            continue
+    # Search through the argparser instead of the docstring        
+    if args.search_parser: 
+        #Use precomputed help files
+        for help_file in sorted(hidden_dir.glob('*.help')):
+            script_name = pathlib.Path(help_file.stem).stem
+            with open(help_file, 'r') as f:
+                search_text = f.read()
 
-        # Skip this script
-        if filename == pathlib.Path(__file__).name:
-            continue
+            
+        # Test intersection of all keywords, either in filename or docstring
+            if not _test_matching_keywords(args.keywords, [script_name, search_text]):
+                continue
 
-        error_msg = ""
-        if args.search_parser:
-            # Run the script's argparser, and catch the output in case there
-            # is an error, such as ModuleNotFoundException.
-            sub = subprocess.run(['{}'.format(script.absolute()), '--help'],
-                                 capture_output=True)
-            search_text = sub.stdout.decode("utf-8")
-            if sub.stderr:
-                # Fall back on the docstring in case of error
-                error_msg = "There was an error executing script parser, " \
-                            "searching through docstring instead...\n\n"
-                search_text = _get_docstring_from_script_path(str(script))
-        else:
-            # Fetch the docstring
+            matches.append(script_name)
+            search_text = search_text or 'No docstring available!'
+
+            display_filename = script_name
+            display_short_info, display_long_info = _split_first_sentence(
+                search_text)
+
+            # NOTE: It is important to do the formatting before adding color style,
+            # because python does not ignore ANSI color codes, and will count them
+            # as characters!
+
+            # Center text, add spacing and make BOLD
+            header = _make_title(" {} ".format(display_filename))
+            footer = _make_title(" End of {} ".format(display_filename))
+
+            # Highlight found keywords using ANSI color codes
+            colored_keyword = '{}\\1{}'.format(RED + BOLD, END_COLOR)
+            for regex in keywords_regexes:
+                header = regex.sub(colored_keyword, header)
+                footer = regex.sub(colored_keyword, footer)
+                display_short_info = regex.sub(colored_keyword, display_short_info)
+                display_long_info = regex.sub(colored_keyword, display_long_info)
+
+            # Restore BOLD in header/footer after matching keywords, and make sure
+            # to add a END_COLOR at the end.
+            header = header.replace(END_COLOR, END_COLOR + BOLD) + END_COLOR
+            footer = footer.replace(END_COLOR, END_COLOR + BOLD) + END_COLOR
+
+            # Print everything
+            logging.info(header)
+            logging.info(display_short_info)
+            logging.debug(display_long_info)
+            logging.info(footer)
+            logging.info("\n")
+    
+    # Search through the docstring instead of the argparser
+    else:
+        for script in sorted(script_dir.glob('scripts/*.py')):
+            filename = script.name
+            if filename == '__init__.py' or filename =='scil_search_keywords.py':
+                continue
+
             search_text = _get_docstring_from_script_path(str(script))
 
-        # Test intersection of all keywords, either in filename or docstring
-        if not _test_matching_keywords(args.keywords, [filename, search_text]):
-            continue
+            # Test intersection of all keywords, either in filename or docstring
+            if not _test_matching_keywords(args.keywords, [filename, search_text]):
+                continue
 
-        matches.append(filename)
-        search_text = search_text or 'No docstring available!'
+            matches.append(filename)
+            search_text = search_text or 'No docstring available!'
 
-        display_filename = filename
-        display_short_info, display_long_info = _split_first_sentence(
-            search_text)
+            display_filename = filename
+            display_short_info, display_long_info = _split_first_sentence(
+                search_text)
 
-        # NOTE: It is important to do the formatting before adding color style,
-        # because python does not ignore ANSI color codes, and will count them
-        # as characters!
+            # NOTE: It is important to do the formatting before adding color style,
+            # because python does not ignore ANSI color codes, and will count them
+            # as characters!
 
-        # Center text, add spacing and make BOLD
-        header = _make_title(" {} ".format(display_filename))
-        footer = _make_title(" End of {} ".format(display_filename))
+            # Center text, add spacing and make BOLD
+            header = _make_title(" {} ".format(display_filename))
+            footer = _make_title(" End of {} ".format(display_filename))
 
-        # Highlight found keywords using ANSI color codes
-        colored_keyword = '{}\\1{}'.format(RED + BOLD, END_COLOR)
-        for regex in keywords_regexes:
-            header = regex.sub(colored_keyword, header)
-            footer = regex.sub(colored_keyword, footer)
-            display_short_info = regex.sub(colored_keyword, display_short_info)
-            display_long_info = regex.sub(colored_keyword, display_long_info)
+            # Highlight found keywords using ANSI color codes
+            colored_keyword = '{}\\1{}'.format(RED + BOLD, END_COLOR)
+            for regex in keywords_regexes:
+                header = regex.sub(colored_keyword, header)
+                footer = regex.sub(colored_keyword, footer)
+                display_short_info = regex.sub(colored_keyword, display_short_info)
+                display_long_info = regex.sub(colored_keyword, display_long_info)
 
-        # Restore BOLD in header/footer after matching keywords, and make sure
-        # to add a END_COLOR at the end.
-        header = header.replace(END_COLOR, END_COLOR + BOLD) + END_COLOR
-        footer = footer.replace(END_COLOR, END_COLOR + BOLD) + END_COLOR
+            # Restore BOLD in header/footer after matching keywords, and make sure
+            # to add a END_COLOR at the end.
+            header = header.replace(END_COLOR, END_COLOR + BOLD) + END_COLOR
+            footer = footer.replace(END_COLOR, END_COLOR + BOLD) + END_COLOR
 
-        # Print everything
-        logging.info(header)
-        if error_msg:
-            logging.info(RED + BOLD + error_msg + END_COLOR)
-        logging.info(display_short_info)
-        logging.debug(display_long_info)
-        logging.info(footer)
-        logging.info("\n")
+            # Print everything
+            logging.info(header)
+            logging.info(display_short_info)
+            logging.debug(display_long_info)
+            logging.info(footer)
+            logging.info("\n")
+    
 
+            
     if not matches:
         logging.info(_make_title(' No results found! '))
 
