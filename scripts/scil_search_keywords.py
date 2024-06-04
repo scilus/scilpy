@@ -20,8 +20,12 @@ import pathlib
 import re
 import subprocess
 import numpy as np
+import nltk
+from nltk.stem import PorterStemmer
 
 from scilpy.io.utils import add_verbose_arg
+
+nltk.download('punkt', quiet=True)
 
 RED = '\033[31m'
 BOLD = '\033[1m'
@@ -29,6 +33,7 @@ END_COLOR = '\033[0m'
 SPACING_CHAR = '='
 SPACING_LEN = 80
 
+stemmer = PorterStemmer()
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(description=__doc__,
@@ -54,6 +59,8 @@ def main():
     else:
         logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
+    stemmed_keywords = _stem_keywords(args.keywords)
+
     # Use directory of this script, should work with most installation setups
     script_dir = pathlib.Path(__file__).parent
     hidden_dir = script_dir / '.hidden'
@@ -72,7 +79,7 @@ def main():
 
             
         # Test intersection of all keywords, either in filename or docstring
-            if not _test_matching_keywords(args.keywords, [script_name, search_text]):
+            if not _contains_stemmed_keywords(stemmed_keywords, search_text):
                 continue
 
             matches.append(script_name)
@@ -92,11 +99,8 @@ def main():
 
             # Highlight found keywords using ANSI color codes
             colored_keyword = '{}\\1{}'.format(RED + BOLD, END_COLOR)
-            for regex in keywords_regexes:
-                header = regex.sub(colored_keyword, header)
-                footer = regex.sub(colored_keyword, footer)
-                display_short_info = regex.sub(colored_keyword, display_short_info)
-                display_long_info = regex.sub(colored_keyword, display_long_info)
+            for keyword in args.keywords:
+                search_text = re.sub(rf'(?i)\b{re.escape(keyword)}\b', f'{RED + BOLD}\\g<0>{END_COLOR}', search_text)
 
             # Restore BOLD in header/footer after matching keywords, and make sure
             # to add a END_COLOR at the end.
@@ -245,6 +249,17 @@ def _split_first_sentence(text):
     sentence = text[:split_idx]
     remaining = text[split_idx:] if split_idx else ""
     return sentence, remaining
+
+def _stem_keywords(keywords):
+    return [stemmer.stem(keyword) for keyword in keywords]
+
+def _stem_text(text):
+    words = nltk.word_tokenize(text)
+    return ' '.join([stemmer.stem(word) for word in words])
+
+def _contains_stemmed_keywords(stemmed_keywords, text):
+    stemmed_text = _stem_text(text)
+    return all([stem in stemmed_text for stem in stemmed_keywords])
 
 
 if __name__ == '__main__':
