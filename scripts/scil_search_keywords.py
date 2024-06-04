@@ -64,6 +64,16 @@ def main():
     # Use directory of this script, should work with most installation setups
     script_dir = pathlib.Path(__file__).parent
     hidden_dir = script_dir / '.hidden'
+
+    if not hidden_dir.exists():
+        hidden_dir.mkdir()
+        logging.info('This is your first time running this script.\n'
+                     'Generating help files may take a few minutes, please be patient.\n'
+                     'Subsequent searches will be much faster.\n'
+                     'Generating help files....')
+        _generate_help_files()
+
+
     matches = []
 
     keywords_regexes = [re.compile('(' + re.escape(kw) + ')', re.IGNORECASE)
@@ -262,6 +272,14 @@ def _contains_stemmed_keywords(stemmed_keywords,text, filename):
     stemmed_text = _stem_text(text)
     stemmed_filename = _stem_text(filename)
     return all([stem in stemmed_text or stem in stemmed_filename for stem in stemmed_keywords])
+
+def _generate_help_files():
+    """Call the external script generate_help_files to generate help files
+    """
+    script_path = pathlib.Path(__file__).parent.parent / 'scilpy-bot-scripts'/'generate_help_files.py'
+    #calling the extrernal script generate_help_files
+    subprocess.run(['python', script_path], check=True)
+    
 
 
 if __name__ == '__main__':
