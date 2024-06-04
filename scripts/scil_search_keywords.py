@@ -61,7 +61,6 @@ def main():
 
     keywords_regexes = [re.compile('(' + re.escape(kw) + ')', re.IGNORECASE)
                         for kw in args.keywords]
-    
 
     # Search through the argparser instead of the docstring        
     if args.search_parser: 
@@ -113,7 +112,7 @@ def main():
     
     # Search through the docstring instead of the argparser
     else:
-        for script in sorted(script_dir.glob('scripts/*.py')):
+        for script in sorted(script_dir.glob('*.py')):
             filename = script.name
             if filename == '__init__.py' or filename =='scil_search_keywords.py':
                 continue
