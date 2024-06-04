@@ -79,7 +79,7 @@ def main():
 
             
         # Test intersection of all keywords, either in filename or docstring
-            if not _contains_stemmed_keywords(stemmed_keywords, search_text):
+            if not _contains_stemmed_keywords(stemmed_keywords, search_text, script_name):
                 continue
 
             matches.append(script_name)
@@ -117,14 +117,15 @@ def main():
     # Search through the docstring instead of the argparser
     else:
         for script in sorted(script_dir.glob('*.py')):
-            filename = script.name
-            if filename == '__init__.py' or filename =='scil_search_keywords.py':
+            #Remove the .py extension
+            filename = script.stem
+            if filename == '__init__' or filename =='scil_search_keywords':
                 continue
-
+            
             search_text = _get_docstring_from_script_path(str(script))
 
             # Test intersection of all keywords, either in filename or docstring
-            if not _test_matching_keywords(args.keywords, [filename, search_text]):
+            if not _contains_stemmed_keywords(stemmed_keywords, search_text, filename):
                 continue
 
             matches.append(filename)
@@ -257,9 +258,10 @@ def _stem_text(text):
     words = nltk.word_tokenize(text)
     return ' '.join([stemmer.stem(word) for word in words])
 
-def _contains_stemmed_keywords(stemmed_keywords, text):
+def _contains_stemmed_keywords(stemmed_keywords,text, filename):
     stemmed_text = _stem_text(text)
-    return all([stem in stemmed_text for stem in stemmed_keywords])
+    stemmed_filename = _stem_text(filename)
+    return all([stem in stemmed_text or stem in stemmed_filename for stem in stemmed_keywords])
 
 
 if __name__ == '__main__':
