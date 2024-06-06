@@ -22,10 +22,13 @@ import subprocess
 import numpy as np
 import nltk
 from nltk.stem import PorterStemmer
+from colorama import init, Fore, Style
 
 from scilpy.io.utils import add_verbose_arg
 
 nltk.download('punkt', quiet=True)
+
+init(autoreset=True)
 
 RED = '\033[31m'
 BOLD = '\033[1m'
@@ -99,29 +102,16 @@ def main():
             display_short_info, display_long_info = _split_first_sentence(
                 search_text)
 
-            # NOTE: It is important to do the formatting before adding color style,
-            # because python does not ignore ANSI color codes, and will count them
-            # as characters!
-
-            # Center text, add spacing and make BOLD
-            header = _make_title(" {} ".format(display_filename))
-            footer = _make_title(" End of {} ".format(display_filename))
-
-            # Highlight found keywords using ANSI color codes
-            colored_keyword = '{}\\1{}'.format(RED + BOLD, END_COLOR)
+            # Highlight found keywords using colorama
             for keyword in args.keywords:
-                search_text = re.sub(rf'(?i)\b{re.escape(keyword)}\b', f'{RED + BOLD}\\g<0>{END_COLOR}', search_text)
-
-            # Restore BOLD in header/footer after matching keywords, and make sure
-            # to add a END_COLOR at the end.
-            header = header.replace(END_COLOR, END_COLOR + BOLD) + END_COLOR
-            footer = footer.replace(END_COLOR, END_COLOR + BOLD) + END_COLOR
+                display_short_info = display_short_info.replace(keyword, f'{Fore.RED}{Style.BRIGHT}{keyword}{Style.RESET_ALL}')
+                display_long_info = display_long_info.replace(keyword, f'{Fore.RED}{Style.BRIGHT}{keyword}{Style.RESET_ALL}')
 
             # Print everything
-            logging.info(header)
+            logging.info(f"{Fore.BLUE}{Style.BRIGHT}{display_filename}{Style.RESET_ALL}")
             logging.info(display_short_info)
             logging.debug(display_long_info)
-            logging.info(footer)
+            logging.info(f"{Fore.BLUE}{'=' * SPACING_LEN}")
             logging.info("\n")
     
     # Search through the docstring instead of the argparser
@@ -145,34 +135,16 @@ def main():
             display_short_info, display_long_info = _split_first_sentence(
                 search_text)
 
-            # NOTE: It is important to do the formatting before adding color style,
-            # because python does not ignore ANSI color codes, and will count them
-            # as characters!
-
-            # Center text, add spacing and make BOLD
-            header = _make_title(" {} ".format(display_filename))
-            footer = _make_title(" End of {} ".format(display_filename))
-
-            # Highlight found keywords using ANSI color codes
-            colored_keyword = '{}\\1{}'.format(RED + BOLD, END_COLOR)
-            for regex in keywords_regexes:
-                header = regex.sub(colored_keyword, header)
-                footer = regex.sub(colored_keyword, footer)
-                display_short_info = regex.sub(colored_keyword, display_short_info)
-                display_long_info = regex.sub(colored_keyword, display_long_info)
-
-            # Restore BOLD in header/footer after matching keywords, and make sure
-            # to add a END_COLOR at the end.
-            header = header.replace(END_COLOR, END_COLOR + BOLD) + END_COLOR
-            footer = footer.replace(END_COLOR, END_COLOR + BOLD) + END_COLOR
+            # Highlight found keywords using colorama
+            display_short_info = _highlight_keywords(display_short_info, stemmed_keywords)
+            display_long_info = _highlight_keywords(display_long_info, stemmed_keywords)
 
             # Print everything
-            logging.info(header)
+            logging.info(f"{Fore.BLUE}{Style.BRIGHT}{display_filename}{Style.RESET_ALL}")
             logging.info(display_short_info)
             logging.debug(display_long_info)
-            logging.info(footer)
+            logging.info(f"{Fore.BLUE}{'=' * SPACING_LEN}")
             logging.info("\n")
-    
 
             
     if not matches:
@@ -180,7 +152,7 @@ def main():
 
 
 def _make_title(text):
-    return BOLD + text.center(SPACING_LEN, SPACING_CHAR) + END_COLOR
+    return f'{Fore.BLUE}{Style.BRIGHT}{text.center(SPACING_LEN, SPACING_CHAR)}{Style.RESET_ALL}'
 
 
 def _test_matching_keywords(keywords, texts):
@@ -280,7 +252,17 @@ def _generate_help_files():
     #calling the extrernal script generate_help_files
     subprocess.run(['python', script_path], check=True)
     
-
+def _highlight_keywords(text, stemmed_keywords):
+    """Highlight the stemmed keywords in the given text using colorama."""
+    words = text.split()
+    highlighted_text = []
+    for word in words:
+        stemmed_word = stemmer.stem(word)
+        if stemmed_word in stemmed_keywords:
+            highlighted_text.append(f'{Fore.RED}{Style.BRIGHT}{word}{Style.RESET_ALL}')
+        else:
+            highlighted_text.append(word)
+    return ' '.join(highlighted_text)
 
 if __name__ == '__main__':
     main()
