@@ -419,12 +419,13 @@ def main():
                            peaks_use_affine=False,
                            filename_mask=args.in_tracking_mask,
                            ndirs=args.nbr_dir,
-                           path_out=tmp_dir.name)
+                           path_out=tmp_dir.name,
+                           n_threads=args.nbr_processes)
 
         # Preparation for fitting
         commit.core.setup()
         mit = commit.Evaluation('.', '.')
-        mit.set_threads(args.processes)
+        mit.set_threads(n=args.nbr_processes)
 
         # FIX for very small values during HCP processing
         # (based on order of magnitude of signal)
