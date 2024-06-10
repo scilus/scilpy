@@ -424,6 +424,7 @@ def main():
         # Preparation for fitting
         commit.core.setup()
         mit = commit.Evaluation('.', '.')
+        mit.set_threads(args.processes)
 
         # FIX for very small values during HCP processing
         # (based on order of magnitude of signal)
