@@ -425,7 +425,7 @@ def main():
         # Preparation for fitting
         commit.core.setup()
         mit = commit.Evaluation('.', '.')
-        mit.set_threads(n=args.nbr_processes)
+        #mit.set_threads(args.nbr_processes)
 
         # FIX for very small values during HCP processing
         # (based on order of magnitude of signal)
@@ -460,9 +460,10 @@ def main():
         use_mask = args.in_tracking_mask is not None
         mit.load_dictionary(tmp_dir.name, use_all_voxels_in_mask=use_mask)
         mit.set_threads(args.nbr_processes)
+        mit.set_verbose(False)
 
         mit.build_operator(build_dir=os.path.join(tmp_dir.name, 'build/'))
-        mit.fit(tol_fun=tol_fun, max_iter=args.nbr_iter, verbose=False)
+        mit.fit(tol_fun=tol_fun, max_iter=args.nbr_iter)
         mit.save_results()
         _save_results(args, tmp_dir, ext, hdf5_file, offsets_list,
                       'commit_1/', False)
