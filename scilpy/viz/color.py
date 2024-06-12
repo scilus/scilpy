@@ -26,14 +26,16 @@ def convert_color_names_to_rgb(names):
     return [get_color_by_name(name) for name in names]
 
 
-BASE_10_COLORS = convert_color_names_to_rgb(["Blue",
-                                             "Yellow",
-                                             "Purple",
-                                             "Green",
+BASE_10_COLORS = convert_color_names_to_rgb(["Red",
+                                             "DeepPink",
                                              "Orange",
-                                             "White",
-                                             "Brown",
-                                             "Grey"])
+                                             "Gold",
+                                             "Purple",
+                                             "Magenta",
+                                             "Green",
+                                             "Blue",
+                                             "Cyan",
+                                             "Brown"])
 
 
 def generate_n_colors(n, generator=distinguishable_colormap,
