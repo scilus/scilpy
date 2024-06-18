@@ -41,7 +41,8 @@ def _build_arg_parser():
     p.add_argument('in_surface',
                    help='Input a surface (FreeSurfer or supported by VTK).')
     p.add_argument('out_surface',
-                   help='Output surface (formats supported by VTK).')
+                   help='Output surface (formats supported by VTK).\n'
+                        'Recommended extension: .vtk or .ply')
 
     p.add_argument('--flip_axes', default=[-1, -1, 1], type=int, nargs=3,
                    help='Flip axes for RAS or LPS convention. '
@@ -60,10 +61,12 @@ def main():
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
-    assert_inputs_exist(parser, args.in_surface)
+    assert_inputs_exist(parser, args.in_surface, optional=args.reference)
     assert_outputs_exist(parser, args, args.out_surface)
 
     _, ext = os.path.splitext(args.in_surface)
+    # FreeSurfer surfaces have no extension, verify if the input has one of the
+    # many supported extensions, otherwise it is (likely) a FreeSurfer surface
     if ext not in ['.vtk', '.vtp', '.fib', '.ply', '.stl', '.xml', '.obj']:
         if args.reference is None:
             parser.error('The reference image is required for FreeSurfer '
