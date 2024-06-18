@@ -360,7 +360,10 @@ def _extract_vb_one_bundle(
         mask_1 = binary_dilation(mask_1, iterations=dilate_endpoints)
         mask_2 = binary_dilation(mask_2, iterations=dilate_endpoints)
 
-    _, vs_ids = filter_grid_roi_both(sft, mask_1, mask_2)
+    if len(sft) > 0:
+        _, vs_ids = filter_grid_roi_both(sft, mask_1, mask_2)
+    else:
+        vs_ids = np.array([])
 
     wpc_ids = []
     bundle_stats = {"Initial count head to tail": len(vs_ids)}
@@ -508,7 +511,10 @@ def _extract_ib_one_bundle(sft, mask_1_filename, mask_2_filename,
         mask_1 = binary_dilation(mask_1, iterations=dilate_endpoints)
         mask_2 = binary_dilation(mask_2, iterations=dilate_endpoints)
 
-    _, fc_ids = filter_grid_roi_both(sft, mask_1, mask_2)
+    if len(sft) > 0:
+        _, fc_ids = filter_grid_roi_both(sft, mask_1, mask_2)
+    else:
+        fc_ids = []
 
     fc_sft = sft[fc_ids]
     return fc_sft, fc_ids
