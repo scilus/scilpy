@@ -102,7 +102,6 @@ def main():
                                 '.trk file.')
             out_filenames.append('{}{}{}'
                                  .format(base, args.out_suffix, '.trk'))
-    print(out_filenames)
     assert_outputs_exist(parser, args, out_filenames)
 
     # Loading (except tractograms, in loop)
