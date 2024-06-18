@@ -51,12 +51,12 @@ def _build_arg_parser():
 
     p.add_argument('--stored_space', choices=['rasmm', 'voxmm', 'vox'],
                    default='vox',
-                   help='Space in which the streamlines are stored '
+                   help='Space convention in which the streamlines are stored '
                         '[%(default)s].')
     p.add_argument('--stored_origin', choices=['nifti', 'trackvis'],
                    default='trackvis',
-                   help='Origin in which the streamlines are stored '
-                        '[%(default)s].')
+                   help='Voxel origin convention in which the streamlines are '
+                        'stored [%(default)s].')
 
     p.add_argument('--include_dps', action='store_true',
                    help='Include the data_per_streamline the metadata.')
