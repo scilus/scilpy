@@ -80,12 +80,16 @@ def buildArgsParser():
     g.add_argument('--from_end', action='store_true',
                    help='Cut from the other end of streamlines.\n'
                         'Only available with --cut.')
-
+    g.add_argument('--save_transform', metavar='FILE',
+                   help='Save the transformation matrix to a file.\n'
+                        'Only available with --transform.')
+    
     p.add_argument('--seed', '-s', type=int, default=None,
                    help='Seed for RNG. Default based on --min_dice.')
     p.add_argument('--shuffle', action='store_true',
                    help='Shuffle the streamlines and orientation after'
                    'alteration.')
+
     add_overwrite_arg(p)
     add_verbose_arg(p)
     add_reference_arg(p)
@@ -103,6 +107,10 @@ def main():
 
     if args.from_end and args.cut is None:
         parser.error('The --from_end option is only available with --cut.')
+
+    if args.save_transform and args.transform is None:
+        parser.error('The --save_transform option is only available with '
+                     '--transform.')
 
     if args.seed is None:
         np.random.seed(int(args.min_dice * 1000))
@@ -126,7 +134,7 @@ def main():
         altered_sft = replace_streamlines_alter(sft, args.min_dice,
                                                 epsilon=args.epsilon)
     elif args.transform:
-        altered_sft = transform_streamlines_alter(sft, args.min_dice,
+        altered_sft, matrix = transform_streamlines_alter(sft, args.min_dice,
                                                   epsilon=args.epsilon)
 
     # Some operations could have generated invalid streamlines
@@ -137,6 +145,9 @@ def main():
     if args.shuffle:
         altered_sft = shuffle_streamlines(altered_sft)
         altered_sft = shuffle_streamlines_orientation(altered_sft)
+
+    if args.save_transform:
+        np.savetxt(args.save_transform, matrix)
 
     save_tractogram(altered_sft, args.out_bundle)
 

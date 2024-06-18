@@ -1288,7 +1288,7 @@ def transform_streamlines_alter(sft, min_dice=0.90, epsilon=0.01):
     logging.debug(f'\nFinal angles: {last_pick * 360} at dice: {dice}')
     curr_sft.to_space(space)
     curr_sft.to_origin(origin)
-    return curr_sft
+    return curr_sft, rot_mat
 
 
 OPERATIONS = {
