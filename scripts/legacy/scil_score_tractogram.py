@@ -2,11 +2,11 @@
 # -*- coding: utf-8 -*-
 
 from scilpy.io.deprecator import deprecate_script
-from scripts.scil_tractogram_segment_and_score import main as new_main
+from scripts.scil_tractogram_segment_with_ROI_and_score import main as new_main
 
 
 DEPRECATION_MSG = """
-This script has been renamed scil_tractogram_segment_and_score.py.
+This script has been renamed scil_tractogram_segment_with_ROI_and_score.py.
 Please change your existing pipelines accordingly.
 """
 
