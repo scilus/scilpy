@@ -177,9 +177,10 @@ def compute_distance_barycenters(ref_1, ref_2, ref_2_transfo):
 
     Returns
     -------
-    distance: float or tuple (2,)
-        return a tuple containing the distance before and after
-        the transformation.
+    distance_before: float
+        The distance between the two barycenters before the transformation.
+    distance_after: float
+        The distance between the two barycenters after the transformation.
     """
     aff_1, dim_1, _, _ = get_reference_info(ref_1)
     aff_2, dim_2, _, _ = get_reference_info(ref_2)

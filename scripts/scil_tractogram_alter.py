@@ -83,7 +83,7 @@ def buildArgsParser():
     g.add_argument('--save_transform', metavar='FILE',
                    help='Save the transformation matrix to a file.\n'
                         'Only available with --transform.')
-    
+
     p.add_argument('--seed', '-s', type=int, default=None,
                    help='Seed for RNG. Default based on --min_dice.')
     p.add_argument('--shuffle', action='store_true',
@@ -135,7 +135,7 @@ def main():
                                                 epsilon=args.epsilon)
     elif args.transform:
         altered_sft, matrix = transform_streamlines_alter(sft, args.min_dice,
-                                                  epsilon=args.epsilon)
+                                                          epsilon=args.epsilon)
 
     # Some operations could have generated invalid streamlines
     altered_sft, _ = cut_invalid_streamlines(altered_sft)

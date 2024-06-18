@@ -5,6 +5,17 @@
 Compute clusters using QuickBundlesX and save them separately.
 We cannot know the number of clusters in advance.
 
+Quickbundles:
+Garyfallidis, E. et al. (2012). Quickbundles, a method for tractography
+simplification. Frontiers in neuroscience, 6, 175.
+
+QuickbundlesX:
+Garyfallidis, E. et al. (2016) QuickBundlesX: sequential clustering of millions
+of streamlines in multiple levels of detail at record execution time. 24th
+International Society of Magnetic Resonance in Medicine (ISMRM).
+
+"QuickBundlesX shows a remarkable 20+X speedup over its predecessor"
+
 Formerly: scil_compute_qbx.py
 """
 
@@ -37,7 +48,7 @@ def _build_arg_parser():
                    help='Last QuickBundlesX threshold in mm. Typically \n'
                         'the value are between 10-20mm.')
     p.add_argument('out_clusters_dir',
-                   help='Path to the clusters directory.')
+                   help='Path where to save the clusters directory.')
 
     p.add_argument('--nb_points', type=int, default='20',
                    help='Streamlines will be resampled to have this '
@@ -65,20 +76,18 @@ def main():
                                        create_dir=True)
 
     sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
-    streamlines = sft.streamlines
     thresholds = [40, 30, 20, args.dist_thresh]
-    clusters = qbx_and_merge(streamlines, thresholds,
+    clusters = qbx_and_merge(sft.streamlines, thresholds,
                              nb_pts=args.nb_points, verbose=False)
 
-    if args.verbose:
-        logging.info("Tractogram was separated into {} clusters. Saving..."
-                     .format(len(clusters)))
+    logging.info("Tractogram was separated into {} clusters. Saving..."
+                 .format(len(clusters)))
 
     for i, cluster in enumerate(clusters):
         if len(cluster.indices) > 1:
-            cluster_streamlines = itemgetter(*cluster.indices)(streamlines)
+            cluster_streamlines = itemgetter(*cluster.indices)(sft.streamlines)
         else:
-            cluster_streamlines = streamlines[cluster.indices]
+            cluster_streamlines = sft.streamlines[cluster.indices]
 
         new_sft = StatefulTractogram.from_sft(cluster_streamlines, sft)
         save_tractogram(new_sft, os.path.join(args.out_clusters_dir,
