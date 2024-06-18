@@ -368,8 +368,8 @@ def _extract_vb_one_bundle(
     # Remove out of inclusion mask (limits_mask)
     if len(vs_ids) > 0 and inv_all_mask is not None:
         tmp_sft = sft[vs_ids]
-        _, out_of_mask_ids_from_vs = filter_grid_roi(
-            tmp_sft, inv_all_mask, 'any', False)
+        out_of_mask_ids_from_vs = filter_grid_roi(
+            tmp_sft, inv_all_mask, 'any', is_exclude=False)
         out_of_mask_ids = vs_ids[out_of_mask_ids_from_vs]
 
         bundle_stats.update({"WPC_out_of_mask": len(out_of_mask_ids)})
@@ -381,8 +381,8 @@ def _extract_vb_one_bundle(
     # Remove streamlines not passing through any_mask
     if len(vs_ids) > 0 and any_mask is not None:
         tmp_sft = sft[vs_ids]
-        _, in_mask_ids_from_vs = filter_grid_roi(
-            tmp_sft, any_mask, 'any', False)
+        in_mask_ids_from_vs = filter_grid_roi(
+            tmp_sft, any_mask, 'any', is_exclude=False)
         in_mask_ids = vs_ids[in_mask_ids_from_vs]
 
         out_of_mask_ids = np.setdiff1d(vs_ids, in_mask_ids)

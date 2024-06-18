@@ -88,6 +88,10 @@ def _build_arg_parser():
     track_g.add_argument('--algo', default='prob', choices=['det', 'prob'],
                          help='Algorithm to use. [%(default)s]')
     add_sphere_arg(track_g, symmetric_only=False)
+    track_g.add_argument('--sub_sphere',
+                         type=int, default=0,
+                         help='Subdivides each face of the sphere into 4^s new'
+                              ' faces. [%(default)s]')
     track_g.add_argument('--sfthres_init', metavar='sf_th', type=float,
                          default=0.5, dest='sf_threshold_init',
                          help="Spherical function relative threshold value "
@@ -237,9 +241,11 @@ def main():
     # Using space and origin in the propagator: vox and center, like
     # in dipy.
     sh_basis, is_legacy = parse_sh_basis_arg(args)
+
     propagator = ODFPropagator(
         dataset, vox_step_size, args.rk_order, args.algo, sh_basis,
         args.sf_threshold, args.sf_threshold_init, theta, args.sphere,
+        sub_sphere=args.sub_sphere,
         space=our_space, origin=our_origin, is_legacy=is_legacy)
 
     logging.info("Instantiating tracker.")

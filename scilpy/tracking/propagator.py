@@ -44,7 +44,8 @@ class AbstractPropagator(object):
             value.
         origin: dipy Origin
             Origin of the streamlines during tracking. All coordinates received
-            in the propagator's methods will be expected to respect that origin.
+            in the propagator's methods will be expected to respect
+            that origin.
 
         A note on space and origin: All coordinates received in the
         propagator's methods will be expected to respect those values.
@@ -66,7 +67,8 @@ class AbstractPropagator(object):
         # By default, normalizing directions. Adding option for child classes.
         self.normalize_directions = True
 
-        self.line_rng_generator = None   # Will be reset at each new streamline.
+        # Will be reset at each new streamline.
+        self.line_rng_generator = None
 
     def reset_data(self, new_data=None):
         """
@@ -255,7 +257,7 @@ class AbstractPropagator(object):
 
 class PropagatorOnSphere(AbstractPropagator):
     def __init__(self, datavolume, step_size, rk_order, dipy_sphere,
-                 space, origin):
+                 sub_sphere, space, origin):
         """
         Parameters
         ----------
@@ -275,7 +277,7 @@ class PropagatorOnSphere(AbstractPropagator):
         """
         super().__init__(datavolume, step_size, rk_order, space, origin)
 
-        self.sphere = dipy.data.get_sphere(dipy_sphere)
+        self.sphere = dipy.data.get_sphere(dipy_sphere).subdivide(sub_sphere)
         self.dirs = np.zeros(len(self.sphere.vertices), dtype=np.ndarray)
         for i in range(len(self.sphere.vertices)):
             self.dirs[i] = TrackingDirection(self.sphere.vertices[i], i)
@@ -319,6 +321,7 @@ class ODFPropagator(PropagatorOnSphere):
     def __init__(self, datavolume, step_size,
                  rk_order, algo, basis, sf_threshold, sf_threshold_init,
                  theta, dipy_sphere='symmetric724',
+                 sub_sphere=0,
                  min_separation_angle=np.pi / 16.,
                  space=Space('vox'), origin=Origin('center'),
                  is_legacy=True):
@@ -345,6 +348,8 @@ class ODFPropagator(PropagatorOnSphere):
         dipy_sphere: string, optional
             Name of the DIPY sphere object to use for evaluating SH. Can't be
             None.
+        sub_sphere: int
+            Number of subdivisions to use for the sphere.
         min_separation_angle: float, optional
             Minimum separation angle (in radians) for peaks extraction. Used
             for deterministic tracking. A candidate direction is a maximum if
@@ -365,7 +370,7 @@ class ODFPropagator(PropagatorOnSphere):
             Whether or not the SH basis is in its legacy form.
         """
         super().__init__(datavolume, step_size, rk_order, dipy_sphere,
-                         space, origin)
+                         sub_sphere, space, origin)
 
         if self.space == Space.RASMM:
             raise NotImplementedError(

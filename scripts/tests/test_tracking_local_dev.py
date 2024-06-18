@@ -28,5 +28,7 @@ def test_execution_tracking_fodf(script_runner, monkeypatch):
                             in_mask, in_mask, 'local_prob.trk', '--nt', '10',
                             '--compress', '0.1', '--sh_basis', 'descoteaux07',
                             '--min_length', '20', '--max_length', '200',
-                            '--save_seeds', '--rng_seed', '0')
+                            '--save_seeds', '--rng_seed', '0',
+                            '--sub_sphere', '2',
+                            '--rk_order', '4')
     assert ret.success

@@ -140,7 +140,9 @@ def main():
                 if args.bundle:
                     tmp = np.zeros(lesion_atlas.shape)
                     tmp[lesion_atlas == lesion] = 1
-                    new_sft, _ = filter_grid_roi(sft, tmp, 'any', False)
+                    _, new_sft = filter_grid_roi(sft, tmp, 'any',
+                                                 is_exclude=False,
+                                                 return_sft=True)
                     lesion_dict[key]['strs_count'] = len(new_sft)
 
         lesion_vol_dict = {bundle_name: {}}

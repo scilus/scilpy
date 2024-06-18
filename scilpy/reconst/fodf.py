@@ -15,18 +15,23 @@ from dipy.utils.optpkg import optional_package
 cvx, have_cvxpy, _ = optional_package("cvxpy")
 
 
-def get_ventricles_max_fodf(data, fa, md, zoom, sh_basis, small_dims,
-                            fa_threshold, md_threshold, is_legacy=True):
+def get_ventricles_max_fodf(data, fa, md, zoom, sh_basis,
+                            fa_threshold, md_threshold,
+                            small_dims=False, is_legacy=True):
     """
     Compute mean maximal fodf value in ventricules. Given heuristics thresholds
     on FA and MD values, finds the voxels of the ventricules or CSF and
     computes a mean fODF value. This is described in
     Dell'Acqua et al. HBM 2013.
 
+    Ventricles are searched in a window in the middle of the data to increase
+    speed. No need to scan the whole image.
+
     Parameters
     ----------
     data: ndarray (x, y, z, ncoeffs)
-         Input fODF file in spherical harmonics coefficients.
+         Input fODF file in spherical harmonics coefficients. Uses sphere
+         'repulsion100' to convert to SF values.
     fa: ndarray (x, y, z)
          FA (Fractional Anisotropy) volume from DTI
     md: ndarray (x, y, z)
@@ -38,15 +43,16 @@ def get_ventricles_max_fodf(data, fa, md, zoom, sh_basis, small_dims,
         Either 'tournier07' or 'descoteaux07'
     small_dims: bool
         If set, takes the full range of data to search the max fodf amplitude
-        in ventricles. Useful when the data has small dimensions.
+        in ventricles, rather than a window center in the data. Useful when the
+        data has small dimensions.
     fa_threshold: float
         Maximal threshold of FA (voxels under that threshold are considered
-        for evaluation).
+        for evaluation). Suggested value: 0.1.
     md_threshold: float
         Minimal threshold of MD in mm2/s (voxels above that threshold are
-        considered for evaluation).
+        considered for evaluation). Suggested value: 0.003.
     is_legacy : bool, optional
-        Whether or not the SH basis is in its legacy form.
+        Whether the SH basis is in its legacy form.
 
     Returns
     -------
@@ -57,18 +63,7 @@ def get_ventricles_max_fodf(data, fa, md, zoom, sh_basis, small_dims,
     order = find_order_from_nb_coeff(data)
     sphere = get_sphere('repulsion100')
     b_matrix, _ = sh_to_sf_matrix(sphere, order, sh_basis, legacy=is_legacy)
-    sum_of_max = 0
-    count = 0
-
     mask = np.zeros(data.shape[:-1])
-
-    if np.min(data.shape[:-1]) > 40:
-        step = 20
-    else:
-        if np.min(data.shape[:-1]) > 20:
-            step = 10
-        else:
-            step = 5
 
     # 1000 works well at 2x2x2 = 8 mm3
     # Hence, we multiply by the volume of a voxel
@@ -77,6 +72,8 @@ def get_ventricles_max_fodf(data, fa, md, zoom, sh_basis, small_dims,
         max_number_of_voxels = 1000 * 8 // vol
     else:
         max_number_of_voxels = 1000
+    logging.debug("Searching for ventricle voxels, up to a maximum of {} "
+                  "voxels.".format(max_number_of_voxels))
 
     # In the case of 2D-like data (3D data with one dimension size of 1), or
     # a small 3D dataset, the full range of data is scanned.
@@ -85,14 +82,27 @@ def get_ventricles_max_fodf(data, fa, md, zoom, sh_basis, small_dims,
         all_j = list(range(0, data.shape[1]))
         all_k = list(range(0, data.shape[2]))
     # In the case of a normal 3D dataset, a window is created in the middle of
-    # the image to capture the ventricules. No need to scan the whole image.
+    # the image to capture the ventricles. No need to scan the whole image.
+    # (Automatic definition of window's radius based on the shape of the data.)
     else:
-        all_i = list(range(int(data.shape[0]/2) - step,
-                           int(data.shape[0]/2) + step))
-        all_j = list(range(int(data.shape[1]/2) - step,
-                           int(data.shape[1]/2) + step))
-        all_k = list(range(int(data.shape[2]/2) - step,
-                           int(data.shape[2]/2) + step))
+        if np.min(data.shape[:-1]) > 40:
+            radius = 20
+        else:
+            if np.min(data.shape[:-1]) > 20:
+                radius = 10
+            else:
+                radius = 5
+
+        all_i = list(range(int(data.shape[0]/2) - radius,
+                           int(data.shape[0]/2) + radius))
+        all_j = list(range(int(data.shape[1]/2) - radius,
+                           int(data.shape[1]/2) + radius))
+        all_k = list(range(int(data.shape[2]/2) - radius,
+                           int(data.shape[2]/2) + radius))
+
+    # Ok. Now find ventricle voxels.
+    sum_of_max = 0
+    count = 0
     for i in all_i:
         for j in all_j:
             for k in all_k:

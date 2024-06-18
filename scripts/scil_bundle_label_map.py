@@ -29,7 +29,7 @@ import numpy as np
 import scipy.ndimage as ndi
 from scipy.spatial import cKDTree
 
-from scilpy.image.volume_math import correlation
+from scilpy.image.volume_math import neighborhood_correlation_
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg,
                              add_reference_arg,
@@ -127,12 +127,12 @@ def main():
             args.in_centroid, args.in_bundle))
 
     if len(density_list) > 1:
-        corr_map = correlation(density_list, None)
+        corr_map = neighborhood_correlation_(density_list)
     else:
         corr_map = density_list[0].astype(float)
         corr_map[corr_map > 0] = 1
 
-    # Slightly cut the bundle at the edgge to clean up single streamline voxels
+    # Slightly cut the bundle at the edge to clean up single streamline voxels
     # with no neighbor. Remove isolated voxels to keep a single 'blob'
     binary_bundle = np.zeros(corr_map.shape, dtype=bool)
     binary_bundle[corr_map > 0.5] = 1

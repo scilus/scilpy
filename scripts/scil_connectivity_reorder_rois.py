@@ -10,7 +10,7 @@ x and y).
 The values refer to the coordinates (starting at 0) in the matrix, but if the
 --labels_list parameter is used, the values will refer to the label which will
 be converted to the appropriate coordinates. This file must be the same as the
-one provided to the scil_tractogram_segment_bundles_for_connectivity.py.
+one provided to the scil_tractogram_segment_connections_from_labels.py.
 
 To subsequently use scil_visualize_connectivity.py with a lookup table, you
 must use a label-based reording json and use --labels_list.

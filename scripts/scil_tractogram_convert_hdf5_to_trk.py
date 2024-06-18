@@ -3,7 +3,7 @@
 
 """
 Save connections of a hdf5 created with
->> scil_tractogram_segment_bundles_for_connectivity.py.
+>> scil_tractogram_segment_connections_from_labels.py.
 
 Useful for quality control and visual inspections.
 

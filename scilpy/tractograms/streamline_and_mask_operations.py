@@ -138,7 +138,10 @@ def cut_outside_of_mask_streamlines(sft, binary_mask, min_len=0):
         data_per_streamline=sft.data_per_streamline[kept_idx])
     new_sft.to_space(orig_space)
     new_sft.to_origin(orig_origin)
-    return filter_streamlines_by_length(new_sft, min_length=min_len)
+
+    new_sft, _ = filter_streamlines_by_length(new_sft, min_length=min_len)
+
+    return new_sft
 
 
 def cut_between_mask_two_blobs_streamlines(sft, binary_mask_1,
@@ -194,7 +197,10 @@ def cut_between_mask_two_blobs_streamlines(sft, binary_mask_1,
         data_per_streamline=sft.data_per_streamline[kept_idx])
     new_sft.to_space(orig_space)
     new_sft.to_origin(orig_origin)
-    return filter_streamlines_by_length(new_sft, min_length=min_len)
+
+    new_sft, _ = filter_streamlines_by_length(new_sft, min_length=min_len)
+
+    return new_sft
 
 
 def _cut_streamlines_with_masks(streamlines, roi_data_1, roi_data_2):

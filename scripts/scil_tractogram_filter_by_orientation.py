@@ -15,6 +15,12 @@ coordinates in anterior-posterior axis, a streamline from the ...
 Note: we consider that x, y, z are the coordinates of the streamlines; we
 do not verify if they are aligned with the brain's orientation.
 
+See also:
+    - scil_tractogram_detect_loops.py
+    - scil_tractogram_filter_by_anatomy.py
+    - scil_tractogram_filter_by_length.py
+    - scil_tractogram_filter_by_roi.py
+
 Formerly: scil_filter_streamlines_by_orientation.py
 """
 
@@ -88,6 +94,7 @@ def main():
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
+    # Verifications
     assert_inputs_exist(parser, args.in_tractogram, args.reference)
     assert_outputs_exist(parser, args, args.out_tractogram, args.save_rejected)
 
@@ -96,13 +103,16 @@ def main():
        args.min_z == 0 and np.isinf(args.max_z):
         logging.warning("You have not specified min or max in any direction. "
                         "Output will simply be a copy of your input!")
+    compute_rejected = args.save_rejected is not None
 
+    # Loading
     sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
-    computed_rejected_sft = args.save_rejected is not None
+
+    # Processing
     new_sft, indices, rejected_sft = \
         filter_streamlines_by_total_length_per_dim(
             sft, [args.min_x, args.max_x], [args.min_y, args.max_y],
-            [args.min_z, args.max_z], args.use_abs, computed_rejected_sft)
+            [args.min_z, args.max_z], args.use_abs, compute_rejected)
 
     if args.display_counts:
         sc_bf = len(sft.streamlines)
@@ -111,12 +121,11 @@ def main():
                          'streamline_count_after_filtering': int(sc_af)},
                          indent=args.indent))
 
-    save_tractogram(new_sft, args.out_tractogram,
-                    args.no_empty)
+    # Saving
+    save_tractogram(new_sft, args.out_tractogram, args.no_empty)
 
-    if computed_rejected_sft:
-        save_tractogram(rejected_sft, args.save_rejected,
-                        args.no_empty)
+    if compute_rejected:
+        save_tractogram(rejected_sft, args.save_rejected, args.no_empty)
 
 
 if __name__ == "__main__":
