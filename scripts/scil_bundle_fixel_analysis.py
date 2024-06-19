@@ -17,7 +17,7 @@ from pathlib import Path
 
 from scilpy.io.utils import (add_overwrite_arg, add_processes_arg,
                              assert_headers_compatible, assert_inputs_exist,
-                             assert_outputs_exist)
+                             assert_outputs_exist, add_verbose_arg)
 from scilpy.tractanalysis.fixel_density import (fixel_density, maps_to_masks)
 
 
@@ -53,7 +53,7 @@ def _build_arg_parser():
                         '\nAny normalized density above or equal to '
                         'this value will pass the relative threshold test. '
                         '\nMust be between 0 and 1 [%(default)s].')
-    
+
     g.add_argument('--norm', default="voxel", choices=["fixel", "voxel"],
                    help='Way of normalizing the density maps. If fixel, '
                         'will normalize the maps per fixel, \nin each voxel. '
@@ -80,6 +80,7 @@ def _build_arg_parser():
 
     add_overwrite_arg(p)
     add_processes_arg(p)
+    add_verbose_arg(p)
     return p
 
 
@@ -88,13 +89,13 @@ def main():
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
-    assert_inputs_exist(parser, args.in_peaks + args.in_bundles[0])
+    assert_inputs_exist(parser, [args.in_peaks] + args.in_bundles[0])
     assert_outputs_exist(parser, args, ["bundles_lookup_table.txt",
                                         "fixel_density_maps.nii.gz",
                                         "fixel_density_masks.nii.gz",
                                         "nb_bundles_per_fixel.nii.gz",
                                         "nb_bundles_per_voxel.nii.gz"])
-    assert_headers_compatible(parser, args.in_peaks + args.in_bundles[0])
+    assert_headers_compatible(parser, [args.in_peaks] + args.in_bundles[0])
 
     if args.rel_thr < 0 or args.rel_thr > 1:
         parser.error("Argument rel_thr must be a value between 0 and 1.")
@@ -116,13 +117,13 @@ def main():
     for bundle in args.in_bundles[0]:
         bundles.append(bundle)
         bundles_names.append(Path(bundle).name.split(".")[0])
-    if args.in_bundles_names: # If names are given
+    if args.in_bundles_names:  # If names are given
         bundles_names = args.in_bundles_names[0]
 
     # Compute fixel density maps and masks
     fixel_density_maps = fixel_density(peaks, bundles, args.max_theta,
                                        nbr_processes=args.nbr_processes)
-    
+
     fixel_density_masks = maps_to_masks(fixel_density_maps, args.abs_thr,
                                         args.rel_thr, args.norm,
                                         len(bundles))
@@ -139,7 +140,7 @@ def main():
 
     # Save all results
     for i, bundle_name in enumerate(bundles_names):
-        if args.split_bundles: # Save the maps and masks for each bundle
+        if args.split_bundles:  # Save the maps and masks for each bundle
             nib.save(nib.Nifti1Image(fixel_density_maps[..., i], affine),
                      "fixel_density_map_{}.nii.gz".format(bundle_name))
             nib.save(nib.Nifti1Image(fixel_density_masks[..., i], affine),
@@ -158,19 +159,18 @@ def main():
             bundle_mask = fixel_density_masks[..., 0, i] * one_bundle_per_voxel
             nib.save(nib.Nifti1Image(bundle_mask.astype(np.uint8), affine),
                      "single_bundle_mask_{}.nii.gz".format(bundle_name))
-    
-    if args.split_fixels: # Save the maps and masks for each fixel
+
+    if args.split_fixels:  # Save the maps and masks for each fixel
         for i in range(5):
             nib.save(nib.Nifti1Image(fixel_density_maps[..., i, :], affine),
-                     "fixel_density_map_f{}.nii.gz".format(i))
+                     "fixel_density_map_f{}.nii.gz".format(i + 1))
             nib.save(nib.Nifti1Image(fixel_density_masks[..., i, :], affine),
-                     "fixel_density_mask_f{}.nii.gz".format(i))
+                     "fixel_density_mask_f{}.nii.gz".format(i + 1))
 
     # Save bundles lookup table to know the order of the bundles
     bundles_idx = np.arange(0, len(bundles_names), 1)
     lookup_table = np.array([bundles_names, bundles_idx])
-    np.savetxt("bundles_lookup_table.txt",
-                lookup_table, fmt='%s')
+    np.savetxt("bundles_lookup_table.txt", lookup_table, fmt='%s')
 
     # Save full fixel density maps, all fixels and bundles combined
     nib.save(nib.Nifti1Image(fixel_density_maps, affine),
