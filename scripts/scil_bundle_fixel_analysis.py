@@ -89,8 +89,8 @@ def main():
     peaks = peaks_img.get_fdata()
     affine = peaks_img.affine
 
-    # Compute NuFo SF from peaks
-    if args.select_single_bundle:
+    # Compute NuFo single-fiber from peaks
+    if args.single_bundle:
         is_first_peak = np.sum(peaks[..., 0:3], axis=-1) != 0
         is_second_peak = np.sum(peaks[..., 3:6], axis=-1) == 0
         nufo_sf = np.logical_and(is_first_peak, is_second_peak)
@@ -101,7 +101,7 @@ def main():
     for bundle in args.in_bundles[0]:
         bundles.append(bundle)
         bundles_names.append(Path(bundle).name.split(".")[0])
-    if args.in_bundles_names[0] != []: # If names are given
+    if args.in_bundles_names: # If names are given
         bundles_names = args.in_bundles_names[0]
 
     # Compute fixel density maps and masks
