@@ -12,9 +12,12 @@ Analyze bundles at the fixel level, producing various results:
 import argparse
 import nibabel as nib
 import numpy as np
+import logging
 from pathlib import Path
 
-from scilpy.io.utils import (add_overwrite_arg, add_processes_arg)
+from scilpy.io.utils import (add_overwrite_arg, add_processes_arg,
+                             assert_headers_compatible, assert_inputs_exist,
+                             assert_outputs_exist)
 from scilpy.tractanalysis.fixel_density import (fixel_density, maps_to_masks)
 
 
@@ -83,6 +86,18 @@ def _build_arg_parser():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
+    logging.getLogger().setLevel(logging.getLevelName(args.verbose))
+
+    assert_inputs_exist(parser, args.in_peaks + args.in_bundles[0])
+    assert_outputs_exist(parser, args, ["bundles_lookup_table.txt",
+                                        "fixel_density_maps.nii.gz",
+                                        "fixel_density_masks.nii.gz",
+                                        "nb_bundles_per_fixel.nii.gz",
+                                        "nb_bundles_per_voxel.nii.gz"])
+    assert_headers_compatible(parser, args.in_peaks + args.in_bundles[0])
+
+    if args.rel_thr < 0 or args.rel_thr > 1:
+        parser.error("Argument rel_thr must be a value between 0 and 1.")
 
     # Load the data
     peaks_img = nib.load(args.in_peaks)
@@ -166,9 +181,9 @@ def main():
              "fixel_density_masks.nii.gz")
 
     # Save number of bundles per fixel and per voxel
-    nib.save(nib.Nifti1Image(nb_bundles_per_fixel, affine),
+    nib.save(nib.Nifti1Image(nb_bundles_per_fixel.astype(np.uint16), affine),
              "nb_bundles_per_fixel.nii.gz")
-    nib.save(nib.Nifti1Image(nb_bundles_per_voxel, affine),
+    nib.save(nib.Nifti1Image(nb_bundles_per_voxel.astype(np.uint16), affine),
              "nb_bundles_per_voxel.nii.gz")
 
 

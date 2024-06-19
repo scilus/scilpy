@@ -128,7 +128,7 @@ def maps_to_masks(maps, abs_thr, rel_thr, norm, nb_bundles):
         elif norm == "fixel":
             maps[..., i] /= fixel_sum
 
-    # Apply a threshold on the normalized density (percentage)
+    # Apply a threshold on the normalized density
     masks_rel = maps >= rel_thr
     # Compute the fixel density masks from the rel and abs versions
     masks = masks_rel * masks_abs
