@@ -6,7 +6,7 @@ from dipy.io.streamline import load_tractogram
 from scilpy.tractanalysis.grid_intersections import grid_intersections
 
 
-def _compute_fixel_density_parallel(args):
+def _fixel_density_parallel(args):
     peaks = args[0]
     max_theta = args[1]
     bundle = args[2]
@@ -51,8 +51,8 @@ def _compute_fixel_density_parallel(args):
     return fixel_density_maps
 
 
-def compute_fixel_density(peaks, bundles, max_theta=45, nbr_processes=None):
-    """Compute the fixel density per bundle. Can use parallel processing.
+def fixel_density(peaks, bundles, max_theta=45, nbr_processes=None):
+    """Compute the fixel density map per bundle. Can use parallel processing.
 
     Parameters
     ----------
@@ -76,7 +76,7 @@ def compute_fixel_density(peaks, bundles, max_theta=45, nbr_processes=None):
         else nbr_processes
 
     pool = multiprocessing.Pool(nbr_processes)
-    results = pool.map(_compute_fixel_density_parallel,
+    results = pool.map(_fixel_density_parallel,
                        zip(itertools.repeat(peaks),
                            itertools.repeat(max_theta),
                            bundles))
@@ -86,3 +86,51 @@ def compute_fixel_density(peaks, bundles, max_theta=45, nbr_processes=None):
     fixel_density = np.moveaxis(np.asarray(results), 0, -1)
 
     return fixel_density
+
+
+def maps_to_masks(maps, abs_thr, rel_thr, norm, nb_bundles):
+    """Compute the fixel density masks from fixel density maps.
+
+    Parameters
+    ----------
+    maps : np.ndarray (x, y, z, 5, N)
+        Density per fixel per bundle.
+    abs_thr : int
+        Value of density maps threshold to obtain density masks, in number of
+        streamlines.
+    rel_thr : float
+        Value of density maps threshold to obtain density masks, as a ratio of
+        the normalized density. Must be between 0 and 1.
+    norm : string, ["fixel", "voxel"]
+        Way of normalizing the density maps. If fixel, will normalize the maps
+        per fixel, in each voxel. If voxel, will normalize the maps per voxel.
+    nb_bundles : int (N)
+        Number of bundles (N).
+
+    Returns
+    -------
+    masks : np.ndarray (x, y, z, 5, N)
+        Density masks per fixel per bundle.
+    """
+    # Apply a threshold on the number of streamlines
+    masks_abs = maps >= abs_thr
+
+    # Normalizing the density maps per voxel or fixel
+    fixel_sum = np.sum(maps, axis=-1)
+    voxel_sum = np.sum(fixel_sum, axis=-1)
+    for i in range(nb_bundles):
+        if norm == "voxel":
+            maps[..., 0, i] /= voxel_sum
+            maps[..., 1, i] /= voxel_sum
+            maps[..., 2, i] /= voxel_sum
+            maps[..., 3, i] /= voxel_sum
+            maps[..., 4, i] /= voxel_sum
+        elif norm == "fixel":
+            maps[..., i] /= fixel_sum
+
+    # Apply a threshold on the normalized density (percentage)
+    masks_rel = maps >= rel_thr
+    # Compute the fixel density masks from the rel and abs versions
+    masks = masks_rel * masks_abs
+
+    return masks.astype(np.uint8)
