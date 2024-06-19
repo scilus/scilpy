@@ -40,5 +40,5 @@ def test_execution_dict(script_runner, monkeypatch):
 
     ret = script_runner.run('scil_tractogram_assign_uniform_color.py',
                             in_bundle, '--dict_colors', json_file,
-                            '--out_suffix', 'colored')
+                            '--out_suffix', 'colored', '-f')
     assert ret.success
