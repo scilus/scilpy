@@ -111,6 +111,8 @@ def maps_to_masks(maps, abs_thr, rel_thr, norm, nb_bundles):
     -------
     masks : np.ndarray (x, y, z, 5, N)
         Density masks per fixel per bundle.
+    maps : np.ndarray (x, y, z, 5, N)
+        Normalized density maps per fixel per bundle.
     """
     # Apply a threshold on the number of streamlines
     masks_abs = maps >= abs_thr
@@ -133,4 +135,4 @@ def maps_to_masks(maps, abs_thr, rel_thr, norm, nb_bundles):
     # Compute the fixel density masks from the rel and abs versions
     masks = masks_rel * masks_abs
 
-    return masks.astype(np.uint8)
+    return masks.astype(np.uint8), maps

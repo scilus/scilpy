@@ -1,11 +1,31 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Analyze bundles at the fixel level, producing various results:
+Analyze bundles at the fixel level, producing various output:
 
--
--
--
+    - bundles_LUT.txt : array of (N) bundle names
+      Lookup table (LUT) to know the order of the bundles in the various
+      outputs. When an output contains results for all bundles, it is always
+      the last dimension of the np.ndarray and it follows the order of the
+      lookup table.
+
+    - fixel_density_maps.nii.gz : np.ndarray (x, y, z, 5, N)
+      For each voxel, it represents the density of bundles among the 5 fixels.
+      If the normalization is chosen as the voxel-type, then the sum of the
+      density over a voxel is 1. If the normalization is chosen as the
+      fixel-type, then the sum of the density over each fixel is 1, so the sum
+      over a voxel will be higher than 1 (except in the single-fiber case).
+      The density maps can be computed using the streamline count, or any
+      streamline weighting like COMMIT or SIF, through the data_per_streamline.
+    
+    - fixel_density_masks.nii.gz : np.ndarray (x, y, z, 5, N)
+      For each voxel, it represents whether or not each bundle is associated
+      with each of the 5 fixels. In other words, it is a masked version of
+      fixel_density_maps, using two different thresholds. First, the absolute
+      threshold (abs_thr) is applied on the maps before the normalization,
+      either on the number of streamlines or the custom weight. Second, after
+      the normalization, the relative threshold (rel_thr) is applied on the
+      maps as a minimal value of density to be counted as an association.
 
 """
 
@@ -90,9 +110,10 @@ def main():
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     assert_inputs_exist(parser, [args.in_peaks] + args.in_bundles[0])
-    assert_outputs_exist(parser, args, ["bundles_lookup_table.txt",
+    assert_outputs_exist(parser, args, ["bundles_LUT.txt",
                                         "fixel_density_maps.nii.gz",
                                         "fixel_density_masks.nii.gz",
+                                        "voxel_density_masks.nii.gz",
                                         "nb_bundles_per_fixel.nii.gz",
                                         "nb_bundles_per_voxel.nii.gz"])
     assert_headers_compatible(parser, [args.in_peaks] + args.in_bundles[0])
@@ -124,17 +145,21 @@ def main():
     fixel_density_maps = fixel_density(peaks, bundles, args.max_theta,
                                        nbr_processes=args.nbr_processes)
 
-    fixel_density_masks = maps_to_masks(fixel_density_maps, args.abs_thr,
-                                        args.rel_thr, args.norm,
-                                        len(bundles))
+    fixel_density_masks, fixel_density_maps = maps_to_masks(fixel_density_maps,
+                                                            args.abs_thr,
+                                                            args.rel_thr,
+                                                            args.norm,
+                                                            len(bundles))
 
     # Compute number of bundles per fixel
     nb_bundles_per_fixel = np.sum(fixel_density_masks, axis=-1)
+    # Compute voxel density maps and masks
+    voxel_density_maps = np.sum(fixel_density_maps, axis=-2)
+    voxel_density_masks = np.sum(fixel_density_masks, axis=-2)
     # Compute a mask of the presence of each bundle per voxel
     # Since a bundle can be present twice in a single voxel by being associated
     # with more than one fixel, we count the presence of a bundle if > 0.
-    presence_of_bundles_per_voxel = np.where(np.sum(fixel_density_masks,
-                                                    axis=-2) > 0, 1, 0)
+    presence_of_bundles_per_voxel = np.where(voxel_density_masks > 0, 1, 0)
     # Compute number of bundles per voxel by taking the sum of the mask
     nb_bundles_per_voxel = np.sum(presence_of_bundles_per_voxel, axis=-1)
 
@@ -170,7 +195,7 @@ def main():
     # Save bundles lookup table to know the order of the bundles
     bundles_idx = np.arange(0, len(bundles_names), 1)
     lookup_table = np.array([bundles_names, bundles_idx])
-    np.savetxt("bundles_lookup_table.txt", lookup_table, fmt='%s')
+    np.savetxt("bundles_LUT.txt", lookup_table, fmt='%s')
 
     # Save full fixel density maps, all fixels and bundles combined
     nib.save(nib.Nifti1Image(fixel_density_maps, affine),
@@ -179,11 +204,18 @@ def main():
     # Save full fixel density masks, all fixels and bundles combined
     nib.save(nib.Nifti1Image(fixel_density_masks, affine),
              "fixel_density_masks.nii.gz")
+    
+    # Save full voxel density maps and masks
+    if args.norm == "voxel":  # If fixel, the voxel maps do not mean anything
+        nib.save(nib.Nifti1Image(voxel_density_maps, affine),
+                 "voxel_density_maps.nii.gz")
+    nib.save(nib.Nifti1Image(voxel_density_masks.astype(np.uint8), affine),
+             "voxel_density_masks.nii.gz")
 
     # Save number of bundles per fixel and per voxel
-    nib.save(nib.Nifti1Image(nb_bundles_per_fixel.astype(np.uint16), affine),
+    nib.save(nib.Nifti1Image(nb_bundles_per_fixel.astype(np.uint8), affine),
              "nb_bundles_per_fixel.nii.gz")
-    nib.save(nib.Nifti1Image(nb_bundles_per_voxel.astype(np.uint16), affine),
+    nib.save(nib.Nifti1Image(nb_bundles_per_voxel.astype(np.uint8), affine),
              "nb_bundles_per_voxel.nii.gz")
 
 
