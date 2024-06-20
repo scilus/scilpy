@@ -1,7 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Analyze bundles at the fixel level, producing various output:
+Analyze bundles at the fixel level using peaks and bundles (.trk). If the
+bundles files are names as {bundle_name}.trk, simply use the --in_bundles
+argument with --in_bundles_names. If it is not the case or you want other names
+to be saved, please use --in_bundles_names to provide bundles names IN THE SAME
+ORDER as the inputed bundles.
+
+The script produces various output:
 
     - bundles_LUT.txt : array of (N) bundle names
       Lookup table (LUT) to know the order of the bundles in the various
@@ -10,22 +16,62 @@ Analyze bundles at the fixel level, producing various output:
       lookup table.
 
     - fixel_density_maps.nii.gz : np.ndarray (x, y, z, 5, N)
-      For each voxel, it represents the density of bundles among the 5 fixels.
-      If the normalization is chosen as the voxel-type, then the sum of the
-      density over a voxel is 1. If the normalization is chosen as the
-      fixel-type, then the sum of the density over each fixel is 1, so the sum
-      over a voxel will be higher than 1 (except in the single-fiber case).
-      The density maps can be computed using the streamline count, or any
-      streamline weighting like COMMIT or SIF, through the data_per_streamline.
+      For each voxel, it gives the density of bundles associated with each
+      of the 5 fixels. If the normalization is chosen as the voxel-type, then
+      the sum of the density over a voxel is 1. If the normalization is chosen
+      as the fixel-type, then the sum of the density over each fixel is 1, so
+      the sum over a voxel will be higher than 1 (except in the single-fiber
+      case). The density maps can be computed using the streamline count, or
+      any streamline weighting like COMMIT or SIF, through the
+      data_per_streamline.
     
     - fixel_density_masks.nii.gz : np.ndarray (x, y, z, 5, N)
-      For each voxel, it represents whether or not each bundle is associated
+      For each voxel, it gives whether or not each bundle is associated
       with each of the 5 fixels. In other words, it is a masked version of
       fixel_density_maps, using two different thresholds. First, the absolute
       threshold (abs_thr) is applied on the maps before the normalization,
       either on the number of streamlines or the custom weight. Second, after
       the normalization, the relative threshold (rel_thr) is applied on the
       maps as a minimal value of density to be counted as an association.
+
+    - voxel_density_maps.nii.gz : np.ndarray (x, y, z, N)
+      For each voxel, it gives the density of each bundle within the voxel,
+      regardless of fixels. In other words, it gives the fraction of each
+      bundle per voxel. This is only outputed if the normalization of the maps
+      is chosen as the voxel-type, because the fixel-type does not translate to
+      meaningful results when summed into a voxel.
+
+    - voxel_density_masks.nii.gz : np.ndarray (x, y, z, N)
+      For each voxel, it gives whether or not each bundle is present. This is
+      computed from fixel_density_masks, so the same thresholds prevail.
+
+    - nb_bundles_per_fixel.nii.gz : np.ndarray (x, y, z)
+      For each voxel, it gives the number of bundles associated with each of
+      the 5 fixels.
+
+    - nb_bundles_per_voxel.nii.gz : np.ndarray (x, y, z)
+      For each voxel, it gives the number of bundles within the voxel. This
+      accounts for bundles that might be associated with more than one fixel,
+      so no bundle is counted more than once in a voxel.
+
+    If the split_bundles argument is given, the script will also save the
+    fixel_density_maps and fixel_density_masks separated by bundles, with
+    names fixel_density_map_{bundle_name}.nii.gz and
+    fixel_density_mask_{bundle_name}.nii.gz. 
+    These will have the shape (x, y, z, 5).
+
+    If the split_fixels argument is given, the script will also save the
+    fixel_density_maps and fixel_density_masks separated by fixels, with
+    names fixel_density_map_f{fixel_id}.nii.gz and
+    fixel_density_mask_f{fixel_id}.nii.gz.
+    These will have the shape (x, y, z, N).
+
+    If the single_bundle argument is given, the script will also save the
+    single-fiber single-bundle masks, which are obtained by selecting the
+    voxels where only one bundle and one fiber (fixel) are present. There will
+    be one single_bundle_mask_{bundle_name}.nii.gz per bundle, and a whole WM
+    version single_bundle_mask_WM.nii.gz.
+    These will have the shape (x, y, z).
 
 """
 
@@ -153,15 +199,15 @@ def main():
 
     # Compute number of bundles per fixel
     nb_bundles_per_fixel = np.sum(fixel_density_masks, axis=-1)
-    # Compute voxel density maps and masks
+    # Compute voxel density maps
     voxel_density_maps = np.sum(fixel_density_maps, axis=-2)
-    voxel_density_masks = np.sum(fixel_density_masks, axis=-2)
-    # Compute a mask of the presence of each bundle per voxel
+    # Compute voxel density masks
     # Since a bundle can be present twice in a single voxel by being associated
     # with more than one fixel, we count the presence of a bundle if > 0.
-    presence_of_bundles_per_voxel = np.where(voxel_density_masks > 0, 1, 0)
+    voxel_density_masks = np.where(np.sum(fixel_density_masks, axis=-2) > 0,
+                                   1, 0)
     # Compute number of bundles per voxel by taking the sum of the mask
-    nb_bundles_per_voxel = np.sum(presence_of_bundles_per_voxel, axis=-1)
+    nb_bundles_per_voxel = np.sum(voxel_density_masks, axis=-1)
 
     # Save all results
     for i, bundle_name in enumerate(bundles_names):
