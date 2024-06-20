@@ -23,7 +23,7 @@ The script produces various output:
       the sum over a voxel will be higher than 1 (except in the single-fiber
       case). The density maps can be computed using the streamline count, or
       any streamline weighting like COMMIT or SIF, through the
-      data_per_streamline.
+      data_per_streamline using the --dps_key argument.
     
     - fixel_density_masks.nii.gz : np.ndarray (x, y, z, 5, N)
       For each voxel, it gives whether or not each bundle is associated
@@ -72,7 +72,6 @@ The script produces various output:
     be one single_bundle_mask_{bundle_name}.nii.gz per bundle, and a whole WM
     version single_bundle_mask_WM.nii.gz.
     These will have the shape (x, y, z).
-
 """
 
 import argparse
@@ -104,6 +103,11 @@ def _build_arg_parser():
                         'as they were given. \nIf this argument is not used, '
                         'the script assumes that the name of the bundle \nis '
                         'its filename without extensions.')
+    
+    p.add_argument('--dps_key', default=None,
+                   help='Key to access the data per streamline to use as '
+                        'weight when computing the maps, \ninstead of the '
+                        'number of streamlines. [%(default)s].')
 
     g = p.add_argument_group(title='Mask parameters')
 
@@ -188,7 +192,8 @@ def main():
         bundles_names = args.in_bundles_names[0]
 
     # Compute fixel density maps and masks
-    fixel_density_maps = fixel_density(peaks, bundles, args.max_theta,
+    fixel_density_maps = fixel_density(peaks, bundles, args.dps_key,
+                                       args.max_theta,
                                        nbr_processes=args.nbr_processes)
 
     fixel_density_masks, fixel_density_maps = maps_to_masks(fixel_density_maps,

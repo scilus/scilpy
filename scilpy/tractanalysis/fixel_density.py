@@ -9,7 +9,8 @@ from scilpy.tractanalysis.grid_intersections import grid_intersections
 def _fixel_density_parallel(args):
     peaks = args[0]
     max_theta = args[1]
-    bundle = args[2]
+    dps_key = args[2]
+    bundle = args[3]
 
     sft = load_tractogram(bundle, 'same')
     sft.to_vox()
@@ -20,7 +21,7 @@ def _fixel_density_parallel(args):
     min_cos_theta = np.cos(np.radians(max_theta))
 
     all_crossed_indices = grid_intersections(sft.streamlines)
-    for crossed_indices in all_crossed_indices:
+    for i, crossed_indices in enumerate(all_crossed_indices):
         segments = crossed_indices[1:] - crossed_indices[:-1]
         seg_lengths = np.linalg.norm(segments, axis=1)
 
@@ -36,6 +37,10 @@ def _fixel_density_parallel(args):
 
         normalized_seg = np.reshape(segments / seg_lengths[..., None], (-1, 3))
 
+        weight = 1
+        if dps_key:
+            weight = sft.data_per_streamline[dps_key][i]
+
         for vox_idx, seg_dir in zip(vox_indices, normalized_seg):
             vox_idx = tuple(vox_idx)
             peaks_at_idx = peaks[vox_idx].reshape((5, 3))
@@ -45,21 +50,23 @@ def _fixel_density_parallel(args):
 
             if (cos_theta > min_cos_theta).any():
                 lobe_idx = np.argmax(np.squeeze(cos_theta), axis=0)  # (n_segs)
-                # TODO Change that for commit weight if given
-                fixel_density_maps[vox_idx][lobe_idx] += 1
+                fixel_density_maps[vox_idx][lobe_idx] += weight
 
     return fixel_density_maps
 
 
-def fixel_density(peaks, bundles, max_theta=45, nbr_processes=None):
+def fixel_density(peaks, bundles, dps_key=None, max_theta=45, nbr_processes=None):
     """Compute the fixel density map per bundle. Can use parallel processing.
 
     Parameters
     ----------
-    peaks: np.ndarray (x, y, z, 15)
+    peaks : np.ndarray (x, y, z, 15)
         Five principal fiber orientations for each voxel.
     bundles : list or np.array (N)
         List of (N) paths to bundles.
+    dps_key : string, optional
+        Key to the data_per_streamline to use as weight instead of the number
+        of streamlines.
     max_theta : int, optional
         Maximum angle between streamline and peak to be associated.
     nbr_processes : int, optional
@@ -79,6 +86,7 @@ def fixel_density(peaks, bundles, max_theta=45, nbr_processes=None):
     results = pool.map(_fixel_density_parallel,
                        zip(itertools.repeat(peaks),
                            itertools.repeat(max_theta),
+                           itertools.repeat(dps_key),
                            bundles))
     pool.close()
     pool.join()
