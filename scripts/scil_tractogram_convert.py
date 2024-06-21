@@ -81,7 +81,7 @@ def main():
         sft.streamlines = transform_streamlines(sft.streamlines,
                                                 transform)
         polydata = lines_to_vtk_polydata(sft.streamlines)
-        save_polydata(polydata, args.output_name, binary=False,
+        save_polydata(polydata, args.output_name, binary=True,
                       legacy_vtk_format=args.legacy_vtk)
 
 
