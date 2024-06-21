@@ -73,7 +73,7 @@ def get_coordinate_name(axis_index, affine=np.eye(4)):
     -------
     coordinate_name : str
         Name of the coordinate suffixed with sign (see RAS_AXES_COORDINATES).
-    """ # noqa
+    """  # noqa
     _ix, _sgn = _any2ras_index(axis_index, affine)
     return RAS_AXES_COORDINATES[_ix] + _sgn
 
@@ -210,6 +210,7 @@ class WorldBoundingBox(object):
     voxel_size: np.ndarray
         Voxel size of the bounding box.
     """
+
     def __init__(self, minimums, maximums, voxel_size):
         self.minimums = minimums
         self.maximums = maximums
@@ -240,3 +241,19 @@ def world_to_voxel(coord, affine):
     vox_coord = np.dot(iaffine, normalized_coord)
     vox_coord = np.round(vox_coord).astype(int)
     return vox_coord[0:3]
+
+
+def generate_rotation_matrix(angles, translation=None):
+    rotation_matrix = np.eye(4)
+    x_rot = np.array([[1, 0, 0],
+                      [0, np.cos(angles[0]), -np.sin(angles[0])],
+                      [0, np.sin(angles[0]), np.cos(angles[0])]])
+    y_rot = np.array([[np.cos(angles[1]), 0, np.sin(angles[1])],
+                      [0, 1, 0],
+                      [-np.sin(angles[1]), 0, np.cos(angles[1])]])
+    z_rot = np.array([[np.cos(angles[2]), -np.sin(angles[2]), 0],
+                      [np.sin(angles[2]), np.cos(angles[2]), 0],
+                      [0, 0, 1]])
+    rotation_matrix[:3, :3] = np.dot(np.dot(x_rot, y_rot), z_rot)
+    rotation_matrix[:3, 3] = translation if translation is not None else 0
+    return rotation_matrix
