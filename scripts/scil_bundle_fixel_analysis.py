@@ -24,15 +24,15 @@ The script produces various output:
       case). The density maps can be computed using the streamline count, or
       any streamline weighting like COMMIT or SIF, through the
       data_per_streamline using the --dps_key argument.
-    
+
     - fixel_density_masks.nii.gz : np.ndarray (x, y, z, 5, N)
       For each voxel, it gives whether or not each bundle is associated
       with each of the 5 fixels. In other words, it is a masked version of
       fixel_density_maps, using two different thresholds. First, the absolute
       threshold (abs_thr) is applied on the maps before the normalization,
-      either on the number of streamlines or the custom weight. Second, after
-      the normalization, the relative threshold (rel_thr) is applied on the
-      maps as a minimal value of density to be counted as an association.
+      either on the number of streamlines or the streamline weights. Second,
+      after the normalization, the relative threshold (rel_thr) is applied on
+      the maps as a minimal value of density to be counted as an association.
 
     - voxel_density_maps.nii.gz : np.ndarray (x, y, z, N)
       For each voxel, it gives the density of each bundle within the voxel,
@@ -57,7 +57,7 @@ The script produces various output:
     If the split_bundles argument is given, the script will also save the
     fixel_density_maps and fixel_density_masks separated by bundles, with
     names fixel_density_map_{bundle_name}.nii.gz and
-    fixel_density_mask_{bundle_name}.nii.gz. 
+    fixel_density_mask_{bundle_name}.nii.gz.
     These will have the shape (x, y, z, 5).
 
     If the split_fixels argument is given, the script will also save the
@@ -103,24 +103,25 @@ def _build_arg_parser():
                         'as they were given. \nIf this argument is not used, '
                         'the script assumes that the name of the bundle \nis '
                         'its filename without extensions.')
-    
-    p.add_argument('--dps_key', default=None,
+
+    p.add_argument('--dps_key', default=None, type=str,
                    help='Key to access the data per streamline to use as '
                         'weight when computing the maps, \ninstead of the '
                         'number of streamlines. [%(default)s].')
 
     g = p.add_argument_group(title='Mask parameters')
 
-    g.add_argument('--abs_thr', default=1, type=int,
+    g.add_argument('--abs_thr', default=0, type=float,
                    help='Value of density maps threshold to obtain density '
-                        'masks, in number of streamlines. \nAny number of '
-                        'streamlines above or equal this value will pass '
-                        'the absolute threshold test [%(default)s].')
+                        'masks, in number of streamlines \nor streamline '
+                        'weighting if --dps_key is given. Any number of '
+                        'streamlines \nor weight above this value will '
+                        'pass the absolute threshold test [%(default)s].')
 
     g.add_argument('--rel_thr', default=0.01, type=float,
                    help='Value of density maps threshold to obtain density '
                         'masks, as a ratio of the normalized density '
-                        '\nAny normalized density above or equal to '
+                        '\nAny normalized density above '
                         'this value will pass the relative threshold test. '
                         '\nMust be between 0 and 1 [%(default)s].')
 
@@ -255,7 +256,7 @@ def main():
     # Save full fixel density masks, all fixels and bundles combined
     nib.save(nib.Nifti1Image(fixel_density_masks, affine),
              "fixel_density_masks.nii.gz")
-    
+
     # Save full voxel density maps and masks
     if args.norm == "voxel":  # If fixel, the voxel maps do not mean anything
         nib.save(nib.Nifti1Image(voxel_density_maps, affine),

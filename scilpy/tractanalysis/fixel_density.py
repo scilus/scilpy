@@ -55,7 +55,8 @@ def _fixel_density_parallel(args):
     return fixel_density_maps
 
 
-def fixel_density(peaks, bundles, dps_key=None, max_theta=45, nbr_processes=None):
+def fixel_density(peaks, bundles, dps_key=None, max_theta=45,
+                  nbr_processes=None):
     """Compute the fixel density map per bundle. Can use parallel processing.
 
     Parameters
@@ -103,9 +104,9 @@ def maps_to_masks(maps, abs_thr, rel_thr, norm, nb_bundles):
     ----------
     maps : np.ndarray (x, y, z, 5, N)
         Density per fixel per bundle.
-    abs_thr : int
+    abs_thr : float
         Value of density maps threshold to obtain density masks, in number of
-        streamlines.
+        streamlines or streamline weighting.
     rel_thr : float
         Value of density maps threshold to obtain density masks, as a ratio of
         the normalized density. Must be between 0 and 1.
@@ -123,7 +124,7 @@ def maps_to_masks(maps, abs_thr, rel_thr, norm, nb_bundles):
         Normalized density maps per fixel per bundle.
     """
     # Apply a threshold on the number of streamlines
-    masks_abs = maps >= abs_thr
+    masks_abs = maps > abs_thr
 
     # Normalizing the density maps per voxel or fixel
     fixel_sum = np.sum(maps, axis=-1)
@@ -139,7 +140,7 @@ def maps_to_masks(maps, abs_thr, rel_thr, norm, nb_bundles):
             maps[..., i] /= fixel_sum
 
     # Apply a threshold on the normalized density
-    masks_rel = maps >= rel_thr
+    masks_rel = maps > rel_thr
     # Compute the fixel density masks from the rel and abs versions
     masks = masks_rel * masks_abs
 
