@@ -23,7 +23,8 @@ import numpy as np
 import nltk
 from nltk.stem import PorterStemmer
 from colorama import init, Fore, Style
-
+import json
+from pathlib import Path
 from scilpy.io.utils import add_verbose_arg
 
 nltk.download('punkt', quiet=True)
@@ -35,6 +36,9 @@ BOLD = '\033[1m'
 END_COLOR = '\033[0m'
 SPACING_CHAR = '='
 SPACING_LEN = 80
+
+BASE_DIR =  Path(__file__).parent.parent
+JSON_FILE_PATH = BASE_DIR / 'scilpy-bot-scripts'/'json_files'/'knowledge_base.json'
 
 stemmer = PorterStemmer()
 
@@ -148,7 +152,19 @@ def main():
 
             
     if not matches:
-        logging.info(_make_title(' No results found! '))
+        logging.info(_make_title(' No such keyword found! Let\'s look for synonyms... '))
+        scripts = load_json(JSON_FILE_PATH)
+        # Search for synonyms if no matches found
+        matches = search_keywords_in_synonyms(scripts, args.keywords)
+        if matches:
+            logging.info(f"Found {len(matches)} scripts with matching synonyms. Displaying first 5:")
+            for match in matches[:5]:
+                logging.info(f"{Fore.BLUE}{Style.BRIGHT}{match['name']}{Style.RESET_ALL}")
+                display_short_info, _ = _split_first_sentence(match.get('docstring', 'No docstring available!'))
+                display_short_info = _highlight_keywords(display_short_info, stemmed_keywords)
+                logging.info(display_short_info)
+        else:
+            logging.info(_make_title(' No results found in synonyms either! '))
 
 
 def _make_title(text):
@@ -263,6 +279,19 @@ def _highlight_keywords(text, stemmed_keywords):
         else:
             highlighted_text.append(word)
     return ' '.join(highlighted_text)
+
+def load_json(json_filepath):
+    with open(json_filepath, 'r', encoding='utf-8') as file:
+        return json.load(file)
+
+def search_keywords_in_synonyms(scripts, keywords):
+    matches = []
+    for script in scripts['scripts']:
+        for synonym_list in script.get('synonyms', []):
+            if any(keyword in synonym_list for keyword in keywords):
+                matches.append(script)
+                break
+    return matches
 
 if __name__ == '__main__':
     main()
