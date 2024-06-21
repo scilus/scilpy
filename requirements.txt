@@ -44,5 +44,5 @@ scipy==1.10.*
 six==1.16.*
 spams==2.6.*
 statsmodels==0.13.*
-trimeshpy==0.0.3
+trimeshpy==0.0.4
 vtk==9.2.*
