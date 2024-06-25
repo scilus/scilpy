@@ -3,28 +3,40 @@
 
 
 """
-Scores input tractogram overall and bundlewise.
+Scores input tractogram overall and bundlewise, based on reference 'ground
+truth' bundles. This script will segment a tractogram into many bundles using
+a list of criteria for each (given in a config file), and compare the
+segmented bundles with the reference bundles. The output metrics are the ones
+suggested in the Tractometer publication [1]: dice score (also named F1),
+overlap, overreach, true/false positives.
+
+This script is used, for instance, to score the ISMRM Tractography Challenge
+tractograms, with the new segmentation criteria suggested in [2].
+
+See also
+--------
+    - scil_tractogram_segment_with_bundleseg.py
+    - scil_tractogram_segment_connections_from_labels.py
+    - scil_bundle_score_many_bundles_one_tractogram.py: You may use this script
+    to score again the segmented bundles.
 
 Outputs
 -------
-
-    - results.json: Contains a full tractometry report.
+The output folder contains:
+    - results.json: The full tractometry report.
     - processing_stats.json: Contains information on the segmentation of
-    bundles (ex: the number of wpc per criteria).
-    - Splits the input tractogram into
-        segmented_VB/*_VS.trk.
-        segmented_IB/*_*_IC.trk   (if args.compute_ic)
-        segmented_WPC/*_wpc.trk  (if args.save_wpc_separately)
-        IS.trk     OR      NC.trk  (if args.compute_ic)
+    bundles (ex: the number of WPC per criteria).
+    - segmented_VB/*_VS.trk.
+    - segmented_IB/*_*_IC.trk   (if args.compute_ic)
+    - segmented_WPC/*_wpc.trk  (if args.save_wpc_separately)
+    - IS.trk     OR      NC.trk  (if args.compute_ic)
 
 By default, if a streamline fits in many bundles, it will be included in every
-one. This means a streamline may be a VS for a bundle and an IS for
-(potentially many) others. If you want to assign each streamline to at most one
-bundle, use the `--unique` flag.
+one. If you want to assign each streamline to at most one bundle, use the
+`--unique` flag.
 
 Config file
 -----------
-
 The config file needs to be a json containing a dict of the ground-truth
 bundles as keys. The value for each bundle is itself a dictionnary with:
 
@@ -55,10 +67,10 @@ Optional:
 
 * Files must be .tck, .trk, .nii or .nii.gz. If it is a tractogram, a mask will
 be created. If it is a nifti file, it will be considered to be a mask.
-** With absolute values: coming back on yourself will contribute to the total
-distance instead of cancelling it.
+** With absolute values: looping will contribute to the total distance instead
+of cancelling it.
 
-Exemple config file:
+Example config file:
 {
   "Ground_truth_bundle_0": {
     "gt_mask": "PATH/bundle0.nii.gz",
@@ -94,13 +106,21 @@ from scilpy.segment.tractogram_from_roi import (compute_masks_from_bundles,
 from scilpy.tractanalysis.scoring import compute_tractometry
 from scilpy.tractanalysis.scoring import __doc__ as tractometry_description
 
+EPILOG = """
+[1] Côté, M.-A., et al. (2013). Tractometer: Towards Validation of Tractography
+Pipelines, Medical Image Analysis, 17(7), 844-857.
+[2] Renauld, E., et al. (2023) Validate your white matter tractography
+algorithms with a reappraised ISMRM 2015 Tractography Challenge scoring system,
+Scientific Reports, 13:2347 (2023). Online Enhanced PDF, or Download PDF.
+"""
 def_len = [0, np.inf]
 
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(
         description=__doc__ + tractometry_description,
-        formatter_class=argparse.RawTextHelpFormatter)
+        formatter_class=argparse.RawTextHelpFormatter,
+        epilog=EPILOG)
 
     p.add_argument("in_tractogram",
                    help="Input tractogram to score")

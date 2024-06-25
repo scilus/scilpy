@@ -41,15 +41,15 @@ def _build_arg_parser():
 
     p.add_argument('operation',
                    choices=OPERATIONS.keys(),
-                   help='The type of operation to be performed on the '
-                        'images.')
-    p.add_argument('in_images', nargs='+',
-                   help='The list of image files or parameters.')
+                   help='The type of operation to be performed on the images.')
+    p.add_argument('in_args', nargs='+',
+                   help="The list of image files or parameters. Refer to each "
+                        "operation's documentation of the expected arguments.")
     p.add_argument('out_image',
                    help='Output image path.')
 
     p.add_argument('--data_type',
-                   help='Data type of the output image. Use the format: '
+                   help='Data type of the output image. Use the format: \n'
                         'uint8, int16, int/float32, int/float64.')
     p.add_argument('--exclude_background', action='store_true',
                    help='Does not affect the background of the original '
@@ -73,23 +73,19 @@ def main():
                  'dilation', 'erosion', 'closing', 'opening']
 
     if args.operation not in OPERATIONS.keys():
-        parser.error('Operation {} not implement.'.format(args.operation))
+        parser.error('Operation {} not implemented.'.format(args.operation))
 
     # Find at least one image for reference
-    for input_arg in args.in_images:
-        found_ref = False
+    # Find at least one mask, but prefer a 4D mask if there is any.
+    mask = None
+    found_ref = False
+    for input_arg in args.in_args:
         if not is_float(input_arg):
             ref_img = nib.load(input_arg)
-            mask = np.zeros(ref_img.shape)
             found_ref = True
-            break
-
-    # If there's a 4D image, replace the previous 3D image with
-    #  this one for reference
-    for input_arg in args.in_images:
-        if not is_float(input_arg):
-            ref_img = nib.load(input_arg)
-            if len(ref_img.shape) == 4:
+            if mask is None:
+                mask = np.zeros(ref_img.shape)
+            elif len(ref_img.shape) == 4:
                 mask = np.zeros(ref_img.shape)
                 break
 
@@ -98,7 +94,7 @@ def main():
 
     # Load all input masks.
     input_img = []
-    for input_arg in args.in_images:
+    for input_arg in args.in_args:
         if not is_float(input_arg) and \
                 not is_header_compatible(ref_img, input_arg):
             parser.error('Inputs do not have a compatible header.')

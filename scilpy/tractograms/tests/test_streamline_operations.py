@@ -91,7 +91,7 @@ def test_filter_streamlines_by_length_max_length():
     min_length = 0.
     max_length = 100
     # Filter streamlines by length and get the lengths
-    filtered_sft = filter_streamlines_by_length(
+    filtered_sft, _ = filter_streamlines_by_length(
         sft, min_length=min_length, max_length=max_length)
     lengths = length(filtered_sft.streamlines)
 
@@ -111,7 +111,7 @@ def test_filter_streamlines_by_length_min_length():
     max_length = np.inf
 
     # Filter streamlines by length and get the lengths
-    filtered_sft = filter_streamlines_by_length(
+    filtered_sft, _ = filter_streamlines_by_length(
         sft, min_length=min_length, max_length=max_length)
     lengths = length(filtered_sft.streamlines)
 
@@ -132,7 +132,7 @@ def test_filter_streamlines_by_length_min_and_max_length():
     max_length = 120
 
     # Filter streamlines by length and get the lengths
-    filtered_sft = filter_streamlines_by_length(
+    filtered_sft, _ = filter_streamlines_by_length(
         sft, min_length=min_length, max_length=max_length)
     lengths = length(filtered_sft.streamlines)
 

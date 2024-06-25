@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-
+import logging
 import os
 
 from dipy.io.stateful_tractogram import StatefulTractogram
@@ -7,34 +7,77 @@ from dipy.io.streamline import load_tractogram
 import numpy as np
 
 from scilpy import SCILPY_HOME
+from scilpy.io.fetcher import fetch_data, get_testing_files_dict
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
-from scilpy.tractanalysis.reproducibility_measures import tractogram_pairwise_comparison
+from scilpy.tractanalysis.reproducibility_measures import \
+    tractogram_pairwise_comparison
+
+fetch_data(get_testing_files_dict(), keys=['bst.zip'])
 
 
 def test_tractogram_pairwise_comparison():
-    sft_path = os.path.join(SCILPY_HOME, 'bst', 'template', 'rpt_m.trk')
-    print(sft_path)
-    sft = load_tractogram(sft_path, 'same')
-    sft_1 = StatefulTractogram.from_sft(sft.streamlines[0:100], sft)
-    sft_2 = StatefulTractogram.from_sft(sft.streamlines[100:200], sft)
+    logging.getLogger().setLevel('DEBUG')
 
+    sft_path = os.path.join(SCILPY_HOME, 'bst', 'template', 'rpt_m.trk')
+    sft = load_tractogram(sft_path, 'same')
     sft.to_vox()
     sft.to_corner()
+
     mask = compute_tract_counts_map(sft.streamlines, sft.dimensions)
     mask[mask > 0] = 1
 
-    results = tractogram_pairwise_comparison(sft_1, sft_2, mask,
-                                             skip_streamlines_distance=False)
-    assert len(results) == 4
-    for r in results:
+    sft_1 = StatefulTractogram.from_sft(sft.streamlines[0:100], sft)
+
+    # -----------
+    # Test 1) Bundles with nothing similar: density maps will not overlap.
+    # -----------
+    logging.info("Test 1: No overlap!")
+    fake_str = np.asarray([[1, 1, 1],
+                           [1.5, 1.5, 1.5],
+                           [2, 2, 2]])
+    sft_2 = StatefulTractogram.from_sft([fake_str], sft)
+    acc_norm, corr_norm, diff_norm, heatmap, out_mask = (
+        tractogram_pairwise_comparison(sft_1, sft_2, mask,
+                                       skip_streamlines_distance=True))
+
+    for r in [acc_norm, corr_norm, diff_norm, heatmap]:
         assert np.array_equal(r.shape, sft.dimensions)
 
-    assert np.mean(results[0][~np.isnan(results[0])]) == 0.7171550368952226
-    assert np.mean(results[1][~np.isnan(results[1])]) == 0.6063336089511456
-    assert np.mean(results[2][~np.isnan(results[2])]) == 0.722988562131705
-    assert np.mean(results[3][~np.isnan(results[3])]) == 0.7526672393158469
+    # Make sure we had no overlapping voxels
+    assert np.count_nonzero(out_mask) == 0
 
-    assert np.count_nonzero(np.isnan(results[0])) == 877627
-    assert np.count_nonzero(np.isnan(results[1])) == 877014
-    assert np.count_nonzero(np.isnan(results[2])) == 877034
-    assert np.count_nonzero(np.isnan(results[3])) == 877671
+    # -----------
+    # Test 2) Full test. Making sure that we have at least 1 overlapping
+    # streamline.
+    # -----------
+    logging.info("Test 2: Overlap!")
+    sft_2 = StatefulTractogram.from_sft(sft.streamlines[100:200], sft)
+    acc_norm, corr_norm, diff_norm, heatmap, out_mask = (
+        tractogram_pairwise_comparison(sft_1, sft_2, mask,
+                                       skip_streamlines_distance=False))
+
+    for r in [acc_norm, corr_norm, diff_norm, heatmap]:
+        assert np.array_equal(r.shape, sft.dimensions)
+
+    # Make sure we had overlapping voxels
+    assert np.count_nonzero(out_mask) == 1077
+
+    # Comparing with values obtained when creating this test.
+    assert np.mean(acc_norm[~np.isnan(acc_norm)]) == 0.6590763379712203
+    assert np.mean(corr_norm[~np.isnan(corr_norm)]) == 0.6263207793235779
+    assert np.max(corr_norm[~np.isnan(corr_norm)]) == 0.9967638850212097
+    assert np.mean(diff_norm[~np.isnan(diff_norm)]) == 0.7345049471266359
+    assert np.mean(heatmap[~np.isnan(heatmap)]) == 0.7395923591441349
+
+    # Supervise the number of NaNs in each output.
+    # Note. Not the same because:
+    # - diff looks at streamlines (with a small radius around the voxel),
+    # - TODI looks at the segment of streamlines in the voxels,
+    # - Correlation works patch-wise,
+    # - Heatmap combines all three.
+    # So they all have different regional interaction, which leads to NaN being
+    # different
+    assert np.count_nonzero(np.isnan(acc_norm)) == 877513
+    assert np.count_nonzero(np.isnan(corr_norm)) == 877003
+    assert np.count_nonzero(np.isnan(diff_norm)) == 877024
+    assert np.count_nonzero(np.isnan(heatmap)) == 877598
