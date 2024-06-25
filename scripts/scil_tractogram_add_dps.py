@@ -54,6 +54,11 @@ def main():
 
     # Loading
     sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
+    if (args.dps_key in sft.get_data_per_streamline_keys() and
+       not args.overwrite):
+        parser.error('"{}" already in data per streamline. Use -f to force '
+                     'overwriting.'.format(args.dps_key))
+
     data = np.squeeze(load_matrix_in_any_format(args.dps_file))
 
     if len(sft) != data.shape[0]:
