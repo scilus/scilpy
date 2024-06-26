@@ -21,6 +21,7 @@ import subprocess
 import nltk
 from nltk.stem import PorterStemmer
 from colorama import init, Fore, Style
+import json
 
 from scilpy.io.utils import add_verbose_arg
 
@@ -35,6 +36,9 @@ SPACING_CHAR = '='
 SPACING_LEN = 80
 
 stemmer = PorterStemmer()
+
+# Path to the JSON file containing script information and keywords
+JSON_FILE_PATH = pathlib.Path(__file__).parent.parent / 'scilpy-bot-scripts'/'Vocabulary'/'Keywords.json'
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(description=__doc__,
@@ -140,7 +144,19 @@ def main():
             logging.info(f"{Fore.BLUE}{'=' * SPACING_LEN}")
             logging.info("\n")
 
-            
+    # If no matches found, check in the keywords file
+    # Load keywords from the JSON file
+    with open(JSON_FILE_PATH, 'r') as f:
+        keywords_data = json.load(f)
+
+    if not matches:
+        for script in keywords_data['scripts']:
+            script_name = script['name']
+            script_keywords = script['keywords']
+            if all([stem in _stem_text(' '.join(script_keywords)) for stem in stemmed_keywords]):
+                matches.append(script_name)
+                logging.info(f"{Fore.BLUE}{Style.BRIGHT}{script_name}{Style.RESET_ALL}")
+       
     if not matches:
         logging.info(_make_title(' No results found! '))
 
