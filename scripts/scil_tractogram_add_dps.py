@@ -3,6 +3,8 @@
 
 """ Add information to each streamline from a file. Can be for example
 SIFT2 weights, processing information, bundle IDs, etc.
+
+Output must be a .trk otherwise the data will be lost.
 """
 
 import argparse
@@ -29,7 +31,7 @@ def _build_arg_parser():
     p.add_argument('in_tractogram',
                    help='Input tractogram (.trk or .tck).')
     p.add_argument('dps_file',
-                   help='File containing the data to add to streamlines')
+                   help='File containing the data to add to streamlines.')
     p.add_argument('dps_key',
                    help='Where to store the data in the tractogram.')
     p.add_argument('out_tractogram',
@@ -47,26 +49,31 @@ def main():
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
-    # Verifications
+    # I/O assertions
     assert_inputs_exist(parser, [args.in_tractogram, args.dps_file],
                         args.reference)
     assert_outputs_exist(parser, args, args.out_tractogram)
 
-    # Loading
+    # Load tractogram
     sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
+
+    # Make sure the user is not unwillingly overwritting dps
     if (args.dps_key in sft.get_data_per_streamline_keys() and
        not args.overwrite):
         parser.error('"{}" already in data per streamline. Use -f to force '
                      'overwriting.'.format(args.dps_key))
 
+    # Load data and remove extraneous dimmensions
     data = np.squeeze(load_matrix_in_any_format(args.dps_file))
 
+    # Quick check as the built-in error from sft is not too explicit
     if len(sft) != data.shape[0]:
         raise ValueError('Data must have as many entries ({}) as there are'
                          ' streamlines ({}).'.format(data.shape[0], len(sft)))
-
+    # Add data to tractogram
     sft.data_per_streamline[args.dps_key] = data
-    # Saving
+
+    # Save the new sft
     save_tractogram(sft, args.out_tractogram)
 
 
