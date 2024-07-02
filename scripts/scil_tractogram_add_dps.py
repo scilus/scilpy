@@ -63,7 +63,7 @@ def main():
         parser.error('"{}" already in data per streamline. Use -f to force '
                      'overwriting.'.format(args.dps_key))
 
-    # Load data and remove extraneous dimmensions
+    # Load data and remove extraneous dimensions
     data = np.squeeze(load_matrix_in_any_format(args.dps_file))
 
     # Quick check as the built-in error from sft is not too explicit
