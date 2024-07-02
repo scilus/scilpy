@@ -47,10 +47,8 @@ def _build_arg_parser():
     p.add_argument('keywords', nargs='+',
                    help='Search the provided list of keywords.')
 
-    p.add_argument('--search_parser', action='store_true',
-                   help='Search through and display the full script argparser '
-                        'instead of looking only at the docstring. (warning: '
-                        'much slower).')
+    p.add_argument('--full_parser', action='store_true',
+                   help='Display the full script argparser help.')
 
     add_verbose_arg(p)
 
@@ -81,15 +79,47 @@ def main():
 
     matches = []
 
-    # Search through the argparser instead of the docstring        
-    if args.search_parser: 
-        #Use precomputed help files
-        for help_file in sorted(hidden_dir.glob('*.help')):
+    
+    # Search through the docstring
+    for script in sorted(script_dir.glob('*.py')):
+        #Remove the .py extension
+        filename = script.stem
+        if filename == '__init__' or filename =='scil_search_keywords':
+            continue
+        
+        search_text = _get_docstring_from_script_path(str(script))
+
+        # Test intersection of all keywords, either in filename or docstring
+        if not _contains_stemmed_keywords(stemmed_keywords, search_text, filename):
+            continue
+
+        matches.append(filename)
+        search_text = search_text or 'No docstring available!'
+
+        display_filename = filename
+        display_short_info, display_long_info = _split_first_sentence(
+            search_text)
+
+        # Highlight found keywords using colorama
+        display_short_info = _highlight_keywords(display_short_info, stemmed_keywords)
+        display_long_info = _highlight_keywords(display_long_info, stemmed_keywords)
+
+        # Print everything
+        logging.info(f"{Fore.BLUE}{Style.BRIGHT}{display_filename}{Style.RESET_ALL}")
+        logging.info(display_short_info)
+        logging.debug(display_long_info)
+        logging.info(f"{Fore.BLUE}{'=' * SPACING_LEN}")
+        logging.info("\n")
+
+
+    # If no matches found in docstrings, check in the help files 
+
+    if not matches:       
+        for help_file in sorted(hidden_dir.glob('*.help')): #Use precomputed help files
             script_name = pathlib.Path(help_file.stem).stem
             with open(help_file, 'r') as f:
                 search_text = f.read()
-
-            
+    
         # Test intersection of all keywords, either in filename or docstring
             if not _contains_stemmed_keywords(stemmed_keywords, search_text, script_name):
                 continue
@@ -100,43 +130,6 @@ def main():
             display_filename = script_name
             display_short_info, display_long_info = _split_first_sentence(
                 search_text)
-
-            # Highlight found keywords 
-            for keyword in args.keywords:
-                display_short_info = display_short_info.replace(keyword, f'{Fore.RED}{Style.BRIGHT}{keyword}{Style.RESET_ALL}')
-                display_long_info = display_long_info.replace(keyword, f'{Fore.RED}{Style.BRIGHT}{keyword}{Style.RESET_ALL}')
-
-            # Print everything
-            logging.info(f"{Fore.BLUE}{Style.BRIGHT}{display_filename}{Style.RESET_ALL}")
-            logging.info(display_short_info)
-            logging.debug(display_long_info)
-            logging.info(f"{Fore.BLUE}{'=' * SPACING_LEN}")
-            logging.info("\n")
-    
-    # Search through the docstring instead of the argparser
-    else:
-        for script in sorted(script_dir.glob('*.py')):
-            #Remove the .py extension
-            filename = script.stem
-            if filename == '__init__' or filename =='scil_search_keywords':
-                continue
-            
-            search_text = _get_docstring_from_script_path(str(script))
-
-            # Test intersection of all keywords, either in filename or docstring
-            if not _contains_stemmed_keywords(stemmed_keywords, search_text, filename):
-                continue
-
-            matches.append(filename)
-            search_text = search_text or 'No docstring available!'
-
-            display_filename = filename
-            display_short_info, display_long_info = _split_first_sentence(
-                search_text)
-
-            # Highlight found keywords using colorama
-            display_short_info = _highlight_keywords(display_short_info, stemmed_keywords)
-            display_long_info = _highlight_keywords(display_long_info, stemmed_keywords)
 
             # Print everything
             logging.info(f"{Fore.BLUE}{Style.BRIGHT}{display_filename}{Style.RESET_ALL}")
@@ -182,6 +175,20 @@ def main():
     if not matches:
         logging.info(_make_title(' No results found! '))
 
+
+    # Display full argparser if --full_parser is used
+    if args.full_parser:
+        for script in sorted(script_dir.glob('*.py')):
+            filename = script.stem
+            if filename == '__init__' or filename == 'scil_search_keywords':
+                continue
+            help_file = hidden_dir / f"{filename}.py.help"
+            if help_file.exists():
+                with open(help_file, 'r') as f:
+                    logging.info(f"{Fore.BLUE}{Style.BRIGHT}{filename}{Style.RESET_ALL}")
+                    logging.info(f.read())
+                    logging.info(f"{Fore.BLUE}{'=' * SPACING_LEN}")
+                    logging.info("\n")
 
 def _make_title(text):
     return f'{Fore.BLUE}{Style.BRIGHT}{text.center(SPACING_LEN, SPACING_CHAR)}{Style.RESET_ALL}'
