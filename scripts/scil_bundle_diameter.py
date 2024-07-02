@@ -295,8 +295,6 @@ def main():
         error = gaussian_filter(error, sigma=1, mode='nearest')
 
         tmp_dict = {}
-        print(radius)
-        print(unique_labels.__class__)
         for label in unique_labels:
             tmp_dict['{}'.format(label).zfill(num_digits_labels)] \
                 = {'mean': float(radius[label-1][0])*2,
