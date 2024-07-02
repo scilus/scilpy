@@ -38,7 +38,8 @@ SPACING_LEN = 80
 stemmer = PorterStemmer()
 
 # Path to the JSON file containing script information and keywords
-JSON_FILE_PATH = pathlib.Path(__file__).parent.parent / 'scilpy-bot-scripts'/'Vocabulary'/'Keywords.json'
+KEYWORDS_FILE_PATH = pathlib.Path(__file__).parent.parent / 'scilpy-bot-scripts'/'Vocabulary'/'Keywords.json'
+SYNONYMS_FILE_PATH = pathlib.Path(__file__).parent.parent / 'scilpy-bot-scripts'/'Vocabulary'/'Synonyms.json'
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(description=__doc__,
@@ -145,18 +146,39 @@ def main():
             logging.info("\n")
 
     # If no matches found, check in the keywords file
-    # Load keywords from the JSON file
-    with open(JSON_FILE_PATH, 'r') as f:
+    with open(KEYWORDS_FILE_PATH, 'r') as f:
         keywords_data = json.load(f)
 
     if not matches:
+        print("search by scripts keywords")
         for script in keywords_data['scripts']:
             script_name = script['name']
             script_keywords = script['keywords']
             if all([stem in _stem_text(' '.join(script_keywords)) for stem in stemmed_keywords]):
                 matches.append(script_name)
                 logging.info(f"{Fore.BLUE}{Style.BRIGHT}{script_name}{Style.RESET_ALL}")
-       
+    
+ 
+
+    # If still no matches found, check for synonyms in the synonyms file
+    with open(SYNONYMS_FILE_PATH, 'r') as f:
+        synonyms_data = json.load(f)
+        
+    if not matches:
+        for keyword in args.keywords:
+            synonyms = _get_synonyms(keyword, synonyms_data)
+            for script in sorted(script_dir.glob('*.py')):
+                filename = script.stem
+                if filename == '__init__' or filename == 'scil_search_keywords':
+                    continue
+                search_text = _get_docstring_from_script_path(str(script))
+                if any(synonym in search_text for synonym in synonyms):
+                    matches.append(filename)
+                    first_sentence, _ = _split_first_sentence(search_text)
+                    logging.info(f"{Fore.BLUE}{'=' * SPACING_LEN}")
+                    logging.info(f"{Fore.BLUE}{Style.BRIGHT}{filename}{Style.RESET_ALL}: {first_sentence}")
+                    logging.info("\n")
+
     if not matches:
         logging.info(_make_title(' No results found! '))
 
@@ -303,6 +325,27 @@ def _highlight_keywords(text, stemmed_keywords):
         else:
             highlighted_text.append(word)
     return ' '.join(highlighted_text)
+
+def _get_synonyms(keyword, synonyms_data):
+    """
+    Get synonyms for a given keyword from the synonyms data.
+
+    Parameters
+    ----------
+    keyword : str
+        Keyword to find synonyms for.
+    synonyms_data : dict
+        Dictionary containing synonyms data.
+
+    Returns
+    -------
+    list of str
+        List of synonyms for the given keyword.
+    """
+    for synonym_set in synonyms_data['synonyms']:
+        if keyword in synonym_set:
+            return synonym_set
+    return []
 
 if __name__ == '__main__':
     main()
