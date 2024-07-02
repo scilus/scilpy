@@ -125,7 +125,7 @@ def compute_measures(args):
     span_list = list(map(compute_span, streamline_cords))
     span = float(np.average(span_list))
     curl = length_avg / span
-    volume = np.count_nonzero(density) * np.product(voxel_size)
+    volume = np.count_nonzero(density) * np.prod(voxel_size)
     diameter = 2 * np.sqrt(volume / (np.pi * length_avg))
     elon = length_avg / diameter
 
@@ -172,7 +172,7 @@ def compute_measures(args):
                      'irregularity_of_end_surface_tail', 'mean_curvature',
                      'fractal_dimension'],
                     [volume, np.count_nonzero(endpoints_density) *
-                     np.product(voxel_size), nbr_streamlines,
+                     np.prod(voxel_size), nbr_streamlines,
                      length_avg, length_std, length_min, length_max,
                      span, curl, diameter, elon, surf_area, end_sur_area_head,
                      end_sur_area_tail, radius_head, radius_tail, irregularity,
