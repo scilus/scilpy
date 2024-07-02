@@ -41,9 +41,18 @@ stemmer = PorterStemmer()
 KEYWORDS_FILE_PATH = pathlib.Path(__file__).parent.parent / 'scilpy-bot-scripts'/'Vocabulary'/'Keywords.json'
 SYNONYMS_FILE_PATH = pathlib.Path(__file__).parent.parent / 'scilpy-bot-scripts'/'Vocabulary'/'Synonyms.json'
 
+OBJECTS = [
+    'aodf', 'bids', 'bingham', 'btensor', 'bundle', 'connectivity', 'denoising',
+    'dki', 'dti','dwi', 'fodf', 'freewater', 'frf', 'gradients', 'header', 'json',
+    'labels', 'lesions', 'mti', 'NODDI', 'sh', 'surface', 'tracking',
+    'tractogram', 'viz', 'volume'
+]
+
 def _build_arg_parser():
     p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawTextHelpFormatter)
+    p.add_argument('--object', choices=OBJECTS, required=True,
+                   help='Choose the object you want to work on.' )
     p.add_argument('keywords', nargs='+',
                    help='Search the provided list of keywords.')
 
@@ -79,43 +88,43 @@ def main():
 
     matches = []
 
-    
+
     # Search through the docstring
-    for script in sorted(script_dir.glob('*.py')):
+        
+    for script in sorted(script_dir.glob('scil_{}_*.py'.format(args.object))):
         #Remove the .py extension
         filename = script.stem
         if filename == '__init__' or filename =='scil_search_keywords':
             continue
-        
+
         search_text = _get_docstring_from_script_path(str(script))
 
         # Test intersection of all keywords, either in filename or docstring
-        if not _contains_stemmed_keywords(stemmed_keywords, search_text, filename):
-            continue
+        if _contains_stemmed_keywords(stemmed_keywords, search_text, filename):
+        
+            matches.append(filename)
+            search_text = search_text or 'No docstring available!'
 
-        matches.append(filename)
-        search_text = search_text or 'No docstring available!'
+            display_filename = filename
+            display_short_info, display_long_info = _split_first_sentence(
+                search_text)
 
-        display_filename = filename
-        display_short_info, display_long_info = _split_first_sentence(
-            search_text)
+            # Highlight found keywords using colorama
+            display_short_info = _highlight_keywords(display_short_info, stemmed_keywords)
+            display_long_info = _highlight_keywords(display_long_info, stemmed_keywords)
 
-        # Highlight found keywords using colorama
-        display_short_info = _highlight_keywords(display_short_info, stemmed_keywords)
-        display_long_info = _highlight_keywords(display_long_info, stemmed_keywords)
-
-        # Print everything
-        logging.info(f"{Fore.BLUE}{Style.BRIGHT}{display_filename}{Style.RESET_ALL}")
-        logging.info(display_short_info)
-        logging.debug(display_long_info)
-        logging.info(f"{Fore.BLUE}{'=' * SPACING_LEN}")
-        logging.info("\n")
-
+            # Print everything
+            logging.info(f"{Fore.BLUE}{Style.BRIGHT}{display_filename}{Style.RESET_ALL}")
+            logging.info(display_short_info)
+            logging.debug(display_long_info)
+            logging.info(f"{Fore.BLUE}{'=' * SPACING_LEN}")
+            logging.info("\n")
 
     # If no matches found in docstrings, check in the help files 
 
-    if not matches:       
-        for help_file in sorted(hidden_dir.glob('*.help')): #Use precomputed help files
+    if not matches: 
+      
+        for help_file in sorted(hidden_dir.glob('scil_{}_*.py'.format(args.object))): #Use precomputed help files
             script_name = pathlib.Path(help_file.stem).stem
             with open(help_file, 'r') as f:
                 search_text = f.read()
@@ -143,9 +152,11 @@ def main():
         keywords_data = json.load(f)
 
     if not matches:
-        print("search by scripts keywords")
+        print("search by scripts keywords...")
         for script in keywords_data['scripts']:
             script_name = script['name']
+            if not script_name.startswith(f'scil_{args.object}_'):
+                continue
             script_keywords = script['keywords']
             if all([stem in _stem_text(' '.join(script_keywords)) for stem in stemmed_keywords]):
                 matches.append(script_name)
@@ -160,7 +171,7 @@ def main():
     if not matches:
         for keyword in args.keywords:
             synonyms = _get_synonyms(keyword, synonyms_data)
-            for script in sorted(script_dir.glob('*.py')):
+            for script in sorted(script_dir.glob('scil_{}_*.py'.format(args.object))):
                 filename = script.stem
                 if filename == '__init__' or filename == 'scil_search_keywords':
                     continue
@@ -178,7 +189,7 @@ def main():
 
     # Display full argparser if --full_parser is used
     if args.full_parser:
-        for script in sorted(script_dir.glob('*.py')):
+        for script in sorted(script_dir.glob('scil_{}_*.py'.format(args.object))):
             filename = script.stem
             if filename == '__init__' or filename == 'scil_search_keywords':
                 continue
