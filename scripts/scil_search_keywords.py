@@ -48,11 +48,25 @@ OBJECTS = [
     'tractogram', 'viz', 'volume'
 ]
 
+def prompt_user_for_object():
+    print("Available objects:")
+    for idx, obj in enumerate(OBJECTS):
+        print(f"{idx + 1}. {obj}")
+    while True:
+        try:
+            choice = int(input("Choose the object you want to work on (enter the number): "))
+            if 1 <= choice <= len(OBJECTS):
+                return OBJECTS[choice - 1]
+            else:
+                print(f"Please enter a number between 1 and {len(OBJECTS)}.")
+        except ValueError:
+            print("Invalid input. Please enter a number.")
+
 def _build_arg_parser():
     p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawTextHelpFormatter)
-    p.add_argument('--object', choices=OBJECTS, required=True,
-                   help='Choose the object you want to work on.' )
+    #p.add_argument('--object', choices=OBJECTS, required=True,
+    #              help='Choose the object you want to work on.' )
     p.add_argument('keywords', nargs='+',
                    help='Search the provided list of keywords.')
 
@@ -72,6 +86,7 @@ def main():
     else:
         logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
+    selected_object = prompt_user_for_object()
     stemmed_keywords = _stem_keywords(args.keywords)
 
     script_dir = pathlib.Path(__file__).parent
@@ -90,8 +105,8 @@ def main():
 
 
     # Search through the docstring
-        
-    for script in sorted(script_dir.glob('scil_{}_*.py'.format(args.object))):
+    logging.info(f"Searching through docstrings for '{selected_object}' scripts...")
+    for script in sorted(script_dir.glob('scil_{}_*.py'.format(selected_object))):
         #Remove the .py extension
         filename = script.stem
         if filename == '__init__' or filename =='scil_search_keywords':
@@ -123,8 +138,8 @@ def main():
     # If no matches found in docstrings, check in the help files 
 
     if not matches: 
-      
-        for help_file in sorted(hidden_dir.glob('scil_{}_*.py'.format(args.object))): #Use precomputed help files
+        logging.info(f"No matches found in docstrings. Searching through help files for '{selected_object}' scripts...") 
+        for help_file in sorted(hidden_dir.glob('scil_{}_*.py'.format(selected_object))): #Use precomputed help files
             script_name = pathlib.Path(help_file.stem).stem
             with open(help_file, 'r') as f:
                 search_text = f.read()
@@ -152,10 +167,10 @@ def main():
         keywords_data = json.load(f)
 
     if not matches:
-        print("search by scripts keywords...")
+        logging.info("No matches found in help files. Searching by script keywords...")
         for script in keywords_data['scripts']:
             script_name = script['name']
-            if not script_name.startswith(f'scil_{args.object}_'):
+            if not script_name.startswith(f'scil_{selected_object}_'):
                 continue
             script_keywords = script['keywords']
             if all([stem in _stem_text(' '.join(script_keywords)) for stem in stemmed_keywords]):
@@ -169,9 +184,10 @@ def main():
         synonyms_data = json.load(f)
         
     if not matches:
+        logging.info("No matches found by script keywords. Searching by synonyms...")
         for keyword in args.keywords:
             synonyms = _get_synonyms(keyword, synonyms_data)
-            for script in sorted(script_dir.glob('scil_{}_*.py'.format(args.object))):
+            for script in sorted(script_dir.glob('scil_{}_*.py'.format(selected_object))):
                 filename = script.stem
                 if filename == '__init__' or filename == 'scil_search_keywords':
                     continue
@@ -189,7 +205,7 @@ def main():
 
     # Display full argparser if --full_parser is used
     if args.full_parser:
-        for script in sorted(script_dir.glob('scil_{}_*.py'.format(args.object))):
+        for script in sorted(script_dir.glob('scil_{}_*.py'.format(selected_object))):
             filename = script.stem
             if filename == '__init__' or filename == 'scil_search_keywords':
                 continue
