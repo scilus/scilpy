@@ -98,6 +98,61 @@ def get_head_tail_density_maps(sft, point_to_select=1):
     return endpoints_map_head, endpoints_map_tail
 
 
+def trim_streamlines(sft, mask, min_len=0):
+    """ Trim streamlines to the bounding box or a binary mask. More
+    streamlines may be generated if the original streamline is cut.
+
+    Parameters
+    ----------
+    sft: StatefulTractogram
+        The sft to cut streamlines from.
+    mask: np.ndarray
+        Boolean array representing the region.
+    min_len: float
+        Minimum length from the resulting streamlines.
+
+    Returns
+    -------
+    new_sft : StatefulTractogram
+        New object with the streamlines trimmed within the mask.
+    """
+    orig_space = sft.space
+    orig_origin = sft.origin
+    sft.to_vox()
+    sft.to_corner()
+
+    H, W, D = mask.shape
+
+    new_streamlines = []
+    # A possible optimization would be to compute all coordinates first
+    # and then do the np.add.at only once.
+    for i, strm in enumerate(sft.streamlines):
+        # Convert the points to indices by rounding them and clipping them
+        indices = np.clip(strm.astype(int), 0, (H, W, D))
+        # Find all the points of the streamline that are in the ROIs
+        roi_data_1_intersect = map_coordinates(
+            mask, indices.T, order=0, mode='constant', cval=0)
+
+        # Select the points that are in the mask
+        split_idx = np.arange(len(roi_data_1_intersect))[
+            roi_data_1_intersect == 0]
+        # Split the streamline into segments that are in the mask
+        new_strmls = np.array_split(strm, split_idx)
+        # Add the new streamlines to the list
+        for new_strml in new_strmls:
+            # Skip the first point as it caused the split
+            new_streamlines.append(new_strml[1:])
+
+    new_sft = StatefulTractogram.from_sft(new_streamlines, sft)
+
+    new_sft.to_space(orig_space)
+    new_sft.to_origin(orig_origin)
+
+    new_sft, _ = filter_streamlines_by_length(new_sft, min_length=min_len)
+
+    return new_sft
+
+
 def cut_outside_of_mask_streamlines(sft, binary_mask, min_len=0):
     """
     Cut streamlines so their longest segment are within the bounding box or a

@@ -46,7 +46,8 @@ from scilpy.io.utils import (add_overwrite_arg, add_reference_arg,
                              assert_outputs_exist, assert_headers_compatible,
                              add_compression_arg)
 from scilpy.tractograms.streamline_and_mask_operations import \
-    cut_outside_of_mask_streamlines, cut_between_mask_two_blobs_streamlines
+    cut_outside_of_mask_streamlines, cut_between_mask_two_blobs_streamlines, \
+    trim_streamlines
 from scilpy.tractograms.streamline_operations import \
     resample_streamlines_step_size
 
@@ -76,8 +77,15 @@ def _build_arg_parser():
     p.add_argument('--resample', dest='step_size', type=float, default=None,
                    help='Resample streamlines to a specific step-size in mm '
                         '[%(default)s].')
-    p.add_argument('--biggest_blob', action='store_true',
+    g = p.add_mutually_exclusive_group()
+    g.add_argument('--biggest_blob', action='store_true',
                    help='Use the biggest entity and force the 1 ROI scenario.')
+    g.add_argument('--trim', action='store_true',
+                   help='Trim streamlines to the bounding box of the mask '
+                        'without checking for blobs.')
+    p.add_argument('--min_length', type=float, default=20,
+                   help='Minimum length of streamlines to keep (in mm) '
+                        '[%(default)s].')
 
     add_compression_arg(p)
     add_reference_arg(p)
@@ -107,6 +115,9 @@ def main():
     sft.to_vox()
     sft.to_corner()
 
+    if args.trim and not args.mask:
+        parser.error('The --trim option is only available with --mask.')
+
     if args.step_size is not None:
         sft = resample_streamlines_step_size(sft, args.step_size)
 
@@ -117,28 +128,37 @@ def main():
         mask_img = nib.load(args.mask)
         binary_mask = get_data_as_mask(mask_img)
 
-        bundle_disjoint, _ = ndi.label(binary_mask)
-        unique, count = np.unique(bundle_disjoint, return_counts=True)
-        if args.biggest_blob:
-            val = unique[np.argmax(count[1:])+1]
-            binary_mask[bundle_disjoint != val] = 0
-            unique = [0, val]
-        if len(unique) == 2:
-            logging.info('The provided mask has 1 entity '
-                         'cut_outside_of_mask_streamlines function selected.')
-            new_sft = cut_outside_of_mask_streamlines(sft, binary_mask)
-        elif len(unique) == 3:
-            logging.info('The provided mask has 2 entity '
-                         'cut_between_mask_two_blobs_streamlines '
-                         'function selected.')
-            new_sft = cut_between_mask_two_blobs_streamlines(sft, binary_mask)
+        if args.trim:
+            new_sft = trim_streamlines(sft, binary_mask,
+                                       min_len=args.min_length)
         else:
-            logging.warning('The provided mask has MORE THAN 2 entity '
-                            'cut_between_mask_two_blobs_streamlines function '
-                            'selected. This may cause problems with '
-                            'the outputed streamlines.'
-                            ' Please inspect the output carefully.')
-            new_sft = cut_between_mask_two_blobs_streamlines(sft, binary_mask)
+
+            bundle_disjoint, _ = ndi.label(binary_mask)
+            unique, count = np.unique(bundle_disjoint, return_counts=True)
+            if args.biggest_blob:
+                val = unique[np.argmax(count[1:])+1]
+                binary_mask[bundle_disjoint != val] = 0
+                unique = [0, val]
+            if len(unique) == 2:
+                logging.info('The provided mask has 1 entity '
+                             'cut_outside_of_mask_streamlines function '
+                             'selected.')
+                new_sft = cut_outside_of_mask_streamlines(
+                    sft, binary_mask, min_len=args.min_length)
+            elif len(unique) == 3:
+                logging.info('The provided mask has 2 entity '
+                             'cut_between_mask_two_blobs_streamlines '
+                             'function selected.')
+                new_sft = cut_between_mask_two_blobs_streamlines(
+                    sft, binary_mask, min_len=args.min_length)
+            else:
+                logging.warning('The provided mask has MORE THAN 2 entity '
+                                'cut_between_mask_two_blobs_streamlines '
+                                'function selected. This may cause problems '
+                                'with the outputed streamlines. Please inspect'
+                                ' the output carefully.')
+                new_sft = cut_between_mask_two_blobs_streamlines(
+                    sft, binary_mask, min_len=args.min_length)
     else:
         label_img = nib.load(args.label)
         label_data = get_data_as_labels(label_img)
@@ -160,8 +180,8 @@ def main():
         mask = label_data_2 != unique_vals[1]
         label_data_2[mask] = 0
 
-        new_sft = cut_between_mask_two_blobs_streamlines(sft, label_data_1,
-                                                         binary_mask_2=label_data_2)
+        new_sft = cut_between_mask_two_blobs_streamlines(
+            sft, label_data_1, binary_mask_2=label_data_2)
 
     # Saving
     if len(new_sft) == 0:
