@@ -210,11 +210,13 @@ def main():
 
     if not matches:
         logging.info(_make_title(' No results found! '))
+
     # Sort matches by score and print them
-    sorted_matches = sorted(matches, key=lambda x: scores[x], reverse=True)
-    logging.info(_make_title(' Results Ordered by Score '))
-    for match in sorted_matches:
-        logging.info(f"{Fore.BLUE}{Style.BRIGHT}{match}{Style.RESET_ALL}: Score = {scores[match]}")
+    else:
+        sorted_matches = sorted(matches, key=lambda x: scores[x], reverse=True)
+        logging.info(_make_title(' Results Ordered by Score '))
+        for match in sorted_matches:
+            logging.info(f"{Fore.BLUE}{Style.BRIGHT}{match}{Style.RESET_ALL}: Score = {scores[match]}")
 
     # Display full argparser if --full_parser is used
     if args.full_parser:
