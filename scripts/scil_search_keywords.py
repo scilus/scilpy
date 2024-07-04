@@ -102,6 +102,7 @@ def main():
 
 
     matches = []
+    scores = {}
 
 
     # Search through the docstring
@@ -116,7 +117,9 @@ def main():
         score = _calculate_score(stemmed_keywords, search_text, filename=filename)
 
         if score > 0:        
-            matches.append((filename, score))
+            matches.append(filename)
+            scores[filename] = score
+
             search_text = search_text or 'No docstring available!'
 
             display_filename = filename
@@ -128,7 +131,7 @@ def main():
             display_long_info = _highlight_keywords(display_long_info, stemmed_keywords)
 
             # Print everything
-            logging.info(f"{Fore.BLUE}{Style.BRIGHT}{display_filename} - Score: {score}%{Style.RESET_ALL}")
+            logging.info(f"{Fore.BLUE}{Style.BRIGHT}{display_filename}{Style.RESET_ALL}")
             logging.info(display_short_info)
             logging.debug(display_long_info)
             logging.info(f"{Fore.BLUE}{'=' * SPACING_LEN}")
@@ -143,10 +146,12 @@ def main():
             with open(help_file, 'r') as f:
                 search_text = f.read()
 
-            score = _calculate_score(stemmed_keywords, search_text, filename=filename)
+            score = _calculate_score(stemmed_keywords, search_text, script_name)
 
             if score > 0:
                 matches.append((script_name, score))
+                scores[script_name] = score
+
                 search_text = search_text or 'No docstring available!'
 
                 display_filename = script_name
@@ -154,7 +159,7 @@ def main():
                     search_text)
 
                 # Print everything
-                logging.info(f"{Fore.BLUE}{Style.BRIGHT}{display_filename} - Score: {score}%{Style.RESET_ALL}")
+                logging.info(f"{Fore.BLUE}{Style.BRIGHT}{display_filename}{Style.RESET_ALL}")
                 logging.info(display_short_info)
                 logging.debug(display_long_info)
                 logging.info(f"{Fore.BLUE}{'=' * SPACING_LEN}")
@@ -171,12 +176,14 @@ def main():
             if not script_name.startswith(f'scil_{selected_object}_'):
                 continue
             script_keywords = script['keywords']
-            score = _calculate_score(stemmed_keywords, ' '.join(script_keywords))
+            score = _calculate_score(stemmed_keywords, ' '.join(script_keywords), script_name)
 
             if score > 0:
-                matches.append((script_name, score))
+                matches.append(script_name)
+                scores[script_name] = score
+
                 first_sentence, _ = _split_first_sentence(search_text)
-                logging.info(f"{Fore.BLUE}{Style.BRIGHT}{display_filename} - Score: {score}%{Style.RESET_ALL}: {first_sentence}")
+                logging.info(f"{Fore.BLUE}{Style.BRIGHT}{display_filename}{Style.RESET_ALL}: {first_sentence}")
     
  
 
@@ -194,8 +201,8 @@ def main():
                     continue
                 search_text = _get_docstring_from_script_path(str(script))
                 if any(synonym in search_text for synonym in synonyms):
-                    score = _calculate_score(synonyms, search_text)
-                    matches.append((filename, score))
+                    matches.append(filename)
+                    scores[filename] = _calculate_score(synonyms, search_text, filename)
                     first_sentence, _ = _split_first_sentence(search_text)
                     logging.info(f"{Fore.BLUE}{'=' * SPACING_LEN}")
                     logging.info(f"{Fore.BLUE}{Style.BRIGHT}{filename}- Score: {score}%{Style.RESET_ALL}: {first_sentence}")
@@ -203,11 +210,11 @@ def main():
 
     if not matches:
         logging.info(_make_title(' No results found! '))
-    else:
-        matches.sort(key=lambda x: x[1], reverse=True)
-        logging.info(_make_title(' Results Ordered By Score '))
-        for match in matches:
-            logging.info(f"{Fore.BLUE}{Style.BRIGHT}{match[0]} - Score: {match[1]}%{Style.RESET_ALL}")
+    # Sort matches by score and print them
+    sorted_matches = sorted(matches, key=lambda x: scores[x], reverse=True)
+    logging.info(_make_title(' Results Ordered by Score '))
+    for match in sorted_matches:
+        logging.info(f"{Fore.BLUE}{Style.BRIGHT}{match}{Style.RESET_ALL}: Score = {scores[match]}")
 
     # Display full argparser if --full_parser is used
     if args.full_parser:
@@ -387,28 +394,32 @@ def _get_synonyms(keyword, synonyms_data):
             return synonym_set
     return []
 
-def _calculate_score(keywords, text, filename=""):
+def _calculate_score(keywords, text, filename):
     """
-    Calculate the score based on the presence of keywords in the given text and filename.
-    
+    Calculate a score for how well the text and filename match the keywords.
+
     Parameters
     ----------
     keywords : list of str
-        List of keywords to search for.
+        Keywords to search for.
     text : str
-        Text to search within (e.g., docstring or help file content).
-    filename : str, optional
-        Filename to search within (default is an empty string).
-    
+        Text to search within.
+    filename : str
+        Filename to search within.
+
     Returns
     -------
     int
-        Score as a percentage representing the ratio of found keywords to the total number of keywords.
+        Score based on the frequency of keywords in the text and filename.
     """
-    text = _stem_text(text)
-    filename = _stem_text(filename)
-    found_keywords = sum(1 for keyword in keywords if keyword in text or keyword in filename)
-    return int((found_keywords / len(keywords)) * 100)
+    text = text.lower()
+    filename = filename.lower()
+    score = 0
+    for keyword in keywords:
+        keyword = keyword.lower()
+        score += text.count(keyword)
+        score += filename.count(keyword)
+    return score
 
 if __name__ == '__main__':
     main()
