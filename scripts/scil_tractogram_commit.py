@@ -461,7 +461,7 @@ def main():
         mit.set_threads(args.nbr_processes)
         mit.set_verbose(False)
 
-        mit.build_operator(build_dir=os.path.join(tmp_dir.name, 'build/'))
+        mit.build_operator()
         mit.fit(tol_fun=tol_fun, max_iter=args.nbr_iter)
         mit.save_results()
         _save_results(args, tmp_dir, ext, hdf5_file, offsets_list,
