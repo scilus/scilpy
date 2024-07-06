@@ -137,11 +137,11 @@ def _build_arg_parser():
 
     p.add_argument('--split_bundles', action='store_true',
                    help='If set, save the density maps for each bundle '
-                        'separately \ninstead of all in one file.')
+                        'separately \nin addition to the all in one version.')
 
     p.add_argument('--split_fixels', action='store_true',
                    help='If set, save the density maps for each fixel '
-                        'separately \ninstead of all in one file.')
+                        'separately \nin addition to the all in one version.')
 
     p.add_argument('--single_bundle', action='store_true',
                    help='If set, will save the single-fiber single-bundle '
