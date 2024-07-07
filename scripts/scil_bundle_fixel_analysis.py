@@ -148,6 +148,9 @@ def _build_arg_parser():
                         'masks as well. \nThese are obtained by '
                         'selecting the voxels where only one bundle is '
                         'present \n(and one fiber/fixel).')
+    
+    p.add_argument('--bundles_mask', action='store_true',
+                   help='If set, save the bundle mask for each bundle.')
 
     add_overwrite_arg(p)
     add_processes_arg(p)
@@ -222,6 +225,12 @@ def main():
                      "fixel_density_map_{}.nii.gz".format(bundle_name))
             nib.save(nib.Nifti1Image(fixel_density_masks[..., i], affine),
                      "fixel_density_mask_{}.nii.gz".format(bundle_name))
+            if args.norm == "voxel":  # If fixel, voxel maps mean nothing
+                nib.save(nib.Nifti1Image(voxel_density_maps[..., i], affine),
+                         "voxel_density_map_{}.nii.gz".format(bundle_name))
+            bundle_mask = voxel_density_masks[..., i].astype(np.uint8)
+            nib.save(nib.Nifti1Image(bundle_mask, affine),
+                     "voxel_density_mask_{}.nii.gz".format(bundle_name))
 
         if args.single_bundle:
             # Single-fiber single-bundle voxels
@@ -243,6 +252,13 @@ def main():
                      "fixel_density_map_f{}.nii.gz".format(i + 1))
             nib.save(nib.Nifti1Image(fixel_density_masks[..., i, :], affine),
                      "fixel_density_mask_f{}.nii.gz".format(i + 1))
+            if args.norm == "voxel":  # If fixel, voxel maps mean nothing
+                nib.save(nib.Nifti1Image(voxel_density_maps[..., i, :],
+                                         affine),
+                         "voxel_density_map_f{}.nii.gz".format(i + 1))
+            bundle_mask = voxel_density_masks[..., i, :].astype(np.uint8)
+            nib.save(nib.Nifti1Image(bundle_mask, affine),
+                     "voxel_density_mask_f{}.nii.gz".format(i + 1))
 
     # Save bundles lookup table to know the order of the bundles
     bundles_idx = np.arange(0, len(bundles_names), 1)
@@ -258,7 +274,7 @@ def main():
              "fixel_density_masks.nii.gz")
 
     # Save full voxel density maps and masks
-    if args.norm == "voxel":  # If fixel, the voxel maps do not mean anything
+    if args.norm == "voxel":  # If fixel, voxel maps mean nothing
         nib.save(nib.Nifti1Image(voxel_density_maps, affine),
                  "voxel_density_maps.nii.gz")
     nib.save(nib.Nifti1Image(voxel_density_masks.astype(np.uint8), affine),
