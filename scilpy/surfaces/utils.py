@@ -2,10 +2,11 @@
 
 import numpy as np
 import vtk
+import nibabel as nib
 from nibabel.freesurfer.io import read_geometry
 
 
-def convert_freesurfer_into_polydata(surface_to_polydata, xform):
+def convert_freesurfer_into_polydata(surface_to_polydata, reference):
     """
     Convert a freesurfer surface into a polydata surface with vtk.
 
@@ -15,9 +16,8 @@ def convert_freesurfer_into_polydata(surface_to_polydata, xform):
         The header must not contain any of these suffixes:
         '.vtk', '.vtp', '.fib', '.ply', '.stl', '.xml', '.obj'.
 
-    xform: array [float]
-        Apply a transformation matrix to the surface to align
-        freesurfer surface with T1.
+    reference: Reference image to extract the transformation matrix.
+        The reference image is used to extract the transformation matrix
 
     Returns
     -------
@@ -29,10 +29,14 @@ def convert_freesurfer_into_polydata(surface_to_polydata, xform):
     points = vtk.vtkPoints()
     triangles = vtk.vtkCellArray()
 
-    flip_LPS = [-1, -1, 1]
+    img = nib.load(reference)
+    affine = img.affine
+    center_volume = (np.array(img.shape) / 2)
+
+    xform_translation = np.dot(affine[0:3, 0:3], center_volume) + affine[0:3, 3]
 
     for vertex in surface[0]:
-        id = points.InsertNextPoint((vertex[0:3]+xform)*flip_LPS)
+        _ = points.InsertNextPoint((vertex[0:3] + xform_translation))
 
     for vertex_id in surface[1]:
         triangle = vtk.vtkTriangle()
@@ -49,44 +53,7 @@ def convert_freesurfer_into_polydata(surface_to_polydata, xform):
     return polydata
 
 
-def extract_xform(xform):
-    """
-    Use the log.txt file from mri_info to generate a transformation
-    matrix to align the freesurfer surface with the T1.
-
-    Parameters
-    ----------
-    filename : list
-        The copy-paste output from mri_info of the surface using:
-        mri_info $surface >> log.txt
-
-    Returns
-    -------
-    Matrix : np.array
-        a transformation matrix to align the surface with the T1.
-    """
-
-    raw_xform = []
-    for i in xform:
-        raw_xform.extend(i.split())
-
-    start_read = 0
-    for i, value in enumerate(raw_xform):
-        if value == 'xform':
-            start_read = int(i)
-            break
-
-    if start_read == 0:
-        raise ValueError('No xform in that file...')
-
-    matrix = np.eye(4)
-    for i in range(3):
-        for j in range(4):
-            matrix[i, j] = float(raw_xform[13*i + (j*3) + 4+2+start_read][:-1])
-    return matrix
-
-
-def flip_LPS(polydata):
+def flip_surfaces_axes(polydata, axes=[-1, -1, 1]):
     """
     Apply a flip to the freesurfer surface of the anteroposterior axis.
 
@@ -101,18 +68,15 @@ def flip_LPS(polydata):
     polydata : polydata surface.
         return the polydata turned over.
     """
-    flip_LPS = vtk.vtkMatrix4x4()
-    flip_LPS.Identity()
-    flip_LPS.SetElement(0, 0, -1)
-    flip_LPS.SetElement(1, 1, -1)
+    flip_matrix = vtk.vtkMatrix4x4()
+    flip_matrix.Identity()
+
+    for i in range(3):
+        flip_matrix.SetElement(i, i, axes[i])
 
     # Apply the transforms
     transform = vtk.vtkTransform()
-    transform.Concatenate(flip_LPS)
-
-    # Apply the transforms
-    transform = vtk.vtkTransform()
-    transform.Concatenate(flip_LPS)
+    transform.Concatenate(flip_matrix)
 
     # Transform the polydata
     transform_polydata = vtk.vtkTransformPolyDataFilter()

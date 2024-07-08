@@ -22,7 +22,7 @@ from scilpy.io.utils import (add_json_args,
                              assert_inputs_exist,
                              assert_outputs_exist,
                              check_tracts_same_format)
-from scilpy.tractanalysis.bundle_operations import remove_outliers
+from scilpy.tractanalysis.bundle_operations import remove_outliers_qb
 
 
 def _build_arg_parser():
@@ -65,7 +65,7 @@ def main():
 
     check_tracts_same_format(parser, [args.in_bundle, args.out_bundle,
                                       args.remaining_bundle])
-    outliers, inliers = remove_outliers(sft.streamlines, args.alpha)
+    outliers, inliers = remove_outliers_qb(sft.streamlines, args.alpha)
 
     inliers_sft = sft[inliers]
     outliers_sfts = sft[outliers]

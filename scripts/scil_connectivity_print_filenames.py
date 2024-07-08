@@ -65,7 +65,7 @@ def main():
         in_label = labels_list[pos_1]
         out_label = labels_list[pos_2]
 
-        # scil_tractogram_segment_bundles_for_connectivity.py only save the
+        # scil_tractogram_segment_connections_from_labels.py only save the
         # lower triangular files
         if out_label < in_label:
             continue

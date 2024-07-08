@@ -305,7 +305,7 @@ def main():
 
         del tensor_vals, fiber_tensors, tensor_vals_reordered
 
-    if args.fa or args.RGB:
+    if args.fa or args.rgb:
         FA = fractional_anisotropy(tenfit.evals)
         FA[np.isnan(FA)] = 0
         FA = np.clip(FA, 0, 1)

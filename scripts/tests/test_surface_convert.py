@@ -30,9 +30,8 @@ def test_execution_surface_vtk_xfrom(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_surf = os.path.join(SCILPY_HOME, 'surface_vtk_fib',
                            'lh.pialt_xform')
-    x_form = os.path.join(SCILPY_HOME, 'surface_vtk_fib',
-                          'log.txt')
+    ref = os.path.join(SCILPY_HOME, 'surface_vtk_fib', 'fa.nii.gz')
     ret = script_runner.run('scil_surface_convert.py', in_surf,
-                            'lh.pialt_xform.vtk', '--xform', x_form,
-                            '--to_lps')
+                            'lh.pialt_xform.vtk', '--reference', ref,
+                            '--flip_axes', '-1', '-1', '1')
     assert ret.success

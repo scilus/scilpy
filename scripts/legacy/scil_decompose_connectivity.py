@@ -2,12 +2,12 @@
 # -*- coding: utf-8 -*-
 
 from scilpy.io.deprecator import deprecate_script
-from scripts.scil_tractogram_segment_bundles_for_connectivity import main as m
+from scripts.scil_tractogram_segment_connections_from_labels import main as m
 
 
 DEPRECATION_MSG = """
 This script has been renamed
-scil_tractogram_segment_bundles_for_connectivity.py.
+scil_tractogram_segment_connections_from_labels.py.
 Please change your existing pipelines accordingly.
 """
 
