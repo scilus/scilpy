@@ -6,9 +6,9 @@ Script to convert segmented volume to a surface with marching cube'
 
 Example : use wmparc.a2009s.nii.gz with some aseg.stats indices
 
-scil_surface_from_volume.py s1a1/mask/S1-A1_wmparc.a2009s.nii.gz\\
-    -v -index 16  --vox2vtk -opening 2 -smooth 2
-
+scil_surface_from_labels.py out_surface.vtk \\
+    --in_labels s1a1/mask/S1-A1_wmparc.a2009s.nii.gz\\
+    --indices 16:32 --vox2vtk --opening 2 --smooth 2 -v
 """
 
 import argparse
@@ -24,7 +24,8 @@ from scipy.ndimage import (binary_closing,
                            binary_fill_holes)
 import mcubes
 
-from scilpy.image.labels import get_data_as_labels, get_binary_mask_from_labels
+from scilpy.image.labels import get_data_as_labels
+from scilpy.io.image import get_data_as_mask, merge_labels_into_mask
 from scilpy.io.utils import (add_overwrite_arg,
                              add_verbose_arg,
                              assert_inputs_exist,
@@ -42,13 +43,17 @@ def _build_arg_parser():
     p = argparse.ArgumentParser(description=__doc__, epilog=EPILOG,
                                 formatter_class=argparse.RawTextHelpFormatter)
 
-    p.add_argument('in_label',
-                   help='Path of the volume (nii or nii.gz).')
+    g = p.add_argument_group("Input (Labels or Mask)")
+    mxg = g.add_mutually_exclusive_group(required=True)
+    mxg.add_argument('--in_labels',
+                     help='Path of the atlas (nii or nii.gz).')
+    mxg.add_argument('--in_mask',
+                     help='Path of the mask (nii or nii.gz).')
 
     p.add_argument('out_surface',
                    help='Output surface (.vtk)')
 
-    p.add_argument('--indices', type=int, nargs='+',
+    p.add_argument('--indices', nargs='+',
                    help='List of labels indices to use for the surface.')
 
     p.add_argument('--value', default=0.5,
@@ -93,15 +98,29 @@ def main():
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
-    assert_inputs_exist(parser, args.in_label)
+    assert_inputs_exist(parser, [], [args.in_labels, args.in_mask])
     assert_outputs_exist(parser, args, args.out_surface)
 
-    # Load volume
-    labels_img = nib.load(args.in_label)
-    labels_volume = get_data_as_labels(labels_img)
+    print(args.indices)
 
-    # Removed indices
-    mask = get_binary_mask_from_labels(labels_volume, args.indices)
+    if args.in_labels:
+        # Load volume
+        labels_img = nib.load(args.in_labels)
+        labels_volume = get_data_as_labels(labels_img)
+
+        # Removed indices
+        if args.indices:
+            mask = merge_labels_into_mask(labels_volume,
+                                          ' '.join(args.indices))
+        else:
+            logging.warning('No indices provided, '
+                            'it will use all indices.')
+            mask = merge_labels_into_mask(labels_volume,
+                                          "1:" + str(labels_volume.max()))
+    else:
+        # Load mask
+        mask_img = nib.load(args.in_mask)
+        mask = get_data_as_mask(mask_img)
 
     # Basic morphology
     if args.erosion > 0:
@@ -123,7 +142,7 @@ def main():
     mesh = trimeshpy.trimesh_vtk.TriMesh_Vtk(triangles.astype(int), vertices)
 
     # Transformation based on the Nifti affine
-    if args.vox2vtk:
+    if not args.vox2vtk:
         mesh.set_vertices(vtk_u.vox_to_vtk(mesh.get_vertices(), labels_img))
 
     # Smooth
@@ -134,7 +153,9 @@ def main():
                                              backward_step=True)
         mesh.set_vertices(new_vertices)
 
-    vtk_u.save_polydata(mesh.get_polydata(), args.out_surface, legacy_vtk_format=True)
+    vtk_u.save_polydata(mesh.get_polydata(),
+                        args.out_surface,
+                        legacy_vtk_format=True)
 
 
 if __name__ == "__main__":
