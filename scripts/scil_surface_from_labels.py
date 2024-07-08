@@ -143,7 +143,10 @@ def main():
 
     # Transformation based on the Nifti affine
     if not args.vox2vtk:
-        mesh.set_vertices(vtk_u.vox_to_vtk(mesh.get_vertices(), labels_img))
+        if args.in_labels:
+            mesh.set_vertices(vtk_u.vox_to_vtk(mesh.get_vertices(), labels_img))
+        else:
+            mesh.set_vertices(vtk_u.vox_to_vtk(mesh.get_vertices(), mask_img))
 
     # Smooth
     if args.smooth > 0:
