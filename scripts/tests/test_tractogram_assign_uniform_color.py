@@ -25,7 +25,7 @@ def test_execution_fill(script_runner, monkeypatch):
 
     ret = script_runner.run('scil_tractogram_assign_uniform_color.py',
                             in_bundle, '--fill_color', '0x000000',
-                            '--out_tractogram', 'colored.trk')
+                            '--out_tractogram', 'colored.trk', '-f')
     assert ret.success
 
 
