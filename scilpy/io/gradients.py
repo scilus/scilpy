@@ -32,7 +32,7 @@ def fsl2mrtrix(fsl_bval_filename, fsl_bvec_filename, mrtrix_filename):
         logging.warning('WARNING: Your bvecs seem transposed. ' +
                         'Transposing them.')
 
-    shell_idx = [int(np.where(bval == bvals)[0]) for bval in shells]
+    shell_idx = [int(np.where(bval == bvals)[0][0]) for bval in shells]
     save_gradient_sampling_mrtrix(points, shell_idx, bvals,
                                   mrtrix_filename + '.b')
 
@@ -62,8 +62,7 @@ def mrtrix2fsl(mrtrix_filename, fsl_filename):
     shells = np.array(mrtrix_b[:, 3])
 
     bvals = np.unique(shells).tolist()
-    shell_idx = [int(np.where(bval == bvals)[0]) for bval in shells]
-
+    shell_idx = [int(np.where(bval == bvals)[0][0]) for bval in shells]
     save_gradient_sampling_fsl(points, shell_idx, bvals,
                                filename_bval=fsl_filename + '.bval',
                                filename_bvec=fsl_filename + '.bvec')
