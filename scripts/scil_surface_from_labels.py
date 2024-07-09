@@ -2,7 +2,8 @@
 # -*- coding: utf-8 -*-
 
 """
-Script to convert segmented volume to a surface with marching cube'
+Script to create a surface with marching cube from a mask or a label image.
+The surface will be readable with software like MI-Brain.
 
 Example : use wmparc.a2009s.nii.gz with some aseg.stats indices
 
@@ -24,8 +25,8 @@ from scipy.ndimage import (binary_closing,
                            binary_fill_holes)
 import mcubes
 
-from scilpy.image.labels import get_data_as_labels
-from scilpy.io.image import get_data_as_mask, merge_labels_into_mask
+from scilpy.image.labels import get_data_as_labels, merge_labels_into_mask
+from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_overwrite_arg,
                              add_verbose_arg,
                              assert_inputs_exist,
@@ -46,7 +47,9 @@ def _build_arg_parser():
     g = p.add_argument_group("Input (Labels or Mask)")
     mxg = g.add_mutually_exclusive_group(required=True)
     mxg.add_argument('--in_labels',
-                     help='Path of the atlas (nii or nii.gz).')
+                     help='Path of the atlas (nii or nii.gz). '
+                     'It will use the indices provided with --indices. '
+                     'If no indices are provided, it will use all indices.')
     mxg.add_argument('--in_mask',
                      help='Path of the mask (nii or nii.gz).')
 
@@ -62,24 +65,25 @@ def _build_arg_parser():
                         'This value is called isovalue '
                         'in mbcube. [%(default)s]')
 
-    # Need a group here
     morpho_g = p.add_argument_group('Morphology options')
-    morpho_g.add_argument('--smooth', default=0.0,
+    morpho_g.add_argument('--smooth',
                           type=ranged_type(float, 0, None, min_excluded=False),
                           help='Smoothing size with'
                                ' 1 implicit step. [%(default)s]')
-    morpho_g.add_argument('--erosion', default=0,
+    morpho_g.add_argument('--erosion',
                           type=ranged_type(int, 0, None, min_excluded=False),
                           help='Erosion: number of iterations. [%(default)s]')
-    morpho_g.add_argument('--dilation', default=0,
+    morpho_g.add_argument('--dilation',
                           type=ranged_type(int, 0, None, min_excluded=False),
                           help='Dilation: number of iterations. [%(default)s]')
-    morpho_g.add_argument('--opening', default=0,
+    morpho_g.add_argument('--opening',
                           type=ranged_type(int, 0, None, min_excluded=False),
-                          help='Opening: number of iterations. [%(default)s]')
-    morpho_g.add_argument('--closing', default=0,
+                          help='Opening (dilation of the erosion): number '
+                               'of iterations. [%(default)s]')
+    morpho_g.add_argument('--closing',
                           type=ranged_type(int, 0, None, min_excluded=False),
-                          help='Closing: number of iterations. [%(default)s]')
+                          help='Closing (erosion of the dilation): number '
+                               'of iterations. [%(default)s]')
 
     p.add_argument('--fill', action='store_true',
                    help='Fill holes in the image.')
@@ -101,8 +105,6 @@ def main():
     assert_inputs_exist(parser, [], [args.in_labels, args.in_mask])
     assert_outputs_exist(parser, args, args.out_surface)
 
-    print(args.indices)
-
     if args.in_labels:
         # Load volume
         labels_img = nib.load(args.in_labels)
@@ -123,13 +125,13 @@ def main():
         mask = get_data_as_mask(mask_img)
 
     # Basic morphology
-    if args.erosion > 0:
+    if args.erosion is not None:
         mask = binary_erosion(mask, iterations=args.erosion)
-    if args.dilation > 0:
+    if args.dilation is not None:
         mask = binary_dilation(mask, iterations=args.dilation)
-    if args.opening > 0:
+    if args.opening is not None:
         mask = binary_opening(mask, iterations=args.opening)
-    if args.closing > 0:
+    if args.closing is not None:
         mask = binary_closing(mask, iterations=args.closing)
 
     if args.fill:
@@ -144,9 +146,11 @@ def main():
     # Transformation based on the Nifti affine
     if not args.vox2vtk:
         if args.in_labels:
-            mesh.set_vertices(vtk_u.vox_to_vtk(mesh.get_vertices(), labels_img))
+            mesh.set_vertices(vtk_u.vox_to_vtk(mesh.get_vertices(),
+                                               labels_img))
         else:
-            mesh.set_vertices(vtk_u.vox_to_vtk(mesh.get_vertices(), mask_img))
+            mesh.set_vertices(vtk_u.vox_to_vtk(mesh.get_vertices(),
+                                               mask_img))
 
     # Smooth
     if args.smooth > 0:
