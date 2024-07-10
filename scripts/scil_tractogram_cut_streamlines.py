@@ -2,28 +2,23 @@
 # -*- coding: utf-8 -*-
 
 """
-Filters streamlines and only keeps the parts of streamlines within or
-between the ROIs. Two options are available.
+Filters streamlines and only keeps the parts of streamlines within (--mask) or
+between (--label) the ROIs:
 
-Input mask:
+--mask
 
-The mask has either 1 entity/blob or
-2 entities/blobs (does not support disconnected voxels).
-The option --biggest_blob can help if you have such a scenario.
+Streamlines outside of the mask will be cut. The mask may be disjoint. More
+streamlines than input may be output if the mask is disjoint, therefore
+data_per_streamline will be discared.
 
-The 1 entity scenario will 'trim' the streamlines so their longest segment is
-within the bounding box or a binary mask.
+--label:
 
-The 2 entities scenario will cut streamlines so their segment are within the
-bounding box or going from binary mask #1 to binary mask #2.
+The script will cut streamlines so their longest segment is going from label 1
+to label 2. Will keep data_per_streamline.
 
-Input label:
-
-The label MUST contain 2 labels different from zero.
-Label values could be anything.
-The script will cut streamlines going from label 1 to label 2.
-
-Both inputs and scenarios will erase data_per_point and data_per_streamline.
+Both scenarios will erase data_per_point. Streamlines will be extended so they
+reach the boundary of the mask or the two labels, therefore won't be equal
+to the input streamlines.
 
 Formerly: scil_cut_streamlines.py
 """
@@ -62,7 +57,7 @@ def _build_arg_parser():
                               'Choose between mask or label input.')
     g2 = g1.add_mutually_exclusive_group(required=True)
     g2.add_argument('--mask',
-                    help='Binary mask containing either 1 or 2 blobs.')
+                    help='Binary mask.')
     g2.add_argument('--label',
                     help='Label containing 2 blobs.')
 
@@ -76,12 +71,6 @@ def _build_arg_parser():
     p.add_argument('--resample', dest='step_size', type=float, default=None,
                    help='Resample streamlines to a specific step-size in mm '
                         '[%(default)s].')
-    g = p.add_mutually_exclusive_group()
-    g.add_argument('--biggest_blob', action='store_true',
-                   help='Use the biggest entity and force the 1 ROI scenario.')
-    g.add_argument('--trim', action='store_true',
-                   help='Trim streamlines to the bounding box of the mask '
-                        'without checking for blobs.')
     p.add_argument('--min_length', type=float, default=20,
                    help='Minimum length of streamlines to keep (in mm) '
                         '[%(default)s].')
@@ -114,16 +103,15 @@ def main():
     # Streamlines must be in voxel space to deal correctly with bounding box.
     sft.to_vox()
     sft.to_corner()
-
-    if args.trim and not args.mask:
-        parser.error('The --trim option is only available with --mask.')
-
+    # Resample streamlines to a specific step-size in mm. May impact the
+    # cutting process.
     if args.step_size is not None:
         sft = resample_streamlines_step_size(sft, args.step_size)
 
     if len(sft.streamlines) == 0:
         parser.error('Input tractogram is empty.')
 
+    # Mask scenario. Streamlines outside of the mask will be cut.
     if args.mask:
         mask_img = nib.load(args.mask)
         binary_mask = get_data_as_mask(mask_img)
@@ -131,10 +119,13 @@ def main():
         new_sft = cut_outside_of_mask_streamlines(sft, binary_mask,
                                                   min_len=args.min_length,
                                                   processes=args.nbr_processes)
+
+    # Label scenario. The script will cut streamlines so they are going from
+    # label 1 to label 2.
     else:
         label_img = nib.load(args.label)
         label_data = get_data_as_labels(label_img)
-
+        # If label_ids are provided, use them. Else, use the two unique values
         if args.label_ids:
             unique_vals = args.label_ids
         else:
@@ -143,7 +134,7 @@ def main():
                 parser.error('More than two values in the label file, '
                              'please use --label_ids to select '
                              'specific label ids.')
-
+        # Create two binary masks
         label_data_1 = np.copy(label_data)
         mask = label_data_1 != unique_vals[0]
         label_data_1[mask] = 0
@@ -151,7 +142,7 @@ def main():
         label_data_2 = np.copy(label_data)
         mask = label_data_2 != unique_vals[1]
         label_data_2[mask] = 0
-
+        # Cut streamlines
         new_sft = cut_between_mask_two_blobs_streamlines(
             sft, label_data_1, binary_mask_2=label_data_2)
 
@@ -159,6 +150,7 @@ def main():
     if len(new_sft) == 0:
         logging.warning('No streamline intersected the provided mask. '
                         'Saving empty tractogram.')
+    # Compress streamlines if requested
     elif args.compress_th:
         compressed_strs = [compress_streamlines(
             s, args.compress_th) for s in new_sft.streamlines]
