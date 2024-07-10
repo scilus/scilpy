@@ -19,6 +19,7 @@ from scilpy.io.utils import (add_overwrite_arg,
                              add_verbose_arg,
                              assert_inputs_exist,
                              assert_outputs_exist,
+                             check_tract_trk,
                              load_matrix_in_any_format)
 
 
@@ -30,12 +31,12 @@ def _build_arg_parser():
 
     p.add_argument('in_tractogram',
                    help='Input tractogram (.trk or .tck).')
-    p.add_argument('dps_file',
+    p.add_argument('in_dps_file',
                    help='File containing the data to add to streamlines.')
     p.add_argument('dps_key',
                    help='Where to store the data in the tractogram.')
     p.add_argument('out_tractogram',
-                   help='Output tractogram (.trk or .tck).')
+                   help='Output tractogram (.trk).')
 
     add_reference_arg(p)
     add_verbose_arg(p)
@@ -53,6 +54,7 @@ def main():
     assert_inputs_exist(parser, [args.in_tractogram, args.dps_file],
                         args.reference)
     assert_outputs_exist(parser, args, args.out_tractogram)
+    check_tract_trk(parser, args.out_tractogram)
 
     # Load tractogram
     sft = load_tractogram_with_reference(parser, args, args.in_tractogram)

@@ -100,6 +100,13 @@ def link_bundles_and_reference(parser, args, input_tractogram_list):
     return bundles_references_tuple
 
 
+def check_tract_trk(parser, filename):
+
+    _, ext = os.path.splitext(filename)
+    if ext != '.trk':
+        parser.error('File {} is not a .trk file.'.format(filename))
+
+
 def check_tracts_same_format(parser, filename_list):
     _, ref_ext = os.path.splitext(filename_list[0])
 
