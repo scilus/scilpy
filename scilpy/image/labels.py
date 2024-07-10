@@ -6,6 +6,7 @@ import logging
 import os
 
 import numpy as np
+from scipy import ndimage as ndi
 from scipy.spatial import cKDTree
 
 
@@ -65,6 +66,48 @@ def get_binary_mask_from_labels(atlas, label_list):
         mask[is_label] = 1
 
     return mask
+
+
+def get_labels_from_mask(mask_data, labels=None, background_label=0):
+    """
+    Get labels from a binary mask which contains multiple blobs.
+
+    Parameters
+    ----------
+    mask_data: np.ndarray
+        The mask data.
+    labels: list, optional
+        Labels to assign to each blobs in the mask. Excludes the background
+        label.
+    background_label: int
+        Label for the background.
+
+    Returns
+    -------
+    label_map: np.ndarray
+        The labels.
+    """
+    # Get the number of structures and assign labels to each blob
+    label_map, nb_structures = ndi.label(mask_data)
+    # Assign labels to each blob if provided
+    if labels:
+        if len(labels) != nb_structures:
+            raise ValueError("Number of labels ({}) does not match the number "
+                             "of blobs in the mask ({}).".format(
+                                 len(labels), nb_structures))
+
+        # Copy the label map to avoid scenarios where the label list contains
+        # labels that are already present in the label map
+        custom_label_map = label_map.copy()
+        # Assign labels to each blob
+        for idx, label in enumerate(labels):
+            custom_label_map[label_map == idx + 1] = label
+        label_map = custom_label_map
+    # Assign background label
+    if background_label:
+        label_map[label_map == 0] = background_label
+
+    return label_map
 
 
 def get_lut_dir():

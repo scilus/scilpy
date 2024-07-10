@@ -30,7 +30,6 @@ from dipy.io.streamline import save_tractogram
 from dipy.io.stateful_tractogram import StatefulTractogram
 from dipy.tracking.streamlinespeed import compress_streamlines
 import nibabel as nib
-import numpy as np
 
 from scilpy.image.labels import get_data_as_labels
 from scilpy.io.image import get_data_as_mask
@@ -125,26 +124,9 @@ def main():
     else:
         label_img = nib.load(args.label)
         label_data = get_data_as_labels(label_img)
-        # If label_ids are provided, use them. Else, use the two unique values
-        if args.label_ids:
-            unique_vals = args.label_ids
-        else:
-            unique_vals = np.unique(label_data[label_data != 0])
-            if len(unique_vals) != 2:
-                parser.error('More than two values in the label file, '
-                             'please use --label_ids to select '
-                             'specific label ids.')
-        # Create two binary masks
-        label_data_1 = np.copy(label_data)
-        mask = label_data_1 != unique_vals[0]
-        label_data_1[mask] = 0
 
-        label_data_2 = np.copy(label_data)
-        mask = label_data_2 != unique_vals[1]
-        label_data_2[mask] = 0
-        # Cut streamlines
         new_sft = cut_between_mask_two_blobs_streamlines(
-            sft, label_data_1, binary_mask_2=label_data_2)
+            sft, label_data, args.label_ids)
 
     # Saving
     if len(new_sft) == 0:

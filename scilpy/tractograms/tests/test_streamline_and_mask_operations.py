@@ -16,6 +16,7 @@ from scilpy.tractograms.streamline_and_mask_operations import (
     cut_outside_of_mask_streamlines,
     get_endpoints_density_map,
     get_head_tail_density_maps)
+from scilpy.image.labels import get_labels_from_mask
 from scilpy.tractograms.uncompress import uncompress
 
 
@@ -47,6 +48,7 @@ def _setup_files():
     reference = nib.load(in_ref)
     head_tail_rois = nib.load(in_head_tail).get_fdata()
     head_tail_offset_rois = nib.load(in_head_tail_offset).get_fdata()
+    print(head_tail_offset_rois)
     center_roi = nib.load(in_center).get_fdata()
 
     # Load sft
@@ -136,7 +138,9 @@ def test_cut_between_mask_two_blobs_streamlines():
     sft, reference, head_tail_rois, *_ = _setup_files()
     # head_tail_rois is a mask with two rois that correspond to the bundle's
     # endpoints.
-    cut_sft = cut_between_mask_two_blobs_streamlines(sft, head_tail_rois)
+    head_tail_labels = get_labels_from_mask(head_tail_rois)
+
+    cut_sft = cut_between_mask_two_blobs_streamlines(sft, head_tail_labels)
     cut_sft.to_vox()
     cut_sft.to_corner()
 
@@ -161,8 +165,10 @@ def test_cut_between_mask_two_blobs_streamlines_offset():
     sft, reference, _, head_tail_offset_rois, _ = _setup_files()
     # head_tail_offset_rois is a mask with two rois that are not exactly at the
     # endpoints of the bundle.
-    cut_sft = cut_between_mask_two_blobs_streamlines(
-        sft, head_tail_offset_rois)
+    head_tail_labels = get_labels_from_mask(head_tail_offset_rois)
+
+    cut_sft = cut_between_mask_two_blobs_streamlines(sft, head_tail_labels)
+
     cut_sft.to_vox()
     cut_sft.to_corner()
 

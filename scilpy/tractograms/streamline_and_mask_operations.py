@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import logging
 from multiprocessing import Pool
 
 import numpy as np
@@ -205,13 +204,13 @@ def cut_outside_of_mask_streamlines(sft, mask, min_len=0, processes=1):
     new_sft.to_space(orig_space)
     new_sft.to_origin(orig_origin)
 
-    new_sft, _ = filter_streamlines_by_length(new_sft, min_length=min_len)
+    new_sft, *_ = filter_streamlines_by_length(new_sft, min_length=min_len)
 
     return new_sft
 
 
-def cut_between_mask_two_blobs_streamlines(sft, binary_mask_1,
-                                           binary_mask_2,
+def cut_between_mask_two_blobs_streamlines(sft, label_data,
+                                           label_ids=None,
                                            min_len=0):
     """
     Cut streamlines so their segment are going from blob #1 to blob #2 in a
@@ -224,10 +223,11 @@ def cut_between_mask_two_blobs_streamlines(sft, binary_mask_1,
     ----------
     sft: StatefulTractogram
         The sft to cut streamlines (using a single mask with 2 entities) from.
-    binary_mask_1: np.ndarray
-        Boolean array representing the region (must contain 2 entities)
-    binary_mask_2: np.ndarray
-        Boolean array representing the region (must contain 2 entities)
+    label_data: np.ndarray
+        Label map representing the two regions.
+    label_ids: list of int, optional
+        The two labels to cut between. If not provided, the two unique labels
+        in the label map will be used.
     min_len: float
         Minimum length from the resulting streamlines.
 
@@ -240,18 +240,26 @@ def cut_between_mask_two_blobs_streamlines(sft, binary_mask_1,
     orig_origin = sft.origin
     sft.to_vox()
     sft.to_corner()
+    if label_ids is None:
+        unique_vals = np.unique(label_data[label_data != 0])
+        print(unique_vals)
+        if len(unique_vals) != 2:
+            raise ValueError('More than two values in the label file, '
+                             'please select specific label ids.')
+    else:
+        unique_vals = label_ids
 
-    roi_data_1 = binary_mask_1
-    roi_data_2 = binary_mask_2
+    # Create two binary masks
+    label_data_1 = np.copy(label_data)
+    mask = label_data_1 != unique_vals[0]
+    label_data_1[mask] = 0
 
-    # Cut streamlines with the masks and return the new streamlines
-    # New endpoints may be generated
-    logging.info("Cutting streamlines. Data_per_point will not be kept.")
+    label_data_2 = np.copy(label_data)
+    mask = label_data_2 != unique_vals[1]
+    label_data_2[mask] = 0
+
     new_streamlines, kept_idx = _cut_streamlines_with_masks(
-        sft.streamlines, roi_data_1, roi_data_2)
-    if len(kept_idx) != len(sft.streamlines):
-        logging.info("{}/{} streamlines were kept."
-                     .format(len(kept_idx), len(sft.streamlines)))
+        sft.streamlines, label_data_1, label_data_2)
 
     new_sft = StatefulTractogram.from_sft(
         new_streamlines, sft,
@@ -259,7 +267,7 @@ def cut_between_mask_two_blobs_streamlines(sft, binary_mask_1,
     new_sft.to_space(orig_space)
     new_sft.to_origin(orig_origin)
 
-    new_sft, _ = filter_streamlines_by_length(new_sft, min_length=min_len)
+    new_sft, *_ = filter_streamlines_by_length(new_sft, min_length=min_len)
 
     return new_sft
 
@@ -282,6 +290,7 @@ def _cut_streamlines_with_masks(streamlines, roi_data_1, roi_data_2):
                          "--remove_single_point and --remove_overlapping_points"
                          " options.")
 
+    # TODO: Parallelize this ?
     for strl_idx, strl in enumerate(streamlines):
         # The "voxels" intersected by the current streamline
         strl_indices = indices[strl_idx]
@@ -441,8 +450,6 @@ def compute_streamline_segment(orig_strl, inter_vox, in_vox_idx, out_vox_idx,
     # If not, find the next real streamline point
     if in_strl_point is None:
         # Find the index of the next real streamline point
-        print("in_vox_idx: ", in_vox_idx)
-        print("points_to_indices: ", points_to_indices)
         in_strl_point = get_next_real_point(points_to_indices, in_vox_idx)
         # Generate an artificial point on the line between the previous
         # real point and the next real point

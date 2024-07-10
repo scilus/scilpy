@@ -18,7 +18,7 @@ def test_help_option(script_runner):
     assert ret.success
 
 
-def test_execution_two_roi(script_runner, monkeypatch):
+def test_execution(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_tractogram = os.path.join(SCILPY_HOME, 'filtering',
                                  'bundle_all_1mm.trk')
@@ -30,14 +30,31 @@ def test_execution_two_roi(script_runner, monkeypatch):
     assert ret.success
 
 
-def test_execution_biggest(script_runner, monkeypatch):
+def test_execution_two_rois(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
-    in_tractogram = os.path.join(SCILPY_HOME, 'filtering',
-                                 'bundle_all_1mm.trk')
-    in_mask = os.path.join(SCILPY_HOME, 'filtering', 'mask.nii.gz')
+    in_tractogram = os.path.join(SCILPY_HOME, 'tractograms',
+                                 'streamline_and_mask_operations',
+                                 'bundle_4.tck')
+    in_mask = os.path.join(SCILPY_HOME, 'tractograms',
+                           'streamline_and_mask_operations',
+                           'bundle_4_head_tail_offset.nii.gz')
     ret = script_runner.run('scil_tractogram_cut_streamlines.py',
                             in_tractogram, '--mask', in_mask,
                             'out_tractogram_cut2.trk',
-                            '--resample', '0.2', '--compress', '0.1',
-                            '--biggest')
+                            '--reference', in_mask,
+                            '--resample', '0.2', '--compress', '0.1')
+    assert ret.success
+
+
+def test_execution_labels(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
+    in_tractogram = os.path.join(SCILPY_HOME, 'connectivity',
+                                 'bundle_all_1mm.trk')
+    in_labels = os.path.join(SCILPY_HOME, 'connectivity',
+                             'endpoints_atlas.nii.gz')
+    ret = script_runner.run('scil_tractogram_cut_streamlines.py',
+                            in_tractogram, '--label', in_labels,
+                            'out_tractogram_cut2.trk', '-f',
+                            '--label_ids', '1', '10',
+                            '--resample', '0.2', '--compress', '0.1')
     assert ret.success

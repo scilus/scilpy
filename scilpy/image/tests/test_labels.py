@@ -10,8 +10,8 @@ from numpy.testing import assert_equal
 import pytest
 
 from scilpy.image.labels import (combine_labels, dilate_labels,
-                                 get_data_as_labels, get_lut_dir,
-                                 remove_labels, split_labels)
+                                 get_data_as_labels, get_labels_from_mask,
+                                 get_lut_dir, remove_labels, split_labels)
 from scilpy.tests.arrays import ref_in_labels, ref_out_labels
 
 
@@ -130,6 +130,53 @@ def test_get_data_as_labels_float():
     img.set_data_dtype(np.float32)
     with pytest.raises(Exception):
         _ = get_data_as_labels(img)
+
+
+def test_get_labels_from_mask():
+    """ Test get_labels_from_mask with default labels. """
+    # ref_out_labels contains disjoint blobs with values 2,4,6
+    data = deepcopy(ref_out_labels)
+    data[data == 2] = 1
+    data[data == 4] = 2
+    data[data == 6] = 3
+    mask = data.astype(bool)
+
+    labels = get_labels_from_mask(mask)
+
+    assert_equal(labels, data)
+
+
+def test_get_labels_from_mask_custom_labels_raises():
+    """ Test get_labels_from_mask with custom labels. """
+    # ref_out_labels contains disjoint blobs with values 2,4,6
+    data = deepcopy(ref_out_labels)
+    mask = data.astype(bool)
+    with pytest.raises(ValueError):
+        _ = get_labels_from_mask(mask, [2, 4, 6, 8])
+
+
+def test_get_labels_from_mask_custom_labels():
+    """ Test get_labels_from_mask with custom labels. """
+    # ref_out_labels contains disjoint blobs with values 2,4,6
+    data = deepcopy(ref_out_labels)
+    mask = data.astype(bool)
+
+    labels = get_labels_from_mask(mask, [2, 4, 6])
+
+    assert_equal(labels, data)
+
+
+def test_get_labels_from_mask_custom_background():
+    """ test get_labels_from_mask with custom background. """
+    # ref_out_labels contains disjoint blobs with values 2,4,6
+    data = deepcopy(ref_out_labels)
+    mask = data.copy().astype(bool)
+
+    data[data == 0] = 9
+
+    labels = get_labels_from_mask(mask, [2, 4, 6], background_label=9)
+
+    assert_equal(labels, data)
 
 
 def test_get_lut_dir():
