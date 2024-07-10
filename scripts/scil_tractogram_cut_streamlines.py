@@ -36,18 +36,17 @@ from dipy.io.stateful_tractogram import StatefulTractogram
 from dipy.tracking.streamlinespeed import compress_streamlines
 import nibabel as nib
 import numpy as np
-import scipy.ndimage as ndi
 
 from scilpy.image.labels import get_data_as_labels
 from scilpy.io.image import get_data_as_mask
 from scilpy.io.streamlines import load_tractogram_with_reference
-from scilpy.io.utils import (add_overwrite_arg, add_reference_arg,
+from scilpy.io.utils import (add_overwrite_arg, add_processes_arg,
+                             add_reference_arg,
                              add_verbose_arg, assert_inputs_exist,
                              assert_outputs_exist, assert_headers_compatible,
                              add_compression_arg)
 from scilpy.tractograms.streamline_and_mask_operations import \
-    cut_outside_of_mask_streamlines, cut_between_mask_two_blobs_streamlines, \
-    trim_streamlines
+    cut_outside_of_mask_streamlines, cut_between_mask_two_blobs_streamlines
 from scilpy.tractograms.streamline_operations import \
     resample_streamlines_step_size
 
@@ -88,9 +87,10 @@ def _build_arg_parser():
                         '[%(default)s].')
 
     add_compression_arg(p)
+    add_overwrite_arg(p)
+    add_processes_arg(p)
     add_reference_arg(p)
     add_verbose_arg(p)
-    add_overwrite_arg(p)
 
     return p
 
@@ -128,37 +128,9 @@ def main():
         mask_img = nib.load(args.mask)
         binary_mask = get_data_as_mask(mask_img)
 
-        if args.trim:
-            new_sft = trim_streamlines(sft, binary_mask,
-                                       min_len=args.min_length)
-        else:
-
-            bundle_disjoint, _ = ndi.label(binary_mask)
-            unique, count = np.unique(bundle_disjoint, return_counts=True)
-            if args.biggest_blob:
-                val = unique[np.argmax(count[1:])+1]
-                binary_mask[bundle_disjoint != val] = 0
-                unique = [0, val]
-            if len(unique) == 2:
-                logging.info('The provided mask has 1 entity '
-                             'cut_outside_of_mask_streamlines function '
-                             'selected.')
-                new_sft = cut_outside_of_mask_streamlines(
-                    sft, binary_mask, min_len=args.min_length)
-            elif len(unique) == 3:
-                logging.info('The provided mask has 2 entity '
-                             'cut_between_mask_two_blobs_streamlines '
-                             'function selected.')
-                new_sft = cut_between_mask_two_blobs_streamlines(
-                    sft, binary_mask, min_len=args.min_length)
-            else:
-                logging.warning('The provided mask has MORE THAN 2 entity '
-                                'cut_between_mask_two_blobs_streamlines '
-                                'function selected. This may cause problems '
-                                'with the outputed streamlines. Please inspect'
-                                ' the output carefully.')
-                new_sft = cut_between_mask_two_blobs_streamlines(
-                    sft, binary_mask, min_len=args.min_length)
+        new_sft = cut_outside_of_mask_streamlines(sft, binary_mask,
+                                                  min_len=args.min_length,
+                                                  processes=args.nbr_processes)
     else:
         label_img = nib.load(args.label)
         label_data = get_data_as_labels(label_img)
