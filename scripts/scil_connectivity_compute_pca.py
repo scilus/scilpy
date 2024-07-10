@@ -201,7 +201,8 @@ def main():
 
     assert_output_dirs_exist_and_empty(parser, args, args.out_folder, create_dir=True)
 
-    subjects = open(args.list_ids).read().split()
+    with open(args.list_ids) as f:
+        subjects = f.read().split()
 
     if args.input_connectoflow:
         # Loading all matrix.

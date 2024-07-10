@@ -3,7 +3,7 @@
 
 """
 Compute a density map for each connection from a hdf5 file.
-Typically use after scil_tractogram_segment_bundles_for_connectivity.py in
+Typically use after scil_tractogram_segment_connections_from_labels.py in
 order to obtain the average density map of each connection to allow the use
 of --similarity in scil_connectivity_compute_matrices.py.
 
@@ -43,7 +43,7 @@ def _build_arg_parser():
         description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
     p.add_argument('in_hdf5', nargs='+',
                    help='List of HDF5 filenames (.h5) from '
-                        'scil_tractogram_segment_bundles_for_connectivity.py.')
+                        'scil_tractogram_segment_connections_from_labels.py.')
     p.add_argument('out_dir',
                    help='Path of the output directory.')
 
@@ -71,7 +71,7 @@ def _average_wrapper(args):
         with h5py.File(hdf5_filename, 'r') as hdf5_file:
             assert_header_compatible_hdf5(hdf5_file, (affine, dimensions))
 
-            # scil_tractogram_segment_bundles_for_connectivity.py saves the
+            # scil_tractogram_segment_connections_from_labels.py saves the
             # streamlines in VOX/CORNER
             streamlines = reconstruct_streamlines_from_hdf5(hdf5_file[key])
             if len(streamlines) == 0:

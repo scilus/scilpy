@@ -667,7 +667,7 @@ def add_compression_arg(p, additional_msg=''):
         compress arg.
     """
     p.add_argument('--compress', dest='compress_th', nargs='?', const=0.1,
-                   type=ranged_type(float, 0, None),
+                   type=ranged_type(float, 0, None, min_excluded=True),
                    help='If set, compress the resulting streamline. Value is '
                         'the maximum \ncompression distance in mm.'
                         + additional_msg + '[%(const)s]')
@@ -900,10 +900,12 @@ def assert_headers_compatible(parser, required, optional=None, reference=None):
 
     # Gather "headers" for all files to compare against each other later
     headers = []
+    files = []
     for filepath in list_files:
         _, in_extension = split_name_with_nii(filepath)
         if in_extension in ['.trk', '.nii', '.nii.gz']:
             headers.append(filepath)
+            files.append(filepath)
         elif in_extension == '.tck':
             if reference is None:
                 parser.error(
@@ -916,11 +918,11 @@ def assert_headers_compatible(parser, required, optional=None, reference=None):
     if len(headers) <= 1:
         return
 
-    for curr in headers[1:]:
+    for curr, file in zip(headers[1:], files[1:]):
         if not is_header_compatible(headers[0], curr):
             # Not raising error now. Allows to show all errors.
-            logging.error('ERROR:\"{}\" and \"{}\" do not have compatible '
-                          'headers.'.format(headers[0], curr))
+            logging.error('ERROR: "{}" and "{}" do not have compatible '
+                          'headers.'.format(files[0], file))
             all_valid = False
 
     if not all_valid:
@@ -1047,9 +1049,12 @@ def parser_color_type(arg):
     return f
 
 
-def ranged_type(value_type, min_value=None, max_value=None):
+def ranged_type(value_type, min_value=None, max_value=None,
+                min_excluded=False, max_excluded=False):
     """Return a function handle of an argument type function for ArgumentParser
     checking a range: `min_value` <= arg <= `max_value`.
+    With min_excluded and max_excluded, the verification becomes
+    `min_value` < arg < `max_value`.
 
     Parameters
     ----------
@@ -1059,6 +1064,10 @@ def ranged_type(value_type, min_value=None, max_value=None):
         Minimum acceptable argument value.
     max_value : scalar
        Maximum acceptable argument value.
+    min_excluded: bool
+        If true, the accepted range is ]min_value, max_value].
+    max_excluded: bool
+        If true, the accepted range is [min_value, max_value[.
 
     Returns
     -------
@@ -1074,16 +1083,40 @@ def ranged_type(value_type, min_value=None, max_value=None):
             f = value_type(arg)
         except ValueError:
             raise argparse.ArgumentTypeError(f"must be a valid {value_type}")
+
+        smaller = np.less
+        bigger = np.greater
+        if min_excluded:
+            smaller = np.less_equal
+        if max_excluded:
+            bigger = np.greater_equal
+
         if min_value is not None and max_value is not None:
-            if f < min_value or f > max_value:
-                raise argparse.ArgumentTypeError(
-                    f"must be within [{min_value}, {max_value}]")
+            if smaller(f, min_value) or bigger(f, max_value):
+                if min_excluded and max_excluded:
+                    raise argparse.ArgumentTypeError(
+                        f"must be within ]{min_value}, {max_value}[")
+                elif min_excluded:
+                    raise argparse.ArgumentTypeError(
+                        f"must be within ]{min_value}, {max_value}")
+                elif max_excluded:
+                    raise argparse.ArgumentTypeError(
+                        f"must be within [{min_value}, {max_value}[")
+                else:
+                    raise argparse.ArgumentTypeError(
+                        f"must be within [{min_value}, {max_value}]")
         elif min_value is not None:
             if f < min_value:
-                raise argparse.ArgumentTypeError(f"must be >= {min_value}")
+                if min_excluded:
+                    raise argparse.ArgumentTypeError(f"must be > {min_value}")
+                else:
+                    raise argparse.ArgumentTypeError(f"must be >= {min_value}")
         elif max_value is not None:
             if f > max_value:
-                raise argparse.ArgumentTypeError(f"must be <= {max_value}")
+                if max_excluded:
+                    raise argparse.ArgumentTypeError(f"must be < {max_value}")
+                else:
+                    raise argparse.ArgumentTypeError(f"must be <= {max_value}")
         return f
 
     # Return handle to checking function

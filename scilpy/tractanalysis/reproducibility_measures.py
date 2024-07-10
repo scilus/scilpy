@@ -24,7 +24,7 @@ from scilpy.tractograms.tractogram_operations import (difference_robust,
                                                       intersection_robust,
                                                       union_robust)
 from scilpy.image.volume_operations import (normalize_metric, merge_metrics)
-from scilpy.image.volume_math import correlation
+from scilpy.image.volume_math import neighborhood_correlation_
 
 
 def binary_classification(segmentation_indices,
@@ -582,11 +582,17 @@ def tractogram_pairwise_comparison(sft_one, sft_two, mask, nbr_cpu=1,
 
     Returns
     -------
-    List of np.ndarray
-        acc_norm: Angular correlation coefficient.
-        corr_norm: Correlation coefficient of density maps.
-        diff_norm: Voxelwise distance between sets of streamlines.
-        heatmap: Merged heatmap of the three metrics using harmonic mean.
+    acc_norm: np.ndarray
+        Angular correlation coefficient.
+    corr_norm: np.ndarray
+        Correlation coefficient of density maps.
+    diff_norm: np.ndarray
+        Voxelwise distance between sets of streamlines.
+    heatmap: np.ndarray
+        Merged heatmap of the three metrics using harmonic mean.
+    mask: np.ndarray
+        Final mask. Intersection of given mask (if any) and density masks of
+        both tractograms.
     """
     global sft_1, sft_2
     sft_1, sft_2 = sft_one, sft_two
@@ -611,6 +617,8 @@ def tractogram_pairwise_comparison(sft_one, sft_two, mask, nbr_cpu=1,
         mask = np.ones(dimensions)
 
     logging.info('Computing density maps...')
+    sft_1.to_corner()
+    sft_2.to_corner()
     density_1 = compute_tract_counts_map(sft_1.streamlines,
                                          dimensions).astype(float)
     density_2 = compute_tract_counts_map(sft_2.streamlines,
@@ -618,13 +626,21 @@ def tractogram_pairwise_comparison(sft_one, sft_two, mask, nbr_cpu=1,
     mask = density_1 * density_2 * mask
     mask[mask > 0] = 1
 
-    logging.info('Computing correlation map...')
-    corr_data = correlation([density_1, density_2], None) * mask
+    # Stop now if no overlap
+    if np.count_nonzero(mask) == 0:
+        logging.info("Bundles not overlapping! Not computing metrics.")
+        acc_data = np.zeros(mask.shape) * np.nan
+        corr_data = acc_data.copy()
+        diff_data_norm = acc_data.copy()
+        heatmap = acc_data.copy()
+        return acc_data, corr_data, diff_data_norm, heatmap, mask
+
+    logging.info('Computing correlation map... May be slow')
+    corr_data = neighborhood_correlation_([density_1, density_2])
     corr_data[mask == 0] = np.nan
 
     logging.info('Computing TODI from tractogram #1...')
     global sh_data_1, sh_data_2
-    sft_1.to_corner()
     todi_obj = TrackOrientationDensityImaging(dimensions, 'repulsion724')
     todi_obj.compute_todi(deepcopy(sft_1.streamlines), length_weights=True)
     todi_obj.mask_todi(mask)
@@ -633,7 +649,6 @@ def tractogram_pairwise_comparison(sft_one, sft_two, mask, nbr_cpu=1,
     sft_1.to_center()
 
     logging.info('Computing TODI from tractogram #2...')
-    sft_2.to_corner()
     todi_obj = TrackOrientationDensityImaging(dimensions, 'repulsion724')
     todi_obj.compute_todi(deepcopy(sft_2.streamlines), length_weights=True)
     todi_obj.mask_todi(mask)
@@ -644,11 +659,11 @@ def tractogram_pairwise_comparison(sft_one, sft_two, mask, nbr_cpu=1,
     global B
     B, _ = sh_to_sf_matrix(get_sphere('repulsion724'), 8, 'descoteaux07')
 
-    diff_data, acc_data = _compare_tractogram_wrapper(mask, nbr_cpu,
-                                                      skip_streamlines_distance)
+    diff_data, acc_data = _compare_tractogram_wrapper(
+        mask, nbr_cpu, skip_streamlines_distance)
 
     # Normalize metrics and merge into a single heatmap
     diff_data_norm = normalize_metric(diff_data, reverse=True)
     heatmap = merge_metrics(acc_data, corr_data, diff_data_norm)
 
-    return acc_data, corr_data, diff_data_norm, heatmap
+    return acc_data, corr_data, diff_data_norm, heatmap, mask
