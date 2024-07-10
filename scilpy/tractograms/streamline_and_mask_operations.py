@@ -111,6 +111,8 @@ def trim_streamline(streamline, mask, min_len=0, processes=1):
         Boolean array representing the region.
     min_len: float
         Minimum length from the resulting streamlines.
+    processes: int
+        Number of processes to use.
 
     Returns
     -------

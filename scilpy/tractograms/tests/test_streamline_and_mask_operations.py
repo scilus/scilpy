@@ -48,7 +48,6 @@ def _setup_files():
     reference = nib.load(in_ref)
     head_tail_rois = nib.load(in_head_tail).get_fdata()
     head_tail_offset_rois = nib.load(in_head_tail_offset).get_fdata()
-    print(head_tail_offset_rois)
     center_roi = nib.load(in_center).get_fdata()
 
     # Load sft
