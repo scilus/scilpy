@@ -51,7 +51,7 @@ def main():
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     # I/O assertions
-    assert_inputs_exist(parser, [args.in_tractogram, args.dps_file],
+    assert_inputs_exist(parser, [args.in_tractogram, args.in_dps_file],
                         args.reference)
     assert_outputs_exist(parser, args, args.out_tractogram)
     check_tract_trk(parser, args.out_tractogram)
@@ -66,7 +66,7 @@ def main():
                      'overwriting.'.format(args.dps_key))
 
     # Load data and remove extraneous dimensions
-    data = np.squeeze(load_matrix_in_any_format(args.dps_file))
+    data = np.squeeze(load_matrix_in_any_format(args.in_dps_file))
 
     # Quick check as the built-in error from sft is not too explicit
     if len(sft) != data.shape[0]:
