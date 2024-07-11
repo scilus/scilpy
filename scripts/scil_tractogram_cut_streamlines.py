@@ -2,23 +2,31 @@
 # -*- coding: utf-8 -*-
 
 """
-Filters streamlines and only keeps the parts of streamlines within (--mask) or
-between (--label) the ROIs:
+Cut streamlines using a binary mask or two labels.
 
---mask
+--mask: Binary mask. Streamlines outside of the mask will be cut. Three options
+are available:
 
-Streamlines outside of the mask will be cut. The mask may be disjoint. More
-streamlines than input may be output if the mask is disjoint, therefore
-data_per_streamline will be discared.
+    Default: Will cut the streamlines according to the mask. New streamlines
+    may be generated if the mask is disjoint.
 
---label:
+    --keep_longest: Will keep the longest segment of the streamline that is
+    within the mask. No new streamlines will be generated.
 
-The script will cut streamlines so their longest segment is going from label 1
-to label 2. Will keep data_per_streamline.
+    --trim_endpoints: Will only remove the endpoints of the streamlines that
+    are outside the mask. The middle part of the streamline may go
+    outside the mask, to compensate for hole in the mask for example. No new
+    streamlines will be generated.
 
-Both scenarios will erase data_per_point. Streamlines will be extended so they
-reach the boundary of the mask or the two labels, therefore won't be equal
-to the input streamlines.
+--label: Label containing 2 blobs. Streamlines will be cut so they go from the
+first label region to the second label region. The two blobs must be disjoint.
+
+Both scenarios will erase data_per_point and data_per_streamline. Streamlines
+will be extended so they reach the boundary of the mask or the two labels,
+therefore won't be equal to the input streamlines.
+
+To generate a label map from a binary mask, you can use the following command:
+    scil_labels_from_mask.py
 
 Formerly: scil_cut_streamlines.py
 """
@@ -40,7 +48,8 @@ from scilpy.io.utils import (add_overwrite_arg, add_processes_arg,
                              assert_outputs_exist, assert_headers_compatible,
                              add_compression_arg)
 from scilpy.tractograms.streamline_and_mask_operations import \
-    cut_outside_of_mask_streamlines, cut_between_mask_two_blobs_streamlines
+    cut_streamlines_with_mask, cut_streamlines_between_labels, \
+    CuttingStyle
 from scilpy.tractograms.streamline_operations import \
     resample_streamlines_step_size
 
@@ -52,18 +61,14 @@ def _build_arg_parser():
     p.add_argument('in_tractogram',
                    help='Input tractogram file.')
 
-    g1 = p.add_argument_group('Mandatory mask options',
-                              'Choose between mask or label input.')
-    g2 = g1.add_mutually_exclusive_group(required=True)
-    g2.add_argument('--mask',
+    g1 = p.add_mutually_exclusive_group(required=True)
+    g1.add_argument('--mask',
                     help='Binary mask.')
-    g2.add_argument('--label',
+    g1.add_argument('--label',
                     help='Label containing 2 blobs.')
-
     p.add_argument('out_tractogram',
                    help='Output tractogram file. Note: data_per_point will be '
                         'discarded, if any!')
-
     p.add_argument('--label_ids', nargs=2, type=int,
                    help='List of labels indices to use to cut '
                         'streamlines (2 values).')
@@ -73,6 +78,13 @@ def _build_arg_parser():
     p.add_argument('--min_length', type=float, default=20,
                    help='Minimum length of streamlines to keep (in mm) '
                         '[%(default)s].')
+    g2 = p.add_mutually_exclusive_group(required=False)
+    g2.add_argument('--keep_longest', action='store_true',
+                    help='If set, will keep the longest segment of the '
+                         'streamline that is within the mask.')
+    g2.add_argument('--trim_endpoints', action='store_true',
+                    help='If set, will only remove the endpoints of the '
+                         'streamlines that are outside the mask.')
 
     add_compression_arg(p)
     add_overwrite_arg(p)
@@ -111,21 +123,38 @@ def main():
         parser.error('Input tractogram is empty.')
 
     # Mask scenario. Streamlines outside of the mask will be cut.
-    if args.mask:
+    if args.mask and args.keep_longest:
         mask_img = nib.load(args.mask)
         binary_mask = get_data_as_mask(mask_img)
 
-        new_sft = cut_outside_of_mask_streamlines(sft, binary_mask,
-                                                  min_len=args.min_length,
-                                                  processes=args.nbr_processes)
+        new_sft = cut_streamlines_with_mask(
+            sft, binary_mask, cutting_style=CuttingStyle.KEEP_LONGEST,
+            min_len=args.min_length, processes=args.nbr_processes)
+    # Mask scenario, only trimming the endpoints of the streamlines outside of
+    # the mask.
+    elif args.mask and args.trim_endpoints:
+        mask_img = nib.load(args.mask)
+        binary_mask = get_data_as_mask(mask_img)
 
+        new_sft = cut_streamlines_with_mask(
+            sft, binary_mask, cutting_style=CuttingStyle.TRIM_ENDPOINTS,
+            min_len=args.min_length, processes=args.nbr_processes)
+    # Mask scenario, keeping the longest segment of the streamline that is in
+    # the mask.
+    elif args.mask:
+        mask_img = nib.load(args.mask)
+        binary_mask = get_data_as_mask(mask_img)
+
+        new_sft = cut_streamlines_with_mask(
+            sft, binary_mask, cutting_style=CuttingStyle.DEFAULT,
+            min_len=args.min_length, processes=args.nbr_processes)
     # Label scenario. The script will cut streamlines so they are going from
     # label 1 to label 2.
     else:
         label_img = nib.load(args.label)
         label_data = get_data_as_labels(label_img)
 
-        new_sft = cut_between_mask_two_blobs_streamlines(
+        new_sft = cut_streamlines_between_labels(
             sft, label_data, args.label_ids)
 
     # Saving

@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from enum import Enum
 from multiprocessing import Pool
 
 import numpy as np
@@ -15,6 +16,12 @@ from scilpy.tractanalysis.quick_tools import (get_next_real_point,
                                               get_previous_real_point)
 from scilpy.tractograms.streamline_operations import \
     filter_streamlines_by_length, _get_point_on_line, _get_streamline_pt_index
+
+
+class CuttingStyle(Enum):
+    DEFAULT = 0,
+    KEEP_LONGEST = 1
+    TRIM_ENDPOINTS = 2
 
 
 def get_endpoints_density_map(sft, point_to_select=1):
@@ -99,9 +106,58 @@ def get_head_tail_density_maps(sft, point_to_select=1):
     return endpoints_map_head, endpoints_map_tail
 
 
-def trim_streamline(streamline, mask, min_len=0, processes=1):
+def _trim_streamline_in_mask(
+    idx, streamline, pts_to_idx, mask
+):
     """ Trim streamlines to the bounding box or a binary mask. More
-    streamlines may be generated if the original streamline is cut.
+    streamlines may be generated if the original streamline goes in and out
+    of the mask.
+
+    Parameters
+    ----------
+    sft: StatefulTractogram
+        The sft to cut streamlines from.
+    mask: np.ndarray
+        Boolean array representing the region.
+
+    Returns
+    -------
+    new_strmls : list of np.ndarray
+        New streamlines trimmed within the mask.
+    """
+
+    H, W, D = mask.shape
+
+    # Find all the points of the streamline that are in the ROIs
+    roi_data_1_intersect = map_coordinates(
+        mask, idx.T, order=0, mode='constant', cval=0)
+
+    # Select the points that are not in the mask
+    split_idx = np.arange(len(roi_data_1_intersect))[
+        roi_data_1_intersect == 0]
+    # Split the streamline into segments that are in the mask
+    split_strmls = np.array_split(np.arange(len(roi_data_1_intersect)),
+                                  split_idx)
+    new_strmls = []
+    for strml in split_strmls:
+        if len(strml) <= 3:
+            continue
+        # Get the entry and exit points for each segment
+        # Skip the first point as it caused the split
+        in_strl_idx, out_strl_idx = strml[1], strml[-1]
+        cut_strl = compute_streamline_segment(streamline, idx,
+                                              in_strl_idx, out_strl_idx,
+                                              pts_to_idx)
+        new_strmls.append(cut_strl)
+
+    return new_strmls
+
+
+def _trim_streamline_endpoints_in_mask(
+    idx, streamline, pts_to_idx, mask
+):
+    """ Trim a streamline to remove its endpoints if they are outside of
+    a mask. This function does not generate new streamlines.
 
     Parameters
     ----------
@@ -116,40 +172,93 @@ def trim_streamline(streamline, mask, min_len=0, processes=1):
 
     Returns
     -------
-    new_sft : StatefulTractogram
-        New object with the streamlines trimmed within the mask.
+    streamline: np.ndarray
+        The trimmed streamline within the mask.
     """
 
     H, W, D = mask.shape
 
-    # Convert the points to indices by rounding them and clipping them
-    indices = np.clip(streamline.astype(int), 0, (H, W, D))
     # Find all the points of the streamline that are in the ROIs
     roi_data_1_intersect = map_coordinates(
-        mask, indices.T, order=0, mode='constant', cval=0)
+        mask, idx.T, order=0, mode='constant', cval=0)
+
+    # Select the points that are in the mask
+    mask_idx = np.arange(len(roi_data_1_intersect))[
+        roi_data_1_intersect == 1]
+
+    if len(mask_idx) == 0:
+        return []
+
+    # Get the entry and exit points for each segment
+    in_strl_idx = np.amin(mask_idx)
+    out_strl_idx = np.amax(mask_idx)
+
+    cut_strl = compute_streamline_segment(streamline, idx,
+                                          in_strl_idx, out_strl_idx,
+                                          pts_to_idx)
+    return [cut_strl]
+
+
+def _trim_streamline_in_mask_keep_longest(
+    idx, streamline, pts_to_idx, mask
+):
+    """ Trim a streamline to keep the longest segment within a mask. This
+    function does not generate new streamlines.
+
+    Parameters
+    ----------
+    sft: StatefulTractogram
+        The sft to cut streamlines from.
+    mask: np.ndarray
+        Boolean array representing the region.
+    min_len: float
+        Minimum length from the resulting streamlines.
+    processes: int
+        Number of processes to use.
+
+    Returns
+    -------
+    streamline: np.ndarray
+        The trimmed streamline within the mask.
+    """
+
+    H, W, D = mask.shape
+
+    # Find all the points of the streamline that are in the ROIs
+    roi_data_1_intersect = map_coordinates(
+        mask, idx.T, order=0, mode='constant', cval=0)
 
     # Select the points that are in the mask
     split_idx = np.arange(len(roi_data_1_intersect))[
         roi_data_1_intersect == 0]
     # Split the streamline into segments that are in the mask
-    split_strmls = np.array_split(streamline, split_idx)
-    # Skip the first point as it caused the split and remove streamlines
-    # with fewer than 3 points
-    # TODO: This is because `uncompress` outputs "Got inside last" when
-    # the streamline has only 2 points or less. Not sure if this is a bug
-    # in `uncompress` or if it is expected.
-    new_strmls = [strml[1:] for strml in split_strmls
-                  if len(strml) > 3]
+    split_strmls = np.array_split(np.arange(len(roi_data_1_intersect)),
+                                  split_idx)
 
-    return new_strmls
+    # Find the longest segment of the streamline that is in the mask
+    longest_strml = max(split_strmls, key=len)
+
+    if len(longest_strml) <= 1:
+        return []
+
+    # Get the entry and exit points for the longest segment
+    # Skip the first point as it caused the split
+    in_strl_idx, out_strl_idx = longest_strml[1], longest_strml[-1]
+    cut_strl = compute_streamline_segment(streamline, idx,
+                                          in_strl_idx, out_strl_idx,
+                                          pts_to_idx)
+    return [cut_strl]
 
 
-def cut_outside_of_mask_streamlines(sft, mask, min_len=0, processes=1):
+def cut_streamlines_with_mask(
+    sft, mask, cutting_style=CuttingStyle.DEFAULT, min_len=0, processes=1
+):
     """
-    Cut streamlines so their longest segment are within the bounding box or a
-    binary mask.
+    Cut streamlines according to a binary mask. This function erases the
+    data_per_point.
 
-    This function erases the data_per_point.
+    If keep_longest is set, the longest segment of the streamline that crosses
+    the mask will be kept. Otherwise, the streamline will be cut at the mask.
 
     Parameters
     ----------
@@ -157,14 +266,20 @@ def cut_outside_of_mask_streamlines(sft, mask, min_len=0, processes=1):
         The sft to cut streamlines (using a single mask with 1 entity) from.
     mask: np.ndarray
         Boolean array representing the region (must contain 1 entity)
+    keep_longest: bool
+        If set, will keep the longest segment of the streamline that crosses
+        the mask.
     min_len: float
         Minimum length from the resulting streamlines.
+    processes: int
+        Number of processes to use.
 
     Returns
     -------
     new_sft : StatefulTractogram
         New object with the streamlines trimmed within the mask.
     """
+
     orig_space = sft.space
     orig_origin = sft.origin
     sft.to_vox()
@@ -172,37 +287,41 @@ def cut_outside_of_mask_streamlines(sft, mask, min_len=0, processes=1):
 
     H, W, D = mask.shape
 
+    # Uncompress the streamlines to get the indices of the voxels
+    # intersected by the streamlines and the mapping from points to indices
+    idices, points_to_idx = uncompress(sft.streamlines,
+                                       return_mapping=True)
+
+    if len(sft.streamlines[0]) != len(points_to_idx[0]):
+        raise ValueError("Error in the uncompress function. Try running the "
+                         "scil_tractogram_remove_invalid.py script with the \n"
+                         "--remove_single_point and "
+                         "--remove_overlapping_points options.")
+
+    # Select the trimming function. If keep_longest is set, the longest
+    # segment of the streamline that crosses the mask will be kept. If
+    # trim_endpoints is set, the endpoints of the streamlines will be cut.
+    # Otherwise, the streamline will be cut at the mask.
+    if cutting_style == CuttingStyle.TRIM_ENDPOINTS:
+        trim_func = _trim_streamline_endpoints_in_mask
+    elif cutting_style == CuttingStyle.KEEP_LONGEST:
+        trim_func = _trim_streamline_in_mask_keep_longest
+    else:
+        trim_func = _trim_streamline_in_mask
+
     # Trim streamlines with the mask and return the new streamlines
-    # More streamlines may be generated if the original streamline is cut
-    # into multiple segments
     pool = Pool(processes)
     lists_of_new_strmls = pool.starmap(
-        trim_streamline, [(s, mask) for s in sft.streamlines])
+        trim_func, [(i, s, pt, mask) for (i, s, pt) in zip(
+            idices, sft.streamlines, points_to_idx)])
     pool.close()
     # Flatten the list of lists of new streamlines in a single list of
     # new streamlines
     new_strmls = ArraySequence([strml for list_of_strml in lists_of_new_strmls
                                 for strml in list_of_strml])
 
-    # Uncompress the streamlines to get the indices of the voxels
-    # intersected by the streamlines and the mapping from points to indices
-    idices, points_to_idx = uncompress(new_strmls,
-                                       return_mapping=True)
-    new_streamlines = []
-    # For each new streamline
-    # TODO: Parallelize this as well ?
-    for i, new_strml in enumerate(new_strmls):
-        # Compute the segment of the streamline that is in the mask
-        # and add it to the new streamlines. New endpoints may be
-        # generated
-        assert len(new_strml > 2), new_strml
-        cut_strl = compute_streamline_segment(new_strml, idices[i],
-                                              0, len(idices[i]) - 1,
-                                              points_to_idx[i])
-        new_streamlines.append(cut_strl)
-
     new_sft = StatefulTractogram.from_sft(
-        new_streamlines, sft)
+        new_strmls, sft)
     new_sft.to_space(orig_space)
     new_sft.to_origin(orig_origin)
 
@@ -211,9 +330,9 @@ def cut_outside_of_mask_streamlines(sft, mask, min_len=0, processes=1):
     return new_sft
 
 
-def cut_between_mask_two_blobs_streamlines(sft, label_data,
-                                           label_ids=None,
-                                           min_len=0):
+def cut_streamlines_between_labels(
+    sft, label_data, label_ids=None, min_len=0, processes=1
+):
     """
     Cut streamlines so their segment are going from blob #1 to blob #2 in a
     binary mask. This function presumes strictly two blobs are present in the
@@ -244,7 +363,6 @@ def cut_between_mask_two_blobs_streamlines(sft, label_data,
     sft.to_corner()
     if label_ids is None:
         unique_vals = np.unique(label_data[label_data != 0])
-        print(unique_vals)
         if len(unique_vals) != 2:
             raise ValueError('More than two values in the label file, '
                              'please select specific label ids.')
@@ -260,12 +378,29 @@ def cut_between_mask_two_blobs_streamlines(sft, label_data,
     mask = label_data_2 != unique_vals[1]
     label_data_2[mask] = 0
 
-    new_streamlines, kept_idx = _cut_streamlines_with_masks(
-        sft.streamlines, label_data_1, label_data_2)
+    (idices, points_to_idx) = uncompress(sft.streamlines, return_mapping=True)
+
+    if len(sft.streamlines[0]) != len(points_to_idx[0]):
+        raise ValueError("Error in the uncompress function. Try running the "
+                         "scil_tractogram_remove_invalid.py script with the \n"
+                         "--remove_single_point and "
+                         "--remove_overlapping_points options.")
+
+    # Trim streamlines with the mask and return the new streamlines
+    pool = Pool(processes)
+    lists_of_new_strmls = pool.starmap(
+        _cut_streamline_with_labels, [(i, s, pt, label_data_1, label_data_2)
+                                      for (i, s, pt) in zip(
+                                          idices, sft.streamlines,
+                                          points_to_idx)])
+    pool.close()
+    # Flatten the list of lists of new streamlines in a single list of
+    # new streamlines
+    new_strmls = ArraySequence([strml for list_of_strml in lists_of_new_strmls
+                                for strml in list_of_strml])
 
     new_sft = StatefulTractogram.from_sft(
-        new_streamlines, sft,
-        data_per_streamline=sft.data_per_streamline[kept_idx])
+        new_strmls, sft)
     new_sft.to_space(orig_space)
     new_sft.to_origin(orig_origin)
 
@@ -274,46 +409,47 @@ def cut_between_mask_two_blobs_streamlines(sft, label_data,
     return new_sft
 
 
-def _cut_streamlines_with_masks(streamlines, roi_data_1, roi_data_2):
+def _cut_streamline_with_labels(
+    idx, streamline, pts_to_idx, roi_data_1, roi_data_2
+):
     """
-    Cut streamlines so their segment are going from binary mask #1 to binary
+    Cut streamlines so their segment are going from label mask #1 to label
     mask #2. New endpoints may be generated to maximize the streamline length
     within the masks.
+
+    Parameters
+    ----------
+    idx: np.ndarray
+        Indices of the voxels intersected by the streamlines.
+    streamline: np.ndarray
+        The streamlines to cut.
+    pts_to_idx: np.ndarray
+        Mapping from points to indices.
+    roi_data_1: np.ndarray
+        Boolean array representing the region #1.
+    roi_data_2: np.ndarray
+        Boolean array representing the region #2.
+
+    Returns
+    -------
+    new_strmls : list of np.ndarray
+        New streamlines trimmed within the masks.
     """
-    new_streamlines = []
-    kept_idx = []
-    # Get the indices of the "voxels" intersected by the streamlines and the
-    # mapping from points to indices.
-    (indices, points_to_idx) = uncompress(streamlines, return_mapping=True)
+    # Find the first and last "voxels" of the streamline that are in the
+    # ROIs
+    in_strl_idx, out_strl_idx = _intersects_two_rois(roi_data_1,
+                                                     roi_data_2,
+                                                     idx)
 
-    if len(streamlines[0]) != len(points_to_idx[0]):
-        raise ValueError("Error in the uncompress function. Try running the "
-                         "scil_tractogram_remove_invalid.py script with the \n"
-                         "--remove_single_point and --remove_overlapping_points"
-                         " options.")
-
-    # TODO: Parallelize this ?
-    for strl_idx, strl in enumerate(streamlines):
-        # The "voxels" intersected by the current streamline
-        strl_indices = indices[strl_idx]
-        # Find the first and last "voxels" of the streamline that are in the
-        # ROIs
-        in_strl_idx, out_strl_idx = _intersects_two_rois(roi_data_1,
-                                                         roi_data_2,
-                                                         strl_indices)
-        # If the streamline intersects both ROIs
-        if in_strl_idx is not None and out_strl_idx is not None:
-            points_to_indices = points_to_idx[strl_idx]
-            # Compute the new streamline by keeping only the segment between
-            # the two ROIs
-            cut_strl = compute_streamline_segment(strl, strl_indices,
-                                                  in_strl_idx, out_strl_idx,
-                                                  points_to_indices)
-            # Add the new streamline to the sft
-            new_streamlines.append(cut_strl)
-            kept_idx.append(strl_idx)
-
-    return new_streamlines, kept_idx
+    cut_strl = []
+    # If the streamline intersects both ROIs
+    if in_strl_idx is not None and out_strl_idx is not None:
+        # Compute the new streamline by keeping only the segment between
+        # the two ROIs
+        cut_strl = compute_streamline_segment(streamline, idx,
+                                              in_strl_idx, out_strl_idx,
+                                              pts_to_idx)
+    return [cut_strl]
 
 
 def _get_longest_streamline_segment_in_roi(all_strl_indices):

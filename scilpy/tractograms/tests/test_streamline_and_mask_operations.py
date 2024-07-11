@@ -11,11 +11,15 @@ from scilpy.image.utils import split_mask_blobs_kmeans
 from scilpy.io.fetcher import fetch_data, get_testing_files_dict
 from scilpy.tractograms.streamline_and_mask_operations import (
     _intersects_two_rois,
+    _trim_streamline_in_mask,
+    _trim_streamline_endpoints_in_mask,
+    _trim_streamline_in_mask_keep_longest,
     compute_streamline_segment,
-    cut_between_mask_two_blobs_streamlines,
-    cut_outside_of_mask_streamlines,
+    cut_streamlines_between_labels,
+    cut_streamlines_with_mask,
     get_endpoints_density_map,
-    get_head_tail_density_maps)
+    get_head_tail_density_maps,
+    CuttingStyle)
 from scilpy.image.labels import get_labels_from_mask
 from scilpy.tractograms.uncompress import uncompress
 
@@ -111,10 +115,14 @@ def test_get_head_tail_density_maps():
 
 
 def test_cut_outside_of_mask_streamlines():
+    """ Test the cut_streamlines_with_mask function. This test loads a bundle
+    with 10 streamlines, and "cuts it" with a mask that should only keep a
+    segment of the bundle.
+    """
 
     sft, reference, _, _, center_roi = _setup_files()
 
-    cut_sft = cut_outside_of_mask_streamlines(sft, center_roi)
+    cut_sft = cut_streamlines_with_mask(sft, center_roi)
     cut_sft.to_vox()
     cut_sft.to_corner()
 
@@ -128,8 +136,139 @@ def test_cut_outside_of_mask_streamlines():
     assert np.allclose(cut_sft.streamlines._data, res.streamlines._data)
 
 
-def test_cut_between_mask_two_blobs_streamlines():
-    """ Test the cut_between_mask_two_blobs_streamlines function. This test
+def test_trim_streamline_in_mask():
+    """ Test the _trim_streamline_in_mask function. This function is used by
+    cut_streamlines_with_mask, and is tested here to ensure that it works
+    correctly. Also provides with code coverage.
+    """
+
+    sft, reference, _, _, center_roi = _setup_files()
+    sft.to_vox()
+    sft.to_corner()
+
+    idices, points_to_idx = uncompress(sft.streamlines, return_mapping=True)
+    strl_indices = idices[0]
+    points_to_idices = points_to_idx[0]
+
+    cut = _trim_streamline_in_mask(
+        strl_indices, sft.streamlines[0], points_to_idices, center_roi)
+
+    in_result = os.path.join(SCILPY_HOME, 'tractograms',
+                             'streamline_and_mask_operations',
+                             'bundle_4_cut_center.tck')
+
+    res = load_tractogram(in_result, reference)
+    res.to_vox()
+    res.to_corner()
+    assert np.allclose(cut, res.streamlines[0])
+
+
+def test_cut_outside_of_mask_streamlines_keep_longest():
+    """ Test the cut_streamlines_with_mask function with the KEEP_LONGEST
+    cutting style. This test loads a bundle with 10 streamlines, and "cuts it"
+    with a mask that should only keep the longest segment of the bundle.
+
+    Because we don't have the necessary testing data, this function should
+    return the same result as test_cut_outside_of_mask_streamlines.
+    """
+
+    sft, reference, _, _, center_roi = _setup_files()
+
+    cut_sft = cut_streamlines_with_mask(
+        sft, center_roi, CuttingStyle.KEEP_LONGEST)
+    cut_sft.to_vox()
+    cut_sft.to_corner()
+
+    in_result = os.path.join(SCILPY_HOME, 'tractograms',
+                             'streamline_and_mask_operations',
+                             'bundle_4_cut_center.tck')
+
+    res = load_tractogram(in_result, reference)
+    res.to_vox()
+    res.to_corner()
+    assert np.allclose(cut_sft.streamlines._data, res.streamlines._data)
+
+
+def test_trim_streamline_in_mask_keep_longest():
+    """ Test the _trim_streamline_in_mask_keep_longest function. This function
+    is used by cut_streamlines_with_mask, and is tested here to ensure that it
+    works correctly. Also provides with code coverage.
+    """
+
+    sft, reference, _, _, center_roi = _setup_files()
+    sft.to_vox()
+    sft.to_corner()
+
+    idices, points_to_idx = uncompress(sft.streamlines, return_mapping=True)
+    strl_indices = idices[0]
+    points_to_idices = points_to_idx[0]
+
+    cut = _trim_streamline_in_mask_keep_longest(
+        strl_indices, sft.streamlines[0], points_to_idices, center_roi)
+
+    in_result = os.path.join(SCILPY_HOME, 'tractograms',
+                             'streamline_and_mask_operations',
+                             'bundle_4_cut_center.tck')
+
+    res = load_tractogram(in_result, reference)
+    res.to_vox()
+    res.to_corner()
+    assert np.allclose(cut, res.streamlines[0])
+
+
+def test_cut_outside_of_mask_streamlines_trim_endpoints():
+    """ Test the cut_streamlines_with_mask function with the TRIM_ENDPOINTS
+    cutting style. This test loads a bundle with 10 streamlines, and "cuts it"
+    with a mask that should shave off the endpoints of the bundle.
+    """
+
+    sft, reference, _, head_tail_offset_rois, _ = _setup_files()
+
+    cut_sft = cut_streamlines_with_mask(
+        sft, head_tail_offset_rois, CuttingStyle.TRIM_ENDPOINTS)
+    cut_sft.to_vox()
+    cut_sft.to_corner()
+
+    in_result = os.path.join(SCILPY_HOME, 'tractograms',
+                             'streamline_and_mask_operations',
+                             'bundle_4_cut_endpoints.tck')
+
+    res = load_tractogram(in_result, reference)
+    res.to_vox()
+    res.to_corner()
+    assert np.allclose(cut_sft.streamlines._data, res.streamlines._data)
+
+
+def test_trim_streamline_endpoints_in_mask():
+    """ Test the _trim_streamline_endpoints_in_mask function. This function is
+    used by cut_streamlines_with_mask, and is tested here to ensure that it
+    works correctly. Also provides with code coverage.
+    """
+
+    sft, reference, _, head_tail_offset_rois, _ = _setup_files()
+    sft.to_vox()
+    sft.to_corner()
+
+    idices, points_to_idx = uncompress(sft.streamlines, return_mapping=True)
+    strl_indices = idices[0]
+    points_to_idices = points_to_idx[0]
+
+    cut = _trim_streamline_endpoints_in_mask(
+        strl_indices, sft.streamlines[0], points_to_idices,
+        head_tail_offset_rois)
+
+    in_result = os.path.join(SCILPY_HOME, 'tractograms',
+                             'streamline_and_mask_operations',
+                             'bundle_4_cut_endpoints.tck')
+
+    res = load_tractogram(in_result, reference)
+    res.to_vox()
+    res.to_corner()
+    assert np.allclose(cut, res.streamlines[0])
+
+
+def test_cut_between_labels_streamlines():
+    """ Test the cut_between_labels_streamlines function. This test
     loads a bundle with 10 streamlines, and "cuts it" with a mask that
     should not change the bundle.
     """
@@ -139,7 +278,7 @@ def test_cut_between_mask_two_blobs_streamlines():
     # endpoints.
     head_tail_labels = get_labels_from_mask(head_tail_rois)
 
-    cut_sft = cut_between_mask_two_blobs_streamlines(sft, head_tail_labels)
+    cut_sft = cut_streamlines_between_labels(sft, head_tail_labels)
     cut_sft.to_vox()
     cut_sft.to_corner()
 
@@ -155,8 +294,8 @@ def test_cut_between_mask_two_blobs_streamlines():
     assert np.allclose(cut_sft.streamlines._data, res.streamlines._data)
 
 
-def test_cut_between_mask_two_blobs_streamlines_offset():
-    """ Test the cut_between_mask_two_blobs_streamlines function. This test
+def test_cut_between_labels_streamlines_offset():
+    """ Test the cut_between_labels_streamlines function. This test
     loads a bundle with 10 streamlines, and cuts it with a mask that
     shaves off the endpoints slightly.
     """
@@ -166,7 +305,7 @@ def test_cut_between_mask_two_blobs_streamlines_offset():
     # endpoints of the bundle.
     head_tail_labels = get_labels_from_mask(head_tail_offset_rois)
 
-    cut_sft = cut_between_mask_two_blobs_streamlines(sft, head_tail_labels)
+    cut_sft = cut_streamlines_between_labels(sft, head_tail_labels)
 
     cut_sft.to_vox()
     cut_sft.to_corner()
