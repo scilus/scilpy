@@ -109,6 +109,10 @@ def main():
                                         args.label],
                               reference=args.reference)
 
+    if args.label and (args.keep_longest or args.trim_endpoints):
+        parser.error('Cannot use --keep_longest or --trim_endpoints with '
+                     'labels.')
+
     # Loading
     sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
     # Streamlines must be in voxel space to deal correctly with bounding box.

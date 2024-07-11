@@ -58,3 +58,18 @@ def test_execution_labels(script_runner, monkeypatch):
                             '--label_ids', '1', '10',
                             '--resample', '0.2', '--compress', '0.1')
     assert ret.success
+
+
+def test_execution_labels_error_trim(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
+    in_tractogram = os.path.join(SCILPY_HOME, 'connectivity',
+                                 'bundle_all_1mm.trk')
+    in_labels = os.path.join(SCILPY_HOME, 'connectivity',
+                             'endpoints_atlas.nii.gz')
+    ret = script_runner.run('scil_tractogram_cut_streamlines.py',
+                            in_tractogram, '--label', in_labels,
+                            'out_tractogram_cut2.trk', '-f',
+                            '--label_ids', '1', '10',
+                            '--resample', '0.2', '--compress', '0.1'
+                            '--trim_endpoints')
+    assert not ret.success
