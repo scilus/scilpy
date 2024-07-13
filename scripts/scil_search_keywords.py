@@ -45,7 +45,7 @@ OBJECTS = [
     'aodf', 'bids', 'bingham', 'btensor', 'bundle', 'connectivity', 'denoising',
     'dki', 'dti','dwi', 'fodf', 'freewater', 'frf', 'gradients', 'header', 'json',
     'labels', 'lesions', 'mti', 'NODDI', 'sh', 'surface', 'tracking',
-    'tractogram', 'viz', 'volume'
+    'tractogram', 'viz', 'volume', 'qball', 'rgb', 'lesions'
 ]
 
 def prompt_user_for_object():
@@ -122,7 +122,7 @@ def main():
 
             search_text = search_text or 'No docstring available!'
 
-            display_filename = filename
+            display_filename = filename + '.py'
             display_short_info, display_long_info = _split_first_sentence(
                 search_text)
 
@@ -149,12 +149,12 @@ def main():
             score = _calculate_score(stemmed_keywords, search_text, script_name)
 
             if score > 0:
-                matches.append((script_name, score))
+                matches.append(script_name)
                 scores[script_name] = score
 
                 search_text = search_text or 'No docstring available!'
 
-                display_filename = script_name
+                display_filename = script_name + '.py'
                 display_short_info, display_long_info = _split_first_sentence(
                     search_text)
 
@@ -182,9 +182,11 @@ def main():
                 matches.append(script_name)
                 scores[script_name] = score
 
+                display_filename = script_name + '.py'
                 first_sentence, _ = _split_first_sentence(search_text)
+                logging.info(f"{Fore.BLUE}{'=' * SPACING_LEN}")
                 logging.info(f"{Fore.BLUE}{Style.BRIGHT}{display_filename}{Style.RESET_ALL}: {first_sentence}")
-    
+                logging.info("\n")
  
 
     # If still no matches found, check for synonyms in the synonyms file
@@ -204,8 +206,9 @@ def main():
                     matches.append(filename)
                     scores[filename] = _calculate_score(synonyms, search_text, filename)
                     first_sentence, _ = _split_first_sentence(search_text)
+                    display_filename = filename + '.py'
                     logging.info(f"{Fore.BLUE}{'=' * SPACING_LEN}")
-                    logging.info(f"{Fore.BLUE}{Style.BRIGHT}{filename}- Score: {score}%{Style.RESET_ALL}: {first_sentence}")
+                    logging.info(f"{Fore.BLUE}{Style.BRIGHT}{filename}{Style.RESET_ALL}: {first_sentence}")
                     logging.info("\n")
 
     if not matches:
@@ -216,7 +219,8 @@ def main():
         sorted_matches = sorted(matches, key=lambda x: scores[x], reverse=True)
         logging.info(_make_title(' Results Ordered by Score '))
         for match in sorted_matches:
-            logging.info(f"{Fore.BLUE}{Style.BRIGHT}{match}{Style.RESET_ALL}: Score = {scores[match]}")
+            display_filename = match + '.py'
+            logging.info(f"{Fore.BLUE}{Style.BRIGHT}{display_filename}{Style.RESET_ALL}: Score = {scores[match]}")
 
     # Display full argparser if --full_parser is used
     if args.full_parser:
@@ -227,7 +231,8 @@ def main():
             help_file = hidden_dir / f"{filename}.py.help"
             if help_file.exists():
                 with open(help_file, 'r') as f:
-                    logging.info(f"{Fore.BLUE}{Style.BRIGHT}{filename}{Style.RESET_ALL}")
+                    display_filename = filename + '.py'
+                    logging.info(f"{Fore.BLUE}{Style.BRIGHT}{display_filename}{Style.RESET_ALL}")
                     logging.info(f.read())
                     logging.info(f"{Fore.BLUE}{'=' * SPACING_LEN}")
                     logging.info("\n")
@@ -319,28 +324,6 @@ def _stem_text(text):
     words = nltk.word_tokenize(text)
     return ' '.join([stemmer.stem(word) for word in words])
 
-def _contains_stemmed_keywords(stemmed_keywords,text, filename):
-    """
-    Check if stemmed keywords are present in the text or filename.
-
-    Parameters
-    ----------
-    stemmed_keywords : list of str
-        Stemmed keywords to search for.
-    text : str
-        Text to search within.
-    filename : str
-        Filename to search within.
-
-    Returns
-    -------
-    bool
-        True if all stemmed keywords are found in the text or filename, False otherwise.
-    """
-    stemmed_text = _stem_text(text)
-    stemmed_filename = _stem_text(filename)
-    return all([stem in stemmed_text or stem in stemmed_filename for stem in stemmed_keywords])
-
 def _generate_help_files():
     """
     Call the external script generate_help_files to generate help files
@@ -414,13 +397,13 @@ def _calculate_score(keywords, text, filename):
     int
         Score based on the frequency of keywords in the text and filename.
     """
-    text = text.lower()
-    filename = filename.lower()
+    stemmed_text = _stem_text(text.lower())
+    stemmed_filename  = _stem_text(filename.lower())
     score = 0
     for keyword in keywords:
         keyword = keyword.lower()
-        score += text.count(keyword)
-        score += filename.count(keyword)
+        score += stemmed_text.count(keyword)
+        score += stemmed_filename.count(keyword)
     return score
 
 if __name__ == '__main__':
