@@ -228,7 +228,7 @@ def _trim_streamline_in_mask_keep_longest(
     roi_data_1_intersect = map_coordinates(
         mask, idx.T, order=0, mode='constant', cval=0)
 
-    # Select the points that are in the mask
+    # Select the points that are not in the mask
     split_idx = np.arange(len(roi_data_1_intersect))[
         roi_data_1_intersect == 0]
     # Split the streamline into segments that are in the mask
@@ -289,8 +289,8 @@ def cut_streamlines_with_mask(
 
     # Uncompress the streamlines to get the indices of the voxels
     # intersected by the streamlines and the mapping from points to indices
-    idices, points_to_idx = uncompress(sft.streamlines,
-                                       return_mapping=True)
+    indices, points_to_idx = uncompress(sft.streamlines,
+                                        return_mapping=True)
 
     if len(sft.streamlines[0]) != len(points_to_idx[0]):
         raise ValueError("Error in the uncompress function. Try running the "
@@ -313,7 +313,7 @@ def cut_streamlines_with_mask(
     pool = Pool(processes)
     lists_of_new_strmls = pool.starmap(
         trim_func, [(i, s, pt, mask) for (i, s, pt) in zip(
-            idices, sft.streamlines, points_to_idx)])
+            indices, sft.streamlines, points_to_idx)])
     pool.close()
     # Flatten the list of lists of new streamlines in a single list of
     # new streamlines
@@ -378,7 +378,7 @@ def cut_streamlines_between_labels(
     mask = label_data_2 != unique_vals[1]
     label_data_2[mask] = 0
 
-    (idices, points_to_idx) = uncompress(sft.streamlines, return_mapping=True)
+    (indices, points_to_idx) = uncompress(sft.streamlines, return_mapping=True)
 
     if len(sft.streamlines[0]) != len(points_to_idx[0]):
         raise ValueError("Error in the uncompress function. Try running the "
@@ -391,7 +391,7 @@ def cut_streamlines_between_labels(
     lists_of_new_strmls = pool.starmap(
         _cut_streamline_with_labels, [(i, s, pt, label_data_1, label_data_2)
                                       for (i, s, pt) in zip(
-                                          idices, sft.streamlines,
+                                          indices, sft.streamlines,
                                           points_to_idx)])
     pool.close()
     # Flatten the list of lists of new streamlines in a single list of

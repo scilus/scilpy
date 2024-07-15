@@ -53,6 +53,12 @@ from scilpy.tractograms.streamline_and_mask_operations import \
 from scilpy.tractograms.streamline_operations import \
     resample_streamlines_step_size
 
+# Mapping the arguments to the cutting style
+# (keep_longest, trim_endpoints) -> CuttingStyle
+args_to_style = {(False, False): CuttingStyle.DEFAULT,
+                 (True, False): CuttingStyle.KEEP_LONGEST,
+                 (False, True): CuttingStyle.TRIM_ENDPOINTS}
+
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(
@@ -67,8 +73,8 @@ def _build_arg_parser():
     g1.add_argument('--label',
                     help='Label containing 2 blobs.')
     p.add_argument('out_tractogram',
-                   help='Output tractogram file. Note: data_per_point will be '
-                        'discarded, if any!')
+                   help='Output tractogram file. Note: data_per_point and '
+                        'data_per_streamline will be discarded.')
     p.add_argument('--label_ids', nargs=2, type=int,
                    help='List of labels indices to use to cut '
                         'streamlines (2 values).')
@@ -126,32 +132,36 @@ def main():
     if len(sft.streamlines) == 0:
         parser.error('Input tractogram is empty.')
 
-    # Mask scenario. Streamlines outside of the mask will be cut.
-    if args.mask and args.keep_longest:
-        mask_img = nib.load(args.mask)
-        binary_mask = get_data_as_mask(mask_img)
+    if args.mask:
+        style = args_to_style[args.keep_longest, args.trim_endpoints]
+        # Mask scenario, keeping the longest segment of the streamline that is
+        # in the mask.
+        if style == CuttingStyle.KEEP_LONGEST:
+            mask_img = nib.load(args.mask)
+            binary_mask = get_data_as_mask(mask_img)
 
-        new_sft = cut_streamlines_with_mask(
-            sft, binary_mask, cutting_style=CuttingStyle.KEEP_LONGEST,
-            min_len=args.min_length, processes=args.nbr_processes)
-    # Mask scenario, only trimming the endpoints of the streamlines outside of
-    # the mask.
-    elif args.mask and args.trim_endpoints:
-        mask_img = nib.load(args.mask)
-        binary_mask = get_data_as_mask(mask_img)
+            new_sft = cut_streamlines_with_mask(
+                sft, binary_mask, cutting_style=style,
+                min_len=args.min_length, processes=args.nbr_processes)
+        # Mask scenario, only trimming the endpoints of the streamlines outside
+        # of the mask.
+        elif style == CuttingStyle.TRIM_ENDPOINTS:
+            mask_img = nib.load(args.mask)
+            binary_mask = get_data_as_mask(mask_img)
 
-        new_sft = cut_streamlines_with_mask(
-            sft, binary_mask, cutting_style=CuttingStyle.TRIM_ENDPOINTS,
-            min_len=args.min_length, processes=args.nbr_processes)
-    # Mask scenario, keeping the longest segment of the streamline that is in
-    # the mask.
-    elif args.mask:
-        mask_img = nib.load(args.mask)
-        binary_mask = get_data_as_mask(mask_img)
+            new_sft = cut_streamlines_with_mask(
+                sft, binary_mask, cutting_style=style,
+                min_len=args.min_length, processes=args.nbr_processes)
 
-        new_sft = cut_streamlines_with_mask(
-            sft, binary_mask, cutting_style=CuttingStyle.DEFAULT,
-            min_len=args.min_length, processes=args.nbr_processes)
+        # Mask scenario. Streamlines outside of the mask will be cut. May
+        # lead to multiple streamlines.
+        else:
+            mask_img = nib.load(args.mask)
+            binary_mask = get_data_as_mask(mask_img)
+
+            new_sft = cut_streamlines_with_mask(
+                sft, binary_mask, cutting_style=style,
+                min_len=args.min_length, processes=args.nbr_processes)
     # Label scenario. The script will cut streamlines so they are going from
     # label 1 to label 2.
     else:
