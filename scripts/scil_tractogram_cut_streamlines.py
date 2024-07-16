@@ -84,7 +84,9 @@ def _build_arg_parser():
     p.add_argument('--min_length', type=float, default=20,
                    help='Minimum length of streamlines to keep (in mm) '
                         '[%(default)s].')
-    g2 = p.add_mutually_exclusive_group(required=False)
+    g = p.add_argument_group('Cutting options', 'Options for cutting '
+                             'streamlines with --mask.')
+    g2 = g.add_mutually_exclusive_group()
     g2.add_argument('--keep_longest', action='store_true',
                     help='If set, will keep the longest segment of the '
                          'streamline that is within the mask.')

@@ -115,8 +115,12 @@ def _trim_streamline_in_mask(
 
     Parameters
     ----------
-    sft: StatefulTractogram
-        The sft to cut streamlines from.
+    idx: np.ndarray
+        Indices of the voxels intersected by the streamline.
+    streamline: np.ndarray
+        The streamlines to cut.
+    pts_to_idx: np.ndarray
+        Mapping from streamline points to indices.
     mask: np.ndarray
         Boolean array representing the region.
 
@@ -161,14 +165,14 @@ def _trim_streamline_endpoints_in_mask(
 
     Parameters
     ----------
-    sft: StatefulTractogram
-        The sft to cut streamlines from.
+    idx: np.ndarray
+        Indices of the voxels intersected by the streamline.
+    streamline: np.ndarray
+        The streamlines to cut.
+    pts_to_idx: np.ndarray
+        Mapping from streamline points to indices.
     mask: np.ndarray
         Boolean array representing the region.
-    min_len: float
-        Minimum length from the resulting streamlines.
-    processes: int
-        Number of processes to use.
 
     Returns
     -------
@@ -207,14 +211,14 @@ def _trim_streamline_in_mask_keep_longest(
 
     Parameters
     ----------
-    sft: StatefulTractogram
-        The sft to cut streamlines from.
+    idx: np.ndarray
+        Indices of the voxels intersected by the streamline.
+    streamline: np.ndarray
+        The streamlines to cut.
+    pts_to_idx: np.ndarray
+        Mapping from streamline points to indices.
     mask: np.ndarray
         Boolean array representing the region.
-    min_len: float
-        Minimum length from the resulting streamlines.
-    processes: int
-        Number of processes to use.
 
     Returns
     -------
@@ -266,9 +270,12 @@ def cut_streamlines_with_mask(
         The sft to cut streamlines (using a single mask with 1 entity) from.
     mask: np.ndarray
         Boolean array representing the region (must contain 1 entity)
-    keep_longest: bool
-        If set, will keep the longest segment of the streamline that crosses
-        the mask.
+    cutting_style: CuttingStyle
+        How to cut the streamlines. Default is to cut the streamlines at the
+        mask. If keep_longest is set, the longest segment of the streamline
+        that crosses the mask will be kept. If trim_endpoints is set, the
+        endpoints of the streamlines will be cut but the middle part of the
+        streamline may go outside the mask.
     min_len: float
         Minimum length from the resulting streamlines.
     processes: int
