@@ -148,7 +148,7 @@ def _build_arg_parser():
                         'masks as well. \nThese are obtained by '
                         'selecting the voxels where only one bundle is '
                         'present \n(and one fiber/fixel).')
-    
+
     p.add_argument('--bundles_mask', action='store_true',
                    help='If set, save the bundle mask for each bundle.')
 
