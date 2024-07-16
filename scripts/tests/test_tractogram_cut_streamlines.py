@@ -25,7 +25,8 @@ def test_execution(script_runner, monkeypatch):
     in_mask = os.path.join(SCILPY_HOME, 'filtering', 'mask.nii.gz')
     ret = script_runner.run('scil_tractogram_cut_streamlines.py',
                             in_tractogram, 'out_tractogram_cut.trk',
-                            '--mask', in_mask,
+                            '--mask', in_mask, '--min_length', '0', '-f',
+                            '--reference', in_mask,
                             '--resample', '0.2', '--compress', '0.1')
     assert ret.success
 
@@ -40,9 +41,46 @@ def test_execution_two_rois(script_runner, monkeypatch):
                            'bundle_4_head_tail_offset.nii.gz')
     ret = script_runner.run('scil_tractogram_cut_streamlines.py',
                             in_tractogram, '--mask', in_mask,
-                            'out_tractogram_cut2.trk',
+                            'out_tractogram_cut.trk', '-f',
+                            '--mask', in_mask, '--min_length', '0',
                             '--reference', in_mask,
                             '--resample', '0.2', '--compress', '0.1')
+    assert ret.success
+
+
+def test_execution_keep_longest(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
+    in_tractogram = os.path.join(SCILPY_HOME, 'tractograms',
+                                 'streamline_and_mask_operations',
+                                 'bundle_4.tck')
+    in_mask = os.path.join(SCILPY_HOME, 'tractograms',
+                           'streamline_and_mask_operations',
+                           'bundle_4_head_tail_offset.nii.gz')
+    ret = script_runner.run('scil_tractogram_cut_streamlines.py',
+                            in_tractogram, '--mask', in_mask,
+                            'out_tractogram_cut.trk', '-f',
+                            '--keep_longest', '--mask', in_mask,
+                            '--min_length', '0', '--resample', '0.2',
+                            '--reference', in_mask,
+                            '--compress', '0.1')
+    assert ret.success
+
+
+def test_execution_trim_endpoints(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
+    in_tractogram = os.path.join(SCILPY_HOME, 'tractograms',
+                                 'streamline_and_mask_operations',
+                                 'bundle_4.tck')
+    in_mask = os.path.join(SCILPY_HOME, 'tractograms',
+                           'streamline_and_mask_operations',
+                           'bundle_4_head_tail_offset.nii.gz')
+    ret = script_runner.run('scil_tractogram_cut_streamlines.py',
+                            in_tractogram, '--mask', in_mask,
+                            'out_tractogram_cut.trk', '-f',
+                            '--trim_endpoints', '--mask', in_mask,
+                            '--min_length', '0', '--resample', '0.2',
+                            '--reference', in_mask,
+                            '--compress', '0.1')
     assert ret.success
 
 
@@ -54,7 +92,7 @@ def test_execution_labels(script_runner, monkeypatch):
                              'endpoints_atlas.nii.gz')
     ret = script_runner.run('scil_tractogram_cut_streamlines.py',
                             in_tractogram, '--label', in_labels,
-                            'out_tractogram_cut2.trk', '-f',
+                            'out_tractogram_cut.trk', '-f',
                             '--label_ids', '1', '10',
                             '--resample', '0.2', '--compress', '0.1')
     assert ret.success

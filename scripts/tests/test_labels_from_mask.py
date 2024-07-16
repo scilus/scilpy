@@ -23,7 +23,8 @@ def test_execution(script_runner, monkeypatch):
                            'streamline_and_mask_operations',
                            'bundle_4_head_tail_offset.nii.gz')
     ret = script_runner.run('scil_labels_from_mask.py',
-                            in_mask, 'labels_from_mask.nii.gz')
+                            in_mask, 'labels_from_mask.nii.gz',
+                            '-f')
     assert ret.success
 
 
@@ -34,8 +35,8 @@ def test_execution_labels(script_runner, monkeypatch):
                            'bundle_4_head_tail_offset.nii.gz')
     ret = script_runner.run('scil_labels_from_mask.py',
                             in_mask, 'labels_from_mask.nii.gz',
-                            '--labels', '4', '6')
-    assert not ret.success
+                            '--labels', '4', '6', '-f')
+    assert ret.success
 
 
 def test_execution_background(script_runner, monkeypatch):
@@ -45,8 +46,8 @@ def test_execution_background(script_runner, monkeypatch):
                            'bundle_4_head_tail_offset.nii.gz')
     ret = script_runner.run('scil_labels_from_mask.py',
                             in_mask, 'labels_from_mask.nii.gz',
-                            '--background_label', '9')
-    assert not ret.success
+                            '--background_label', '9', '-f')
+    assert ret.success
 
 
 def test_execution_error(script_runner, monkeypatch):
