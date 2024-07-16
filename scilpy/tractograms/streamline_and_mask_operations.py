@@ -130,8 +130,6 @@ def _trim_streamline_in_mask(
         New streamlines trimmed within the mask.
     """
 
-    H, W, D = mask.shape
-
     # Find all the points of the streamline that are in the ROIs
     roi_data_1_intersect = map_coordinates(
         mask, idx.T, order=0, mode='constant', cval=0)
@@ -180,8 +178,6 @@ def _trim_streamline_endpoints_in_mask(
         The trimmed streamline within the mask.
     """
 
-    H, W, D = mask.shape
-
     # Find all the points of the streamline that are in the ROIs
     roi_data_1_intersect = map_coordinates(
         mask, idx.T, order=0, mode='constant', cval=0)
@@ -225,8 +221,6 @@ def _trim_streamline_in_mask_keep_longest(
     streamline: np.ndarray
         The trimmed streamline within the mask.
     """
-
-    H, W, D = mask.shape
 
     # Find all the points of the streamline that are in the ROIs
     roi_data_1_intersect = map_coordinates(
@@ -291,8 +285,6 @@ def cut_streamlines_with_mask(
     orig_origin = sft.origin
     sft.to_vox()
     sft.to_corner()
-
-    H, W, D = mask.shape
 
     # Uncompress the streamlines to get the indices of the voxels
     # intersected by the streamlines and the mapping from points to indices
