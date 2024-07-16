@@ -74,10 +74,14 @@ def compute_all_measures(args):
     img_1, dtype_1 = load_img(filename_1)
 
     if np.issubdtype(dtype_1, np.floating):
-        raise ValueError('Input file {} is of type float.'.format(filename_1))
+        raise ValueError('Input file {} is of type float.\n'
+                         'Please convert to uint8 (mask) or '
+                         'uint16 (labels).'.format(filename_1))
     img_2, dtype_2 = load_img(filename_2)
     if np.issubdtype(dtype_2, np.floating):
-        raise ValueError('Input file {} is of type float.'.format(filename_2))
+        raise ValueError('Input file {} is of type float.\n'
+                         'Please convert to uint8 (mask) or '
+                         'uint16 (labels).'.format(filename_2))
 
     data_1 = get_data_as_labels(img_1)
     data_2 = get_data_as_labels(img_2)
