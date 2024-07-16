@@ -3,6 +3,7 @@ from contextlib import nullcontext
 import itertools
 import logging
 import multiprocessing
+from operator import mod
 import os
 import sys
 from tempfile import TemporaryDirectory
@@ -339,7 +340,7 @@ class Tracker(object):
             # on current process ID.
             eps = s + chunk_id / (self.nbr_processes + 1)
             line_generator = np.random.default_rng(
-                np.uint32(hash((seed + (eps, eps, eps), self.rng_seed))))
+                np.abs(hash((seed + (eps, eps, eps), self.rng_seed))))
 
             # Forward and backward tracking
             line = self._get_line_both_directions(seed, line_generator)

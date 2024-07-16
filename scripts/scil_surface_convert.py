@@ -20,8 +20,7 @@ from trimeshpy.vtk_util import (load_polydata,
                                 save_polydata)
 
 from scilpy.surfaces.utils import (convert_freesurfer_into_polydata,
-                                   extract_xform,
-                                   flip_LPS)
+                                   flip_surfaces_axes)
 
 from scilpy.io.utils import (add_overwrite_arg,
                              add_verbose_arg,
@@ -41,18 +40,16 @@ def _build_arg_parser():
 
     p.add_argument('in_surface',
                    help='Input a surface (FreeSurfer or supported by VTK).')
-
     p.add_argument('out_surface',
-                   help='Output surface (formats supported by VTK).')
+                   help='Output surface (formats supported by VTK).\n'
+                        'Recommended extension: .vtk or .ply')
 
-    p.add_argument('--xform',
-                   help='Path of the copy-paste output from mri_info \n'
-                        'Using: mri_info $input >> log.txt, \n'
-                        'The file log.txt would be this parameter')
-
-    p.add_argument('--to_lps', action='store_true',
-                   help='Flip for Surface/MI-Brain LPS')
-
+    p.add_argument('--flip_axes', default=[-1, -1, 1], type=int, nargs=3,
+                   help='Flip axes for RAS or LPS convention. '
+                        'Default is LPS convention (MI-Brain) %(default)s.')
+    p.add_argument('--reference',
+                   help='Reference image to extract the transformation matrix '
+                        'to align the freesurfer surface with the T1.')
     add_verbose_arg(p)
     add_overwrite_arg(p)
 
@@ -64,27 +61,24 @@ def main():
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
-    assert_inputs_exist(parser, args.in_surface)
+    assert_inputs_exist(parser, args.in_surface, optional=args.reference)
     assert_outputs_exist(parser, args, args.out_surface)
 
-    if args.xform:
-        with open(args.xform) as f:
-            content = f.readlines()
-        xform = [x.strip() for x in content]
-        xform_matrix = extract_xform(xform)
-        xform_translation = xform_matrix[0:3, 3]
-    else:
-        xform_translation = [0, 0, 0]
+    _, ext = os.path.splitext(args.in_surface)
+    # FreeSurfer surfaces have no extension, verify if the input has one of the
+    # many supported extensions, otherwise it is (likely) a FreeSurfer surface
+    if ext not in ['.vtk', '.vtp', '.fib', '.ply', '.stl', '.xml', '.obj']:
+        if args.reference is None:
+            parser.error('The reference image is required for FreeSurfer '
+                         'surfaces.')
 
-    if not ((os.path.splitext(args.in_surface)[1])
-            in ['.vtk', '.vtp', '.fib', '.ply', '.stl', '.xml', '.obj']):
         polydata = convert_freesurfer_into_polydata(args.in_surface,
-                                                    xform_translation)
+                                                    args.reference)
     else:
         polydata = load_polydata(args.in_surface)
 
-    if args.to_lps:
-        polydata = flip_LPS(polydata)
+    if args.flip_axes:
+        polydata = flip_surfaces_axes(polydata, args.flip_axes)
 
     save_polydata(polydata, args.out_surface, legacy_vtk_format=True)
 
