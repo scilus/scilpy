@@ -70,7 +70,9 @@ def get_binary_mask_from_labels(atlas, label_list):
 
 def get_labels_from_mask(mask_data, labels=None, background_label=0):
     """
-    Get labels from a binary mask which contains multiple blobs.
+    Get labels from a binary mask which contains multiple blobs. Each blob
+    will be assigned a label, by default starting from 1. Background will
+    be assigned the background_label value.
 
     Parameters
     ----------

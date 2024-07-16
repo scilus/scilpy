@@ -132,36 +132,17 @@ def main():
     if len(sft.streamlines) == 0:
         parser.error('Input tractogram is empty.')
 
+    # Mask scenario, either keeping the longest segment of the streamline that
+    # is in the mask, trimming the endpoints of the streamlines outside of the
+    # mask or cutting the streamlines outside of the mask.
     if args.mask:
         style = args_to_style[args.keep_longest, args.trim_endpoints]
-        # Mask scenario, keeping the longest segment of the streamline that is
-        # in the mask.
-        if style == CuttingStyle.KEEP_LONGEST:
-            mask_img = nib.load(args.mask)
-            binary_mask = get_data_as_mask(mask_img)
+        mask_img = nib.load(args.mask)
+        binary_mask = get_data_as_mask(mask_img)
 
-            new_sft = cut_streamlines_with_mask(
-                sft, binary_mask, cutting_style=style,
-                min_len=args.min_length, processes=args.nbr_processes)
-        # Mask scenario, only trimming the endpoints of the streamlines outside
-        # of the mask.
-        elif style == CuttingStyle.TRIM_ENDPOINTS:
-            mask_img = nib.load(args.mask)
-            binary_mask = get_data_as_mask(mask_img)
-
-            new_sft = cut_streamlines_with_mask(
-                sft, binary_mask, cutting_style=style,
-                min_len=args.min_length, processes=args.nbr_processes)
-
-        # Mask scenario. Streamlines outside of the mask will be cut. May
-        # lead to multiple streamlines.
-        else:
-            mask_img = nib.load(args.mask)
-            binary_mask = get_data_as_mask(mask_img)
-
-            new_sft = cut_streamlines_with_mask(
-                sft, binary_mask, cutting_style=style,
-                min_len=args.min_length, processes=args.nbr_processes)
+        new_sft = cut_streamlines_with_mask(
+            sft, binary_mask, cutting_style=style,
+            min_len=args.min_length, processes=args.nbr_processes)
     # Label scenario. The script will cut streamlines so they are going from
     # label 1 to label 2.
     else:
@@ -169,7 +150,8 @@ def main():
         label_data = get_data_as_labels(label_img)
 
         new_sft = cut_streamlines_between_labels(
-            sft, label_data, args.label_ids)
+            sft, label_data, args.label_ids, min_len=args.min_length,
+            processes=args.nbr_processes)
 
     # Saving
     if len(new_sft) == 0:
