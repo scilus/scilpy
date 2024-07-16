@@ -3,7 +3,7 @@
 
 """
 Script to display a connectivity matrix and adjust the desired visualization.
-Made to work with scil_tractogram_segment_bundles_for_connectivity.py and
+Made to work with scil_tractogram_segment_connections_from_labels.py and
 scil_connectivity_reorder_rois.py.
 
 This script can either display the axis labels as:

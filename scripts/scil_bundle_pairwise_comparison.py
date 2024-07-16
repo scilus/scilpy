@@ -182,7 +182,7 @@ def compute_all_measures(args):
         centroids_2 = data_tuple_2
 
     _, _, voxel_size, _ = get_reference_info(reference_1)
-    voxel_size = np.product(voxel_size)
+    voxel_size = np.prod(voxel_size)
 
     # These measures are in mm^3
     binary_1 = copy.copy(density_1)

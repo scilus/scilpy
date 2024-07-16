@@ -11,6 +11,9 @@ from scilpy.io.fetcher import fetch_data, get_testing_files_dict
 fetch_data(get_testing_files_dict(), keys=['tractometry.zip'])
 tmp_dir = tempfile.TemporaryDirectory()
 
+# toDo. For more coverage, save some DPS and DPP in a text file, and test
+#  options --load_dpp, --load_dps.
+
 
 def test_help_option(script_runner):
     ret = script_runner.run('scil_tractogram_project_streamlines_to_map.py',

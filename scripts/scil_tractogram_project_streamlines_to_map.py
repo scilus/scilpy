@@ -62,7 +62,7 @@ def _build_arg_parser():
                         'will output \nmy_path/subjX_bundleY_key1.nii.gz')
 
     p1 = p.add_argument_group(
-        description='Where to get the statistics from. (Choose one)')
+        'Where to get the statistics from. (Choose one)')
     p1 = p1.add_mutually_exclusive_group(required=True)
     p1.add_argument('--use_dps', metavar='key', nargs='+',
                     help='Use the data_per_streamline from the tractogram.\n'
@@ -77,7 +77,7 @@ def _build_arg_parser():
                     help='Load data per point (scalar) from .txt or .npy.\n'
                          'Must load an array with the right shape.')
 
-    p2 = p.add_argument_group(description='Processing choices. (Choose one)')
+    p2 = p.add_argument_group('Processing choices. (Choose one)')
     p2 = p2.add_mutually_exclusive_group(required=True)
     p2.add_argument('--mean_endpoints', action='store_true',
                     help="Uses one single value per streamline: the mean "
@@ -90,7 +90,7 @@ def _build_arg_parser():
                          "map.\n")
 
     p3 = p.add_argument_group(
-        description='Where to send the statistics. (Choose one)')
+        'Where to send the statistics. (Choose one)')
     p3 = p3.add_mutually_exclusive_group(required=True)
     p3.add_argument('--to_endpoints', action='store_true',
                     help="Project metrics onto a mask of the endpoints.")
@@ -189,7 +189,7 @@ def main():
     out_files = [args.out_prefix + m + '.nii.gz' for m in metrics_names]
     assert_outputs_exist(parser, args, out_files)
 
-    # -------- Load streamlines and checking compatibility ----------
+    # -------- Load streamlines ----------
     logging.info("Loading tractogram {}".format(args.in_bundle))
     sft = load_tractogram_with_reference(parser, args, args.in_bundle)
     sft.to_vox()

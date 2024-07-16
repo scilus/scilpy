@@ -56,7 +56,7 @@ that have non-zero weight and that contribute to explain the DWI signal.
 Streamlines with 0 weight are essentially not necessary according to COMMIT.
 
 COMMIT2 is available only for HDF5 data from
-scil_tractogram_segment_bundles_for_connectivity.py and
+scil_tractogram_segment_connections_from_labels.py and
 with the --ball_stick option. Use the --commit2 option to activite it, slightly
 longer computation time. This wrapper offers a simplify way to call COMMIT,
 but does not allow to use (or fine-tune) every parameter. If you want to use
@@ -419,7 +419,8 @@ def main():
                            peaks_use_affine=False,
                            filename_mask=args.in_tracking_mask,
                            ndirs=args.nbr_dir,
-                           path_out=tmp_dir.name)
+                           path_out=tmp_dir.name,
+                           n_threads=args.nbr_processes)
 
         # Preparation for fitting
         commit.core.setup()
@@ -458,9 +459,10 @@ def main():
         use_mask = args.in_tracking_mask is not None
         mit.load_dictionary(tmp_dir.name, use_all_voxels_in_mask=use_mask)
         mit.set_threads(args.nbr_processes)
+        mit.set_verbose(False)
 
-        mit.build_operator(build_dir=os.path.join(tmp_dir.name, 'build/'))
-        mit.fit(tol_fun=tol_fun, max_iter=args.nbr_iter, verbose=False)
+        mit.build_operator()
+        mit.fit(tol_fun=tol_fun, max_iter=args.nbr_iter)
         mit.save_results()
         _save_results(args, tmp_dir, ext, hdf5_file, offsets_list,
                       'commit_1/', False)

@@ -143,7 +143,7 @@ def add_out_options(p):
                        help='If set, save the seeds used for the tracking \n '
                             'in the data_per_streamline property.\n'
                             'Hint: you can then use '
-                            'scilpy_compute_seed_density_map.')
+                            'scil_tractogram_seed_density_map.')
     return out_g
 
 
@@ -220,7 +220,8 @@ def save_tractogram(
                                           leave=False):
             if (scaled_min_length <= length(strl) <= scaled_max_length):
                 # Seeds are saved with origin `center` by our own convention.
-                # Other scripts (e.g. scil_compute_seed_density_map) expect so.
+                # Other scripts (e.g. scil_tractogram_seed_density_map) expect
+                # so.
                 dps = {}
                 if save_seeds:
                     dps['seeds'] = seed

@@ -388,10 +388,10 @@ class TrackOrientationDensityImaging(object):
 
     def __enter__(self):
         # Necessary for a 'with' statement to scrap a todi_object after
-        # the scope of operation in the script scil_priors_from_streamlines.py
+        # the scope of operation in the script scil_bundle_generate_priors.py
         return self
 
     def __exit__(self, exception_type, exception_value, traceback):
         # Necessary for a 'with' statement to scrap a todi_object after
-        # the scope of operation in the script scil_priors_from_streamlines.py
+        # the scope of operation in the script scil_bundle_generate_priors.py
         pass
