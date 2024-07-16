@@ -70,9 +70,9 @@ def shuffle_streamlines(sft, rng_seed=None):
 
 def shuffle_streamlines_orientation(sft, rng_seed=None):
     """
-    Shuffle the orientation of the streamlines. The streamlines are not
-    reversed, only the orientation of the points within the streamlines is
-    shuffled.
+    Shuffle the orientation of the streamlines. Iterate over streamlines
+    and randomly decide (50/50) if the streamline's head and tail should be
+    swapped.
 
     Parameters
     ----------
@@ -770,7 +770,11 @@ def upsample_tractogram(sft, nb, point_wise_std=None, tube_radius=None,
             noise_factor = polynomial(x)
 
             vec = s - new_s
-            vec /= np.linalg.norm(vec, axis=0)
+            norm = np.linalg.norm(vec, axis=0)
+            if np.any(norm == 0):
+                vec = np.ones_like(vec)
+                norm = np.linalg.norm(vec, axis=0)
+            vec /= norm
 
             new_s += vec * np.expand_dims(noise_factor, axis=1)
 
@@ -1031,7 +1035,7 @@ def subsample_streamlines_alter(sft, min_dice=0.90, epsilon=0.01,
     return new_sft
 
 
-def cut_streamlines_alter(sft, min_dice=0.90, epsilon=0.01, from_start=True):
+def cut_streamlines_alter(sft, min_dice=0.90, epsilon=0.01, from_end=False):
     """
     Cut streamlines based on a dice similarity metric.
     The function will keep removing points from the streamlines until the dice
@@ -1046,9 +1050,9 @@ def cut_streamlines_alter(sft, min_dice=0.90, epsilon=0.01, from_start=True):
     epsilon: float
         Stopping criteria for convergence. The maximum difference between the
         dice similarity and min_dice.
-    from_start: bool
-        If True, cut from the start of the streamlines. If False, cut from the
-        end of the streamlines.
+    from_end: bool
+        If True, the streamlines will be cut from the end. Else, the streamlines
+        will be cut from the start.
 
     Returns
     -------
@@ -1063,7 +1067,7 @@ def cut_streamlines_alter(sft, min_dice=0.90, epsilon=0.01, from_start=True):
     origin = sft.origin
 
     # Uniformize endpoints to cut consistently from one end only
-    uniformize_bundle_sft(sft, swap=not from_start)
+    uniformize_bundle_sft(sft, swap=from_end)
     sft = resample_streamlines_step_size(sft, 0.5)
     sft.to_vox()
     sft.to_corner()
@@ -1106,7 +1110,7 @@ def cut_streamlines_alter(sft, min_dice=0.90, epsilon=0.01, from_start=True):
 def replace_streamlines_alter(sft, min_dice=0.90, epsilon=0.01):
     """
     Replace streamlines based on a dice similarity metric.
-    The function will upsamples the streamlines (with parallel transport),
+    The function will upsample the streamlines (with parallel transport),
     then downsample them until the dice similarity is close to min_dice.
     This effectively replaces the streamlines with new ones.
 
@@ -1138,6 +1142,28 @@ def replace_streamlines_alter(sft, min_dice=0.90, epsilon=0.01):
 
 
 def trim_streamlines_alter(sft, min_dice=0.90, epsilon=0.01):
+    """
+    Trim streamlines based on a dice similarity metric.
+    The function will remove low density voxels to trim streamlines until the
+    similarity between the original and the trimmed tractogram is close to
+    min_dice.
+
+    Parameters
+    ----------
+    sft: StatefulTractogram
+        The tractogram to trim.
+    min_dice: float
+        The minimum dice similarity to reach before stopping the trimming.
+    epsilon: float
+        Stopping criteria for convergence. The maximum difference between the
+        dice similarity and min_dice.
+
+    Returns
+    -------
+    new_sft: StatefulTractogram
+        The tractogram with trimmed streamlines in the same space as the input
+        tract
+    """
     # Import in function to avoid circular import error
     from scilpy.tractanalysis.reproducibility_measures import compute_dice_voxel
     set_sft_logger_level(logging.ERROR)
@@ -1287,8 +1313,8 @@ def transform_streamlines_alter(sft, min_dice=0.90, epsilon=0.01):
         curr_density_map = compute_tract_counts_map(curr_sft.streamlines,
                                                     sft.dimensions)
         dice, _ = compute_dice_voxel(original_density_map, curr_density_map)
-        logging.debug(f'Transformed {to_pick*360} degree on axis {axis}, '
-                      f'dice: {dice}')
+        logging.debug(f'Transformed {np.round(to_pick * 360, 6)} degree on axis '
+                      f'{axis}, dice: {dice}')
         last_pick[axis] = to_pick
 
         if dice < min_dice:
