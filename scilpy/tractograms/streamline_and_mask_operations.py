@@ -395,8 +395,9 @@ def cut_streamlines_between_labels(
     pool.close()
     # Flatten the list of lists of new streamlines in a single list of
     # new streamlines
-    new_strmls = ArraySequence([strml for list_of_strml in lists_of_new_strmls
-                                for strml in list_of_strml])
+    list_of_new_strmls = [strml for strml in lists_of_new_strmls
+                          if strml is not None]
+    new_strmls = ArraySequence(list_of_new_strmls)
 
     new_sft = StatefulTractogram.from_sft(
         new_strmls, sft)
@@ -440,7 +441,7 @@ def _cut_streamline_with_labels(
                                                      roi_data_2,
                                                      idx)
 
-    cut_strl = []
+    cut_strl = None
     # If the streamline intersects both ROIs
     if in_strl_idx is not None and out_strl_idx is not None:
         # Compute the new streamline by keeping only the segment between
@@ -448,7 +449,7 @@ def _cut_streamline_with_labels(
         cut_strl = compute_streamline_segment(streamline, idx,
                                               in_strl_idx, out_strl_idx,
                                               pts_to_idx)
-    return [cut_strl]
+    return cut_strl
 
 
 def _get_longest_streamline_segment_in_roi(all_strl_indices):

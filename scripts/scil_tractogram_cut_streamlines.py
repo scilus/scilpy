@@ -70,7 +70,7 @@ def _build_arg_parser():
     g1 = p.add_mutually_exclusive_group(required=True)
     g1.add_argument('--mask',
                     help='Binary mask.')
-    g1.add_argument('--label',
+    g1.add_argument('--labels',
                     help='Label containing 2 blobs.')
     p.add_argument('out_tractogram',
                    help='Output tractogram file. Note: data_per_point and '
@@ -109,15 +109,15 @@ def main():
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     assert_inputs_exist(parser, args.in_tractogram, optional=[args.mask,
-                                                              args.label,
+                                                              args.labels,
                                                               args.reference])
     assert_outputs_exist(parser, args, args.out_tractogram)
     assert_headers_compatible(parser, args.in_tractogram,
                               optional=[args.mask,
-                                        args.label],
+                                        args.labels],
                               reference=args.reference)
 
-    if args.label and (args.keep_longest or args.trim_endpoints):
+    if args.labels and (args.keep_longest or args.trim_endpoints):
         parser.error('Cannot use --keep_longest or --trim_endpoints with '
                      'labels.')
 
@@ -148,7 +148,7 @@ def main():
     # Label scenario. The script will cut streamlines so they are going from
     # label 1 to label 2.
     else:
-        label_img = nib.load(args.label)
+        label_img = nib.load(args.labels)
         label_data = get_data_as_labels(label_img)
 
         new_sft = cut_streamlines_between_labels(

@@ -93,18 +93,35 @@ def get_labels_from_mask(mask_data, labels=None, background_label=0):
     label_map, nb_structures = ndi.label(mask_data)
     # Assign labels to each blob if provided
     if labels:
-        if len(labels) != nb_structures:
-            raise ValueError("Number of labels ({}) does not match the number "
-                             "of blobs in the mask ({}).".format(
+        # Only keep the first nb_structures labels if the number of labels
+        # provided is greater than the number of blobs in the mask.
+        if len(labels) > nb_structures:
+            logging.warning("Number of labels ({}) does not match the number "
+                            "of blobs in the mask ({}). Only the first {} "
+                            "labels will be used.".format(
+                                len(labels), nb_structures, nb_structures))
+        # Cannot assign fewer labels than the number of blobs in the mask.
+        elif len(labels) < nb_structures:
+            raise ValueError("Number of labels ({}) is less than the number of"
+                             " blobs in the mask ({}).".format(
                                  len(labels), nb_structures))
 
         # Copy the label map to avoid scenarios where the label list contains
         # labels that are already present in the label map
         custom_label_map = label_map.copy()
         # Assign labels to each blob
-        for idx, label in enumerate(labels):
+        for idx, label in enumerate(labels[:nb_structures]):
             custom_label_map[label_map == idx + 1] = label
         label_map = custom_label_map
+
+    logging.info('Assigned labels {} to the mask.'.format(
+        np.unique(label_map[label_map != background_label])))
+
+    if background_label != 0 and background_label in label_map:
+        logging.warning("Background label {} corresponds to a label "
+                        "already in the map. This will cause issues.".format(
+                            background_label))
+
     # Assign background label
     if background_label:
         label_map[label_map == 0] = background_label
