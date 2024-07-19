@@ -49,7 +49,7 @@ def test_execution_atlas_each_index(script_runner, monkeypatch):
                             '--dilation', '1',
                             '--opening', '1',
                             '--closing', '1',
-                            '--not_vox2vtk', '-f')
+                            '--vtk2vox', '-f')
     assert ret.success
 
 
