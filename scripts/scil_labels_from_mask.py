@@ -14,6 +14,7 @@ import argparse
 import logging
 
 import nibabel as nib
+import numpy as np
 
 from scilpy.image.labels import get_labels_from_mask
 from scilpy.io.image import get_data_as_mask
@@ -31,7 +32,7 @@ def _build_arg_parser():
                    help='Labels to assign to each blobs in the mask. '
                         'Excludes the background label.')
     p.add_argument('--background_label', default=0, type=int,
-                   help='Label for the background. [%(default)s]')
+                   help='Label to assign to the background. [%(default)s]')
 
     add_verbose_arg(p)
     add_overwrite_arg(p)
@@ -53,7 +54,7 @@ def main():
     label_map = get_labels_from_mask(
         mask_data, args.labels, args.background_label)
     # Save result
-    out_img = nib.Nifti1Image(label_map.astype(float), mask_img.affine)
+    out_img = nib.Nifti1Image(label_map.astype(np.uint16), mask_img.affine)
     nib.save(out_img, args.out_labels)
 
 
