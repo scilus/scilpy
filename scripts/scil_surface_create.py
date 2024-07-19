@@ -9,7 +9,7 @@ Example : use wmparc.a2009s.nii.gz with some aseg.stats indices
 
 scil_surface_create.py out_surface.vtk \\
     --in_labels s1a1/mask/S1-A1_wmparc.a2009s.nii.gz\\
-    --list_indices 16:32 --vox2vtk --opening 2 --smooth 2 -v
+    --list_indices 16:32 --opening 2 --smooth 2 -v
 """
 
 import argparse
@@ -55,7 +55,8 @@ def _build_arg_parser():
                           '--list_indices or create a surface per '
                           'index with --each_index.\n'
                           'If no indices are provided, '
-                          'it will use all indices.')
+                          'it will merge all indices and converted '
+                          'to a binary mask.')
     mxg.add_argument('--in_mask',
                      help='Path of the mask (nii or nii.gz).')
     mxg.add_argument('--in_volume',
@@ -104,7 +105,7 @@ def _build_arg_parser():
     p.add_argument('--fill', action='store_true',
                    help='Fill holes in the image. [%(default)s]')
 
-    p.add_argument('--not_vox2vtk', action='store_true',
+    p.add_argument('--vtk2vox', action='store_true',
                    help='Do not transform to vox2vtk. [%(default)s]')
 
     add_verbose_arg(p)
@@ -120,8 +121,6 @@ def main():
 
     assert_inputs_exist(parser, [], [args.in_labels, args.in_mask])
     assert_outputs_exist(parser, args, args.out_surface)
-
-    assert args.out_surface.endswith('.vtk')
 
     masks = []
 
@@ -177,7 +176,7 @@ def main():
                                                  vertices)
 
         # Transformation based on the Nifti affine
-        if not args.not_vox2vtk:
+        if not args.vtk2vox:
             mesh.set_vertices(vtk_u.vox_to_vtk(mesh.get_vertices(),
                                                img))
 
