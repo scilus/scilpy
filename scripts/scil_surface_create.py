@@ -14,6 +14,7 @@ scil_surface_create.py out_surface.vtk \\
 
 import argparse
 import logging
+import os
 
 import nibabel as nib
 import numpy as np
@@ -193,8 +194,9 @@ def main():
                                 args.out_surface,
                                 legacy_vtk_format=True)
         else:
-            out_name = args.out_surface.replace('.vtk',
-                                                '_{}.vtk'.format(indices[it]))
+            base, ext = os.path.splitext(args.out_surface)
+            out_name = args.out_surface.replace(ext,
+                                                '_{}'.format(indices[it]) + ext)
             vtk_u.save_polydata(mesh.get_polydata(),
                                 out_name,
                                 legacy_vtk_format=True)
