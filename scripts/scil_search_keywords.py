@@ -27,8 +27,6 @@ from scilpy.io.utils import add_verbose_arg
 
 nltk.download('punkt', quiet=True)
 
-init(autoreset=True)
-
 RED = '\033[31m'
 BOLD = '\033[1m'
 END_COLOR = '\033[0m'

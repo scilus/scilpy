@@ -13,6 +13,11 @@
         "msmt"
       ],
       [
+        "SH", 
+        "Spherical Harmonics"
+      ],
+     
+      [
         "single-shell", 
         "single shell", 
         "ssst"
