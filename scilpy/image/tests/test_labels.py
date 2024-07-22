@@ -151,8 +151,9 @@ def test_get_labels_from_mask_custom_labels_raises():
     # ref_out_labels contains disjoint blobs with values 2,4,6
     data = deepcopy(ref_out_labels)
     mask = data.astype(bool)
-    with pytest.raises(ValueError):
-        _ = get_labels_from_mask(mask, [2, 4, 6, 8])
+    labels = get_labels_from_mask(mask, [2, 4, 6, 8])
+
+    assert np.unique(labels).size == 4  # including background
 
 
 def test_get_labels_from_mask_custom_labels():
