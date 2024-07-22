@@ -441,3 +441,39 @@ def get_stats_in_label(map_data, label_data, label_lut):
                                   'mean': float(mean_seed),
                                   'std': float(std_seed)}
     return out_dict
+
+
+def merge_labels_into_mask(atlas, filtering_args):
+    """
+    Merge labels into a mask.
+
+    Parameters
+    ----------
+    atlas: np.ndarray
+        Atlas with labels as a numpy array (uint16) to merge.
+
+    filtering_args: str
+        Filtering arguments from the command line.
+
+    Return
+    ------
+    mask: nibabel.nifti1.Nifti1Image
+        Mask obtained from the combination of multiple labels.
+    """
+    mask = np.zeros(atlas.shape, dtype=np.uint16)
+
+    if ' ' in filtering_args:
+        values = filtering_args.split(' ')
+        for filter_opt in values:
+            if ':' in filter_opt:
+                vals = [int(x) for x in filter_opt.split(':')]
+                mask[(atlas >= int(min(vals))) & (atlas <= int(max(vals)))] = 1
+            else:
+                mask[atlas == int(filter_opt)] = 1
+    elif ':' in filtering_args:
+        values = [int(x) for x in filtering_args.split(':')]
+        mask[(atlas >= int(min(values))) & (atlas <= int(max(values)))] = 1
+    else:
+        mask[atlas == int(filtering_args)] = 1
+
+    return mask
