@@ -22,6 +22,7 @@ import nltk
 from nltk.stem import PorterStemmer
 from colorama import init, Fore, Style
 import json
+import re
 
 from scilpy.io.utils import add_verbose_arg
 
@@ -85,7 +86,9 @@ def main():
         logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     selected_object = prompt_user_for_object()
+    keywords, phrases = _extract_keywords_and_phrases(args.keywords)
     stemmed_keywords = _stem_keywords(args.keywords)
+    stemmed_phrases = [_stem_phrase(phrase) for phrase in phrases]
 
     script_dir = pathlib.Path(__file__).parent
     hidden_dir = script_dir / '.hidden'
@@ -112,7 +115,7 @@ def main():
             continue
 
         search_text = _get_docstring_from_script_path(str(script))
-        score = _calculate_score(stemmed_keywords, search_text, filename=filename)
+        score = _calculate_score(stemmed_keywords, stemmed_phrases, search_text, filename=filename)
 
         if score > 0:        
             matches.append(filename)
@@ -144,7 +147,7 @@ def main():
             with open(help_file, 'r') as f:
                 search_text = f.read()
 
-            score = _calculate_score(stemmed_keywords, search_text, script_name)
+            score = _calculate_score(stemmed_keywords, stemmed_phrases, search_text, script_name)
 
             if score > 0:
                 matches.append(script_name)
@@ -174,7 +177,7 @@ def main():
             if not script_name.startswith(f'scil_{selected_object}_'):
                 continue
             script_keywords = script['keywords']
-            score = _calculate_score(stemmed_keywords, ' '.join(script_keywords), script_name)
+            score = _calculate_score(stemmed_keywords, stemmed_phrases,' '.join(script_keywords), script_name)
 
             if score > 0:
                 matches.append(script_name)
@@ -202,7 +205,7 @@ def main():
                 search_text = _get_docstring_from_script_path(str(script))
                 if any(synonym in search_text for synonym in synonyms):
                     matches.append(filename)
-                    scores[filename] = _calculate_score(synonyms, search_text, filename)
+                    scores[filename] = _calculate_score(synonyms,[], search_text, filename)
                     first_sentence, _ = _split_first_sentence(search_text)
                     display_filename = filename + '.py'
                     logging.info(f"{Fore.BLUE}{'=' * SPACING_LEN}")
@@ -322,6 +325,23 @@ def _stem_text(text):
     words = nltk.word_tokenize(text)
     return ' '.join([stemmer.stem(word) for word in words])
 
+def _stem_phrase(phrase):
+    """
+    Stem all words in a phrase using PorterStemmer.
+
+    Parameters
+    ----------
+    phrase : str
+        Phrase to be stemmed.
+
+    Returns
+    -------
+    str
+        Stemmed phrase.
+    """
+    words = phrase.split()
+    return ' '.join([stemmer.stem(word) for word in words])
+
 def _generate_help_files():
     """
     Call the external script generate_help_files to generate help files
@@ -377,7 +397,31 @@ def _get_synonyms(keyword, synonyms_data):
             return synonym_set
     return []
 
-def _calculate_score(keywords, text, filename):
+def _extract_keywords_and_phrases(keywords):
+    """
+    Extract keywords and phrases from the provided list.
+
+    Parameters
+    ----------
+    keywords : list of str
+        List of keywords and phrases.
+
+    Returns
+    -------
+    list of str, list of str
+        List of individual keywords and list of phrases.
+    """
+    keywords_list = []
+    phrases_list = []
+    phrase_pattern = re.compile(r'\"(.+?)\"')
+    for keyword in keywords:
+        if phrase_pattern.match(keyword):
+            phrases_list.append(keyword.strip('"'))
+        else:
+            keywords_list.append(keyword)
+    return keywords_list, phrases_list
+
+def _calculate_score(keywords, phrases, text, filename):
     """
     Calculate a score for how well the text and filename match the keywords.
 
@@ -385,6 +429,8 @@ def _calculate_score(keywords, text, filename):
     ----------
     keywords : list of str
         Keywords to search for.
+    phrases : list of str
+        Phrases to search for.
     text : str
         Text to search within.
     filename : str
@@ -402,6 +448,11 @@ def _calculate_score(keywords, text, filename):
         keyword = keyword.lower()
         score += stemmed_text.count(keyword)
         score += stemmed_filename.count(keyword)
+    for phrase in phrases:
+        phrase_words = phrase.split()
+        for i in range(len(stemmed_text) - len(phrase_words) + 1):
+            if stemmed_text[i:i+len(phrase_words)] == phrase_words:
+                score += 1
     return score
 
 if __name__ == '__main__':
