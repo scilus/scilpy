@@ -106,7 +106,7 @@ def _build_arg_parser():
                    help='Fill holes in the image. [%(default)s]')
 
     p.add_argument('--vtk2vox', action='store_true',
-                   help='Do not transform to vox2vtk. [%(default)s]')
+                   help='Keep output surface in voxel space. [%(default)s]')
 
     add_verbose_arg(p)
     add_overwrite_arg(p)
