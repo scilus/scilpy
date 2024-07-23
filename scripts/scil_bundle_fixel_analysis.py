@@ -23,7 +23,9 @@ The script produces various output:
       the sum over a voxel will be higher than 1 (except in the single-fiber
       case). The density maps can be computed using the streamline count, or
       any streamline weighting like COMMIT or SIF, through the
-      data_per_streamline using the --dps_key argument.
+      data_per_streamline using the --dps_key argument. NOTE: This is a 5D file
+      that will not be easily inputed to a regular viewer. Use --split_bundles
+      or --split_fixels options to save the 4D versions for visualization.
 
     - fixel_density_masks.nii.gz : np.ndarray (x, y, z, 5, N)
       For each voxel, it gives whether or not each bundle is associated
@@ -33,6 +35,9 @@ The script produces various output:
       either on the number of streamlines or the streamline weights. Second,
       after the normalization, the relative threshold (rel_thr) is applied on
       the maps as a minimal value of density to be counted as an association.
+      NOTE: This is a 5D file that will not be easily inputed to a regular
+      viewer. Use --split_bundles or --split_fixels options to save the 4D
+      versions for visualization.
 
     - voxel_density_maps.nii.gz : np.ndarray (x, y, z, N)
       For each voxel, it gives the density of each bundle within the voxel,
@@ -192,6 +197,7 @@ def main():
         parser.error("Argument rel_thr must be a value between 0 and 1.")
 
     # Load the data
+    logging.info("Loading data.")
     peaks_img = nib.load(args.in_peaks)
     peaks = peaks_img.get_fdata()
     affine = peaks_img.affine
@@ -203,12 +209,16 @@ def main():
         nufo_sf = np.logical_and(is_first_peak, is_second_peak)
 
     # Extract bundles and names
+    logging.info("Extracting bundles.")
     bundles = []
     bundles_names = []
     for bundle in args.in_bundles[0]:
         bundles.append(bundle)
         bundles_names.append(Path(bundle).name.split(".")[0])
     if args.in_bundles_names:  # If names are given
+        if len(args.in_bundles_names) != len(bundles):
+            parser.error("""--in_bundles_names must contain the same number of
+                         element as in --in_bundles.""")
         bundles_names = args.in_bundles_names[0]
 
     # Set up saving filename options
@@ -219,16 +229,19 @@ def main():
         out_dir += "/"
 
     # Compute fixel density maps and masks
+    logging.info("Computing fixel density for all bundles.")
     fixel_density_maps = fixel_density(peaks, bundles, args.dps_key,
                                        args.max_theta,
                                        nbr_processes=args.nbr_processes)
 
+    logging.info("Computing density masks from density maps.")
     fixel_density_masks, fixel_density_maps = maps_to_masks(fixel_density_maps,
                                                             args.abs_thr,
                                                             args.rel_thr,
                                                             args.norm,
                                                             len(bundles))
 
+    logging.info("Computing additional derivatives.")
     # Compute number of bundles per fixel
     nb_bundles_per_fixel = np.sum(fixel_density_masks, axis=-1)
     # Compute voxel density maps
@@ -242,6 +255,7 @@ def main():
     nb_bundles_per_voxel = np.sum(voxel_density_masks, axis=-1)
 
     # Save all results
+    logging.info("Saving all results.")
     for i, bundle_n in enumerate(bundles_names):
         if args.split_bundles:  # Save the maps and masks for each bundle
             nib.save(nib.Nifti1Image(fixel_density_maps[..., i], affine),
