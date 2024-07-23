@@ -165,13 +165,13 @@ def _build_arg_parser():
     
     g2.add_argument('--prefix', default="",
                     help='Prefix to add to all predetermined output '
-                         'filenames. We recommand finishing with an '
+                         'filenames. \nWe recommand finishing with an '
                          'underscore for better readability [%(default)s].')
     
     g2.add_argument('--suffix', default="",
                     help='Suffix to add to all predetermined output '
-                         'filenames. We recommand starting with an underscore '
-                         'for better readability [%(default)s].')
+                         'filenames. \nWe recommand starting with an '
+                         'underscore for better readability [%(default)s].')
 
     add_overwrite_arg(p)
     add_processes_arg(p)
@@ -209,17 +209,17 @@ def main():
         nufo_sf = np.logical_and(is_first_peak, is_second_peak)
 
     # Extract bundles and names
-    logging.info("Extracting bundles.")
-    bundles = []
-    bundles_names = []
-    for bundle in args.in_bundles[0]:
-        bundles.append(bundle)
-        bundles_names.append(Path(bundle).name.split(".")[0])
+    bundles = args.in_bundles[0]
     if args.in_bundles_names:  # If names are given
-        if len(args.in_bundles_names) != len(bundles):
-            parser.error("""--in_bundles_names must contain the same number of
-                         element as in --in_bundles.""")
+        if len(args.in_bundles_names[0]) != len(bundles):
+            parser.error("--in_bundles_names must contain the same number of "
+                         "elements as in --in_bundles.")
         bundles_names = args.in_bundles_names[0]
+    else:
+      logging.info("Extracting bundles names.")
+      bundles_names = []
+      for bundle in bundles:
+          bundles_names.append(Path(bundle).name.split(".")[0])
 
     # Set up saving filename options
     out_dir = args.out_dir
