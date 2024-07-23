@@ -113,7 +113,7 @@ def _build_arg_parser():
                    help='Key to access the data per streamline to use as '
                         'weight when computing the maps, \ninstead of the '
                         'number of streamlines. [%(default)s].')
-    
+
     p.add_argument('--max_theta', default=45,
                    help='Maximum angle between streamline and peak to be '
                         'associated [%(default)s].')
@@ -139,7 +139,7 @@ def _build_arg_parser():
                          'will normalize the maps per fixel, \nin each voxel. '
                          'If voxel, will normalize the maps per voxel '
                          '[%(default)s].')
-    
+
     g2 = p.add_argument_group(title='Output options')
 
     g2.add_argument('--split_bundles', action='store_true',
@@ -158,16 +158,16 @@ def _build_arg_parser():
 
     g2.add_argument('--bundles_mask', action='store_true',
                     help='If set, save the bundle mask for each bundle.')
-    
+
     g2.add_argument('--out_dir', default="./",
                     help='Path to the output directory where all the output '
                          'files will be saved [%(default)s].')
-    
+
     g2.add_argument('--prefix', default="",
                     help='Prefix to add to all predetermined output '
                          'filenames. \nWe recommand finishing with an '
                          'underscore for better readability [%(default)s].')
-    
+
     g2.add_argument('--suffix', default="",
                     help='Suffix to add to all predetermined output '
                          'filenames. \nWe recommand starting with an '
@@ -216,10 +216,10 @@ def main():
                          "elements as in --in_bundles.")
         bundles_names = args.in_bundles_names[0]
     else:
-      logging.info("Extracting bundles names.")
-      bundles_names = []
-      for bundle in bundles:
-          bundles_names.append(Path(bundle).name.split(".")[0])
+        logging.info("Extracting bundles names.")
+        bundles_names = []
+        for bundle in bundles:
+            bundles_names.append(Path(bundle).name.split(".")[0])
 
     # Set up saving filename options
     out_dir = args.out_dir
