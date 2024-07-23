@@ -108,49 +108,65 @@ def _build_arg_parser():
                    help='Key to access the data per streamline to use as '
                         'weight when computing the maps, \ninstead of the '
                         'number of streamlines. [%(default)s].')
-
-    g = p.add_argument_group(title='Mask parameters')
-
-    g.add_argument('--abs_thr', default=0, type=float,
-                   help='Value of density maps threshold to obtain density '
-                        'masks, in number of streamlines \nor streamline '
-                        'weighting if --dps_key is given. Any number of '
-                        'streamlines \nor weight above this value will '
-                        'pass the absolute threshold test [%(default)s].')
-
-    g.add_argument('--rel_thr', default=0.01, type=float,
-                   help='Value of density maps threshold to obtain density '
-                        'masks, as a ratio of the normalized density '
-                        '\nAny normalized density above '
-                        'this value will pass the relative threshold test. '
-                        '\nMust be between 0 and 1 [%(default)s].')
-
-    g.add_argument('--norm', default="voxel", choices=["fixel", "voxel"],
-                   help='Way of normalizing the density maps. If fixel, '
-                        'will normalize the maps per fixel, \nin each voxel. '
-                        'If voxel, will normalize the maps per voxel. '
-                        '[%(default)s]')
-
+    
     p.add_argument('--max_theta', default=45,
                    help='Maximum angle between streamline and peak to be '
                         'associated [%(default)s].')
 
-    p.add_argument('--split_bundles', action='store_true',
-                   help='If set, save the density maps for each bundle '
-                        'separately \nin addition to the all in one version.')
+    g1 = p.add_argument_group(title='Mask parameters')
 
-    p.add_argument('--split_fixels', action='store_true',
-                   help='If set, save the density maps for each fixel '
-                        'separately \nin addition to the all in one version.')
+    g1.add_argument('--abs_thr', default=0, type=float,
+                    help='Value of density maps threshold to obtain density '
+                         'masks, in number of streamlines \nor streamline '
+                         'weighting if --dps_key is given. Any number of '
+                         'streamlines \nor weight above this value will '
+                         'pass the absolute threshold test [%(default)s].')
 
-    p.add_argument('--single_bundle', action='store_true',
-                   help='If set, will save the single-fiber single-bundle '
-                        'masks as well. \nThese are obtained by '
-                        'selecting the voxels where only one bundle is '
-                        'present \n(and one fiber/fixel).')
+    g1.add_argument('--rel_thr', default=0.01, type=float,
+                    help='Value of density maps threshold to obtain density '
+                         'masks, as a ratio of the normalized density '
+                         '\nAny normalized density above '
+                         'this value will pass the relative threshold test. '
+                         '\nMust be between 0 and 1 [%(default)s].')
 
-    p.add_argument('--bundles_mask', action='store_true',
-                   help='If set, save the bundle mask for each bundle.')
+    g1.add_argument('--norm', default="voxel", choices=["fixel", "voxel"],
+                    help='Way of normalizing the density maps. If fixel, '
+                         'will normalize the maps per fixel, \nin each voxel. '
+                         'If voxel, will normalize the maps per voxel '
+                         '[%(default)s].')
+    
+    g2 = p.add_argument_group(title='Output options')
+
+    g2.add_argument('--split_bundles', action='store_true',
+                    help='If set, save the density maps for each bundle '
+                         'separately \nin addition to the all in one version.')
+
+    g2.add_argument('--split_fixels', action='store_true',
+                    help='If set, save the density maps for each fixel '
+                         'separately \nin addition to the all in one version.')
+
+    g2.add_argument('--single_bundle', action='store_true',
+                    help='If set, will save the single-fiber single-bundle '
+                         'masks as well. \nThese are obtained by '
+                         'selecting the voxels where only one bundle is '
+                         'present \n(and one fiber/fixel).')
+
+    g2.add_argument('--bundles_mask', action='store_true',
+                    help='If set, save the bundle mask for each bundle.')
+    
+    g2.add_argument('--out_dir', default="./",
+                    help='Path to the output directory where all the output '
+                         'files will be saved [%(default)s].')
+    
+    g2.add_argument('--prefix', default="",
+                    help='Prefix to add to all predetermined output '
+                         'filenames. We recommand finishing with an '
+                         'underscore for better readability [%(default)s].')
+    
+    g2.add_argument('--suffix', default="",
+                    help='Suffix to add to all predetermined output '
+                         'filenames. We recommand starting with an underscore '
+                         'for better readability [%(default)s].')
 
     add_overwrite_arg(p)
     add_processes_arg(p)
@@ -195,6 +211,13 @@ def main():
     if args.in_bundles_names:  # If names are given
         bundles_names = args.in_bundles_names[0]
 
+    # Set up saving filename options
+    out_dir = args.out_dir
+    prefix = args.prefix
+    suffix = args.suffix
+    if out_dir[-1] != "/":
+        out_dir += "/"
+
     # Compute fixel density maps and masks
     fixel_density_maps = fixel_density(peaks, bundles, args.dps_key,
                                        args.max_theta,
@@ -219,18 +242,30 @@ def main():
     nb_bundles_per_voxel = np.sum(voxel_density_masks, axis=-1)
 
     # Save all results
-    for i, bundle_name in enumerate(bundles_names):
+    for i, bundle_n in enumerate(bundles_names):
         if args.split_bundles:  # Save the maps and masks for each bundle
             nib.save(nib.Nifti1Image(fixel_density_maps[..., i], affine),
-                     "fixel_density_map_{}.nii.gz".format(bundle_name))
+                     "{}{}fixel_density_map_{}{}.nii.gz".format(out_dir,
+                                                                prefix,
+                                                                bundle_n,
+                                                                suffix))
             nib.save(nib.Nifti1Image(fixel_density_masks[..., i], affine),
-                     "fixel_density_mask_{}.nii.gz".format(bundle_name))
+                     "{}{}fixel_density_mask_{}{}.nii.gz".format(out_dir,
+                                                                 prefix,
+                                                                 bundle_n,
+                                                                 suffix))
             if args.norm == "voxel":  # If fixel, voxel maps mean nothing
                 nib.save(nib.Nifti1Image(voxel_density_maps[..., i], affine),
-                         "voxel_density_map_{}.nii.gz".format(bundle_name))
+                         "{}{}voxel_density_map_{}{}.nii.gz".format(out_dir,
+                                                                    prefix,
+                                                                    bundle_n,
+                                                                    suffix))
             bundle_mask = voxel_density_masks[..., i].astype(np.uint8)
             nib.save(nib.Nifti1Image(bundle_mask, affine),
-                     "voxel_density_mask_{}.nii.gz".format(bundle_name))
+                     "{}{}voxel_density_mask_{}{}.nii.gz".format(out_dir,
+                                                                 prefix,
+                                                                 bundle_n,
+                                                                 suffix))
 
         if args.single_bundle:
             # Single-fiber single-bundle voxels
@@ -240,51 +275,74 @@ def main():
             # Save a single-fiber single-bundle mask for the whole WM
             nib.save(nib.Nifti1Image(one_bundle_per_voxel.astype(np.uint8),
                                      affine),
-                     "single_bundle_mask_WM.nii.gz")
+                     "{}{}single_bundle_mask_WM{}.nii.gz".format(out_dir,
+                                                                 prefix,
+                                                                 suffix))
             # Save a single-fiber single-bundle mask for each bundle
             bundle_mask = fixel_density_masks[..., 0, i] * one_bundle_per_voxel
             nib.save(nib.Nifti1Image(bundle_mask.astype(np.uint8), affine),
-                     "single_bundle_mask_{}.nii.gz".format(bundle_name))
+                     "{}{}single_bundle_mask_{}{}.nii.gz".format(out_dir,
+                                                                 prefix,
+                                                                 bundle_n,
+                                                                 suffix))
 
     if args.split_fixels:  # Save the maps and masks for each fixel
         for i in range(5):
             nib.save(nib.Nifti1Image(fixel_density_maps[..., i, :], affine),
-                     "fixel_density_map_f{}.nii.gz".format(i + 1))
+                     "{}{}fixel_density_map_f{}{}.nii.gz".format(out_dir,
+                                                                 prefix,
+                                                                 i + 1,
+                                                                 suffix))
             nib.save(nib.Nifti1Image(fixel_density_masks[..., i, :], affine),
-                     "fixel_density_mask_f{}.nii.gz".format(i + 1))
+                     "{}{}fixel_density_mask_f{}{}.nii.gz".format(out_dir,
+                                                                  prefix,
+                                                                  i + 1,
+                                                                  suffix))
             if args.norm == "voxel":  # If fixel, voxel maps mean nothing
                 nib.save(nib.Nifti1Image(voxel_density_maps[..., i, :],
                                          affine),
-                         "voxel_density_map_f{}.nii.gz".format(i + 1))
+                         "{}{}voxel_density_map_f{}{}.nii.gz".format(out_dir,
+                                                                     prefix,
+                                                                     i + 1,
+                                                                     suffix))
             bundle_mask = voxel_density_masks[..., i, :].astype(np.uint8)
             nib.save(nib.Nifti1Image(bundle_mask, affine),
-                     "voxel_density_mask_f{}.nii.gz".format(i + 1))
+                     "{}{}voxel_density_mask_f{}{}.nii.gz".format(out_dir,
+                                                                  prefix,
+                                                                  i + 1,
+                                                                  suffix))
 
     # Save bundles lookup table to know the order of the bundles
     bundles_idx = np.arange(0, len(bundles_names), 1)
     lookup_table = np.array([bundles_names, bundles_idx])
-    np.savetxt("bundles_LUT.txt", lookup_table, fmt='%s')
+    np.savetxt("{}{}bundles_LUT{}.txt".format(out_dir, prefix, suffix),
+               lookup_table, fmt='%s')
 
     # Save full fixel density maps, all fixels and bundles combined
     nib.save(nib.Nifti1Image(fixel_density_maps, affine),
-             "fixel_density_maps.nii.gz")
+             "{}{}fixel_density_maps{}.nii.gz".format(out_dir, prefix, suffix))
 
     # Save full fixel density masks, all fixels and bundles combined
     nib.save(nib.Nifti1Image(fixel_density_masks, affine),
-             "fixel_density_masks.nii.gz")
+             "{}{}fixel_density_masks{}.nii.gz".format(out_dir, prefix,
+                                                       suffix))
 
     # Save full voxel density maps and masks
     if args.norm == "voxel":  # If fixel, voxel maps mean nothing
         nib.save(nib.Nifti1Image(voxel_density_maps, affine),
-                 "voxel_density_maps.nii.gz")
+                 "{}{}voxel_density_maps{}.nii.gz".format(out_dir, prefix,
+                                                          suffix))
     nib.save(nib.Nifti1Image(voxel_density_masks.astype(np.uint8), affine),
-             "voxel_density_masks.nii.gz")
+             "{}{}voxel_density_masks{}.nii.gz".format(out_dir, prefix,
+                                                       suffix))
 
     # Save number of bundles per fixel and per voxel
     nib.save(nib.Nifti1Image(nb_bundles_per_fixel.astype(np.uint8), affine),
-             "nb_bundles_per_fixel.nii.gz")
+             "{}{}nb_bundles_per_fixel{}.nii.gz".format(out_dir, prefix,
+                                                        suffix))
     nib.save(nib.Nifti1Image(nb_bundles_per_voxel.astype(np.uint8), affine),
-             "nb_bundles_per_voxel.nii.gz")
+             "{}{}nb_bundles_per_voxel{}.nii.gz".format(out_dir, prefix,
+                                                        suffix))
 
 
 if __name__ == "__main__":
