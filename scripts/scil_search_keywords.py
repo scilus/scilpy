@@ -14,31 +14,22 @@ Examples:
 """
 
 import argparse
-import ast
 import logging
 import pathlib
-import subprocess
 import nltk
-from nltk.stem import PorterStemmer
 from colorama import init, Fore, Style
 import json
-import re
 
+from scilpy.utils.scilpy_bot import (
+    _get_docstring_from_script_path, _split_first_sentence, _stem_keywords,
+    _stem_text, _stem_phrase, _generate_help_files, _highlight_keywords,
+    _get_synonyms, _extract_keywords_and_phrases, _calculate_score, _make_title
+)
+
+from scilpy.utils.scilpy_bot import SPACING_LEN, KEYWORDS_FILE_PATH, SYNONYMS_FILE_PATH
 from scilpy.io.utils import add_verbose_arg
 
 nltk.download('punkt', quiet=True)
-
-RED = '\033[31m'
-BOLD = '\033[1m'
-END_COLOR = '\033[0m'
-SPACING_CHAR = '='
-SPACING_LEN = 80
-
-stemmer = PorterStemmer()
-
-# Path to the JSON file containing script information and keywords
-KEYWORDS_FILE_PATH = pathlib.Path(__file__).parent.parent / 'scilpy-bot-scripts'/'Vocabulary'/'Keywords.json'
-SYNONYMS_FILE_PATH = pathlib.Path(__file__).parent.parent / 'scilpy-bot-scripts'/'Vocabulary'/'Synonyms.json'
 
 OBJECTS = [
     'aodf', 'bids', 'bingham', 'btensor', 'bundle', 'connectivity', 'denoising',
@@ -71,6 +62,9 @@ def _build_arg_parser():
 
     p.add_argument('--full_parser', action='store_true',
                    help='Display the full script argparser help.')
+    
+    p.add_argument('--search_category', action='store_true',
+                   help='Search within a specific category of scripts.')
 
     add_verbose_arg(p)
 
@@ -85,7 +79,10 @@ def main():
     else:
         logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
-    selected_object = prompt_user_for_object()
+    selected_object = None
+    if args.search_category:
+        selected_object = prompt_user_for_object()
+
     keywords, phrases = _extract_keywords_and_phrases(args.keywords)
     stemmed_keywords = _stem_keywords(args.keywords)
     stemmed_phrases = [_stem_phrase(phrase) for phrase in phrases]
@@ -105,21 +102,23 @@ def main():
     matches = []
     scores = {}
 
+    # Determine the pattern to search for
+    search_pattern = f'scil_{"{}_" if selected_object else ""}*.py'
 
     # Search through the docstring
     logging.info(f"Searching through docstrings for '{selected_object}' scripts...")
-    for script in sorted(script_dir.glob('scil_{}_*.py'.format(selected_object))):
+    for script in sorted(script_dir.glob(search_pattern.format(selected_object))):
         #Remove the .py extension
         filename = script.stem
         if filename == '__init__' or filename =='scil_search_keywords':
             continue
 
         search_text = _get_docstring_from_script_path(str(script))
-        score = _calculate_score(stemmed_keywords, stemmed_phrases, search_text, filename=filename)
+        score_details = _calculate_score(stemmed_keywords, stemmed_phrases, search_text, filename=filename)
 
-        if score > 0:        
+        if score_details['total_score']  > 0:        
             matches.append(filename)
-            scores[filename] = score
+            scores[filename] = score_details
 
             search_text = search_text or 'No docstring available!'
 
@@ -135,6 +134,10 @@ def main():
             logging.info(f"{Fore.BLUE}{Style.BRIGHT}{display_filename}{Style.RESET_ALL}")
             logging.info(display_short_info)
             logging.debug(display_long_info)
+            for word, score in score_details.items():
+                if word != 'total_score':
+                    logging.info(f"{Fore.GREEN}Occurence of '{word}': {score}{Style.RESET_ALL}")
+            logging.info(f"Total Score: {score_details['total_score']}")
             logging.info(f"{Fore.BLUE}{'=' * SPACING_LEN}")
             logging.info("\n")
 
@@ -142,16 +145,16 @@ def main():
 
     if not matches: 
         logging.info(f"No matches found in docstrings. Searching through help files for '{selected_object}' scripts...") 
-        for help_file in sorted(hidden_dir.glob('scil_{}_*.py'.format(selected_object))): #Use precomputed help files
+        for help_file in sorted(hidden_dir.glob(search_pattern.format(selected_object))): #Use precomputed help files
             script_name = pathlib.Path(help_file.stem).stem
             with open(help_file, 'r') as f:
                 search_text = f.read()
 
-            score = _calculate_score(stemmed_keywords, stemmed_phrases, search_text, script_name)
+            score_details = _calculate_score(stemmed_keywords, stemmed_phrases, search_text, script_name)
 
-            if score > 0:
+            if score_details['total_score'] > 0:
                 matches.append(script_name)
-                scores[script_name] = score
+                scores[script_name] = score_details
 
                 search_text = search_text or 'No docstring available!'
 
@@ -163,6 +166,10 @@ def main():
                 logging.info(f"{Fore.BLUE}{Style.BRIGHT}{display_filename}{Style.RESET_ALL}")
                 logging.info(display_short_info)
                 logging.debug(display_long_info)
+                for word, score in score_details.items():
+                    if word != 'total_score':
+                        logging.info(f"{Fore.GREEN}Occurence of '{word}': {score}{Style.RESET_ALL}")
+                logging.info(f"Total Score: {score_details['total_score']}")
                 logging.info(f"{Fore.BLUE}{'=' * SPACING_LEN}")
                 logging.info("\n")
 
@@ -174,14 +181,14 @@ def main():
         logging.info("No matches found in help files. Searching by script keywords...")
         for script in keywords_data['scripts']:
             script_name = script['name']
-            if not script_name.startswith(f'scil_{selected_object}_'):
+            if selected_object and not script_name.startswith(f'scil_{selected_object}_'):
                 continue
             script_keywords = script['keywords']
-            score = _calculate_score(stemmed_keywords, stemmed_phrases,' '.join(script_keywords), script_name)
+            score_details  = _calculate_score(stemmed_keywords, stemmed_phrases,' '.join(script_keywords), script_name)
 
-            if score > 0:
+            if score_details['total_score'] > 0:
                 matches.append(script_name)
-                scores[script_name] = score
+                scores[script_name] = score_details
 
                 display_filename = script_name + '.py'
                 first_sentence, _ = _split_first_sentence(search_text)
@@ -198,7 +205,7 @@ def main():
         logging.info("No matches found by script keywords. Searching by synonyms...")
         for keyword in args.keywords:
             synonyms = _get_synonyms(keyword, synonyms_data)
-            for script in sorted(script_dir.glob('scil_{}_*.py'.format(selected_object))):
+            for script in sorted(script_dir.glob(search_pattern.format(selected_object))):
                 filename = script.stem
                 if filename == '__init__' or filename == 'scil_search_keywords':
                     continue
@@ -215,13 +222,13 @@ def main():
     if not matches:
         logging.info(_make_title(' No results found! '))
 
-    # Sort matches by score and print them
+    """# Sort matches by score and print them
     else:
-        sorted_matches = sorted(matches, key=lambda x: scores[x], reverse=True)
+        sorted_matches = sorted(matches, key=lambda x: scores[x]['total_score'], reverse=True)
         logging.info(_make_title(' Results Ordered by Score '))
         for match in sorted_matches:
             display_filename = match + '.py'
-            logging.info(f"{Fore.BLUE}{Style.BRIGHT}{display_filename}{Style.RESET_ALL}: Score = {scores[match]}")
+            logging.info(f"{Fore.BLUE}{Style.BRIGHT}{display_filename}{Style.RESET_ALL}: Score = {scores[match]['total_score']}")"""
 
     # Display full argparser if --full_parser is used
     if args.full_parser:
@@ -238,222 +245,7 @@ def main():
                     logging.info(f"{Fore.BLUE}{'=' * SPACING_LEN}")
                     logging.info("\n")
 
-def _make_title(text):
-    return f'{Fore.BLUE}{Style.BRIGHT}{text.center(SPACING_LEN, SPACING_CHAR)}{Style.RESET_ALL}'
 
-
-def _get_docstring_from_script_path(script):
-    """Extract a python file's docstring from a filepath.
-
-    Parameters
-    ----------
-    script : str
-        Path to python file
-
-    Returns
-    -------
-    docstring : str
-        The file docstring, or an empty string if there was no docstring.
-    """
-    with open(script, 'r') as reader:
-        file_contents = reader.read()
-    module = ast.parse(file_contents)
-    docstring = ast.get_docstring(module) or ''
-    return docstring
-
-
-def _split_first_sentence(text):
-    """Split the first sentence from the rest of a string by finding the first
-    dot or newline. If there is no dot or newline, return the full string as
-    the first sentence, and None as the remaining text.
-
-    Parameters
-    ----------
-    text : str
-        Text to parse.
-
-    Returns
-    -------
-    first_sentence : str
-        The first sentence, or the full text if no dot or newline was found.
-    remaining : str
-        Everything after the first sentence.
-
-    """
-    candidates = ['. ', '.\n']
-    sentence_idx = -1
-    for candidate in candidates:
-        idx = text.find(candidate)
-        if idx != -1 and idx < sentence_idx or sentence_idx == -1:
-            sentence_idx = idx
-
-    split_idx = (sentence_idx + 1) or None
-    sentence = text[:split_idx]
-    remaining = text[split_idx:] if split_idx else ""
-    return sentence, remaining
-
-def _stem_keywords(keywords):
-    """
-    Stem a list of keywords using PorterStemmer.
-
-    Parameters
-    ----------
-    keywords : list of str
-        Keywords to be stemmed.
-
-    Returns
-    -------
-    list of str
-        Stemmed keywords.
-    """
-    return [stemmer.stem(keyword) for keyword in keywords]
-
-def _stem_text(text):
-    """
-    Stem all words in a text using PorterStemmer.
-
-    Parameters
-    ----------
-    text : str
-        Text to be stemmed.
-
-    Returns
-    -------
-    str
-        Stemmed text.
-    """
-    words = nltk.word_tokenize(text)
-    return ' '.join([stemmer.stem(word) for word in words])
-
-def _stem_phrase(phrase):
-    """
-    Stem all words in a phrase using PorterStemmer.
-
-    Parameters
-    ----------
-    phrase : str
-        Phrase to be stemmed.
-
-    Returns
-    -------
-    str
-        Stemmed phrase.
-    """
-    words = phrase.split()
-    return ' '.join([stemmer.stem(word) for word in words])
-
-def _generate_help_files():
-    """
-    Call the external script generate_help_files to generate help files
-    """
-    script_path = pathlib.Path(__file__).parent.parent / 'scilpy-bot-scripts'/'generate_help_files.py'
-    #calling the extrernal script generate_help_files
-    subprocess.run(['python', script_path], check=True)
-    
-def _highlight_keywords(text, stemmed_keywords):
-    """
-    Highlight the stemmed keywords in the given text using colorama.
-
-    Parameters
-    ----------
-    text : str
-        Text to highlight keywords in.
-    stemmed_keywords : list of str
-        Stemmed keywords to highlight.
-
-    Returns
-    -------
-    str
-        Text with highlighted keywords.
-    """
-    words = text.split()
-    highlighted_text = []
-    for word in words:
-        stemmed_word = stemmer.stem(word)
-        if stemmed_word in stemmed_keywords:
-            highlighted_text.append(f'{Fore.RED}{Style.BRIGHT}{word}{Style.RESET_ALL}')
-        else:
-            highlighted_text.append(word)
-    return ' '.join(highlighted_text)
-
-def _get_synonyms(keyword, synonyms_data):
-    """
-    Get synonyms for a given keyword from the synonyms data.
-
-    Parameters
-    ----------
-    keyword : str
-        Keyword to find synonyms for.
-    synonyms_data : dict
-        Dictionary containing synonyms data.
-
-    Returns
-    -------
-    list of str
-        List of synonyms for the given keyword.
-    """
-    for synonym_set in synonyms_data['synonyms']:
-        if keyword in synonym_set:
-            return synonym_set
-    return []
-
-def _extract_keywords_and_phrases(keywords):
-    """
-    Extract keywords and phrases from the provided list.
-
-    Parameters
-    ----------
-    keywords : list of str
-        List of keywords and phrases.
-
-    Returns
-    -------
-    list of str, list of str
-        List of individual keywords and list of phrases.
-    """
-    keywords_list = []
-    phrases_list = []
-    phrase_pattern = re.compile(r'\"(.+?)\"')
-    for keyword in keywords:
-        if phrase_pattern.match(keyword):
-            phrases_list.append(keyword.strip('"'))
-        else:
-            keywords_list.append(keyword)
-    return keywords_list, phrases_list
-
-def _calculate_score(keywords, phrases, text, filename):
-    """
-    Calculate a score for how well the text and filename match the keywords.
-
-    Parameters
-    ----------
-    keywords : list of str
-        Keywords to search for.
-    phrases : list of str
-        Phrases to search for.
-    text : str
-        Text to search within.
-    filename : str
-        Filename to search within.
-
-    Returns
-    -------
-    int
-        Score based on the frequency of keywords in the text and filename.
-    """
-    stemmed_text = _stem_text(text.lower())
-    stemmed_filename  = _stem_text(filename.lower())
-    score = 0
-    for keyword in keywords:
-        keyword = keyword.lower()
-        score += stemmed_text.count(keyword)
-        score += stemmed_filename.count(keyword)
-    for phrase in phrases:
-        phrase_words = phrase.split()
-        for i in range(len(stemmed_text) - len(phrase_words) + 1):
-            if stemmed_text[i:i+len(phrase_words)] == phrase_words:
-                score += 1
-    return score
 
 if __name__ == '__main__':
     main()
