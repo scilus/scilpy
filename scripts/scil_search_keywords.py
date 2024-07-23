@@ -65,6 +65,10 @@ def _build_arg_parser():
     
     p.add_argument('--search_category', action='store_true',
                    help='Search within a specific category of scripts.')
+    
+    p.add_argument('--no_synonyms', action='store_true',
+               help='Search without using synonyms.')
+
 
     add_verbose_arg(p)
 
@@ -102,107 +106,58 @@ def main():
     matches = []
     scores = {}
 
-    # Determine the pattern to search for
+    # pattern to search for
     search_pattern = f'scil_{"{}_" if selected_object else ""}*.py'
 
-    # Search through the docstring
-    logging.info(f"Searching through docstrings for '{selected_object}' scripts...")
+    def update_matches_and_scores(filename, search_text, score_details):
+        if score_details['total_score'] > 0:
+            if filename not in matches:
+                matches.append(filename)
+                scores[filename] = score_details
+            else:
+                for key, value in score_details.items():
+                    if key != 'total_score':
+                        scores[filename][key] = scores[filename].get(key, 0) + value
+                scores[filename]['total_score'] += score_details['total_score']
+
     for script in sorted(script_dir.glob(search_pattern.format(selected_object))):
-        #Remove the .py extension
         filename = script.stem
         if filename == '__init__' or filename =='scil_search_keywords':
             continue
-
+        
+        # Search through the docstring
         search_text = _get_docstring_from_script_path(str(script))
         score_details = _calculate_score(stemmed_keywords, stemmed_phrases, search_text, filename=filename)
+        update_matches_and_scores(filename, search_text, score_details)
+        
 
-        if score_details['total_score']  > 0:        
-            matches.append(filename)
-            scores[filename] = score_details
-
-            search_text = search_text or 'No docstring available!'
-
-            display_filename = filename + '.py'
-            display_short_info, display_long_info = _split_first_sentence(
-                search_text)
-
-            # Highlight found keywords using colorama
-            display_short_info = _highlight_keywords(display_short_info, stemmed_keywords)
-            display_long_info = _highlight_keywords(display_long_info, stemmed_keywords)
-
-            # Print everything
-            logging.info(f"{Fore.BLUE}{Style.BRIGHT}{display_filename}{Style.RESET_ALL}")
-            logging.info(display_short_info)
-            logging.debug(display_long_info)
-            for word, score in score_details.items():
-                if word != 'total_score':
-                    logging.info(f"{Fore.GREEN}Occurence of '{word}': {score}{Style.RESET_ALL}")
-            logging.info(f"Total Score: {score_details['total_score']}")
-            logging.info(f"{Fore.BLUE}{'=' * SPACING_LEN}")
-            logging.info("\n")
-
-    # If no matches found in docstrings, check in the help files 
-
-    if not matches: 
-        logging.info(f"No matches found in docstrings. Searching through help files for '{selected_object}' scripts...") 
-        for help_file in sorted(hidden_dir.glob(search_pattern.format(selected_object))): #Use precomputed help files
-            script_name = pathlib.Path(help_file.stem).stem
+        # Search in help files
+        help_file = hidden_dir / f"{filename}.py.help"
+        if help_file.exists():
             with open(help_file, 'r') as f:
                 search_text = f.read()
+            score_details = _calculate_score(stemmed_keywords, stemmed_phrases, search_text, filename=filename)
+            update_matches_and_scores(filename, search_text, score_details)
 
-            score_details = _calculate_score(stemmed_keywords, stemmed_phrases, search_text, script_name)
-
-            if score_details['total_score'] > 0:
-                matches.append(script_name)
-                scores[script_name] = score_details
-
-                search_text = search_text or 'No docstring available!'
-
-                display_filename = script_name + '.py'
-                display_short_info, display_long_info = _split_first_sentence(
-                    search_text)
-
-                # Print everything
-                logging.info(f"{Fore.BLUE}{Style.BRIGHT}{display_filename}{Style.RESET_ALL}")
-                logging.info(display_short_info)
-                logging.debug(display_long_info)
-                for word, score in score_details.items():
-                    if word != 'total_score':
-                        logging.info(f"{Fore.GREEN}Occurence of '{word}': {score}{Style.RESET_ALL}")
-                logging.info(f"Total Score: {score_details['total_score']}")
-                logging.info(f"{Fore.BLUE}{'=' * SPACING_LEN}")
-                logging.info("\n")
-
-    # If no matches found, check in the keywords file
+    # Search in keywords file
     with open(KEYWORDS_FILE_PATH, 'r') as f:
         keywords_data = json.load(f)
 
-    if not matches:
-        logging.info("No matches found in help files. Searching by script keywords...")
-        for script in keywords_data['scripts']:
-            script_name = script['name']
-            if selected_object and not script_name.startswith(f'scil_{selected_object}_'):
-                continue
-            script_keywords = script['keywords']
-            score_details  = _calculate_score(stemmed_keywords, stemmed_phrases,' '.join(script_keywords), script_name)
+    for script in keywords_data['scripts']:
+        script_name = script['name']
+        if selected_object and not script_name.startswith(f'scil_{selected_object}_'):
+            continue
+        script_keywords = script['keywords']
+        search_text = ' '.join(script_keywords)
+        score_details = _calculate_score(stemmed_keywords, stemmed_phrases, search_text, script_name)
+        update_matches_and_scores(script_name, search_text, score_details)
 
-            if score_details['total_score'] > 0:
-                matches.append(script_name)
-                scores[script_name] = score_details
 
-                display_filename = script_name + '.py'
-                first_sentence, _ = _split_first_sentence(search_text)
-                logging.info(f"{Fore.BLUE}{'=' * SPACING_LEN}")
-                logging.info(f"{Fore.BLUE}{Style.BRIGHT}{display_filename}{Style.RESET_ALL}: {first_sentence}")
-                logging.info("\n")
- 
-
-    # If still no matches found, check for synonyms in the synonyms file
-    with open(SYNONYMS_FILE_PATH, 'r') as f:
-        synonyms_data = json.load(f)
-        
-    if not matches:
-        logging.info("No matches found by script keywords. Searching by synonyms...")
+    # Search in synonyms file if not args.no_synonyms is not specified:
+    if not args.no_synonyms:
+        with open(SYNONYMS_FILE_PATH, 'r') as f:
+            synonyms_data = json.load(f)
+            
         for keyword in args.keywords:
             synonyms = _get_synonyms(keyword, synonyms_data)
             for script in sorted(script_dir.glob(search_pattern.format(selected_object))):
@@ -211,39 +166,25 @@ def main():
                     continue
                 search_text = _get_docstring_from_script_path(str(script))
                 if any(synonym in search_text for synonym in synonyms):
-                    matches.append(filename)
-                    scores[filename] = _calculate_score(synonyms,[], search_text, filename)
-                    first_sentence, _ = _split_first_sentence(search_text)
-                    display_filename = filename + '.py'
-                    logging.info(f"{Fore.BLUE}{'=' * SPACING_LEN}")
-                    logging.info(f"{Fore.BLUE}{Style.BRIGHT}{filename}{Style.RESET_ALL}: {first_sentence}")
-                    logging.info("\n")
+                    score_details = _calculate_score(synonyms, [], search_text, filename)
+                    update_matches_and_scores(filename, search_text, score_details)
 
     if not matches:
         logging.info(_make_title(' No results found! '))
 
-    """# Sort matches by score and print them
+    # Sort matches by score and print them
     else:
         sorted_matches = sorted(matches, key=lambda x: scores[x]['total_score'], reverse=True)
         logging.info(_make_title(' Results Ordered by Score '))
         for match in sorted_matches:
-            display_filename = match + '.py'
-            logging.info(f"{Fore.BLUE}{Style.BRIGHT}{display_filename}{Style.RESET_ALL}: Score = {scores[match]['total_score']}")"""
-
-    # Display full argparser if --full_parser is used
-    if args.full_parser:
-        for script in sorted(script_dir.glob('scil_{}_*.py'.format(selected_object))):
-            filename = script.stem
-            if filename == '__init__' or filename == 'scil_search_keywords':
-                continue
-            help_file = hidden_dir / f"{filename}.py.help"
-            if help_file.exists():
-                with open(help_file, 'r') as f:
-                    display_filename = filename + '.py'
-                    logging.info(f"{Fore.BLUE}{Style.BRIGHT}{display_filename}{Style.RESET_ALL}")
-                    logging.info(f.read())
-                    logging.info(f"{Fore.BLUE}{'=' * SPACING_LEN}")
-                    logging.info("\n")
+            #display_filename = match + '.py'
+            logging.info(f"{Fore.BLUE}{Style.BRIGHT}{match}{Style.RESET_ALL}")
+            for word, score in scores[match].items():
+                if word != 'total_score':
+                    logging.info(f"{Fore.GREEN}Occurrence of '{word}': {score}{Style.RESET_ALL}")
+            logging.info(f"Total Score: {scores[match]['total_score']}")
+            logging.info(f"{Fore.BLUE}{'=' * SPACING_LEN}")
+            logging.info("\n")
 
 
 
