@@ -311,6 +311,7 @@ def main():
                                          args.bg_range,
                                          args.bg_opacity,
                                          args.bg_offset,
+                                         None,
                                          args.bg_interpolation)
         actors.append(bg_actor)
 
