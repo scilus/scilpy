@@ -24,15 +24,15 @@ Examples:
 import argparse
 import logging
 import pathlib
+
 import nltk
-from colorama import init, Fore, Style
+from colorama import Fore, Style
 import json
 
 from scilpy.utils.scilpy_bot import (
-    _get_docstring_from_script_path, _split_first_sentence, _stem_keywords, _stem_phrase, _generate_help_files,
+    _get_docstring_from_script_path, _stem_keywords, _stem_phrase, _generate_help_files,
     _get_synonyms, _extract_keywords_and_phrases, _calculate_score, _make_title, prompt_user_for_object
 )
-
 from scilpy.utils.scilpy_bot import SPACING_LEN, KEYWORDS_FILE_PATH, SYNONYMS_FILE_PATH
 from scilpy.io.utils import add_verbose_arg
 
@@ -42,8 +42,7 @@ nltk.download('punkt', quiet=True)
 def _build_arg_parser():
     p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawTextHelpFormatter)
-    #p.add_argument('--object', choices=OBJECTS, required=True,
-    #              help='Choose the object you want to work on.' )
+    
     p.add_argument('keywords', nargs='+',
                    help='Search the provided list of keywords.')
     
@@ -71,6 +70,7 @@ def main():
     if args.search_category:
         selected_object = prompt_user_for_object()
 
+    #keywords are single words and phrases are keywords that contain more than one word
     keywords, phrases = _extract_keywords_and_phrases(args.keywords)
     stemmed_keywords = _stem_keywords(keywords)
     stemmed_phrases = [_stem_phrase(phrase) for phrase in phrases]
@@ -98,6 +98,22 @@ def main():
     search_pattern = f'scil_{"{}_" if selected_object else ""}*.py'
 
     def update_matches_and_scores(filename, score_details):
+        """
+        Update the matches and scores for the given filename based on the score details.
+
+        Parameters
+        ----------
+        filename : str
+            The name of the script file being analyzed.
+        score_details : dict
+            A dictionary containing the scores for the keywords and phrases found in the script.
+            This dictionary should have a 'total_score' key indicating the cumulative score.
+            
+        Returns
+        -------
+        None
+            Just updates the global `matches` and `scores` lists/dictionaries.
+        """
         if score_details['total_score'] > 0:
             if filename not in matches:
                 matches.append(filename)
@@ -127,6 +143,7 @@ def main():
             score_details = _calculate_score(stemmed_keywords, stemmed_phrases, search_text, filename=filename)
             update_matches_and_scores(filename, score_details)
 
+
     # Search in keywords file
     with open(KEYWORDS_FILE_PATH, 'r') as f:
         keywords_data = json.load(f)
@@ -145,45 +162,43 @@ def main():
     if not args.no_synonyms:
         with open(SYNONYMS_FILE_PATH, 'r') as f:
             synonyms_data = json.load(f)
-
-        # Create a mapping of synonyms to their original keywords
-        synonym_to_keyword = {}   
-        for keyword in args.keywords:
+  
+        for keyword in keywords + phrases:
             synonyms = _get_synonyms(keyword, synonyms_data)
-            for synonym in synonyms:
-                synonym_to_keyword[synonym] = keyword
             
             for script in sorted(script_dir.glob(search_pattern.format(selected_object))):
                 filename = script.stem
                 if filename == '__init__' or filename == 'scil_search_keywords':
                     continue
                 search_text = _get_docstring_from_script_path(str(script))
-                synonym_score = 0
+                score_details = scores.get(filename, {'total_score': 0})  # Initialize or get existing score_details for the script
+                
                 for synonym in synonyms:
                     if synonym in search_text:
-                        synonym_score += search_text.count(synonym)
-                if synonym_score > 0:
-                    if filename not in scores:
-                        scores[filename] = {'total_score': 0}
-                        matches.append(filename) 
-                    scores[filename][keyword] = scores[filename].get(keyword, 0) + synonym_score
-                    scores[filename]['total_score'] += synonym_score
-    
+                        score_details[keyword+' synonyms'] = score_details.get(keyword +' synonyms', 0) + search_text.count(synonym)
+                        score_details['total_score'] += search_text.count(synonym)
+                
+                update_matches_and_scores(filename, score_details)
+
     if not matches:
         logging.info(_make_title(' No results found! '))
 
-    # Sort matches by score and print them
+    # Sort matches by score and display them
     else:
         sorted_matches = sorted(matches, key=lambda x: scores[x]['total_score'], reverse=True)
 
         logging.info(_make_title(' Results Ordered by Score '))
         for match in sorted_matches:
-            #display_filename = match + '.py'
             logging.info(f"{Fore.BLUE}{Style.BRIGHT}{match}{Style.RESET_ALL}")
+
             for word, score in scores[match].items():
                 if word != 'total_score':
-                    original_word = keyword_mapping.get(word, phrase_mapping.get(word, word))
-                    logging.info(f"{Fore.GREEN}Occurrence of '{original_word}': {score}{Style.RESET_ALL}")
+                    if word.endswith(' synonyms'):
+                        logging.info(f"{Fore.GREEN}Occurrence of '{word}': {score}{Style.RESET_ALL}")
+                    else:
+                        original_word = keyword_mapping.get(word, phrase_mapping.get(word, word))
+                        logging.info(f"{Fore.GREEN}Occurrence of '{original_word}': {score}{Style.RESET_ALL}")
+
             logging.info(f"Total Score: {scores[match]['total_score']}")
             logging.info(f"{Fore.BLUE}{'=' * SPACING_LEN}")
             logging.info("\n")
