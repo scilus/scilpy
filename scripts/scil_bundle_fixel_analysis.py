@@ -3,9 +3,14 @@
 """
 Analyze bundles at the fixel level using peaks and bundles (.trk). If the
 bundles files are names as {bundle_name}.trk, simply use the --in_bundles
-argument with --in_bundles_names. If it is not the case or you want other names
-to be saved, please use --in_bundles_names to provide bundles names IN THE SAME
-ORDER as the inputed bundles.
+argument without --in_bundles_names. If it is not the case or you want other
+names to be saved, please use --in_bundles_names to provide bundles names
+IN THE SAME ORDER as the inputed bundles.
+
+The duration of the script depends heavily on the number of bundles, the number
+of streamlines in bundles and the number of processors used. For a standard
+tractoflow/rbx_flow output with ~30 bundles, it should not take over 30
+minutes.
 
 The script produces various output:
 
@@ -87,7 +92,8 @@ from pathlib import Path
 
 from scilpy.io.utils import (add_overwrite_arg, add_processes_arg,
                              assert_headers_compatible, assert_inputs_exist,
-                             assert_outputs_exist, add_verbose_arg)
+                             add_verbose_arg,
+                             assert_output_dirs_exist_and_empty)
 from scilpy.tractanalysis.fixel_density import (fixel_density, maps_to_masks)
 
 
@@ -159,9 +165,10 @@ def _build_arg_parser():
     g2.add_argument('--bundles_mask', action='store_true',
                     help='If set, save the bundle mask for each bundle.')
 
-    g2.add_argument('--out_dir', default="./",
+    g2.add_argument('--out_dir', default="fixel_analysis/",
                     help='Path to the output directory where all the output '
-                         'files will be saved [%(default)s].')
+                         'files will be saved. \nCurrent directory by '
+                         'default.')
 
     g2.add_argument('--prefix', default="",
                     help='Prefix to add to all predetermined output '
@@ -184,13 +191,15 @@ def main():
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
+    # Set up saving filename options
+    out_dir = args.out_dir
+    prefix = args.prefix
+    suffix = args.suffix
+    if out_dir[-1] != "/":
+        out_dir += "/"
+
+    assert_output_dirs_exist_and_empty(parser, args, out_dir, create_dir=True)
     assert_inputs_exist(parser, [args.in_peaks] + args.in_bundles[0])
-    assert_outputs_exist(parser, args, ["bundles_LUT.txt",
-                                        "fixel_density_maps.nii.gz",
-                                        "fixel_density_masks.nii.gz",
-                                        "voxel_density_masks.nii.gz",
-                                        "nb_bundles_per_fixel.nii.gz",
-                                        "nb_bundles_per_voxel.nii.gz"])
     assert_headers_compatible(parser, [args.in_peaks] + args.in_bundles[0])
 
     if args.rel_thr < 0 or args.rel_thr > 1:
@@ -220,13 +229,6 @@ def main():
         bundles_names = []
         for bundle in bundles:
             bundles_names.append(Path(bundle).name.split(".")[0])
-
-    # Set up saving filename options
-    out_dir = args.out_dir
-    prefix = args.prefix
-    suffix = args.suffix
-    if out_dir[-1] != "/":
-        out_dir += "/"
 
     # Compute fixel density maps and masks
     logging.info("Computing fixel density for all bundles.")
