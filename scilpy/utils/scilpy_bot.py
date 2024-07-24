@@ -17,8 +17,8 @@ SPACING_CHAR = '='
 SPACING_LEN = 80
 
 # Path to the JSON file containing script information and keywords
-KEYWORDS_FILE_PATH = pathlib.Path(__file__).parent.parent.parent / 'scilpy-bot-scripts'/'Vocabulary'/'Keywords.json'
-SYNONYMS_FILE_PATH = pathlib.Path(__file__).parent.parent.parent / 'scilpy-bot-scripts'/'Vocabulary'/'Synonyms.json'
+KEYWORDS_FILE_PATH = pathlib.Path(__file__).parent /'Vocabulary'/'Keywords.json'
+SYNONYMS_FILE_PATH = pathlib.Path(__file__).parent /'Vocabulary'/'Synonyms.json'
 
 
 
