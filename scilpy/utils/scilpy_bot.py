@@ -1,6 +1,3 @@
-
-import re
-import json
 import ast
 import nltk
 import pathlib
