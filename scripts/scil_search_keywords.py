@@ -75,6 +75,10 @@ def main():
     stemmed_keywords = _stem_keywords(keywords)
     stemmed_phrases = [_stem_phrase(phrase) for phrase in phrases]
 
+    # Create a mapping of stemmed to original keywords(will be needed to display the occurence of the keywords)
+    keyword_mapping = {stem: orig for orig, stem in zip(keywords, stemmed_keywords)}
+    phrase_mapping = {stem: orig for orig, stem in zip(phrases, stemmed_phrases)}
+
     script_dir = pathlib.Path(__file__).parent
     hidden_dir = script_dir / '.hidden'
 
@@ -141,9 +145,14 @@ def main():
     if not args.no_synonyms:
         with open(SYNONYMS_FILE_PATH, 'r') as f:
             synonyms_data = json.load(f)
-            
-        for keyword in keywords + phrases:
+
+        # Create a mapping of synonyms to their original keywords
+        synonym_to_keyword = {}   
+        for keyword in args.keywords:
             synonyms = _get_synonyms(keyword, synonyms_data)
+            for synonym in synonyms:
+                synonym_to_keyword[synonym] = keyword
+            
             for script in sorted(script_dir.glob(search_pattern.format(selected_object))):
                 filename = script.stem
                 if filename == '__init__' or filename == 'scil_search_keywords':
@@ -156,22 +165,25 @@ def main():
                 if synonym_score > 0:
                     if filename not in scores:
                         scores[filename] = {'total_score': 0}
+                        matches.append(filename) 
                     scores[filename][keyword] = scores[filename].get(keyword, 0) + synonym_score
                     scores[filename]['total_score'] += synonym_score
-
+    
     if not matches:
         logging.info(_make_title(' No results found! '))
 
     # Sort matches by score and print them
     else:
         sorted_matches = sorted(matches, key=lambda x: scores[x]['total_score'], reverse=True)
+
         logging.info(_make_title(' Results Ordered by Score '))
         for match in sorted_matches:
             #display_filename = match + '.py'
             logging.info(f"{Fore.BLUE}{Style.BRIGHT}{match}{Style.RESET_ALL}")
             for word, score in scores[match].items():
                 if word != 'total_score':
-                    logging.info(f"{Fore.GREEN}Occurrence of '{word}': {score}{Style.RESET_ALL}")
+                    original_word = keyword_mapping.get(word, phrase_mapping.get(word, word))
+                    logging.info(f"{Fore.GREEN}Occurrence of '{original_word}': {score}{Style.RESET_ALL}")
             logging.info(f"Total Score: {scores[match]['total_score']}")
             logging.info(f"{Fore.BLUE}{'=' * SPACING_LEN}")
             logging.info("\n")
