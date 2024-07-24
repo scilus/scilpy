@@ -2,15 +2,23 @@
 # -*- coding: utf-8 -*-
 
 """
-Search through all of SCILPY scripts and their docstrings. The output of the
-search will be the intersection of all provided keywords, found either in the
-script name or in its docstring.
-By default, print the matching filenames and the first sentence of the
-docstring. If --verbose if provided, print the full docstring.
+Search through all SCILPY scripts and their docstrings to find matches for the provided keywords.
+The search will be performed across script names, docstrings, help files, keywords, and optionally synonyms.
+The output will list the matching filenames along with the occurrences of each keyword, and their total score.
+
+- By default, the search includes synonyms for the keywords.
+- Use --no_synonyms to exclude synonyms from the search.
+- Use --search_category to limit the search to a specific category of scripts.
+- Use --verbose to display the full docstring.
+- Words enclosed in quotes will be searched as phrases, ensuring the words appear next to each other in the text.
+
 
 Examples:
     scil_search_keywords.py tractogram filtering
     scil_search_keywords.py --search_parser tractogram filtering -v
+    scil_search_keywords.py "Spherical Harmonics" convert
+    scil_search_keywords.py --no_synonyms tractogram filtering
+    scil_search_keywords.py --search_category --verbose tractogram filtering
 """
 
 import argparse
@@ -21,9 +29,8 @@ from colorama import init, Fore, Style
 import json
 
 from scilpy.utils.scilpy_bot import (
-    _get_docstring_from_script_path, _split_first_sentence, _stem_keywords,
-    _stem_text, _stem_phrase, _generate_help_files, _highlight_keywords,
-    _get_synonyms, _extract_keywords_and_phrases, _calculate_score, _make_title
+    _get_docstring_from_script_path, _split_first_sentence, _stem_keywords, _stem_phrase, _generate_help_files,
+    _get_synonyms, _extract_keywords_and_phrases, _calculate_score, _make_title, prompt_user_for_object
 )
 
 from scilpy.utils.scilpy_bot import SPACING_LEN, KEYWORDS_FILE_PATH, SYNONYMS_FILE_PATH
@@ -31,26 +38,6 @@ from scilpy.io.utils import add_verbose_arg
 
 nltk.download('punkt', quiet=True)
 
-OBJECTS = [
-    'aodf', 'bids', 'bingham', 'btensor', 'bundle', 'connectivity', 'denoising',
-    'dki', 'dti','dwi', 'fodf', 'freewater', 'frf', 'gradients', 'header', 'json',
-    'labels', 'lesions', 'mti', 'NODDI', 'sh', 'surface', 'tracking',
-    'tractogram', 'viz', 'volume', 'qball', 'rgb', 'lesions'
-]
-
-def prompt_user_for_object():
-    print("Available objects:")
-    for idx, obj in enumerate(OBJECTS):
-        print(f"{idx + 1}. {obj}")
-    while True:
-        try:
-            choice = int(input("Choose the object you want to work on (enter the number): "))
-            if 1 <= choice <= len(OBJECTS):
-                return OBJECTS[choice - 1]
-            else:
-                print(f"Please enter a number between 1 and {len(OBJECTS)}.")
-        except ValueError:
-            print("Invalid input. Please enter a number.")
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(description=__doc__,
@@ -59,9 +46,6 @@ def _build_arg_parser():
     #              help='Choose the object you want to work on.' )
     p.add_argument('keywords', nargs='+',
                    help='Search the provided list of keywords.')
-
-    p.add_argument('--full_parser', action='store_true',
-                   help='Display the full script argparser help.')
     
     p.add_argument('--search_category', action='store_true',
                    help='Search within a specific category of scripts.')
@@ -88,7 +72,7 @@ def main():
         selected_object = prompt_user_for_object()
 
     keywords, phrases = _extract_keywords_and_phrases(args.keywords)
-    stemmed_keywords = _stem_keywords(args.keywords)
+    stemmed_keywords = _stem_keywords(keywords)
     stemmed_phrases = [_stem_phrase(phrase) for phrase in phrases]
 
     script_dir = pathlib.Path(__file__).parent
@@ -109,7 +93,7 @@ def main():
     # pattern to search for
     search_pattern = f'scil_{"{}_" if selected_object else ""}*.py'
 
-    def update_matches_and_scores(filename, search_text, score_details):
+    def update_matches_and_scores(filename, score_details):
         if score_details['total_score'] > 0:
             if filename not in matches:
                 matches.append(filename)
@@ -128,7 +112,7 @@ def main():
         # Search through the docstring
         search_text = _get_docstring_from_script_path(str(script))
         score_details = _calculate_score(stemmed_keywords, stemmed_phrases, search_text, filename=filename)
-        update_matches_and_scores(filename, search_text, score_details)
+        update_matches_and_scores(filename, score_details)
         
 
         # Search in help files
@@ -137,7 +121,7 @@ def main():
             with open(help_file, 'r') as f:
                 search_text = f.read()
             score_details = _calculate_score(stemmed_keywords, stemmed_phrases, search_text, filename=filename)
-            update_matches_and_scores(filename, search_text, score_details)
+            update_matches_and_scores(filename, score_details)
 
     # Search in keywords file
     with open(KEYWORDS_FILE_PATH, 'r') as f:
@@ -150,24 +134,30 @@ def main():
         script_keywords = script['keywords']
         search_text = ' '.join(script_keywords)
         score_details = _calculate_score(stemmed_keywords, stemmed_phrases, search_text, script_name)
-        update_matches_and_scores(script_name, search_text, score_details)
+        update_matches_and_scores(script_name, score_details)
 
 
-    # Search in synonyms file if not args.no_synonyms is not specified:
+    # Search in synonyms file if not args.no_synonyms is not specified
     if not args.no_synonyms:
         with open(SYNONYMS_FILE_PATH, 'r') as f:
             synonyms_data = json.load(f)
             
-        for keyword in args.keywords:
+        for keyword in keywords + phrases:
             synonyms = _get_synonyms(keyword, synonyms_data)
             for script in sorted(script_dir.glob(search_pattern.format(selected_object))):
                 filename = script.stem
                 if filename == '__init__' or filename == 'scil_search_keywords':
                     continue
                 search_text = _get_docstring_from_script_path(str(script))
-                if any(synonym in search_text for synonym in synonyms):
-                    score_details = _calculate_score(synonyms, [], search_text, filename)
-                    update_matches_and_scores(filename, search_text, score_details)
+                synonym_score = 0
+                for synonym in synonyms:
+                    if synonym in search_text:
+                        synonym_score += search_text.count(synonym)
+                if synonym_score > 0:
+                    if filename not in scores:
+                        scores[filename] = {'total_score': 0}
+                    scores[filename][keyword] = scores[filename].get(keyword, 0) + synonym_score
+                    scores[filename]['total_score'] += synonym_score
 
     if not matches:
         logging.info(_make_title(' No results found! '))
