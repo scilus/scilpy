@@ -91,9 +91,9 @@ from copy import deepcopy
 import nibabel as nib
 import numpy as np
 
-from scilpy.io.image import (get_data_as_mask,
-                             merge_labels_into_mask)
-from scilpy.image.labels import get_data_as_labels
+from scilpy.io.image import get_data_as_mask
+from scilpy.image.labels import (get_data_as_labels,
+                                 merge_labels_into_mask)
 from scilpy.io.streamlines import (load_tractogram_with_reference,
                                    save_tractogram)
 from scilpy.io.utils import (add_json_args, add_overwrite_arg,

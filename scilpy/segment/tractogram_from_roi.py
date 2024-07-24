@@ -11,6 +11,8 @@ from scipy.ndimage import binary_dilation
 from dipy.io.streamline import save_tractogram
 from dipy.tracking.utils import length as compute_length
 
+from scilpy.image.utils import \
+    split_mask_blobs_kmeans
 from scilpy.io.image import get_data_as_mask
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.segment.streamlines import filter_grid_roi, filter_grid_roi_both
@@ -18,8 +20,6 @@ from scilpy.tractograms.streamline_operations import \
     remove_loops_and_sharp_turns
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
 
-from scilpy.tractograms.streamline_and_mask_operations import \
-    split_mask_blobs_kmeans
 from scilpy.tractograms.streamline_operations import \
     filter_streamlines_by_total_length_per_dim
 from scilpy.utils.filenames import split_name_with_nii
