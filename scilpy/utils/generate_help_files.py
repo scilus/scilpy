@@ -15,11 +15,10 @@ The help output is saved in a hidden directory to avoid clutter in the main scri
 """
 
 import subprocess
-from pathlib import Path
+import pathlib
 
+scripts_dir= pathlib.Path(__file__).parent.parent.parent /'scripts'
 
-
-scripts_dir = Path('scripts/')
 
 # Hidden directory to store help files
 hidden_dir = scripts_dir / '.hidden'
