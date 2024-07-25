@@ -29,10 +29,10 @@ from scilpy.tractanalysis.bundle_operations import uniformize_bundle_sft
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
 from scilpy.tractograms.streamline_operations import smooth_line_gaussian, \
     resample_streamlines_step_size, parallel_transport_streamline, \
-    cut_invalid_streamlines, compress_sft, cut_invalid_streamlines, \
+    compress_sft, cut_invalid_streamlines, \
     remove_overlapping_points_streamlines, remove_single_point_streamlines
 from scilpy.tractograms.streamline_and_mask_operations import \
-    cut_outside_of_mask_streamlines
+    cut_streamlines_with_mask
 from scilpy.utils.spatial import generate_rotation_matrix
 
 MIN_NB_POINTS = 10
@@ -1225,7 +1225,7 @@ def trim_streamlines_alter(sft, min_dice=0.90, epsilon=0.01):
         # set logger level to ERROR to avoid logging from cut_outside_of_mask
         log_level = logging.getLogger().getEffectiveLevel()
         logging.getLogger().setLevel(logging.ERROR)
-        new_sft = cut_outside_of_mask_streamlines(sft, mask, min_len=10)
+        new_sft = cut_streamlines_with_mask(sft, mask, min_len=10)
         # reset logger level
         logging.getLogger().setLevel(log_level)
 

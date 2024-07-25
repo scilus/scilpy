@@ -16,22 +16,22 @@ as possible to the specified minimum dice coefficient (with an epsilon for
 convergence).
 
 - The subsample operation will remove streamlines until the minimum dice is
-  reached. This affect the whole bundle.
+  reached. This affects the whole bundle.
 
-- The trim operation will used the lowest density voxels (starting at 1) to
+- The trim operation will use the lowest density voxels (starting at 1) to
   remove points from the streamlines until the minimum dice is reached.
   This typically affect the edge of the bundle.
 
-- The cut operation will remove points from the start (or end) streamlines until
-  the minimum dice is reached. This affect one end of the bundle.
+- The cut operation will remove points from the start (or end) streamlines
+  until the minimum dice is reached. This affects one end of the bundle.
 
 - The replace operation will upsample the tractogram (generate new streamlines
-  with noise) and then subsample the tractogram. This effectively replace
+  with noise) and then subsample the tractogram. This effectively replaces
   streamlines with similar ones until the minimum dice is reached.
-  This affect the whole bundle.
+  This affects the whole bundle.
 
 - The transform operation will apply random rotations to the streamlines
-  until the minimum dice is reached. This affect the whole bundle.
+  until the minimum dice is reached. This affects the whole bundle.
 """
 
 import argparse
@@ -81,7 +81,7 @@ def buildArgsParser():
                     help='Transform streamlines using a random linear '
                          'transformation.')
     g.add_argument('--from_end', action='store_true',
-                   help='Cut from the other end of streamlines.\n'
+                   help='Cut streamlines from the tail rather than the head.\n'
                         'Only available with --cut.')
     g.add_argument('--save_transform', metavar='FILE',
                    help='Save the transformation matrix to a file.\n'
