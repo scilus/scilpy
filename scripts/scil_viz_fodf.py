@@ -307,12 +307,11 @@ def main():
         bg_actor = create_texture_slicer(data['bg'],
                                          args.axis_name,
                                          args.slice_index,
-                                         mask,
-                                         args.bg_range,
-                                         args.bg_opacity,
-                                         args.bg_offset,
-                                         None,
-                                         args.bg_interpolation)
+                                         mask=mask,
+                                         value_range=args.bg_range,
+                                         opacity=args.bg_opacity,
+                                         offset=args.bg_offset,
+                                         interpolation=args.bg_interpolation)
         actors.append(bg_actor)
 
     # Instantiate a peaks slicer actor if peaks are supplied
