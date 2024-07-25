@@ -199,8 +199,8 @@ def main():
         out_dir += "/"
 
     assert_output_dirs_exist_and_empty(parser, args, out_dir, create_dir=True)
-    assert_inputs_exist(parser, [args.in_peaks] + args.in_bundles[0])
-    assert_headers_compatible(parser, [args.in_peaks] + args.in_bundles[0])
+    assert_inputs_exist(parser, [args.in_peaks] + args.in_bundles)
+    assert_headers_compatible(parser, [args.in_peaks] + args.in_bundles)
 
     if args.rel_thr < 0 or args.rel_thr > 1:
         parser.error("Argument rel_thr must be a value between 0 and 1.")
