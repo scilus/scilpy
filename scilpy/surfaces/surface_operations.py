@@ -5,7 +5,7 @@ from scipy.ndimage import map_coordinates
 import trimeshpy.vtk_util as vtk_u
 
 
-def apply_transform(mesh, ants_affine, ants_warp=None):
+def apply_transform(mesh, ants_affine, ants_warp=None, inverse=False):
     """
     Apply transformation to a surface
         - Apply linear transformation with affine
@@ -27,6 +27,8 @@ def apply_transform(mesh, ants_affine, ants_warp=None):
     """
     # Affine transformation
     inv_affine = np.linalg.inv(ants_affine)
+        if inverse:
+        linear_transfo = np.linalg.inv(linear_transfo)
 
     # Transform mesh vertices
     mesh.set_vertices(mesh.vertices_affine(inv_affine))
