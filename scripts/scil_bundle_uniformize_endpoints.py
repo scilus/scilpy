@@ -24,8 +24,8 @@ import logging
 from dipy.io.streamline import save_tractogram
 import nibabel as nib
 
-from scilpy.image.labels import get_data_as_labels
-from scilpy.io.image import merge_labels_into_mask
+from scilpy.image.labels import (get_data_as_labels,
+                                 merge_labels_into_mask)
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg,
                              add_reference_arg,

@@ -21,6 +21,7 @@ h5py==3.10.*
 joblib==1.2.*
 kiwisolver==1.4.*
 matplotlib==3.6.*
+PyMCubes==0.1.*
 nibabel==5.2.*
 nilearn==0.9.*
 numpy==1.25.*

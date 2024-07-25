@@ -40,7 +40,7 @@ from scilpy.tractanalysis.bundle_operations import uniformize_bundle_sft
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
 from scilpy.tractanalysis.distance_to_centroid import min_dist_to_centroid
 from scilpy.tractograms.streamline_and_mask_operations import \
-    cut_outside_of_mask_streamlines
+    cut_streamlines_with_mask
 from scilpy.tractograms.streamline_operations import \
     resample_streamlines_num_points
 from scilpy.viz.color import get_lookup_table
@@ -149,8 +149,8 @@ def main():
     # Chop off some streamlines
     concat_sft = StatefulTractogram.from_sft([], sft_list[0])
     for i in range(len(sft_list)):
-        sft_list[i] = cut_outside_of_mask_streamlines(sft_list[i],
-                                                      binary_bundle)
+        sft_list[i] = cut_streamlines_with_mask(sft_list[i],
+                                                binary_bundle)
         if len(sft_list[i]):
             concat_sft += sft_list[i]
 
