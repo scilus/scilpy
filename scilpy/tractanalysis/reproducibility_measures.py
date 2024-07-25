@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from concurrent.futures import ProcessPoolExecutor, as_completed
-from copy import deepcopy
+from copy import deepcopy, copy
 import logging
 import warnings
 
@@ -667,3 +667,156 @@ def tractogram_pairwise_comparison(sft_one, sft_two, mask, nbr_cpu=1,
     heatmap = merge_metrics(acc_data, corr_data, diff_data_norm)
 
     return acc_data, corr_data, diff_data_norm, heatmap, mask
+
+
+def compare_volume_wrapper(data_1, data_2, voxel_size=1, ratio=False,
+                           adjency_no_overlap=False):
+    # Exclude 0 (background)
+    unique_values_1 = np.unique(data_1)[1:]
+    unique_values_2 = np.unique(data_2)[1:]
+    union_values = np.union1d(unique_values_1, unique_values_2)
+
+    dict_measures = {}
+    for val in union_values:
+        binary_1 = np.zeros(data_1.shape, dtype=np.uint8)
+        binary_1[data_1 == val] = 1
+        binary_2 = np.zeros(data_2.shape, dtype=np.uint8)
+        binary_2[data_2 == val] = 1
+
+        # These measures are in mm^3
+        volume_overlap = np.count_nonzero(binary_1 * binary_2)
+        volume_overreach = np.abs(np.count_nonzero(
+            binary_1 + binary_2) - volume_overlap)
+
+        if ratio:
+            count = np.count_nonzero(binary_1)
+            volume_overlap /= count
+            volume_overreach /= count
+
+        # These measures are in mm
+        bundle_adjacency_voxel = compute_bundle_adjacency_voxel(
+            binary_1, binary_2,
+            non_overlap=adjency_no_overlap)
+
+        # These measures are between 0 and 1
+        dice_vox, _ = compute_dice_voxel(binary_1,
+                                         binary_2)
+
+        measures_name = ['adjacency_voxels',
+                         'dice_voxels',
+                         'volume_overlap',
+                         'volume_overreach']
+
+        # If computing ratio, voxel size does not make sense
+        if ratio:
+            voxel_size = 1.
+        measures = [bundle_adjacency_voxel,
+                    dice_vox,
+                    volume_overlap * voxel_size,
+                    volume_overreach * voxel_size]
+
+        curr_dict = dict(zip(measures_name, measures))
+        for measure_name, measure in curr_dict.items():
+            if measure_name not in dict_measures:
+                dict_measures[measure_name] = {}
+            dict_measures[measure_name].update({int(val): float(measure)})
+
+    return dict_measures
+
+
+def compare_bundle_wrapper(density_1, density_2, endpoints_density_1,
+                           endpoints_density_2, bundle_1, bundle_2,
+                           centroids_1=None, centroids_2=None, voxel_size=1,
+                           ratio=False, streamline_dice=False,
+                           disable_streamline_distance=False,
+                           bundle_adjency_no_overlap=False):
+    # These measures are in mm^3
+    binary_1 = copy(density_1)
+    binary_1[binary_1 > 0] = 1
+    binary_2 = copy(density_2)
+    binary_2[binary_2 > 0] = 1
+    volume_overlap = np.count_nonzero(binary_1 * binary_2)
+    volume_overlap_endpoints = np.count_nonzero(
+        endpoints_density_1 * endpoints_density_2)
+    volume_overreach = np.abs(np.count_nonzero(
+        binary_1 + binary_2) - volume_overlap)
+    volume_overreach_endpoints = np.abs(np.count_nonzero(
+        endpoints_density_1 + endpoints_density_2) - volume_overlap_endpoints)
+
+    if ratio:
+        count = np.count_nonzero(binary_1)
+        volume_overlap /= count
+        volume_overlap_endpoints /= count
+        volume_overreach /= count
+        volume_overreach_endpoints /= count
+
+    # These measures are in mm
+    bundle_adjacency_voxel = compute_bundle_adjacency_voxel(
+        density_1, density_2,
+        non_overlap=bundle_adjency_no_overlap)
+    if streamline_dice and not disable_streamline_distance:
+        bundle_adjacency_streamlines = \
+            compute_bundle_adjacency_streamlines(
+                bundle_1, bundle_2,
+                non_overlap=bundle_adjency_no_overlap)
+    elif not disable_streamline_distance:
+        bundle_adjacency_streamlines = \
+            compute_bundle_adjacency_streamlines(
+                bundle_1, bundle_2,
+                centroids_1=centroids_1,
+                centroids_2=centroids_2,
+                non_overlap=bundle_adjency_no_overlap)
+    # These measures are between 0 and 1
+    dice_vox, w_dice_vox = compute_dice_voxel(density_1, density_2)
+
+    dice_vox_endpoints, w_dice_vox_endpoints = compute_dice_voxel(
+        endpoints_density_1,
+        endpoints_density_2)
+    density_correlation = compute_correlation(density_1, density_2)
+    density_correlation_endpoints = compute_correlation(endpoints_density_1,
+                                                        endpoints_density_2)
+
+    measures_name = ['bundle_adjacency_voxels',
+                     'dice_voxels', 'w_dice_voxels',
+                     'volume_overlap',
+                     'volume_overreach',
+                     'dice_voxels_endpoints',
+                     'w_dice_voxels_endpoints',
+                     'volume_overlap_endpoints',
+                     'volume_overreach_endpoints',
+                     'density_correlation',
+                     'density_correlation_endpoints']
+
+    # If computing ratio, voxel size does not make sense
+    if ratio:
+        voxel_size = 1.
+    measures = [bundle_adjacency_voxel,
+                dice_vox, w_dice_vox,
+                volume_overlap * voxel_size,
+                volume_overreach * voxel_size,
+                dice_vox_endpoints,
+                w_dice_vox_endpoints,
+                volume_overlap_endpoints * voxel_size,
+                volume_overreach_endpoints * voxel_size,
+                density_correlation,
+                density_correlation_endpoints]
+
+    if not disable_streamline_distance:
+        measures_name += ['bundle_adjacency_streamlines']
+        measures += [bundle_adjacency_streamlines]
+
+    # Only when the tractograms are exactly the same
+    if streamline_dice:
+        dice_streamlines, streamlines_intersect, streamlines_union = \
+            compute_dice_streamlines(bundle_1, bundle_2)
+        streamlines_count_overlap = len(streamlines_intersect)
+        streamlines_count_overreach = len(
+            streamlines_union) - len(streamlines_intersect)
+        measures_name += ['dice_streamlines',
+                          'streamlines_count_overlap',
+                          'streamlines_count_overreach']
+        measures += [dice_streamlines,
+                     streamlines_count_overlap,
+                     streamlines_count_overreach]
+
+    return dict(zip(measures_name, measures))

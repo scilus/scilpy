@@ -3,13 +3,19 @@
 
 """
 Evaluate pair-wise similarity measures of masks and atlas.
-All volumes must be in the same space.
+All volumes must be co-registered in the same space.
 
-For the voxel representation, the computed similarity measures are:
+Support multiple input volume. Without --single_compare you need at least two
+input volumes. If using --single_compare you need at least one input volume.
+
+The computed similarity measures are:
     adjacency_voxels, dice_voxels, volume_overlap, volume_overreach.
 
 This can work for BET mask, WMPARC, bundle label maps. The datatype of the
 input volumes must be uint8 (mask) or uint16 (label map and atlas).
+
+If you have streamlines to compare, the following script could be
+of interest for you: scil_bundle_pairwise_comparison.py
 """
 
 
@@ -26,15 +32,13 @@ from scilpy.io.image import load_img
 from scilpy.io.utils import (add_json_args,
                              add_overwrite_arg,
                              add_processes_arg,
-                             add_reference_arg,
                              add_verbose_arg,
                              assert_headers_compatible,
                              assert_inputs_exist,
                              assert_outputs_exist,
                              validate_nbr_processes)
 from scilpy.image.labels import get_data_as_labels
-from scilpy.tractanalysis.reproducibility_measures import compute_dice_voxel, \
-    compute_bundle_adjacency_voxel
+from scilpy.tractanalysis.reproducibility_measures import compare_volume_wrapper
 
 
 def _build_arg_parser():
@@ -57,7 +61,6 @@ def _build_arg_parser():
                         '--single_compare`.')
 
     add_processes_arg(p)
-    add_reference_arg(p)
     add_json_args(p)
     add_verbose_arg(p)
     add_overwrite_arg(p)
@@ -88,57 +91,9 @@ def compute_all_measures(args):
 
     _, _, voxel_size, _ = get_reference_info(img_1)
     voxel_size = np.product(voxel_size)
-
-    # Exclude 0 (background)
-    unique_values_1 = np.unique(data_1)[1:]
-    unique_values_2 = np.unique(data_2)[1:]
-    union_values = np.union1d(unique_values_1, unique_values_2)
-
-    dict_measures = {}
-    for val in union_values:
-        binary_1 = np.zeros(data_1.shape, dtype=np.uint8)
-        binary_1[data_1 == val] = 1
-        binary_2 = np.zeros(data_2.shape, dtype=np.uint8)
-        binary_2[data_2 == val] = 1
-
-        # These measures are in mm^3
-        volume_overlap = np.count_nonzero(binary_1 * binary_2)
-        volume_overreach = np.abs(np.count_nonzero(
-            binary_1 + binary_2) - volume_overlap)
-
-        if ratio:
-            count = np.count_nonzero(binary_1)
-            volume_overlap /= count
-            volume_overreach /= count
-
-        # These measures are in mm
-        bundle_adjacency_voxel = compute_bundle_adjacency_voxel(
-            binary_1, binary_2,
-            non_overlap=adjency_no_overlap)
-
-        # These measures are between 0 and 1
-        dice_vox, _ = compute_dice_voxel(binary_1,
-                                         binary_2)
-
-        measures_name = ['adjacency_voxels',
-                         'dice_voxels',
-                         'volume_overlap',
-                         'volume_overreach']
-
-        # If computing ratio, voxel size does not make sense
-        if ratio:
-            voxel_size = 1.
-        measures = [bundle_adjacency_voxel,
-                    dice_vox,
-                    volume_overlap * voxel_size,
-                    volume_overreach * voxel_size]
-
-        curr_dict = dict(zip(measures_name, measures))
-        for measure_name, measure in curr_dict.items():
-            if measure_name not in dict_measures:
-                dict_measures[measure_name] = {}
-            dict_measures[measure_name].update({int(val): float(measure)})
-
+    logging.info(f"Comparing {filename_1} and {filename_2}")
+    dict_measures = compare_volume_wrapper(data_1, data_2, voxel_size,
+                                           adjency_no_overlap, ratio)
     return dict_measures
 
 
@@ -147,10 +102,9 @@ def main():
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
-    assert_inputs_exist(parser, args.in_volumes, args.reference)
+    assert_inputs_exist(parser, args.in_volumes)
     assert_outputs_exist(parser, args, [args.out_json])
-    assert_headers_compatible(parser, args.in_volumes,
-                              reference=args.reference)
+    assert_headers_compatible(parser, args.in_volumes)
 
     if args.ratio and not args.single_compare:
         parser.error('Can only compute ratio if also using `single_compare`')
@@ -160,7 +114,8 @@ def main():
         pool = multiprocessing.Pool(nbr_cpu)
 
     if args.single_compare:
-        # Move the single_compare only once, at the end.
+        # Remove the single_compare from inputs and combine it to all
+        # other files.
         if args.single_compare in args.in_volumes:
             args.in_volumes.remove(args.single_compare)
 
