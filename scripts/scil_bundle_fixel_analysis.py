@@ -100,10 +100,10 @@ def _build_arg_parser():
                         'or SH data, use the script scil_fodf_metrics.py '
                         '\nwith the abs_peaks_and_values option.')
 
-    p.add_argument('--in_bundles', nargs='+', action='append', required=True,
+    p.add_argument('--in_bundles', nargs='+', required=True,
                    help='List of paths of the bundles (.trk) to analyze.')
 
-    p.add_argument('--in_bundles_names', nargs='+', action='append',
+    p.add_argument('--in_bundles_names', nargs='+',
                    help='List of the names of the bundles, in the same order '
                         'as they were given. \nIf this argument is not used, '
                         'the script assumes that the name of the bundle \nis '
@@ -184,14 +184,14 @@ def main():
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
-    assert_inputs_exist(parser, [args.in_peaks] + args.in_bundles[0])
+    assert_inputs_exist(parser, [args.in_peaks] + args.in_bundles)
     assert_outputs_exist(parser, args, ["bundles_LUT.txt",
                                         "fixel_density_maps.nii.gz",
                                         "fixel_density_masks.nii.gz",
                                         "voxel_density_masks.nii.gz",
                                         "nb_bundles_per_fixel.nii.gz",
                                         "nb_bundles_per_voxel.nii.gz"])
-    assert_headers_compatible(parser, [args.in_peaks] + args.in_bundles[0])
+    assert_headers_compatible(parser, [args.in_peaks] + args.in_bundles)
 
     if args.rel_thr < 0 or args.rel_thr > 1:
         parser.error("Argument rel_thr must be a value between 0 and 1.")
@@ -209,12 +209,12 @@ def main():
         nufo_sf = np.logical_and(is_first_peak, is_second_peak)
 
     # Extract bundles and names
-    bundles = args.in_bundles[0]
+    bundles = args.in_bundles
     if args.in_bundles_names:  # If names are given
-        if len(args.in_bundles_names[0]) != len(bundles):
+        if len(args.in_bundles_names) != len(bundles):
             parser.error("--in_bundles_names must contain the same number of "
                          "elements as in --in_bundles.")
-        bundles_names = args.in_bundles_names[0]
+        bundles_names = args.in_bundles_names
     else:
         logging.info("Extracting bundles names.")
         bundles_names = []
