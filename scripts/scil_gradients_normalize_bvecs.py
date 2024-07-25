@@ -20,7 +20,7 @@ def _build_arg_parser():
                                 description=__doc__)
 
     p.add_argument('in_bvec',
-                   help='Path(s) to the gradient file (.bvec).')
+                   help='Path to the gradient file (.bvec).')
 
     p.add_argument('out_bvec',
                    help='Output bvec file.')
