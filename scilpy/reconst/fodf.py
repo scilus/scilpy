@@ -284,3 +284,80 @@ def verify_frf_files(wm_frf, gm_frf, csf_frf):
                          'Invalid or deprecated FRF format')
 
     return wm_frf, gm_frf, csf_frf
+
+
+def log_u(c):
+    """ Log projection of the SH coefficients, ie the tangent space of the SH
+    coefficients in S3++ space.
+
+    """
+
+    H, W, D, K = c.shape
+
+    # unit tangeant vector
+    u = np.zeros((H, W, D, K))
+    u[..., 0] = 1
+
+    # Compute the scaling factor
+    PSI = np.arccos(np.einsum('...i,...i->...', c, u))[..., None]
+
+    # cosine of the scaling factor
+    cos_PSI = np.cos(PSI)
+
+    # Distance between the SH and the unit tangeant vector
+    d = np.subtract(c, u * cos_PSI)
+
+    # Norm
+    n = np.linalg.norm(d, 2, axis=-1, keepdims=True)
+
+    # Projection
+    v_c = (d * PSI) / n
+
+    return v_c
+
+
+def exp_u(v_c):
+
+    H, W, D, K = v_c.shape
+    u = np.zeros((H, W, D, K))
+    u[..., 0] = 1
+    # EXP projection
+    PSI = np.linalg.norm(v_c + 1e-10, axis=-1, keepdims=True)
+    #
+    u_cos_PSI = u * np.cos(PSI)
+    v_c_norm = np.nan_to_num((v_c / PSI))
+    sin_PSI = np.sin(PSI)
+
+    # Compute the new SH
+    c = u_cos_PSI + v_c_norm * sin_PSI
+
+    return c
+
+
+def interpolate_fodf(sh, resolution, sphere, sh_order, fullness, sh_basis,
+                     is_legacy, nbr_processes, eps=1e-10):
+    """ Interpolate the SH to a new resolution using the log-euclidean
+    framework.
+
+    References
+    ----------
+    [1]: Cheng et al. (2009):
+    [2]: Benoit-Anctille et al. (2022):
+    """
+    H, W, D, K = sh.shape
+
+    # Normalization factor
+    norm = np.linalg.norm(sh + eps, 2, axis=-1, keepdims=True)
+    # Normalize the SH coefficients and add epsilon to avoid division by zero
+    # Ref 2 eq 11, c sums 1
+    c = (sh + eps) / norm
+
+    # Log projection of the SH coefficients
+    v_c = log_u(c)
+    # Exp projection of the SH coefficients
+    c = exp_u(v_c)
+
+    # Undo the normalization and remove epsilon
+    new_sh = np.multiply(c, norm) - eps
+
+    return new_sh
