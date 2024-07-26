@@ -506,6 +506,9 @@ def resample_volume(img, ref_img=None, volume_shape=None, iso_min=False,
     One (and only one) of the following options must be chosen:
     ref, volume_shape, iso_min or voxel_res.
 
+    If fODF is True, the fODF are projected from S3++ to R3 before resampling,
+    and then back. This is to avoid the "swelling" problem [1].
+
     Parameters
     ----------
     img: nib.Nifti1Image
@@ -533,6 +536,13 @@ def resample_volume(img, ref_img=None, volume_shape=None, iso_min=False,
     -------
     resampled_image: nib.Nifti1Image
         Resampled image.
+
+    References
+    ----------
+    [1] Cheng, J., Ghosh, A., Jiang, T., & Deriche, R. (2009). A Riemannian
+    framework for orientation distribution function computing. In International
+    Conference on Medical Image Computing and Computer-Assisted Intervention
+    (pp. 911-918). Berlin, Heidelberg: Springer Berlin Heidelberg.
     """
     data = np.asanyarray(img.dataobj)
     original_shape = data.shape
@@ -577,29 +587,27 @@ def resample_volume(img, ref_img=None, volume_shape=None, iso_min=False,
     logging.info('Data affine setup: %s', nib.aff2axcodes(affine))
     logging.info('Resampling data to %s with mode %s', new_zooms, interp)
 
-    fodf = False
     eps = 1e-10
-
+    # If fODF, we project to R^3 before resampling.
     if fodf:
-
-        # Normalization factor
+        # We first have to normalize the SH coefficients and apply an epsilon
+        # to avoid division by zero.
         norm = np.linalg.norm(data + eps, 2, axis=-1, keepdims=True)
-        # Normalize the SH coefficients and add epsilon to avoid division by
-        # zero
-        # Ref 2 eq 11, c sums 1
+        # Reference 1 eq. 11, c sums 1
+        # Turns out just normalizing the SH coefficients is super good enough.
         c = (data + eps) / norm
 
-        # Log projection of the SH coefficients
-        v_c = log_u(c)
-        data = v_c
+        # Log projection of the SH coefficients, ie pushforward map.
+        data = log_u(c)  # v_c
 
     data2, affine2 = reslice(data, affine, original_zooms, new_zooms,
                              _interp_code_to_order(interp))
 
+    # If fODF, we project back to S3++ after resampling.
     if fodf:
-        # Exp projection of the SH coefficients
+        # Reference 1 eq. 12, ie pullback map.
         c = exp_u(data2)
-
+        # Reslice the normalization factor
         norm, _ = reslice(norm, affine, original_zooms, new_zooms,
                           _interp_code_to_order(interp))
 
