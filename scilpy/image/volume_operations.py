@@ -587,32 +587,21 @@ def resample_volume(img, ref_img=None, volume_shape=None, iso_min=False,
     logging.info('Data affine setup: %s', nib.aff2axcodes(affine))
     logging.info('Resampling data to %s with mode %s', new_zooms, interp)
 
-    eps = 1e-10
     # If fODF, we project to R^3 before resampling.
     if fodf:
-        # We first have to normalize the SH coefficients and apply an epsilon
-        # to avoid division by zero.
-        norm = np.linalg.norm(data + eps, 2, axis=-1, keepdims=True)
-        # Reference 1 eq. 11, c sums 1
-        # Turns out just normalizing the SH coefficients is super good enough.
-        c = (data + eps) / norm
-
-        # Log projection of the SH coefficients, ie pushforward map.
-        data = log_u(c)  # v_c
+        # Perform projection to the tangent plane. Ref. 1 eq. 11
+        data, norm = log_u(data)  # v_c
 
     data2, affine2 = reslice(data, affine, original_zooms, new_zooms,
                              _interp_code_to_order(interp))
 
     # If fODF, we project back to S3++ after resampling.
     if fodf:
-        # Reference 1 eq. 12, ie pullback map.
-        c = exp_u(data2)
-        # Reslice the normalization factor
+        # Reslice the normalization factor so we can multiply it back.
         norm, _ = reslice(norm, affine, original_zooms, new_zooms,
                           _interp_code_to_order(interp))
-
-        # Undo the normalization and remove epsilon
-        data2 = np.multiply(c, norm) - eps
+        # Reference 1 eq. 10, ie pullback map.
+        data2 = exp_u(data2, norm)  # c
 
     logging.info('Resampled data shape: %s', data2.shape)
     logging.info('Resampled data affine: %s', affine2)

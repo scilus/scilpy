@@ -287,24 +287,55 @@ def verify_frf_files(wm_frf, gm_frf, csf_frf):
 
 
 def log_u(c):
-    """ Log projection of the SH coefficients, ie the tangent space of the SH
-    coefficients in S3++ space.
+    """ Log projection of the SH coefficients to euclidian space from S3++
+    space. See eq. 11 in [1].
+
+    Parameters
+    ----------
+    c : ndarray
+        SH coefficients of shape (H, W, D, K)
+
+    Returns
+    -------
+    v_c : ndarray
+        The projection of the SH coefficients in the tangent space of the SH.
+    norm : ndarray
+        The norm of the SH coefficients to undo the normalization.
+
+    References:
+    ----------
+    Cheng, J., Ghosh, A., Jiang, T., & Deriche, R. (2009). A Riemannian
+    framework for orientation distribution function computing. In International
+    Conference on Medical Image Computing and Computer-Assisted Intervention
+    (pp. 911-918). Berlin, Heidelberg: Springer Berlin Heidelberg.
 
     """
 
     H, W, D, K = c.shape
 
-    # unit tangeant vector
+    # We first have to normalize the SH coefficients and apply an epsilon
+    # to avoid division by zero.
+    norm = np.linalg.norm(c, axis=-1, keepdims=True)
+    # Eq. 11, c sums 1
+    # Turns out just normalizing the SH coefficients is super good enough.
+    c = c / norm
+
+    # Assert that the SH coefficients are normalized, condition in Eq. 1
+    # is satisfied.
+    assert np.allclose((c ** 2).sum(-1), 1)
+    # Log projection of the SH coefficients, ie pushforward map.
+
+    # Unit tangent vector
     u = np.zeros((H, W, D, K))
     u[..., 0] = 1
 
-    # Compute the scaling factor
+    # Distance between the SH coordinates and the unit tangent vector
     PSI = np.arccos(np.einsum('...i,...i->...', c, u))[..., None]
 
-    # cosine of the scaling factor
+    # Cosine of the angle
     cos_PSI = np.cos(PSI)
 
-    # Distance between the SH and the unit tangeant vector
+    # Translate the SH coefficients
     d = np.subtract(c, u * cos_PSI)
 
     # Norm
@@ -313,22 +344,53 @@ def log_u(c):
     # Projection
     v_c = (d * PSI) / n
 
-    return v_c
+    return v_c, norm
 
 
-def exp_u(v_c):
+def exp_u(v_c, norm):
+    """ Exponential projection of the SH coefficients from the tangent space
+    to the S3++ space. See eq. 12 in [1].
+
+    Parameters
+    ----------
+    v_c : ndarray (H, W, D, K)
+        The projection of the SH coefficients in the tangent space of the SH.
+    norm : ndarray (H, W, D, 1)
+        The norm of the SH coefficients to undo the normalization.
+
+    Returns
+    -------
+    c : ndarray (H, W, D, K)
+        SH coefficients in their native S3++ space.
+
+    References:
+    ----------
+    Cheng, J., Ghosh, A., Jiang, T., & Deriche, R. (2009). A Riemannian
+    framework for orientation distribution function computing. In International
+    Conference on Medical Image Computing and Computer-Assisted Intervention
+    (pp. 911-918). Berlin, Heidelberg: Springer Berlin Heidelberg.
+    """
 
     H, W, D, K = v_c.shape
+
+    # Unit tangent vector
     u = np.zeros((H, W, D, K))
     u[..., 0] = 1
-    # EXP projection
+
+    # Norm
     PSI = np.linalg.norm(v_c + 1e-10, axis=-1, keepdims=True)
-    #
+
+    # Cosine of the angle
     u_cos_PSI = u * np.cos(PSI)
+    # Normalize the vector
     v_c_norm = np.nan_to_num((v_c / PSI))
+    # Sine of the angle
     sin_PSI = np.sin(PSI)
 
-    # Compute the new SH
+    # Projection back to the S3++ space
     c = u_cos_PSI + v_c_norm * sin_PSI
+
+    # Undo the normalization and remove epsilon
+    c = np.multiply(c, norm)
 
     return c
