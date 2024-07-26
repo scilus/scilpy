@@ -21,6 +21,7 @@ from sklearn import linear_model
 from scilpy.image.reslice import reslice  # Don't use Dipy's reslice. Buggy.
 from scilpy.io.image import get_data_as_mask
 from scilpy.gradients.bvec_bval_tools import identify_shells
+from scilpy.reconst.fodf import exp_u, log_u
 from scilpy.utils.spatial import voxel_to_world
 from scilpy.utils.spatial import world_to_voxel
 
@@ -497,7 +498,7 @@ def _interp_code_to_order(interp_code):
 
 def resample_volume(img, ref_img=None, volume_shape=None, iso_min=False,
                     voxel_res=None,
-                    interp='lin', enforce_dimensions=False):
+                    interp='lin', fodf=False, enforce_dimensions=False):
     """
     Function to resample a dataset to match the resolution of another reference
     dataset or to the resolution specified as in argument.
@@ -576,8 +577,34 @@ def resample_volume(img, ref_img=None, volume_shape=None, iso_min=False,
     logging.info('Data affine setup: %s', nib.aff2axcodes(affine))
     logging.info('Resampling data to %s with mode %s', new_zooms, interp)
 
+    fodf = False
+    eps = 1e-10
+
+    if fodf:
+
+        # Normalization factor
+        norm = np.linalg.norm(data + eps, 2, axis=-1, keepdims=True)
+        # Normalize the SH coefficients and add epsilon to avoid division by
+        # zero
+        # Ref 2 eq 11, c sums 1
+        c = (data + eps) / norm
+
+        # Log projection of the SH coefficients
+        v_c = log_u(c)
+        data = v_c
+
     data2, affine2 = reslice(data, affine, original_zooms, new_zooms,
                              _interp_code_to_order(interp))
+
+    if fodf:
+        # Exp projection of the SH coefficients
+        c = exp_u(data2)
+
+        norm, _ = reslice(norm, affine, original_zooms, new_zooms,
+                          _interp_code_to_order(interp))
+
+        # Undo the normalization and remove epsilon
+        data2 = np.multiply(c, norm) - eps
 
     logging.info('Resampled data shape: %s', data2.shape)
     logging.info('Resampled data affine: %s', affine2)

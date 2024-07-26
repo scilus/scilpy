@@ -332,32 +332,3 @@ def exp_u(v_c):
     c = u_cos_PSI + v_c_norm * sin_PSI
 
     return c
-
-
-def interpolate_fodf(sh, resolution, sphere, sh_order, fullness, sh_basis,
-                     is_legacy, nbr_processes, eps=1e-10):
-    """ Interpolate the SH to a new resolution using the log-euclidean
-    framework.
-
-    References
-    ----------
-    [1]: Cheng et al. (2009):
-    [2]: Benoit-Anctille et al. (2022):
-    """
-    H, W, D, K = sh.shape
-
-    # Normalization factor
-    norm = np.linalg.norm(sh + eps, 2, axis=-1, keepdims=True)
-    # Normalize the SH coefficients and add epsilon to avoid division by zero
-    # Ref 2 eq 11, c sums 1
-    c = (sh + eps) / norm
-
-    # Log projection of the SH coefficients
-    v_c = log_u(c)
-    # Exp projection of the SH coefficients
-    c = exp_u(v_c)
-
-    # Undo the normalization and remove epsilon
-    new_sh = np.multiply(c, norm) - eps
-
-    return new_sh
