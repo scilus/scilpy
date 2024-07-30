@@ -313,16 +313,19 @@ def log_u(c):
 
     H, W, D, K = c.shape
 
-    # We first have to normalize the SH coefficients and apply an epsilon
-    # to avoid division by zero.
+    # We first have to normalize the SH coefficients.
     norm = np.linalg.norm(c, axis=-1, keepdims=True)
+    # Using a mask to avoid division by zero.
+    mask = (abs(norm) < 1e-2).repeat(K, axis=-1)
+    c = np.ma.masked_array(c, mask)
+
     # Eq. 11, c sums 1
     # Turns out just normalizing the SH coefficients is super good enough.
-    c = c / norm
+    c_sq = c / norm
 
     # Assert that the SH coefficients are normalized, condition in Eq. 1
     # is satisfied.
-    assert np.allclose((c ** 2).sum(-1), 1)
+    assert np.allclose((c_sq ** 2).sum(-1), 1), c_sq
     # Log projection of the SH coefficients, ie pushforward map.
 
     # Unit tangent vector
@@ -330,21 +333,24 @@ def log_u(c):
     u[..., 0] = 1
 
     # Distance between the SH coordinates and the unit tangent vector
-    PSI = np.arccos(np.einsum('...i,...i->...', c, u))[..., None]
+    # PSI = np.arccos(np.einsum('...i,...i->...', c_sq, u))[..., None]
+    # The above line is equivalent to the following line, but the following
+    # line is faster.
+    PSI = np.arccos(c_sq[..., 0])[..., None]
 
     # Cosine of the angle
     cos_PSI = np.cos(PSI)
 
     # Translate the SH coefficients
-    d = np.subtract(c, u * cos_PSI)
+    d = np.subtract(c_sq, u * cos_PSI)
 
     # Norm
-    n = np.linalg.norm(d, 2, axis=-1, keepdims=True)
+    n = np.linalg.norm(d, axis=-1, keepdims=True)
 
     # Projection
     v_c = (d * PSI) / n
 
-    return v_c, norm
+    return v_c.data, norm
 
 
 def exp_u(v_c, norm):
@@ -378,12 +384,14 @@ def exp_u(v_c, norm):
     u[..., 0] = 1
 
     # Norm
-    PSI = np.linalg.norm(v_c + 1e-10, axis=-1, keepdims=True)
+    PSI = np.linalg.norm(v_c, axis=-1, keepdims=True)
+    mask = (abs(norm) < 0.1).repeat(K, axis=-1)
+    v_c_mask = np.ma.masked_array(v_c, mask)
 
     # Cosine of the angle
     u_cos_PSI = u * np.cos(PSI)
     # Normalize the vector
-    v_c_norm = np.nan_to_num((v_c / PSI))
+    v_c_norm = v_c_mask / PSI
     # Sine of the angle
     sin_PSI = np.sin(PSI)
 
@@ -393,4 +401,4 @@ def exp_u(v_c, norm):
     # Undo the normalization and remove epsilon
     c = np.multiply(c, norm)
 
-    return c
+    return c.data

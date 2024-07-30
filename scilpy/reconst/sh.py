@@ -375,9 +375,15 @@ def _maps_from_sh_parallel(args):
                 afd_sum[idx] = np.sqrt(np.dot(shm_coeff[idx], shm_coeff[idx]))
                 qa_map = peak_values[idx] - odf.min()
                 global_max = max(global_max, peak_values[idx][0])
-            # General Anisotropy requires the SH to be normalized
-            ga_map[idx] = np.arccos(
-                shm_coeff[idx][0] / np.linalg.norm(shm_coeff[idx]))
+            # Property 4 of section 2.2 in Cheng et al. 2009
+            ga_norm_thr = 1e-1
+            shm_coeff_i_norm = np.linalg.norm(shm_coeff[idx])
+            if shm_coeff_i_norm <= ga_norm_thr:
+                ga_map[idx] = 0
+            else:
+                c = (shm_coeff[idx]) / shm_coeff_i_norm
+                cdotu = np.clip(c[0], -1, 1)
+                ga_map[idx] = np.arccos(cdotu)
 
     return chunk_id, nufo_map, afd_max, afd_sum, rgb_map, \
         ga_map, gfa_map, qa_map, max_odf, global_max
@@ -418,7 +424,7 @@ def maps_from_sh(shm_coeff, peak_dirs, peak_values, peak_indices, sphere,
     Returns
     -------
     tuple of np.ndarray
-        nufo_map, afd_max, afd_sum, rgb_map, gfa, qa
+        nufo_map, afd_max, afd_sum, rgb_map, ga, gfa, qa
     """
     sh_order = order_from_ncoef(shm_coeff.shape[-1])
     B, _ = sh_to_sf_matrix(sphere, sh_order, sh_basis_type)
@@ -499,7 +505,6 @@ def maps_from_sh(shm_coeff, peak_dirs, peak_values, peak_indices, sphere,
     ga_map_array[mask] = tmp_ga_map_array
     gfa_map_array[mask] = tmp_gfa_map_array
     qa_map_array[mask] = tmp_qa_map_array
-
     rgb_map_array /= all_time_max_odf
     rgb_map_array *= 255
     qa_map_array /= all_time_global_max
@@ -510,7 +515,7 @@ def maps_from_sh(shm_coeff, peak_dirs, peak_values, peak_indices, sphere,
         logging.warning('All AFD_max values are 1. The peaks seem normalized.')
 
     return (nufo_map_array, afd_max_array, afd_sum_array,
-            rgb_map_array, ga_map_array, gfa_map_array, qa_map_array)
+            rgb_map_array, gfa_map_array, ga_map_array, qa_map_array)
 
 
 def _convert_sh_basis_parallel(args):
