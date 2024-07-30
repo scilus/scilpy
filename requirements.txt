@@ -22,6 +22,7 @@ kiwisolver==1.4.*
 matplotlib==3.6.*
 nibabel==5.2.*
 nilearn==0.9.*
+nltk==3.8.*
 numpy==1.23.*
 openpyxl==3.0.*
 packaging == 23.2.*
