@@ -5,14 +5,23 @@
 Evaluate pair-wise similarity measures of masks and atlas.
 All volumes must be co-registered in the same space.
 
-Support multiple input volume. Without --single_compare you need at least two
-input volumes. If using --single_compare you need at least one input volume.
+Support multiple input volume. The following command will compare all
+combinations of the input volumes (1-2, 1-3, 2-3):
+  scil_volume_pairwise_comparison.py mask1.nii.gz mask2.nii.gz \
+    mask3.nii.gz out.json
 
-The computed similarity measures are:
-    adjacency_voxels, dice_voxels, volume_overlap, volume_overreach.
+The following command will compare all input of the input volumes to a single
+volume (1-ref, 2-ref, 3-ref):
+  scil_volume_pairwise_comparison.py mask1.nii.gz mask2.nii.gz \
+    mask3.nii.gz out.json --single_compare ref.nii.gz
 
 This can work for BET mask, WMPARC, bundle label maps. The datatype of the
 input volumes must be uint8 (mask) or uint16 (label map and atlas).
+The computed similarity measures are:
+    adjacency_voxels, dice_voxels, volume_overlap, volume_overreach.
+For each measure, an entry in the json file will be created and for each unique
+value present in the input volumes there will be an entry under the measure.
+(i.e. a binary mask will have one entries for each measure, 1).
 
 If you have streamlines to compare, the following script could be
 of interest for you: scil_bundle_pairwise_comparison.py
@@ -53,7 +62,7 @@ def _build_arg_parser():
     p.add_argument('--adjency_no_overlap', action='store_true',
                    help='If set, do not count zeros in the average BA.')
 
-    p.add_argument('--single_compare',
+    p.add_argument('--single_compare', metavar='FILE',
                    help='Compare inputs to this single file.')
     p.add_argument('--ratio', action='store_true',
                    help='Compute overlap and overreach as a ratio over the '
