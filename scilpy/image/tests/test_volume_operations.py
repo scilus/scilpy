@@ -12,7 +12,8 @@ from scilpy import SCILPY_HOME
 from scilpy.image.volume_operations import (apply_transform, compute_snr,
                                             crop_volume, flip_volume,
                                             merge_metrics, normalize_metric,
-                                            resample_volume, register_image,
+                                            resample_volume, reshape_volume,
+                                            register_image,
                                             mask_data_with_default_cube)
 from scilpy.io.fetcher import fetch_data, get_testing_files_dict
 from scilpy.image.utils import compute_nifti_bounding_box
@@ -199,6 +200,47 @@ def test_resample_volume():
                                     interp='nn')
     assert_equal(resampled_img.get_fdata(), ref3d)
     assert resampled_img.affine[0, 0] == 3
+
+
+def test_reshape_volume_pad():
+
+    img = nib.Nifti1Image(
+        np.arange(1, (3**3)+1).reshape((3, 3, 3)).astype(float),
+        np.eye(4))
+
+    # 1) Reshaping to 4x4x4, padding with 0
+    reshaped_img = reshape_volume(img, (4, 4, 4))
+
+    assert_equal(reshaped_img.affine[:, -1], [-1, -1, -1, 1])
+    assert_equal(reshaped_img.get_fdata()[0, 0, 0], 0)
+
+    # 2) Reshaping to 4x4x4, padding with -1
+    reshaped_img = reshape_volume(img, (4, 4, 4), mode='constant',
+                                  cval=-1)
+    assert_equal(reshaped_img.get_fdata()[0, 0, 0], -1)
+
+    # 3) Reshaping to 4x4x4, padding with edge
+    reshaped_img = reshape_volume(img, (4, 4, 4), mode='edge')
+    assert_equal(reshaped_img.get_fdata()[0, 0, 0], 1)
+
+
+def test_reshape_volume_crop():
+
+    img = nib.Nifti1Image(
+        np.arange(1, (3**3)+1).reshape((3, 3, 3)).astype(float),
+        np.eye(4))
+
+    # 1) Cropping to 1x1x1
+    reshaped_img = reshape_volume(img, (1, 1, 1))
+    assert_equal(reshaped_img.get_fdata().shape, (1, 1, 1))
+    assert_equal(reshaped_img.affine[:, -1], [1, 1, 1, 1])
+    assert_equal(reshaped_img.get_fdata()[0, 0, 0], 14)
+
+    # 2) Cropping to 2x2x2
+    reshaped_img = reshape_volume(img, (2, 2, 2))
+    assert_equal(reshaped_img.get_fdata().shape, (2, 2, 2))
+    assert_equal(reshaped_img.affine[:, -1], [0, 0, 0, 1])
+    assert_equal(reshaped_img.get_fdata()[0, 0, 0], 1)
 
 
 def test_normalize_metric_basic():
