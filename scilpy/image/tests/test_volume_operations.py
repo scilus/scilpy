@@ -203,7 +203,7 @@ def test_resample_volume():
 
 
 def test_reshape_volume_pad():
-
+    # 3D img
     img = nib.Nifti1Image(
         np.arange(1, (3**3)+1).reshape((3, 3, 3)).astype(float),
         np.eye(4))
@@ -223,9 +223,18 @@ def test_reshape_volume_pad():
     reshaped_img = reshape_volume(img, (4, 4, 4), mode='edge')
     assert_equal(reshaped_img.get_fdata()[0, 0, 0], 1)
 
+    # 4D img
+    img = nib.Nifti1Image(
+        np.arange(1, ((3**3) * 2)+1).reshape((3, 3, 3, 2)).astype(float),
+        np.eye(4))
+
+    # 2) Reshaping to 5x5x5, padding with 0
+    reshaped_img = reshape_volume(img, (5, 5, 5))
+    assert_equal(reshaped_img.get_fdata()[0, 0, 0, 0], 0)
+
 
 def test_reshape_volume_crop():
-
+    # 3D img
     img = nib.Nifti1Image(
         np.arange(1, (3**3)+1).reshape((3, 3, 3)).astype(float),
         np.eye(4))
@@ -241,6 +250,17 @@ def test_reshape_volume_crop():
     assert_equal(reshaped_img.get_fdata().shape, (2, 2, 2))
     assert_equal(reshaped_img.affine[:, -1], [0, 0, 0, 1])
     assert_equal(reshaped_img.get_fdata()[0, 0, 0], 1)
+
+    # 4D img
+    img = nib.Nifti1Image(
+        np.arange(1, ((3**3) * 2)+1).reshape((3, 3, 3, 2)).astype(float),
+        np.eye(4))
+
+    # 2) Cropping to 2x2x2
+    reshaped_img = reshape_volume(img, (2, 2, 2))
+    assert_equal(reshaped_img.get_fdata().shape, (2, 2, 2, 2))
+    assert_equal(reshaped_img.affine[:, -1], [0, 0, 0, 1])
+    assert_equal(reshaped_img.get_fdata()[0, 0, 0, 0], 1)
 
 
 def test_normalize_metric_basic():
