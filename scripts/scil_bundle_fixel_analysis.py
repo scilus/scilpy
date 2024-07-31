@@ -149,21 +149,20 @@ def _build_arg_parser():
     g2 = p.add_argument_group(title='Output options')
 
     g2.add_argument('--split_bundles', action='store_true',
-                    help='If set, save the density maps for each bundle '
-                         'separately \nin addition to the all in one version.')
+                    help='If set, save the density maps and masks for each '
+                         'bundle separately \nin addition to the all in one '
+                         'version.')
 
     g2.add_argument('--split_fixels', action='store_true',
-                    help='If set, save the density maps for each fixel '
-                         'separately \nin addition to the all in one version.')
+                    help='If set, save the density maps and masks for each '
+                         'fixel separately \nin addition to the all in one '
+                         'version.')
 
     g2.add_argument('--single_bundle', action='store_true',
                     help='If set, will save the single-fiber single-bundle '
                          'masks as well. \nThese are obtained by '
                          'selecting the voxels where only one bundle is '
                          'present \n(and one fiber/fixel).')
-
-    g2.add_argument('--bundles_mask', action='store_true',
-                    help='If set, save the bundle mask for each bundle.')
 
     g2.add_argument('--out_dir', default="fixel_analysis/",
                     help='Path to the output directory where all the output '
