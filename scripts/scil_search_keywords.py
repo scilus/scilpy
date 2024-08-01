@@ -25,7 +25,13 @@ import argparse
 import logging
 import pathlib
 
-import nltk
+try:
+    import nltk
+    nltk.download('punkt', quiet=True)
+except ImportError:
+    print("You must install the 'nltk' package to use this script. Please run 'pip install nltk'.")
+    exit(1)
+
 from colorama import Fore, Style
 import json
 
