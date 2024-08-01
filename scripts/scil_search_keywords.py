@@ -192,7 +192,7 @@ def main():
 
     # Sort matches by score and display them
     else:
-        sorted_matches = sorted(matches, key=lambda x: scores[x]['total_score'], reverse=True)
+        sorted_matches = sorted(matches, key=lambda x: scores[x]['total_score'], reverse=False)
 
         logging.info(_make_title(' Results Ordered by Score '))
         for match in sorted_matches:
@@ -209,6 +209,7 @@ def main():
             logging.info(f"Total Score: {scores[match]['total_score']}")
             logging.info(f"{Fore.BLUE}{'=' * SPACING_LEN}")
             logging.info("\n")
+        logging.info(_make_title(' Results Ordered by Score (Best results at the bottom) '))
 
 
 
