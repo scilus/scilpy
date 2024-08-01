@@ -3,11 +3,15 @@
 
 """
 This script will output informations about lesion load in bundle(s).
-The input can either be streamlines, binary bundle map, or a bundle voxel
+The input can either be streamlines, binary bundle mask, or a bundle voxel
 label map.
 
+The input lesion file is a labeled volume (.nii.gz) where each lesion is
+represented by a unique label. To label a lesion file use
+scil_labels_from_mask.py
+
 To be considered a valid lesion, the lesion volume must be at least
-min_lesion_vol mm3. This avoid the detection of thousand of single voxel
+--min_lesion_vol mm3. This avoid the detection of thousand of single voxel
 lesions if an automatic lesion segmentation tool is used.
 
 Formerly: scil_analyse_lesions_load.py
