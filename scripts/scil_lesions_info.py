@@ -20,7 +20,6 @@ import os
 
 import nibabel as nib
 import numpy as np
-import scipy.ndimage as ndi
 
 from scilpy.image.labels import get_data_as_labels
 from scilpy.io.image import get_data_as_mask
@@ -40,7 +39,7 @@ def _build_arg_parser():
                                 formatter_class=argparse.RawTextHelpFormatter)
 
     p.add_argument('in_lesion',
-                   help='Binary mask of the lesion(s) (.nii.gz).')
+                   help='Lesions file as labels (.nii.gz).')
     p.add_argument('out_json',
                    help='Output file for lesion information (.json).')
     p1 = p.add_mutually_exclusive_group()
@@ -89,7 +88,8 @@ def main():
                               reference=args.reference)
 
     lesion_img = nib.load(args.in_lesion)
-    lesion_data = get_data_as_mask(lesion_img, dtype=bool)
+    voxel_sizes = lesion_img.header.get_zooms()[0:3]
+    lesion_atlas = get_data_as_labels(lesion_img)
 
     if args.bundle:
         bundle_name, _ = split_name_with_nii(os.path.basename(args.bundle))
@@ -98,7 +98,7 @@ def main():
         sft.to_corner()
         streamlines = sft.get_streamlines_copy()
         map_data = compute_tract_counts_map(streamlines,
-                                            lesion_data.shape)
+                                            lesion_atlas.shape)
         map_data[map_data > 0] = 1
     elif args.bundle_mask:
         bundle_name, _ = split_name_with_nii(
@@ -112,8 +112,6 @@ def main():
         map_data = get_data_as_labels(map_img)
 
     is_single_label = args.bundle_labels_map is None
-    voxel_sizes = lesion_img.header.get_zooms()[0:3]
-    lesion_atlas, _ = ndi.label(lesion_data)
 
     lesion_load_dict = compute_lesion_stats(
         map_data, lesion_atlas, single_label=is_single_label,
