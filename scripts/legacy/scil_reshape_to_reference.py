@@ -2,11 +2,11 @@
 # -*- coding: utf-8 -*-
 
 from scilpy.io.deprecator import deprecate_script
-from scripts.scil_volume_reshape_to_reference import main as new_main
+from scripts.scil_volume_reslice_to_reference import main as new_main
 
 
 DEPRECATION_MSG = """
-This script has been renamed scil_volume_reshape_to_reference.py.
+This script has been renamed scil_volume_reslice_to_reference.py.
 Please change your existing pipelines accordingly.
 """
 
