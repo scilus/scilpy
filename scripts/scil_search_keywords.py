@@ -39,7 +39,7 @@ from scilpy.utils.scilpy_bot import (
     _get_docstring_from_script_path, _stem_keywords, _stem_phrase, _generate_help_files,
     _get_synonyms, _extract_keywords_and_phrases, _calculate_score, _make_title, prompt_user_for_object
 )
-from scilpy.utils.scilpy_bot import SPACING_LEN, KEYWORDS_FILE_PATH, SYNONYMS_FILE_PATH
+from scilpy.utils.scilpy_bot import SPACING_LEN, VOCAB_FILE_PATH
 from scilpy.io.utils import add_verbose_arg
 
 nltk.download('punkt', quiet=True)
@@ -151,10 +151,10 @@ def main():
 
 
     # Search in keywords file
-    with open(KEYWORDS_FILE_PATH, 'r') as f:
-        keywords_data = json.load(f)
+    with open(VOCAB_FILE_PATH, 'r') as f:
+        vocab_data = json.load(f)
 
-    for script in keywords_data['scripts']:
+    for script in vocab_data['scripts']:
         script_name = script['name']
         if selected_object and not script_name.startswith(f'scil_{selected_object}_'):
             continue
@@ -165,13 +165,9 @@ def main():
 
 
     # Search in synonyms file if not args.no_synonyms is not specified
-    if not args.no_synonyms:
-        with open(SYNONYMS_FILE_PATH, 'r') as f:
-            synonyms_data = json.load(f)
-  
+    if not args.no_synonyms: 
         for keyword in keywords + phrases:
-            synonyms = _get_synonyms(keyword, synonyms_data)
-            
+            synonyms = _get_synonyms(keyword, vocab_data['synonyms'])
             for script in sorted(script_dir.glob(search_pattern.format(selected_object))):
                 filename = script.stem
                 if filename == '__init__' or filename == 'scil_search_keywords':

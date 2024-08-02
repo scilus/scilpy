@@ -14,9 +14,7 @@ SPACING_CHAR = '='
 SPACING_LEN = 80
 
 # Path to the JSON file containing script information and keywords
-KEYWORDS_FILE_PATH = pathlib.Path(__file__).parent /'Vocabulary'/'Keywords.json'
-SYNONYMS_FILE_PATH = pathlib.Path(__file__).parent /'Vocabulary'/'Synonyms.json'
-
+VOCAB_FILE_PATH = pathlib.Path(__file__).parent.parent.parent/'data' /'Vocabulary'/'Vocabulary.json'
 
 
 
@@ -256,7 +254,9 @@ def _get_synonyms(keyword, synonyms_data):
     list of str
         List of synonyms for the given keyword.
     """
-    for synonym_set in synonyms_data['synonyms']:
+    keyword = keyword.lower()
+    for synonym_set in synonyms_data:
+        synonym_set = [synonym.lower() for synonym in synonym_set]
         if keyword in synonym_set:
             return synonym_set
     return []
