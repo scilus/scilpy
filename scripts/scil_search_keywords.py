@@ -9,16 +9,14 @@ The output will list the matching filenames along with the occurrences of each k
 - By default, the search includes synonyms for the keywords.
 - Use --no_synonyms to exclude synonyms from the search.
 - Use --search_category to limit the search to a specific category of scripts.
-- Use --verbose to display the full docstring.
 - Words enclosed in quotes will be searched as phrases, ensuring the words appear next to each other in the text.
 
 
 Examples:
     scil_search_keywords.py tractogram filtering
-    scil_search_keywords.py --search_parser tractogram filtering -v
     scil_search_keywords.py "Spherical Harmonics" convert
     scil_search_keywords.py --no_synonyms tractogram filtering
-    scil_search_keywords.py --search_category --verbose tractogram filtering
+    scil_search_keywords.py --search_category tractogram filtering
 """
 
 import argparse
