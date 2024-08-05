@@ -671,6 +671,35 @@ def tractogram_pairwise_comparison(sft_one, sft_two, mask, nbr_cpu=1,
 
 def compare_volume_wrapper(data_1, data_2, voxel_size=1, ratio=False,
                            adjency_no_overlap=False):
+    """
+    Compute the similarity between binary mask or labels maps in the voxel
+    representation.
+
+    This function conviently computes the similarity between two volumes using
+    different metrics. The function returns a dictionary containing the
+    computed measures.
+
+    Similar to compare_bundle_wrapper (but just for Nifti volumes)
+
+    Parameters
+    ----------
+    data_1: ndarray
+        First volume to compare.
+    data_2: ndarray
+        Second volume to compare.
+    voxel_size: float
+        Size of the voxel in mm.
+    ratio: bool
+        If true, the measures are normalized by the total number of voxels
+        in the first volume.
+    adjency_no_overlap: bool
+        If true, exclude overlapping voxels (0mm) from the computation.
+
+    Returns
+    -------
+    dict: Dictionary containing the computed measures.
+    """
+
     # Exclude 0 (background)
     unique_values_1 = np.unique(data_1)[1:]
     unique_values_2 = np.unique(data_2)[1:]
@@ -730,6 +759,56 @@ def compare_bundle_wrapper(density_1, density_2, endpoints_density_1,
                            ratio=False, streamline_dice=False,
                            disable_streamline_distance=False,
                            bundle_adjency_no_overlap=False):
+    """
+    Compute the similarity between two bundles in the voxel representation and
+    streamline representation.
+
+    This function conviently computes the similarity between two bundles using
+    different metrics. The function returns a dictionary containing the
+    computed measures.
+
+    Density and endpoints density maps, and centroids are pre-computed to
+    speed up the computation (the script using this function does multiple
+    comparisons with the same data).
+
+    Similar to compare_volume_wrapper (but for data from streamlines).
+
+    Parameters
+    ----------
+    density_1: ndarray
+        Density map computed from the first bundle.
+    density_2: ndarray
+        Density map computed from the second bundle.
+    endpoints_density_1: ndarray
+        Density map computed from the endpoints of the first bundle.
+    endpoints_density_2: ndarray
+        Density map computed from the endpoints of the second bundle.
+    bundle_1: list of ndarray
+        First set of streamlines.
+    bundle_2: list of ndarray
+        Second set of streamlines.
+    centroids_1: list of ndarray
+        Pre-computed centroids for the first bundle.
+    centroids_2: list of ndarray
+        Pre-computed centroids for the second bundle.
+    voxel_size: float
+        Size of the voxel in mm.
+    ratio: bool
+        If true, the measures are normalized by the total number of voxels
+        in the first volume.
+    streamline_dice: bool
+        If true, compute the dice coefficient between the two sets of
+        streamlines.
+    disable_streamline_distance: bool
+        If true, skip the computation of the distance between streamlines
+    bundle_adjency_no_overlap: bool
+        If true, exclude overlapping voxels (0mm) from the computation.
+
+    Returns
+    -------
+    dict: Dictionary containing the computed measures
+    """
+
     # These measures are in mm^3
     binary_1 = copy(density_1)
     binary_1[binary_1 > 0] = 1

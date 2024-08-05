@@ -54,20 +54,21 @@ def _build_arg_parser():
     p = argparse.ArgumentParser(
         description=__doc__,
         formatter_class=argparse.RawTextHelpFormatter)
-    p.add_argument('in_volumes', nargs='+',
+    p.add_argument('in_volumes', nargs='*',
                    help='Path of the input volumes.')
     p.add_argument('out_json',
                    help='Path of the output json file.')
 
-    p.add_argument('--adjency_no_overlap', action='store_true',
-                   help='If set, do not count zeros in the average BA.')
+    p.add_argument('--ignore_zeros_in_BA', action='store_true',
+                   help='If set, do not count zeros in the average bundle '
+                        'adjacency (BA).')
 
     p.add_argument('--single_compare', metavar='FILE',
                    help='Compare inputs to this single file.')
     p.add_argument('--ratio', action='store_true',
                    help='Compute overlap and overreach as a ratio over the '
-                        'reference volume.\nCan only be used if also using '
-                        '--single_compare`.')
+                        'reference volume rather than volume.\n'
+                        'Can only be used if also using --single_compare`.')
 
     add_processes_arg(p)
     add_json_args(p)
@@ -138,13 +139,13 @@ def main():
         for curr_tuple in comb_dict_keys:
             all_measures_dict.append(compute_all_measures([
                 curr_tuple,
-                args.adjency_no_overlap,
+                args.ignore_zeros_in_BA,
                 args.ratio]))
     else:
         all_measures_dict = pool.map(
             compute_all_measures,
             zip(comb_dict_keys,
-                itertools.repeat(args.adjency_no_overlap),
+                itertools.repeat(args.ignore_zeros_in_BA),
                 itertools.repeat(args.ratio)))
         pool.close()
         pool.join()

@@ -65,8 +65,9 @@ def _build_arg_parser():
     p.add_argument('--streamline_dice', action='store_true',
                    help='Compute streamline-wise dice coefficient.\n'
                         'Tractograms must be identical [%(default)s].')
-    p.add_argument('--bundle_adjency_no_overlap', action='store_true',
-                   help='If set, do not count zeros in the average BA.')
+    p.add_argument('--ignore_zeros_in_BA', action='store_true',
+                   help='If set, do not count zeros in the average bundle '
+                        'adjacency (BA).')
     p.add_argument('--disable_streamline_distance', action='store_true',
                    help='Will not compute the streamlines distance \n'
                         '[%(default)s].')
@@ -75,9 +76,9 @@ def _build_arg_parser():
     p.add_argument('--keep_tmp', action='store_true',
                    help='Will not delete the tmp folder at the end.')
     p.add_argument('--ratio', action='store_true',
-                   help='Compute overlap and overreach as a ratio over the\n'
-                        'reference tractogram in a Tractometer-style way.\n'
-                        'Can only be used if also using --single_compare.')
+                   help='Compute overlap and overreach as a ratio over the '
+                        'reference volume rather than volume.\n'
+                        'Can only be used if also using --single_compare`.')
 
     add_processes_arg(p)
     add_reference_arg(p)
@@ -253,7 +254,7 @@ def main():
         for curr_tuple in comb_dict_keys:
             all_measures_dict.append(compute_all_measures([
                 curr_tuple, args.streamline_dice,
-                args.bundle_adjency_no_overlap,
+                args.ignore_zeros_in_BA,
                 args.disable_streamline_distance,
                 args.ratio]))
     else:
@@ -261,7 +262,7 @@ def main():
             compute_all_measures,
             zip(comb_dict_keys,
                 itertools.repeat(args.streamline_dice),
-                itertools.repeat(args.bundle_adjency_no_overlap),
+                itertools.repeat(args.ignore_zeros_in_BA),
                 itertools.repeat(args.disable_streamline_distance),
                 itertools.repeat(args.ratio)))
         pool.close()
