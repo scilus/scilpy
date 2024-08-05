@@ -4,6 +4,7 @@ import pathlib
 import subprocess
 from nltk.stem import PorterStemmer
 from colorama import init, Fore, Style
+import re
 
 stemmer = PorterStemmer()
 
@@ -311,7 +312,9 @@ def _calculate_score(keywords, phrases, text, filename):
 
     for keyword in keywords:
         keyword = keyword.lower()
-        keyword_score = stemmed_text.count(keyword) + stemmed_filename.count(keyword)
+        # Use regular expressions to match whole words only
+        keyword_pattern = re.compile(r'\b' + re.escape(keyword) + r'\b')
+        keyword_score = len(keyword_pattern.findall(stemmed_text)) + len(keyword_pattern.findall(stemmed_filename))
         score_details[keyword] = keyword_score
         score_details['total_score'] += keyword_score
 
