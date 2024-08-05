@@ -101,7 +101,7 @@ def _build_arg_parser():
 
 
 def main():
-    parser = buildArgsParser()
+    parser = _build_arg_parser()
     args = parser.parse_args()
 
     assert_inputs_exist(parser, args.in_bundle, args.reference)
