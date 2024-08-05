@@ -170,15 +170,15 @@ def _generate_help_files():
 
     scripts_dir= pathlib.Path(__file__).parent.parent.parent /'scripts'
 
+    scripts = [script for script in scripts_dir.glob('*.py') if script.name not in ['__init__.py', 'scil_search_keywords.py']]
+    total_scripts = len(scripts)
 
     # Hidden directory to store help files
     hidden_dir = scripts_dir / '.hidden'
     hidden_dir.mkdir(exist_ok=True)
 
     # Iterate over all scripts and generate help files
-    for script in scripts_dir.glob('*.py'):
-        if script.name == '__init__.py' or script.name == 'scil_search_keywords.py':
-            continue
+    for idx, script in enumerate(scripts, start=1):
         help_file = hidden_dir / f'{script.name}.help'
         # Check if help file already exists
         if help_file.exists():
@@ -192,23 +192,23 @@ def _generate_help_files():
         with open(help_file, 'w') as f:
             f.write(result.stdout)
 
-        print(f'Help file saved to {help_file}')
+        print(f'Help file saved to {help_file}({idx}/{total_scripts})')
 
         
-        # Check if any help files are missing and regenerate them
-        for script in scripts_dir.glob('*.py'):
-            if script.name == '__init__.py' or script.name == 'scil_search_keywords.py':
-                continue
-            help_file = hidden_dir / f'{script.name}.help'
-            if not help_file.exists():
-                # Run the script with --h and capture the output
-                result = subprocess.run(['python', script, '--h'], capture_output=True, text=True)
+    # Check if any help files are missing and regenerate them
+    for script in scripts_dir.glob('*.py'):
+        if script.name == '__init__.py' or script.name == 'scil_search_keywords.py':
+            continue
+        help_file = hidden_dir / f'{script.name}.help'
+        if not help_file.exists():
+            # Run the script with --h and capture the output
+            result = subprocess.run(['python', script, '--h'], capture_output=True, text=True)
 
-                # Save the output to the hidden file
-                with open(help_file, 'w') as f:
-                    f.write(result.stdout)
+            # Save the output to the hidden file
+            with open(help_file, 'w') as f:
+                f.write(result.stdout)
 
-                print(f'Regenerated help output for {script.name}')
+            print(f'Regenerated help output for {script.name}')
 
 
 
