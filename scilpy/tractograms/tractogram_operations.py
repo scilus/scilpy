@@ -87,13 +87,12 @@ def shuffle_streamlines_orientation(sft, rng_seed=None):
         The shuffled tractogram.
     """
     if sft.data_per_point is not None and len(sft.data_per_point) > 0:
-        logging.warning('Shuffling streamlines orientation. DDP will be '
+        logging.warning('Shuffling streamlines orientation. DPP will be '
                         'lost.')
 
     rng = np.random.RandomState(rng_seed)
-    streamlines = sft.streamlines
     shuffled_streamlines = []
-    for s in streamlines:
+    for s in sft.streamlines:
         if len(s) < 2:
             shuffled_streamlines.append(s)
         else:
