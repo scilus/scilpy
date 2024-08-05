@@ -54,7 +54,7 @@ from scilpy.tractograms.tractogram_operations import transform_streamlines_alter
     replace_streamlines_alter, shuffle_streamlines, shuffle_streamlines_orientation
 
 
-def buildArgsParser():
+def _build_arg_parser():
     p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawTextHelpFormatter)
     p.add_argument('in_bundle',
