@@ -15,16 +15,17 @@ SPACING_CHAR = '='
 SPACING_LEN = 80
 
 # Path to the JSON file containing script information and keywords
-VOCAB_FILE_PATH = pathlib.Path(__file__).parent.parent.parent/'data' /'Vocabulary'/'Vocabulary.json'
-
+VOCAB_FILE_PATH = pathlib.Path(
+    __file__).parent.parent.parent/'data' / 'Vocabulary'/'Vocabulary.json'
 
 
 OBJECTS = [
     'aodf', 'bids', 'bingham', 'btensor', 'bundle', 'connectivity', 'denoising',
-    'dki', 'dti','dwi', 'fodf', 'freewater', 'frf', 'gradients', 'header', 'json',
+    'dki', 'dti', 'dwi', 'fodf', 'freewater', 'frf', 'gradients', 'header', 'json',
     'labels', 'lesions', 'mti', 'NODDI', 'sh', 'surface', 'tracking',
     'tractogram', 'viz', 'volume', 'qball', 'rgb', 'lesions'
 ]
+
 
 def prompt_user_for_object():
     """
@@ -35,7 +36,8 @@ def prompt_user_for_object():
         print(f"{idx + 1}. {obj}")
     while True:
         try:
-            choice = int(input("Choose the object you want to work on (enter the number): "))
+            choice = int(
+                input("Choose the object you want to work on (enter the number): "))
             if 1 <= choice <= len(OBJECTS):
                 return OBJECTS[choice - 1]
             else:
@@ -103,6 +105,7 @@ def _split_first_sentence(text):
     remaining = text[split_idx:] if split_idx else ""
     return sentence, remaining
 
+
 def _stem_keywords(keywords):
     """
     Stem a list of keywords using PorterStemmer.
@@ -118,6 +121,7 @@ def _stem_keywords(keywords):
         Stemmed keywords.
     """
     return [stemmer.stem(keyword) for keyword in keywords]
+
 
 def _stem_text(text):
     """
@@ -136,6 +140,7 @@ def _stem_text(text):
     words = nltk.word_tokenize(text)
     return ' '.join([stemmer.stem(word) for word in words])
 
+
 def _stem_phrase(phrase):
     """
     Stem all words in a phrase using PorterStemmer.
@@ -153,6 +158,7 @@ def _stem_phrase(phrase):
     words = phrase.split()
     return ' '.join([stemmer.stem(word) for word in words])
 
+
 def _generate_help_files():
     """
     This function iterates over all Python scripts in the 'scripts' directory, 
@@ -168,9 +174,10 @@ def _generate_help_files():
     The help output is saved in a hidden directory to avoid clutter in the main scripts directory.
     """
 
-    scripts_dir= pathlib.Path(__file__).parent.parent.parent /'scripts'
+    scripts_dir = pathlib.Path(__file__).parent.parent.parent / 'scripts'
 
-    scripts = [script for script in scripts_dir.glob('*.py') if script.name not in ['__init__.py', 'scil_search_keywords.py']]
+    scripts = [script for script in scripts_dir.glob(
+        '*.py') if script.name not in ['__init__.py', 'scil_search_keywords.py']]
     total_scripts = len(scripts)
 
     # Hidden directory to store help files
@@ -186,7 +193,8 @@ def _generate_help_files():
             continue
 
         # Run the script with --h and capture the output
-        result = subprocess.run(['python', script, '--h'], capture_output=True, text=True)
+        result = subprocess.run(
+            ['python', script, '--h'], capture_output=True, text=True)
 
         # Save the output to the hidden file
         with open(help_file, 'w') as f:
@@ -194,7 +202,6 @@ def _generate_help_files():
 
         print(f'Help file saved to {help_file}({idx}/{total_scripts})')
 
-        
     # Check if any help files are missing and regenerate them
     for script in scripts_dir.glob('*.py'):
         if script.name == '__init__.py' or script.name == 'scil_search_keywords.py':
@@ -202,15 +209,14 @@ def _generate_help_files():
         help_file = hidden_dir / f'{script.name}.help'
         if not help_file.exists():
             # Run the script with --h and capture the output
-            result = subprocess.run(['python', script, '--h'], capture_output=True, text=True)
+            result = subprocess.run(
+                ['python', script, '--h'], capture_output=True, text=True)
 
             # Save the output to the hidden file
             with open(help_file, 'w') as f:
                 f.write(result.stdout)
 
             print(f'Regenerated help output for {script.name}')
-
-
 
 
 def _highlight_keywords(text, stemmed_keywords):
@@ -234,10 +240,12 @@ def _highlight_keywords(text, stemmed_keywords):
     for word in words:
         stemmed_word = stemmer.stem(word)
         if stemmed_word in stemmed_keywords:
-            highlighted_text.append(f'{Fore.RED}{Style.BRIGHT}{word}{Style.RESET_ALL}')
+            highlighted_text.append(
+                f'{Fore.RED}{Style.BRIGHT}{word}{Style.RESET_ALL}')
         else:
             highlighted_text.append(word)
     return ' '.join(highlighted_text)
+
 
 def _get_synonyms(keyword, synonyms_data):
     """
@@ -262,6 +270,7 @@ def _get_synonyms(keyword, synonyms_data):
             return synonym_set
     return []
 
+
 def _extract_keywords_and_phrases(keywords):
     """
     Extract keywords and phrases from the provided list.
@@ -280,11 +289,13 @@ def _extract_keywords_and_phrases(keywords):
     phrases_list = []
 
     for keyword in keywords:
-        if ' ' in keyword: #if keyword contain blank space (contains more that 1 word)
+        # if keyword contain blank space (contains more that 1 word)
+        if ' ' in keyword:
             phrases_list.append(keyword)
         else:
             keywords_list.append(keyword)
     return keywords_list, phrases_list
+
 
 def _calculate_score(keywords, phrases, text, filename):
     """
@@ -307,14 +318,15 @@ def _calculate_score(keywords, phrases, text, filename):
         Score details based on the frequency of keywords in the text and filename.
     """
     stemmed_text = _stem_text(text.lower())
-    stemmed_filename  = _stem_text(filename.lower())
+    stemmed_filename = _stem_text(filename.lower())
     score_details = {'total_score': 0}
 
     for keyword in keywords:
         keyword = keyword.lower()
         # Use regular expressions to match whole words only
         keyword_pattern = re.compile(r'\b' + re.escape(keyword) + r'\b')
-        keyword_score = len(keyword_pattern.findall(stemmed_text)) + len(keyword_pattern.findall(stemmed_filename))
+        keyword_score = len(keyword_pattern.findall(
+            stemmed_text)) + len(keyword_pattern.findall(stemmed_filename))
         score_details[keyword] = keyword_score
         score_details['total_score'] += keyword_score
 
@@ -324,4 +336,3 @@ def _calculate_score(keywords, phrases, text, filename):
         score_details[phrase] = phrase_score
         score_details['total_score'] += phrase_score
     return score_details
-
