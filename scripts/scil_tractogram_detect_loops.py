@@ -55,13 +55,15 @@ def _build_arg_parser():
     p.add_argument('--looping_tractogram', metavar='out_filename',
                    help='If set, saves detected looping streamlines.')
     p.add_argument('--qb', nargs='?', metavar='threshold', dest='qb_threshold',
-                   const=8., type=ranged_type(float, 0.0, None),
+                   const=8., type=ranged_type(float, 0.0, None,
+                                              min_excluded=True),
                    help='If set, uses QuickBundles to detect outliers (loops, '
                         'sharp angle \nturns). Given threshold is the maximal '
                         'streamline to bundle \ndistance for a streamline to '
                         'be considered as a tracking error.\nDefault if '
                         'set: [%(const)s]')
-    p.add_argument('--angle', default=360, type=ranged_type(float, 0.0, 360.0),
+    p.add_argument('--angle', default=360,
+                   type=ranged_type(float, 0.0, 360.0, min_excluded=True),
                    help='Maximum looping (or turning) angle of\n' +
                         'a streamline in degrees. [%(default)s]')
     p.add_argument('--display_counts', action='store_true',

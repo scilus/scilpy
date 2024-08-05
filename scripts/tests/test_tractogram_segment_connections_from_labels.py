@@ -14,7 +14,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 def test_help_option(script_runner):
     ret = script_runner.run(
-        'scil_tractogram_segment_bundles_for_connectivity.py', '--help')
+        'scil_tractogram_segment_connections_from_labels.py', '--help')
     assert ret.success
 
 
@@ -24,8 +24,8 @@ def test_execution_connectivity(script_runner, monkeypatch):
     in_atlas = os.path.join(SCILPY_HOME, 'connectivity',
                             'endpoints_atlas.nii.gz')
     ret = script_runner.run(
-        'scil_tractogram_segment_bundles_for_connectivity.py', in_bundle,
+        'scil_tractogram_segment_connections_from_labels.py', in_bundle,
         in_atlas, 'decompose.h5', '--min_length', '20', '--max_length', '200',
         '--outlier_threshold', '0.5', '--loop_max_angle', '330',
-        '--curv_qb_distance', '10', '--processes', '1')
+        '--curv_qb_distance', '10', '--processes', '1', '-v', 'DEBUG')
     assert ret.success

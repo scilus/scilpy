@@ -100,6 +100,13 @@ def link_bundles_and_reference(parser, args, input_tractogram_list):
     return bundles_references_tuple
 
 
+def check_tract_trk(parser, filename):
+
+    _, ext = os.path.splitext(filename)
+    if ext != '.trk':
+        parser.error('File {} is not a .trk file.'.format(filename))
+
+
 def check_tracts_same_format(parser, filename_list):
     _, ref_ext = os.path.splitext(filename_list[0])
 
@@ -667,7 +674,7 @@ def add_compression_arg(p, additional_msg=''):
         compress arg.
     """
     p.add_argument('--compress', dest='compress_th', nargs='?', const=0.1,
-                   type=ranged_type(float, 0, None),
+                   type=ranged_type(float, 0, None, min_excluded=True),
                    help='If set, compress the resulting streamline. Value is '
                         'the maximum \ncompression distance in mm.'
                         + additional_msg + '[%(const)s]')
@@ -1049,9 +1056,12 @@ def parser_color_type(arg):
     return f
 
 
-def ranged_type(value_type, min_value=None, max_value=None):
+def ranged_type(value_type, min_value=None, max_value=None,
+                min_excluded=False, max_excluded=False):
     """Return a function handle of an argument type function for ArgumentParser
     checking a range: `min_value` <= arg <= `max_value`.
+    With min_excluded and max_excluded, the verification becomes
+    `min_value` < arg < `max_value`.
 
     Parameters
     ----------
@@ -1061,6 +1071,10 @@ def ranged_type(value_type, min_value=None, max_value=None):
         Minimum acceptable argument value.
     max_value : scalar
        Maximum acceptable argument value.
+    min_excluded: bool
+        If true, the accepted range is ]min_value, max_value].
+    max_excluded: bool
+        If true, the accepted range is [min_value, max_value[.
 
     Returns
     -------
@@ -1076,16 +1090,40 @@ def ranged_type(value_type, min_value=None, max_value=None):
             f = value_type(arg)
         except ValueError:
             raise argparse.ArgumentTypeError(f"must be a valid {value_type}")
+
+        smaller = np.less
+        bigger = np.greater
+        if min_excluded:
+            smaller = np.less_equal
+        if max_excluded:
+            bigger = np.greater_equal
+
         if min_value is not None and max_value is not None:
-            if f < min_value or f > max_value:
-                raise argparse.ArgumentTypeError(
-                    f"must be within [{min_value}, {max_value}]")
+            if smaller(f, min_value) or bigger(f, max_value):
+                if min_excluded and max_excluded:
+                    raise argparse.ArgumentTypeError(
+                        f"must be within ]{min_value}, {max_value}[")
+                elif min_excluded:
+                    raise argparse.ArgumentTypeError(
+                        f"must be within ]{min_value}, {max_value}")
+                elif max_excluded:
+                    raise argparse.ArgumentTypeError(
+                        f"must be within [{min_value}, {max_value}[")
+                else:
+                    raise argparse.ArgumentTypeError(
+                        f"must be within [{min_value}, {max_value}]")
         elif min_value is not None:
             if f < min_value:
-                raise argparse.ArgumentTypeError(f"must be >= {min_value}")
+                if min_excluded:
+                    raise argparse.ArgumentTypeError(f"must be > {min_value}")
+                else:
+                    raise argparse.ArgumentTypeError(f"must be >= {min_value}")
         elif max_value is not None:
             if f > max_value:
-                raise argparse.ArgumentTypeError(f"must be <= {max_value}")
+                if max_excluded:
+                    raise argparse.ArgumentTypeError(f"must be < {max_value}")
+                else:
+                    raise argparse.ArgumentTypeError(f"must be <= {max_value}")
         return f
 
     # Return handle to checking function

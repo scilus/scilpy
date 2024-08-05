@@ -11,6 +11,8 @@ from scipy.ndimage import binary_dilation
 from dipy.io.streamline import save_tractogram
 from dipy.tracking.utils import length as compute_length
 
+from scilpy.image.utils import \
+    split_mask_blobs_kmeans
 from scilpy.io.image import get_data_as_mask
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.segment.streamlines import filter_grid_roi, filter_grid_roi_both
@@ -18,8 +20,6 @@ from scilpy.tractograms.streamline_operations import \
     remove_loops_and_sharp_turns
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
 
-from scilpy.tractograms.streamline_and_mask_operations import \
-    split_mask_blobs_kmeans
 from scilpy.tractograms.streamline_operations import \
     filter_streamlines_by_total_length_per_dim
 from scilpy.utils.filenames import split_name_with_nii
@@ -351,16 +351,19 @@ def _extract_vb_one_bundle(
     bundle_stats: dict
         Dictionary of recognized streamlines statistics
     """
-    mask_1_img = nib.load(head_filename)
-    mask_2_img = nib.load(tail_filename)
-    mask_1 = get_data_as_mask(mask_1_img)
-    mask_2 = get_data_as_mask(mask_2_img)
+    if len(sft) > 0:
+        mask_1_img = nib.load(head_filename)
+        mask_2_img = nib.load(tail_filename)
+        mask_1 = get_data_as_mask(mask_1_img)
+        mask_2 = get_data_as_mask(mask_2_img)
 
-    if dilate_endpoints:
-        mask_1 = binary_dilation(mask_1, iterations=dilate_endpoints)
-        mask_2 = binary_dilation(mask_2, iterations=dilate_endpoints)
+        if dilate_endpoints:
+            mask_1 = binary_dilation(mask_1, iterations=dilate_endpoints)
+            mask_2 = binary_dilation(mask_2, iterations=dilate_endpoints)
 
-    _, vs_ids = filter_grid_roi_both(sft, mask_1, mask_2)
+        _, vs_ids = filter_grid_roi_both(sft, mask_1, mask_2)
+    else:
+        vs_ids = np.array([])
 
     wpc_ids = []
     bundle_stats = {"Initial count head to tail": len(vs_ids)}
@@ -499,16 +502,19 @@ def _extract_ib_one_bundle(sft, mask_1_filename, mask_2_filename,
         SFT of remaining streamlines.
     """
 
-    mask_1_img = nib.load(mask_1_filename)
-    mask_2_img = nib.load(mask_2_filename)
-    mask_1 = get_data_as_mask(mask_1_img)
-    mask_2 = get_data_as_mask(mask_2_img)
+    if len(sft) > 0:
+        mask_1_img = nib.load(mask_1_filename)
+        mask_2_img = nib.load(mask_2_filename)
+        mask_1 = get_data_as_mask(mask_1_img)
+        mask_2 = get_data_as_mask(mask_2_img)
 
-    if dilate_endpoints:
-        mask_1 = binary_dilation(mask_1, iterations=dilate_endpoints)
-        mask_2 = binary_dilation(mask_2, iterations=dilate_endpoints)
+        if dilate_endpoints:
+            mask_1 = binary_dilation(mask_1, iterations=dilate_endpoints)
+            mask_2 = binary_dilation(mask_2, iterations=dilate_endpoints)
 
-    _, fc_ids = filter_grid_roi_both(sft, mask_1, mask_2)
+        _, fc_ids = filter_grid_roi_both(sft, mask_1, mask_2)
+    else:
+        fc_ids = []
 
     fc_sft = sft[fc_ids]
     return fc_sft, fc_ids
