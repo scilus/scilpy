@@ -3,7 +3,7 @@ import nltk
 import pathlib
 import subprocess
 from nltk.stem import PorterStemmer
-from colorama import init, Fore, Style
+from colorama import Fore, Style
 import re
 
 stemmer = PorterStemmer()
@@ -20,10 +20,12 @@ VOCAB_FILE_PATH = pathlib.Path(
 
 
 OBJECTS = [
-    'aodf', 'bids', 'bingham', 'btensor', 'bundle', 'connectivity', 'denoising',
-    'dki', 'dti', 'dwi', 'fodf', 'freewater', 'frf', 'gradients', 'header', 'json',
-    'labels', 'lesions', 'mti', 'NODDI', 'sh', 'surface', 'tracking',
-    'tractogram', 'viz', 'volume', 'qball', 'rgb', 'lesions'
+    'aodf', 'bids', 'bingham', 'btensor', 'bundle',
+    'connectivity', 'denoising', 'dki', 'dti', 'dwi',
+    'fodf', 'freewater', 'frf', 'gradients', 'header',
+    'json', 'labels', 'lesions', 'mti', 'NODDI', 'sh',
+    'surface', 'tracking', 'tractogram', 'viz', 'volume',
+    'qball', 'rgb', 'lesions'
 ]
 
 
@@ -37,7 +39,8 @@ def prompt_user_for_object():
     while True:
         try:
             choice = int(
-                input("Choose the object you want to work on (enter the number): "))
+                input("Choose the object you want to work on "
+                      "(enter the number): "))
             if 1 <= choice <= len(OBJECTS):
                 return OBJECTS[choice - 1]
             else:
@@ -161,23 +164,25 @@ def _stem_phrase(phrase):
 
 def _generate_help_files():
     """
-    This function iterates over all Python scripts in the 'scripts' directory, 
-    runs each script with the '--h' flag to generate help text, 
-    and saves the output to corresponding hidden files in the '.hidden' directory.
+    This function iterates over all Python scripts in the 'scripts' directory,
+    runs each script with the '--h' flag to generate help text,
+    and saves the output in the '.hidden' directory.
 
-    By doing this, we can precompute the help outputs for each script, 
+    By doing this, we can precompute the help outputs for each script,
     which can be useful for faster searches.
 
-    If a help file already exists for a script, the script is skipped, 
+    If a help file already exists for a script, the script is skipped,
     and the existing help file is left unchanged.
 
-    The help output is saved in a hidden directory to avoid clutter in the main scripts directory.
+    The help output is saved in a hidden directory to avoid clutter in
+    the main scripts directory.
     """
 
     scripts_dir = pathlib.Path(__file__).parent.parent.parent / 'scripts'
 
-    scripts = [script for script in scripts_dir.glob(
-        '*.py') if script.name not in ['__init__.py', 'scil_search_keywords.py']]
+    scripts = [script for script in scripts_dir.glob('*.py')
+               if script.name not in ['__init__.py',
+                                      'scil_search_keywords.py']]
     total_scripts = len(scripts)
 
     # Hidden directory to store help files
@@ -315,7 +320,8 @@ def _calculate_score(keywords, phrases, text, filename):
     Returns
     -------
     dict
-        Score details based on the frequency of keywords in the text and filename.
+        Score details based on the frequency of keywords
+        in the text and filename.
     """
     stemmed_text = _stem_text(text.lower())
     stemmed_filename = _stem_text(filename.lower())

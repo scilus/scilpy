@@ -2,21 +2,25 @@
 # -*- coding: utf-8 -*-
 
 """
-Search through all SCILPY scripts and their docstrings to find matches for the provided keywords.
-The search will be performed across script names, docstrings, help files, keywords, and optionally synonyms.
-The output will list the matching filenames along with the occurrences of each keyword, and their total score.
+Search through all SCILPY scripts and their docstrings to find matches for the
+provided keywords.
+The search will be performed across script names, docstrings, help files,
+keywords, and optionally synonyms.
+The output will list the matching filenames along with the occurrences of each
+keyword, and their total score.
 
 - By default, the search includes synonyms for the keywords.
 - Use --no_synonyms to exclude synonyms from the search.
 - Use --search_category to limit the search to a specific category of scripts.
-- Words enclosed in quotes will be searched as phrases, ensuring the words appear next to each other in the text.
+- Words enclosed in quotes will be searched as phrases, ensuring the words
+appear next to each other in the text.
 
 
 Examples:
-    scil_search_keywords.py tractogram filtering
-    scil_search_keywords.py "Spherical Harmonics" convert
-    scil_search_keywords.py --no_synonyms tractogram filtering
-    scil_search_keywords.py --search_category tractogram filtering
+- scil_search_keywords.py tractogram filtering
+- scil_search_keywords.py "Spherical Harmonics" convert
+- scil_search_keywords.py --no_synonyms tractogram filtering
+- scil_search_keywords.py --search_category tractogram filtering
 """
 
 import argparse
@@ -27,15 +31,18 @@ try:
     import nltk
     nltk.download('punkt', quiet=True)
 except ImportError:
-    print("You must install the 'nltk' package to use this script. Please run 'pip install nltk'.")
+    print("You must install the 'nltk' package to use this script."
+          "Please run 'pip install nltk'.")
     exit(1)
 
 from colorama import Fore, Style
 import json
 
 from scilpy.utils.scilpy_bot import (
-    _get_docstring_from_script_path, _stem_keywords, _stem_phrase, _generate_help_files,
-    _get_synonyms, _extract_keywords_and_phrases, _calculate_score, _make_title, prompt_user_for_object
+    _get_docstring_from_script_path, _stem_keywords,
+    _stem_phrase, _generate_help_files,
+    _get_synonyms, _extract_keywords_and_phrases,
+    _calculate_score, _make_title, prompt_user_for_object
 )
 from scilpy.utils.scilpy_bot import SPACING_LEN, VOCAB_FILE_PATH
 from scilpy.io.utils import add_verbose_arg
@@ -73,12 +80,13 @@ def main():
     if args.search_category:
         selected_object = prompt_user_for_object()
 
-    # keywords are single words and phrases are keywords that contain more than one word
+    # keywords are single words. Phrases are composed keywords
     keywords, phrases = _extract_keywords_and_phrases(args.keywords)
     stemmed_keywords = _stem_keywords(keywords)
     stemmed_phrases = [_stem_phrase(phrase) for phrase in phrases]
 
-    # Create a mapping of stemmed to original keywords(will be needed to display the occurence of the keywords)
+    # Create a mapping of stemmed to original keywords
+    # This will be needed to display the occurence of the keywords
     keyword_mapping = {stem: orig for orig,
                        stem in zip(keywords, stemmed_keywords)}
     phrase_mapping = {stem: orig for orig,
@@ -90,7 +98,8 @@ def main():
     if not hidden_dir.exists():
         hidden_dir.mkdir()
         logging.info('This is your first time running this script.\n'
-                     'Generating help files may take a few minutes, please be patient.\n'
+                     'Generating help files may take a few minutes,'
+                     'please be patient.\n'
                      'Subsequent searches will be much faster.\n'
                      'Generating help files....')
         _generate_help_files()
@@ -103,15 +112,18 @@ def main():
 
     def update_matches_and_scores(filename, score_details):
         """
-        Update the matches and scores for the given filename based on the score details.
+        Update the matches and scores for the given filename based
+        on the score details.
 
         Parameters
         ----------
         filename : str
             The name of the script file being analyzed.
         score_details : dict
-            A dictionary containing the scores for the keywords and phrases found in the script.
-            This dictionary should have a 'total_score' key indicating the cumulative score.
+            A dictionary containing the scores for the keywords
+                and phrases found in the script.
+            This dictionary should have a 'total_score' key
+                indicating the cumulative score.
 
         Returns
         -------
@@ -146,7 +158,8 @@ def main():
             with open(help_file, 'r') as f:
                 search_text = f.read()
             score_details = _calculate_score(
-                stemmed_keywords, stemmed_phrases, search_text, filename=filename)
+                stemmed_keywords, stemmed_phrases,
+                search_text, filename=filename)
             update_matches_and_scores(filename, score_details)
 
     # Search in keywords file
