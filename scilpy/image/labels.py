@@ -99,6 +99,7 @@ def get_labels_from_mask(mask_data, labels=None, background_label=0,
         for label in range(1, nb_structures + 1):
             if np.count_nonzero(label_map == label) < min_voxel_count:
                 label_map[label_map == label] = 0
+        mask_data = label_map > 0
         label_map, nb_structures = ndi.label(mask_data)
 
     # Assign labels to each blob if provided
