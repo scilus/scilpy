@@ -10,10 +10,6 @@ scil_labels_from_mask.py
 Then, the second input can either be streamlines, binary bundle mask, or a
 bundle voxel label map.
 
-To be considered a valid lesion, the lesion volume must be at least
---min_lesion_vol mm3. This avoid the detection of thousand of single voxel
-lesions if an automatic lesion segmentation tool is used.
-
 Formerly: scil_analyse_lesions_load.py
 """
 

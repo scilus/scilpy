@@ -96,11 +96,17 @@ def get_labels_from_mask(mask_data, labels=None, background_label=0,
     # Get the number of structures and assign labels to each blob
     label_map, nb_structures = ndi.label(mask_data)
     if min_voxel_count:
+        new_count = 0
         for label in range(1, nb_structures + 1):
             if np.count_nonzero(label_map == label) < min_voxel_count:
                 label_map[label_map == label] = 0
-        mask_data = label_map > 0
-        label_map, nb_structures = ndi.label(mask_data)
+            else:
+                new_count += 1
+                label_map[label_map == label] = new_count
+        logging.debug(
+            f"Ignored blob {nb_structures-new_count} with fewer "
+            "than {min_voxel_count} voxels")
+        nb_structures = new_count
 
     # Assign labels to each blob if provided
     if labels:
