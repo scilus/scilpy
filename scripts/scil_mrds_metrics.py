@@ -57,10 +57,10 @@ def main():
 
     # Verifications
     if not args.not_all:
-        args.fa = args.fa or 'fa.nii.gz'
-        args.ad = args.ad or 'ad.nii.gz'
-        args.rd = args.rd or 'rd.nii.gz'
-        args.md = args.md or 'md.nii.gz'
+        args.fa = args.fa or 'mrds_fa.nii.gz'
+        args.ad = args.ad or 'mrds_ad.nii.gz'
+        args.rd = args.rd or 'mrds_rd.nii.gz'
+        args.md = args.md or 'mrds_md.nii.gz'
 
     assert_inputs_exist(parser, args.in_eigenvalues, args.mask)
     assert_outputs_exist(parser, args, [args.fa, args.ad, args.rd, args.md])
