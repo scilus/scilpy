@@ -24,7 +24,7 @@ def test_execution(script_runner, monkeypatch):
                            'bundle_4_head_tail_offset.nii.gz')
     ret = script_runner.run('scil_labels_from_mask.py',
                             in_mask, 'labels_from_mask.nii.gz',
-                            '-f')
+                            '--min_volume', '0', '-f')
     assert ret.success
 
 
