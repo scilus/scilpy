@@ -81,11 +81,11 @@ def main():
 
     assert_inputs_exist(parser, [args.in_volume] + args.N1 + args.N2 + args.N3,
                         optional=args.mask)
-    output_files = ["{}_COMP_SIZE.nii.gz".format(args.prefix),
-                    "{}_EIGENVALUES.nii.gz".format(args.prefix),
-                    "{}_ISOTROPIC.nii.gz".format(args.prefix),
-                    "{}_NUM_COMP.nii.gz".format(args.prefix),
-                    "{}_PDDs_CARTESIAN.nii.gz".format(args.prefix)]
+    output_files = ["{}_MRDS_COMP_SIZE.nii.gz".format(args.prefix),
+                    "{}_MRDS_EIGENVALUES.nii.gz".format(args.prefix),
+                    "{}_MRDS_ISOTROPIC.nii.gz".format(args.prefix),
+                    "{}_MRDS_NUM_COMP.nii.gz".format(args.prefix),
+                    "{}_MRDS_PDDs_CARTESIAN.nii.gz".format(args.prefix)]
     assert_outputs_exist(parser, args, output_files)
     assert_headers_compatible(parser, [args.in_volume] +
                               args.N1 + args.N2 + args.N3)
