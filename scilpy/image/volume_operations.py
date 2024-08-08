@@ -603,6 +603,81 @@ def resample_volume(img, ref_img=None, volume_shape=None, iso_min=False,
     return nib.Nifti1Image(data2.astype(data.dtype), affine2)
 
 
+def reshape_volume(
+    img, volume_shape, mode='constant', cval=0
+):
+    """ Reshape a volume to a specified shape by padding or cropping. The
+    new volume is centered wrt the old volume in world space.
+
+    Parameters
+    ----------
+    img : nib.Nifti1Image
+        The input image.
+    volume_shape : tuple of 3 ints
+        The desired shape of the volume.
+    mode : str, optional
+        Padding mode. See np.pad for more information. Default is 'constant'.
+    cval: float, optional
+        Value to use for padding when mode is 'constant'. Default is 0.
+
+    Returns
+    -------
+    reshaped_img : nib.Nifti1Image
+        The reshaped image.
+    """
+
+    data = img.get_fdata(dtype=np.float32)
+    affine = img.affine
+
+    # Compute the difference between the desired shape and the current shape
+    diff = (np.array(volume_shape) - np.array(data.shape[:3])) // 2
+
+    # Compute the offset to center the data
+    offset = (np.array(volume_shape) - np.array(data.shape[:3])) % 2
+
+    # Compute the padding values (before and after) for all axes
+    pad_width = np.zeros((len(data.shape), 2), dtype=int)
+    for i in range(3):
+        pad_width[i, 0] = int(max(0, diff[i] + offset[i]))
+        pad_width[i, 1] = int(max(0, diff[i]))
+
+    # If dealing with 4D data, do not pad the last dimension
+    if len(data.shape) == 4:
+        pad_width[3, :] = [0, 0]
+
+    # Pad the data
+    kwargs = {
+        'mode': mode,
+    }
+    # Add constant_values only if mode is 'constant'
+    # Otherwise, it will raise an error
+    if mode == 'constant':
+        kwargs['constant_values'] = cval
+    padded_data = np.pad(data, pad_width, **kwargs)
+
+    # Compute the cropping values (before and after) for all axes
+    crop_width = np.zeros((len(data.shape), 2))
+    for i in range(3):
+        crop_width[i, 0] = -diff[i] - offset[i]
+        crop_width[i, 1] = np.ceil(padded_data.shape[i] + diff[i])
+
+    # If dealing with 4D data, do not crop the last dimension
+    if len(data.shape) == 4:
+        crop_width[3, :] = [0, data.shape[3]]
+
+    # Crop the data
+    cropped_data = crop(
+        padded_data, np.maximum(0, crop_width[:, 0]).astype(int),
+        crop_width[:, 1].astype(int))
+
+    # Compute the new affine
+    translation = voxel_to_world(crop_width[:, 0], affine)
+    new_affine = np.copy(affine)
+    new_affine[0:3, 3] = translation[0:3]
+
+    return nib.Nifti1Image(cropped_data, new_affine)
+
+
 def mask_data_with_default_cube(data):
     """Masks data outside a default cube (Cube: data.shape/3 centered)
 

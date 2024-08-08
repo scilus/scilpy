@@ -5,6 +5,9 @@
 Script to resample a dataset to match the resolution of another
 reference dataset or to the resolution specified as in argument.
 
+This script will reslice the volume to match the desired shape. To pad or crop,
+use scil_volume_reshape.py.
+
 Formerly: scil_resample_volume.py
 """
 
