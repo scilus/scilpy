@@ -21,6 +21,7 @@ from sklearn import linear_model
 from scilpy.image.reslice import reslice  # Don't use Dipy's reslice. Buggy.
 from scilpy.io.image import get_data_as_mask
 from scilpy.gradients.bvec_bval_tools import identify_shells
+from scilpy.reconst.fodf import exp_u, log_u
 from scilpy.utils.spatial import voxel_to_world
 from scilpy.utils.spatial import world_to_voxel
 
@@ -497,13 +498,16 @@ def _interp_code_to_order(interp_code):
 
 def resample_volume(img, ref_img=None, volume_shape=None, iso_min=False,
                     voxel_res=None,
-                    interp='lin', enforce_dimensions=False):
+                    interp='lin', fodf=False, enforce_dimensions=False):
     """
     Function to resample a dataset to match the resolution of another reference
     dataset or to the resolution specified as in argument.
 
     One (and only one) of the following options must be chosen:
     ref, volume_shape, iso_min or voxel_res.
+
+    If fODF is True, the fODF are projected from S3++ to R3 before resampling,
+    and then back. This is to avoid the "swelling" problem [1].
 
     Parameters
     ----------
@@ -532,6 +536,13 @@ def resample_volume(img, ref_img=None, volume_shape=None, iso_min=False,
     -------
     resampled_image: nib.Nifti1Image
         Resampled image.
+
+    References
+    ----------
+    [1] Cheng, J., Ghosh, A., Jiang, T., & Deriche, R. (2009). A Riemannian
+    framework for orientation distribution function computing. In International
+    Conference on Medical Image Computing and Computer-Assisted Intervention
+    (pp. 911-918). Berlin, Heidelberg: Springer Berlin Heidelberg.
     """
     data = np.asanyarray(img.dataobj)
     original_shape = data.shape
@@ -576,8 +587,21 @@ def resample_volume(img, ref_img=None, volume_shape=None, iso_min=False,
     logging.info('Data affine setup: %s', nib.aff2axcodes(affine))
     logging.info('Resampling data to %s with mode %s', new_zooms, interp)
 
+    # If fODF, we project to R^3 before resampling.
+    if fodf:
+        # Perform projection to the tangent plane. Ref. 1 eq. 11
+        data, norm = log_u(data)  # v_c
+
     data2, affine2 = reslice(data, affine, original_zooms, new_zooms,
                              _interp_code_to_order(interp))
+
+    # If fODF, we project back to S3++ after resampling.
+    if fodf:
+        # Reslice the normalization factor so we can multiply it back.
+        norm, _ = reslice(norm, affine, original_zooms, new_zooms,
+                          _interp_code_to_order(interp))
+        # Reference 1 eq. 10, ie pullback map.
+        data2 = exp_u(data2, norm)  # c
 
     logging.info('Resampled data shape: %s', data2.shape)
     logging.info('Resampled data affine: %s', affine2)
