@@ -8,7 +8,7 @@ using output from ANTs registration tools (i.e. affine.txt, warp.nii.gz).
 Example usage from T1 to b0 using ANTs transforms:
 > ConvertTransformFile 3 output0GenericAffine.mat vtk_transfo.txt --hm
 > scil_surface_apply_transform.py lh_white_lps.vtk affine.txt lh_white_b0.vtk\\
-    --in_deformation warp.nii.gz
+    --in_deformation warp.nii.gz --inverse
 
 Important: The input surface needs to be in *T1 world LPS* coordinates
 (aligned over the T1 in MI-Brain).
@@ -48,10 +48,9 @@ def _build_arg_parser():
 
     p.add_argument('in_moving_surface',
                    help='Input surface (.vtk).')
-
     p.add_argument('in_transfo',
                    help='Path of the file containing the 4x4 \n'
-                        'transformation, matrix (.txt, .npy or .mat).'))
+                        'transformation, matrix (.txt, .npy or .mat).')
     p.add_argument('out_surface',
                    help='Output surface (.vtk).')
 
@@ -72,12 +71,12 @@ def main():
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
-    assert_inputs_exist(parser, [args.in_surface, args.in_transfo],
-                        args.ants_warp)
+    assert_inputs_exist(parser, [args.in_moving_surface, args.in_transfo],
+                        args.in_deformation)
     assert_outputs_exist(parser, args, args.out_surface)
 
     # Load mesh
-    mesh = load_mesh_from_file(args.in_surface)
+    mesh = load_mesh_from_file(args.in_moving_surface)
 
     # Load transformation
     transfo = load_matrix_in_any_format(args.in_transfo)

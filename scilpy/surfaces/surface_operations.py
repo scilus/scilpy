@@ -26,9 +26,8 @@ def apply_transform(mesh, ants_affine, ants_warp=None, inverse=False):
         Surface moved
     """
     # Affine transformation
-    inv_affine = np.linalg.inv(ants_affine)
-        if inverse:
-        linear_transfo = np.linalg.inv(linear_transfo)
+    if inverse:
+        inv_affine = np.linalg.inv(ants_affine)
 
     # Transform mesh vertices
     mesh.set_vertices(mesh.vertices_affine(inv_affine))
