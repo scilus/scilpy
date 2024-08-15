@@ -5,6 +5,7 @@ import subprocess
 from nltk.stem import PorterStemmer
 from colorama import Fore, Style
 import re
+from tqdm import tqdm
 
 stemmer = PorterStemmer()
 
@@ -190,7 +191,7 @@ def _generate_help_files():
     hidden_dir.mkdir(exist_ok=True)
 
     # Iterate over all scripts and generate help files
-    for idx, script in enumerate(scripts, start=1):
+    for idx, script in enumerate(tqdm(scripts,desc="Generating help files", total=total_scripts), start=1):
         help_file = hidden_dir / f'{script.name}.help'
         # Check if help file already exists
         if help_file.exists():
@@ -208,7 +209,7 @@ def _generate_help_files():
         print(f'Help file saved to {help_file}({idx}/{total_scripts})')
 
     # Check if any help files are missing and regenerate them
-    for script in scripts_dir.glob('*.py'):
+    for script in tqdm(scripts_dir.glob('*.py'), desc="Checking missing help files", total=total_scripts):
         if script.name == '__init__.py' or script.name == 'scil_search_keywords.py':
             continue
         help_file = hidden_dir / f'{script.name}.help'
