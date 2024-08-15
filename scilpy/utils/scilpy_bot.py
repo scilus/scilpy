@@ -191,7 +191,7 @@ def _generate_help_files():
     hidden_dir.mkdir(exist_ok=True)
 
     # Iterate over all scripts and generate help files
-    for idx, script in enumerate(tqdm(scripts,desc="Generating help files", total=total_scripts), start=1):
+    for idx, script in enumerate(tqdm(scripts, desc="Generating help files", total=total_scripts), start=1):
         help_file = hidden_dir / f'{script.name}.help'
         # Check if help file already exists
         if help_file.exists():
