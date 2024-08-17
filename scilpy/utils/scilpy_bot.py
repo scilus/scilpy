@@ -17,7 +17,7 @@ SPACING_LEN = 80
 
 # Path to the JSON file containing script information and keywords
 VOCAB_FILE_PATH = pathlib.Path(
-    __file__).parent.parent.parent/'data' / 'Vocabulary'/'Vocabulary.json'
+    __file__).parent.parent.parent/'data'/ 'vocabulary'/'vocabulary.json'
 
 
 OBJECTS = [
