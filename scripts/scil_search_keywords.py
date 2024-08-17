@@ -100,8 +100,7 @@ def main():
         logging.info('This is your first time running this script.\n'
                      'Generating help files may take a few minutes,'
                      'please be patient.\n'
-                     'Subsequent searches will be much faster.\n'
-                     'Generating help files....')
+                     'Subsequent searches will be much faster.')
         _generate_help_files()
 
     matches = []
