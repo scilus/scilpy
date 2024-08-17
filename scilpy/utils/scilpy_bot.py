@@ -6,6 +6,7 @@ from nltk.stem import PorterStemmer
 from colorama import Fore, Style
 import re
 from tqdm import tqdm
+import logging
 
 stemmer = PorterStemmer()
 
@@ -195,7 +196,7 @@ def _generate_help_files():
         help_file = hidden_dir / f'{script.name}.help'
         # Check if help file already exists
         if help_file.exists():
-            print(f'Help file for {script.name} already exists. Skipping.')
+            logging.debug(f'Help file for {script.name} already exists. Skipping.')
             continue
 
         # Run the script with --h and capture the output
@@ -206,7 +207,7 @@ def _generate_help_files():
         with open(help_file, 'w') as f:
             f.write(result.stdout)
 
-        print(f'Help file saved to {help_file}({idx}/{total_scripts})')
+        logging.debug(f'Help file saved to {help_file}({idx}/{total_scripts})')
 
     # Check if any help files are missing and regenerate them
     for script in tqdm(scripts_dir.glob('*.py'), desc="Checking missing help files", total=total_scripts):
@@ -222,7 +223,7 @@ def _generate_help_files():
             with open(help_file, 'w') as f:
                 f.write(result.stdout)
 
-            print(f'Regenerated help output for {script.name}')
+            logging.debug(f'Regenerated help output for {script.name}')
 
 
 def _highlight_keywords(text, stemmed_keywords):
