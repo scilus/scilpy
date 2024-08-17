@@ -7,7 +7,6 @@ from colorama import Fore, Style
 import re
 from tqdm import tqdm
 import logging
-
 stemmer = PorterStemmer()
 
 RED = '\033[31m'
@@ -197,7 +196,7 @@ def _generate_help_files():
             help_file = hidden_dir / f'{script.name}.help'
             # Check if help file already exists
             if help_file.exists():
-                logging.debug(f'Help file for {script.name} already exists. Skipping.')
+                tqdm.write(f'Help file for {script.name} already exists. Skipping.')
                 pbar.update(1)
                 continue
 
@@ -209,7 +208,7 @@ def _generate_help_files():
             with open(help_file, 'w') as f:
                 f.write(result.stdout)
 
-            logging.debug(f'Help file saved to {help_file}')
+            tqdm.write(f'Help file saved to {help_file}')
             pbar.update(1)
 
     # Check if any help files are missing and regenerate them
@@ -228,8 +227,9 @@ def _generate_help_files():
                 with open(help_file, 'w') as f:
                     f.write(result.stdout)
 
-                logging.debug(f'Regenerated help output for {script.name}')
+                tqdm.write(f'Regenerated help output for {script.name}')
             pbar.update(1)
+
 
 
 def _highlight_keywords(text, stemmed_keywords):
