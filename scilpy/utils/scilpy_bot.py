@@ -192,29 +192,15 @@ def _generate_help_files():
     hidden_dir.mkdir(exist_ok=True)
 
     # Iterate over all scripts and generate help files
-    for idx, script in enumerate(tqdm(scripts, desc="Generating help files", total=total_scripts), start=1):
-        help_file = hidden_dir / f'{script.name}.help'
-        # Check if help file already exists
-        if help_file.exists():
-            logging.debug(f'Help file for {script.name} already exists. Skipping.')
-            continue
+    with tqdm(total=total_scripts, desc="Generating help files") as pbar:
+        for script in scripts:
+            help_file = hidden_dir / f'{script.name}.help'
+            # Check if help file already exists
+            if help_file.exists():
+                logging.debug(f'Help file for {script.name} already exists. Skipping.')
+                pbar.update(1)
+                continue
 
-        # Run the script with --h and capture the output
-        result = subprocess.run(
-            ['python', script, '--h'], capture_output=True, text=True)
-
-        # Save the output to the hidden file
-        with open(help_file, 'w') as f:
-            f.write(result.stdout)
-
-        logging.debug(f'Help file saved to {help_file}({idx}/{total_scripts})')
-
-    # Check if any help files are missing and regenerate them
-    for script in tqdm(scripts_dir.glob('*.py'), desc="Checking missing help files", total=total_scripts):
-        if script.name == '__init__.py' or script.name == 'scil_search_keywords.py':
-            continue
-        help_file = hidden_dir / f'{script.name}.help'
-        if not help_file.exists():
             # Run the script with --h and capture the output
             result = subprocess.run(
                 ['python', script, '--h'], capture_output=True, text=True)
@@ -223,7 +209,27 @@ def _generate_help_files():
             with open(help_file, 'w') as f:
                 f.write(result.stdout)
 
-            logging.debug(f'Regenerated help output for {script.name}')
+            logging.debug(f'Help file saved to {help_file}')
+            pbar.update(1)
+
+    # Check if any help files are missing and regenerate them
+    with tqdm(total=total_scripts, desc="Checking missing help files") as pbar:
+        for script in scripts_dir.glob('*.py'):
+            if script.name == '__init__.py' or script.name == 'scil_search_keywords.py':
+                pbar.update(1)
+                continue
+            help_file = hidden_dir / f'{script.name}.help'
+            if not help_file.exists():
+                # Run the script with --h and capture the output
+                result = subprocess.run(
+                    ['python', script, '--h'], capture_output=True, text=True)
+
+                # Save the output to the hidden file
+                with open(help_file, 'w') as f:
+                    f.write(result.stdout)
+
+                logging.debug(f'Regenerated help output for {script.name}')
+            pbar.update(1)
 
 
 def _highlight_keywords(text, stemmed_keywords):
