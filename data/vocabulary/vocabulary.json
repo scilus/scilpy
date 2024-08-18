@@ -262,7 +262,7 @@
     {
       "name": "scil_dwi_reorder_philips.py",
       "keywords": [
-        "Philips",
+        "philips",
         "DWI reorder",
         "original gradient table"
       ]
@@ -318,8 +318,8 @@
         "directions",
         "peak values",
         "peak indices",
-        "rgb",
-        "afd"
+        "RGB",
+        "AFD"
       ]
     },
     {
@@ -712,7 +712,7 @@
       "name": "scil_tracking_pft_maps_edit.py",
       "keywords": [
         "particule filtering tractography",
-        "cmc"
+        "CMC"
       ]
     },
     {
@@ -721,8 +721,8 @@
         "particle filter tractography",
         "continuous map criterion",
         "tracking",
-        "fodf",
-        "cmc",
+        "FODF",
+        "CMC",
         "particle filtering tractography"
       ]
     },
@@ -732,7 +732,7 @@
         "particle filter tractography",
         "continuous map criterion",
         "tracking",
-        "fodf"
+        "FODF"
       ]
     },
     {
@@ -766,7 +766,7 @@
       "keywords": [
         "microstructure informed",
         "filtering",
-        "mit"
+        "MIT"
       ]
     },
     {
@@ -958,9 +958,9 @@
       "name": "scil_viz_fodf.py",
       "keywords": [
         "visualize",
-        "fiber odf",
-        "odf",
-        "sh",
+        "fiber ODF",
+        "ODF",
+        "SH",
         "peaks",
         "background"
       ]
@@ -1060,7 +1060,7 @@
   ],
   "synonyms": [
       [
-        "Bundle", 
+        "bundle", 
         "tract", 
         "pathway", 
         "fasciculus"
@@ -1083,11 +1083,11 @@
       ],
       [
         "ODF", 
-        "Orientation Distribution Function"
+        "orientation distribution function"
       ],
       [
         "DWI",
-        "Diffusion Weighted Imaging"
+        "diffusion weighted imaging"
       ],
       [
         "shell",
