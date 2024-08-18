@@ -190,7 +190,7 @@ def main():
                 for synonym in synonyms:
                     if synonym in search_text:
                         # Update the score_details with the count of each synonym found
-                        score_details[keyword+' synonyms'] = score_details.get(
+                        score_details[keyword + ' synonyms'] = score_details.get(
                             keyword + ' synonyms', 0) + search_text.count(synonym)
                         score_details['total_score'] += search_text.count(
                             synonym)
