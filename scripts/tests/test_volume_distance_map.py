@@ -5,7 +5,6 @@ import os
 import tempfile
 
 import nibabel as nib
-import numpy as np
 
 from scilpy import SCILPY_HOME
 from scilpy.io.fetcher import fetch_data, get_testing_files_dict
@@ -23,11 +22,11 @@ def test_help_option(script_runner):
 def test_execution(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_mask_1 = os.path.join(SCILPY_HOME, 'tractograms',
-                           'streamline_and_mask_operations',
-                           'bundle_4_head_tail.nii.gz')
+                             'streamline_and_mask_operations',
+                             'bundle_4_head_tail.nii.gz')
     in_mask_2 = os.path.join(SCILPY_HOME, 'tractograms',
-                           'streamline_and_mask_operations',
-                           'bundle_4_center.nii.gz')
+                             'streamline_and_mask_operations',
+                             'bundle_4_center.nii.gz')
     ret = script_runner.run('scil_volume_distance_map.py',
                             in_mask_1, in_mask_2,
                             'distance_map.nii.gz')
