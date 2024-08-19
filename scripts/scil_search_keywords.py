@@ -189,7 +189,7 @@ def main():
 
                 for synonym in synonyms:
                     if synonym in search_text and synonym != keyword:
-                        # Update the score_details with the count of each synonym found
+                        # Update score_details with the count of each synonym found
                         score_details[keyword + ' synonyms'] = score_details.get(
                             keyword + ' synonyms', 0) + search_text.count(synonym)
                         score_details['total_score'] += search_text.count(
@@ -197,7 +197,6 @@ def main():
 
                 # Directly update scores dictionary
                 scores[filename] = score_details
-
 
     if not matches:
         logging.info(_make_title(' No results found! '))

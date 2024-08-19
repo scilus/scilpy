@@ -6,7 +6,7 @@ from nltk.stem import PorterStemmer
 from colorama import Fore, Style
 import re
 from tqdm import tqdm
-import logging
+
 stemmer = PorterStemmer()
 
 RED = '\033[31m'
@@ -17,7 +17,7 @@ SPACING_LEN = 80
 
 # Path to the JSON file containing script information and keywords
 VOCAB_FILE_PATH = pathlib.Path(
-    __file__).parent.parent.parent/'data'/ 'vocabulary'/'vocabulary.json'
+    __file__).parent.parent.parent/'data' / 'vocabulary' / 'vocabulary.json'
 
 
 OBJECTS = [
@@ -231,7 +231,6 @@ def _generate_help_files():
             pbar.update(1)
 
 
-
 def _highlight_keywords(text, stemmed_keywords):
     """
     Highlight the stemmed keywords in the given text using colorama.
@@ -339,15 +338,15 @@ def _calculate_score(keywords, phrases, text, filename):
         if len(keyword) <= 3:
             return found_word == keyword
         return stemmer.stem(found_word) == stemmer.stem(keyword)
-    
+
     for keyword in keywords:
         keyword = keyword.lower()
         # Use regular expressions to match whole words only
         keyword_pattern = re.compile(r'\b' + re.escape(keyword) + r'\b')
         found_words = keyword_pattern.findall(
             stemmed_text) + keyword_pattern.findall(stemmed_filename)
-        
         keyword_score = 0
+
         for found_word in found_words:
             if is_match(found_word, keyword):
                 keyword_score += 1
