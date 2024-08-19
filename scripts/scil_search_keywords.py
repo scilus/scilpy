@@ -188,14 +188,16 @@ def main():
                 score_details = scores.get(filename, {'total_score': 0})
 
                 for synonym in synonyms:
-                    if synonym in search_text:
+                    if synonym in search_text and synonym != keyword:
                         # Update the score_details with the count of each synonym found
                         score_details[keyword + ' synonyms'] = score_details.get(
                             keyword + ' synonyms', 0) + search_text.count(synonym)
                         score_details['total_score'] += search_text.count(
                             synonym)
 
-                update_matches_and_scores(filename, score_details)
+                # Directly update scores dictionary
+                scores[filename] = score_details
+
 
     if not matches:
         logging.info(_make_title(' No results found! '))
@@ -207,7 +209,8 @@ def main():
 
         logging.info(_make_title(' Results Ordered by Score '))
         for match in sorted_matches:
-            logging.info(f"{Fore.BLUE}{Style.BRIGHT}{match}{Style.RESET_ALL}")
+            if scores[match]['total_score'] > 0:
+                logging.info(f"{Fore.BLUE}{Style.BRIGHT}{match}{Style.RESET_ALL}")
 
             for word, score in scores[match].items():
                 if word != 'total_score':

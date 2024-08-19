@@ -335,12 +335,23 @@ def _calculate_score(keywords, phrases, text, filename):
     stemmed_filename = _stem_text(filename.lower())
     score_details = {'total_score': 0}
 
+    def is_match(found_word, keyword):
+        if len(keyword) <= 3:
+            return found_word == keyword
+        return stemmer.stem(found_word) == stemmer.stem(keyword)
+    
     for keyword in keywords:
         keyword = keyword.lower()
         # Use regular expressions to match whole words only
         keyword_pattern = re.compile(r'\b' + re.escape(keyword) + r'\b')
-        keyword_score = len(keyword_pattern.findall(
-            stemmed_text)) + len(keyword_pattern.findall(stemmed_filename))
+        found_words = keyword_pattern.findall(
+            stemmed_text) + keyword_pattern.findall(stemmed_filename)
+        
+        keyword_score = 0
+        for found_word in found_words:
+            if is_match(found_word, keyword):
+                keyword_score += 1
+
         score_details[keyword] = keyword_score
         score_details['total_score'] += keyword_score
 
