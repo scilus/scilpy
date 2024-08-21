@@ -8,7 +8,12 @@ volume will be centered in world space wrt. the reference volume or the
 specified resolution.
 
 This script will pad or crop the volume to match the desired shape.
-To interpolate, use scil_volume_resample.py.
+To
+    - interpolate/reslice to an arbitrary voxel size, use
+      scil_volume_resample.py.
+    - reslice a volume to match the shape of another, use
+      scil_volume_reslice_to_reference.py.
+    - crop a volume to constrain the field of view, use scil_volume_crop.py.
 """
 
 import argparse
