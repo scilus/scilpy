@@ -223,7 +223,7 @@ def test_reshape_volume_pad():
     reshaped_img = reshape_volume(img, (4, 4, 4), mode='edge')
     assert_equal(reshaped_img.get_fdata()[0, 0, 0], 1)
 
-    # 4D img
+    # 4D img (2 "stacked" 3D volumes)
     img = nib.Nifti1Image(
         np.arange(1, ((3**3) * 2)+1).reshape((3, 3, 3, 2)).astype(float),
         np.eye(4))

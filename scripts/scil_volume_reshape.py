@@ -4,8 +4,8 @@
 """
 Script to reshape a volume to match the resolution of another
 reference volume or to the resolution specified as in argument. The resulting
-volume will be centered in world space wrt. the reference volume or the
-specified resolution.
+volume will be centered in world space with respect to the reference volume or
+the specified resolution.
 
 This script will pad or crop the volume to match the desired shape.
 To
