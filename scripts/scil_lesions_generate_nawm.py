@@ -14,6 +14,7 @@ import nibabel as nib
 import numpy as np
 
 from scilpy.image.labels import get_data_as_labels
+from scilpy.image.volume_operations import compute_distance_map
 from scilpy.io.image import get_data_as_mask
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
@@ -35,13 +36,14 @@ def _build_arg_parser():
     p.add_argument('out_image',
                    help='TODO')
 
-    p.add_argument('--nb_ring', type=int,
+    p.add_argument('--nb_ring', type=int, default=4,
                    help='Integer representing the number of rings to be '
                         'created.')
-    p.add_argument('--ring_thickness', type=int,
+    p.add_argument('--ring_thickness', type=int, default=4,
                    help='Integer representing the thickness of the rings to be '
                         'created. Used for voxel dilation passes.')
     # TODO split 4D into many files
+    # TODO Lesions as 1 (default) vs lesions as 0
 
     add_verbose_arg(p)
     add_overwrite_arg(p)
@@ -54,7 +56,6 @@ def main():
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
-
     assert_inputs_exist(parser, args.in_image)
     assert_outputs_exist(parser, args, args.out_image)
 
@@ -66,15 +67,19 @@ def main():
     is_binary = True if np.unique(lesion_atlas).size == 2 else False
     print(is_binary)
     labels = np.unique(lesion_atlas)[1:]
-    nawm = np.zeros(lesion_atlas.shape + (len(labels),), dtype=np.uint16)
+    nawm = np.zeros(lesion_atlas.shape + (len(labels),), dtype=float)
+    inverse_mask = np.ones(lesion_atlas.shape, dtype=np.uint8)
     for i, label in enumerate(labels):
-        nawm[..., i] = i + 1
+        curr_mask = np.zeros(lesion_atlas.shape, dtype=np.uint8)
+        curr_mask[lesion_atlas == label] = 1
+        nawm[..., i] = compute_distance_map(inverse_mask,
+                                            curr_mask,
+                                            max_distance=args.nb_ring * args.ring_thickness)
 
     if is_binary:
         nawm = np.squeeze(nawm)
 
     nib.save(nib.Nifti1Image(nawm, lesion_img.affine), args.out_image)
-
 
 
 if __name__ == "__main__":
