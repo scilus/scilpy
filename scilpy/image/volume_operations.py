@@ -16,6 +16,7 @@ import nibabel as nib
 import numpy as np
 from numpy import ma
 from scipy.ndimage import binary_dilation, gaussian_filter
+from scipy.spatial import KDTree
 from sklearn import linear_model
 
 from scilpy.image.reslice import reslice  # Don't use Dipy's reslice. Buggy.
@@ -688,3 +689,50 @@ def merge_metrics(*arrays, beta=1.0):
     boosted_mean = geometric_mean ** beta
 
     return ma.filled(boosted_mean, fill_value=np.nan)
+
+
+def compute_distance_map(mask_1, mask_2, symmetric=False,
+                         max_distance=np.inf):
+    """
+    Compute the distance map between two binary masks.
+    The distance is computed using the Euclidean distance between the
+    first mask and the closest point in the second mask.
+
+    Use the symmetric flag to compute the distance map in both directions.
+
+    WARNING: This function will work even if inputs are not binary masks,
+    just make sure that you know what you are doing.
+
+    Parameters
+    ----------
+    mask_1: np.ndarray
+        First binary mask.
+    mask_2: np.ndarray
+        Second binary mask.
+    symmetric: bool, optional
+        If True, compute the symmetric distance map. Default is np.inf
+    max_distance: float, optional
+        Maximum distance to consider for kdtree exploration. Default is None.
+
+    Returns
+    -------
+    distance_map: np.ndarray
+        Distance map between the two masks.
+    """
+    if mask_1.shape != mask_2.shape:
+        raise ValueError("Masks must have the same shape.")
+
+    tree = KDTree(np.argwhere(mask_2))
+    distance_map = np.zeros(mask_1.shape)
+    distance = tree.query(np.argwhere(mask_1),
+                          distance_upper_bound=max_distance)[0]
+    distance_map[np.where(mask_1)] = distance
+
+    if symmetric:
+        # Compute the symmetric distance map and merge it with the previous one
+        tree = KDTree(np.argwhere(mask_1))
+        distance = tree.query(np.argwhere(mask_2),
+                              distance_upper_bound=max_distance)[0]
+        distance_map[np.where(mask_2)] = distance
+
+    return distance_map
