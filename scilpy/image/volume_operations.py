@@ -713,6 +713,8 @@ def compute_distance_map(mask_1, mask_2, symmetric=False,
         If True, compute the symmetric distance map. Default is np.inf
     max_distance: float, optional
         Maximum distance to consider for kdtree exploration. Default is None.
+        If you put any value, coordinates further than this value will be
+        considered as np.inf.
 
     Returns
     -------
@@ -736,3 +738,49 @@ def compute_distance_map(mask_1, mask_2, symmetric=False,
         distance_map[np.where(mask_2)] = distance
 
     return distance_map
+
+
+def compute_nawm(lesion_atlas, nb_ring, ring_thickness):
+    """
+    TODO
+
+    le centre de la lesion est toujours a 1 donc les rings vont de 2 jusqu'a nb_ring+1
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
+    """
+    if np.unique(lesion_atlas).size == 1:
+        raise ValueError('Input lesion map is empty.')
+    is_binary = True if np.unique(lesion_atlas).size == 2 else False
+    labels = np.unique(lesion_atlas)[1:]
+    nawm = np.zeros(lesion_atlas.shape + (len(labels),), dtype=float)
+    inverse_mask = np.ones(lesion_atlas.shape, dtype=np.uint8)
+    for i, label in enumerate(labels):
+        curr_mask = np.zeros(lesion_atlas.shape, dtype=np.uint8)
+        curr_mask[lesion_atlas == label] = 1
+        curr_dist_map = compute_distance_map(inverse_mask,
+                                            curr_mask,
+                                            max_distance=nb_ring * ring_thickness)
+        curr_dist_map[np.isinf(curr_dist_map)] = 0
+        # Mask to remember where values were computed
+        to_increase_mask = np.zeros(lesion_atlas.shape, dtype=np.uint8)
+        to_increase_mask[curr_dist_map > 0] = 1
+        to_increase_mask[curr_mask > 0] = 1
+        
+        # Faire le round juste dans la distance map?
+        # Avec gros parametres la lesions semble grossir
+        curr_dist_map[to_increase_mask > 0] += 1
+        curr_dist_map = np.round(curr_dist_map / ring_thickness)
+        curr_dist_map[to_increase_mask > 0] += 1
+        
+        print(curr_dist_map.min(), curr_dist_map.max())
+        nawm[..., i] = curr_dist_map
+
+    if is_binary:
+        nawm = np.squeeze(nawm)
+
+    return nawm.astype(np.uint16)

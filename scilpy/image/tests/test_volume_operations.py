@@ -14,7 +14,8 @@ from scilpy.image.volume_operations import (apply_transform, compute_snr,
                                             merge_metrics, normalize_metric,
                                             resample_volume, register_image,
                                             mask_data_with_default_cube,
-                                            compute_distance_map)
+                                            compute_distance_map,
+                                            compute_nawm)
 from scilpy.io.fetcher import fetch_data, get_testing_files_dict
 from scilpy.image.utils import compute_nifti_bounding_box
 
@@ -298,3 +299,20 @@ def test_compute_distance_map_wrong_shape():
         assert False
     except ValueError:
         assert True
+
+def test_compute_nawm():
+    lesion_img = np.zeros((3, 3, 3))
+    lesion_img[1, 1, 1] = 1
+
+    nawm = compute_nawm(lesion_img, nb_ring=1, ring_thickness=1)
+    print(np.sum(nawm))
+    assert np.sum(nawm) == 26
+
+    nawm = compute_nawm(lesion_img, nb_ring=2, ring_thickness=1)
+    print(np.sum(nawm))
+    assert np.sum(nawm) == 98
+
+    nawm = compute_nawm(lesion_img, nb_ring=1, ring_thickness=2)
+    print(np.sum(nawm))
+    assert np.sum(nawm) == 80
+
