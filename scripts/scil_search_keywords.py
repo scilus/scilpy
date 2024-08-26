@@ -50,6 +50,14 @@ from scilpy.io.utils import add_verbose_arg
 nltk.download('punkt', quiet=True)
 
 
+def _initialize_logging(verbosity):
+    logging.basicConfig(level=logging.WARNING)
+    if verbosity == 'INFO':
+        logging.getLogger().setLevel(logging.INFO)
+    elif verbosity == 'DEBUG':
+        logging.getLogger().setLevel(logging.DEBUG)
+
+
 def _build_arg_parser():
     p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawTextHelpFormatter)
