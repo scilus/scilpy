@@ -42,20 +42,13 @@ from scilpy.utils.scilpy_bot import (
     _get_docstring_from_script_path, _stem_keywords,
     _stem_phrase, _generate_help_files,
     _get_synonyms, _extract_keywords_and_phrases,
-    _calculate_score, _make_title, prompt_user_for_object
+    _calculate_score, _make_title, prompt_user_for_object,
+    _split_first_sentence, _highlight_keywords
 )
 from scilpy.utils.scilpy_bot import SPACING_LEN, VOCAB_FILE_PATH
 from scilpy.io.utils import add_verbose_arg
 
 nltk.download('punkt', quiet=True)
-
-
-def _initialize_logging(verbosity):
-    logging.basicConfig(level=logging.WARNING)
-    if verbosity == 'INFO':
-        logging.getLogger().setLevel(logging.INFO)
-    elif verbosity == 'DEBUG':
-        logging.getLogger().setLevel(logging.DEBUG)
 
 
 def _build_arg_parser():
@@ -113,11 +106,13 @@ def main():
 
     matches = []
     scores = {}
+    docstrings = {}  # To store the docstrings of each script
+
 
     # pattern to search for
     search_pattern = f'scil_{"{}_" if selected_object else ""}*.py'
 
-    def update_matches_and_scores(filename, score_details):
+    def update_matches_and_scores(filename, score_details, docstring=None):
         """
         Update the matches and scores for the given filename based
         on the score details.
@@ -131,7 +126,8 @@ def main():
                 and phrases found in the script.
             This dictionary should have a 'total_score' key
                 indicating the cumulative score.
-
+        docstring : str, optional
+            The docstring of the script.
         Returns
         -------
         None
@@ -141,12 +137,16 @@ def main():
             if filename not in matches:
                 matches.append(filename)
                 scores[filename] = score_details
+                if docstring:
+                    docstrings[filename] = docstring
             else:
                 for key, value in score_details.items():
                     if key != 'total_score':
                         scores[filename][key] = scores[filename].get(
                             key, 0) + value
                 scores[filename]['total_score'] += score_details['total_score']
+                if docstring:
+                    docstrings[filename] = docstring
 
     for script in sorted(script_dir.glob(search_pattern.format(selected_object))):
         filename = script.stem
@@ -157,7 +157,7 @@ def main():
         search_text = _get_docstring_from_script_path(str(script))
         score_details = _calculate_score(
             stemmed_keywords, stemmed_phrases, search_text, filename=filename)
-        update_matches_and_scores(filename, score_details)
+        update_matches_and_scores(filename, score_details, docstring=search_text)
 
         # Search in help files
         help_file = hidden_dir / f"{filename}.py.help"
@@ -221,16 +221,19 @@ def main():
 
             for word, score in scores[match].items():
                 if word != 'total_score':
-                    if word.endswith(' synonyms'):
                         logging.info(
-                            f"{Fore.GREEN}Occurrence of '{word}': {score}{Style.RESET_ALL}")
-                    else:
-                        original_word = keyword_mapping.get(
-                            word, phrase_mapping.get(word, word))
-                        logging.info(
-                            f"{Fore.GREEN}Occurrence of '{original_word}': {score}{Style.RESET_ALL}")
+                            f"{Fore.GREEN}Occurrence of '{keyword_mapping.get(word, phrase_mapping.get(word, word))}': {score}{Style.RESET_ALL}")                        
+            # Highlight keywords in the docstring or full text based on verbosity level
+            if match in docstrings:
+                highlighted_docstring = _highlight_keywords(docstrings[match], stemmed_keywords)
+                if args.verbose == 'INFO':
+                    first_sentence = _split_first_sentence(highlighted_docstring)[0]
+                    logging.info(f"{first_sentence.strip()}")
+                elif args.verbose == 'DEBUG':
+                    logging.debug(f"{highlighted_docstring.strip()}")
+                
 
-            logging.info(f"Total Score: {scores[match]['total_score']}")
+            logging.info(f"{Fore.RED}Total Score: {scores[match]['total_score']}{Style.RESET_ALL}")
             logging.info(f"{Fore.BLUE}{'=' * SPACING_LEN}")
             logging.info("\n")
         logging.info(_make_title(
