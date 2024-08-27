@@ -15,12 +15,24 @@ keyword, and their total score.
 - Words enclosed in quotes will be searched as phrases, ensuring the words
 appear next to each other in the text.
 
+Verbosity Options:
+- If the `-v` option is provided, the script will display the first sentence
+  of the docstring for each matching script.
+- If the `-v DEBUG` option is provided, the script will display the full
+  docstring for each matching script.
+
+Keywords Highlighting:
+- When displaying the docstrings, the script highlights the found keywords in
+red.
 
 Examples:
 - scil_search_keywords.py tractogram filtering
-- scil_search_keywords.py "Spherical Harmonics" convert
-- scil_search_keywords.py --no_synonyms tractogram filtering
-- scil_search_keywords.py --search_category tractogram filtering
+- scil_search_keywords.py "Spherical Harmonics"
+- scil_search_keywords.py --no_synonyms "Spherical Harmonics"
+- scil_search_keywords.py --search_category tractogram
+- scil_search_keywords.py -v sh
+- scil_search_keywords.py -v DEBUG sh
+
 """
 
 import argparse
@@ -108,7 +120,6 @@ def main():
     scores = {}
     docstrings = {}  # To store the docstrings of each script
 
-
     # pattern to search for
     search_pattern = f'scil_{"{}_" if selected_object else ""}*.py'
 
@@ -157,7 +168,8 @@ def main():
         search_text = _get_docstring_from_script_path(str(script))
         score_details = _calculate_score(
             stemmed_keywords, stemmed_phrases, search_text, filename=filename)
-        update_matches_and_scores(filename, score_details, docstring=search_text)
+        update_matches_and_scores(filename, score_details,
+                                  docstring=search_text)
 
         # Search in help files
         help_file = hidden_dir / f"{filename}.py.help"
@@ -197,7 +209,7 @@ def main():
 
                 for synonym in synonyms:
                     if synonym in search_text and synonym != keyword:
-                        # Update score_details with the count of each synonym found
+                        # Update score_details with count of each synonym found
                         score_details[keyword + ' synonyms'] = score_details.get(
                             keyword + ' synonyms', 0) + search_text.count(synonym)
                         score_details['total_score'] += search_text.count(
@@ -221,8 +233,7 @@ def main():
 
             for word, score in scores[match].items():
                 if word != 'total_score':
-                        logging.info(
-                            f"{Fore.GREEN}Occurrence of '{keyword_mapping.get(word, phrase_mapping.get(word, word))}': {score}{Style.RESET_ALL}")                        
+                    logging.info(f"{Fore.GREEN}Occurrence of '{keyword_mapping.get(word, phrase_mapping.get(word, word))}': {score}{Style.RESET_ALL}")                       
             # Highlight keywords in the docstring or full text based on verbosity level
             if match in docstrings:
                 highlighted_docstring = _highlight_keywords(docstrings[match], stemmed_keywords)
@@ -230,9 +241,7 @@ def main():
                     first_sentence = _split_first_sentence(highlighted_docstring)[0]
                     logging.info(f"{first_sentence.strip()}")
                 elif args.verbose == 'DEBUG':
-                    logging.debug(f"{highlighted_docstring.strip()}")
-                
-
+                    logging.debug(f"{highlighted_docstring.strip()}")           
             logging.info(f"{Fore.RED}Total Score: {scores[match]['total_score']}{Style.RESET_ALL}")
             logging.info(f"{Fore.BLUE}{'=' * SPACING_LEN}")
             logging.info("\n")
