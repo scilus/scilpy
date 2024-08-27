@@ -233,15 +233,17 @@ def main():
 
             for word, score in scores[match].items():
                 if word != 'total_score':
-                    logging.info(f"{Fore.GREEN}Occurrence of '{keyword_mapping.get(word, phrase_mapping.get(word, word))}': {score}{Style.RESET_ALL}")                       
-            # Highlight keywords in the docstring or full text based on verbosity level
+                    logging.info(f"{Fore.GREEN}Occurrence of '{keyword_mapping.get(word, phrase_mapping.get(word, word))}': {score}{Style.RESET_ALL}")
+
+            # Highlight keywords based on verbosity level
             if match in docstrings:
-                highlighted_docstring = _highlight_keywords(docstrings[match], stemmed_keywords)
+                highlighted_docstring = _highlight_keywords(docstrings[match],
+                                                            stemmed_keywords)
                 if args.verbose == 'INFO':
                     first_sentence = _split_first_sentence(highlighted_docstring)[0]
                     logging.info(f"{first_sentence.strip()}")
                 elif args.verbose == 'DEBUG':
-                    logging.debug(f"{highlighted_docstring.strip()}")           
+                    logging.debug(f"{highlighted_docstring.strip()}")    
             logging.info(f"{Fore.RED}Total Score: {scores[match]['total_score']}{Style.RESET_ALL}")
             logging.info(f"{Fore.BLUE}{'=' * SPACING_LEN}")
             logging.info("\n")
