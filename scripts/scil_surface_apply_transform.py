@@ -24,8 +24,8 @@ import argparse
 import logging
 
 import nibabel as nib
-import numpy as np
 from trimeshpy.io import load_mesh_from_file
+from trimeshpy.vtk_util import save_polydata
 
 from scilpy.io.utils import (add_overwrite_arg,
                              add_verbose_arg,
@@ -83,14 +83,13 @@ def main():
 
     deformation_data = None
     if args.in_deformation is not None:
-        deformation_data = np.squeeze(nib.load(
-            args.in_deformation).get_fdata(dtype=np.float32))
+        deformation_data = nib.load(args.in_deformation)
 
     mesh = apply_transform(mesh, transfo, deformation_data,
                            inverse=args.inverse)
 
     # Save mesh
-    mesh.save(args.out_surface)
+    save_polydata(mesh.__polydata__, args.out_surface, legacy_vtk_format=True)
 
 
 if __name__ == "__main__":
