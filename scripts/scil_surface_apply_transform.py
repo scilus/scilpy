@@ -3,12 +3,12 @@
 
 """
 Script to apply a transform to a surface (FreeSurfer or VTK supported),
-using output from ANTs registration tools (i.e. affine.txt, warp.nii.gz).
+using output from ANTs registration tools (i.e. vtk_transfo.txt, output1InverseWarp.nii.gz).
 
 Example usage from T1 to b0 using ANTs transforms:
 > ConvertTransformFile 3 output0GenericAffine.mat vtk_transfo.txt --hm
-> scil_surface_apply_transform.py lh_white_lps.vtk affine.txt lh_white_b0.vtk\\
-    --in_deformation warp.nii.gz --inverse
+> scil_surface_apply_transform.py lh_white_lps.vtk vtk_transfo.txt lh_white_b0.vtk\\
+    --in_deformation output1InverseWarp.nii.gz --inverse
 
 Important: The input surface needs to be in *T1 world LPS* coordinates
 (aligned over the T1 in MI-Brain).
