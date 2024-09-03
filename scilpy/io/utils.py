@@ -15,7 +15,6 @@ import numpy as np
 from dipy.data import SPHERE_FILES
 from dipy.io.utils import is_header_compatible
 from scipy.io import loadmat
-from tqdm import tqdm
 import six
 
 from scilpy.gradients.bvec_bval_tools import DEFAULT_B0_THRESHOLD
