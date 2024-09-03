@@ -14,10 +14,10 @@ from scilpy.tracking.fibertube import (segment_tractogram,
 from scilpy.io.utils import v_enumerate
 
 
-def min_external_distance(fibers, diameters, verbose):
+def min_external_distance(centerlines, diameters, verbose):
     # Can be improved in speed by using Numba.
     # (See get_streamlines_as_fixed_array and numba-kdtree)
-    seg_centers, seg_indices, max_seg_length = segment_tractogram(fibers,
+    seg_centers, seg_indices, max_seg_length = segment_tractogram(centerlines,
                                                                   verbose)
     tree = KDTree(seg_centers)
     min_external_distance = np.float32('inf')
@@ -38,10 +38,10 @@ def min_external_distance(fibers, diameters, verbose):
             if neighbor_si == si:
                 continue
 
-            p0 = fibers[si][seg_indices[segi][1]]
-            p1 = fibers[si][seg_indices[segi][1] + 1]
-            q0 = fibers[neighbor_si][seg_indices[neighbor_segi][1]]
-            q1 = fibers[neighbor_si][seg_indices[neighbor_segi][1] + 1]
+            p0 = centerlines[si][seg_indices[segi][1]]
+            p1 = centerlines[si][seg_indices[segi][1] + 1]
+            q0 = centerlines[neighbor_si][seg_indices[neighbor_segi][1]]
+            q1 = centerlines[neighbor_si][seg_indices[neighbor_segi][1] + 1]
 
             rp = diameters[si] / 2
             rq = diameters[neighbor_si] / 2
@@ -50,7 +50,7 @@ def min_external_distance(fibers, diameters, verbose):
             external_distance = distance - rp - rq
 
             if external_distance < 0:
-                raise RuntimeError('The input fibers contained a \n'
+                raise RuntimeError('The input fibrtubes contained a \n'
                                    'collision. Filter them prior \n'
                                    'to acquiring metrics.')
 
@@ -73,7 +73,7 @@ def max_voxels(diagonal):
     return (max_voxel_anisotropic, max_voxel_isotropic)
 
 
-def true_max_voxel(diagonal):
+def max_voxel_rotated(diagonal):
     hyp = np.linalg.norm(diagonal)
     edge = hyp * sqrt(2)/2
 
@@ -102,7 +102,7 @@ def get_external_distance_vec(vector, rp, rq):
 
 
 @njit
-def resolve_origin_seeding(seeds, fibers, diameters):
+def resolve_origin_seeding(seeds, centerlines, diameters):
     """
     Associates given seeds to segment 0 of the fibertube in which they have
     been generated. This pairing only works with fiber origin seeding.
@@ -110,7 +110,7 @@ def resolve_origin_seeding(seeds, fibers, diameters):
     Parameters
     ----------
     seeds: ndarray
-    fibers: ndarray
+    centerlines: ndarray
         Fibertube centerlines given as a fixed array
         (see streamlines_as_fixed_array).
     diameters: ndarray
@@ -124,7 +124,7 @@ def resolve_origin_seeding(seeds, fibers, diameters):
     seeds_fiber = [-1] * len(seeds)
 
     for si, seed in enumerate(seeds):
-        for fi, fiber in enumerate(fibers):
+        for fi, fiber in enumerate(centerlines):
             if point_in_cylinder(fiber[0], fiber[1], diameters[fi]/2, seed):
                 seeds_fiber[si] = fi
                 break
@@ -133,7 +133,7 @@ def resolve_origin_seeding(seeds, fibers, diameters):
 
 
 @njit
-def mean_reconstruction_error(fibers, fibers_length, diameters, streamlines,
+def mean_reconstruction_error(centerlines, centerlines_length, diameters, streamlines,
                               streamlines_length, seeds_fiber,
                               return_error_tractogram=False):
     """
@@ -142,9 +142,9 @@ def mean_reconstruction_error(fibers, fibers_length, diameters, streamlines,
 
     Parameters
     ----------
-    fibers: ndarray
+    centerlines: ndarray
         Fixed array containing ground-truth fibertube centerlines.
-    fibers_length: ndarray
+    centerlines_length: ndarray
         Fixed array containing the number of coordinates of each fibertube
         centerlines.
     diameters: list,
@@ -173,10 +173,10 @@ def mean_reconstruction_error(fibers, fibers_length, diameters, streamlines,
     error_tractogram = []
 
     with objmode(centers='float64[:, :]', indices='int64[:, :]'):
-        centers, indices, _ = segment_tractogram(fibers)
-    centers_fixed_length = len(fibers[0])-1
+        centers, indices, _ = segment_tractogram(centerlines, False)
+    centers_fixed_length = len(centerlines[0])-1
 
-    tree = nbKDTree(centers[:fibers_length[0]-1])
+    tree = nbKDTree(centers[:centerlines_length[0]-1])
     tree_fi = 0
 
     for si, streamline_fixed in enumerate(streamlines):
@@ -184,7 +184,7 @@ def mean_reconstruction_error(fibers, fibers_length, diameters, streamlines,
         errors = []
 
         seeded_fi = seeds_fiber[si]
-        fiber = fibers[seeded_fi]
+        fiber = centerlines[seeded_fi]
         radius = diameters[seeded_fi] / 2
 
         # Rebuild tree for current fiber.
@@ -192,7 +192,7 @@ def mean_reconstruction_error(fibers, fibers_length, diameters, streamlines,
             tree = nbKDTree(
                 centers[centers_fixed_length * seeded_fi:
                         (centers_fixed_length * seeded_fi +
-                         fibers_length[seeded_fi] - 1)])
+                         centerlines_length[seeded_fi] - 1)])
 
         # Querying nearest neighbor for each coordinate of the streamline.
         neighbor_indices = tree.query_parallel(streamline)[1]
@@ -226,8 +226,8 @@ def mean_reconstruction_error(fibers, fibers_length, diameters, streamlines,
 
 
 @njit
-def endpoint_connectivity(step_size, sampling_radius, fibers,
-                          fibers_length, diameters, streamlines,
+def endpoint_connectivity(step_size, blur_radius, centerlines,
+                          centerlines_length, diameters, streamlines,
                           seeds_fiber, random_generator):
     """
     TODO: Particularly inefficient. To be improved with a KDTree.
@@ -244,10 +244,10 @@ def endpoint_connectivity(step_size, sampling_radius, fibers,
     Parameters
     ----------
     step_size: any
-    sampling_radius: any
-    fibers: ndarray
+    blur_radius: any
+    centerlines: ndarray
         Fixed array containing ground-truth fibertube centerlines.
-    fibers_length: ndarray
+    centerlines_length: ndarray
         Fixed array containing the number of coordinates of each fibertube
         centerlines.
     diameters: list,
@@ -268,11 +268,15 @@ def endpoint_connectivity(step_size, sampling_radius, fibers,
     truth_vc: list
         Connections that are valid at ground-truth resolution.
     truth_ic: list
+        Connections that are invalid at ground-truth resolution.
     truth_nc: list
+        No-connections at ground-truth resolution.
     resolution_vc: list
-        Connections that are valid at degraded resolution.
+        Connections that are valid at simulated resolution.
     resolution_ic: list
+        Connections that are invalid at simulated resolution.
     resolution_nc: list
+        No-connections at simulated resolution.
     """
     truth_vc = []
     truth_ic = []
@@ -283,13 +287,13 @@ def endpoint_connectivity(step_size, sampling_radius, fibers,
     for si, streamline in enumerate(streamlines):
         truth_connected = False
         res_connected = False
-        for fi, fiber in enumerate(fibers):
-            fib_pt1 = fiber[fibers_length[fi] - 2]
-            fib_pt2 = fiber[fibers_length[fi] - 1]
+        for fi, fiber in enumerate(centerlines):
+            fib_pt1 = fiber[centerlines_length[fi] - 2]
+            fib_pt2 = fiber[centerlines_length[fi] - 1]
             radius = diameters[fi] / 2
 
             # Check all the points of the estimated last segment of streamline
-            estimated_overstep_mm = (radius + sampling_radius + step_size)
+            estimated_overstep_mm = (radius + blur_radius + step_size)
             estimated_streamline_last_seg_nb_pts = int(
                 (np.linalg.norm(fib_pt2-fib_pt1) +
                  estimated_overstep_mm) // step_size)
@@ -306,7 +310,7 @@ def endpoint_connectivity(step_size, sampling_radius, fibers,
                         truth_ic.append((si, fi))
 
                 volume, _ = sphere_cylinder_intersection(
-                        point, sampling_radius,
+                        point, blur_radius,
                         fib_pt1, fib_pt2, radius,
                         1000, random_generator)
 

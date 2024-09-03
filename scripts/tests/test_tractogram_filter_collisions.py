@@ -33,7 +33,7 @@ def test_execution_filtering(script_runner, monkeypatch):
     assert ret.success
 
 
-def test_execution_filtering_colliders_collided(script_runner, monkeypatch):
+def test_execution_filtering_invalid_collided(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_tractogram = os.path.join(SCILPY_HOME, 'tracking', 'local.trk')
     in_diameters = os.path.join(SCILPY_HOME, 'tracking', 'diameters.txt')
@@ -43,7 +43,7 @@ def test_execution_filtering_colliders_collided(script_runner, monkeypatch):
 
     ret = script_runner.run('scil_tractogram_filter_collisions.py',
                             in_tractogram, in_diameters, 'local_clean.trk',
-                            '--save_colliders', '--save_collided', '-f')
+                            '--save_colliding', '--save_collided', '-f')
 
     assert ret.success
 
@@ -77,7 +77,7 @@ def test_execution_filtering_shuffle(script_runner, monkeypatch):
     assert ret.success
 
 
-def test_execution_filtering_tmv_threshold(script_runner, monkeypatch):
+def test_execution_filtering_min_distance(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_tractogram = os.path.join(SCILPY_HOME, 'tracking', 'local.trk')
     in_diameters = os.path.join(SCILPY_HOME, 'tracking', 'diameters.txt')
@@ -101,7 +101,7 @@ def test_execution_filtering_all_options(script_runner, monkeypatch):
 
     ret = script_runner.run('scil_tractogram_filter_collisions.py',
                             in_tractogram, in_diameters, 'local_clean.trk',
-                            '--save_colliders', '--save_collided',
+                            '--save_colliding', '--save_collided',
                             '--shuffle', '--single_diameter',
                             '--min_distance', '0.1', '-f')
 

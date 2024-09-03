@@ -974,19 +974,3 @@ def v_enumerate(x, verbose):
         return enumerate(tqdm(x))
     else:
         return enumerate(x)
-
-
-def save_dictionary(dictionary: dict, filename: str, overwrite: bool):
-    with open(filename,
-              'w' if overwrite else 'x') as f:
-        f.writelines([str(key) + ': ' + str(dictionary[key]) + '\n'
-                      for key in dictionary.keys()])
-
-
-def load_dictionary(filename: str):
-    dictionary = {}
-    with open(filename, 'r') as f:
-        for line in f.readlines():
-            [key, value] = line.split(': ')
-            dictionary[key] = value.removesuffix('\n')
-    return dictionary

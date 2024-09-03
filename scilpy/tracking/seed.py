@@ -271,13 +271,13 @@ class FibertubeSeedGenerator(SeedGenerator):
     """
     Adaptation of the scilpy.tracking.seed.SeedGenerator interface for
     fibertube tracking. Generates a given number of seed within the first
-    segment of a given number of fibers.
+    segment of a given number of centerlines.
     """
-    def __init__(self, fibers, diameters, nb_seeds_per_fiber):
+    def __init__(self, centerlines, diameters, nb_seeds_per_fiber):
         """
         Parameters
         ----------
-        fibers: list
+        centerlines: list
             Tractogram containing the fibertube centerlines
         diameters: list
             Diameters of each fibertube
@@ -286,7 +286,7 @@ class FibertubeSeedGenerator(SeedGenerator):
         self.space = Space.VOXMM
         self.origin = Origin.NIFTI
 
-        self.fibers = fibers
+        self.centerlines = centerlines
         self.diameters = diameters
         self.nb_seeds_per_fiber = nb_seeds_per_fiber
 
@@ -304,7 +304,7 @@ class FibertubeSeedGenerator(SeedGenerator):
         # and only keeping last
         next_local = self.nb_seeds % self.nb_seeds_per_fiber
 
-        fiber = self.fibers[next_fi]
+        fiber = self.centerlines[next_fi]
         radius = self.diameters[next_fi] / 2
         center = (fiber[0] + fiber[1]) / 2
         axis = fiber[1] - fiber[0]
@@ -323,7 +323,7 @@ class FibertubeSeedGenerator(SeedGenerator):
         # and only keeping last
         next_local = self.nb_seeds % self.nb_seeds_per_fiber
 
-        fiber = self.fibers[next_fi]
+        fiber = self.centerlines[next_fi]
         radius = self.diameters[next_fi] / 2
         center = (fiber[0] + fiber[1]) / 2
         axis = fiber[1] - fiber[0]

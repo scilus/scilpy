@@ -5,143 +5,6 @@ from numba import njit
 from scilpy.io.utils import v_enumerate
 
 
-from scilpy.io.utils import add_overwrite_arg
-
-
-def add_mandatory_tracking_options(p):
-    p.add_argument('in_centerlines',
-                   help='Path to the tractogram file containing the \n'
-                        'fibertube centerlines (must be .trk or .tck). \n'
-                        'This tractogram must be void of any intersection \n'
-                        'given the diameter supplied for each streamline \n'
-                        '(see scil_filter_intersections.py).')
-
-    p.add_argument('in_diameters',
-                   help='Path to a text file containing a list of the \n'
-                        'diameters of each fibertube in mm (.txt). Each \n'
-                        'line corresponds to the identically numbered \n'
-                        'streamline.')
-
-    p.add_argument('in_mask',
-                   help='Tracking mask (.nii.gz).\n'
-                        'Tracking will stop outside this mask. The last point '
-                        'of each \nstreamline (triggering the stopping '
-                        'criteria) IS added to the streamline.')
-
-    p.add_argument('out_tractogram',
-                   help='Tractogram output file (must be .trk or .tck).')
-
-    p.add_argument('step_size', type=float,
-                   help='Step size of the tracking algorithm, in mm.')
-
-    p.add_argument('sampling_radius', type=float,
-                   help='Radius of the circular region from which the \n'
-                        'algorithm will determine the next direction.')
-
-
-def add_tracking_options(p):
-    track_g = p.add_argument_group('Tracking options')
-    track_g.add_argument(
-        '--min_length', type=float, default=10.,
-        metavar='m',
-        help='Minimum length of a streamline in mm. '
-        '[%(default)s]')
-    track_g.add_argument(
-        '--max_length', type=float, default=300.,
-        metavar='M',
-        help='Maximum length of a streamline in mm. '
-        '[%(default)s]')
-    track_g.add_argument(
-        '--theta', type=float, default=60.,
-        help='Maximum angle between 2 steps. If the angle is '
-             'too big, streamline is \nstopped and the '
-             'following point is NOT included.\n'
-             '[%(default)s]')
-    track_g.add_argument(
-        '--rk_order', metavar="K", type=int, default=1,
-        choices=[1, 2, 4],
-        help="The order of the Runge-Kutta integration used \n"
-             'for the step function. \n'
-             'For more information, refer to the note in the \n'
-             'script description. [%(default)s]')
-    track_g.add_argument(
-        '--max_invalid_nb_points', metavar='MAX', type=int,
-        default=0,
-        help='Maximum number of steps without valid \n'
-             'direction, \nex: if threshold on ODF or max \n'
-             'angles are reached. \n'
-             'Default: 0, i.e. do not add points following '
-             'an invalid direction.')
-    track_g.add_argument(
-        '--forward_only', action='store_true',
-        help='If set, tracks in one direction only (forward) \n'
-             'given the \ninitial seed.')
-    track_g.add_argument(
-        '--keep_last_out_point', action='store_true',
-        help='If set, keep the last point (once out of the \n'
-             'tracking mask) of the streamline. Default: discard \n'
-             'them. This is the default in Dipy too. \n'
-             'Note that points obtained after an invalid direction \n'
-             '(based on the propagator\'s definition of invalid) \n'
-             'are never added.')
-
-
-def add_seeding_options(p):
-    seed_group = p.add_argument_group(
-        'Seeding options',
-        'When no option is provided, uses --nb_seeds_per_fiber 5.')
-    seed_group.add_argument(
-        '--nb_seeds_per_fiber', type=int, default=5,
-        help='The number of seeds planted in the first segment \n'
-             'of each fiber. The total amount of streamlines will \n'
-             'be [nb_seeds_per_fiber] * [nb_fibers]. [%(default)s]')
-    seed_group.add_argument(
-        '--nb_fibers', type=int,
-        help='If set, the script will only track a specified \n'
-             'amount of fibers. Otherwise, the entire tractogram \n'
-             'will be tracked. The total amount of streamlines \n'
-             'will be [nb_seeds_per_fiber] * [nb_fibers].')
-
-
-def add_out_options(p):
-    out_g = p.add_argument_group('Output options')
-    out_g.add_argument(
-        '--do_not_compress', action='store_true',
-        help='If set, streamlines will not be compressed as \n'
-             'they are saved. Compression is activated by default because \n'
-             'of the excessive coordinate density of the output \n'
-             'tractogram. Only deactivate for benchmarking or if \n'
-             'you will compress later.')
-    out_g.add_argument(
-        '--save_seeds', action='store_true',
-        help='If set, the seeds used for tracking will be saved \n'
-             'in an additional .txt file. Its file name is derived \n'
-             'from the out_tractogram parameter with "_seeds" \n'
-             'appended.')
-    out_g.add_argument(
-        '--save_config', action='store_true',
-        help='If set, some parameters used for tracking will be saved \n'
-             'in an additional .txt file. Its file name is derived \n'
-             'from the out_tractogram parameter with "_config" \n'
-             'appended.')
-
-    add_overwrite_arg(out_g)
-
-
-def add_random_options(p):
-    rand_g = p.add_argument_group('Randomization options')
-    rand_g.add_argument(
-        '--shuffle', action='store_true',
-        help='If set, the fibers will be shuffled before performing any \n'
-             'operation on them. Without this parameter, they are picked \n'
-             'in order.')
-    rand_g.add_argument(
-        '--rng_seed', type=int, default=0,
-        help='If set, all random values will be generated \n'
-             'using the specified seed. [%(default)s]')
-    return rand_g
-
-
 def segment_tractogram(streamlines, verbose=False):
     """
     Separates all streamlines of a tractogram into segments that connect
@@ -244,10 +107,8 @@ def sample_sphere(center, radius: float, amount: int,
         sample = np.array([rand_gen.uniform(-radius, radius),
                            rand_gen.uniform(-radius, radius),
                            rand_gen.uniform(-radius, radius)])
-        sample += center
-
-        if np.linalg.norm(center - sample) <= radius:
-            samples.append(sample)
+        if np.linalg.norm(sample) <= radius:
+            samples.append(sample + center)
     return samples
 
 
@@ -306,7 +167,7 @@ def sample_cylinder(center, axis, radius: float, length: float,
 
 @njit
 def point_in_cylinder(pt1, pt2, r, q):
-    vec = np.subtract(pt2, pt1)
+    vec = pt2 - pt1
     cond_1 = np.dot(q - pt1, vec) >= 0
     cond_2 = np.dot(q - pt2, vec) <= 0
     cond_3 = (np.linalg.norm(np.cross(q - pt1, vec)) /

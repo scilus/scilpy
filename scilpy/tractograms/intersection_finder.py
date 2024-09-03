@@ -19,10 +19,10 @@ class IntersectionFinder:
     FLOAT_EPSILON = 0.0000001
 
     @property
-    def colliders(self):
+    def invalid(self):
         """Bitmap identifying streamlines that hit another streamline
         and should be filtered out."""
-        return self._colliders
+        return self._invalid
 
     @property
     def collisions(self):
@@ -30,15 +30,15 @@ class IntersectionFinder:
         return self._collisions
 
     @property
-    def collided(self):
-        """Streamlines hit by colliders. They should not be filtered and
+    def obstacle(self):
+        """Streamlines hit by invalid. They should not be filtered and
         are saved simply for visualization."""
-        return self._collided
+        return self._obstacle
 
     @property
     def excluded(self):
         """Streamlines that don't collide, but should be excluded for
-        other reasons. (see min_distance)"""
+        other reasons."""
         return self._excluded
 
     def __init__(self, in_sft: StatefulTractogram, diameters: list,
@@ -64,9 +64,9 @@ class IntersectionFinder:
             segment_tractogram(self.streamlines, verbose))
         self.tree = KDTree(self.seg_centers)
 
-        self._colliders = []
+        self._invalid = []
         self._collisions = []
-        self._collided = []
+        self._obstacle = []
         self._excluded = []
 
     def find_intersections(self, min_distance: float = None):
@@ -74,13 +74,13 @@ class IntersectionFinder:
         Finds intersections within the initialized data of the object
 
         Produces and stores:
-            colliders : ndarray[bool]
+            invalid : ndarray[bool]
                 Bit map identifying streamlines that hit another streamline
                 and should be filtered out.
             collisions : ndarray[float32]
                 Collision point of each collider.
-            collided : ndarray[bool]
-                Streamlines hit by colliders. They should not be filtered and
+            obstacle : ndarray[bool]
+                Streamlines hit by invalid. They should not be filtered and
                 are flagged simply for visualization.
             excluded : ndarray[bool]
                 Streamlines that don't collide, but should be excluded for
@@ -96,9 +96,9 @@ class IntersectionFinder:
         start_time = time.time()
         streamlines = self.streamlines
 
-        colliders = np.full((len(streamlines)), False, dtype=np.bool_)
+        invalid = np.full((len(streamlines)), False, dtype=np.bool_)
         collisions = np.zeros((len(streamlines), 3), dtype=np.float32)
-        collided = np.full((len(streamlines)), False, dtype=np.bool_)
+        obstacle = np.full((len(streamlines)), False, dtype=np.bool_)
         excluded = np.full((len(streamlines)), False, dtype=np.bool_)
 
         # si   : Streamline Index | index of streamline within the tractogram.
@@ -112,7 +112,7 @@ class IntersectionFinder:
 
             # [Pruning 1] If current streamline has already collided or been
             #             excluded, skip.
-            if colliders[si] or excluded[si]:
+            if invalid[si] or excluded[si]:
                 continue
 
             neighbors = self.tree.query_ball_point(center,
@@ -128,7 +128,7 @@ class IntersectionFinder:
 
                 # [Pruning 3] If neighbor has already collided or been
                 #             excluded, skip.
-                if colliders[neighbor_si] or excluded[neighbor_si]:
+                if invalid[neighbor_si] or excluded[neighbor_si]:
                     continue
 
                 p0 = streamlines[si][self.seg_indices[segi][1]]
@@ -146,9 +146,9 @@ class IntersectionFinder:
                 external_distance = distance - rp - rq
 
                 if collide:
-                    colliders[si] = True
+                    invalid[si] = True
                     collisions[si] = p_coll
-                    collided[neighbor_si] = True
+                    obstacle[neighbor_si] = True
                     break
 
                 if (min_distance is not None and
@@ -160,62 +160,61 @@ class IntersectionFinder:
         logging.debug("Finished finding intersections in " +
                       str(round(time.time() - start_time, 2)) + " seconds.")
 
-        self._colliders = colliders
+        self._invalid = invalid
         self._collisions = collisions
-        self._collided = collided
+        self._obstacle = obstacle
         self._excluded = excluded
 
-    def build_tractograms(self, args):
+    def build_tractograms(self, save_colliding):
         """
         Builds and saves the various tractograms obtained from
         find_intersections().
 
         Parameters
         ----------
-        args: Namespace
-            Parsed arguments. Used to get the 'save_colliders', 'save_collided
-            and 'bbox_check' args. See scilpy.io.utils to add the arguments to
-            your parser.
+        save_colliding: bool
+            If set, will return invalid_sft and obstacle_sft in addition to
+            out_sft.
 
         Return
         ------
-        sfts: list(StatefulTractogram)
-            List of tractograms to be saved. The order is:
-            [out_sft, colliders_sft, collided_sft], with the last two being
-            optional based on given arguments.
-        out_diameters: list
-            List of the new diameters for out_sft.
+        out_sft: StatefulTractogram
+            Tractogram containing final streamlines void of collision.
+        invalid_sft: StatefulTractogram | None
+            Tractogram containing the invalid streamlines that have been
+            removed.
+        obstacle_sft: StatefulTractogram | None
+            Tractogram containing the streamlines that the invalid
+            streamlines collided with. May or may not have been removed
+            afterwards during filtering.
         """
         out_streamlines = []
         out_diameters = []
         out_collisions = []
-        out_colliders = []
-        out_collided = []
+        out_invalid = []
+        out_obstacle = []
 
         for si, s in v_enumerate(self.streamlines, self.verbose):
-            if self._colliders[si]:
-                out_colliders.append(s)
+            if self._invalid[si]:
+                out_invalid.append(s)
                 out_collisions.append(self._collisions[si])
             elif not self._excluded[si]:
                 out_streamlines.append(s)
                 out_diameters.append(self.diameters[si])
+                if self._obstacle[si]:
+                    out_obstacle.append(s)
 
-                if self._collided[si]:
-                    out_collided.append(s)
-
-        out_sft = StatefulTractogram.from_sft(out_streamlines, self.in_sft)
-
-        sfts = [out_sft]
-        if args.save_colliders:
-            collider_sft = StatefulTractogram.from_sft(
-                out_colliders,
+        out_sft = StatefulTractogram.from_sft(
+            out_streamlines, self.in_sft,
+            data_per_streamline= {'diameters': out_diameters})
+        if save_colliding:
+            invalid_sft = StatefulTractogram.from_sft(
+                out_invalid,
                 self.in_sft,
                 data_per_streamline={'collisions': out_collisions})
-            sfts.append(collider_sft)
+            obstacle_sft = StatefulTractogram.from_sft(
+                out_obstacle,
+                self.in_sft)
+            return out_sft, invalid_sft, obstacle_sft
 
-        if args.save_collided:
-            collided_sft = StatefulTractogram.from_sft(out_collided,
-                                                       self.in_sft)
-            sfts.append(collided_sft)
-
-        return sfts, out_diameters
+        return out_sft, None, None

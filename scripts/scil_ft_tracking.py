@@ -2,10 +2,25 @@
 # -*- coding: utf-8 -*-
 
 """
-Tracking algorithm conceived to follow and reconstruct fibertubes, with
-a given artificial degradation of the resolution during the tracking process.
+Local streamline tractography based on the architecture of
+scil_tracking_local_dev.py, adapted for fibertube tracking.
+
+Void of the concept of grid, voxels and resolution. Instead, the tracking
+algorithm is executed directly on fibertubes (Virtual representation of
+axons). To simulate a lower resolution, a blur_radius parameter is introduced.
+At each step, a random direction will be picked from the fibertube segments
+intersecting with the blurring sphere.
+
+Algorithm type is inherently probabilistic with a distribution weighted by the
+volume of intersection between each fibertube segment and the blurring sphere.
+
+The tracking direction is chosen in the aperture cone defined by the
+previous tracking direction and the angular constraint.
+
+Seeding is done within the first segment of each fibertube.
 """
 import os
+import json
 import time
 import argparse
 import logging
@@ -16,23 +31,16 @@ import dipy.core.geometry as gm
 from scilpy.tracking.seed import FibertubeSeedGenerator
 from scilpy.tracking.propagator import FibertubePropagator
 from scilpy.image.volume_space_management import FibertubeDataVolume
-from scilpy.tracking.fibertube import (add_mandatory_tracking_options,
-                                       add_tracking_options,
-                                       add_seeding_options,
-                                       add_random_options,
-                                       add_out_options)
-from scilpy.io.utils import save_dictionary
 from dipy.io.stateful_tractogram import StatefulTractogram, Space, Origin
-from dipy.io.streamline import save_tractogram
+from dipy.io.streamline import load_tractogram, save_tractogram
 from scilpy.tracking.tracker import Tracker
 from scilpy.image.volume_space_management import DataVolume
-from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (assert_inputs_exist,
                              assert_outputs_exist,
                              add_processes_arg,
                              add_verbose_arg,
-                             add_reference_arg,
-                             add_bbox_arg)
+                             add_json_args,
+                             add_overwrite_arg)
 
 
 def _build_arg_parser():
@@ -40,15 +48,102 @@ def _build_arg_parser():
         formatter_class=argparse.RawTextHelpFormatter,
         description=__doc__)
 
-    add_mandatory_tracking_options(p)
-    add_tracking_options(p)
-    add_seeding_options(p)
+    p.add_argument('in_fibertubes',
+                   help='Path to the tractogram file containing the \n'
+                        'fibertubes with their respective diameter saved \n'
+                        'data_per_streamline (must be .trk). \n'
+                        'The fibertubes must be void of any collision \n'
+                        '(see scil_filter_intersections.py). \n')
 
-    p.add_argument('--single_diameter', action='store_true',
-                   help='If set, the first diameter found in \n'
-                   '[in_diameters] will be repeated for each fiber.')
+    # TO BE REMOVED
+    p.add_argument('in_mask',
+                   help='Tracking mask (.nii.gz).\n'
+                        'Tracking will stop outside this mask. The last \n'
+                        'point of each streamline (triggering the stopping \n'
+                        'criteria) IS added to the streamline.')
 
-    rand_g = add_random_options(p)
+    p.add_argument('out_tractogram',
+                   help='Tractogram output file (must be .trk or .tck).')
+
+    p.add_argument('step_size', type=float,
+                   help='Step size of the tracking algorithm, in mm. \n'
+                   'A step_size within [0.001, 0.5] is recommended.')
+
+    p.add_argument('blur_radius', type=float,
+                   help='Radius of the circular region from which the \n'
+                   'algorithm will determine the next direction. \n'
+                   'A blur_radius within [0.001, 0.5] is recommended.')
+
+    track_g = p.add_argument_group('Tracking options')
+    track_g.add_argument(
+        '--min_length', type=float, default=10.,
+        metavar='m',
+        help='Minimum length of a streamline in mm. '
+        '[%(default)s]')
+    track_g.add_argument(
+        '--max_length', type=float, default=300.,
+        metavar='M',
+        help='Maximum length of a streamline in mm. '
+        '[%(default)s]')
+    track_g.add_argument(
+        '--theta', type=float, default=60.,
+        help='Maximum angle between 2 steps. If the angle is '
+             'too big, streamline is \nstopped and the '
+             'following point is NOT included.\n'
+             '[%(default)s]')
+    track_g.add_argument(
+        '--rk_order', metavar="K", type=int, default=1,
+        choices=[1, 2, 4],
+        help="The order of the Runge-Kutta integration used \n"
+             'for the step function. \n'
+             'For more information, refer to the note in the \n'
+             'script description. [%(default)s]')
+    track_g.add_argument(
+        '--max_invalid_nb_points', metavar='MAX', type=int,
+        default=0,
+        help='Maximum number of steps without valid \n'
+             'direction, \nex: if threshold on ODF or max \n'
+             'angles are reached. \n'
+             'Default: 0, i.e. do not add points following '
+             'an invalid direction.')
+    track_g.add_argument(
+        '--forward_only', action='store_true',
+        help='If set, tracks in one direction only (forward) \n'
+             'given the \ninitial seed.')
+    track_g.add_argument(
+        '--keep_last_out_point', action='store_true',
+        help='If set, keep the last point (once out of the \n'
+             'tracking mask) of the streamline. Default: discard \n'
+             'them. This is the default in Dipy too. \n'
+             'Note that points obtained after an invalid direction \n'
+             '(based on the propagator\'s definition of invalid) \n'
+             'are never added.')
+    
+    seed_group = p.add_argument_group(
+        'Seeding options',
+        'When no option is provided, uses --nb_seeds_per_fiber 5.')
+    seed_group.add_argument(
+        '--nb_seeds_per_fiber', type=int, default=5,
+        help='The number of seeds planted in the first segment \n'
+             'of each fiber. The total amount of streamlines will \n'
+             'be [nb_seeds_per_fiber] * [nb_fibers]. [%(default)s]')
+    seed_group.add_argument(
+        '--nb_fibers', type=int,
+        help='If set, the script will only track a specified \n'
+             'amount of fibers. Otherwise, the entire tractogram \n'
+             'will be tracked. The total amount of streamlines \n'
+             'will be [nb_seeds_per_fiber] * [nb_fibers].')
+
+    rand_g = p.add_argument_group('Random options')
+    rand_g.add_argument(
+        '--disable_shuffling', action='store_true',
+        help='If set, no shuffling will be performed before \n'
+        'the filtering process. Streamlines will be picked in \n'
+        'order.')
+    rand_g.add_argument(
+        '--rng_seed', type=int, default=0,
+        help='If set, all random values will be generated \n'
+        'using the specified seed. [%(default)s]')
     rand_g.add_argument(
         '--skip', type=int, default=0,
         help="Skip the first N seeds. \n"
@@ -58,11 +153,21 @@ def _build_arg_parser():
              "with -nt 1,000,000, \nyou can create tractogram_2 "
              "with \n--skip 1,000,000.")
 
+    out_g = p.add_argument_group('Output options')
+    out_g.add_argument(
+        '--save_seeds', action='store_true',
+        help='If set, the seeds used for tracking will be saved \n'
+             'as data_per_streamline in [out_tractogram].')
+    out_g.add_argument(
+        '--out_config', default=None, type=str,
+        help='If set, the parameter configuration used for tracking will \n'
+        'be saved at the specified location (must be .txt). If not given, \n'
+        'the config will be printed in the console.')
+    add_overwrite_arg(out_g)
+
     add_processes_arg(p)
-    add_out_options(p)
     add_verbose_arg(p)
-    add_reference_arg(p)
-    add_bbox_arg(p)
+    add_json_args(p)
 
     return p
 
@@ -71,17 +176,13 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    if (args.do_not_compress):
-        logging.warning('Streamline compression deactivated. This is not \n'
-                        'recommended.')
-
     if args.verbose:
         logging.getLogger().setLevel(logging.DEBUG)
         logging.getLogger('numba').setLevel(logging.WARNING)
 
-    if not nib.streamlines.is_supported(args.in_centerlines):
+    if not nib.streamlines.is_supported(args.in_fibertubes):
         parser.error('Invalid input streamline file format (must be trk ' +
-                     'or tck): {0}'.format(args.in_centerlines))
+                     'or tck): {0}'.format(args.in_fibertubes))
 
     if not nib.streamlines.is_supported(args.out_tractogram):
         parser.error('Invalid output streamline file format (must be trk ' +
@@ -93,8 +194,8 @@ def main():
     if args.save_seeds:
         outputs.append(out_tractogram_no_ext + '_seeds' + ext)
 
-    assert_inputs_exist(parser, [args.in_centerlines, args.in_diameters])
-    assert_outputs_exist(parser, args, outputs)
+    assert_inputs_exist(parser, [args.in_fibertubes])
+    assert_outputs_exist(parser, args, outputs, [args.out_config])
 
     algo = 'prob'
     theta = gm.math.radians(args.theta)
@@ -105,44 +206,34 @@ def main():
     our_space = Space.VOXMM
     our_origin = Origin('center')
 
-    logging.debug('Loading centerline tractogram & diameters')
-    in_sft = load_tractogram_with_reference(parser, args, args.in_centerlines)
+    logging.debug('Loading tractogram & diameters')
+    in_sft = load_tractogram(args.in_fibertubes, 'same', our_space, our_origin)
     in_sft.to_voxmm()
     in_sft.to_center()
-    # Casting ArraySequence as a list to improve speed
-    fibers = list(in_sft.get_streamlines_copy())
-    diameters = np.loadtxt(args.in_diameters, dtype=np.float64)
-    if args.single_diameter:
-        diameter = diameters if np.ndim(diameters) == 0 else diameters[0]
-        diameters = np.full(len(fibers), diameter)
+    centerlines = in_sft.get_streamlines_copy()
+    diameters = np.reshape(in_sft.data_per_streamline['diameters'], (len(centerlines)))
 
-    if args.shuffle:
-        logging.debug('Shuffling fibers')
-        indexes = list(range(len(fibers)))
+    if not args.disable_shuffling:
+        logging.debug('Shuffling streamlines')
+        indexes = list(range(len(centerlines)))
         gen = np.random.default_rng(args.rng_seed)
         gen.shuffle(indexes)
 
-        new_fibers = []
-        new_diameters = []
-        for _, index in enumerate(indexes):
-            new_fibers.append(fibers[index])
-            new_diameters.append(diameters[index])
+    # Casting ArraySequence as a list to improve speed
+    centerlines = list(centerlines[indexes])
 
-        fibers = new_fibers
-        diameters = np.array(new_diameters)
-        in_sft = StatefulTractogram.from_sft(fibers, in_sft)
-
+    #TO BE REMOVED
     logging.debug("Loading tracking mask.")
     mask_img = nib.load(args.in_mask)
     mask_data = mask_img.get_fdata(caching='unchanged', dtype=float)
     mask_res = mask_img.header.get_zooms()[:3]
     mask = DataVolume(mask_data, mask_res, 'nearest')
-    datavolume = FibertubeDataVolume(fibers, diameters, mask_data, mask_res,
-                                     args.sampling_radius, our_origin,
+    datavolume = FibertubeDataVolume(centerlines, diameters, mask_data, mask_res,
+                                     args.blur_radius, our_origin,
                                      np.random.default_rng(args.rng_seed))
 
     logging.debug("Instantiating seed generator")
-    seed_generator = FibertubeSeedGenerator(fibers, diameters,
+    seed_generator = FibertubeSeedGenerator(centerlines, diameters,
                                             args.nb_seeds_per_fiber)
 
     logging.debug("Instantiating propagator")
@@ -154,13 +245,11 @@ def main():
     if args.nb_fibers:
         nbr_seeds = args.nb_seeds_per_fiber * args.nb_fibers
     else:
-        nbr_seeds = args.nb_seeds_per_fiber * len(fibers)
-
-    compression_th = None if args.do_not_compress else 0
+        nbr_seeds = args.nb_seeds_per_fiber * len(centerlines)
 
     tracker = Tracker(propagator, mask, seed_generator, nbr_seeds,
                       min_nbr_pts, max_nbr_pts,
-                      args.max_invalid_nb_points, compression_th,
+                      args.max_invalid_nb_points, 0,
                       args.nbr_processes, args.save_seeds, 'r+',
                       rng_seed=args.rng_seed,
                       track_forward_only=args.forward_only,
@@ -175,22 +264,26 @@ def main():
 
     logging.debug('Finished tracking in: ' + str_time + ' seconds')
 
-    sft = StatefulTractogram(streamlines, mask_img, our_space,
+    out_sft = StatefulTractogram(streamlines, mask_img, our_space,
                              origin=our_origin)
-    save_tractogram(sft, args.out_tractogram)
-
     if args.save_seeds:
-        np.savetxt(out_tractogram_no_ext + '_seeds.txt', seeds)
+        out_sft.data_per_streamline['seeds'] = seeds
+    
+    save_tractogram(out_sft, args.out_tractogram)
 
-    if args.save_config:
+    if args.out_config:
         config = {
             'step_size': args.step_size,
-            'sampling_radius': args.sampling_radius,
+            'blur_radius': args.blur_radius,
             'nb_fibers': args.nb_fibers,
             'nb_seeds_per_fiber': args.nb_seeds_per_fiber
         }
-        save_dictionary(config, out_tractogram_no_ext + '_config.txt',
-                        args.overwrite)
+        with open(args.out_config, 'w') as outfile:
+            json.dump(config, outfile,
+                      indent=args.indent, sort_keys=args.sort_keys)
+    else:
+        print('Config:\n',
+              json.dumps(config, indent=args.indent, sort_keys=args.sort_keys))
 
 
 if __name__ == "__main__":

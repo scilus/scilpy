@@ -2,52 +2,57 @@
 # -*- coding: utf-8 -*-
 
 """
-Given ground-truth fibers and a tractogram obtained through fibertube
+Given ground-truth fibertubes and a tractogram obtained through fibertube
 tracking, computes metrics about the quality of individual fiber
 reconstruction.
 
 VC: "Valid Connection": Contains streamlines that ended in the final
-    segment of the fiber in which they have been seeded.
+    segment of the fibertube in which they have been seeded.
 IC: "Invalid Connection": Contains streamlines that ended in the final
-    segment of another fiber.
+    segment of another fibertube.
 NC: "No Connection": Contains streamlines that have not ended in the final
-    segment of any fiber.
+    segment of any fibertube.
 
-A coordinate error is the distance between a streamline coordinate and the
-closest point on its corresponding fibertube. The average of all coordinate
-errors of a streamline is called the "Mean error" or "me".
+A coordinate absolute error is the distance between a streamline coordinate
+and the closest point on its corresponding fibertube. The average of all
+coordinate absolute errors of a streamline is called the "Mean absolute
+error" or "mae".
 
 Computed metrics:
     - truth_vc
         Connections that are valid at ground-truth resolution.
     - truth_ic
+        Connections that are invalid at ground-truth resolution.
     - truth_nc
+        No-connections at ground-truth resolution.
     - res_vc
-        Connections that are valid at degraded resolution.
+        Connections that are valid at the simulated data resolution.
     - res_ic
+        Connections that are invalid at the simulated data resolution.
     - res_nc
-    - me_min
-    - me_max
-    - me_mean
-        Average mean error
-    - me_med
-        Median mean error
+        No-connections at the simulated data resolution
+    - mae_min
+        Minimum MAE for the tractogram
+    - mae_max
+        Maximum MAE for the tractogram
+    - mae_mean
+        Average MAE for the tractogram
+    - mae_med
+        Median MAE for the tractogram
 """
 import os
+import json
 import argparse
 import logging
 import numpy as np
 import nibabel as nib
 
-from dipy.io.stateful_tractogram import StatefulTractogram
-from dipy.io.streamline import save_tractogram
+from dipy.io.stateful_tractogram import StatefulTractogram, Space, Origin
+from dipy.io.streamline import save_tractogram, load_tractogram
 from scilpy.tractanalysis.fibertube_scoring import \
     resolve_origin_seeding, endpoint_connectivity, mean_reconstruction_error
-from scilpy.io.utils import (load_dictionary,
-                             save_dictionary)
 from scilpy.tractograms.streamline_operations import \
     get_streamlines_as_fixed_array
-from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (assert_inputs_exist,
                              assert_outputs_exist,
                              add_overwrite_arg,
@@ -60,23 +65,17 @@ def _build_arg_parser():
         description=__doc__,
         formatter_class=argparse.RawTextHelpFormatter)
 
-    p.add_argument('in_centerlines',
-                   help='Path to the tractogram file containing the \n'
-                   'fibertube centerlines (must be .trk or .tck).')
-
-    p.add_argument('in_diameters',
-                   help='Path to a text file containing a list of the \n'
-                   'diameters of each fibertube in mm (.txt). Each line \n'
-                   'corresponds to the identically numbered centerline.')
+    p.add_argument('in_fibertubes',
+                help='Path to the tractogram file containing the \n'
+                    'fibertubes with their respective diameter saved \n'
+                    'data_per_streamline (must be .trk). \n'
+                    'The fibertubes must be void of any collision \n'
+                    '(see scil_filter_intersections.py). \n')
 
     p.add_argument('in_tractogram',
                    help='Path to a text file containing the ground-truth \n'
-                   'reconstruction (must be .trk or .tck). \n')
-
-    p.add_argument('in_seeds',
-                   help='Path to a text file containing a list of the \n'
-                   'seeds used to propagate each streamline of the \n'
-                   'reconstruction.')
+                   'reconstruction (must be .trk) with seeds saved as \n'
+                   'data_per_streamline.')
 
     p.add_argument('in_config',
                    help='Path to a text file containing the fibertube \n'
@@ -85,10 +84,6 @@ def _build_arg_parser():
     p.add_argument('out_metrics',
                    help='Output file containing the computed measures and \n'
                    'metrics (must be .txt).')
-
-    p.add_argument('--single_diameter', action='store_true',
-                   help='If set, the first diameter found in \n'
-                   '[in_diameters] will be repeated for each fiber.')
 
     p.add_argument('--save_error_tractogram', action='store_true',
                    help='If set, a .trk file will be saved, containing a \n'
@@ -131,22 +126,24 @@ def main():
                                  args.in_tractogram])
     assert_outputs_exist(parser, args, [args.out_metrics])
 
+    our_space = Space.VOXMM
+    our_origin = Origin('center')
+
     logging.debug('Loading centerline tractogram & diameters')
-    truth_sft = load_tractogram_with_reference(parser, args,
-                                               args.in_centerlines)
+    truth_sft = load_tractogram(args.in_fibertubes, 'same', our_space, our_origin)
     truth_sft.to_voxmm()
     truth_sft.to_center()
-    fibers, fibers_length = get_streamlines_as_fixed_array(
-        truth_sft.get_streamlines_copy())
+    centerlines = in_sft.get_streamlines_copy()
+    diameters = np.reshape(in_sft.data_per_streamline['diameters'], (len(centerlines)))
+
+    centerlines, centerlines_length = get_streamlines_as_fixed_array(centerlines)
     diameters = np.loadtxt(args.in_diameters, dtype=np.float64)
     if args.single_diameter:
         diameter = diameters if np.ndim(diameters) == 0 else diameters[0]
-        diameters = np.full(len(fibers), diameter)
+        diameters = np.full(len(centerlines), diameter)
 
     logging.debug('Loading reconstructed tractogram')
-    in_sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
-    in_sft.to_voxmm()
-    in_sft.to_center()
+    in_sft = load_tractogram(parser, args, args.in_tractogram, our_space, our_origin)
     streamlines, streamlines_length = get_streamlines_as_fixed_array(
         in_sft.get_streamlines_copy())
 
@@ -154,12 +151,13 @@ def main():
     seeds = np.loadtxt(args.in_seeds)
     if len(seeds.shape) != 2:
         seeds = [seeds]
-    seeds_fiber = resolve_origin_seeding(seeds, fibers, diameters)
+    seeds_fiber = resolve_origin_seeding(seeds, centerlines, diameters)
 
     logging.debug("Loading config")
-    config = load_dictionary(args.in_config)
+    with open(args.in_config, 'r') as f:
+        config = json.load(f)
     step_size = float(config['step_size'])
-    sampling_radius = float(config['sampling_radius'])
+    blur_radius = float(config['blur_radius'])
 
     if len(seeds_fiber) != len(streamlines):
         raise ValueError('Could not resolve origin seeding regions')
@@ -171,33 +169,35 @@ def main():
     rand_gen = np.random.default_rng(args.rng_seed)
     (truth_vc, truth_ic, truth_nc,
      res_vc, res_ic, res_nc) = endpoint_connectivity(
-        step_size, sampling_radius,
-        fibers, fibers_length,
+        step_size, blur_radius,
+        centerlines, centerlines_length,
         diameters, streamlines,
         seeds_fiber, rand_gen)
 
     logging.debug("Computing reconstruction error")
     (mean_errors,
-     error_tractogram) = mean_reconstruction_error(fibers, fibers_length,
+     error_tractogram) = mean_reconstruction_error(centerlines, centerlines_length,
                                                    diameters,
                                                    streamlines,
                                                    streamlines_length,
                                                    seeds_fiber,
                                                    args.save_error_tractogram)
 
-    measures = {
+    metrics = {
         'truth_vc_ratio': len(truth_vc)/len(streamlines),
         'truth_ic_ratio': len(truth_ic)/len(streamlines),
         'truth_nc_ratio': len(truth_nc)/len(streamlines),
         'res_vc_ratio': len(res_vc)/len(streamlines),
         'res_ic_ratio': len(res_ic)/len(streamlines),
         'res_nc_ratio': len(res_nc)/len(streamlines),
-        'me_min': np.min(mean_errors),
-        'me_max': np.max(mean_errors),
-        'me_mean': np.mean(mean_errors),
-        'me_med': np.median(mean_errors),
+        'mae_min': np.min(mean_errors),
+        'mae_max': np.max(mean_errors),
+        'mae_mean': np.mean(mean_errors),
+        'mae_med': np.median(mean_errors),
     }
-    save_dictionary(measures, args.out_metrics, args.overwrite)
+    with open(args.out_metrics, 'w') as outfile:
+        json.dump(metrics, outfile,
+                  indent=args.indent, sort_keys=args.sort_keys)
 
     if args.save_error_tractogram:
         sft = StatefulTractogram.from_sft(error_tractogram, truth_sft)

@@ -372,48 +372,48 @@ class FibertubeDataVolume(DataVolume):
     interface for fibertube tracking. Instead of a spherical function,
     provides direction and intersection volume of close-by fiber segments.
     """
-    def __init__(self, fibers, diameters, mask, voxres, sampling_radius,
+    def __init__(self, centerlines, diameters, mask, voxres, blur_radius,
                  origin, random_generator):
         """
         Parameters
         ----------
-        fibers: list
+        centerlines: list
             Tractogram containing the fibertube centerlines
         diameters: list
             Diameters of each fibertube
         mask: any
         voxres: np.array(3,)
             The pixel resolution, ex, using img.header.get_zooms()[:3].
-        sampling_radius: float
-            Radius of the sampling sphere to be used for degrading resolution.
+        blur_radius: float
+            Radius of the blurring sphere to be used for degrading resolution.
         origin: dipy Origin
         random_generator: any
         """
-        self._prepare_and_store_data(fibers)
+        self._prepare_and_store_data(centerlines)
         self.diameters = diameters
         self.data = mask
         self.dim = mask.shape[:3]
         self.voxres = voxres
-        self.sampling_radius = sampling_radius
+        self.blur_radius = blur_radius
         self.origin = origin
         self.random_generator = random_generator
 
-    def _prepare_and_store_data(self, fibers):
-        if fibers is None:
+    def _prepare_and_store_data(self, centerlines):
+        if centerlines is None:
             self.tree = None
             self.segments_indices = None
             self.max_seg_length = None
-            self.fibers = None
+            self.centerlines = None
             return
 
         # Flatten all segments of tractogram
         segments_centers, segments_indices, max_seg_length = (
-            segment_tractogram(fibers, False))
+            segment_tractogram(centerlines, False))
 
         self.tree = KDTree(segments_centers)
         self.segments_indices = segments_indices
         self.max_seg_length = max_seg_length
-        self.fibers, _ = get_streamlines_as_fixed_array(fibers)
+        self.centerlines, _ = get_streamlines_as_fixed_array(centerlines)
 
     def _validate_origin(self, origin):
         if self.origin is not origin:
@@ -484,21 +484,21 @@ class FibertubeDataVolume(DataVolume):
         pos = np.array([x, y, z], dtype=np.float64)
 
         neighbors = self.tree.query_radius(
-            pos, self.sampling_radius + self.max_seg_length / 2)[0]
+            pos, self.blur_radius + self.max_seg_length / 2)[0]
 
-        return self.extract_directions(pos, neighbors, self.sampling_radius,
-                                       self.segments_indices, self.fibers,
+        return self.extract_directions(pos, neighbors, self.blur_radius,
+                                       self.segments_indices, self.centerlines,
                                        self.diameters, self.random_generator)
 
     def get_absolute_direction(self, x, y, z):
         pos = np.array([x, y, z], np.float64)
 
         neighbors = self.tree.query_radius(
-            pos, self.sampling_radius + self.max_seg_length / 2)[0]
+            pos, self.blur_radius + self.max_seg_length / 2)[0]
 
         for segi in neighbors:
             fi, pi = self.segments_indices[segi]
-            fiber = self.fibers[fi]
+            fiber = self.centerlines[fi]
             radius = self.diameters[fi] / 2
 
             if point_in_cylinder(fiber[pi], fiber[pi+1], radius, pos):
@@ -508,27 +508,27 @@ class FibertubeDataVolume(DataVolume):
 
     @staticmethod
     @njit
-    def extract_directions(pos, neighbors, sampling_radius, segments_indices,
-                           fibers, diameters, random_generator):
+    def extract_directions(pos, neighbors, blur_radius, segments_indices,
+                           centerlines, diameters, random_generator):
         directions = []
         volumes = []
 
         for segi in neighbors:
             fi, pi = segments_indices[segi]
-            fiber = fibers[fi]
+            fiber = centerlines[fi]
             fib_pt1 = fiber[pi]
             fib_pt2 = fiber[pi+1]
             dir = fib_pt2 - fib_pt1
             radius = diameters[fi] / 2
 
             volume, is_estimated = sphere_cylinder_intersection(
-                    pos, sampling_radius, fib_pt1,
+                    pos, blur_radius, fib_pt1,
                     fib_pt2, radius, 1000, random_generator)
 
-            # Catch estimation error when using very small sampling_radius.
+            # Catch estimation error when using very small blur_radius.
             if volume == 0 and is_estimated:
                 volume, _ = sphere_cylinder_intersection(
-                    pos, sampling_radius, fib_pt1,
+                    pos, blur_radius, fib_pt1,
                     fib_pt2, radius, 10000, random_generator)
 
             if volume > 0:
