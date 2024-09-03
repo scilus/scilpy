@@ -7,8 +7,8 @@ an artificial blur of the resolution during the tracking process. Uses the
 scilpy Tracker object with custom SeedGenerator, Propagator and Datavolume
 objects.
 
-
 """
+
 import os
 import time
 import argparse

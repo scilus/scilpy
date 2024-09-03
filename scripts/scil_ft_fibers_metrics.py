@@ -27,7 +27,9 @@ Computed metrics:
     - rotation_matrix [separate file]
         4D transformation matrix representing the rotation to be applied on
         the tractogram to align max_voxel_rotated with the coordinate system
-        (see scil_tractogram_apply_transform.py)."""
+        (see scil_tractogram_apply_transform.py).
+"""
+
 import os
 import argparse
 import logging
