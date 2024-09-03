@@ -11,6 +11,8 @@ from scipy.ndimage import binary_dilation
 from dipy.io.streamline import save_tractogram
 from dipy.tracking.utils import length as compute_length
 
+from scilpy.image.utils import \
+    split_mask_blobs_kmeans
 from scilpy.io.image import get_data_as_mask
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.segment.streamlines import filter_grid_roi, filter_grid_roi_both
@@ -18,8 +20,6 @@ from scilpy.tractograms.streamline_operations import \
     remove_loops_and_sharp_turns
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
 
-from scilpy.tractograms.streamline_and_mask_operations import \
-    split_mask_blobs_kmeans
 from scilpy.tractograms.streamline_operations import \
     filter_streamlines_by_total_length_per_dim
 from scilpy.utils.filenames import split_name_with_nii
@@ -351,16 +351,19 @@ def _extract_vb_one_bundle(
     bundle_stats: dict
         Dictionary of recognized streamlines statistics
     """
-    mask_1_img = nib.load(head_filename)
-    mask_2_img = nib.load(tail_filename)
-    mask_1 = get_data_as_mask(mask_1_img)
-    mask_2 = get_data_as_mask(mask_2_img)
+    if len(sft) > 0:
+        mask_1_img = nib.load(head_filename)
+        mask_2_img = nib.load(tail_filename)
+        mask_1 = get_data_as_mask(mask_1_img)
+        mask_2 = get_data_as_mask(mask_2_img)
 
-    if dilate_endpoints:
-        mask_1 = binary_dilation(mask_1, iterations=dilate_endpoints)
-        mask_2 = binary_dilation(mask_2, iterations=dilate_endpoints)
+        if dilate_endpoints:
+            mask_1 = binary_dilation(mask_1, iterations=dilate_endpoints)
+            mask_2 = binary_dilation(mask_2, iterations=dilate_endpoints)
 
-    _, vs_ids = filter_grid_roi_both(sft, mask_1, mask_2)
+        _, vs_ids = filter_grid_roi_both(sft, mask_1, mask_2)
+    else:
+        vs_ids = np.array([])
 
     wpc_ids = []
     bundle_stats = {"Initial count head to tail": len(vs_ids)}
@@ -368,8 +371,8 @@ def _extract_vb_one_bundle(
     # Remove out of inclusion mask (limits_mask)
     if len(vs_ids) > 0 and inv_all_mask is not None:
         tmp_sft = sft[vs_ids]
-        _, out_of_mask_ids_from_vs = filter_grid_roi(
-            tmp_sft, inv_all_mask, 'any', False)
+        out_of_mask_ids_from_vs = filter_grid_roi(
+            tmp_sft, inv_all_mask, 'any', is_exclude=False)
         out_of_mask_ids = vs_ids[out_of_mask_ids_from_vs]
 
         bundle_stats.update({"WPC_out_of_mask": len(out_of_mask_ids)})
@@ -381,8 +384,8 @@ def _extract_vb_one_bundle(
     # Remove streamlines not passing through any_mask
     if len(vs_ids) > 0 and any_mask is not None:
         tmp_sft = sft[vs_ids]
-        _, in_mask_ids_from_vs = filter_grid_roi(
-            tmp_sft, any_mask, 'any', False)
+        in_mask_ids_from_vs = filter_grid_roi(
+            tmp_sft, any_mask, 'any', is_exclude=False)
         in_mask_ids = vs_ids[in_mask_ids_from_vs]
 
         out_of_mask_ids = np.setdiff1d(vs_ids, in_mask_ids)
@@ -499,16 +502,19 @@ def _extract_ib_one_bundle(sft, mask_1_filename, mask_2_filename,
         SFT of remaining streamlines.
     """
 
-    mask_1_img = nib.load(mask_1_filename)
-    mask_2_img = nib.load(mask_2_filename)
-    mask_1 = get_data_as_mask(mask_1_img)
-    mask_2 = get_data_as_mask(mask_2_img)
+    if len(sft) > 0:
+        mask_1_img = nib.load(mask_1_filename)
+        mask_2_img = nib.load(mask_2_filename)
+        mask_1 = get_data_as_mask(mask_1_img)
+        mask_2 = get_data_as_mask(mask_2_img)
 
-    if dilate_endpoints:
-        mask_1 = binary_dilation(mask_1, iterations=dilate_endpoints)
-        mask_2 = binary_dilation(mask_2, iterations=dilate_endpoints)
+        if dilate_endpoints:
+            mask_1 = binary_dilation(mask_1, iterations=dilate_endpoints)
+            mask_2 = binary_dilation(mask_2, iterations=dilate_endpoints)
 
-    _, fc_ids = filter_grid_roi_both(sft, mask_1, mask_2)
+        _, fc_ids = filter_grid_roi_both(sft, mask_1, mask_2)
+    else:
+        fc_ids = []
 
     fc_sft = sft[fc_ids]
     return fc_sft, fc_ids
@@ -626,7 +632,7 @@ def segment_tractogram_from_roi(
             comb_filename.remove(vb_roi_pair)
         ib_sft_list, ic_ids_list, ib_names = _extract_ib_all_bundles(
             comb_filename, sft[remaining_ids], args)
-        if args.unique:
+        if args.unique and len(ic_ids_list) > 0:
             for i in range(len(ic_ids_list)):
                 # Assign actual ids
                 ic_ids_list[i] = remaining_ids[ic_ids_list[i]]

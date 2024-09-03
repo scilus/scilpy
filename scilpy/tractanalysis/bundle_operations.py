@@ -176,7 +176,7 @@ def detect_ushape(sft, minU, maxU):
 
     Returns
     -------
-    list: the ids of clean streamlines
+    list: the ids of u-shaped streamlines
         Only the ids are returned so proper filtering can be done afterwards.
     """
     ids = []
@@ -314,10 +314,11 @@ def outliers_removal_using_hierarchical_quickbundles(streamlines,
     return summary
 
 
-def remove_outliers(streamlines, threshold, nb_points=12, nb_samplings=30,
-                    fast_approx=False):
+def remove_outliers_qb(streamlines, threshold, nb_points=12, nb_samplings=30,
+                       fast_approx=False):
     """
-    Wrapper to classify inliers and outliers from a list of streamlines.
+    Wrapper to classify inliers and outliers from a list of streamlines. Uses
+    Quickbundles to separate streamlines that are different.
 
     Parameters
     ----------

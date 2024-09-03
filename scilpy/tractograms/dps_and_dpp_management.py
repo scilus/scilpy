@@ -1,28 +1,32 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 
-from scilpy.viz.utils import clip_and_normalize_data_for_cmap
+from scilpy.viz.color import clip_and_normalize_data_for_cmap
 
 
-def add_data_as_color_dpp(sft, cmap, data, clip_outliers, min_range, max_range,
-                          min_cmap, max_cmap, log, LUT):
+def add_data_as_color_dpp(sft, cmap, data, clip_outliers=False, min_range=None,
+                          max_range=None, min_cmap=None, max_cmap=None,
+                          log=False, LUT=None):
     """
     Normalizes data between 0 and 1 for an easier management with colormaps.
     The real lower bound and upperbound are returned.
 
     Data can be clipped to (min_range, max_range) before normalization.
-    Alternatively, data can be kept as is,
+    Alternatively, data can be kept as is, but the colormap be fixed to
+    (min_cmap, max_cmap).
 
     Parameters
     ----------
     sft: StatefulTractogram
         The tractogram
     cmap: plt colormap
-        The colormap
-    data: np.ndarray
+        The colormap. Ex, see scilpy.viz.utils.get_colormap().
+    data: np.ndarray or list[list] or list[np.ndarray]
         The data to convert to color. Expecting one value per point to add as
         dpp. If instead data has one value per streamline, setting the same
         color to all points of the streamline (as dpp).
+        Either a vector numpy array (all streamlines concatenated), or a list
+        of arrays per streamline.
     clip_outliers: bool
         See description of the following parameters in
         clip_and_normalize_data_for_cmap.
@@ -50,11 +54,16 @@ def add_data_as_color_dpp(sft, cmap, data, clip_outliers, min_range, max_range,
     ubound: float
         The upper bound of the associated colormap.
     """
+    # If data is a list of lists, merge.
+    if isinstance(data[0], list) or isinstance(data[0], np.ndarray):
+        data = np.hstack(data)
+
     values, lbound, ubound = clip_and_normalize_data_for_cmap(
         data, clip_outliers, min_range, max_range,
         min_cmap, max_cmap, log, LUT)
 
-    color = cmap(values)[:, 0:3] * 255
+    # Important: values are in float after clip_and_normalize.
+    color = np.asarray(cmap(values)[:, 0:3]) * 255
     if len(color) == len(sft):
         tmp = [np.tile([color[i][0], color[i][1], color[i][2]],
                        (len(sft.streamlines[i]), 1))
@@ -80,14 +89,19 @@ def convert_dps_to_dpp(sft, keys, overwrite=False):
     Parameters
     ----------
     sft: StatefulTractogram
-    keys: List[str], optional
+    keys: str or List[str], optional
         The list of dps keys to convert to dpp.
     overwrite: bool
         If true, allow continuing even if the key already existed as dpp.
     """
+    if isinstance(keys, str):
+        keys = [keys]
+
     for key in keys:
         if key not in sft.data_per_streamline:
-            raise ValueError("Dps key {} not found!".format(key))
+            raise ValueError(
+                "Dps key {} not found! Existing dps keys: {}"
+                .format(key, list(sft.data_per_streamline.keys())))
         if key in sft.data_per_point and not overwrite:
             raise ValueError("Dpp key {} already existed. Please allow "
                              "overwriting.".format(key))
@@ -112,12 +126,12 @@ def project_map_to_streamlines(sft, map_volume, endpoints_only=False):
         Input map.
     endpoints_only: bool, optional
         If True, will only project the map_volume onto the endpoints of the
-        streamlines (all values along streamlines set to zero). If False,
+        streamlines (all values along streamlines set to NaN). If False,
         will project the map_volume onto all points of the streamlines.
 
     Returns
     -------
-    streamline_data: List
+    streamline_data: List[List]
         The values that could now be associated to a data_per_point key.
         The map_volume projected to each point of the streamlines.
     """
@@ -146,6 +160,7 @@ def project_map_to_streamlines(sft, map_volume, endpoints_only=False):
                 np.reshape(thisstreamline_data,
                            (len(thisstreamline_data), dimension)))
     else:
+        # toDo: there is a double loop. Could be faster?
         for s in sft.streamlines:
             thisstreamline_data = []
             for p in s:
@@ -165,10 +180,12 @@ def project_dpp_to_map(sft, dpp_key, sum_lines=False, endpoints_only=False):
     the values of various streamlines in each voxel. Returns one map per key.
     The streamlines are not preprocessed here. You should probably first
     uncompress your streamlines to have smoother maps.
+    Note: If a streamline has two points in the same voxel, it counts twice!
 
     Parameters
     ----------
     sft: StatefulTractogram
+        The tractogram
     dpp_key: str
         The data_per_point key to project to a map.
     sum_lines: bool
@@ -212,30 +229,32 @@ def project_dpp_to_map(sft, dpp_key, sum_lines=False, endpoints_only=False):
 def perform_operation_on_dpp(op_name, sft, dpp_name, endpoints_only=False):
     """
     Peforms an operation on the data per point for all streamlines (mean, sum,
-    min, max, correlation). The operation is applied on each point invidiually,
-    and thus makes sense if the data_per_point at each point is a vector. The
-    result is a new data_per_point.
+    min, max). The operation is applied on each point invidiually, and thus
+    makes sense if the data_per_point at each point is a vector. The result is
+    a new data_per_point.
 
     Parameters
     ----------
     op_name: str
-        A callable that takes a list of streamline data per point (4D) and
+        Name of one possible operation (mean, sum, min, max). Will refer to a
+        callable that takes a list of streamline data per point (4D) and
         returns a list of streamline data per point.
     sft: StatefulTractogram
         The streamlines used in the operation.
     dpp_name: str
         The name of the data per point to be used in the operation.
+        sft.data_per_point[dpp_name][s] must be a 2D vector: (N, M)
+        with s, a given streamline; N the number of points; M the number of
+        features in the dpp.
     endpoints_only: bool
         If True, will only perform operation on endpoints. Values at other
         points will be set to NaN.
 
     Returns
     -------
-    new_data_per_point: list
+    new_data_per_point: list[np.ndarray]
         The values that could now be associated to a new data_per_point key.
     """
-
-    # Performing operation
     call_op = OPERATIONS[op_name]
     if endpoints_only:
         new_data_per_point = []
@@ -243,16 +262,14 @@ def perform_operation_on_dpp(op_name, sft, dpp_name, endpoints_only=False):
             this_data_per_point = np.nan * np.ones((len(s), 1))
             this_data_per_point[0] = call_op(s[0])
             this_data_per_point[-1] = call_op(s[-1])
-            new_data_per_point.append(
-                np.reshape(this_data_per_point, (len(this_data_per_point), 1)))
+            new_data_per_point.append(np.asarray(this_data_per_point)[:, None])
     else:
         new_data_per_point = []
         for s in sft.data_per_point[dpp_name]:
             this_data_per_point = []
             for p in s:
                 this_data_per_point.append(call_op(p))
-            new_data_per_point.append(
-                np.reshape(this_data_per_point, (len(this_data_per_point), 1)))
+            new_data_per_point.append(np.asarray(this_data_per_point)[:, None])
 
     return new_data_per_point
 
@@ -262,7 +279,10 @@ def perform_operation_dpp_to_dps(op_name, sft, dpp_name, endpoints_only=False):
     Converts dpp to dps, using a chosen operation.
 
     Performs an operation across all data_per_points for each streamline (mean,
-    sum, min, max, correlation). The result is a data_per_streamline.
+    sum, min, max). The result is a data_per_streamline.
+
+    If the data_per_point at each point is a vector, operation is done on each
+    feature individually. The data_per_streamline will have the same shape.
 
     Parameters
     ----------
@@ -283,7 +303,6 @@ def perform_operation_dpp_to_dps(op_name, sft, dpp_name, endpoints_only=False):
         The values that could now be associated to a new data_per_streamline
         key.
     """
-    # Performing operation
     call_op = OPERATIONS[op_name]
     if endpoints_only:
         new_data_per_streamline = []
@@ -301,15 +320,12 @@ def perform_operation_dpp_to_dps(op_name, sft, dpp_name, endpoints_only=False):
     return new_data_per_streamline
 
 
-def perform_pairwise_streamline_operation_on_endpoints(op_name, sft,
-                                                       dpp_name='metric'):
-    """Peforms an operation across endpoints for each streamline.
+def perform_correlation_on_endpoints(sft, dpp_name='metric'):
+    """Peforms correlation across endpoints for each streamline. The
+    data_per_point at each point must be a vector.
 
     Parameters
     ----------
-    op_name: str
-        A callable that takes a list of streamline data per streamline and
-        returns a list of data per streamline.
     sft: StatefulTractogram
         The streamlines used in the operation.
     dpp_name: str
@@ -317,42 +333,36 @@ def perform_pairwise_streamline_operation_on_endpoints(op_name, sft,
 
     Returns
     -------
-    new_sft: StatefulTractogram
-        sft with data per streamline resulting from the operation.
+    new_data_per_streamline: List
+        The correlation values that could now be associated to a new
+        data_per_streamline key.
     """
-    # Performing operation
-    call_op = OPERATIONS[op_name]
     new_data_per_streamline = []
     for s in sft.data_per_point[dpp_name]:
-        new_data_per_streamline.append(call_op(s[0], s[-1])[0, 1])
+        new_data_per_streamline.append(np.corrcoef(s[0], s[-1])[0, 1])
 
     return new_data_per_streamline
 
 
-def stream_mean(array):
+def _stream_mean(array):
     return np.squeeze(np.mean(array, axis=0))
 
 
-def stream_sum(array):
+def _stream_sum(array):
     return np.squeeze(np.sum(array, axis=0))
 
 
-def stream_min(array):
+def _stream_min(array):
     return np.squeeze(np.min(array, axis=0))
 
 
-def stream_max(array):
+def _stream_max(array):
     return np.squeeze(np.max(array, axis=0))
 
 
-def stream_correlation(array1, array2):
-    return np.corrcoef(array1, array2)
-
-
 OPERATIONS = {
-    'mean': stream_mean,
-    'sum': stream_sum,
-    'min': stream_min,
-    'max': stream_max,
-    'correlation': stream_correlation,
+    'mean': _stream_mean,
+    'sum': _stream_sum,
+    'min': _stream_min,
+    'max': _stream_max,
 }

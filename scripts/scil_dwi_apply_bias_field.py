@@ -62,7 +62,7 @@ def main():
     bias_field_data = bias_field_img.get_fdata(dtype=np.float32)
 
     if args.mask:
-        mask_data = get_data_as_mask(nib.load(args.mask))
+        mask_data = get_data_as_mask(nib.load(args.mask), dtype=bool)
     else:
         mask_data = np.average(dwi_data, axis=-1) != 0
 

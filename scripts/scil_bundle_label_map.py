@@ -29,7 +29,7 @@ import numpy as np
 import scipy.ndimage as ndi
 from scipy.spatial import cKDTree
 
-from scilpy.image.volume_math import correlation
+from scilpy.image.volume_math import neighborhood_correlation_
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg,
                              add_reference_arg,
@@ -40,10 +40,10 @@ from scilpy.tractanalysis.bundle_operations import uniformize_bundle_sft
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
 from scilpy.tractanalysis.distance_to_centroid import min_dist_to_centroid
 from scilpy.tractograms.streamline_and_mask_operations import \
-    cut_outside_of_mask_streamlines
+    cut_streamlines_with_mask
 from scilpy.tractograms.streamline_operations import \
     resample_streamlines_num_points
-from scilpy.viz.utils import get_colormap
+from scilpy.viz.color import get_lookup_table
 
 
 def _build_arg_parser():
@@ -127,12 +127,12 @@ def main():
             args.in_centroid, args.in_bundle))
 
     if len(density_list) > 1:
-        corr_map = correlation(density_list, None)
+        corr_map = neighborhood_correlation_(density_list)
     else:
         corr_map = density_list[0].astype(float)
         corr_map[corr_map > 0] = 1
 
-    # Slightly cut the bundle at the edgge to clean up single streamline voxels
+    # Slightly cut the bundle at the edge to clean up single streamline voxels
     # with no neighbor. Remove isolated voxels to keep a single 'blob'
     binary_bundle = np.zeros(corr_map.shape, dtype=bool)
     binary_bundle[corr_map > 0.5] = 1
@@ -149,8 +149,8 @@ def main():
     # Chop off some streamlines
     concat_sft = StatefulTractogram.from_sft([], sft_list[0])
     for i in range(len(sft_list)):
-        sft_list[i] = cut_outside_of_mask_streamlines(sft_list[i],
-                                                      binary_bundle)
+        sft_list[i] = cut_streamlines_with_mask(sft_list[i],
+                                                binary_bundle)
         if len(sft_list[i]):
             concat_sft += sft_list[i]
 
@@ -250,7 +250,7 @@ def main():
         labels_map[ind[0], ind[1], ind[2]] = winner
         distance_map[ind[0], ind[1], ind[2]] = np.average(dists_val)
 
-        cmap = get_colormap(args.colormap)
+        cmap = get_lookup_table(args.colormap)
 
     for i, sft in enumerate(sft_list):
         if len(sft_list) > 1:

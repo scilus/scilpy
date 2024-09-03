@@ -12,7 +12,8 @@ import itertools
 import logging
 import random
 
-from dipy.io.stateful_tractogram import StatefulTractogram, Space
+from dipy.io.stateful_tractogram import set_sft_logger_level, \
+    StatefulTractogram, Space
 from dipy.io.utils import get_reference_info, is_header_compatible
 from dipy.segment.clustering import qbx_and_merge
 from dipy.tracking.streamline import transform_streamlines
@@ -24,15 +25,35 @@ from numpy.polynomial.polynomial import Polynomial
 from scipy.ndimage import map_coordinates
 from scipy.spatial import cKDTree
 
+from scilpy.tractanalysis.bundle_operations import uniformize_bundle_sft
+from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
 from scilpy.tractograms.streamline_operations import smooth_line_gaussian, \
     resample_streamlines_step_size, parallel_transport_streamline, \
-    cut_invalid_streamlines
+    compress_sft, cut_invalid_streamlines, \
+    remove_overlapping_points_streamlines, remove_single_point_streamlines
+from scilpy.tractograms.streamline_and_mask_operations import \
+    cut_streamlines_with_mask
+from scilpy.utils.spatial import generate_rotation_matrix
 
 MIN_NB_POINTS = 10
 KEY_INDEX = np.concatenate((range(5), range(-1, -6, -1)))
 
 
 def shuffle_streamlines(sft, rng_seed=None):
+    """
+    Shuffle the streamlines of a tractogram.
+
+    Parameters
+    ----------
+    sft: StatefulTractogram
+        The tractogram to shuffle (will slice the streamline, DPS and DPP).
+    rng_seed: int
+
+    Returns
+    -------
+    shuffled_sft: StatefulTractogram
+        The shuffled tractogram.
+    """
     indices = np.arange(len(sft.streamlines))
     random.shuffle(indices, random=rng_seed)
 
@@ -44,6 +65,46 @@ def shuffle_streamlines(sft, rng_seed=None):
         streamlines, sft,
         data_per_streamline=data_per_streamline,
         data_per_point=data_per_point)
+    return shuffled_sft
+
+
+def shuffle_streamlines_orientation(sft, rng_seed=None):
+    """
+    Shuffle the orientation of the streamlines. Iterate over streamlines
+    and randomly decide (50/50) if the streamline's head and tail should be
+    swapped.
+
+    Parameters
+    ----------
+    sft: StatefulTractogram
+        The tractogram that will have its streamlines' orientation shuffled.
+    rng_seed: int
+        Random seed.
+
+    Returns
+    -------
+    shuffled_sft: StatefulTractogram
+        The shuffled tractogram.
+    """
+    if sft.data_per_point is not None and len(sft.data_per_point) > 0:
+        logging.warning('Shuffling streamlines orientation. DPP will be '
+                        'lost.')
+
+    rng = np.random.RandomState(rng_seed)
+    shuffled_streamlines = []
+    for s in sft.streamlines:
+        if len(s) < 2:
+            shuffled_streamlines.append(s)
+        else:
+            # flip a coin
+            if rng.randint(0, 2):
+                shuffled_streamlines.append(s[::-1])
+            else:
+                shuffled_streamlines.append(s)
+
+    shuffled_sft = StatefulTractogram.from_sft(
+        shuffled_streamlines, sft,
+        data_per_streamline=sft.data_per_streamline)
     return shuffled_sft
 
 
@@ -184,11 +245,12 @@ def perform_tractogram_operation_on_sft(op_name, sft_list, precision,
         A callable that takes two streamlines dicts as inputs and preduces a
         new streamline dict.
     sft_list: list[StatefulTractogram]
-        The streamlines used in the operation.
+        The tractograms used in the operation.
     precision: int, optional
         The number of decimals to keep when hashing the points of the
         streamlines. Allows a soft comparison of streamlines. If None, no
-        rounding is performed.
+        rounding is performed. Precision should be in the same space as
+        sfts (ex, mm).
     no_metadata: bool
         If true, remove all metadata.
     fake_metadata: bool
@@ -200,9 +262,7 @@ def perform_tractogram_operation_on_sft(op_name, sft_list, precision,
     sft: StatefulTractogram
         The final SFT
     """
-    # Performing operation
-    streamlines_list = [sft.streamlines if sft is not None else []
-                        for sft in sft_list]
+    streamlines_list = [sft.streamlines for sft in sft_list]
     _, indices = perform_tractogram_operation_on_lines(
         OPERATIONS[op_name], streamlines_list, precision=precision)
 
@@ -640,26 +700,29 @@ def upsample_tractogram(sft, nb, point_wise_std=None, tube_radius=None,
     streamlines' points, or by translating copies of existing streamlines
     by a random amount.
 
+    The first streamlines of the returned tractogram are the initial
+    streamlines, unchanged (if error_rate is None).
+
     Parameters
     ----------
     sft : StatefulTractogram
         The tractogram to upsample
     nb : int
         The target number of streamlines in the tractogram.
-    point_wise_std : float
+    point_wise_std : float, optional
         The standard deviation of the gaussian to use to generate point-wise
-        noise on the streamlines.
-    tube_radius : float
-        The radius of the tube used to model the streamlines.
-    gaussian: float
-        The sigma used for smoothing streamlines.
-    error_rate : float
-        The maximum distance (in mm) to the original position of any point.
-    spline: (float, int)
-        Pair of sigma and number of control points used to model each
-        streamline as a spline and smooth it.
-    seed: int
-        Seed for RNG.
+        noise on the streamlines. If None or zero, this is skipped.
+    tube_radius : float, optional
+        The radius of the tube used to model the streamlines. If None or zero,
+        this is skipped.
+    gaussian: float, optional
+        The sigma used for smoothing streamlines. Only the newly created
+        streamlines are smoothed. If None, streamlines are not smoothed.
+    error_rate : float, optional
+        The compression error. The whole final tractogram is compressed. If
+        None, no compression is done.
+    seed: int, optional
+        Seed for RNG. If None, uses random seed.
 
     Returns
     -------
@@ -668,35 +731,56 @@ def upsample_tractogram(sft, nb, point_wise_std=None, tube_radius=None,
     """
     rng = np.random.default_rng(seed)
 
+    if nb < len(sft):
+        logging.warning("Wrong call of this upsampling method: the "
+                        "tractogram already contains more streamlines than "
+                        "wanted.")
+    if nb <= len(sft):
+        return sft
+
+    nb = nb - len(sft)
+
     # Get the streamlines that will serve as a base for new ones
-    resampled_sft = resample_streamlines_step_size(sft, 1)
-    new_streamlines = []
-    indices = rng.choice(len(resampled_sft), nb, replace=True)
+    indices = rng.choice(len(sft), nb, replace=True)
     unique_indices, count = np.unique(indices, return_counts=True)
+    resampled_sft = resample_streamlines_step_size(sft[unique_indices], 1)
 
     # For all selected streamlines, add noise and smooth
-    for i, c in zip(unique_indices, count):
-        s = resampled_sft.streamlines[i]
-        if len(s) < 3:
-            new_streamlines.extend(np.repeat(s, c).tolist())
-        new_s = parallel_transport_streamline(s, c, tube_radius)
+    new_streamlines = sft.streamlines
+    for s, c in zip(resampled_sft.streamlines, count):
+        # 1. Translate the streamline, up to a tube_radius distance.
+        if tube_radius is not None and tube_radius > 0:
+            new_s = parallel_transport_streamline(s, c, tube_radius)
+        else:
+            new_s = [s] * c
 
-        # Generate smooth noise_factor
-        noise = rng.normal(loc=0, scale=point_wise_std,
-                           size=len(s))
+        # 2. Add point-wise noise.
+        if point_wise_std is not None and point_wise_std > 0:
+            # Generate smooth noise_factor
+            noise = rng.normal(loc=0, scale=point_wise_std, size=len(s))
 
-        # Instead of generating random noise, we fit a polynomial to the
-        # noise and use it to generate a spatially smooth noise along the
-        # streamline (simply to avoid sharp changes in the noise factor).
-        x = np.arange(len(noise))
-        poly_coeffs = np.polyfit(x, noise, 3)
-        polynomial = Polynomial(poly_coeffs[::-1])
-        noise_factor = polynomial(x)
+            # Instead of generating random noise, we fit a polynomial to
+            # the noise and use it to generate a spatially smooth noise
+            # along the streamline (simply to avoid sharp changes in the
+            # noise factor).
+            x = np.arange(len(noise))
+            poly_coeffs = np.polyfit(x, noise, 3)
+            polynomial = Polynomial(poly_coeffs[::-1])
+            noise_factor = polynomial(x)
 
-        vec = s - new_s
-        vec /= np.linalg.norm(vec, axis=0)
-        new_s += vec * np.expand_dims(noise_factor, axis=1)
+            vec = s - new_s
+            norm = np.linalg.norm(vec, axis=0)
+            if np.any(norm == 0):
+                vec = np.ones_like(vec)
+                norm = np.linalg.norm(vec, axis=0)
+            vec /= norm
 
+            new_s += vec * np.expand_dims(noise_factor, axis=1)
+
+            # Result is of shape [c, len(s), 3]. Splitting back
+            new_s = list(new_s)
+
+        # 3. Smooth the result.
         if gaussian:
             new_s = [smooth_line_gaussian(s, gaussian) for s in new_s]
 
@@ -879,42 +963,375 @@ def split_sft_randomly_per_cluster(orig_sft, chunk_sizes, seed, thresholds):
     return final_sfts
 
 
-def filter_tractogram_data(tractogram, streamline_ids):
+def subsample_streamlines_alter(sft, min_dice=0.90, epsilon=0.01,
+                                baseline_sft=None):
     """
-    Filter a tractogram according to streamline ids and keep the data.
+    Function to subsample streamlines based on a dice similarity metric.
+    The function will keep removing streamlines until the dice similarity
+    between the original and the subsampled tractogram is close to min_dice.
 
-    Parameters:
-    -----------
-    tractogram: StatefulTractogram
-        Tractogram containing the data to be filtered.
-    streamline_ids: array_like
-        List of streamline ids the data corresponds to.
+    Parameters
+    ----------
+    sft: StatefulTractogram
+        The tractogram to subsample.
+    min_dice: float
+        The minimum dice similarity to reach before stopping the subsampling.
+    epsilon: float
+        Stopping criteria for convergence. The maximum difference between the
+        dice similarity and min_dice.
+    baseline_sft: StatefulTractogram
+        The tractogram to use as a reference for the dice similarity. If None,
+        the original tractogram will be used.
 
-    Returns:
-    --------
-    new_tractogram: Tractogram or StatefulTractogram
-        Returns a new tractogram with only the selected streamlines and data.
+    Returns
+    -------
+    new_sft: StatefulTractogram
+        The tractogram with a subset of streamlines in the same space as the
+        input tractogram.
     """
+    # Import in function to avoid circular import error
+    from scilpy.tractanalysis.reproducibility_measures import compute_dice_voxel
+    set_sft_logger_level(logging.ERROR)
+    space = sft.space
+    origin = sft.origin
 
-    streamline_ids = np.asarray(streamline_ids, dtype=int)
+    sft.to_vox()
+    sft.to_corner()
+    if baseline_sft is None:
+        original_density_map = compute_tract_counts_map(sft.streamlines,
+                                                        sft.dimensions)
+    else:
+        baseline_sft.to_vox()
+        baseline_sft.to_corner()
+        original_density_map = compute_tract_counts_map(baseline_sft.streamlines,
+                                                        sft.dimensions)
+    dice = 1.0
+    init_pick_min = 0
+    init_pick_max = len(sft)
+    previous_to_pick = None
+    while dice > min_dice or np.abs(dice - min_dice) > epsilon:
+        to_pick = init_pick_min + (init_pick_max - init_pick_min) // 2
+        if to_pick == previous_to_pick:
+            logging.warning('No more streamlines to pick, not converging.')
+            break
+        previous_to_pick = to_pick
 
-    assert np.all(
-        np.in1d(streamline_ids, np.arange(len(tractogram.streamlines)))
-    ), "Received ids outside of streamline range"
+        indices = np.random.choice(len(sft), to_pick, replace=False)
+        streamlines = sft.streamlines[indices]
+        curr_density_map = compute_tract_counts_map(streamlines,
+                                                    sft.dimensions)
+        dice, _ = compute_dice_voxel(original_density_map, curr_density_map)
+        logging.debug(f'Subsampled {to_pick} streamlines, dice: {dice}')
 
-    new_streamlines = tractogram.streamlines[streamline_ids]
-    new_data_per_streamline = tractogram.data_per_streamline[streamline_ids]
-    new_data_per_point = tractogram.data_per_point[streamline_ids]
+        if dice < min_dice:
+            init_pick_min = to_pick
+        else:
+            init_pick_max = to_pick
 
-    # Could have been nice to deepcopy the tractogram modify the attributes in
-    # place instead of creating a new one, but tractograms cant be subsampled
-    # if they have data.
+    new_sft = StatefulTractogram.from_sft(streamlines, sft)
+    new_sft.to_space(space)
+    new_sft.to_origin(origin)
+    return new_sft
 
-    return StatefulTractogram.from_sft(
-        new_streamlines,
-        tractogram,
-        data_per_point=new_data_per_point,
-        data_per_streamline=new_data_per_streamline)
+
+def cut_streamlines_alter(sft, min_dice=0.90, epsilon=0.01, from_end=False):
+    """
+    Cut streamlines based on a dice similarity metric.
+    The function will keep removing points from the streamlines until the dice
+    similarity between the original and the cut tractogram is close to min_dice.
+
+    Parameters
+    ----------
+    sft: StatefulTractogram
+        The tractogram to cut.
+    min_dice: float
+        The minimum dice similarity to reach before stopping the cutting.
+    epsilon: float
+        Stopping criteria for convergence. The maximum difference between the
+        dice similarity and min_dice.
+    from_end: bool
+        If True, the streamlines will be cut from the end. Else, the streamlines
+        will be cut from the start.
+
+    Returns
+    -------
+    new_sft: StatefulTractogram
+        The tractogram with cut streamlines in the same space as the input
+        tractogram.
+    """
+    # Import in function to avoid circular import error
+    from scilpy.tractanalysis.reproducibility_measures import compute_dice_voxel
+    set_sft_logger_level(logging.ERROR)
+    space = sft.space
+    origin = sft.origin
+
+    # Uniformize endpoints to cut consistently from one end only
+    uniformize_bundle_sft(sft, swap=from_end)
+    sft = resample_streamlines_step_size(sft, 0.5)
+    sft.to_vox()
+    sft.to_corner()
+    original_density_map = compute_tract_counts_map(sft.streamlines,
+                                                    sft.dimensions)
+
+    # Initialize the dice value and the cut percentage for dichotomic search
+    dice = 1.0
+    init_cut_min = 0
+    init_cut_max = 1.0
+    previous_to_pick = None
+    while dice > min_dice or np.abs(dice - min_dice) > epsilon:
+        to_pick = init_cut_min + (init_cut_max - init_cut_min) / 2
+        if to_pick == previous_to_pick:
+            logging.warning('No more points to pick, not converging.')
+            break
+        previous_to_pick = to_pick
+
+        streamlines = []
+        for streamline in sft.streamlines:
+            pos_to_pick = int(len(streamline) * to_pick)
+            streamline = streamline[:pos_to_pick]
+            streamlines.append(streamline)
+        curr_density_map = compute_tract_counts_map(streamlines,
+                                                    sft.dimensions)
+        dice, _ = compute_dice_voxel(original_density_map, curr_density_map)
+        logging.debug(f'Cut {to_pick * 100}% of the streamlines, dice: {dice}')
+
+        if dice < min_dice:
+            init_cut_min = to_pick
+        else:
+            init_cut_max = to_pick
+
+    new_sft = StatefulTractogram.from_sft(streamlines, sft)
+    new_sft.to_space(space)
+    new_sft.to_origin(origin)
+    return compress_sft(new_sft)
+
+
+def replace_streamlines_alter(sft, min_dice=0.90, epsilon=0.01):
+    """
+    Replace streamlines based on a dice similarity metric.
+    The function will upsample the streamlines (with parallel transport),
+    then downsample them until the dice similarity is close to min_dice.
+    This effectively replaces the streamlines with new ones.
+
+    Parameters
+    ----------
+    sft: StatefulTractogram
+        The tractogram to replace streamlines from.
+    min_dice: float
+        The minimum dice similarity to reach before stopping the replacement.
+    epsilon: float
+        Stopping criteria for convergence. The maximum difference between the
+        dice similarity and min_dice.
+
+    Returns
+    -------
+    new_sft: StatefulTractogram
+        The tractogram with replaced streamlines in the same space as the input
+        tractogram.
+    """
+    set_sft_logger_level(logging.ERROR)
+
+    logging.debug('Upsampling the streamlines by a factor 2x to then '
+                  'downsample.')
+    upsampled_sft = upsample_tractogram(sft, len(sft) * 2, point_wise_std=0.5,
+                                        tube_radius=1.0, gaussian=None,
+                                        error_rate=0.1, seed=1234)
+    return subsample_streamlines_alter(upsampled_sft, min_dice, epsilon,
+                                       baseline_sft=sft)
+
+
+def trim_streamlines_alter(sft, min_dice=0.90, epsilon=0.01):
+    """
+    Trim streamlines based on a dice similarity metric.
+    The function will remove low density voxels to trim streamlines until the
+    similarity between the original and the trimmed tractogram is close to
+    min_dice.
+
+    Parameters
+    ----------
+    sft: StatefulTractogram
+        The tractogram to trim.
+    min_dice: float
+        The minimum dice similarity to reach before stopping the trimming.
+    epsilon: float
+        Stopping criteria for convergence. The maximum difference between the
+        dice similarity and min_dice.
+
+    Returns
+    -------
+    new_sft: StatefulTractogram
+        The tractogram with trimmed streamlines in the same space as the input
+        tract
+    """
+    # Import in function to avoid circular import error
+    from scilpy.tractanalysis.reproducibility_measures import compute_dice_voxel
+    set_sft_logger_level(logging.ERROR)
+    space = sft.space
+    origin = sft.origin
+
+    sft.to_vox()
+    sft.to_corner()
+    original_density_map = compute_tract_counts_map(
+        sft.streamlines, sft.dimensions).astype(np.uint64)
+    thr_density = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024]
+    thr_pos = 0
+    voxels_to_remove = np.where(
+        (original_density_map <= thr_density[thr_pos]) &
+        (original_density_map > 0))
+
+    # Initialize the dice value and the number of voxels to pick
+    dice = 1.0
+    previous_dice = 0.0
+    init_trim_min = 0
+    init_trim_max = np.count_nonzero(voxels_to_remove[0])
+    previous_to_pick = None
+
+    while dice > min_dice or np.abs(dice - previous_dice) > epsilon:
+        to_pick = init_trim_min + (init_trim_max - init_trim_min) // 2
+        if to_pick == previous_to_pick or \
+                np.abs(dice - previous_dice) < epsilon:
+            # If too few voxels are picked, increase the threshold
+            # and reinitialize the picking
+
+            if np.abs(dice - min_dice) > epsilon and \
+                    thr_pos < len(thr_density) - 1:
+                thr_pos += 1
+                logging.debug(f'Increasing threshold density to '
+                              f'{thr_density[thr_pos]}.')
+
+                voxels_to_remove = np.where(
+                    (original_density_map <= thr_density[thr_pos]) &
+                    (original_density_map > 0))
+                init_trim_min = 0
+                init_trim_max = np.count_nonzero(voxels_to_remove[0])
+                dice = 1.0
+                previous_dice = 0.0
+                previous_to_pick = None
+                continue
+            else:
+                break
+        previous_to_pick = to_pick
+
+        voxel_to_remove = np.where(
+            (original_density_map <= thr_density[thr_pos]) &
+            (original_density_map > 0))
+        indices = np.random.choice(np.count_nonzero(voxel_to_remove[0]),
+                                   to_pick, replace=False)
+        voxel_to_remove = tuple(np.array(voxel_to_remove).T[indices].T)
+        mask = original_density_map.copy()
+        mask[voxel_to_remove] = 0
+
+        # set logger level to ERROR to avoid logging from cut_outside_of_mask
+        log_level = logging.getLogger().getEffectiveLevel()
+        logging.getLogger().setLevel(logging.ERROR)
+        new_sft = cut_streamlines_with_mask(sft, mask, min_len=10)
+        # reset logger level
+        logging.getLogger().setLevel(log_level)
+
+        curr_density_map = compute_tract_counts_map(new_sft.streamlines,
+                                                    sft.dimensions)
+        previous_dice = dice
+        dice, _ = compute_dice_voxel(original_density_map, curr_density_map)
+        logging.debug(f'Trimmed {to_pick} voxels at density '
+                      f'{thr_density[thr_pos]}, dice: {dice}')
+
+        if dice < min_dice:
+            init_trim_max = to_pick
+        else:
+            init_trim_min = to_pick
+
+    new_sft.to_space(space)
+    new_sft.to_origin(origin)
+    return new_sft
+
+
+def transform_streamlines_alter(sft, min_dice=0.90, epsilon=0.01):
+    """
+    The function will apply random rotations to the streamlines until the dice
+    similarity between the original and the transformed tractogram is close to
+    min_dice.
+
+    Start with a large XYZ rotation, then reduce the rotation step by half one
+    axis at a time until the dice similarity is close to min_dice.
+
+    Parameters
+    ----------
+    sft: StatefulTractogram
+        The tractogram to transform.
+    min_dice: float
+        The minimum dice similarity to reach before stopping the transformation.
+    epsilon: float
+        Stopping criteria for convergence. The maximum difference between the
+        dice similarity and min_dice.
+
+    Returns
+    -------
+    new_sft: StatefulTractogram
+        The tractogram with transformed streamlines in the same space as the
+        input tractogram.
+    """
+    # Import in function to avoid circular import error
+    from scilpy.tractanalysis.reproducibility_measures import compute_dice_voxel
+    set_sft_logger_level(logging.ERROR)
+    space = sft.space
+    origin = sft.origin
+
+    sft.to_vox()
+    sft.to_corner()
+    original_density_map = compute_tract_counts_map(sft.streamlines,
+                                                    sft.dimensions)
+
+    # Initialize the dice value and angles to pick
+    dice = 1.0
+    angle_min = [0.0, 0.0, 0.0]
+    angle_max = [0.1, 0.1, 0.1]
+    previous_dice = None
+    last_pick = np.array([0.0, 0.0, 0.0])
+    rand_val = np.random.rand(3) * angle_max[0]
+    axis_choices = np.random.choice(3, 3, replace=False)
+    axis = 0
+    while dice > min_dice or np.abs(dice - min_dice) > epsilon:
+        init_angle_min = angle_min[axis]
+        init_angle_max = angle_max[axis]
+        to_pick = init_angle_min + (init_angle_max - init_angle_min) / 2
+
+        # Generate a 4x4 matrix from random euler angles
+        rand_val = np.array(angle_max)
+        rand_val[axis] = to_pick
+
+        angles = rand_val * 2 * np.pi
+        rot_mat = generate_rotation_matrix(angles)
+        streamlines = transform_streamlines(sft.streamlines, rot_mat)
+
+        # Remove invalid streamlines to avoid numerical issues
+        curr_sft = StatefulTractogram.from_sft(streamlines, sft)
+        curr_sft, _ = cut_invalid_streamlines(curr_sft)
+        curr_sft = remove_single_point_streamlines(curr_sft)
+        curr_sft = remove_overlapping_points_streamlines(curr_sft)
+
+        curr_density_map = compute_tract_counts_map(curr_sft.streamlines,
+                                                    sft.dimensions)
+        dice, _ = compute_dice_voxel(original_density_map, curr_density_map)
+        logging.debug(f'Transformed {np.round(to_pick * 360, 6)} degree on axis '
+                      f'{axis}, dice: {dice}')
+        last_pick[axis] = to_pick
+
+        if dice < min_dice:
+            angle_max[axis] = to_pick
+        else:
+            angle_min[axis] = to_pick
+
+        if (previous_dice is not None) \
+                and np.abs(dice - previous_dice) < epsilon / 2:
+            logging.debug('Not converging, switching axis.\n')
+            axis_choices = np.roll(axis_choices, 1)
+            axis = axis_choices[0]
+        previous_dice = dice
+
+    logging.debug(f'\nFinal angles: {last_pick * 360} at dice: {dice}')
+    curr_sft.to_space(space)
+    curr_sft.to_origin(origin)
+    return curr_sft, rot_mat
 
 
 OPERATIONS = {

@@ -1,10 +1,25 @@
 # -*- coding: utf-8 -*-
+import importlib.resources as resources
 import inspect
+import json
 import logging
 import os
 
 import numpy as np
+from scipy import ndimage as ndi
 from scipy.spatial import cKDTree
+
+
+def load_wmparc_labels():
+    """
+    Load labels dictionary of different parcellations from the Desikan-Killiany
+    atlas.
+    """
+    lut_package = resources.files('data').joinpath('LUT')
+    labels_path = lut_package.joinpath('dk_aggregate_structures.json')
+    with open(labels_path) as labels_file:
+        labels = json.load(labels_file)
+    return labels
 
 
 def get_data_as_labels(in_img):
@@ -31,6 +46,104 @@ def get_data_as_labels(in_img):
         raise IOError('The image {} cannot be loaded as label because '
                       'its format {} is not compatible with a label '
                       'image'.format(basename, curr_type))
+
+
+def get_binary_mask_from_labels(atlas, label_list):
+    """
+    Get a binary mask from labels.
+
+    Parameters
+    ----------
+    atlas: numpy.ndarray
+        The image will all labels as values (ex, result from
+        get_data_as_labels).
+    label_list: list[int]
+        The labels to get.
+    """
+    mask = np.zeros(atlas.shape, dtype=np.uint16)
+    for label in label_list:
+        is_label = atlas == label
+        mask[is_label] = 1
+
+    return mask
+
+
+def get_labels_from_mask(mask_data, labels=None, background_label=0,
+                         min_voxel_count=0):
+    """
+    Get labels from a binary mask which contains multiple blobs. Each blob
+    will be assigned a label, by default starting from 1. Background will
+    be assigned the background_label value.
+
+    Parameters
+    ----------
+    mask_data: np.ndarray
+        The mask data.
+    labels: list, optional
+        Labels to assign to each blobs in the mask. Excludes the background
+        label.
+    background_label: int
+        Label for the background.
+    min_voxel_count: int, optional
+        Minimum number of voxels for a blob to be considered. Blobs with fewer
+        voxels will be ignored.
+
+    Returns
+    -------
+    label_map: np.ndarray
+        The labels.
+    """
+    # Get the number of structures and assign labels to each blob
+    label_map, nb_structures = ndi.label(mask_data)
+    if min_voxel_count:
+        new_count = 0
+        for label in range(1, nb_structures + 1):
+            if np.count_nonzero(label_map == label) < min_voxel_count:
+                label_map[label_map == label] = 0
+            else:
+                new_count += 1
+                label_map[label_map == label] = new_count
+        logging.debug(
+            f"Ignored blob {nb_structures-new_count} with fewer "
+            "than {min_voxel_count} voxels")
+        nb_structures = new_count
+
+    # Assign labels to each blob if provided
+    if labels:
+        # Only keep the first nb_structures labels if the number of labels
+        # provided is greater than the number of blobs in the mask.
+        if len(labels) > nb_structures:
+            logging.warning("Number of labels ({}) does not match the number "
+                            "of blobs in the mask ({}). Only the first {} "
+                            "labels will be used.".format(
+                                len(labels), nb_structures, nb_structures))
+        # Cannot assign fewer labels than the number of blobs in the mask.
+        elif len(labels) < nb_structures:
+            raise ValueError("Number of labels ({}) is less than the number of"
+                             " blobs in the mask ({}).".format(
+                                 len(labels), nb_structures))
+
+        # Copy the label map to avoid scenarios where the label list contains
+        # labels that are already present in the label map
+        custom_label_map = label_map.copy()
+        # Assign labels to each blob
+        for idx, label in enumerate(labels[:nb_structures]):
+            custom_label_map[label_map == idx + 1] = label
+        label_map = custom_label_map
+
+    logging.info('Assigned labels {} to the mask.'.format(
+        np.unique(label_map[label_map != background_label])))
+
+    if background_label != 0 and background_label in label_map:
+        logging.warning("Background label {} corresponds to a label "
+                        "already in the map. This will cause issues.".format(
+                            background_label))
+
+    # Assign background label
+    if background_label:
+        label_map[label_map == 0] = background_label
+
+    return label_map
 
 
 def get_lut_dir():
@@ -345,3 +458,39 @@ def get_stats_in_label(map_data, label_data, label_lut):
                                   'mean': float(mean_seed),
                                   'std': float(std_seed)}
     return out_dict
+
+
+def merge_labels_into_mask(atlas, filtering_args):
+    """
+    Merge labels into a mask.
+
+    Parameters
+    ----------
+    atlas: np.ndarray
+        Atlas with labels as a numpy array (uint16) to merge.
+
+    filtering_args: str
+        Filtering arguments from the command line.
+
+    Return
+    ------
+    mask: nibabel.nifti1.Nifti1Image
+        Mask obtained from the combination of multiple labels.
+    """
+    mask = np.zeros(atlas.shape, dtype=np.uint16)
+
+    if ' ' in filtering_args:
+        values = filtering_args.split(' ')
+        for filter_opt in values:
+            if ':' in filter_opt:
+                vals = [int(x) for x in filter_opt.split(':')]
+                mask[(atlas >= int(min(vals))) & (atlas <= int(max(vals)))] = 1
+            else:
+                mask[atlas == int(filter_opt)] = 1
+    elif ':' in filtering_args:
+        values = [int(x) for x in filtering_args.split(':')]
+        mask[(atlas >= int(min(values))) & (atlas <= int(max(values)))] = 1
+    else:
+        mask[atlas == int(filtering_args)] = 1
+
+    return mask

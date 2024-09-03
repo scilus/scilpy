@@ -13,7 +13,7 @@ your existing pipelines accordingly.
 
 
 @deprecate_script("scil_apply_transform_to_surface.py",
-                  DEPRECATION_MSG, '1.7.0')
+                  DEPRECATION_MSG, '2.0.0')
 def main():
     new_main()
 

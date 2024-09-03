@@ -2,12 +2,12 @@
 # -*- coding: utf-8 -*-
 
 """
-Generate a linear transformation matrix from the registration of
-2 tractograms. Typically, this script is run before
-scil_tractogram_apply_transform.py.
+Generate a linear transformation matrix from the registration of 2 tractograms.
+Typically, this script is run before scil_tractogram_apply_transform.py.
 
-For more informations on how to use the various registration scripts
-see the doc/tractogram_registration.md readme file
+For more information on how to use the various registration scripts, see the
+doc at:
+https://scilpy.readthedocs.io/en/latest/documentation/tractogram_registration.html
 
 Formerly: scil_register_tractogram.py
 """
@@ -42,12 +42,13 @@ def _build_arg_parser():
                    help='Path of the target tractogram.')
 
     p.add_argument('--out_name', default='transformation.txt',
-                   help='Filename of the transformation matrix, \n'
-                        'the registration type will be appended as a suffix,\n'
-                        '[<out_name>_<affine/rigid>.txt]')
+                   help='Filename of the transformation matrix. \n'
+                        'The registration type will be appended as a suffix,\n'
+                        '[<out_name>_<affine/rigid>.txt]. \n'
+                        'Default: [%(default)s]')
     p.add_argument('--only_rigid', action='store_true',
-                   help='Will only use a rigid transformation, '
-                        'uses affine by default.')
+                   help='If set, will only use a rigid transformation '
+                        '(uses affine by default).')
 
     add_reference_arg(p, 'moving_tractogram')
     add_reference_arg(p, 'static_tractogram')

@@ -8,11 +8,11 @@ import scipy.ndimage as ndi
 from dipy.io.stateful_tractogram import StatefulTractogram
 from dipy.segment.clustering import qbx_and_merge
 from dipy.tracking import metrics as tm
-from dipy.tracking.streamlinespeed import (length, set_number_of_points,
-                                           compress_streamlines)
+from dipy.tracking.streamlinespeed import (compress_streamlines,
+                                           length,
+                                           set_number_of_points)
 from scipy.interpolate import splev, splprep
-
-from scilpy.utils.util import rotation_around_vector_matrix
+from scipy.spatial.transform import Rotation
 
 
 def _get_streamline_pt_index(points_to_index, vox_index, from_start=True):
@@ -342,7 +342,8 @@ def remove_overlapping_points_streamlines(sft, threshold=0.001):
     return new_sft
 
 
-def filter_streamlines_by_length(sft, min_length=0., max_length=np.inf):
+def filter_streamlines_by_length(sft, min_length=0., max_length=np.inf,
+                                 return_rejected=False):
     """
     Filter streamlines using minimum and max length.
 
@@ -354,10 +355,17 @@ def filter_streamlines_by_length(sft, min_length=0., max_length=np.inf):
         Minimum length of streamlines, in mm.
     max_length: float
         Maximum length of streamlines, in mm.
+    return_rejected: bool
+        If true, also returns the sft of rejected streamlines.
 
     Return
     ------
     filtered_sft : StatefulTractogram
+        A tractogram without short/long streamlines.
+    valid_length_ids: list
+        The ids of kept streamlines.
+    rejected_sft: StatefulTractogram
+        The rejected (short/long) streamlines. (If return_rejected)
         A tractogram without short streamlines.
     """
 
@@ -365,23 +373,31 @@ def filter_streamlines_by_length(sft, min_length=0., max_length=np.inf):
     orig_space = sft.space
     sft.to_rasmm()
 
-    if sft.streamlines:
+    rejected_sft = None
+    if len(sft.streamlines) > 0:
         # Compute streamlines lengths
         lengths = length(sft.streamlines)
 
         # Filter lengths
-        filter_stream = np.logical_and(lengths >= min_length,
-                                       lengths <= max_length)
-    else:
-        filter_stream = []
+        valid_length_ids = np.logical_and(lengths >= min_length,
+                                          lengths <= max_length)
+        filtered_sft = sft[valid_length_ids]
 
-    filtered_sft = sft[filter_stream]
+        if return_rejected:
+            rejected_sft = sft[~valid_length_ids]
+    else:
+        valid_length_ids = []
+        filtered_sft = sft
 
     # Return to original space
     sft.to_space(orig_space)
     filtered_sft.to_space(orig_space)
 
-    return filtered_sft
+    if return_rejected:
+        rejected_sft.to_space(orig_space)
+        return filtered_sft, valid_length_ids, rejected_sft
+    else:
+        return filtered_sft, valid_length_ids
 
 
 def filter_streamlines_by_total_length_per_dim(
@@ -566,7 +582,9 @@ def _warn_and_save(new_streamlines, sft):
 
 
 def smooth_line_gaussian(streamline, sigma):
-    """ Smooth a streamline using a gaussian filter.
+    """
+    Smooths a streamline using a gaussian filter. Enforces the endpoints to
+    remain the same.
 
     Parameters
     ----------
@@ -602,8 +620,11 @@ def smooth_line_gaussian(streamline, sigma):
 
 
 def smooth_line_spline(streamline, smoothing_parameter, nb_ctrl_points):
-    """ Smooth a streamline using a spline. The number of control points
-    can be specified, but must be at least 3.
+    """
+    Smooths a streamline using a spline. The number of control points can be
+    specified, but must be at least 3. The final streamline will have the same
+    number of points as the input streamline. Enforces the endpoints to remain
+    the same.
 
     Parameters
     ----------
@@ -722,7 +743,7 @@ def parallel_transport_streamline(streamline, nb_streamlines, radius,
     V[0] = np.roll(streamline[0] - streamline[1], 1)
     V[0] = V[0] / np.linalg.norm(V[0])
     # For each point
-    for i in range(0, T.shape[0]-1):
+    for i in range(0, T.shape[0] - 1):
         # Compute the torsion vector
         B = np.cross(T[i], T[i+1])
         # If the torsion vector is 0, the normal vector does not change
@@ -735,7 +756,8 @@ def parallel_transport_streamline(streamline, nb_streamlines, radius,
             theta = np.arccos(np.dot(T[i], T[i+1]))
             # Rotate the vector V[i] around the vector B by theta
             # radians.
-            V[i+1] = np.dot(rotation_around_vector_matrix(B, theta), V[i])
+            rotation = Rotation.from_rotvec(B * theta).as_matrix()
+            V[i+1] = np.dot(rotation, V[i])
 
     # Compute the binormal vector at each point
     W = np.cross(T, V, axis=1)
@@ -766,28 +788,96 @@ def parallel_transport_streamline(streamline, nb_streamlines, radius,
     return new_streamlines
 
 
-def remove_loops_and_sharp_turns(streamlines,
-                                 max_angle,
-                                 use_qb=False,
-                                 qb_threshold=15.,
-                                 qb_seed=0,
-                                 num_processes=1):
+def remove_loops(streamlines, max_angle, num_processes=1):
+    """
+    Remove loops from a list of streamlines.
+
+    Parameters
+    ----------
+    streamlines: list or ndarray
+        The list of streamlines from which to remove loops and sharp turns.
+    max_angle: float
+        Maximal winding angle a streamline can have before being classified as
+        a loop.
+    num_processes : int
+        Split the calculation to a pool of children processes.
+
+    Returns
+    -------
+    ids: list
+        Ids of the streamlines with no loop.
+    streamlines_clean: list or ndarray
+        The remaining streamlines.
+    """
+    pool = Pool(num_processes)
+    windings = pool.map(tm.winding, streamlines)
+    pool.close()
+
+    streamlines_clean = streamlines[np.array(windings) < max_angle]
+    ids = list(np.where(np.array(windings) < max_angle)[0])
+
+    return ids, streamlines_clean
+
+
+def remove_shap_turns_qb(streamlines, qb_threshold=15.0, qb_seed=0):
+    """
+    Remove sharp turns from a list of streamlines. Should only be used on
+    bundled streamlines, not on whole-brain tractograms.
+
+    Parameters
+    ----------
+    streamlines: list or ndarray
+        The list of streamlines from which to remove loops and sharp turns.
+    qb_threshold: float
+        The Quickbundles distance threshold.
+    qb_seed: int
+        Seed to initialize randomness in QuickBundles
+
+    Returns
+    -------
+    ids: list
+        Ids of good streamlines.
+    """
+    ids = []
+    if len(streamlines) > 1:
+        curvature = []
+
+        rng = np.random.RandomState(qb_seed)
+        clusters = qbx_and_merge(streamlines, [40, 30, 20, qb_threshold],
+                                 rng=rng, verbose=False)
+
+        for cc in clusters.centroids:
+            curvature.append(tm.mean_curvature(cc))
+        mean_curvature = sum(curvature) / len(curvature)
+
+        for i in range(len(clusters.centroids)):
+            if tm.mean_curvature(clusters.centroids[i]) <= mean_curvature:
+                ids.extend(clusters[i].indices)
+    else:
+        logging.info("Impossible to remove sharp turns using Quickbundles "
+                     "because the tractogram does not contain at least 2 "
+                     "streamlines.")
+        ids = [0]
+    return ids
+
+
+def remove_loops_and_sharp_turns(streamlines, max_angle, qb_threshold=None,
+                                 qb_seed=0, num_processes=1):
     """
     Remove loops and sharp turns from a list of streamlines.
 
     Parameters
     ----------
-    streamlines: list of ndarray
+    streamlines: list or ndarray
         The list of streamlines from which to remove loops and sharp turns.
     max_angle: float
-        Maximal winding angle a streamline can have before
-        being classified as a loop.
-    use_qb: bool
-        Set to True if the additional QuickBundles pass is done.
-        This will help remove sharp turns. Should only be used on
-        bundled streamlines, not on whole-brain tractograms.
-    qb_threshold: float
-        Quickbundles distance threshold, only used if use_qb is True.
+        Maximal winding angle a streamline can have before being classified as
+        a loop.
+    qb_threshold: float, optional
+        If not None, do the additional QuickBundles pass. This will help remove
+        sharp turns. Should only be used on bundled streamlines, not on
+        whole-brain tractograms. If set, value is the Quickbundles distance
+        threshold. Suggested default: 15.
     qb_seed: int
         Seed to initialize randomness in QuickBundles
     num_processes : int
@@ -795,41 +885,42 @@ def remove_loops_and_sharp_turns(streamlines,
 
     Returns
     -------
-    list: the ids of clean streamlines
-        Only the ids are returned so proper filtering can be done afterwards
+    ids: list
+        Ids of good streamlines. Only the ids are returned so proper filtering
+        can be done afterwards.
     """
+    ids, streamlines_clean = remove_loops(streamlines, max_angle,
+                                          num_processes)
 
-    streamlines_clean = []
-    ids = []
-    pool = Pool(num_processes)
-
-    windings = pool.map(tm.winding, streamlines)
-    pool.close()
-    streamlines_clean = streamlines[np.array(windings) < max_angle]
-    ids = list(np.where(np.array(windings) < max_angle)[0])
-
-    if use_qb:
-        ids = []
-        if len(streamlines_clean) > 1:
-            curvature = []
-
-            rng = np.random.RandomState(qb_seed)
-            clusters = qbx_and_merge(streamlines_clean,
-                                     [40, 30, 20, qb_threshold],
-                                     rng=rng, verbose=False)
-
-            for cc in clusters.centroids:
-                curvature.append(tm.mean_curvature(cc))
-            mean_curvature = sum(curvature)/len(curvature)
-
-            for i in range(len(clusters.centroids)):
-                if tm.mean_curvature(clusters.centroids[i]) <= mean_curvature:
-                    ids.extend(clusters[i].indices)
-        else:
-            logging.info("Impossible to use the use_qb option because " +
-                         "not more than one streamline left from the\n" +
-                         "input file.")
+    if qb_threshold is not None:
+        ids = remove_shap_turns_qb(streamlines_clean, qb_threshold, qb_seed)
     return ids
+
+
+def remove_streamlines_with_overlapping_points(sft, eps=0.001):
+    """
+    Remove streamlines with overlapping points (step size < eps)
+
+    Parameters
+    ----------
+    sft: StatefulTractogram
+        The tractogram.
+    eps: float
+        The minimal step size.
+
+    Returns
+    -------
+    sft: StatefulTractogram
+    """
+    indices = []
+    for i in range(len(sft)):
+        norm = np.linalg.norm(
+            np.gradient(sft.streamlines[i], axis=0), axis=1)
+        if (norm < eps).any():  # or len(sft.streamlines[i]) <= 1:
+            indices.append(i)
+    indices = np.setdiff1d(range(len(sft)), indices).astype(np.uint32)
+    sft = sft[indices]
+    return sft
 
 
 def get_streamlines_bounding_box(streamlines):

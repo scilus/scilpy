@@ -1,0 +1,72 @@
+name: Build
+
+on:
+  release:
+    types: [published]
+  
+jobs:
+  build_wheels:
+    permissions:
+      contents: write
+
+    name: Build wheels on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-20.04]
+
+    steps:
+      - name: Save workspaces path
+        id: workspace
+        run: echo "path=${GITHUB_WORKSPACE}" >> $GITHUB_OUTPUT
+
+      - name: Checkout Scilpy 
+        uses: actions/checkout@v4
+        with:
+          repository: scilus/scilpy
+          ref: ${{ github.ref_name }}
+          path: ${{ steps.workspace.outputs.path }}/scilpy
+
+      - name: Create source distribution for Scilpy
+        run: pipx run build --sdist --outdir ${{ steps.workspace.outputs.path }}/sdist ${{ steps.workspace.outputs.path }}/scilpy
+
+      # Once we have aarch64 vtk wheels, we can reinstate this to build scilpy wheels for aarch64
+      - name: Set up QEMU
+        if: runner.os == 'Linux'
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: all
+
+      - name: Build wheels for Scilpy
+        uses: pypa/cibuildwheel@v2.16.2
+        with:
+          package-dir: ${{ steps.workspace.outputs.path }}/scilpy
+          output-dir: ${{ steps.workspace.outputs.path }}/sdist
+          config-file: ${{ steps.workspace.outputs.path }}/scilpy/cibuildwheel.toml
+        env:
+          CIBW_ARCHS_LINUX: auto64
+          CIBW_SKIP: "*-musllinux* pp* *-win* *-win32* *aarch64"
+
+      - name: Upload wheels and source to artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          path: |
+            ${{ steps.workspace.outputs.path }}/sdist/*.whl
+            ${{ steps.workspace.outputs.path }}/sdist/*.tar.gz
+
+      - name: Add wheels and sdist to release
+        uses: softprops/action-gh-release@v1
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        with:
+          tag_name: ${{ github.ref_name }}
+          files: |
+            ${{ steps.workspace.outputs.path }}/sdist/*.tar.gz
+            ${{ steps.workspace.outputs.path }}/sdist/*.whl
+      
+      - name: Publish package distributions to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          password: ${{ secrets.TESTPYPI_PASSWORD }}
+          repository-url: https://test.pypi.org/legacy/
+          packages-dir: ${{ steps.workspace.outputs.path }}/sdist/

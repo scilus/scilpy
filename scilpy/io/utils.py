@@ -14,14 +14,14 @@ import nibabel as nib
 import numpy as np
 from dipy.data import SPHERE_FILES
 from dipy.io.utils import is_header_compatible
-from fury import window
-from PIL import Image
 from scipy.io import loadmat
 from tqdm import tqdm
 import six
 
 from scilpy.gradients.bvec_bval_tools import DEFAULT_B0_THRESHOLD
 from scilpy.utils.filenames import split_name_with_nii
+from scilpy.utils.spatial import RAS_AXES_NAMES
+
 
 eddy_options = ["mb", "mb_offs", "slspec", "mporder", "s2v_lambda", "field",
                 "field_mat", "flm", "slm", "fwhm", "niter", "s2v_niter",
@@ -33,8 +33,6 @@ topup_options = ['out', 'fout', 'iout', 'logout', 'warpres', 'subsamp', 'fwhm',
                  'config', 'miter', 'lambda', 'ssqlambda', 'regmod', 'estmov',
                  "minmet", 'splineorder', 'numprec', 'interp', 'scale',
                  'regrid']
-
-axis_name_choices = ["axial", "coronal", "sagittal"]
 
 
 def get_acq_parameters(json_path, args_list):
@@ -101,6 +99,13 @@ def link_bundles_and_reference(parser, args, input_tractogram_list):
                 bundles_references_tuple.append(
                     (bundle_filename, args.reference))
     return bundles_references_tuple
+
+
+def check_tract_trk(parser, filename):
+
+    _, ext = os.path.splitext(filename)
+    if ext != '.trk':
+        parser.error('File {} is not a .trk file.'.format(filename))
 
 
 def check_tracts_same_format(parser, filename_list):
@@ -298,7 +303,7 @@ def add_sh_basis_args(parser, mandatory=False, input_output=False):
     ----------
     parser: argparse.ArgumentParser object
         Parser.
-    mandatory: bool
+    mandatory: bool, optional
         Whether this argument is mandatory.
     input_output: bool
         Whether this argument should expect both input and output bases or not.
@@ -382,86 +387,226 @@ def parse_sh_basis_arg(args):
         return sh_basis, is_legacy
 
 
-def add_nifti_screenshot_default_args(
-        parser, slice_ids_mandatory=True, transparency_mask_mandatory=True
-):
-    _mask_prefix = "" if transparency_mask_mandatory else "--"
+def add_labelmap_screenshot_args(parser, default_cmap=None, default_alpha=0.5,
+                                 cmap_parsing_group=None,
+                                 opacity_parsing_group=None):
+    """
+    Add default arguments for labelmap screenshotting.
 
-    _slice_ids_prefix, _slice_ids_help = "", "Slice indices to screenshot."
+    Parameters
+    ----------
+    parser: argparse.ArgumentParser object
+        Parser.
+    default_cmap: str, optional
+        Default colormap name.
+    default_alpha: float, optional
+        Default opacity value.
+    cmap_parsing_group: argparse.ArgumentParser object, optional
+        Group to add colormap arguments to, defaults to parser.
+    opacity_parsing_group: argparse.ArgumentParser object, optional
+        Group to add opacity arguments to, defaults to parser.
+    """
+    add_volume_screenshot_args(parser, "labelmap", False, "labelmap",
+                               default_cmap=default_cmap,
+                               default_alpha=default_alpha,
+                               cmap_parsing_group=cmap_parsing_group,
+                               opacity_parsing_group=opacity_parsing_group)
+
+
+def add_peaks_screenshot_args(parser, default_width=3.0, default_alpha=1.0,
+                              rendering_parsing_group=None):
+    """
+    Add default arguments for peaks screenshotting.
+
+    Parameters
+    ----------
+    parser: argparse.ArgumentParser object
+        Parser.
+    default_width: float, optional
+        Default peak linewidth value.
+    default_alpha: float, optional
+        Default opacity value.
+    rendering_parsing_group: argparse.ArgumentParser object, optional
+        Group to add rendering arguments to, defaults to parser.
+    """
+    parser.add_argument("--peaks", nargs="+",
+                        help="Peaks Nifti image (.nii/.nii.gz).")
+
+    rpg = rendering_parsing_group or parser
+    rpg.add_argument("--peaks_width", default=default_width, type=float,
+                     help="Width of the peaks lines. [%(default)s]")
+    rpg.add_argument("--peaks_opacity", type=ranged_type(float, 0., 1.),
+                     default=default_alpha,
+                     help="Opacity value for the peaks overlay. [%(default)s]")
+
+
+def add_overlays_screenshot_args(parser, default_alpha=0.5,
+                                 rendering_parsing_group=None):
+    """
+    Add default arguments for overlays screenshotting.
+
+    Parameters
+    ----------
+    parser: argparse.ArgumentParser object
+        Parser.
+    default_alpha: float, optional
+        Default opacity value.
+    rendering_parsing_group: argparse.ArgumentParser object, optional
+        Group to add rendering arguments to, defaults to parser.
+    """
+    parser.add_argument("--overlays", nargs="+",
+                        help="3D Nifti image(s) to overlay (.nii/.nii.gz).")
+
+    rpg = rendering_parsing_group or parser
+    rpg.add_argument("--overlays_as_contours", action='store_true',
+                     help="Display overlays contours and reduce the opacity "
+                          "of their inner region (see the "
+                          "`--overlays_opacity` argument).")
+    rpg.add_argument("--overlays_colors", nargs="+",
+                     type=ranged_type(int, 0, 255), metavar="R G B",
+                     help="Colors for the overlays or contours. You may "
+                          "provide a single color, for all overlays/contours, "
+                          "or one color for each. Each color is given as "
+                          "three values: R G B")
+    rpg.add_argument("--overlays_opacity", type=ranged_type(float, 0., 1.),
+                     default=default_alpha,
+                     help="Opacity value for the masks overlays. When "
+                          "combined with `--overlays_as_contours`, this will "
+                          "be the opacity of the region inside the computed "
+                          "contours. [%(default)s]")
+
+
+def add_volume_screenshot_args(parser, input_name, mandatory=True,
+                               descriptor="3D Nifti", default_cmap=None,
+                               default_alpha=1.0, cmap_parsing_group=None,
+                               opacity_parsing_group=None):
+    """
+    Add default arguments for volume screenshotting.
+
+    Parameters
+    ----------
+    parser: argparse.ArgumentParser object
+        Parser.
+    input_name: str
+        Name of the principal input volume and argument.
+    mandatory: bool, optional
+        Whether the input argument is mandatory.
+    descriptor: str, optional
+        Descriptor for the input volume. Will be used in help messages.
+    default_cmap: str, optional
+        Default colormap name.
+    default_alpha: float, optional
+        Default opacity value.
+    cmap_parsing_group: argparse.ArgumentParser object, optional
+        Group to add colormap arguments to, defaults to parser.
+    opacity_parsing_group: argparse.ArgumentParser object, optional
+        Group to add opacity arguments to, defaults to parser.
+    """
+    input_prefix = "" if mandatory else "--"
+    cmap_parsing_group = cmap_parsing_group or parser
+    opacity_parsing_group = opacity_parsing_group or parser
+
+    parser.add_argument(f"{input_prefix}{input_name}",
+                        help=f"Input {descriptor} file (.nii/.nii.gz).")
+
+    cmap_parsing_group.add_argument(f"--{input_name}_cmap_name",
+                                    default=default_cmap,
+                                    help=f"Colormap name for the {descriptor} "
+                                         f"image data. [%(default)s]")
+
+    opacity_parsing_group.add_argument(f"--{input_name}_opacity",
+                                       type=ranged_type(float, 0., 1.),
+                                       default=default_alpha,
+                                       help=f"Opacity value for the "
+                                            f"{descriptor} image data. "
+                                            f"[%(default)s]")
+
+
+def add_default_screenshot_args(parser, slice_ids_mandatory=True,
+                                transparency_mask_mandatory=True,
+                                disable_annotations=False,
+                                slicing_parsing_group=None,
+                                annotation_parsing_group=None,
+                                cmap_parsing_group=None,
+                                opacity_parsing_group=None):
+    """
+    Add default arguments for nifti screenshotting.
+
+    Parameters
+    ----------
+    parser: argparse.ArgumentParser object
+        Parser.
+    slice_ids_mandatory: bool, optional
+        Whether the slice_ids argument is mandatory.
+    transparency_mask_mandatory: bool, optional
+        Whether the transparency mask argument is mandatory.
+    disable_annotations: bool, optional
+        Whether to disable annotations arguments.
+    slicing_parsing_group: argparse.ArgumentParser object, optional
+        Group to add slicing arguments to, defaults to parser.
+    annotation_parsing_group: argparse.ArgumentParser object, optional
+        Group to add annotation arguments to, defaults to parser.
+    cmap_parsing_group: argparse.ArgumentParser object, optional
+        Group to add colormap arguments to, defaults to parser.
+    opacity_parsing_group: argparse.ArgumentParser object, optional
+        Group to add opacity arguments to, defaults to parser.
+    """
+
     _output_help = "Name of the output image (e.g. img.jpg, img.png)."
     if not slice_ids_mandatory:
-        _slice_ids_prefix = "--"
-        _slice_ids_help += " If None are supplied, all slices inside " \
-                           "the transparency mask are selected."
         _output_help = "Name of the output image(s). If multiple slices are " \
                        "provided (or none), their index will be append to " \
                        "the name (e.g. volume.jpg, volume.png becomes " \
                        "volume_slice_0.jpg, volume_slice_0.png)."
 
-    # Positional arguments
-    parser.add_argument(
-        "in_volume", help="Input 3D Nifti file (.nii/.nii.gz).")
+    add_volume_screenshot_args(parser, "volume",
+                               cmap_parsing_group=cmap_parsing_group,
+                               opacity_parsing_group=opacity_parsing_group)
+
+    if transparency_mask_mandatory:
+        parser.add_argument("transparency",
+                            help="Transparency Nifti image (.nii/.nii.gz). "
+                                 "Can either be a binary mask or a scalar "
+                                 "image in the range [0, 1].")
+    else:
+        parser.add_argument("--transparency",
+                            help="Transparency Nifti image (.nii/.nii.gz). "
+                                 "Can either be a binary mask or a scalar "
+                                 "image in the range [0, 1].")
+
     parser.add_argument("out_fname", help=_output_help)
 
-    # Variable arguments
-    parser.add_argument(
-        f"{_mask_prefix}in_transparency_mask",
-        help="Transparency mask 3D Nifti image (.nii/.nii.gz).")
-    parser.add_argument(
-        f"{_slice_ids_prefix}slice_ids", nargs="+", type=int,
-        help=_slice_ids_help)
+    if slice_ids_mandatory:
+        parser.add_argument("slices", nargs="+", type=int, metavar="SID",
+                            help="Slice indices to screenshot.")
 
-    # Optional arguments
-    parser.add_argument(
-        "--volume_cmap_name", default=None,
-        help="Colormap name for the volume image data. [%(default)s]")
-    parser.add_argument(
-        "--axis_name", default="axial", type=str, choices=axis_name_choices,
-        help="Name of the axis to visualize. [%(default)s]")
-    parser.add_argument(
-        "--win_dims", nargs=2, metavar=("WIDTH", "HEIGHT"), default=(768, 768),
-        type=int, help="The dimensions for the vtk window. [%(default)s]")
-    parser.add_argument(
-        "--display_slice_number", action="store_true",
-        help="If true, displays the slice number in the upper left corner."
-    )
-    parser.add_argument(
-        "--display_lr", action="store_true",
-        help="If true, add left and right annotations to the images."
-    )
+        parser.add_argument("--axis", default="axial",
+                            type=str, choices=RAS_AXES_NAMES,
+                            help="Name of the axis to visualize. "
+                                 "[%(default)s]")
+    else:
+        sg = slicing_parsing_group or parser
+        sg.add_argument("--slices", nargs="+", type=int, metavar="SID",
+                        help="Slice indices to screenshot. If None are "
+                             "supplied, all slices inside the transparency "
+                             "mask are selected.")
 
+        sg.add_argument("--axis", default="axial",
+                        type=str, choices=RAS_AXES_NAMES,
+                        help="Name of the axis to visualize. [%(default)s]")
 
-def add_nifti_screenshot_overlays_args(
-        parser, labelmap_overlay=True, mask_overlay=True,
-        transparency_is_overlay=False
-):
-    if labelmap_overlay:
-        parser.add_argument(
-            "--in_labelmap", help="Labelmap 3D Nifti image (.nii/.nii.gz).")
-        parser.add_argument(
-            "--labelmap_cmap_name", default="viridis",
-            help="Colormap name for the labelmap image data. [%(default)s]")
-        parser.add_argument(
-            "--labelmap_alpha", type=ranged_type(float, 0., 1.), default=0.7,
-            help="Opacity value for the labelmap overlay. [%(default)s].")
+    parser.add_argument("--size", nargs=2, metavar=("WIDTH", "HEIGHT"),
+                        default=(768, 768), type=int,
+                        help="Size of the output image. [%(default)s]")
 
-    if mask_overlay:
-        if not transparency_is_overlay:
-            parser.add_argument(
-                "--in_masks", nargs="+",
-                help="Mask 3D Nifti image (.nii/.nii.gz).")
-
-        parser.add_argument(
-            "--masks_colors", nargs="+", metavar="R G B",
-            type=ranged_type(int, 0, 255), default=None,
-            help="Colors for the mask overlay or contour")
-        parser.add_argument(
-            "--masks_as_contours", action='store_true',
-            help="Create contours from masks instead "
-                 "of overlays. [%(default)s].")
-        parser.add_argument(
-            "--masks_alpha", type=ranged_type(float, 0., 1.), default=0.7,
-            help="Opacity value for the masks overlays. [%(default)s].")
+    if not disable_annotations:
+        ag = annotation_parsing_group or parser(title="Annotations")
+        ag.add_argument("--display_slice_number", action="store_true",
+                        help="If true, displays the slice number "
+                             "in the upper left corner.")
+        ag.add_argument("--display_lr", action="store_true",
+                        help="If true, add left and right "
+                             "annotations to the images.")
 
 
 def validate_nbr_processes(parser, args):
@@ -517,6 +662,23 @@ def validate_sh_basis_choice(sh_basis):
     if not (sh_basis == 'descoteaux07' or sh_basis == 'tournier07'):
         raise ValueError("sh_basis should be either 'descoteaux07' or"
                          "'tournier07'.")
+
+
+def add_compression_arg(p, additional_msg=''):
+    """
+    Parameters
+    ----------
+    p: ArgumentParser
+        Paser
+    additional_msg: str
+        Any additional message to be displayed after explanation on the
+        compress arg.
+    """
+    p.add_argument('--compress', dest='compress_th', nargs='?', const=0.1,
+                   type=ranged_type(float, 0, None, min_excluded=True),
+                   help='If set, compress the resulting streamline. Value is '
+                        'the maximum \ncompression distance in mm.'
+                        + additional_msg + '[%(const)s]')
 
 
 def verify_compression_th(compress_th):
@@ -670,7 +832,7 @@ def assert_output_dirs_exist_and_empty(parser, args, required,
 
 
 def assert_overlay_colors(colors, overlays, parser):
-    if colors is None:
+    if colors is None or len(colors) == 0:
         return
 
     if len(colors) % 3 != 0:
@@ -710,19 +872,20 @@ def assert_roi_radii_format(parser):
 
 def assert_headers_compatible(parser, required, optional=None, reference=None):
     """
-    Verifies the compatibility between the first item in list_files
-    and the remaining files in list.
+    Verifies the compatibility between the first item in the required argument
+    and the remaining ones, as well as with those in optional. If any .tck
+    is present, a reference must be provided.
 
     Arguments
     ---------
     parser: argument parser
         Will raise an error if a file is not compatible.
-    required: List[str]
-        List of files to test
-    optional: List[str or None]
+    required: str or List[str]
+        List of files to test, the first one is used as base for comparison.
+    optional: str or List[str or None], optional
         List of files. May contain None, they will be discarted.
-    reference: str
-        Reference for any .tck passed in `list_files`
+    reference: str, optional
+        Reference for any .tck passed.
     """
     all_valid = True
 
@@ -745,10 +908,12 @@ def assert_headers_compatible(parser, required, optional=None, reference=None):
 
     # Gather "headers" for all files to compare against each other later
     headers = []
+    files = []
     for filepath in list_files:
         _, in_extension = split_name_with_nii(filepath)
         if in_extension in ['.trk', '.nii', '.nii.gz']:
             headers.append(filepath)
+            files.append(filepath)
         elif in_extension == '.tck':
             if reference is None:
                 parser.error(
@@ -761,11 +926,11 @@ def assert_headers_compatible(parser, required, optional=None, reference=None):
     if len(headers) <= 1:
         return
 
-    for curr in headers[1:]:
+    for curr, file in zip(headers[1:], files[1:]):
         if not is_header_compatible(headers[0], curr):
             # Not raising error now. Allows to show all errors.
-            logging.error('ERROR:\"{}\" and \"{}\" do not have compatible '
-                          'headers.'.format(headers[0], curr))
+            logging.error('ERROR: "{}" and "{}" do not have compatible '
+                          'headers.'.format(files[0], file))
             all_valid = False
 
     if not all_valid:
@@ -892,19 +1057,12 @@ def parser_color_type(arg):
     return f
 
 
-def snapshot(scene, filename, **kwargs):
-    """ Wrapper around fury.window.snapshot
-    For some reason, fury.window.snapshot flips the image vertically.
-    This image unflips the image and then saves it.
-    """
-    out = window.snapshot(scene, **kwargs)
-    image = Image.fromarray(out[::-1])
-    image.save(filename)
-
-
-def ranged_type(value_type, min_value, max_value):
+def ranged_type(value_type, min_value=None, max_value=None,
+                min_excluded=False, max_excluded=False):
     """Return a function handle of an argument type function for ArgumentParser
     checking a range: `min_value` <= arg <= `max_value`.
+    With min_excluded and max_excluded, the verification becomes
+    `min_value` < arg < `max_value`.
 
     Parameters
     ----------
@@ -914,6 +1072,10 @@ def ranged_type(value_type, min_value, max_value):
         Minimum acceptable argument value.
     max_value : scalar
        Maximum acceptable argument value.
+    min_excluded: bool
+        If true, the accepted range is ]min_value, max_value].
+    max_excluded: bool
+        If true, the accepted range is [min_value, max_value[.
 
     Returns
     -------
@@ -929,48 +1091,102 @@ def ranged_type(value_type, min_value, max_value):
             f = value_type(arg)
         except ValueError:
             raise argparse.ArgumentTypeError(f"must be a valid {value_type}")
-        if f < min_value or f > max_value:
-            raise argparse.ArgumentTypeError(
-                f"must be within [{min_value}, {max_value}]")
+
+        smaller = np.less
+        bigger = np.greater
+        if min_excluded:
+            smaller = np.less_equal
+        if max_excluded:
+            bigger = np.greater_equal
+
+        if min_value is not None and max_value is not None:
+            if smaller(f, min_value) or bigger(f, max_value):
+                if min_excluded and max_excluded:
+                    raise argparse.ArgumentTypeError(
+                        f"must be within ]{min_value}, {max_value}[")
+                elif min_excluded:
+                    raise argparse.ArgumentTypeError(
+                        f"must be within ]{min_value}, {max_value}")
+                elif max_excluded:
+                    raise argparse.ArgumentTypeError(
+                        f"must be within [{min_value}, {max_value}[")
+                else:
+                    raise argparse.ArgumentTypeError(
+                        f"must be within [{min_value}, {max_value}]")
+        elif min_value is not None:
+            if f < min_value:
+                if min_excluded:
+                    raise argparse.ArgumentTypeError(f"must be > {min_value}")
+                else:
+                    raise argparse.ArgumentTypeError(f"must be >= {min_value}")
+        elif max_value is not None:
+            if f > max_value:
+                if max_excluded:
+                    raise argparse.ArgumentTypeError(f"must be < {max_value}")
+                else:
+                    raise argparse.ArgumentTypeError(f"must be <= {max_value}")
         return f
 
     # Return handle to checking function
     return range_checker
 
 
-def get_default_screenshotting_data(args):
-    volume_img = nib.load(args.in_volume)
+def get_default_screenshotting_data(args, peaks=True):
+    """
+    Load the data required for screenshotting from the argument parser.
 
-    transparency_mask_img = None
-    if args.in_transparency_mask:
-        transparency_mask_img = nib.load(args.in_transparency_mask)
+    Parameters
+    ----------
+    args: argparse.Namespace
+        Argument parser namespace.
+    peaks: bool, optional
+        Whether peaks are included in the inputs or not.
+
+    Returns
+    -------
+    volume_img: nibabel.Nifti1Image
+        Volume image.
+    transparency_img: nibabel.Nifti1Image
+        Transparency image.
+    labelmap_img: nibabel.Nifti1Image
+        Labelmap image.
+    ovl_imgs: List[nibabel.Nifti1Image]
+        List of overlay images.
+    ovl_colors: np.ndarray
+        Colors for the overlays.
+    peaks_imgs: List[nibabel.Nifti1Image]
+        List of peaks images.
+    """
+    volume_img = nib.load(args.volume)
+
+    transparency_img = None
+    if args.transparency:
+        transparency_img = nib.load(args.transparency)
 
     labelmap_img = None
-    if args.in_labelmap:
-        labelmap_img = nib.load(args.in_labelmap)
+    if args.labelmap:
+        labelmap_img = nib.load(args.labelmap)
 
-    mask_imgs, masks_colors = None, None
-    if args.in_masks:
-        mask_imgs = [nib.load(f) for f in args.in_masks]
+    ovl_imgs, ovl_colors = None, None
+    if args.overlays:
+        ovl_imgs = [nib.load(f) for f in args.overlays]
 
-        if args.masks_colors is not None:
-            if len(args.masks_colors) == 3:
-                masks_colors = np.repeat(
-                    [args.masks_colors], len(args.in_masks), axis=0)
-            elif len(args.masks_colors) // 3 == len(args.in_masks):
-                masks_colors = np.array(args.masks_colors).reshape((-1, 3))
+        if args.overlays_colors is not None:
+            if len(args.overlays_colors) == 3:
+                ovl_colors = np.repeat(
+                    [args.overlays_colors], len(args.overlays), axis=0)
+            elif len(args.overlays_colors) // 3 == len(args.overlays):
+                ovl_colors = np.array(args.overlays_colors).reshape((-1, 3))
 
-            masks_colors = masks_colors / 255.
+            ovl_colors = ovl_colors / 255.
 
-    return volume_img, \
-        transparency_mask_img, \
-        labelmap_img, \
-        mask_imgs, \
-        masks_colors
+    peaks_imgs = None
+    if peaks and args.peaks:
+        peaks_imgs = [nib.load(f) for f in args.peaks]
 
-
-def v_enumerate(x, verbose):
-    if verbose:
-        return enumerate(tqdm(x))
-    else:
-        return enumerate(x)
+    return (volume_img,
+            transparency_img,
+            labelmap_img,
+            ovl_imgs,
+            ovl_colors,
+            peaks_imgs)
