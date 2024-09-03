@@ -40,6 +40,7 @@ Computed metrics:
     - mae_med
         Median MAE for the tractogram
 """
+
 import os
 import json
 import argparse
@@ -133,8 +134,8 @@ def main():
     truth_sft = load_tractogram(args.in_fibertubes, 'same', our_space, our_origin)
     truth_sft.to_voxmm()
     truth_sft.to_center()
-    centerlines = in_sft.get_streamlines_copy()
-    diameters = np.reshape(in_sft.data_per_streamline['diameters'], (len(centerlines)))
+    centerlines = truth_sft.get_streamlines_copy()
+    diameters = np.reshape(truth_sft.data_per_streamline['diameters'], (len(centerlines)))
 
     centerlines, centerlines_length = get_streamlines_as_fixed_array(centerlines)
     diameters = np.loadtxt(args.in_diameters, dtype=np.float64)

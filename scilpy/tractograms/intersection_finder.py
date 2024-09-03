@@ -16,30 +16,7 @@ class IntersectionFinder:
     a diameter for each streamline.
     """
 
-    FLOAT_EPSILON = 0.0000001
-
-    @property
-    def invalid(self):
-        """Bitmap identifying streamlines that hit another streamline
-        and should be filtered out."""
-        return self._invalid
-
-    @property
-    def collisions(self):
-        """Collision point of each collider."""
-        return self._collisions
-
-    @property
-    def obstacle(self):
-        """Streamlines hit by invalid. They should not be filtered and
-        are saved simply for visualization."""
-        return self._obstacle
-
-    @property
-    def excluded(self):
-        """Streamlines that don't collide, but should be excluded for
-        other reasons."""
-        return self._excluded
+    FLOAT_EPSILON = 1e-7
 
     def __init__(self, in_sft: StatefulTractogram, diameters: list,
                  verbose=False):
@@ -68,6 +45,29 @@ class IntersectionFinder:
         self._collisions = []
         self._obstacle = []
         self._excluded = []
+
+    @property
+    def invalid(self):
+        """Streamlines that hit another streamline and should be
+        filtered out."""
+        return self._invalid
+
+    @property
+    def collisions(self):
+        """Collision point of each collider."""
+        return self._collisions
+
+    @property
+    def obstacle(self):
+        """Streamlines hit by an 'invalid' streamline. They should not
+        be filtered and are saved seperately merely for visualization."""
+        return self._obstacle
+
+    @property
+    def excluded(self):
+        """Streamlines that don't collide, but should be excluded for
+        other reasons."""
+        return self._excluded
 
     def find_intersections(self, min_distance: float = None):
         """

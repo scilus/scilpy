@@ -5,6 +5,7 @@
 Visualize collisions found through with scil_tractogram_filter_collisions with
 the --save_colliding parameter.
 """
+
 import argparse
 
 from dipy.io.streamline import load_tractogram

@@ -34,9 +34,10 @@ Computed metrics:
         Ex: max_voxel_anisotropic: (3, 5, 5)
             max_voxel_isotropic: (3, 3, 3)
     - max_voxel_rotated
-        Rotated version of max_voxel_anisotropic aligned with (1, 1, 1).
-        This makes it an isotropic voxel, but is only usable if the entire
-        tractogram is rotated the same way.
+        Largest possible isotropic voxel if the tractogram is rotated. It is
+        obtained by measuring the smallest distance between two fibertubes.
+        It is only usable if the entire tractogram is rotated according to
+        [rotation_matrix].
         Ex: max_voxel_anisotropic: (1, 0, 0)
             max_voxel_isotropic: (0, 0, 0)
             max_voxel_rotated: (0.5774, 0.5774, 0.5774)
@@ -45,6 +46,7 @@ Computed metrics:
         the tractogram to align max_voxel_rotated with the coordinate system
         (see scil_tractogram_apply_transform.py).
 """
+
 import os
 import json
 import argparse
@@ -186,6 +188,9 @@ def main():
     
     # Casting ArraySequence as a list to improve speed
     streamlines = list(streamlines[indexes])
+
+    # Casting ArraySequence as a list to improve speed
+    streamlines = list(streamlines)
 
     logging.debug('Building IntersectionFinder')
     inter_finder = IntersectionFinder(
