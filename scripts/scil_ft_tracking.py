@@ -3,7 +3,11 @@
 
 """
 Tracking algorithm conceived to follow and reconstruct fibertubes, with
-a given artificial degradation of the resolution during the tracking process.
+an artificial blur of the resolution during the tracking process. Uses the
+scilpy Tracker object with custom SeedGenerator, Propagator and Datavolume
+objects.
+
+
 """
 import os
 import time
@@ -46,7 +50,7 @@ def _build_arg_parser():
 
     p.add_argument('--single_diameter', action='store_true',
                    help='If set, the first diameter found in \n'
-                   '[in_diameters] will be repeated for each fiber.')
+                   '[in_diameters] will be repeated for each fibertube.')
 
     rand_g = add_random_options(p)
     rand_g.add_argument(
@@ -57,6 +61,15 @@ def _build_arg_parser():
              "fixed --rng_seed.\nEx: If tractogram_1 was created "
              "with -nt 1,000,000, \nyou can create tractogram_2 "
              "with \n--skip 1,000,000.")
+
+    p.add_argument('--disable_shuffling', action='store_true',
+                   help='If set, no shuffling will be performed before \n'
+                   'the tracking process. fibertubes will be seeded in \n'
+                   'order.')
+
+    p.add_argument('--rng_seed', type=int, default=0,
+                   help='If set, all random values will be generated \n'
+                   'using the specified seed. [%(default)s]')
 
     add_processes_arg(p)
     add_out_options(p)
@@ -116,7 +129,7 @@ def main():
         diameter = diameters if np.ndim(diameters) == 0 else diameters[0]
         diameters = np.full(len(fibers), diameter)
 
-    if args.shuffle:
+    if not args.disable_shuffling:
         logging.debug('Shuffling fibers')
         indexes = list(range(len(fibers)))
         gen = np.random.default_rng(args.rng_seed)

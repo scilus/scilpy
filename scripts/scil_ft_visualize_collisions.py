@@ -2,12 +2,8 @@
 # -*- coding: utf-8 -*-
 
 """
-Visualize collisions found through the intersection filtering process of
-scil_ft_filter_collisions.py (with the --save_colliders option).
-
-The obtained "colliders" tractogram is to be used as input in the present
-script. The collision points need to be stored as data_per_streamline on
-each of the streamlines.
+Visualize collisions found through with scil_tractogram_filter_collisions with
+the --save_colliding parameter.
 """
 import argparse
 
@@ -27,14 +23,16 @@ def _build_arg_parser():
         description=__doc__,
         formatter_class=argparse.RawTextHelpFormatter)
 
-    p.add_argument('colliders',
+    p.add_argument('invalid',
                    help='Tractogram file containing the colliding \n'
-                   'streamlines and their collision points (must be .trk). \n')
+                   'streamlines that have been filtered, along their \n'
+                   'collision point as data_per_streamline (must be \n'
+                   '.trk). \n')
 
-    p.add_argument('--collided',
+    p.add_argument('--obstacle',
                    help='Tractogram file containing the streamlines that \n'
-                   'have been collided with (must be .trk). Will be \n'
-                   'overlaid in the viewing window.')
+                   'that [invalid] has collided with. Will be overlaid\n'
+                   'in the viewing window.')
 
     p.add_argument('--ref_tractogram',
                    help='Tractogram file containing the full tractogram \n'
@@ -55,35 +53,35 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, args.colliders,
-                        [args.collided, args.ref_tractogram])
+    assert_inputs_exist(parser, args.invalid,
+                        [args.obstacle, args.ref_tractogram])
     assert_outputs_exist(parser, args, [], [args.save])
 
-    tracts_format = detect_format(args.colliders)
+    tracts_format = detect_format(args.invalid)
     if tracts_format is not TrkFile:
         raise ValueError("Invalid input streamline file format " +
-                         "(must be trk): {0}".format(args.colliders))
+                         "(must be trk): {0}".format(args.invalid))
 
-    if args.collided:
-        tracts_format = detect_format(args.collided)
+    if args.obstacle:
+        tracts_format = detect_format(args.obstacle)
         if tracts_format is not TrkFile:
             raise ValueError("Invalid input streamline file format " +
-                             "(must be trk): {0}".format(args.colliders))
+                             "(must be trk): {0}".format(args.invalid))
 
-    colliders_sft = load_tractogram(args.colliders, 'same',
+    invalid_sft = load_tractogram(args.invalid, 'same',
                                     bbox_valid_check=False)
-    colliders_sft.to_voxmm()
-    colliders_sft.to_center()
+    invalid_sft.to_voxmm()
+    invalid_sft.to_center()
 
-    if 'collisions' not in colliders_sft.data_per_streamline:
+    if 'collisions' not in invalid_sft.data_per_streamline:
         parser.error('Tractogram does not contain collisions')
-    collisions = colliders_sft.data_per_streamline['collisions']
+    collisions = invalid_sft.data_per_streamline['collisions']
 
-    if (args.collided):
-        collided_sft = load_tractogram(args.collided, 'same',
+    if (args.obstacle):
+        obstacle_sft = load_tractogram(args.obstacle, 'same',
                                        bbox_valid_check=False)
-        collided_sft.to_voxmm()
-        collided_sft.to_center()
+        obstacle_sft.to_voxmm()
+        obstacle_sft.to_center()
     if (args.ref_tractogram):
         full_sft = load_tractogram_with_reference(parser, args,
                                                   args.ref_tractogram)
@@ -92,14 +90,14 @@ def main():
 
     # Make display objects and add them to canvas
     s = window.Scene()
-    colliders_actor = actor.line(colliders_sft.streamlines,
+    invalid_actor = actor.line(invalid_sft.streamlines,
                                  colors=[1., 0., 0.])
-    s.add(colliders_actor)
+    s.add(invalid_actor)
 
-    if (args.collided):
-        collided_actor = actor.line(collided_sft.streamlines,
+    if (args.obstacle):
+        obstacle_actor = actor.line(obstacle_sft.streamlines,
                                     colors=[0., 1., 0.])
-        s.add(collided_actor)
+        s.add(obstacle_actor)
 
     if (args.ref_tractogram):
         full_actor = actor.line(full_sft.streamlines, opacity=0.03,

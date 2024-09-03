@@ -73,7 +73,7 @@ def max_voxels(diagonal):
     return (max_voxel_anisotropic, max_voxel_isotropic)
 
 
-def true_max_voxel(diagonal):
+def max_voxel_rotated(diagonal):
     hyp = np.linalg.norm(diagonal)
     edge = hyp * sqrt(2)/2
 
@@ -173,7 +173,7 @@ def mean_reconstruction_error(fibers, fibers_length, diameters, streamlines,
     error_tractogram = []
 
     with objmode(centers='float64[:, :]', indices='int64[:, :]'):
-        centers, indices, _ = segment_tractogram(fibers)
+        centers, indices, _ = segment_tractogram(fibers, False)
     centers_fixed_length = len(fibers[0])-1
 
     tree = nbKDTree(centers[:fibers_length[0]-1])

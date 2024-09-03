@@ -128,20 +128,6 @@ def add_out_options(p):
     add_overwrite_arg(out_g)
 
 
-def add_random_options(p):
-    rand_g = p.add_argument_group('Randomization options')
-    rand_g.add_argument(
-        '--shuffle', action='store_true',
-        help='If set, the fibers will be shuffled before performing any \n'
-             'operation on them. Without this parameter, they are picked \n'
-             'in order.')
-    rand_g.add_argument(
-        '--rng_seed', type=int, default=0,
-        help='If set, all random values will be generated \n'
-             'using the specified seed. [%(default)s]')
-    return rand_g
-
-
 def segment_tractogram(streamlines, verbose=False):
     """
     Separates all streamlines of a tractogram into segments that connect
@@ -244,10 +230,8 @@ def sample_sphere(center, radius: float, amount: int,
         sample = np.array([rand_gen.uniform(-radius, radius),
                            rand_gen.uniform(-radius, radius),
                            rand_gen.uniform(-radius, radius)])
-        sample += center
-
-        if np.linalg.norm(center - sample) <= radius:
-            samples.append(sample)
+        if np.linalg.norm(sample) <= radius:
+            samples.append(sample + center)
     return samples
 
 

@@ -625,8 +625,8 @@ class FibertubePropagator(AbstractPropagator):
 
     def prepare_forward(self, seeding_pos, random_generator):
         direction = self.datavolume.get_absolute_direction(*seeding_pos)
-        # Hardcoded assuming fiber origin seeding.
-        # Each seed should be in a segment.
+
+        # Validate seeding within a fibertube.
         if direction is None:
             return PropagationStatus.ERROR
 

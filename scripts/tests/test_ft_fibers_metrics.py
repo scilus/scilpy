@@ -47,7 +47,7 @@ def test_execution_single_diameter(script_runner, monkeypatch):
     assert ret.success
 
 
-def test_execution_save_tmv_rotation(script_runner, monkeypatch):
+def test_execution_save_rotation_matrix(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_tractogram = os.path.join(SCILPY_HOME, 'tracking', 'local.trk')
     in_diameters = os.path.join(SCILPY_HOME, 'tracking', 'diameters.txt')
@@ -56,6 +56,6 @@ def test_execution_save_tmv_rotation(script_runner, monkeypatch):
 
     ret = script_runner.run('scil_ft_fibers_metrics.py', in_tractogram,
                             in_diameters, 'metrics.txt',
-                            '--save_tmv_rotation', '-f')
+                            '--save_rotation_matrix', '-f')
 
     assert ret.success
