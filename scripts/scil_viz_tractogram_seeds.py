@@ -65,7 +65,7 @@ def main():
 
     # Make display objects
     streamlines_actor = actor.line(streamlines)
-    points = actor.dot(seeds, color=(1., 1., 1.))
+    points = actor.dot(seeds, colors=(1., 1., 1.))
 
     # Add display objects to canvas
     s = window.Scene()

@@ -7,7 +7,7 @@ from scipy.spatial import KDTree
 from scilpy.tracking.fibertube import (segment_tractogram,
                                        dist_segment_segment)
 from dipy.io.stateful_tractogram import StatefulTractogram
-from scilpy.io.utils import v_enumerate
+from scilpy.tracking.utils import tqdm_if_verbose
 
 
 class IntersectionFinder:
@@ -106,8 +106,9 @@ class IntersectionFinder:
         #                           streamline.
         # segi : Segment Index    | index of streamline segment within the
         #                           entire tractogram.
-        for segi, center in v_enumerate(self.seg_centers,
-                                        self.verbose):
+        for segi, center in tqdm_if_verbose(enumerate(self.seg_centers),
+                                            self.verbose,
+                                            total=len(self.seg_centers)):
             si = self.seg_indices[segi][0]
 
             # [Pruning 1] If current streamline has already collided or been
@@ -194,7 +195,8 @@ class IntersectionFinder:
         out_invalid = []
         out_obstacle = []
 
-        for si, s in v_enumerate(self.streamlines, self.verbose):
+        for si, s in tqdm_if_verbose(enumerate(self.streamlines), self.verbose,
+                                     total=len(self.streamlines)):
             if self._invalid[si]:
                 out_invalid.append(s)
                 out_collisions.append(self._collisions[si])

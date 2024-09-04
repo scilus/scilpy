@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-Visualize collisions found through with scil_tractogram_filter_collisions with
+Visualize collisions given by scil_tractogram_filter_collisions with
 the --save_colliding parameter.
 """
 

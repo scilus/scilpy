@@ -6,12 +6,16 @@ Given an input tractogram and a text file containing a diameter for each
 streamline, filters all intersecting streamlines and saves the resulting
 tractogram and diameters.
 
+IMPORTANT: The input tractogram needs to have been resampled to segments of
+at most 0.2mm. Otherwise performance will drop significantly.
+(see scil_tractogram_resample_nb_points.py)
+
 The filtering is deterministic and follows this approach:
     - Pick next streamline
     - Iterate over its segments
         - If current segment collides with any other streamline segment given
           their diameters
-            - Current streamline becomes is filtered out of the streamlines
+            - Current streamline is deemed invalid and is filtered out
             - Other streamline is left untouched
     - Repeat
 
@@ -62,10 +66,8 @@ from scilpy.tractanalysis.fibertube_scoring import (
 from scilpy.io.utils import (assert_inputs_exist,
                              assert_outputs_exist,
                              add_overwrite_arg,
-                             add_reference_arg,
                              add_verbose_arg,
-                             add_json_args,
-                             add_bbox_arg)
+                             add_json_args)
 
 
 def _build_arg_parser():
@@ -75,7 +77,7 @@ def _build_arg_parser():
 
     p.add_argument('in_tractogram',
                    help='Path to the tractogram file containing the \n'
-                   'streamlines (must be .trk or .tck).')
+                   'streamlines (must be .trk).')
 
     p.add_argument('in_diameters',
                    help='Path to a text file containing a list of \n'
@@ -92,10 +94,11 @@ def _build_arg_parser():
     p.add_argument('--save_colliding', action='store_true',
                    help='Useful for visualization. If set, the script will \n'
                    'produce two other tractograms (.trk) containing \n'
-                   'colliding streamlines. The first one contains all \n'
-                   'streamlines that have been filtered out, and the \n'
-                   'second one contains the streamlines that the first \n'
-                   'tractogram was colliding with. Note that the \n'
+                   'colliding streamlines. The first one contains invalid \n'
+                   'streamlines that have been filtered out, along with \n'
+                   'their collision point as data per streamline. The \n'
+                   'second one contains the potentially valid streamlines \n'
+                   'that the first tractogram collided with. Note that the \n'
                    'streamlines in the second tractogram may or may not \n'
                    'have been filtered afterwards. \n'
                    'Filenames are derived from [in_tractogram] with \n'
@@ -129,11 +132,9 @@ def _build_arg_parser():
                    help='If set, all random values will be generated \n'
                    'using the specified seed. [%(default)s]')
 
-    add_reference_arg(p)
+    add_overwrite_arg(p)
     add_verbose_arg(p)
     add_json_args(p)
-    add_overwrite_arg(p)
-    add_bbox_arg(p)
 
     return p
 
@@ -150,7 +151,7 @@ def main():
 
     if out_tractogram_ext.lower() != '.trk':
         raise ValueError("Invalid output streamline file format " +
-                         "(must be trk): {0}".format(args.tractogram_filename))
+                         "(must be trk): {0}".format(args.in_tractogram))
 
     outputs = [args.out_tractogram]
     if args.save_colliding:
@@ -173,7 +174,7 @@ def main():
     if np.ndim(diameters) == 0:
         diameters = np.full(len(streamlines), diameters)
     elif diameters.shape[0] != (len(streamlines)):
-        raise ValueError('Number of diameters does not match the number' +
+        raise ValueError('Number of diameters does not match the number ' +
                          'of streamlines.')
 
     if not args.disable_shuffling:

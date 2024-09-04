@@ -2,7 +2,7 @@ import numpy as np
 
 from math import sqrt
 from numba import njit
-from scilpy.io.utils import v_enumerate
+from scilpy.tracking.utils import tqdm_if_verbose
 
 
 def segment_tractogram(streamlines, verbose=False):
@@ -30,7 +30,8 @@ def segment_tractogram(streamlines, verbose=False):
     centers = []
     indices = []
     max_length = 0.
-    for si, s in v_enumerate(streamlines, verbose):
+    for si, s in tqdm_if_verbose(enumerate(streamlines), verbose,
+                                 total=len(streamlines)):
         centers.append((s[1:] + s[:-1]) / 2)
         indices.append([(si, pi) for pi in range(len(s)-1)])
 

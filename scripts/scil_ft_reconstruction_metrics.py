@@ -6,39 +6,39 @@ Given ground-truth fibertubes and a tractogram obtained through fibertube
 tracking, computes metrics about the quality of individual fiber
 reconstruction.
 
-VC: "Valid Connection": Contains streamlines that ended in the final
-    segment of the fibertube in which they have been seeded.
-IC: "Invalid Connection": Contains streamlines that ended in the final
+VC: "Valid Connection": Represents a streamline that ended in the final
+    segment of the fibertube in which it was seeded.
+IC: "Invalid Connection": Represents a streamline that ended in the final
     segment of another fibertube.
 NC: "No Connection": Contains streamlines that have not ended in the final
     segment of any fibertube.
 
-A coordinate absolute error is the distance between a streamline coordinate
+A "coordinate absolute error" is the distance between a streamline coordinate
 and the closest point on its corresponding fibertube. The average of all
 coordinate absolute errors of a streamline is called the "Mean absolute
 error" or "mae".
 
 Computed metrics:
-    - truth_vc
-        Connections that are valid at ground-truth resolution.
-    - truth_ic
-        Connections that are invalid at ground-truth resolution.
-    - truth_nc
-        No-connections at ground-truth resolution.
-    - res_vc
-        Connections that are valid at the simulated data resolution.
-    - res_ic
-        Connections that are invalid at the simulated data resolution.
-    - res_nc
-        No-connections at the simulated data resolution
+    - truth_vc_ratio
+        Proportion of VC at ground-truth resolution.
+    - truth_ic_ratio
+        Proportion of IC at ground-truth resolution.
+    - truth_nc_ratio
+        Proportion of NC at ground-truth resolution.
+    - res_vc_ratio
+        Proportion of VC at the tracking sphere resolution.
+    - res_ic_ratio
+        Proportion of IC at the tracking sphere resolution.
+    - res_nc_ratio
+        Proportion of NC at the tracking sphere resolution.
     - mae_min
-        Minimum MAE for the tractogram
+        Minimum MAE for the tractogram.
     - mae_max
-        Maximum MAE for the tractogram
+        Maximum MAE for the tractogram.
     - mae_mean
-        Average MAE for the tractogram
+        Average MAE for the tractogram.
     - mae_med
-        Median MAE for the tractogram
+        Median MAE for the tractogram.
 """
 
 import os
@@ -58,7 +58,7 @@ from scilpy.io.utils import (assert_inputs_exist,
                              assert_outputs_exist,
                              add_overwrite_arg,
                              add_verbose_arg,
-                             add_bbox_arg)
+                             add_json_args)
 
 
 def _build_arg_parser():
@@ -88,10 +88,9 @@ def _build_arg_parser():
 
     p.add_argument('--save_error_tractogram', action='store_true',
                    help='If set, a .trk file will be saved, containing a \n'
-                   'visual representation of the per-coordinate error of \n'
-                   'each streamline relative to the fiber they have been \n'
-                   'seeded in. The file name is derived from the \n'
-                   'out_metrics parameter.')
+                   'visual representation of all the coordinate absolute \n'
+                   'errors of the entire tractogram. The file name is \n'
+                   'derived from the out_metrics parameter.')
 
     p.add_argument('--rng_seed', type=int, default=0,
                    help='If set, all random values will be generated \n'
@@ -99,7 +98,7 @@ def _build_arg_parser():
 
     add_verbose_arg(p)
     add_overwrite_arg(p)
-    add_bbox_arg(p)
+    add_json_args(p)
 
     return p
 
@@ -112,9 +111,9 @@ def main():
         logging.getLogger().setLevel(logging.DEBUG)
         logging.getLogger('numba').setLevel(logging.WARNING)
 
-    if not nib.streamlines.is_supported(args.in_centerlines):
+    if not nib.streamlines.is_supported(args.in_fibertubes):
         parser.error('Invalid input streamline file format (must be trk ' +
-                     'or tck): {0}'.format(args.in_centerlines))
+                     'or tck): {0}'.format(args.in_fibertubes))
 
     out_metrics_no_ext, ext = os.path.splitext(args.out_metrics)
 
@@ -122,8 +121,7 @@ def main():
         parser.error('Invalid output file format (must be txt): {0}'
                      .format(args.out_metrics))
 
-    assert_inputs_exist(parser, [args.in_centerlines, args.in_diameters,
-                                 args.in_seeds, args.in_config,
+    assert_inputs_exist(parser, [args.in_fibertubes, args.in_config,
                                  args.in_tractogram])
     assert_outputs_exist(parser, args, [args.out_metrics])
 
@@ -132,26 +130,23 @@ def main():
 
     logging.debug('Loading centerline tractogram & diameters')
     truth_sft = load_tractogram(args.in_fibertubes, 'same', our_space, our_origin)
-    truth_sft.to_voxmm()
-    truth_sft.to_center()
     centerlines = truth_sft.get_streamlines_copy()
-    diameters = np.reshape(truth_sft.data_per_streamline['diameters'], (len(centerlines)))
-
     centerlines, centerlines_length = get_streamlines_as_fixed_array(centerlines)
-    diameters = np.loadtxt(args.in_diameters, dtype=np.float64)
-    if args.single_diameter:
-        diameter = diameters if np.ndim(diameters) == 0 else diameters[0]
-        diameters = np.full(len(centerlines), diameter)
+
+    if "diameters" not in truth_sft.data_per_streamline:
+        parser.error('No diameters found as data per streamline on ' + args.in_fibertubes)
+    diameters = np.reshape(truth_sft.data_per_streamline['diameters'], len(centerlines))
 
     logging.debug('Loading reconstructed tractogram')
-    in_sft = load_tractogram(parser, args, args.in_tractogram, our_space, our_origin)
-    streamlines, streamlines_length = get_streamlines_as_fixed_array(
-        in_sft.get_streamlines_copy())
+    in_sft = load_tractogram(args.in_tractogram, 'same', our_space, our_origin)
+    streamlines = in_sft.get_streamlines_copy()
+    streamlines, streamlines_length = get_streamlines_as_fixed_array(streamlines)
 
     logging.debug("Loading seeds")
-    seeds = np.loadtxt(args.in_seeds)
-    if len(seeds.shape) != 2:
-        seeds = [seeds]
+    if "seeds" not in in_sft.data_per_streamline:
+        parser.error('No seeds found as data per streamline on ' + args.in_tractogram)
+
+    seeds = in_sft.data_per_streamline['seeds']
     seeds_fiber = resolve_origin_seeding(seeds, centerlines, diameters)
 
     logging.debug("Loading config")

@@ -11,7 +11,7 @@ from scilpy.tracking.fibertube import (segment_tractogram,
                                        dist_segment_segment,
                                        dist_point_segment,
                                        sphere_cylinder_intersection)
-from scilpy.io.utils import v_enumerate
+from scilpy.tracking.utils import tqdm_if_verbose
 
 
 def min_external_distance(centerlines, diameters, verbose):
@@ -20,11 +20,11 @@ def min_external_distance(centerlines, diameters, verbose):
     seg_centers, seg_indices, max_seg_length = segment_tractogram(centerlines,
                                                                   verbose)
     tree = KDTree(seg_centers)
-    min_external_distance = np.float32('inf')
+    min_external_distance = np.inf
     min_external_distance_vec = np.zeros(0, dtype=np.float32)
 
-    for segi, center in v_enumerate(seg_centers,
-                                    verbose):
+    for segi, center in tqdm_if_verbose(enumerate(seg_centers), verbose,
+                                        total=len(seg_centers)):
         si = seg_indices[segi][0]
 
         neighbors = tree.query_ball_point(center,
@@ -75,7 +75,7 @@ def max_voxels(diagonal):
 
 def max_voxel_rotated(diagonal):
     hyp = np.linalg.norm(diagonal)
-    edge = hyp * sqrt(2)/2
+    edge = hyp / 3*sqrt(3)
 
     # The rotation should be such that the diagonal becomes aligned
     # with [1, 1, 1]

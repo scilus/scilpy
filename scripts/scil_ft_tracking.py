@@ -7,12 +7,12 @@ scil_tracking_local_dev.py, adapted for fibertube tracking.
 
 Void of the concept of grid, voxels and resolution. Instead, the tracking
 algorithm is executed directly on fibertubes (Virtual representation of
-axons). To simulate a lower resolution, a blur_radius parameter is introduced.
-At each step, a random direction will be picked from the fibertube segments
-intersecting with the blurring sphere.
+axons). To simulate a lower resolution, a blur_radius parameter forming a
+"tracking sphere" is introduced. At each step, a random direction will be
+picked from the fibertube segments intersecting with the tracking sphere.
 
 Algorithm type is inherently probabilistic with a distribution weighted by the
-volume of intersection between each fibertube segment and the blurring sphere.
+volume of intersection between each fibertube segment and the tracking sphere.
 
 The tracking direction is chosen in the aperture cone defined by the
 previous tracking direction and the angular constraint.
@@ -52,7 +52,7 @@ def _build_arg_parser():
     p.add_argument('in_fibertubes',
                    help='Path to the tractogram file containing the \n'
                         'fibertubes with their respective diameter saved \n'
-                        'data_per_streamline (must be .trk). \n'
+                        'as data_per_streamline (must be .trk). \n'
                         'The fibertubes must be void of any collision \n'
                         '(see scil_filter_intersections.py). \n')
 
@@ -71,7 +71,7 @@ def _build_arg_parser():
                    'A step_size within [0.001, 0.5] is recommended.')
 
     p.add_argument('blur_radius', type=float,
-                   help='Radius of the circular region from which the \n'
+                   help='Radius of the spherical region from which the \n'
                    'algorithm will determine the next direction. \n'
                    'A blur_radius within [0.001, 0.5] is recommended.')
 
@@ -103,8 +103,8 @@ def _build_arg_parser():
         '--max_invalid_nb_points', metavar='MAX', type=int,
         default=0,
         help='Maximum number of steps without valid \n'
-             'direction, \nex: if threshold on ODF or max \n'
-             'angles are reached. \n'
+             'direction, \nex: No fibertube intersecting the \n'
+             'tracking sphere or max angle is reached.\n'
              'Default: 0, i.e. do not add points following '
              'an invalid direction.')
     track_g.add_argument(
@@ -138,9 +138,9 @@ def _build_arg_parser():
     rand_g = p.add_argument_group('Random options')
     rand_g.add_argument(
         '--disable_shuffling', action='store_true',
-        help='If set, no shuffling will be performed before \n'
-        'the filtering process. Streamlines will be picked in \n'
-        'order.')
+        help='Will only affect seeding. If set, no shuffling will be \n'
+        'performed before the seeding process. fibertubes will be seeded \n'
+        'in order.')
     rand_g.add_argument(
         '--rng_seed', type=int, default=0,
         help='If set, all random values will be generated \n'
@@ -156,16 +156,17 @@ def _build_arg_parser():
 
     out_g = p.add_argument_group('Output options')
     out_g.add_argument(
-        '--save_seeds', action='store_true',
-        help='If set, the seeds used for tracking will be saved \n'
-             'as data_per_streamline in [out_tractogram].')
+        '--do_not_save_seeds', action='store_true',
+        help='If set, the seeds used for tracking will not be saved \n'
+             'as data_per_streamline in [out_tractogram]. Seeds are needed \n'
+             'if you wish to compute fibertube reconstruction metrics later.')
     out_g.add_argument(
         '--out_config', default=None, type=str,
         help='If set, the parameter configuration used for tracking will \n'
         'be saved at the specified location (must be .txt). If not given, \n'
         'the config will be printed in the console.')
-    add_overwrite_arg(out_g)
 
+    add_overwrite_arg(out_g)
     add_processes_arg(p)
     add_verbose_arg(p)
     add_json_args(p)
@@ -192,7 +193,7 @@ def main():
     out_tractogram_no_ext, ext = os.path.splitext(args.out_tractogram)
 
     outputs = [args.out_tractogram]
-    if args.save_seeds:
+    if not args.do_not_save_seeds:
         outputs.append(out_tractogram_no_ext + '_seeds' + ext)
 
     assert_inputs_exist(parser, [args.in_fibertubes])
@@ -209,10 +210,8 @@ def main():
 
     logging.debug('Loading tractogram & diameters')
     in_sft = load_tractogram(args.in_fibertubes, 'same', our_space, our_origin)
-    in_sft.to_voxmm()
-    in_sft.to_center()
     centerlines = in_sft.get_streamlines_copy()
-    diameters = np.reshape(in_sft.data_per_streamline['diameters'], (len(centerlines)))
+    diameters = np.reshape(in_sft.data_per_streamline['diameters'], len(centerlines))
 
     if not args.disable_shuffling:
         logging.debug('Shuffling streamlines')
@@ -220,8 +219,8 @@ def main():
         gen = np.random.default_rng(args.rng_seed)
         gen.shuffle(indexes)
 
-    # Casting ArraySequence as a list to improve speed
     centerlines = list(centerlines[indexes])
+    diameters = diameters[indexes]
 
     #TO BE REMOVED
     logging.debug("Loading tracking mask.")
@@ -251,7 +250,7 @@ def main():
     tracker = Tracker(propagator, mask, seed_generator, nbr_seeds,
                       min_nbr_pts, max_nbr_pts,
                       args.max_invalid_nb_points, 0,
-                      args.nbr_processes, args.save_seeds, 'r+',
+                      args.nbr_processes, not args.do_not_save_seeds, 'r+',
                       rng_seed=args.rng_seed,
                       track_forward_only=args.forward_only,
                       skip=args.skip,
@@ -267,7 +266,8 @@ def main():
 
     out_sft = StatefulTractogram(streamlines, mask_img, our_space,
                              origin=our_origin)
-    if args.save_seeds:
+
+    if not args.do_not_save_seeds:
         out_sft.data_per_streamline['seeds'] = seeds
     
     save_tractogram(out_sft, args.out_tractogram)
