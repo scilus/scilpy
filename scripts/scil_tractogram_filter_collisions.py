@@ -23,8 +23,8 @@ This means that the order of the streamlines within the tractogram has a
 direct impact on which streamline gets filtered out. To counter the resulting
 bias, streamlines are shuffled first unless --disable_shuffling is set.
 
-If the --out_metrics parameter is given, several metrics about the data will be
-computed.
+If the --out_metrics parameter is given, several metrics about the data will
+be computed.
 
 Computed metrics:
     - min_external_distance
@@ -39,7 +39,8 @@ Computed metrics:
             max_voxel_isotropic: (3, 3, 3)
     - max_voxel_rotated
         Largest possible isotropic voxel if the tractogram is rotated. It is
-        obtained by measuring the smallest distance between two fibertubes.
+        obtained by measuring the smallest distance between two streamlines,
+        outside of their diameter.
         It is only usable if the entire tractogram is rotated according to
         [rotation_matrix].
         Ex: max_voxel_anisotropic: (1, 0, 0)
@@ -106,9 +107,9 @@ def _build_arg_parser():
                    '"_obstacle" appended for the second tractogram.')
 
     p.add_argument('--out_metrics', default=None, type=str,
-                   help='If set, metrics about the fibertubes will be \n'
-                   'computed after filtering and saved at the given \n'
-                   'location (must be .txt).')
+                   help='If set, metrics about the streamlines and their \n'
+                   'diameter will be computed after filtering and saved at \n'
+                   'the given location (must be .txt).')
 
     p.add_argument('--out_max_voxel_rotation', default=None, type=str,
                    help='If set, the transformation required to align the \n'
