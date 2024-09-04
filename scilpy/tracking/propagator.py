@@ -578,23 +578,23 @@ class ODFPropagator(PropagatorOnSphere):
 
 class FibertubePropagator(AbstractPropagator):
     """
-    Implementation of the scilpy.tracking.propagator.AbstractPropagator
-    interface for fibertube tracking.
+    Simplified propagator for using fibertube data. It is probabilistic and
+    uses the volume of intersection between fibertube segments and the
+    blurring sphere as a random distribution for picking a segment. This
+    segment is then used as the propagation direction.
     """
     def __init__(self, datavolume: FibertubeDataVolume, step_size, rk_order,
-                 algo, theta, space, origin):
+                 theta, space, origin):
         """"
         Parameters
         ----------
-        datavolume: scilpy.image.volume_space_management.FibertubeDataVolume
+        datavolume: FibertubeDataVolume
             Trackable fibertube dataset object.
         step_size: float
             The step size for tracking. Important: step size should be in the
             same units as the space of the tracking!
         rk_order: int
             Order for the Runge Kutta integration.
-        algo: string
-            Type of algorithm. Choices are 'det' or 'prob'
         theta: float
             Maximum angle (radians) between two steps.
         space: dipy Space
@@ -616,7 +616,6 @@ class FibertubePropagator(AbstractPropagator):
         self.datavolume = datavolume
         self.step_size = step_size
         self.rk_order = rk_order
-        self.algo = algo
         self.theta = theta
         self.space = space
         self.origin = origin
@@ -648,20 +647,14 @@ class FibertubePropagator(AbstractPropagator):
         return super().propagate(line, v_in)
 
     def _sample_next_direction(self, pos, v_in):
-        if self.algo == 'prob':
             directions, volumes = self._get_possible_next_dirs(pos, v_in)
 
             # Sampling one.
             if np.sum(volumes) > 0:
                 v_out = directions[
                     sample_distribution(volumes, self.line_rng_generator)]
-            else:
-                return None
-        else:
-            raise ValueError("Tracking algorithm must be 'prob' for " +
-                             " fibertube tracking.")
-
-        return v_out
+                return v_out
+            return None
 
     def _get_possible_next_dirs(self, pos, v_in):
         directions, volumes = (
@@ -682,11 +675,7 @@ class FibertubePropagator(AbstractPropagator):
                 cosine = abs(cosine)
                 dir = -dir
 
-            # clip float error to bounds
-            if cosine > 1:
-                cosine = 1
-            if cosine < -1:
-                cosine = -1
+            cosine = np.clip(cosine, -1, 1)
 
             if (np.arccos(cosine) > self.theta):
                 continue

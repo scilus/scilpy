@@ -966,7 +966,7 @@ def get_streamlines_as_fixed_array(streamlines):
         List of all the streamline lengths.
     """
     lengths = [len(streamline) for streamline in streamlines]
-    streamlines_fixed = np.zeros((len(streamlines), max(lengths), 3))
+    streamlines_fixed = np.ndarray((len(streamlines), max(lengths), 3))
     for i, f in enumerate(streamlines_fixed):
         for j, c in enumerate(streamlines[i]):
             f[j] = c

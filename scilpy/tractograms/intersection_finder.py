@@ -84,7 +84,7 @@ class IntersectionFinder:
                 are flagged simply for visualization.
             excluded : ndarray[bool]
                 Streamlines that don't collide, but should be excluded for
-                other reasons. (see min_distance)
+                other reasons. (ex: distance does not respect min_distance)
 
         Parameters
         ----------

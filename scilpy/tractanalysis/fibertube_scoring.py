@@ -15,8 +15,27 @@ from scilpy.tracking.utils import tqdm_if_verbose
 
 
 def min_external_distance(centerlines, diameters, verbose):
-    # Can be improved in speed by using Numba.
-    # (See get_streamlines_as_fixed_array and numba-kdtree)
+    """"
+    Calculates the minimal distance in between two fibertubes. A RuntimeError
+    is thrown if a collision is detected (i.e. a negative distance is found).
+    Use IntersectionFinder to remove intersections from fibertubes.
+    
+    Parameters
+    ----------
+    centerlines: ndarray
+        Centerlines of the fibertubes.
+    diameters: ndarray
+        Diameters of the fibertubes.
+    verbose: bool
+        Whether to make the function verbose.
+
+    Returns
+    -------
+    min_external_distance: float
+        Minimal distance found between two fibertubes.
+    min_external_distance_vec: ndarray
+        Vector representation of min_external_distance.
+    """
     seg_centers, seg_indices, max_seg_length = segment_tractogram(centerlines,
                                                                   verbose)
     tree = KDTree(seg_centers)
@@ -50,7 +69,7 @@ def min_external_distance(centerlines, diameters, verbose):
             external_distance = distance - rp - rq
 
             if external_distance < 0:
-                raise RuntimeError('The input fibrtubes contained a \n'
+                raise RuntimeError('The input fibertubes contained a \n'
                                    'collision. Filter them prior \n'
                                    'to acquiring metrics.')
 
@@ -63,6 +82,28 @@ def min_external_distance(centerlines, diameters, verbose):
 
 
 def max_voxels(diagonal):
+    """
+    Given the vector representing the smallest distance between two
+    fibertubes, calculates the maximum sized voxels (anisotropic & isotropic)
+    without causing any partial-volume effect.
+    
+    These voxel are expressed in the current 3D referential and are
+    often rendered meaningless by it. See function max_voxel_rotated for an
+    alternative.
+
+    Parameters
+    ----------
+    diagonal: ndarray
+        Vector representing the smallest distance between two
+        fibertubes.
+
+    Returns
+    -------
+    max_voxel_anisotropic: ndarray
+        Maximum sized anisotropic voxel.
+    max_voxel_isotropic: ndarray
+        Maximum sized isotropic voxel.
+    """
     max_voxel_anisotropic = np.abs(diagonal).astype(np.float32)
 
     # Find an isotropic voxel within the anisotropic one
@@ -74,6 +115,29 @@ def max_voxels(diagonal):
 
 
 def max_voxel_rotated(diagonal):
+    """
+    Given the vector representing the smallest distance between two
+    fibertubes, calculates the maximum sized voxel without causing any
+    partial-volume effect. This voxel is isotropic.
+
+    This voxel is not expressed in the current 3D referential. It will require
+    the tractogram to be rotated according to rotation_matrix for this voxel
+    to be applicable.
+
+    Parameters
+    ----------
+    diagonal: ndarray
+        Vector representing the smallest distance between two
+        fibertubes.
+
+    Returns
+    -------
+    rotation_matrix: ndarray
+        3x3 rotation matrix to be applied to the tractogram to align it with
+        the voxel
+    edge: float
+        Edge size of the max_voxel_rotated.
+    """
     hyp = np.linalg.norm(diagonal)
     edge = hyp / 3*sqrt(3)
 
@@ -91,11 +155,27 @@ def max_voxel_rotated(diagonal):
 
 
 @njit
-def get_external_distance_vec(vector, rp, rq):
-    # Given a distance vector between two fibertube centerlines, find their
-    # external distance
+def get_external_distance_vec(vector, r1, r2):
+    """
+    Given a distance vector between two fibertube centerlines, find their
+    distance outside their diameter.
+
+    Parameters
+    ----------
+    vector: ndarray
+        Distance vector between two fibertube centerlines.
+    rp: ndarray
+        Radius of one of the fibertubes.
+    rq: ndarray
+        Radius of the other fibertube.
+
+    Results
+    -------
+    external_distance_vec: ndarray
+        Distance vector between the two fibertubes, outside their diameter.
+    """
     unit_distance_vec = vector / np.linalg.norm(vector)
-    external_distance_vec = (vector - rp * unit_distance_vec - rq *
+    external_distance_vec = (vector - r1 * unit_distance_vec - r2 *
                              unit_distance_vec)
 
     return external_distance_vec
@@ -211,14 +291,13 @@ def mean_reconstruction_error(centerlines, centerlines_length, diameters, stream
                     point_in_cylinder(pt1, pt2, radius, point)):
                 errors.append(0.)
             else:
-                distance, vector, collFib, collStr = dist_point_segment(
+                distance, vector, segment_collision_point = dist_point_segment(
                     pt1, pt2, point)
                 errors.append(distance - radius)
 
                 if return_error_tractogram:
-                    vector /= np.linalg.norm(vector)
-                    error_tractogram.append([collFib - vector * radius,
-                                             collStr])
+                    fiber_collision_point = segment_collision_point - vector / np.linalg.norm(vector) * radius
+                    error_tractogram.append([fiber_collision_point, point])
 
         mean_errors.append(np.array(errors).mean())
 
@@ -230,7 +309,6 @@ def endpoint_connectivity(step_size, blur_radius, centerlines,
                           centerlines_length, diameters, streamlines,
                           seeds_fiber, random_generator):
     """
-    TODO: Particularly inefficient. To be improved with a KDTree.
     For every streamline, find whether or not it has reached the end segment
     of its fiber.
 
@@ -241,17 +319,21 @@ def endpoint_connectivity(step_size, blur_radius, centerlines,
     NC: "No Connection": Contains streamlines that have not ended in the final
         segment of any fiber.
 
+    TODO: Particularly inefficient. Could be improved with a KDTree.
+
     Parameters
     ----------
     step_size: any
+        Step_size used during fibertube tracking.
     blur_radius: any
+        Blur radius used during fibertube tracking.
     centerlines: ndarray
         Fixed array containing ground-truth fibertube centerlines.
     centerlines_length: ndarray
         Fixed array containing the number of coordinates of each fibertube
         centerlines.
     diameters: list,
-        Diameters of the fibertubes
+        Diameters of the fibertubes.
     streamlines: ndarray
         Fixed array containing streamlines resulting from the tracking
         process.
@@ -262,7 +344,9 @@ def endpoint_connectivity(step_size, blur_radius, centerlines,
         streamline, contains the index of the fiber in which it has been
         seeded.
     random_generator: any
-
+        Random generator used to generate samples for estimating the volume of
+        intersection between blurring sphere and fibertube segments.
+    
     Return
     ------
     truth_vc: list

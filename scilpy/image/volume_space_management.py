@@ -372,6 +372,7 @@ class FibertubeDataVolume(DataVolume):
     interface for fibertube tracking. Instead of a spherical function,
     provides direction and intersection volume of close-by fiber segments.
     """
+
     def __init__(self, centerlines, diameters, mask, voxres, blur_radius,
                  origin, random_generator):
         """
@@ -509,7 +510,9 @@ class FibertubeDataVolume(DataVolume):
     @staticmethod
     @njit
     def extract_directions(pos, neighbors, blur_radius, segments_indices,
-                           centerlines, diameters, random_generator):
+                           centerlines, diameters, random_generator,
+                           volume_nb_samples = 1000,
+                           volume_nb_samples_backup = 10000):
         directions = []
         volumes = []
 
@@ -523,13 +526,17 @@ class FibertubeDataVolume(DataVolume):
 
             volume, is_estimated = sphere_cylinder_intersection(
                     pos, blur_radius, fib_pt1,
-                    fib_pt2, radius, 1000, random_generator)
+                    fib_pt2, radius,
+                    volume_nb_samples,
+                    random_generator)
 
             # Catch estimation error when using very small blur_radius.
             if volume == 0 and is_estimated:
                 volume, _ = sphere_cylinder_intersection(
                     pos, blur_radius, fib_pt1,
-                    fib_pt2, radius, 10000, random_generator)
+                    fib_pt2, radius,
+                    volume_nb_samples_backup,
+                    random_generator)
 
             if volume > 0:
                 directions.append(dir / np.linalg.norm(dir))

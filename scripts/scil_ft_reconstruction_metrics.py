@@ -39,6 +39,11 @@ Computed metrics:
         Average MAE for the tractogram.
     - mae_med
         Median MAE for the tractogram.
+
+See also:
+    - scil_ft_tracking.py to perform a fibertube tracking
+    - scil_tractogram_filter_collisions.py to prepare data for fibertube
+      tracking
 """
 
 import os

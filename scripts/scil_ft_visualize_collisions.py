@@ -44,6 +44,8 @@ def _build_arg_parser():
                    help='If set, save a screenshot of the result in the \n'
                    'specified filename (.png, .bmp, .jpeg or .jpg).')
 
+    p.add_argument('--win_size', nargs=2, type=int, default=(1000, 1000))
+
     add_overwrite_arg(p)
     add_reference_arg(p)
 
@@ -111,7 +113,7 @@ def main():
 
     # Show and record if needed
     if args.save is not None:
-        window.record(s, out_path=args.save, size=(1000, 1000))
+        window.record(s, out_path=args.save, size=args.win_size)
     window.show(s)
 
 

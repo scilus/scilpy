@@ -49,17 +49,18 @@ def segment_tractogram(streamlines, verbose=False):
 @njit
 def rotation_between_vectors_matrix(vec1, vec2):
     """
-    Rotation matrix that aligns vec1 to vec2. Numba compatible.
+    Produces a rotation matrix that aligns a 3D vector 'vec1' with another 3D
+    vector 'vec2'. Numba compatible.
 
     https://math.stackexchange.com/questions/180418/calculate-
     rotation-matrix-to-align-vector-a-to-vector-b-in-3d
 
     Parameters
     ----------
-    origin : any
-    destination : any
-    sft : StatefulTractogram
-        StatefulTractogram containing the streamlines to segment.
+    vec1: ndarray
+        Vector to be rotated
+    vec2: ndarray
+        Targeted orientation
 
     Returns
     -------
@@ -95,9 +96,12 @@ def sample_sphere(center, radius: float, amount: int,
         Center coordinates of the sphere. Can be [0, 0, 0] if only the
         relative displacement interests you.
     radius: float
+        Radius of the sphere.
     amount: int
         Amount of samples to be produced.
-
+    rand_gen: Generator
+        Numpy random generator used for producing samples within the sphere.
+        
     Returns
     -------
     samples: list
@@ -123,14 +127,18 @@ def sample_cylinder(center, axis, radius: float, length: float,
     Parameters
     ----------
     center: ndarray
-        Center coordinates of the cylinder
+        Center coordinates of the cylinder.
     axis: ndarray
         Center axis of the cylinder, in the form of a vector. Does not have to
         be normalized.
     radius: float
+        Radius of the cylinder.
     length: float
+        Length of the cylinder.
     sample_count: int
         Amount of samples to be produced.
+    rand_gen: Generator
+        Numpy random generator used for producing samples within the sphere.
 
     Returns
     -------
@@ -147,14 +155,14 @@ def sample_cylinder(center, axis, radius: float, length: float,
         x = random_generator.uniform(-radius, radius)
         y = random_generator.uniform(-radius, radius)
         z = random_generator.uniform(-half_length, half_length)
-        sample = np.array([x, y, z], dtype=np.float32)
+        sample = np.array([x, y, z], dtype=np.float64)
 
         # Rotation
-        rotation_matrix = np.eye(4, dtype=np.float32)
+        rotation_matrix = np.eye(4, dtype=np.float64)
         rotation_matrix[:3, :3] = rotation_between_vectors_matrix(
             reference,
             axis).astype(np.float32)
-        sample = np.dot(rotation_matrix, np.append(sample, np.float32(1.)))[:3]
+        sample = np.dot(rotation_matrix, np.append(sample, 1.))[:3]
 
         # Translation
         sample += center
@@ -219,7 +227,7 @@ def sphere_cylinder_intersection(sph_p, sph_r: float, cyl_p1, cyl_p2,
         return cyl_volume, False
 
     # If cylinder is completely outside the sphere.
-    _, vector, _, _ = dist_point_segment(cyl_p1, cyl_p2, sph_p)
+    _, vector, _ = dist_point_segment(cyl_p1, cyl_p2, sph_p)
     if np.linalg.norm(vector) >= sph_r + cyl_r:
         return 0, False
 
@@ -240,8 +248,23 @@ def sphere_cylinder_intersection(sph_p, sph_r: float, cyl_p1, cyl_p2,
 
 
 @njit
-def create_perpendicular(v):
+def create_perpendicular(v: np.ndarray):
+    """
+    Generates a vector perpendicular to v.
+
+    Parameters
+    ----------
+    v: ndarray
+        Vector from which a perpendicular vector will be generated.
+
+    Returns
+    -------
+    vp: ndarray
+        Vector perpendicular to v.
+    """
     vp = np.array([0., 0., 0.])
+    if v.all() == vp.all():
+        return vp
     for m in range(3):
         if v[m] == 0.:
             continue
@@ -253,13 +276,60 @@ def create_perpendicular(v):
 
 
 @njit
-def dist_point_segment(P0, P1, Q):
-    return dist_segment_segment(P0, P1, Q, Q)
+def dist_point_segment(p0, p1, q):
+    """
+    Calculates the shortest distance between a 3D point q and a segment p0-p1.
+
+    Parameters
+    ----------
+    p0: ndarray
+        Point forming the first end of the segment.
+    p1: ndarray
+        Point forming the second end of the segment.
+    q: ndarray
+        Point coordinates.
+
+    Returns
+    -------
+    distance: float
+        Shortest distance between the two segments
+    v: ndarray
+        Vector representing the distance between the two segments.
+        v = Ps - q and |v| = distance
+    Ps: ndarray
+        Point coordinates on segment P that is closest to point q
+    """
+    return dist_segment_segment(p0, p1, q, q)[:3]
 
 
 @njit
 def dist_segment_segment(P0, P1, Q0, Q1):
     """
+    Calculates the shortest distance between two 3D segments P0-P1 and Q0-Q1.
+
+    Parameters
+    ----------
+    P0: ndarray
+        Point forming the first end of the P segment.
+    P1: ndarray
+        Point forming the second end of the P segment.
+    Q0: ndarray
+        Point forming the first end of the Q segment.
+    Q1: ndarray
+        Point forming the second end of the Q segment.
+
+    Returns
+    -------
+    distance: float
+        Shortest distance between the two segments
+    v: ndarray
+        Vector representing the distance between the two segments.
+        v = Ps - Qt and |v| = distance
+    Ps: ndarray
+        Point coordinates on segment P that is closest to segment Q
+    Qt: ndarray
+        Point coordinates on segment Q that is closest to segment P
+
     This function is a python version of the following code:
     https://www.geometrictools.com/GTE/Mathematics/DistSegmentSegment.h
 
@@ -415,7 +485,7 @@ def dist_segment_segment(P0, P1, Q0, Q1):
 
     Ps = P0 + s * P1mP0
     Qt = Q0 + t * Q1mQ0
-    diff = Ps - Qt
-    sqr_distance = np.dot(diff, diff)
+    v = Ps - Qt
+    sqr_distance = np.dot(v, v)
     distance = sqrt(sqr_distance)
-    return (distance, diff, Ps, Qt)
+    return (distance, v, Ps, Qt)

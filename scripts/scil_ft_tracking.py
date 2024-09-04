@@ -199,7 +199,6 @@ def main():
     assert_inputs_exist(parser, [args.in_fibertubes])
     assert_outputs_exist(parser, args, outputs, [args.out_config])
 
-    algo = 'prob'
     theta = gm.math.radians(args.theta)
 
     max_nbr_pts = int(args.max_length / args.step_size)
@@ -238,7 +237,7 @@ def main():
 
     logging.debug("Instantiating propagator")
     propagator = FibertubePropagator(datavolume, args.step_size,
-                                     args.rk_order, algo, theta, our_space,
+                                     args.rk_order, theta, our_space,
                                      our_origin)
 
     logging.debug("Instantiating tracker")
