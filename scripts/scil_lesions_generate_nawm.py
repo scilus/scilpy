@@ -6,14 +6,16 @@ The NAWM (Normal Appearing White Matter) is the white matter that is
 neighboring a lesion. It is used to compute metrics in the white matter
 surrounding lesions.
 
-This script will generate concentric rings around the lesions, with the rings 
+This script will generate concentric rings around the lesions, with the rings
 going from 2 to nb_ring + 2, with the lesion being 1.
 
 The optional mask is used to compute the rings only in the mask
 region. This can be useful to avoid useless computation.
 
 If the lesion_atlas is binary, the output will be 3D. If the lesion_atlas
-is a label map, the output will be 4D, with each label having its own NAWM.
+is a label map, the output will be either:
+  - 4D, with each label having its own NAWM.
+  - 3D, if using --split_4D and saved into a folder as multiple 3D files.
 """
 
 import argparse
