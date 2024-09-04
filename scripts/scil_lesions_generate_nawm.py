@@ -2,11 +2,21 @@
 # -*- coding: utf-8 -*-
 
 """
-TODO
+The NAWM (Normal Appearing White Matter) is the white matter that is
+neighboring a lesion. It is used to compute metrics in the white matter
+surrounding lesions.
+
+This script will generate concentric rings around the lesions, with the rings 
+going from 2 to nb_ring + 2, with the lesion being 1.
+
+The optional mask is used to compute the rings only in the mask
+region. This can be useful to avoid useless computation.
+
+If the lesion_atlas is binary, the output will be 3D. If the lesion_atlas
+is a label map, the output will be 4D, with each label having its own NAWM.
 """
 
 import argparse
-import json
 import logging
 import os
 
@@ -14,17 +24,13 @@ import nibabel as nib
 import numpy as np
 
 from scilpy.image.labels import get_data_as_labels
-from scilpy.image.volume_operations import compute_distance_map, compute_nawm
+from scilpy.image.volume_operations import compute_nawm
 from scilpy.io.image import get_data_as_mask
-from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
-                             add_json_args, assert_outputs_exist,
-                             add_verbose_arg, add_reference_arg,
-                             assert_headers_compatible)
-from scilpy.segment.streamlines import filter_grid_roi
-from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
+                             assert_outputs_exist,
+                             assert_output_dirs_exist_and_empty,
+                             add_verbose_arg)
 from scilpy.utils.filenames import split_name_with_nii
-from scilpy.utils.metrics_tools import compute_lesion_stats
 
 
 def _build_arg_parser():
@@ -34,7 +40,7 @@ def _build_arg_parser():
     p.add_argument('in_image',
                    help='Lesions file as mask OR labels (.nii.gz).')
     p.add_argument('out_image',
-                   help='TODO')
+                   help='Output NAWM file (.nii.gz).')
 
     p.add_argument('--nb_ring', type=int, default=3,
                    help='Integer representing the number of rings to be '
@@ -42,8 +48,11 @@ def _build_arg_parser():
     p.add_argument('--ring_thickness', type=int, default=2,
                    help='Integer representing the thickness of the rings to be '
                         'created. Used for voxel dilation passes.')
-    # TODO split 4D into many files
-    # TODO Lesions as 1 (default) vs lesions as 0
+    p.add_argument('--mask',
+                   help='Mask where to compute the NAWM (e.g WM mask).')
+    p.add_argument('--split_4D', metavar='OUT_DIR',
+                   help='Provided lesions will be split into multiple files.\n'
+                   'The output files will be named using out_image as a prefix.')
 
     add_verbose_arg(p)
     add_overwrite_arg(p)
@@ -56,15 +65,42 @@ def main():
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
-    assert_inputs_exist(parser, args.in_image)
-    assert_outputs_exist(parser, args, args.out_image)
+    if args.nb_ring < 1:
+        parser.error('The number of rings must be at least 1.')
+    if args.ring_thickness < 1:
+        parser.error('The ring thickness must be at least 1.')
+
+    assert_inputs_exist(parser, args.in_image, args.mask)
+    if not args.split_4D:
+        assert_outputs_exist(parser, args, args.out_image)
 
     lesion_img = nib.load(args.in_image)
     lesion_atlas = get_data_as_labels(lesion_img)
 
-    nawm = compute_nawm(lesion_atlas, args.nb_ring, args.ring_thickness)
+    if args.split_4D and np.unique(lesion_atlas).size <= 2:
+        raise ValueError('Split only works with multiple lesion labels')
+    else:
+        assert_output_dirs_exist_and_empty(parser, args, args.split_4D)
 
-    nib.save(nib.Nifti1Image(nawm, lesion_img.affine), args.out_image)
+    if args.mask:
+        mask_img = nib.load(args.mask)
+        mask_data = get_data_as_mask(mask_img)
+    else:
+        mask_data = None
+
+    nawm = compute_nawm(lesion_atlas, args.nb_ring, args.ring_thickness,
+                        mask=mask_data)
+
+    if args.split_4D:
+        for i in range(nawm.shape[-1]):
+            base, ext = split_name_with_nii(args.in_image)
+            base = os.path.basename(base)
+            lesion_name = os.path.join(args.split_4D,
+                                       f'{base}_nawm_{i+1}{ext}')
+            nib.save(nib.Nifti1Image(nawm[..., i], lesion_img.affine),
+                     lesion_name)
+    else:
+        nib.save(nib.Nifti1Image(nawm, lesion_img.affine), args.out_image)
 
 
 if __name__ == "__main__":
