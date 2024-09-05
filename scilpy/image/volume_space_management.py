@@ -443,7 +443,10 @@ class FibertubeDataVolume(DataVolume):
         self._validate_origin(origin)
         return super().is_coordinate_in_bound(x, y, z, space, origin)
 
-    # TODO: Figure out how to validate origin within vox_to_idx
+    @staticmethod
+    def vox_to_idx(x, y, z, origin):
+        raise NotImplementedError("FibertubeDataVolume is not compatible "
+                                  "with vox_to_idx operation.")
 
     def voxmm_to_idx(self, x, y, z, origin):
         self._validate_origin(origin)
