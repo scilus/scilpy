@@ -206,7 +206,8 @@ def main():
     elif args.along_profile:
         data = get_values_along_length(sft)
     else:  # args.local_angle:
-        data = get_angles(sft)
+        data = get_angles(sft, add_zeros=True)
+        data = np.hstack(data)
 
     # Processing
     sft, lbound, ubound = add_data_as_color_dpp(

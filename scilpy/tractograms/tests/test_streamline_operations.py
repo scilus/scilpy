@@ -2,8 +2,6 @@
 import os
 import tempfile
 
-from dipy.io.streamline import load_tractogram
-from dipy.tracking.streamlinespeed import length
 import nibabel as nib
 import numpy as np
 from numpy.testing import assert_array_almost_equal
@@ -20,7 +18,7 @@ from scilpy.tractograms.streamline_operations import (
     resample_streamlines_step_size,
     smooth_line_gaussian,
     smooth_line_spline,
-    parallel_transport_streamline)
+    parallel_transport_streamline, get_angles)
 from scilpy.tractograms.tractogram_operations import concatenate_sft
 
 
@@ -62,9 +60,24 @@ def _setup_files():
     return sft, rois
 
 
-def test_angles():
-    # toDo
-    pass
+def test_get_angles():
+    fake_straight_line = np.asarray([[0, 0, 0],
+                                     [1, 1, 1],
+                                     [2, 2, 2],
+                                     [3, 3, 3]], dtype=float)
+    fake_ninety_degree = np.asarray([[0, 0, 0],
+                                     [1, 1, 0],
+                                     [0, 2, 0]], dtype=float)
+    sft, _ = _setup_files()
+    sft.streamlines = [fake_straight_line, fake_ninety_degree]
+
+    angles = get_angles(sft)
+    assert np.array_equal(angles[0], [0, 0])
+    assert np.array_equal(angles[1], [90])
+
+    angles = get_angles(sft, add_zeros=True)
+    assert np.array_equal(angles[0], [0, 0, 0, 0])
+    assert np.array_equal(angles[1], [0, 90, 0])
 
 
 def test_get_values_along_length():

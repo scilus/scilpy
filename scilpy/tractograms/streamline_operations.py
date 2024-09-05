@@ -92,30 +92,43 @@ def _get_point_on_line(first_point, second_point, vox_lower_corner):
     return first_point + ray * (t0 + t1) / 2.
 
 
-def get_angles(sft):
-    """Color streamlines according to their length.
+def get_angles(sft, degrees=True, add_zeros=False):
+    """
+    Returns the angle between each segment of the streamlines.
 
     Parameters
     ----------
     sft: StatefulTractogram
-        The tractogram.
+        The tractogram, with N streamlines.
+    degrees: bool
+        If True, returns angles in degree. Else, in radian.
+    add_zeros: bool
+        For a streamline of length M, there are M-1 segments, and M-2 angles.
+        If add_zeros is set to True, a 0 angle is added at both ends of the
+        returned values, to get M values.
 
     Returns
     -------
     angles: list[np.ndarray]
-        The angles per streamline, in degree.
+        List of N numpy arrays. The angles per streamline, in degree.
     """
     angles = []
     for i in range(len(sft.streamlines)):
         dirs = np.diff(sft.streamlines[i], axis=0)
         dirs /= np.linalg.norm(dirs, axis=-1, keepdims=True)
         cos_angles = np.sum(dirs[:-1, :] * dirs[1:, :], axis=1)
+
         # Resolve numerical instability
         cos_angles = np.minimum(np.maximum(-1.0, cos_angles), 1.0)
-        line_angles = [0.0] + list(np.arccos(cos_angles)) + [0.0]
-        angles.extend(line_angles)
+        line_angles = list(np.arccos(cos_angles))
 
-    angles = np.rad2deg(angles)
+        if add_zeros:
+            line_angles = [0.0] + line_angles + [0.0]
+
+        if degrees:
+            line_angles = np.rad2deg(line_angles)
+
+        angles.append(line_angles)
 
     return angles
 
