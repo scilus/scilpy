@@ -67,8 +67,19 @@ def test_get_streamlines_as_linspaces():
 
 
 def test_compress_sft():
-    # toDo
-    pass
+    sft = load_tractogram(in_long_sft, in_ref)
+    compressed = compress_sft(sft, tol_error=0.01)
+    assert len(sft) == len(compressed)
+
+    for s, sc in zip(sft.streamlines, compressed.streamlines):
+        # All streamlines should be shorter once compressed
+        assert len(sc) <= len(s)
+
+        # Streamlines' endpoints should not be changed
+        assert np.allclose(s[0], sc[0])
+        assert np.allclose(s[-1], sc[-1])
+
+        # Not testing more than that, as it uses Dipy's method, tested by Dipy
 
 
 def test_cut_invalid_streamlines():
