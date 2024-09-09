@@ -56,13 +56,6 @@ def _build_arg_parser():
                         'The fibertubes must be void of any collision \n'
                         '(see scil_filter_intersections.py). \n')
 
-    # TO BE REMOVED
-    p.add_argument('in_mask',
-                   help='Tracking mask (.nii.gz).\n'
-                        'Tracking will stop outside this mask. The last \n'
-                        'point of each streamline (triggering the stopping \n'
-                        'criteria) IS added to the streamline.')
-
     p.add_argument('out_tractogram',
                    help='Tractogram output file (must be .trk or .tck).')
 
@@ -137,11 +130,6 @@ def _build_arg_parser():
 
     rand_g = p.add_argument_group('Random options')
     rand_g.add_argument(
-        '--disable_shuffling', action='store_true',
-        help='Will only affect seeding. If set, no shuffling will be \n'
-        'performed before the seeding process. fibertubes will be seeded \n'
-        'in order.')
-    rand_g.add_argument(
         '--rng_seed', type=int, default=0,
         help='If set, all random values will be generated \n'
         'using the specified seed. [%(default)s]')
@@ -209,26 +197,14 @@ def main():
 
     logging.debug('Loading tractogram & diameters')
     in_sft = load_tractogram(args.in_fibertubes, 'same', our_space, our_origin)
-    centerlines = in_sft.get_streamlines_copy()
+    centerlines = list(in_sft.get_streamlines_copy())
     diameters = np.reshape(in_sft.data_per_streamline['diameters'], len(centerlines))
 
-    if not args.disable_shuffling:
-        logging.debug('Shuffling streamlines')
-        indexes = list(range(len(centerlines)))
-        gen = np.random.default_rng(args.rng_seed)
-        gen.shuffle(indexes)
-
-    centerlines = list(centerlines[indexes])
-    diameters = diameters[indexes]
-
-    #TO BE REMOVED
-    logging.debug("Loading tracking mask.")
-    mask_img = nib.load(args.in_mask)
-    mask_data = mask_img.get_fdata(caching='unchanged', dtype=float)
-    mask_res = mask_img.header.get_zooms()[:3]
-    mask = DataVolume(mask_data, mask_res, 'nearest')
-    datavolume = FibertubeDataVolume(centerlines, diameters, mask_data, mask_res,
-                                     args.blur_radius, our_origin,
+    logging.debug("Instantiating datavolumes")
+    fake_mask_data = np.ones(in_sft.dimensions)
+    fake_mask = DataVolume(fake_mask_data, in_sft.voxel_sizes, 'nearest')
+    datavolume = FibertubeDataVolume(centerlines, diameters, in_sft,
+                                     args.blur_radius,
                                      np.random.default_rng(args.rng_seed))
 
     logging.debug("Instantiating seed generator")
@@ -246,7 +222,7 @@ def main():
     else:
         nbr_seeds = args.nb_seeds_per_fiber * len(centerlines)
 
-    tracker = Tracker(propagator, mask, seed_generator, nbr_seeds,
+    tracker = Tracker(propagator, fake_mask, seed_generator, nbr_seeds,
                       min_nbr_pts, max_nbr_pts,
                       args.max_invalid_nb_points, 0,
                       args.nbr_processes, not args.do_not_save_seeds, 'r+',
@@ -260,15 +236,11 @@ def main():
     logging.debug("Tracking...")
     streamlines, seeds = tracker.track()
     str_time = "%.2f" % (time.time() - start_time)
-
     logging.debug('Finished tracking in: ' + str_time + ' seconds')
 
-    out_sft = StatefulTractogram(streamlines, mask_img, our_space,
-                             origin=our_origin)
-
+    out_sft = StatefulTractogram.from_sft(streamlines, in_sft)
     if not args.do_not_save_seeds:
         out_sft.data_per_streamline['seeds'] = seeds
-    
     save_tractogram(out_sft, args.out_tractogram)
 
     if args.out_config:

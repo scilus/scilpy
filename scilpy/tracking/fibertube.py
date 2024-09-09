@@ -5,7 +5,7 @@ from numba import njit
 from scilpy.tracking.utils import tqdm_if_verbose
 
 
-def segment_tractogram(streamlines, verbose=False):
+def streamlines_to_segments(streamlines, verbose=False):
     """
     Separates all streamlines of a tractogram into segments that connect
     each position. Then, flattens the resulting 2D array and returns it
@@ -118,23 +118,20 @@ def sample_sphere(center, radius: float, amount: int,
 
 
 @njit
-def sample_cylinder(center, axis, radius: float, length: float,
-                    sample_count: int, random_generator: np.random.Generator):
+def sample_cylinder(pt1, pt2, radius: float, sample_count: int,
+                    random_generator: np.random.Generator):
     """
     Samples a cylinder uniformly given its dimensions and the amount of
     samples.
 
     Parameters
     ----------
-    center: ndarray
-        Center coordinates of the cylinder.
-    axis: ndarray
-        Center axis of the cylinder, in the form of a vector. Does not have to
-        be normalized.
+    pt1: ndarray
+        First extremity of the cylinder axis
+    pt2: ndarray
+        Second extremity of the cylinder axis
     radius: float
         Radius of the cylinder.
-    length: float
-        Length of the cylinder.
     sample_count: int
         Amount of samples to be produced.
     rand_gen: Generator
@@ -147,9 +144,11 @@ def sample_cylinder(center, axis, radius: float, length: float,
     """
     samples = []
     while (len(samples) < sample_count):
-        reference = np.array([0., 0., 1.], dtype=axis.dtype)
+        axis = pt2 - pt1
+        center = (pt1 + pt2) / 2
+        half_length = np.linalg.norm(axis) / 2
         axis /= np.linalg.norm(axis)
-        half_length = length / 2
+        reference = np.array([0., 0., 1.], dtype=axis.dtype)
 
         # Generation
         x = random_generator.uniform(-radius, radius)
@@ -166,10 +165,9 @@ def sample_cylinder(center, axis, radius: float, length: float,
 
         # Translation
         sample += center
+        sample = sample.astype(np.float32)
 
-        bottom_center = center - axis * half_length
-        top_center = center + axis * half_length
-        if (point_in_cylinder(bottom_center, top_center, radius, sample)):
+        if (point_in_cylinder(pt1, pt2, radius, sample)):
             samples.append(sample)
     return samples
 
@@ -218,7 +216,6 @@ def sphere_cylinder_intersection(sph_p, sph_r: float, cyl_p1, cyl_p2,
     """
     cyl_axis = cyl_p2 - cyl_p1
     cyl_length = np.linalg.norm(cyl_axis)
-    cyl_center = (cyl_p1 + cyl_p2) / 2
 
     # If cylinder is completely inside the sphere.
     if (np.linalg.norm(sph_p - cyl_p1) + cyl_r <= sph_r and
@@ -232,8 +229,8 @@ def sphere_cylinder_intersection(sph_p, sph_r: float, cyl_p1, cyl_p2,
         return 0, False
 
     # High probability of intersection.
-    samples = sample_cylinder(cyl_center, cyl_axis, cyl_r, cyl_length,
-                              sample_count, random_generator)
+    samples = sample_cylinder(cyl_p1, cyl_p2, cyl_r, sample_count,
+                              random_generator)
 
     inter_samples = 0
     for sample in samples:

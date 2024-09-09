@@ -6,7 +6,7 @@ from numba import njit
 from numba_kdtree import KDTree as nbKDTree
 from scipy.spatial import KDTree
 from scipy.spatial.transform import Rotation
-from scilpy.tracking.fibertube import (segment_tractogram,
+from scilpy.tracking.fibertube import (streamlines_to_segments,
                                        point_in_cylinder,
                                        dist_segment_segment,
                                        dist_point_segment,
@@ -36,8 +36,8 @@ def min_external_distance(centerlines, diameters, verbose):
     min_external_distance_vec: ndarray
         Vector representation of min_external_distance.
     """
-    seg_centers, seg_indices, max_seg_length = segment_tractogram(centerlines,
-                                                                  verbose)
+    seg_centers, seg_indices, max_seg_length = streamlines_to_segments(
+        centerlines, verbose)
     tree = KDTree(seg_centers)
     min_external_distance = np.inf
     min_external_distance_vec = np.zeros(0, dtype=np.float32)
@@ -253,7 +253,7 @@ def mean_reconstruction_error(centerlines, centerlines_length, diameters, stream
     error_tractogram = []
 
     with objmode(centers='float64[:, :]', indices='int64[:, :]'):
-        centers, indices, _ = segment_tractogram(centerlines, False)
+        centers, indices, _ = streamlines_to_segments(centerlines, False)
     centers_fixed_length = len(centerlines[0])-1
 
     tree = nbKDTree(centers[:centerlines_length[0]-1])

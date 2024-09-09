@@ -4,7 +4,7 @@ import logging
 import numpy as np
 
 from scipy.spatial import KDTree
-from scilpy.tracking.fibertube import (segment_tractogram,
+from scilpy.tracking.fibertube import (streamlines_to_segments,
                                        dist_segment_segment)
 from dipy.io.stateful_tractogram import StatefulTractogram
 from scilpy.tracking.utils import tqdm_if_verbose
@@ -38,7 +38,7 @@ class IntersectionFinder:
         self.in_sft = in_sft
         self.streamlines = in_sft.streamlines
         self.seg_centers, self.seg_indices, self.max_seg_length = (
-            segment_tractogram(self.streamlines, verbose))
+            streamlines_to_segments(self.streamlines, verbose))
         self.tree = KDTree(self.seg_centers)
 
         self._invalid = []
