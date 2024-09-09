@@ -18,7 +18,8 @@ from scilpy.tractograms.streamline_operations import (
     resample_streamlines_step_size,
     smooth_line_gaussian,
     smooth_line_spline,
-    parallel_transport_streamline, get_angles)
+    parallel_transport_streamline, get_angles, get_streamlines_as_linspaces,
+    compress_sft)
 from scilpy.tractograms.tractogram_operations import concatenate_sft
 
 
@@ -56,9 +57,13 @@ def test_get_angles():
     assert np.array_equal(angles[1], [0, 90, 0])
 
 
-def test_get_values_along_length():
-    # toDo
-    pass
+def test_get_streamlines_as_linspaces():
+    sft = load_tractogram(in_short_sft, in_ref)
+    lines = get_streamlines_as_linspaces(sft)
+    assert len(lines) == len(sft)
+    assert len(lines[0]) == len(sft.streamlines[0])
+    assert lines[0][0] == 0
+    assert lines[0][-1] == 1
 
 
 def test_compress_sft():

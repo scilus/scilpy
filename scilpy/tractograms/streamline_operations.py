@@ -133,8 +133,11 @@ def get_angles(sft, degrees=True, add_zeros=False):
     return angles
 
 
-def get_values_along_length(sft):
-    """Get the streamlines' coordinate positions according to their length.
+def get_streamlines_as_linspaces(sft):
+    """
+    For each streamline, returns a list of M values ranging between 0 and 1,
+    where M is the number of points in the streamline. This gives the position
+    of each coordinate per respect to the streamline's length.
 
     Parameters
     ----------
@@ -147,8 +150,8 @@ def get_values_along_length(sft):
         For each streamline, the linear distribution of its length.
     """
     positions = []
-    for i in range(len(sft.streamlines)):
-        positions.extend(list(np.linspace(0, 1, len(sft.streamlines[i]))))
+    for s in sft.streamlines:
+        positions.append(list(np.linspace(0, 1, len(s))))
 
     return positions
 
