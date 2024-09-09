@@ -9,12 +9,13 @@ from dipy.io.gradients import read_bvals_bvecs
 from numpy.testing import assert_equal, assert_almost_equal
 
 from scilpy import SCILPY_HOME
-from scilpy.image.volume_operations import (apply_transform, compute_snr,
+from scilpy.image.volume_operations import (apply_transform,
+                                            compute_distance_map, compute_snr,
                                             crop_volume, flip_volume,
+                                            mask_data_with_default_cube,
                                             merge_metrics, normalize_metric,
                                             resample_volume, reshape_volume,
-                                            register_image,
-                                            mask_data_with_default_cube)
+                                            register_image)
 from scilpy.io.fetcher import fetch_data, get_testing_files_dict
 from scilpy.image.utils import compute_nifti_bounding_box
 
@@ -302,3 +303,60 @@ def test_mask_data_with_default_cube():
     assert out[0, 0, 0] == 0
     assert out[-1, -1, -1] == 0
     assert out[6, 6, 6] == 1
+
+
+def test_distance_map_smallest_first():
+    mask_1 = np.zeros((3, 3, 3))
+    mask_1[0, 0, 0] = 1
+
+    mask_2 = np.zeros((3, 3, 3))
+    mask_2[1:3, 1:3, 1:3] = 1
+
+    distance = compute_distance_map(mask_1, mask_2)
+    assert np.abs(np.sum(distance) - 1.732050) < 1e-6
+
+
+def test_compute_distance_map_biggest_first():
+    # Swap both masks
+    mask_2 = np.zeros((3, 3, 3))
+    mask_2[0, 0, 0] = 1
+
+    mask_1 = np.zeros((3, 3, 3))
+    mask_1[1:3, 1:3, 1:3] = 1
+
+    distance = compute_distance_map(mask_1, mask_2)
+    assert np.abs(np.sum(distance) - 21.544621) < 1e-6
+
+
+def test_compute_distance_map_symmetric():
+    mask_1 = np.zeros((3, 3, 3))
+    mask_1[0, 0, 0] = 1
+
+    mask_2 = np.zeros((3, 3, 3))
+    mask_2[1:3, 1:3, 1:3] = 1
+
+    distance = compute_distance_map(mask_1, mask_2, symmetric=True)
+    assert np.abs(np.sum(distance) - 23.276672) < 1e-6
+
+
+def test_compute_distance_map_overlap():
+    mask_1 = np.zeros((3, 3, 3))
+    mask_1[1, 1, 1] = 1
+
+    mask_2 = np.zeros((3, 3, 3))
+    mask_2[1:3, 1:3, 1:3] = 1
+
+    distance = compute_distance_map(mask_1, mask_2)
+    assert np.all(distance == 0)
+
+
+def test_compute_distance_map_wrong_shape():
+    mask_1 = np.zeros((3, 3, 3))
+    mask_2 = np.zeros((3, 3, 4))
+
+    # Different shapes, test should fail
+    try:
+        compute_distance_map(mask_1, mask_2)
+        assert False
+    except ValueError:
+        assert True

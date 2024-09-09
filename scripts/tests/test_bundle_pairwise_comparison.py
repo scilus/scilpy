@@ -57,7 +57,7 @@ def test_no_overlap(script_runner, monkeypatch):
         'scil_bundle_pairwise_comparison.py', in_1,
         in_2, 'AF_L_similarity_no_overlap.json',
         '--streamline_dice', '--reference', in_ref,
-        '--bundle_adjency_no_overlap',
+        '--ignore_zeros_in_BA',
         '--processes', '1')
     assert ret.success
 
