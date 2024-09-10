@@ -321,7 +321,7 @@ class FibertubeSeedGenerator(SeedGenerator):
             generator.
         """
         self.generator = np.random.RandomState(rng_seed)
-        
+
         # 1. Initializing seeding maps indices (shuffling in-place)
         indices = np.arange(len(self.centerlines))
         self.generator.shuffle(indices)

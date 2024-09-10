@@ -208,7 +208,7 @@ class IntersectionFinder:
 
         out_sft = StatefulTractogram.from_sft(
             out_streamlines, self.in_sft,
-            data_per_streamline= {'diameters': out_diameters})
+            data_per_streamline={'diameters': out_diameters})
         if save_colliding:
             invalid_sft = StatefulTractogram.from_sft(
                 out_invalid,

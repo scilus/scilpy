@@ -647,14 +647,14 @@ class FibertubePropagator(AbstractPropagator):
         return super().propagate(line, v_in)
 
     def _sample_next_direction(self, pos, v_in):
-            directions, volumes = self._get_possible_next_dirs(pos, v_in)
+        directions, volumes = self._get_possible_next_dirs(pos, v_in)
 
-            # Sampling one.
-            if np.sum(volumes) > 0:
-                v_out = directions[
-                    sample_distribution(volumes, self.line_rng_generator)]
-                return v_out
-            return None
+        # Sampling one.
+        if np.sum(volumes) > 0:
+            v_out = directions[
+                sample_distribution(volumes, self.line_rng_generator)]
+            return v_out
+        return None
 
     def _get_possible_next_dirs(self, pos, v_in):
         directions, volumes = (

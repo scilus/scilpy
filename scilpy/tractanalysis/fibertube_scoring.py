@@ -19,7 +19,7 @@ def min_external_distance(centerlines, diameters, verbose):
     Calculates the minimal distance in between two fibertubes. A RuntimeError
     is thrown if a collision is detected (i.e. a negative distance is found).
     Use IntersectionFinder to remove intersections from fibertubes.
-    
+
     Parameters
     ----------
     centerlines: ndarray
@@ -87,7 +87,7 @@ def max_voxels(diagonal):
     Given the vector representing the smallest distance between two
     fibertubes, calculates the maximum sized voxels (anisotropic & isotropic)
     without causing any partial-volume effect.
-    
+
     These voxel are expressed in the current 3D referential and are
     often rendered meaningless by it. See function max_voxel_rotated for an
     alternative.
@@ -177,7 +177,7 @@ def get_external_vector_from_centerline_vector(vector, r1, r2):
     """
     unit_vector = vector / np.linalg.norm(vector)
     external_vector = (vector - r1 * unit_vector - r2 *
-                             unit_vector)
+                       unit_vector)
 
     return external_vector
 
@@ -214,8 +214,8 @@ def resolve_origin_seeding(seeds, centerlines, diameters):
 
 
 @njit
-def mean_reconstruction_error(centerlines, centerlines_length, diameters, streamlines,
-                              streamlines_length, seeds_fiber,
+def mean_reconstruction_error(centerlines, centerlines_length, diameters,
+                              streamlines, streamlines_length, seeds_fiber,
                               return_error_tractogram=False):
     """
     For each provided streamline, finds the mean distance between its
@@ -299,7 +299,8 @@ def mean_reconstruction_error(centerlines, centerlines_length, diameters, stream
                 errors.append(distance - radius)
 
                 if return_error_tractogram:
-                    fiber_collision_point = segment_collision_point - vector / np.linalg.norm(vector) * radius
+                    fiber_collision_point = segment_collision_point - (
+                        vector / np.linalg.norm(vector)) * radius
                     error_tractogram.append([fiber_collision_point, point])
 
         mean_errors.append(np.array(errors).mean())
@@ -349,7 +350,7 @@ def endpoint_connectivity(step_size, blur_radius, centerlines,
     random_generator: any
         Random generator used to generate samples for estimating the volume of
         intersection between blurring sphere and fibertube segments.
-    
+
     Return
     ------
     truth_vc: list

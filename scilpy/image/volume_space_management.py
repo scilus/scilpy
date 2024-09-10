@@ -451,7 +451,8 @@ class FibertubeDataVolume(DataVolume):
     @staticmethod
     def vox_to_idx(x, y, z, origin):
         FibertubeDataVolume._validate_origin(origin)
-        return super(FibertubeDataVolume, FibertubeDataVolume).vox_to_idx(x, y, z, origin)
+        return super(FibertubeDataVolume,
+                     FibertubeDataVolume).vox_to_idx(x, y, z, origin)
 
     def voxmm_to_idx(self, x, y, z, origin):
         FibertubeDataVolume._validate_origin(origin)
@@ -519,8 +520,8 @@ class FibertubeDataVolume(DataVolume):
     @njit
     def extract_directions(pos, neighbors, blur_radius, segments_indices,
                            centerlines, diameters, random_generator,
-                           volume_nb_samples = 1000,
-                           volume_nb_samples_backup = 10000):
+                           volume_nb_samples=1000,
+                           volume_nb_samples_backup=10000):
         directions = []
         volumes = []
 

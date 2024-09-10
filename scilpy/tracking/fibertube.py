@@ -101,7 +101,7 @@ def sample_sphere(center, radius: float, amount: int,
         Amount of samples to be produced.
     rand_gen: Generator
         Numpy random generator used for producing samples within the sphere.
-        
+
     Returns
     -------
     samples: list
