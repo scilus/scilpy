@@ -112,7 +112,7 @@ def _build_arg_parser():
              'Note that points obtained after an invalid direction \n'
              '(based on the propagator\'s definition of invalid) \n'
              'are never added.')
-    
+
     seed_group = p.add_argument_group(
         'Seeding options',
         'When no option is provided, uses --nb_seeds_per_fiber 5.')
@@ -198,7 +198,8 @@ def main():
     logging.debug('Loading tractogram & diameters')
     in_sft = load_tractogram(args.in_fibertubes, 'same', our_space, our_origin)
     centerlines = list(in_sft.get_streamlines_copy())
-    diameters = np.reshape(in_sft.data_per_streamline['diameters'], len(centerlines))
+    diameters = np.reshape(in_sft.data_per_streamline['diameters'],
+                           len(centerlines))
 
     logging.debug("Instantiating datavolumes")
     fake_mask_data = np.ones(in_sft.dimensions)

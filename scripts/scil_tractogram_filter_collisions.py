@@ -187,7 +187,7 @@ def main():
         streamlines = streamlines[indexes]
         diameters = diameters[indexes]
         in_sft = StatefulTractogram.from_sft(streamlines, in_sft)
-    
+
     # Casting ArraySequence as a list to improve speed
     streamlines = list(streamlines[indexes])
 
@@ -254,7 +254,6 @@ def main():
                 mvr_rot, [0, 0, 0]], [[0, 0, 0, 1]]]
             np.savetxt(args.out_max_voxel_rotation,
                        max_voxel_rotated_transform)
-
 
 
 if __name__ == "__main__":

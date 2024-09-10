@@ -72,7 +72,7 @@ def main():
                              "(must be trk): {0}".format(args.invalid))
 
     invalid_sft = load_tractogram(args.invalid, 'same',
-                                    bbox_valid_check=False)
+                                  bbox_valid_check=False)
     invalid_sft.to_voxmm()
     invalid_sft.to_center()
 
@@ -94,7 +94,7 @@ def main():
     # Make display objects and add them to canvas
     s = window.Scene()
     invalid_actor = actor.line(invalid_sft.streamlines,
-                                 colors=[1., 0., 0.])
+                               colors=[1., 0., 0.])
     s.add(invalid_actor)
 
     if (args.obstacle):

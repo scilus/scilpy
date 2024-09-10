@@ -72,11 +72,11 @@ def _build_arg_parser():
         formatter_class=argparse.RawTextHelpFormatter)
 
     p.add_argument('in_fibertubes',
-                help='Path to the tractogram file containing the \n'
-                    'fibertubes with their respective diameter saved \n'
-                    'data_per_streamline (must be .trk). \n'
-                    'The fibertubes must be void of any collision \n'
-                    '(see scil_filter_intersections.py). \n')
+                   help='Path to the tractogram file containing the \n'
+                   'fibertubes with their respective diameter saved \n'
+                   'data_per_streamline (must be .trk). \n'
+                   'The fibertubes must be void of any collision \n'
+                   '(see scil_filter_intersections.py). \n')
 
     p.add_argument('in_tractogram',
                    help='Path to a text file containing the ground-truth \n'
@@ -134,22 +134,29 @@ def main():
     our_origin = Origin('center')
 
     logging.debug('Loading centerline tractogram & diameters')
-    truth_sft = load_tractogram(args.in_fibertubes, 'same', our_space, our_origin)
+    truth_sft = load_tractogram(args.in_fibertubes, 'same', our_space,
+                                our_origin)
     centerlines = truth_sft.get_streamlines_copy()
-    centerlines, centerlines_length = get_streamlines_as_fixed_array(centerlines)
+    centerlines, centerlines_length = get_streamlines_as_fixed_array(
+        centerlines)
 
     if "diameters" not in truth_sft.data_per_streamline:
-        parser.error('No diameters found as data per streamline on ' + args.in_fibertubes)
-    diameters = np.reshape(truth_sft.data_per_streamline['diameters'], len(centerlines))
+        parser.error('No diameters found as data per streamline on ' +
+                     args.in_fibertubes)
+    diameters = np.reshape(truth_sft.data_per_streamline['diameters'],
+                           len(centerlines))
 
     logging.debug('Loading reconstructed tractogram')
-    in_sft = load_tractogram(args.in_tractogram, 'same', our_space, our_origin)
+    in_sft = load_tractogram(args.in_tractogram, 'same', our_space,
+                             our_origin)
     streamlines = in_sft.get_streamlines_copy()
-    streamlines, streamlines_length = get_streamlines_as_fixed_array(streamlines)
+    streamlines, streamlines_length = get_streamlines_as_fixed_array(
+        streamlines)
 
     logging.debug("Loading seeds")
     if "seeds" not in in_sft.data_per_streamline:
-        parser.error('No seeds found as data per streamline on ' + args.in_tractogram)
+        parser.error('No seeds found as data per streamline on ' +
+                     args.in_tractogram)
 
     seeds = in_sft.data_per_streamline['seeds']
     seeds_fiber = resolve_origin_seeding(seeds, centerlines, diameters)
@@ -176,13 +183,9 @@ def main():
         seeds_fiber, rand_gen)
 
     logging.debug("Computing reconstruction error")
-    (mean_errors,
-     error_tractogram) = mean_reconstruction_error(centerlines, centerlines_length,
-                                                   diameters,
-                                                   streamlines,
-                                                   streamlines_length,
-                                                   seeds_fiber,
-                                                   args.save_error_tractogram)
+    (mean_errors, error_tractogram) = mean_reconstruction_error(
+        centerlines, centerlines_length, diameters, streamlines,
+        streamlines_length, seeds_fiber, args.save_error_tractogram)
 
     metrics = {
         'truth_vc_ratio': len(truth_vc)/len(streamlines),
