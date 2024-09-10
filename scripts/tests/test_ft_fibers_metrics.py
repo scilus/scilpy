@@ -21,7 +21,7 @@ def test_help_option(script_runner):
 def test_execution(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_tractogram = os.path.join(SCILPY_HOME, 'tracking', 'local.trk')
-    in_diameters = os.path.join(SCILPY_HOME, 'tracking', 'diameters.txt')
+    in_diameters = 'diameters.txt'
     # Very small diameter to avoid collisions without having to filter
     # This is because this script raises an error when collisions arise
     diameters = [0.0001] * 1000
@@ -36,7 +36,7 @@ def test_execution(script_runner, monkeypatch):
 def test_execution_single_diameter(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_tractogram = os.path.join(SCILPY_HOME, 'tracking', 'local.trk')
-    in_diameters = os.path.join(SCILPY_HOME, 'tracking', 'diameters.txt')
+    in_diameters = 'diameters.txt'
     diameters = [0.0001]
     np.savetxt(in_diameters, diameters)
 
@@ -50,7 +50,7 @@ def test_execution_single_diameter(script_runner, monkeypatch):
 def test_execution_save_rotation_matrix(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_tractogram = os.path.join(SCILPY_HOME, 'tracking', 'local.trk')
-    in_diameters = os.path.join(SCILPY_HOME, 'tracking', 'diameters.txt')
+    in_diameters = 'diameters.txt'
     diameters = [0.0001] * 1000
     np.savetxt(in_diameters, diameters)
 
