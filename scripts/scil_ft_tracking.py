@@ -202,6 +202,12 @@ def main():
                            len(centerlines))
 
     logging.debug("Instantiating datavolumes")
+    # The scilpy Tracker requires a mask for tracking, but fibertube tracking
+    # aims to eliminate grids (or masks) in tractography. Instead, the tracking
+    # stops when no more fibertubes are detected by the Tracker.
+    # 
+    # Since the scilpy Tracker requires a mask, we provide a fake one that will
+    # never interfere.
     fake_mask_data = np.ones(in_sft.dimensions)
     fake_mask = DataVolume(fake_mask_data, in_sft.voxel_sizes, 'nearest')
     datavolume = FibertubeDataVolume(centerlines, diameters, in_sft,
