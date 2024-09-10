@@ -373,7 +373,7 @@ class FibertubeDataVolume(DataVolume):
     provides direction and intersection volume of close-by fiber segments.
 
     Data given at initialization must have "center" origin. Additionally,
-    FibertubeDataVolume enforces a this origin at every function call. This is
+    FibertubeDataVolume enforces this origin at every function call. This is
     because the origin must stay coherent with the data given at
     initialization and cannot change afterwards.
     """
