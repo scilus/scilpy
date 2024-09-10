@@ -63,6 +63,7 @@ jobs:
         with:
           name: test-coverage-${{ github.run_id }}
           retention-days: 1
+          include-hidden-files: true
           path: |
             .coverage
             .test_reports/
