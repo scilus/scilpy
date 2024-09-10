@@ -249,6 +249,10 @@ def create_perpendicular(v: np.ndarray):
     """
     Generates a vector perpendicular to v.
 
+    Source: https://math.stackexchange.com/questions/133177/finding-a-unit-
+            vector-perpendicular-to-another-vector
+    Answer by Ahmed Fasih
+
     Parameters
     ----------
     v: ndarray

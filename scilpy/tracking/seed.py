@@ -363,6 +363,6 @@ class FibertubeSeedGenerator(SeedGenerator):
         radius = self.diameters[shuffled_indices[which_fi]] / 2
 
         seeds = sample_cylinder(fiber[0], fiber[1], radius, n,
-                                random_generator)[:n]
+                                random_generator)
 
         return seeds

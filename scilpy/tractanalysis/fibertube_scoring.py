@@ -155,15 +155,15 @@ def max_voxel_rotated(diagonal):
 
 
 @njit
-def get_external_distance_vec(vector, r1, r2):
+def get_external_vector_from_centerline_vector(vector, r1, r2):
     """
-    Given a distance vector between two fibertube centerlines, find their
-    distance outside their diameter.
+    Given a vector separating two fibertube centerlines, finds a
+    vector that separates them from outside their diameter.
 
     Parameters
     ----------
     vector: ndarray
-        Distance vector between two fibertube centerlines.
+        Vector between two fibertube centerlines.
     rp: ndarray
         Radius of one of the fibertubes.
     rq: ndarray
@@ -171,14 +171,14 @@ def get_external_distance_vec(vector, r1, r2):
 
     Results
     -------
-    external_distance_vec: ndarray
-        Distance vector between the two fibertubes, outside their diameter.
+    external_vector: ndarray
+        Vector between the two fibertubes, outside their diameter.
     """
-    unit_distance_vec = vector / np.linalg.norm(vector)
-    external_distance_vec = (vector - r1 * unit_distance_vec - r2 *
-                             unit_distance_vec)
+    unit_vector = vector / np.linalg.norm(vector)
+    external_vector = (vector - r1 * unit_vector - r2 *
+                             unit_vector)
 
-    return external_distance_vec
+    return external_vector
 
 
 @njit
@@ -252,6 +252,8 @@ def mean_reconstruction_error(centerlines, centerlines_length, diameters, stream
     mean_errors = []
     error_tractogram = []
 
+    # objmode allows the execution of non numba-compatible code within a numba
+    # function
     with objmode(centers='float64[:, :]', indices='int64[:, :]'):
         centers, indices, _ = streamlines_to_segments(centerlines, False)
     centers_fixed_length = len(centerlines[0])-1

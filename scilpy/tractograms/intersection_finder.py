@@ -54,13 +54,13 @@ class IntersectionFinder:
 
     @property
     def collisions(self):
-        """Collision point of each collider."""
+        """Collision point of each invalid streamline."""
         return self._collisions
 
     @property
     def obstacle(self):
-        """Streamlines hit by an 'invalid' streamline. They should not
-        be filtered and are saved seperately merely for visualization."""
+        """Streamlines hit by an invalid streamline. They should not
+        be filtered and are saved separately merely for visualization."""
         return self._obstacle
 
     @property
