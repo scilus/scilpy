@@ -3,9 +3,9 @@ import numpy as np
 
 from numba_kdtree import KDTree
 from numba import njit
-from scilpy.tracking.fibertube import (streamlines_to_segments,
-                                       point_in_cylinder,
-                                       sphere_cylinder_intersection)
+from scilpy.tracking.fibertube_utils import (streamlines_to_segments,
+                                             point_in_cylinder,
+                                             sphere_cylinder_intersection)
 from scilpy.tractograms.streamline_operations import \
     get_streamlines_as_fixed_array
 from dipy.core.interpolation import trilinear_interpolate4d, \

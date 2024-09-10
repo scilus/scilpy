@@ -6,11 +6,11 @@ from numba import njit
 from numba_kdtree import KDTree as nbKDTree
 from scipy.spatial import KDTree
 from scipy.spatial.transform import Rotation
-from scilpy.tracking.fibertube import (streamlines_to_segments,
-                                       point_in_cylinder,
-                                       dist_segment_segment,
-                                       dist_point_segment,
-                                       sphere_cylinder_intersection)
+from scilpy.tracking.fibertube_utils import (streamlines_to_segments,
+                                             point_in_cylinder,
+                                             dist_segment_segment,
+                                             dist_point_segment,
+                                             sphere_cylinder_intersection)
 from scilpy.tracking.utils import tqdm_if_verbose
 
 

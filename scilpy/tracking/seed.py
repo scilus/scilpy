@@ -2,7 +2,7 @@
 import numpy as np
 
 from dipy.io.stateful_tractogram import Space, Origin
-from scilpy.tracking.fibertube import sample_cylinder
+from scilpy.tracking.fibertube_utils import sample_cylinder
 
 
 class SeedGenerator:

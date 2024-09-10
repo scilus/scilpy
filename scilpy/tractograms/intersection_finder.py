@@ -4,8 +4,8 @@ import logging
 import numpy as np
 
 from scipy.spatial import KDTree
-from scilpy.tracking.fibertube import (streamlines_to_segments,
-                                       dist_segment_segment)
+from scilpy.tracking.fibertube_utils import (streamlines_to_segments,
+                                             dist_segment_segment)
 from dipy.io.stateful_tractogram import StatefulTractogram
 from scilpy.tracking.utils import tqdm_if_verbose
 
