@@ -76,7 +76,8 @@ def min_external_distance(centerlines, diameters, verbose):
             if (external_distance < min_external_distance):
                 min_external_distance = external_distance
                 min_external_distance_vec = (
-                    get_external_distance_vec(vector, rp, rq))
+                    get_external_vector_from_centerline_vector(vector, rp, rq)
+                    )
 
     return min_external_distance, min_external_distance_vec
 
