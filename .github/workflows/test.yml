@@ -80,7 +80,7 @@ jobs:
       - name: Set up Python for codecov upload
         uses: actions/setup-python@v5.0.0
         with:
-          python-version: '3.10.14'
+          python-version: '3.10'
           cache: 'pip'
 
       - name: Install pycoverage
