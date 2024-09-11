@@ -14,7 +14,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_ft_tracking.py', '--help')
+    ret = script_runner.run('scil_fibertube_tracking.py', '--help')
     assert ret.success
 
 
@@ -27,7 +27,7 @@ def test_execution_(script_runner, monkeypatch):
     np.savetxt(in_diameters, diameters)
     in_mask = os.path.join(SCILPY_HOME, 'tracking', 'seeding_mask.nii.gz')
 
-    ret = script_runner.run('scil_ft_tracking.py',
+    ret = script_runner.run('scil_fibertube_tracking.py',
                             in_tractogram, in_diameters, in_mask,
                             'tracking.trk', '1', '1', '--nb_seeds_per_fiber',
                             '1', '--nb_fibers', '1', '-f')
@@ -43,7 +43,7 @@ def test_execution_single_diameter(script_runner, monkeypatch):
     np.savetxt(in_diameters, diameters)
     in_mask = os.path.join(SCILPY_HOME, 'tracking', 'seeding_mask.nii.gz')
 
-    ret = script_runner.run('scil_ft_tracking.py',
+    ret = script_runner.run('scil_fibertube_tracking.py',
                             in_tractogram, in_diameters, in_mask,
                             'tracking.trk', '1', '1', '--nb_seeds_per_fiber',
                             '1', '--nb_fibers', '1', '--single_diameter', '-f')
@@ -60,7 +60,7 @@ def test_execution_forward_only(script_runner, monkeypatch):
     np.savetxt(in_diameters, diameters)
     in_mask = os.path.join(SCILPY_HOME, 'tracking', 'seeding_mask.nii.gz')
 
-    ret = script_runner.run('scil_ft_tracking.py',
+    ret = script_runner.run('scil_fibertube_tracking.py',
                             in_tractogram, in_diameters, in_mask,
                             'tracking.trk', '1', '1', '--nb_seeds_per_fiber',
                             '1', '--nb_fibers', '1', '--forward_only', '-f')
@@ -77,7 +77,7 @@ def test_execution_no_compression(script_runner, monkeypatch):
     np.savetxt(in_diameters, diameters)
     in_mask = os.path.join(SCILPY_HOME, 'tracking', 'seeding_mask.nii.gz')
 
-    ret = script_runner.run('scil_ft_tracking.py',
+    ret = script_runner.run('scil_fibertube_tracking.py',
                             in_tractogram, in_diameters, in_mask,
                             'tracking.trk', '1', '1', '--nb_seeds_per_fiber',
                             '1', '--nb_fibers', '1', '--do_not_compress', '-f')
@@ -94,7 +94,7 @@ def test_execution_saving(script_runner, monkeypatch):
     np.savetxt(in_diameters, diameters)
     in_mask = os.path.join(SCILPY_HOME, 'tracking', 'seeding_mask.nii.gz')
 
-    ret = script_runner.run('scil_ft_tracking.py',
+    ret = script_runner.run('scil_fibertube_tracking.py',
                             in_tractogram, in_diameters, in_mask,
                             'tracking.trk', '1', '1', '--nb_seeds_per_fiber',
                             '1', '--nb_fibers', '1', '--save_seeds',
@@ -112,7 +112,7 @@ def test_execution_shuffle(script_runner, monkeypatch):
     np.savetxt(in_diameters, diameters)
     in_mask = os.path.join(SCILPY_HOME, 'tracking', 'seeding_mask.nii.gz')
 
-    ret = script_runner.run('scil_ft_tracking.py',
+    ret = script_runner.run('scil_fibertube_tracking.py',
                             in_tractogram, in_diameters, in_mask,
                             'tracking.trk', '1', '1', '--nb_seeds_per_fiber',
                             '1', '--nb_fibers', '1', '--shuffle', '-f')

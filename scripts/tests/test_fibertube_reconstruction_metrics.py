@@ -3,5 +3,5 @@
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_ft_visualize_collisions.py', '--help')
+    ret = script_runner.run('scil_fibertube_reconstruction_metrics.py', '--help')
     assert ret.success
