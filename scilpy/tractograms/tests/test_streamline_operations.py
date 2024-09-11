@@ -2,7 +2,6 @@
 import os
 import tempfile
 
-import nibabel as nib
 import numpy as np
 from numpy.testing import assert_array_almost_equal
 import pytest
@@ -12,16 +11,20 @@ from dipy.tracking.streamlinespeed import length
 from scilpy import SCILPY_HOME
 from scilpy.io.fetcher import fetch_data, get_testing_files_dict
 from scilpy.tractograms.streamline_operations import (
+    compress_sft,
+    cut_invalid_streamlines,
     filter_streamlines_by_length,
     filter_streamlines_by_total_length_per_dim,
+    get_angles,
+    get_streamlines_as_linspaces,
     resample_streamlines_num_points,
     resample_streamlines_step_size,
     smooth_line_gaussian,
     smooth_line_spline,
-    parallel_transport_streamline, get_angles, get_streamlines_as_linspaces,
-    compress_sft, cut_invalid_streamlines)
+    parallel_transport_streamline,
+    remove_overlapping_points_streamlines,
+    remove_single_point_streamlines)
 from scilpy.tractograms.tractogram_operations import concatenate_sft
-
 
 fetch_data(get_testing_files_dict(), keys=['tractograms.zip'])
 tmp_dir = tempfile.TemporaryDirectory()
@@ -98,6 +101,30 @@ def test_cut_invalid_streamlines():
                    zip(sft.streamlines, cut.streamlines)])
     assert len(cut.streamlines[0]) == len(sft.streamlines[0]) - 1
     assert nb == 1
+
+
+def test_remove_single_point_streamlines():
+    sft = load_tractogram(in_short_sft, in_ref)
+
+    # Adding a one-point streamline
+    sft.streamlines.append([[7, 7, 7]])
+    new_sft = remove_single_point_streamlines(sft)
+    assert len(new_sft) == len(sft) - 1
+
+
+def test_remove_overlapping_points_streamlines():
+    sft = load_tractogram(in_short_sft, in_ref)
+
+    fake_line = np.asarray([[3, 3, 3],
+                            [4, 4, 4],
+                            [5, 5, 5],
+                            [5, 5, 5.00000001]], dtype=float)
+    sft.streamlines.append(fake_line)
+
+    new_sft = remove_overlapping_points_streamlines(sft)
+    assert len(new_sft.streamlines[-1]) == len(sft.streamlines[-1]) - 1
+    assert np.all([len(new_sft.streamlines[i]) == len(sft.streamlines[i]) for
+                   i in range(len(sft) - 1)])
 
 
 def test_filter_streamlines_by_length():
@@ -382,3 +409,19 @@ def test_parallel_transport_streamline():
                               decimal=4)
     assert [len(s) for s in pt_streamlines] == [130] * 20
     assert len(pt_streamlines) == 20
+
+
+def test_remove_loops():
+    # toDO
+    # Coverage will not work: uses multi-processing
+    pass
+
+
+def test_remove_sharp_turns_qb():
+    # toDO
+    pass
+
+
+def test_remove_loops_and_sharp_turns():
+    # ok. Just a combination of the two previous functions.
+    pass

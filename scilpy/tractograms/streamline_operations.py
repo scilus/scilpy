@@ -335,7 +335,8 @@ def remove_single_point_streamlines(sft):
 
 def remove_overlapping_points_streamlines(sft, threshold=0.001):
     """
-    Remove overlapping points from streamlines in a StatefulTractogram.
+    Remove overlapping points from streamlines in a StatefulTractogram, i.e.
+    points forming a segment of length < threshold in a given streamline.
 
     Parameters
     ----------
@@ -844,7 +845,7 @@ def remove_loops(streamlines, max_angle, num_processes=1):
     return ids, streamlines_clean
 
 
-def remove_shap_turns_qb(streamlines, qb_threshold=15.0, qb_seed=0):
+def remove_sharp_turns_qb(streamlines, qb_threshold=15.0, qb_seed=0):
     """
     Remove sharp turns from a list of streamlines. Should only be used on
     bundled streamlines, not on whole-brain tractograms.
@@ -918,7 +919,7 @@ def remove_loops_and_sharp_turns(streamlines, max_angle, qb_threshold=None,
                                           num_processes)
 
     if qb_threshold is not None:
-        ids = remove_shap_turns_qb(streamlines_clean, qb_threshold, qb_seed)
+        ids = remove_sharp_turns_qb(streamlines_clean, qb_threshold, qb_seed)
     return ids
 
 
