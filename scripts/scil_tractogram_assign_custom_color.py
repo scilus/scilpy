@@ -63,8 +63,8 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_outputs_exist,
                              load_matrix_in_any_format)
 from scilpy.tractograms.dps_and_dpp_management import add_data_as_color_dpp
-from scilpy.tractograms.streamline_operations import (get_streamlines_as_linspaces,
-                                                      get_angles)
+from scilpy.tractograms.streamline_operations import (
+    get_streamlines_as_linspaces, get_angles)
 from scilpy.viz.color import get_lookup_table
 from scilpy.viz.color import prepare_colorbar_figure
 

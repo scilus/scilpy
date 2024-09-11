@@ -23,5 +23,3 @@ def test_lazy_concatenate():
 
     out_trk, out_header = lazy_concatenate([in_file1, in_file2], '.tck')
     assert len(out_trk) == 20
-
-
