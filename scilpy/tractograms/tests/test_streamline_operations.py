@@ -19,7 +19,7 @@ from scilpy.tractograms.streamline_operations import (
     smooth_line_gaussian,
     smooth_line_spline,
     parallel_transport_streamline, get_angles, get_streamlines_as_linspaces,
-    compress_sft)
+    compress_sft, cut_invalid_streamlines)
 from scilpy.tractograms.tractogram_operations import concatenate_sft
 
 
@@ -83,8 +83,21 @@ def test_compress_sft():
 
 
 def test_cut_invalid_streamlines():
-    # toDo
-    pass
+    sft = load_tractogram(in_long_sft, in_ref)
+    sft.to_vox()
+
+    cut, nb = cut_invalid_streamlines(sft)
+    assert len(cut) == len(sft)
+    assert nb == 0
+
+    # Faking an invalid streamline. Currently, volume is 64x64x3
+    sft.streamlines[0][-1, :] = [65.0, 65.0, 2.0]
+    cut, nb = cut_invalid_streamlines(sft)
+    assert len(cut) == len(sft)
+    assert np.all([len(sc) <= len(s) for s, sc in
+                   zip(sft.streamlines, cut.streamlines)])
+    assert len(cut.streamlines[0]) == len(sft.streamlines[0]) - 1
+    assert nb == 1
 
 
 def test_filter_streamlines_by_length():

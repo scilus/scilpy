@@ -224,6 +224,8 @@ def cut_invalid_streamlines(sft, epsilon=0.001):
     ----------
     sft: StatefulTractogram
         The sft to remove invalid points from.
+    epsilon: float
+        Error allowed when verifying the bounding box.
 
     Returns
     -------
@@ -243,7 +245,7 @@ def cut_invalid_streamlines(sft, epsilon=0.001):
     sft.to_corner()
 
     copy_sft = copy.deepcopy(sft)
-    indices_to_remove, _ = copy_sft.remove_invalid_streamlines()
+    indices_to_cut, _ = copy_sft.remove_invalid_streamlines()
 
     new_streamlines = []
     new_data_per_point = {}
@@ -255,21 +257,27 @@ def cut_invalid_streamlines(sft, epsilon=0.001):
 
     cutting_counter = 0
     for ind in range(len(sft.streamlines)):
-        # No reason to try to cut if all points are within the volume
-        if ind in indices_to_remove:
-            best_pos = [0, 0]
-            cur_pos = [0, 0]
+        if ind in indices_to_cut:
+            # This streamline was detected as invalid
+
+            best_pos = [0, 0]  # First and last valid points of longest segment
+            cur_pos = [0, 0]   # First and last valid points of current segment
             for pos, point in enumerate(sft.streamlines[ind]):
                 if (point < epsilon).any() or \
                         (point >= sft.dimensions - epsilon).any():
+                    # The coordinate is < 0 or > box. Starting new segment
                     cur_pos = [pos+1, pos+1]
-                if cur_pos[1] - cur_pos[0] > best_pos[1] - best_pos[0]:
+                elif cur_pos[1] - cur_pos[0] > best_pos[1] - best_pos[0]:
+                    # We found a longer good segment.
                     best_pos = cur_pos
+
+                # Ready to check next point.
                 cur_pos[1] += 1
 
+            # Appending the longest segment to the list of streamlines
             if not best_pos == [0, 0]:
                 new_streamlines.append(
-                    sft.streamlines[ind][best_pos[0]:best_pos[1]-1])
+                    sft.streamlines[ind][best_pos[0]:best_pos[1]])
                 cutting_counter += 1
                 for key in sft.data_per_streamline.keys():
                     new_data_per_streamline[key].append(
@@ -279,8 +287,9 @@ def cut_invalid_streamlines(sft, epsilon=0.001):
                         sft.data_per_point[key][ind][
                             best_pos[0]:best_pos[1]-1])
             else:
-                logging.warning('Streamlines entirely out of the volume.')
+                logging.warning('Streamline entirely out of the volume.')
         else:
+            # No reason to try to cut if all points are within the volume
             new_streamlines.append(sft.streamlines[ind])
             for key in sft.data_per_streamline.keys():
                 new_data_per_streamline[key].append(
