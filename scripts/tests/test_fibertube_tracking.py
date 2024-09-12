@@ -3,118 +3,77 @@
 
 import os
 import tempfile
-import numpy as np
+import nibabel as nib
 
 from scilpy import SCILPY_HOME
 from scilpy.io.fetcher import fetch_data, get_testing_files_dict
+from scilpy.io.streamlines import save_tractogram
+from dipy.io.stateful_tractogram import StatefulTractogram, Space, Origin
 
 # If they already exist, this only takes 5 seconds (check md5sum)
 fetch_data(get_testing_files_dict(), keys=['tractograms.zip'])
 tmp_dir = tempfile.TemporaryDirectory()
 
+def init_data():
+    streamlines = [[[4., 0., 4.], [4., 4., 8.], [6., 8., 8.], [12., 10., 8.], [4.,6., 6.]],
+                [[6., 6., 6.], [8., 8., 8.]]]
+
+    in_mask = os.path.join(SCILPY_HOME, 'tracking',
+                            'seeding_mask.nii.gz')
+    mask_img = nib.load(in_mask)
+
+    sft = StatefulTractogram(streamlines, mask_img, Space.VOX, Origin.NIFTI)
+    sft.data_per_streamline = {
+        "diameters": [0.002, 0.001]
+    }
+
+    save_tractogram(sft, 'tractogram.trk', True)
+
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_fibertube_tracking.py', '--help')
+    ret = script_runner.run('scil_fibertube_tracking.py', '--help',
+                            '--min_length', '0')
     assert ret.success
 
 
-def test_execution_(script_runner, monkeypatch):
+def test_execution(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
-    in_tractogram = os.path.join(SCILPY_HOME, 'tracking', 'local.trk')
-    in_diameters = 'diameters.txt'
-    diameters = [0.0012, 0.0024, 0.0018, 0.0043, 0.0017,
-                 0.0013, 0.0011, 0.0028, 0.0016, 0.0036] * 100
-    np.savetxt(in_diameters, diameters)
-    in_mask = os.path.join(SCILPY_HOME, 'tracking', 'seeding_mask.nii.gz')
-
+    init_data()
     ret = script_runner.run('scil_fibertube_tracking.py',
-                            in_tractogram, in_diameters, in_mask,
-                            'tracking.trk', '1', '1', '--nb_seeds_per_fiber',
-                            '1', '--nb_fibers', '1', '-f')
+                            'tractogram.trk', 'tracking.trk', '0.1', '0.3',
+                            '--min_length', '0', '-f')
 
     assert ret.success
 
 
-def test_execution_single_diameter(script_runner, monkeypatch):
+def test_execution_tracking_rk(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
-    in_tractogram = os.path.join(SCILPY_HOME, 'tracking', 'local.trk')
-    in_diameters = 'diameters.txt'
-    diameters = [0.0025]
-    np.savetxt(in_diameters, diameters)
-    in_mask = os.path.join(SCILPY_HOME, 'tracking', 'seeding_mask.nii.gz')
-
+    init_data()
     ret = script_runner.run('scil_fibertube_tracking.py',
-                            in_tractogram, in_diameters, in_mask,
-                            'tracking.trk', '1', '1', '--nb_seeds_per_fiber',
-                            '1', '--nb_fibers', '1', '--single_diameter', '-f')
+                            'tractogram.trk', 'tracking.trk', '0.1', '0.3',
+                            '--rk_order', '2', '--min_length', '0', '-f')
 
     assert ret.success
 
 
-def test_execution_forward_only(script_runner, monkeypatch):
+def test_execution_config(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
-    in_tractogram = os.path.join(SCILPY_HOME, 'tracking', 'local.trk')
-    in_diameters = 'diameters.txt'
-    diameters = [0.0012, 0.0024, 0.0018, 0.0043, 0.0017,
-                 0.0013, 0.0011, 0.0028, 0.0016, 0.0036] * 100
-    np.savetxt(in_diameters, diameters)
-    in_mask = os.path.join(SCILPY_HOME, 'tracking', 'seeding_mask.nii.gz')
-
+    init_data()
     ret = script_runner.run('scil_fibertube_tracking.py',
-                            in_tractogram, in_diameters, in_mask,
-                            'tracking.trk', '1', '1', '--nb_seeds_per_fiber',
-                            '1', '--nb_fibers', '1', '--forward_only', '-f')
+                            'tractogram.trk', 'tracking.trk', '0.1', '0.3',
+                            '--out_config', 'config.txt',
+                            '--min_length', '0', '-f')
 
     assert ret.success
 
 
-def test_execution_no_compression(script_runner, monkeypatch):
+def test_execution_seeding(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
-    in_tractogram = os.path.join(SCILPY_HOME, 'tracking', 'local.trk')
-    in_diameters = 'diameters.txt'
-    diameters = [0.0012, 0.0024, 0.0018, 0.0043, 0.0017,
-                 0.0013, 0.0011, 0.0028, 0.0016, 0.0036] * 100
-    np.savetxt(in_diameters, diameters)
-    in_mask = os.path.join(SCILPY_HOME, 'tracking', 'seeding_mask.nii.gz')
-
+    init_data()
     ret = script_runner.run('scil_fibertube_tracking.py',
-                            in_tractogram, in_diameters, in_mask,
-                            'tracking.trk', '1', '1', '--nb_seeds_per_fiber',
-                            '1', '--nb_fibers', '1', '--do_not_compress', '-f')
+                            'tractogram.trk', 'tracking.trk', '0.1', '0.3',
+                            '--nb_fibers', '1', '--nb_seeds_per_fiber', '3',
+                            '--skip', '3', '--min_length', '0', '-f')
 
     assert ret.success
 
-
-def test_execution_saving(script_runner, monkeypatch):
-    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
-    in_tractogram = os.path.join(SCILPY_HOME, 'tracking', 'local.trk')
-    in_diameters = 'diameters.txt'
-    diameters = [0.0012, 0.0024, 0.0018, 0.0043, 0.0017,
-                 0.0013, 0.0011, 0.0028, 0.0016, 0.0036] * 100
-    np.savetxt(in_diameters, diameters)
-    in_mask = os.path.join(SCILPY_HOME, 'tracking', 'seeding_mask.nii.gz')
-
-    ret = script_runner.run('scil_fibertube_tracking.py',
-                            in_tractogram, in_diameters, in_mask,
-                            'tracking.trk', '1', '1', '--nb_seeds_per_fiber',
-                            '1', '--nb_fibers', '1', '--save_seeds',
-                            '--save_config', '-f')
-
-    assert ret.success
-
-
-def test_execution_shuffle(script_runner, monkeypatch):
-    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
-    in_tractogram = os.path.join(SCILPY_HOME, 'tracking', 'local.trk')
-    in_diameters = 'diameters.txt'
-    diameters = [0.0012, 0.0024, 0.0018, 0.0043, 0.0017,
-                 0.0013, 0.0011, 0.0028, 0.0016, 0.0036] * 100
-    np.savetxt(in_diameters, diameters)
-    in_mask = os.path.join(SCILPY_HOME, 'tracking', 'seeding_mask.nii.gz')
-
-    ret = script_runner.run('scil_fibertube_tracking.py',
-                            in_tractogram, in_diameters, in_mask,
-                            'tracking.trk', '1', '1', '--nb_seeds_per_fiber',
-                            '1', '--nb_fibers', '1', '--shuffle', '-f')
-
-    assert ret.success

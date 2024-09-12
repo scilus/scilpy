@@ -336,7 +336,7 @@ class FibertubeSeedGenerator(SeedGenerator):
             self.generator.random_sample(100000)
             numbers_to_skip -= 100000
         self.generator.random_sample(numbers_to_skip)
-        sampling_rng_seed = self.generator.random_integers(0, 2**32-1)
+        sampling_rng_seed = self.generator.randint(0, 2**32-1)
         self.sampling_generator = np.random.default_rng(sampling_rng_seed)
 
         return self.sampling_generator, indices

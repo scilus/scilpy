@@ -224,11 +224,20 @@ def main():
                                      our_origin)
 
     logging.debug("Instantiating tracker")
+    max_nbr_seeds = args.nb_seeds_per_fiber * len(centerlines)
     if args.nb_fibers:
-        nbr_seeds = args.nb_seeds_per_fiber * args.nb_fibers
+        if args.nb_fibers > len(centerlines):
+            raise ValueError("The provided number of seeded fibers exceeds" +
+                             "the number of available fibertubes.")
+        else:
+            nbr_seeds = args.nb_seeds_per_fiber * args.nb_fibers
     else:
-        nbr_seeds = args.nb_seeds_per_fiber * len(centerlines)
+        nbr_seeds = max_nbr_seeds
 
+    if args.skip and nbr_seeds + args.skip > max_nbr_seeds:
+        raise ValueError("The number of seeds plus the number of skipped " +
+                         "seeds requires more fibertubes than there are " +
+                         "available.")
     tracker = Tracker(propagator, fake_mask, seed_generator, nbr_seeds,
                       min_nbr_pts, max_nbr_pts,
                       args.max_invalid_nb_points, 0,
