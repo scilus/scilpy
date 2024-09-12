@@ -250,13 +250,13 @@ def main():
         out_sft.data_per_streamline['seeds'] = seeds
     save_tractogram(out_sft, args.out_tractogram)
 
+    config = {
+        'step_size': args.step_size,
+        'blur_radius': args.blur_radius,
+        'nb_fibers': args.nb_fibers,
+        'nb_seeds_per_fiber': args.nb_seeds_per_fiber
+    }
     if args.out_config:
-        config = {
-            'step_size': args.step_size,
-            'blur_radius': args.blur_radius,
-            'nb_fibers': args.nb_fibers,
-            'nb_seeds_per_fiber': args.nb_seeds_per_fiber
-        }
         with open(args.out_config, 'w') as outfile:
             json.dump(config, outfile,
                       indent=args.indent, sort_keys=args.sort_keys)
