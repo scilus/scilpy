@@ -189,9 +189,6 @@ def main():
         in_sft = StatefulTractogram.from_sft(streamlines, in_sft)
 
     # Casting ArraySequence as a list to improve speed
-    streamlines = list(streamlines[indexes])
-
-    # Casting ArraySequence as a list to improve speed
     streamlines = list(streamlines)
 
     logging.debug('Building IntersectionFinder')
@@ -206,18 +203,16 @@ def main():
         args.save_colliding)
 
     logging.debug('Saving new tractogram(s)')
-    save_tractogram(out_sft, args.out_tractogram, args.bbox_check)
+    save_tractogram(out_sft, args.out_tractogram)
 
     if args.save_colliding:
         save_tractogram(
             invalid_sft,
-            in_tractogram_no_ext + '_invalid.trk',
-            args.bbox_check)
+            in_tractogram_no_ext + '_invalid.trk')
 
         save_tractogram(
             obstacle_sft,
-            in_tractogram_no_ext + '_obstacle.trk',
-            args.bbox_check)
+            in_tractogram_no_ext + '_obstacle.trk')
 
     logging.debug('Input streamline count: ' + str(len(streamlines)) +
                   ' | Output streamline count: ' +

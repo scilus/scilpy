@@ -36,6 +36,9 @@ def min_external_distance(centerlines, diameters, verbose):
     min_external_distance_vec: ndarray
         Vector representation of min_external_distance.
     """
+    if len(centerlines) <= 1:
+        ValueError("Cannot compute metrics of a tractogram with a single" +
+                   "streamline or less")
     seg_centers, seg_indices, max_seg_length = streamlines_to_segments(
         centerlines, verbose)
     tree = KDTree(seg_centers)
