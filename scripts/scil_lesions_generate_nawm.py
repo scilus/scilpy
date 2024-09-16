@@ -16,6 +16,8 @@ If the lesion_atlas is binary, the output will be 3D. If the lesion_atlas
 is a label map, the output will be either:
   - 4D, with each label having its own NAWM.
   - 3D, if using --split_4D and saved into a folder as multiple 3D files.
+
+WARNING: Voxels must be isotropic.
 """
 
 import argparse
@@ -40,21 +42,25 @@ def _build_arg_parser():
                                 formatter_class=argparse.RawTextHelpFormatter)
 
     p.add_argument('in_image',
-                   help='Lesions file as mask OR labels (.nii.gz).')
+                   help='Lesions file as mask OR labels (.nii.gz).\n'
+                        '(must be uint8 for mask, uint16 for labels).')
     p.add_argument('out_image',
-                   help='Output NAWM file (.nii.gz).')
+                   help='Output NAWM file (.nii.gz).\n'
+                        'If using --split_4D, this will be the prefix of the '
+                        'output files.')
 
     p.add_argument('--nb_ring', type=int, default=3,
                    help='Integer representing the number of rings to be '
                         'created.')
     p.add_argument('--ring_thickness', type=int, default=2,
-                   help='Integer representing the thickness of the rings to be '
-                        'created. Used for voxel dilation passes.')
+                   help='Integer representing the thickness (in voxels) of '
+                        'the rings to be created.')
     p.add_argument('--mask',
                    help='Mask where to compute the NAWM (e.g WM mask).')
     p.add_argument('--split_4D', metavar='OUT_DIR',
                    help='Provided lesions will be split into multiple files.\n'
-                   'The output files will be named using out_image as a prefix.')
+                        'The output files will be named using out_image as '
+                        'a prefix.')
 
     add_verbose_arg(p)
     add_overwrite_arg(p)
@@ -78,11 +84,20 @@ def main():
 
     lesion_img = nib.load(args.in_image)
     lesion_atlas = get_data_as_labels(lesion_img)
+    voxel_size = lesion_img.header.get_zooms()
+
+    if not np.allclose(voxel_size, np.mean(voxel_size)):
+        raise ValueError('Voxels must be isotropic.')
 
     if args.split_4D and np.unique(lesion_atlas).size <= 2:
         raise ValueError('Split only works with multiple lesion labels')
-    else:
+    elif args.split_4D:
         assert_output_dirs_exist_and_empty(parser, args, args.split_4D)
+
+    if not args.split_4D and np.unique(lesion_atlas).size > 2:
+        logging.warning('The input lesion atlas has multiple labels. '
+                        'Converting to binary.')
+        lesion_atlas[lesion_atlas > 0] = 1
 
     if args.mask:
         mask_img = nib.load(args.mask)
@@ -95,10 +110,11 @@ def main():
 
     if args.split_4D:
         for i in range(nawm.shape[-1]):
+            label = np.unique(lesion_atlas)[i+1]
             base, ext = split_name_with_nii(args.in_image)
             base = os.path.basename(base)
             lesion_name = os.path.join(args.split_4D,
-                                       f'{base}_nawm_{i+1}{ext}')
+                                       f'{base}_nawm_{label}{ext}')
             nib.save(nib.Nifti1Image(nawm[..., i], lesion_img.affine),
                      lesion_name)
     else:
