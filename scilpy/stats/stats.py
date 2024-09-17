@@ -20,6 +20,8 @@ def estimate_piesno_sigma(data, number_coils=0):
     ----------
     data: np.ndarray
         The 4D volume.
+    number_coils: int
+        The number of coils in the scanner.
     """
     assert len(data.shape) == 4
 
@@ -27,7 +29,7 @@ def estimate_piesno_sigma(data, number_coils=0):
     mask_noise = np.zeros(data.shape[:3], dtype=np.int16)
 
     for idx in range(data.shape[-2]):
-        logging.info('Now processing slice {} / {}}'
+        logging.info('Now processing slice {} / {}'
                      .format(idx + 1, data.shape[-2]))
         sigma[..., idx], mask_noise[..., idx] = \
             piesno(data[..., idx, :], N=number_coils, return_mask=True)

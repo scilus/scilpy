@@ -152,8 +152,8 @@ def main():
                      "and piesno options.")
 
     if args.piesno or args.sigma:
-        if args.noise_from_all_voxels:
-            parser.error("You selected --noise_from_all_voxels, but this is "
+        if args.sigma_from_all_voxels:
+            parser.error("You selected --sigma_from_all_voxels, but this is "
                          "only available for the --basic_sigma method.")
         if args.mask_sigma:
             parser.error("You selected --mask_sigma, but this is "
@@ -163,7 +163,8 @@ def main():
         parser.error("Option --save_piesno_mask cannot be used when --pieno "
                      "is not selected.")
 
-    assert_inputs_exist(parser, args.in_image, args.mask)
+    assert_inputs_exist(parser, args.in_image,
+                        [args.mask_denoise, args.mask_sigma])
     assert_outputs_exist(parser, args, args.out_image,
                          [args.logfile, args.save_piesno_mask])
     assert_headers_compatible(parser, args.in_image,
@@ -173,7 +174,7 @@ def main():
     vol = nib.load(args.in_image)
     vol_data = vol.get_fdata(dtype=np.float32)
 
-    if len(vol_data.shape) != 4 or vol_data.shape[3] == 1:
+    if args.piesno and (len(vol_data.shape) != 4 or vol_data.shape[3] == 1):
         parser.error("The piesno method requires 4D data.")
 
     # Denoising mask
@@ -224,7 +225,7 @@ def main():
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", category=DeprecationWarning)
         data_denoised = nlmeans(
-            vol_data, sigma, mask=mask_denoise, rician=args.rician,
+            vol_data, sigma, mask=mask_denoise, rician=not args.gaussian,
             num_threads=args.nbr_processes)
 
     # Saving
