@@ -8,7 +8,7 @@ from scilpy import SCILPY_HOME
 from scilpy.io.fetcher import fetch_data, get_testing_files_dict
 
 # If they already exist, this only takes 5 seconds (check md5sum)
-fetch_data(get_testing_files_dict(), keys=['others.zip'])
+fetch_data(get_testing_files_dict(), keys=['others.zip', 'processing.zip'])
 tmp_dir = tempfile.TemporaryDirectory()
 
 
@@ -17,9 +17,20 @@ def test_help_option(script_runner):
     assert ret.success
 
 
-def test_execution_others(script_runner, monkeypatch):
+def test_execution_basic(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_img = os.path.join(SCILPY_HOME, 'others', 't1_resample.nii.gz')
     ret = script_runner.run('scil_denoising_nlmeans.py', in_img,
-                            't1_denoised.nii.gz',  '4', '--processes', '1')
+                            't1_denoised.nii.gz', '--processes', '1',
+                            '--basic_sigma')
     assert ret.success
+
+
+def test_execution_piesno(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
+    in_img = os.path.join(SCILPY_HOME, 'processing', 'dwi.nii.gz')
+    ret = script_runner.run('scil_denoising_nlmeans.py', in_img,
+                            'dwi_denoised.nii.gz', '--processes', '1',
+                            '--piesno')
+    assert ret.success
+
