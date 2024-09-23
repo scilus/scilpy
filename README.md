@@ -30,6 +30,7 @@ The library's structure is mostly aligned on that of [DIPY].
 
 The library and scripts can be installed locally by using:
 ```
+export SETUPTOOLS_USE_DISTUTILS=stdlib
 pip install -e .
 ```
 

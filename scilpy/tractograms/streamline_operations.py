@@ -92,36 +92,52 @@ def _get_point_on_line(first_point, second_point, vox_lower_corner):
     return first_point + ray * (t0 + t1) / 2.
 
 
-def get_angles(sft):
-    """Color streamlines according to their length.
+def get_angles(sft, degrees=True, add_zeros=False):
+    """
+    Returns the angle between each segment of the streamlines.
 
     Parameters
     ----------
     sft: StatefulTractogram
-        The tractogram.
+        The tractogram, with N streamlines.
+    degrees: bool
+        If True, returns angles in degree. Else, in radian.
+    add_zeros: bool
+        For a streamline of length M, there are M-1 segments, and M-2 angles.
+        If add_zeros is set to True, a 0 angle is added at both ends of the
+        returned values, to get M values.
 
     Returns
     -------
     angles: list[np.ndarray]
-        The angles per streamline, in degree.
+        List of N numpy arrays. The angles per streamline, in degree.
     """
     angles = []
     for i in range(len(sft.streamlines)):
         dirs = np.diff(sft.streamlines[i], axis=0)
         dirs /= np.linalg.norm(dirs, axis=-1, keepdims=True)
         cos_angles = np.sum(dirs[:-1, :] * dirs[1:, :], axis=1)
+
         # Resolve numerical instability
         cos_angles = np.minimum(np.maximum(-1.0, cos_angles), 1.0)
-        line_angles = [0.0] + list(np.arccos(cos_angles)) + [0.0]
-        angles.extend(line_angles)
+        line_angles = list(np.arccos(cos_angles))
 
-    angles = np.rad2deg(angles)
+        if add_zeros:
+            line_angles = [0.0] + line_angles + [0.0]
+
+        if degrees:
+            line_angles = np.rad2deg(line_angles)
+
+        angles.append(line_angles)
 
     return angles
 
 
-def get_values_along_length(sft):
-    """Get the streamlines' coordinate positions according to their length.
+def get_streamlines_as_linspaces(sft):
+    """
+    For each streamline, returns a list of M values ranging between 0 and 1,
+    where M is the number of points in the streamline. This gives the position
+    of each coordinate per respect to the streamline's length.
 
     Parameters
     ----------
@@ -134,8 +150,8 @@ def get_values_along_length(sft):
         For each streamline, the linear distribution of its length.
     """
     positions = []
-    for i in range(len(sft.streamlines)):
-        positions.extend(list(np.linspace(0, 1, len(sft.streamlines[i]))))
+    for s in sft.streamlines:
+        positions.append(list(np.linspace(0, 1, len(s))))
 
     return positions
 
@@ -208,6 +224,8 @@ def cut_invalid_streamlines(sft, epsilon=0.001):
     ----------
     sft: StatefulTractogram
         The sft to remove invalid points from.
+    epsilon: float
+        Error allowed when verifying the bounding box.
 
     Returns
     -------
@@ -227,7 +245,7 @@ def cut_invalid_streamlines(sft, epsilon=0.001):
     sft.to_corner()
 
     copy_sft = copy.deepcopy(sft)
-    indices_to_remove, _ = copy_sft.remove_invalid_streamlines()
+    indices_to_cut, _ = copy_sft.remove_invalid_streamlines()
 
     new_streamlines = []
     new_data_per_point = {}
@@ -239,21 +257,27 @@ def cut_invalid_streamlines(sft, epsilon=0.001):
 
     cutting_counter = 0
     for ind in range(len(sft.streamlines)):
-        # No reason to try to cut if all points are within the volume
-        if ind in indices_to_remove:
-            best_pos = [0, 0]
-            cur_pos = [0, 0]
+        if ind in indices_to_cut:
+            # This streamline was detected as invalid
+
+            best_pos = [0, 0]  # First and last valid points of longest segment
+            cur_pos = [0, 0]   # First and last valid points of current segment
             for pos, point in enumerate(sft.streamlines[ind]):
                 if (point < epsilon).any() or \
                         (point >= sft.dimensions - epsilon).any():
+                    # The coordinate is < 0 or > box. Starting new segment
                     cur_pos = [pos+1, pos+1]
-                if cur_pos[1] - cur_pos[0] > best_pos[1] - best_pos[0]:
+                elif cur_pos[1] - cur_pos[0] > best_pos[1] - best_pos[0]:
+                    # We found a longer good segment.
                     best_pos = cur_pos
+
+                # Ready to check next point.
                 cur_pos[1] += 1
 
+            # Appending the longest segment to the list of streamlines
             if not best_pos == [0, 0]:
                 new_streamlines.append(
-                    sft.streamlines[ind][best_pos[0]:best_pos[1]-1])
+                    sft.streamlines[ind][best_pos[0]:best_pos[1]])
                 cutting_counter += 1
                 for key in sft.data_per_streamline.keys():
                     new_data_per_streamline[key].append(
@@ -263,8 +287,9 @@ def cut_invalid_streamlines(sft, epsilon=0.001):
                         sft.data_per_point[key][ind][
                             best_pos[0]:best_pos[1]-1])
             else:
-                logging.warning('Streamlines entirely out of the volume.')
+                logging.warning('Streamline entirely out of the volume.')
         else:
+            # No reason to try to cut if all points are within the volume
             new_streamlines.append(sft.streamlines[ind])
             for key in sft.data_per_streamline.keys():
                 new_data_per_streamline[key].append(
@@ -310,7 +335,8 @@ def remove_single_point_streamlines(sft):
 
 def remove_overlapping_points_streamlines(sft, threshold=0.001):
     """
-    Remove overlapping points from streamlines in a StatefulTractogram.
+    Remove overlapping points from streamlines in a StatefulTractogram, i.e.
+    points forming a segment of length < threshold in a given streamline.
 
     Parameters
     ----------
@@ -819,7 +845,7 @@ def remove_loops(streamlines, max_angle, num_processes=1):
     return ids, streamlines_clean
 
 
-def remove_shap_turns_qb(streamlines, qb_threshold=15.0, qb_seed=0):
+def remove_sharp_turns_qb(streamlines, qb_threshold=15.0, qb_seed=0):
     """
     Remove sharp turns from a list of streamlines. Should only be used on
     bundled streamlines, not on whole-brain tractograms.
@@ -893,7 +919,7 @@ def remove_loops_and_sharp_turns(streamlines, max_angle, qb_threshold=None,
                                           num_processes)
 
     if qb_threshold is not None:
-        ids = remove_shap_turns_qb(streamlines_clean, qb_threshold, qb_seed)
+        ids = remove_sharp_turns_qb(streamlines_clean, qb_threshold, qb_seed)
     return ids
 
 
