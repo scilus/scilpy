@@ -13,8 +13,8 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def init_data():
-    streamlines = [[[5., 1., 5.], [5., 5., 9.], [7., 9., 9.], [13., 11., 9.], [5.,7., 7.]],
-                [[7., 7., 7.], [9., 9., 9.]]]
+    streamlines = [[[5., 1., 5.], [5., 5., 9.], [7., 9., 9.], [13., 11., 9.],
+                    [5., 7., 7.]], [[7., 7., 7.], [9., 9., 9.]]]
 
     mask = np.ones((15, 15, 15))
     affine = np.eye(4)
@@ -39,7 +39,7 @@ def test_help_option(script_runner):
 def test_execution_filtering(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     init_data()
-    
+
     diameters = [5, 1]
     np.savetxt('diameters.txt', diameters)
 

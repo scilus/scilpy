@@ -11,9 +11,10 @@ from dipy.io.stateful_tractogram import StatefulTractogram, Space, Origin
 
 tmp_dir = tempfile.TemporaryDirectory()
 
+
 def init_data():
-    streamlines = [[[5., 1., 5.], [5., 5., 9.], [7., 9., 9.], [13., 11., 9.], [5.,7., 7.]],
-                [[7., 7., 7.], [9., 9., 9.]]]
+    streamlines = [[[5., 1., 5.], [5., 5., 9.], [7., 9., 9.], [13., 11., 9.],
+                    [5., 7., 7.]], [[7., 7., 7.], [9., 9., 9.]]]
 
     mask = np.ones((15, 15, 15))
     affine = np.eye(4)
@@ -80,4 +81,3 @@ def test_execution_seeding(script_runner, monkeypatch):
                             '--skip', '3', '--min_length', '0', '-f')
 
     assert ret.success
-
