@@ -6,23 +6,26 @@ import tempfile
 import numpy as np
 import nibabel as nib
 
-from scilpy import SCILPY_HOME
-from scilpy.io.fetcher import fetch_data, get_testing_files_dict
 from scilpy.io.streamlines import save_tractogram
 from dipy.io.stateful_tractogram import StatefulTractogram, Space, Origin
 
-# If they already exist, this only takes 5 seconds (check md5sum)
-fetch_data(get_testing_files_dict(), keys=['tractograms.zip'])
 tmp_dir = tempfile.TemporaryDirectory()
 
 
 def init_data():
-    streamlines = [[[4., 0., 4.], [4., 4., 8.], [6., 8., 8.], [12., 10., 8.], [4.,6., 6.]],
-                [[6., 6., 6.], [8., 8., 8.]]]
+    streamlines = [[[5., 1., 5.], [5., 5., 9.], [7., 9., 9.], [13., 11., 9.], [5.,7., 7.]],
+                [[7., 7., 7.], [9., 9., 9.]]]
 
-    in_mask = os.path.join(SCILPY_HOME, 'tracking',
-                            'seeding_mask.nii.gz')
-    mask_img = nib.load(in_mask)
+    mask = np.ones((15, 15, 15))
+    affine = np.eye(4)
+    header = nib.nifti2.Nifti2Header()
+    extra = {
+        'affine': affine,
+        'dimensions': (15, 15, 15),
+        'voxel_size': 1.,
+        'voxel_order': "RAS"
+    }
+    mask_img = nib.nifti2.Nifti2Image(mask, affine, header, extra)
 
     sft = StatefulTractogram(streamlines, mask_img, Space.VOX, Origin.NIFTI)
     save_tractogram(sft, 'tractogram.trk', True)
@@ -108,7 +111,7 @@ def test_execution_filtering_metrics(script_runner, monkeypatch):
     init_data()
 
     # No collision, as we want to keep two streamlines for this test.
-    diameters = [1, 1]
+    diameters = [0.001, 0.001]
     np.savetxt('diameters.txt', diameters)
 
     ret = script_runner.run('scil_tractogram_filter_collisions.py',

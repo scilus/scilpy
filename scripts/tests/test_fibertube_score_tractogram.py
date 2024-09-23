@@ -4,40 +4,51 @@
 import os
 import json
 import tempfile
+import numpy as np
 import nibabel as nib
 
-from scilpy import SCILPY_HOME
-from scilpy.io.fetcher import fetch_data, get_testing_files_dict
 from scilpy.io.streamlines import save_tractogram
 from dipy.io.stateful_tractogram import StatefulTractogram, Space, Origin
 
-# If they already exist, this only takes 5 seconds (check md5sum)
-fetch_data(get_testing_files_dict(), keys=['tractograms.zip'])
 tmp_dir = tempfile.TemporaryDirectory()
 
 def init_data():
-    streamlines = [[[4., 0., 4.], [4., 4., 8.], [6., 8., 8.], [12., 10., 8.], [4.,6., 6.]],
-                [[6., 6., 6.], [8., 8., 8.]]]
+    streamlines = [[[5., 1., 5.], [5., 5., 9.], [7., 9., 9.], [13., 11., 9.], [5.,7., 7.]],
+                [[7., 7., 7.], [9., 9., 9.]]]
 
-    in_mask = os.path.join(SCILPY_HOME, 'tracking',
-                            'seeding_mask.nii.gz')
-    mask_img = nib.load(in_mask)
+    mask = np.ones((15, 15, 15))
+    affine = np.eye(4)
+    header = nib.nifti2.Nifti2Header()
+    extra = {
+        'affine': affine,
+        'dimensions': (15, 15, 15),
+        'voxel_size': 1.,
+        'voxel_order': "RAS"
+    }
+    mask_img = nib.nifti2.Nifti2Image(mask, affine, header, extra)
 
     config = {
-        'step_size': 0,
-        'blur_radius': 0,
+        'step_size': 0.001,
+        'blur_radius': 0.001,
         'nb_fibers': 2,
         'nb_seeds_per_fiber': 1,
     }
 
-    sft = StatefulTractogram(streamlines, mask_img, Space.VOX, Origin.NIFTI)
-    save_tractogram(sft, 'tracking.trk', True)
-    json.dump(config, 'config.txt', indent=True)
-
-    sft.data_per_streamline = {
+    sft_fibertubes = StatefulTractogram(streamlines, mask_img, Space.VOX, Origin.NIFTI)
+    sft_fibertubes.data_per_streamline = {
         "diameters": [0.002, 0.001]
     }
-    save_tractogram(sft, 'fibertubes.trk', True)
+    sft_tracking = StatefulTractogram(streamlines, mask_img, Space.VOX, Origin.NIFTI)
+    sft_tracking.data_per_streamline = {
+        "seeds": [streamlines[0][0], streamlines[1][0]]
+    }
+
+    save_tractogram(sft_fibertubes, 'fibertubes.trk', True)
+    save_tractogram(sft_tracking, 'tracking.trk', True)
+
+    with open('config.txt', 'w') as file:
+        json.dump(config, file, indent=True)
+
 
 
 def test_help_option(script_runner):
@@ -49,7 +60,7 @@ def test_execution(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     init_data()
     ret = script_runner.run('scil_fibertube_score_tractogram.py',
-                            'fibertube.trk', 'tracking.trk', 'config.txt',
+                            'fibertubes.trk', 'tracking.trk', 'config.txt',
                             'metrix.txt', '--save_error_tractogram')
 
     assert ret.success
