@@ -37,7 +37,7 @@ def _build_arg_parser():
 
     p.add_argument('--ref_tractogram',
                    help='Tractogram file containing the full tractogram \n'
-                   'as visual reference (must be .trk or .tck). It will be'
+                   'as visual reference (must be .trk or .tck). It will be \n'
                    'overlaid in white and very low opacity.')
 
     p.add_argument('--save',
