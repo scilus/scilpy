@@ -64,7 +64,7 @@ import multiprocessing
 import os
 
 import coloredlogs
-from dipy.io.utils import is_header_compatible
+import h5py
 import nibabel as nib
 import numpy as np
 import scipy.ndimage as ndi
@@ -73,11 +73,14 @@ from scilpy.connectivity.connectivity import \
     compute_connectivity_matrices_from_hdf5, \
     multi_proc_compute_connectivity_matrices_from_hdf5
 from scilpy.image.labels import get_data_as_labels
+from scilpy.io.hdf5 import assert_header_compatible_hdf5
 from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_overwrite_arg, add_processes_arg,
                              add_verbose_arg,
                              assert_inputs_exist, assert_outputs_exist,
-                             validate_nbr_processes, assert_inputs_dirs_exist)
+                             validate_nbr_processes, assert_inputs_dirs_exist,
+                             assert_headers_compatible)
+from scilpy.connectivity.connectivity import d
 
 
 def _build_arg_parser():
@@ -137,21 +140,11 @@ def _build_arg_parser():
     return p
 
 
-def main():
-    parser = _build_arg_parser()
-    args = parser.parse_args()
-    logging.getLogger().setLevel(logging.getLevelName(args.verbose))
-    coloredlogs.install(level=logging.getLevelName(args.verbose))
-
-    # Verifications
-    assert_inputs_exist(parser, [args.in_hdf5, args.in_labels],
-                        args.force_labels_list)
-
-    # Verifying now most of the input dirs / outputs.
+def menage_a_faire(parser, args):
+    # Verifying now most of the outputs.
     # Other will be verified later when we know the label combination.
     # Summarizing all options chosen by user in measures_to_compute.
     measures_to_compute = []
-    input_paths = []
     measures_output_filename = []
     if args.volume:
         measures_to_compute.append('volume')
@@ -170,11 +163,6 @@ def main():
     dict_metrics_out_name = {}
     if args.metrics is not None:
         for in_name, out_name in args.metrics:
-            # Verify that all metrics are compatible with each other
-            if not is_header_compatible(args.metrics[0][0], in_name):
-                raise IOError('Metrics {} and {} do not share a compatible '
-                              'header'.format(args.metrics[0][0], in_name))
-
             # This is necessary to support more than one map for weighting
             measures_to_compute.append((in_name, nib.load(in_name)))
             dict_metrics_out_name[in_name] = out_name
@@ -201,7 +189,6 @@ def main():
         measures_output_filename.extend([out_name_1, out_name_2, out_name_3])
 
     # Verifying all outputs that will be used for all measures.
-    assert_outputs_exist(parser, args, measures_output_filename)
     if not measures_to_compute:
         parser.error('No connectivity measures were selected, nothing '
                      'to compute.')
@@ -214,6 +201,36 @@ def main():
             os.makedirs(args.include_dps)
         logging.info('data_per_streamline weighting is activated.')
 
+    return measures_to_compute, dict_metrics_out_name, dict_lesion_out_name
+
+
+def main():
+    parser = _build_arg_parser()
+    args = parser.parse_args()
+    logging.getLogger().setLevel(logging.getLevelName(args.verbose))
+    coloredlogs.install(level=logging.getLevelName(args.verbose))
+
+    # Verifications
+    optional_volumes = []
+    if args.metrics is not None:
+        optional_volumes.extend([m[0] for m in args.metrics])
+    if args.lesion_load is not None:
+        optional_volumes.extend([ll[0] for ll in args.lesion_load])
+    assert_inputs_exist(parser, [args.in_hdf5, args.in_labels],
+                        [args.force_labels_list] + optional_volumes)
+    if args.similarity is not None:
+        # Note. Inputs in the --similarity folder are not checked yet!
+        # But at least checking that the folder exists
+        assert_inputs_dirs_exist(parser, [], args.similarity[0])
+    assert_headers_compatible(parser, args.in_labels, optional_volumes)
+    with h5py.File(args.in_hdf5, 'r') as hdf5:
+        vol = nib.load(args.in_labels)
+        assert_header_compatible_hdf5(hdf5, vol)
+
+    (measures_to_compute, dict_metrics_out_name,
+     dict_lesion_out_name) = menage_a_faire(parser, args)
+    # assert_outputs_exist(parser, args, measures_to_compute)
+
     # Loading the data
     img_labels = nib.load(args.in_labels)
     data_labels = get_data_as_labels(img_labels)
@@ -222,6 +239,7 @@ def main():
     else:
         labels_list = np.loadtxt(
             args.force_labels_list, dtype=np.int16).tolist()
+    logging.info("Found {} labels.".format(len(labels_list)))
 
     # Finding all connectivity combo (start-finish)
     comb_list = list(itertools.combinations(labels_list, r=2))
@@ -231,20 +249,29 @@ def main():
     # Running everything!
     nbr_cpu = validate_nbr_processes(parser, args)
     measures_dict_list = []
+    compute_volume = args.volume is not None
+    compute_length = args.length is not None
     if nbr_cpu == 1:
         for comb in comb_list:
             measures_dict_list.append(compute_connectivity_matrices_from_hdf5(
-                args.in_hdf5, img_labels, comb, measures_to_compute,
-                args.similarity, args.density_weighting, args.include_dps,
-                args.min_lesion_vol))
+                args.in_hdf5, img_labels, comb[0], comb[1],
+                compute_volume, compute_length, args.similarity, args.density_weighting,
+                args.include_dps, args.min_lesion_vol))
     else:
-        pool = multiprocessing.Pool(nbr_cpu)
+        def set_num(counter):
+            d.id = next(counter) + 1
+
+        logging.info("PREPARING MULTIPOOLING: {}".format(comb_list))
+        pool = multiprocessing.Pool(nbr_cpu, initializer=set_num, initargs=(itertools.count(),))
+
+        # Dividing the process bundle by bundle
         measures_dict_list = pool.map(
             multi_proc_compute_connectivity_matrices_from_hdf5,
             zip(itertools.repeat(args.in_hdf5),
                 itertools.repeat(img_labels),
                 comb_list,
-                itertools.repeat(measures_to_compute),
+                itertools.repeat(compute_volume),
+                itertools.repeat(compute_length),
                 itertools.repeat(args.similarity),
                 itertools.repeat(args.density_weighting),
                 itertools.repeat(args.include_dps),
