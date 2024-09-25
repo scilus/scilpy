@@ -189,7 +189,8 @@ def main():
     elif args.basic_sigma:
         if args.mask_sigma:
             mask_sigma = get_data_as_mask(nib.load(args.mask_sigma))
-            tmp_vol_data = (vol_data * mask_sigma).astype(np.float32)
+            tmp_vol_data = (vol_data * mask_sigma[:, :, :, None]
+                            ).astype(np.float32)
         else:
             tmp_vol_data = vol_data.astype(np.float32)
 
