@@ -39,7 +39,7 @@ from scilpy.io.utils import (add_bbox_arg,
                              assert_inputs_exist,
                              assert_outputs_exist)
 from scilpy.tractograms.dps_and_dpp_management import (
-    perform_pairwise_streamline_operation_on_endpoints,
+    perform_correlation_on_endpoints,
     perform_operation_on_dpp,
     perform_operation_dpp_to_dps)
 
@@ -50,13 +50,12 @@ def _build_arg_parser():
         description=__doc__)
 
     p.add_argument('operation', metavar='OPERATION',
-                   choices=['mean', 'sum', 'min',
-                            'max', 'correlation'],
+                   choices=['mean', 'sum', 'min', 'max', 'correlation'],
                    help='The type of operation to be performed on the \n'
-                        'streamlines. Must\nbe one of the following: \n'
-                        '%(choices)s.')
+                        'streamlines. Must be one of the following: \n'
+                        '[%(choices)s.]')
     p.add_argument('in_tractogram', metavar='INPUT_FILE',
-                   help='Input tractogram containing streamlines and \n'
+                   help='Input tractogram containing streamlines and '
                         'metadata.')
     p.add_argument('--mode', required=True, choices=['dpp', 'dps'],
                    help='Set to dps if the operation is to be performed \n'
@@ -69,11 +68,11 @@ def _build_arg_parser():
                         'operation to be performed on. If more than one dpp \n'
                         'is selected, the same operation will be applied \n'
                         'separately to each one.')
-    p.add_argument('--out_name', nargs='+', required=True, metavar='key',
+    p.add_argument('--out_keys', nargs='+', required=True, metavar='key',
                    help='Name of the resulting data_per_point or \n'
                    'data_per_streamline to be saved in the output \n'
                    'tractogram. If more than one --in_dpp_name was used, \n'
-                   'enter the same number of --out_name values.')
+                   'enter the same number of --out_keys values.')
     p.add_argument('out_tractogram', metavar='OUTPUT_FILE',
                    help='The file where the remaining streamlines \n'
                         'are saved.')
@@ -87,7 +86,7 @@ def _build_arg_parser():
                    'keys will be saved.')
     p.add_argument('--overwrite_dpp_dps', action='store_true',
                    help='If set, if --keep_all_dpp_dps is set and some \n'
-                   '--out_name keys already existed in your \n'
+                   '--out_keys keys already existed in your \n'
                    'data_per_point or data_per_streamline, allow \n'
                    'overwriting old data_per_point.')
 
@@ -102,27 +101,27 @@ def _build_arg_parser():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
-
     if args.verbose:
         logging.getLogger().setLevel(logging.INFO)
 
+    # Verifications
     assert_inputs_exist(parser, args.in_tractogram, args.reference)
     assert_outputs_exist(parser, args, args.out_tractogram)
 
-    # Load the input files.
+    if len(args.in_dpp_name) != len(args.out_keys):
+        parser.error('The number of in_dpp_names and out_keys must be '
+                     'the same.')
+
+    # Check to see if there are duplicates in the out_keys
+    if len(args.out_keys) != len(set(args.out_keys)):
+        parser.error('The output names (out_keys) must be unique.')
+
+    # Loading.
     logging.info("Loading file {}".format(args.in_tractogram))
     sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
 
     if len(sft.streamlines) == 0:
         parser.error("Input tractogram contains no streamlines. Exiting.")
-
-    if len(args.in_dpp_name) != len(args.out_name):
-        parser.error('The number of in_dpp_names and out_names must be '
-                     'the same.')
-
-    # Check to see if there are duplicates in the out_names
-    if len(args.out_name) != len(set(args.out_name)):
-        parser.error('The output names (out_names) must be unique.')
 
     # Input name checks
     for in_dpp_name in args.in_dpp_name:
@@ -143,45 +142,45 @@ def main():
             parser.error('Correlation operation requires multivalued data per '
                          'point. Exiting.')
 
-        if args.operation == 'correlation' and args.mode == 'dpp':
-            parser.error('Correlation operation requires dps mode. Exiting.')
+        if args.operation == 'correlation' and not (
+                args.mode == 'dps' and args.endpoints_only):
+            parser.error('Correlation operation requires dps mode AND '
+                         '--endpoints_only option. Exiting.')
 
-        if not args.overwrite_dpp_dps:
-            if in_dpp_name in args.out_name:
-                parser.error('out_name {} already exists in input tractogram. '
-                             'Set overwrite_dpp_dps or choose a different '
-                             'out_name. Exiting.'.format(in_dpp_name))
+        if not args.overwrite_dpp_dps and in_dpp_name in args.out_keys:
+            parser.error('out_key {} already exists in input tractogram. '
+                         'Set overwrite_dpp_dps or choose a different '
+                         'out_key. Exiting.'.format(in_dpp_name))
 
+    # Processing
     data_per_point = {}
     data_per_streamline = {}
-    for in_dpp_name, out_name in zip(args.in_dpp_name,
-                                     args.out_name):
+    for in_dpp_name, out_keys in zip(args.in_dpp_name, args.out_keys):
         # Perform the requested operation.
         if args.operation == 'correlation':
             logging.info('Performing {} across endpoint data and saving as '
-                         'new dpp {}'.format(args.operation, out_name))
-            new_dps = perform_pairwise_streamline_operation_on_endpoints(
-                args.operation, sft, in_dpp_name)
+                         'new dpp {}'.format(args.operation, out_keys))
+            new_dps = perform_correlation_on_endpoints(sft, in_dpp_name)
 
-            data_per_streamline[out_name] = new_dps
+            data_per_streamline[out_keys] = new_dps
         elif args.mode == 'dpp':
             # Results in new data per point
             logging.info(
                 'Performing {} on data from each streamine point '
-                'and saving as new dpp {}'.format(
-                    args.operation, out_name))
+                'and saving as new dpp {}'.format(args.operation, out_keys))
             new_dpp = perform_operation_on_dpp(
                 args.operation, sft, in_dpp_name, args.endpoints_only)
-            data_per_point[out_name] = new_dpp
+            data_per_point[out_keys] = new_dpp
         elif args.mode == 'dps':
             # Results in new data per streamline
             logging.info(
                 'Performing {} across each streamline and saving resulting '
-                'data per streamline {}'.format(args.operation, out_name))
+                'data per streamline {}'.format(args.operation, out_keys))
             new_data_per_streamline = perform_operation_dpp_to_dps(
                 args.operation, sft, in_dpp_name, args.endpoints_only)
-            data_per_streamline[out_name] = new_data_per_streamline
+            data_per_streamline[out_keys] = new_data_per_streamline
 
+    # Saving
     if args.keep_all_dpp_dps:
         sft.data_per_streamline.update(data_per_streamline)
         sft.data_per_point.update(data_per_point)
@@ -195,14 +194,14 @@ def main():
     # Print DPP names
     if data_per_point not in [None, {}]:
         print("New data_per_point keys are: ")
-        for key in args.out_name:
+        for key in args.out_keys:
             print("  - {} with shape per point {}"
                   .format(key, new_sft.data_per_point[key][0].shape[1:]))
 
     # Print DPS names
     if data_per_streamline not in [None, {}]:
         print("New data_per_streamline keys are: ")
-        for key in args.out_name:
+        for key in args.out_keys:
             print("  - {} with shape per streamline {}"
                   .format(key, new_sft.data_per_streamline[key].shape[1:]))
 

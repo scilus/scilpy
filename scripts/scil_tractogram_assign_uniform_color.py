@@ -30,8 +30,7 @@ from scilpy.io.utils import (assert_inputs_exist,
                              add_overwrite_arg,
                              add_verbose_arg,
                              add_reference_arg, assert_headers_compatible)
-from scilpy.viz.utils import (ambiant_occlusion,
-                              format_hexadecimal_color_to_rgb)
+from scilpy.viz.color import format_hexadecimal_color_to_rgb, ambiant_occlusion
 
 
 def _build_arg_parser():

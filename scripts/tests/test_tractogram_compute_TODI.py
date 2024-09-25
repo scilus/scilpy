@@ -21,11 +21,13 @@ def test_execution_bst(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_bundle = os.path.join(SCILPY_HOME, 'bst', 'rpt_m_warp.trk')
     in_mask = os.path.join(SCILPY_HOME, 'bst', 'mask.nii.gz')
+
     ret = script_runner.run('scil_tractogram_compute_TODI.py', in_bundle,
                             '--mask', in_mask,
                             '--out_mask', 'todi_mask.nii.gz',
                             '--out_tdi', 'tdi.nii.gz',
                             '--out_todi_sh', 'todi_sh.nii.gz',
+                            '--out_todi_sf', 'todi_sf.nii.gz',
                             '--sh_order', '6',
                             '--normalize_per_voxel', '--smooth_todi',
                             '--sh_basis', 'descoteaux07')

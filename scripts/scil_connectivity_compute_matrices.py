@@ -4,7 +4,7 @@
 """
 This script computes a variety of measures in the form of connectivity
 matrices. This script is made to follow
-scil_tractogram_segment_bundles_for_connectivity.py and
+scil_tractogram_segment_connections_from_labels.py and
 uses the same labels list as input.
 
 The script expects a folder containing all relevants bundles following the
@@ -57,7 +57,8 @@ import numpy as np
 import scipy.ndimage as ndi
 
 from scilpy.image.labels import get_data_as_labels
-from scilpy.io.hdf5 import reconstruct_streamlines_from_hdf5
+from scilpy.io.hdf5 import (assert_header_compatible_hdf5,
+                            reconstruct_streamlines_from_hdf5)
 from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_overwrite_arg, add_processes_arg,
                              add_verbose_arg,
@@ -103,15 +104,12 @@ def _processing_wrapper(args):
 
     affine, dimensions, voxel_sizes, _ = get_reference_info(labels_img)
     measures_to_return = {}
-
-    if not (np.allclose(hdf5_file.attrs['affine'], affine, atol=1e-03)
-            and np.array_equal(hdf5_file.attrs['dimensions'], dimensions)):
-        raise ValueError('Provided hdf5 have incompatible headers.')
+    assert_header_compatible_hdf5(hdf5_file, (affine, dimensions))
 
     # Precompute to save one transformation, insert later
     if 'length' in measures_to_compute:
         streamlines_copy = list(streamlines)
-        # scil_tractogram_segment_bundles_for_connectivity.py requires
+        # scil_tractogram_segment_connections_from_labels.py requires
         # isotropic voxels
         mean_length = np.average(length(streamlines_copy))*voxel_sizes[0]
 
@@ -232,7 +230,7 @@ def _build_arg_parser():
     p.add_argument('in_hdf5',
                    help='Input filename for the hdf5 container (.h5).\n'
                         'Obtained from '
-                        'scil_tractogram_segment_bundles_for_connectivity.py.')
+                        'scil_tractogram_segment_connections_from_labels.py.')
     p.add_argument('in_labels',
                    help='Labels file name (nifti).\n'
                         'This generates a NxN connectivity matrix.')

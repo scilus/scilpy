@@ -27,7 +27,7 @@ jobs:
 
       - name: Fetch python version from repository
         id: python-selector
-        run: echo "python-version=$(cat .python-version)" >> $GITHUB_OUTPUT
+        run: echo "python-version=$(head -1 .python-version)" >> $GITHUB_OUTPUT
 
       - name: Set up Python for Scilpy
         uses: actions/setup-python@v5.0.0
@@ -48,7 +48,9 @@ jobs:
 
       - name: Install Scilpy
         run: |
-          python -m pip install --upgrade pip setuptools wheel
+          export SETUPTOOLS_USE_DISTUTILS=stdlib
+          python -m pip install --upgrade pip wheel
+          python -m pip install --upgrade "setuptools<71.0.0" 
           python -m pip install -e .
 
       - name: Run tests
@@ -62,6 +64,7 @@ jobs:
         with:
           name: test-coverage-${{ github.run_id }}
           retention-days: 1
+          include-hidden-files: true
           path: |
             .coverage
             .test_reports/

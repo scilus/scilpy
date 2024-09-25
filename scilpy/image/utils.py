@@ -2,9 +2,15 @@
 
 import logging
 
+from dipy.segment.mask import bounding_box
 import nibabel as nib
 import numpy as np
 from sklearn.cluster import KMeans
+
+from scilpy.utils.spatial import (get_axis_index,
+                                  RAS_AXES_NAMES,
+                                  voxel_to_world,
+                                  WorldBoundingBox)
 
 
 def volume_iterator(img, blocksize=1, start=0, end=0):
@@ -82,18 +88,13 @@ def check_slice_indices(vol_img, axis_name, slice_ids):
         Slice indices.
     """
 
-    shape = vol_img.shape
-    if axis_name == "axial":
-        idx = 2
-    elif axis_name == "coronal":
-        idx = 1
-    elif axis_name == "sagittal":
-        idx = 0
-    else:
+    if axis_name not in RAS_AXES_NAMES:
         raise NotImplementedError(
             f"Unsupported axis name:\n"
-            f"Found: {axis_name}; Available: axial, coronal, sagittal")
+            f"Found: {axis_name}; Available: {RAS_AXES_NAMES.join(', ')}")
 
+    shape = vol_img.shape
+    idx = get_axis_index(axis_name)
     _slice_ids = list(filter(lambda x: x > shape[idx], slice_ids))
     if _slice_ids:
         raise ValueError(
@@ -128,3 +129,31 @@ def split_mask_blobs_kmeans(data, nb_clusters):
         masks.append(mask_i)
 
     return masks
+
+
+def compute_nifti_bounding_box(img):
+    """
+    Finds bounding box from data and transforms it in world space for use
+    on data with different attributes like voxel size.
+
+    Parameters
+    ----------
+    img: nib.Nifti1Image
+        Input image file.
+
+    Returns
+    -------
+    wbbox: WorldBoundingBox Object
+        Bounding box in world space.
+    """
+    data = img.get_fdata(dtype=np.float32, caching='unchanged')
+    affine = img.affine
+    voxel_size = img.header.get_zooms()[0:3]
+
+    voxel_bb_mins, voxel_bb_maxs = bounding_box(data)
+
+    world_bb_mins = voxel_to_world(voxel_bb_mins, affine)
+    world_bb_maxs = voxel_to_world(voxel_bb_maxs, affine)
+    wbbox = WorldBoundingBox(world_bb_mins, world_bb_maxs, voxel_size)
+
+    return wbbox

@@ -43,3 +43,8 @@ def test_execution_processing(script_runner, monkeypatch):
                             in_bval, in_bvec, '--not_all',
                             '--fa', 'fa.nii.gz', '--b0_threshold', '1', '-f')
     assert not ret.success
+
+    ret = script_runner.run('scil_dti_metrics.py', in_dwi,
+                            in_bval, in_bvec, '--not_all',
+                            '--rgb', 'rgb.nii.gz', '-f')
+    assert ret.success

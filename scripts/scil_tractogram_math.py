@@ -75,11 +75,10 @@ def _build_arg_parser():
                         'streamlines. Must\nbe one of the following: '
                         '%(choices)s.')
     p.add_argument('in_tractograms', metavar='INPUT_FILES', nargs='+',
-                   help='The list of files that contain the ' +
-                        'streamlines to operate on.')
+                   help='The list of files that contain the streamlines to '
+                        'operate on.')
     p.add_argument('out_tractogram', metavar='OUTPUT_FILE',
-                   help='The file where the remaining streamlines '
-                        'are saved.')
+                   help='The file where the remaining streamlines are saved.')
 
     p.add_argument('--precision', '-p', metavar='NBR_OF_DECIMALS',
                    type=int, default=4,
@@ -113,48 +112,55 @@ def main():
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
+    # Verifications
     assert_inputs_exist(parser, args.in_tractograms, args.reference)
     assert_outputs_exist(parser, args, args.out_tractogram,
                          optional=args.save_indices)
     assert_headers_compatible(parser, args.in_tractograms,
                               reference=args.reference)
 
+    # Lazy operations:
     if args.operation == 'lazy_concatenate':
-        logging.info('Using lazy_concatenate, no spatial or metadata related '
-                     'checks are performed.\nMetadata will be lost, only '
-                     'trk/tck file are supported.\n To use trk, at least one '
+        logging.info('Using lazy_concatenate, no metadata related checks are '
+                     'performed.\nMetadata will be lost.\nOnly '
+                     'trk/tck file are supported. To use trk, at least one '
                      'input must be a trk.')
         _, out_ext = os.path.splitext(args.out_tractogram)
 
         # In some cases, if -f is used and previous file contained errors
         # (ex, wrong header), the lazy version does not overwrite the file
-        # completely. Deleting manually
+        # completely. Deleting manually.
         if os.path.isfile(args.out_tractogram) and args.overwrite:
             os.remove(args.out_tractogram)
 
+        # Reminder: loading and processing are done on-the-fly.
         out_tractogram, header = lazy_concatenate(args.in_tractograms, out_ext)
         nib.streamlines.save(out_tractogram, args.out_tractogram,
                              header=header)
+
         return
 
-    # Load all input streamlines.
+    # Non-lazy operations:
+
+    # Loading
     sft_list = []
     for f in args.in_tractograms:
         logging.info("Loading file {}".format(f))
         # Using in a millimeter space so that the precision level is in mm.
-        # Note. Sending to_voxmm() returns None with no streamlines.
         tmp_sft = load_tractogram_with_reference(parser, args, f)
         tmp_sft.to_voxmm()
-
         sft_list.append(tmp_sft)
 
     if np.all([len(sft) == 0 for sft in sft_list]):
+        logging.warning("All tractogram files are empty! Nothing to do. "
+                        "Exiting.")
         return
 
-    # Apply the requested operation to each input file.
+    # Processing
+
     if args.operation == 'concatenate':
         logging.info('Performing operation "concatenate"')
-        sft_list = [s for s in sft_list if s is not None]
+        sft_list = [s for s in sft_list if len(s) > 0]
         new_sft = concatenate_sft(sft_list, args.no_metadata,
                                   args.fake_metadata)
         indices_per_sft = [np.arange(len(new_sft), dtype=np.uint32)]

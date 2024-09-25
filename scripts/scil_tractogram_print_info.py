@@ -60,7 +60,8 @@ def main():
     steps = np.hstack(steps)
 
     print(json.dumps(
-        {'min_length_mm': float(np.min(lengths_mm)),
+        {'number_streamlines': int(len(sft)),
+         'min_length_mm': float(np.min(lengths_mm)),
          'mean_length_mm': float(np.mean(lengths_mm)),
          'max_length_mm': float(np.max(lengths_mm)),
          'std_length_mm': float(np.std(lengths_mm)),

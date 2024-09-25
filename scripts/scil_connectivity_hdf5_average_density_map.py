@@ -3,7 +3,7 @@
 
 """
 Compute a density map for each connection from a hdf5 file.
-Typically use after scil_tractogram_segment_bundles_for_connectivity.py in
+Typically use after scil_tractogram_segment_connections_from_labels.py in
 order to obtain the average density map of each connection to allow the use
 of --similarity in scil_connectivity_compute_matrices.py.
 
@@ -29,11 +29,10 @@ import h5py
 import numpy as np
 import nibabel as nib
 
-from scilpy.io.hdf5 import reconstruct_streamlines_from_hdf5
-from scilpy.io.utils import (add_overwrite_arg,
-                             add_verbose_arg,
-                             add_processes_arg,
-                             assert_inputs_exist,
+from scilpy.io.hdf5 import assert_header_compatible_hdf5, \
+    reconstruct_streamlines_from_hdf5
+from scilpy.io.utils import (add_overwrite_arg, add_verbose_arg,
+                             add_processes_arg, assert_inputs_exist,
                              assert_output_dirs_exist_and_empty,
                              validate_nbr_processes)
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
@@ -44,7 +43,7 @@ def _build_arg_parser():
         description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
     p.add_argument('in_hdf5', nargs='+',
                    help='List of HDF5 filenames (.h5) from '
-                        'scil_tractogram_segment_bundles_for_connectivity.py.')
+                        'scil_tractogram_segment_connections_from_labels.py.')
     p.add_argument('out_dir',
                    help='Path of the output directory.')
 
@@ -67,14 +66,12 @@ def _average_wrapper(args):
         affine = hdf5_file_ref.attrs['affine']
         dimensions = hdf5_file_ref.attrs['dimensions']
         density_data = np.zeros(dimensions, dtype=np.float32)
+
     for hdf5_filename in hdf5_filenames:
         with h5py.File(hdf5_filename, 'r') as hdf5_file:
-            if not (np.allclose(hdf5_file.attrs['affine'], affine, atol=1e-03)
-                    and np.array_equal(hdf5_file.attrs['dimensions'],
-                                       dimensions)):
-                raise IOError('{} do not have a compatible header'.format(
-                    hdf5_filename))
-            # scil_tractogram_segment_bundles_for_connectivity.py saves the
+            assert_header_compatible_hdf5(hdf5_file, (affine, dimensions))
+
+            # scil_tractogram_segment_connections_from_labels.py saves the
             # streamlines in VOX/CORNER
             streamlines = reconstruct_streamlines_from_hdf5(hdf5_file[key])
             if len(streamlines) == 0:

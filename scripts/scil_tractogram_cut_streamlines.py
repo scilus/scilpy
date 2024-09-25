@@ -2,18 +2,31 @@
 # -*- coding: utf-8 -*-
 
 """
-Filters streamlines and only keeps the parts of streamlines within or between
-the ROIs. The script accepts a single input mask, the mask has either 1
-entity/blob or 2 entities/blobs (does not support disconnected voxels).
-The option --biggest_blob can help if you have such a scenario.
+Cut streamlines using a binary mask or two labels.
 
-The 1 entity scenario will 'trim' the streamlines so their longest segment is
-within the bounding box or a binary mask.
+--mask: Binary mask. Streamlines outside of the mask will be cut. Three options
+are available:
 
-The 2 entities scenario will cut streamlines so their segment are within the
-bounding box or going from binary mask #1 to binary mask #2.
+    Default: Will cut the streamlines according to the mask. New streamlines
+    may be generated if the mask is disjoint.
 
-Both scenarios will erase data_per_point and data_per_streamline.
+    --keep_longest: Will keep the longest segment of the streamline that is
+    within the mask. No new streamlines will be generated.
+
+    --trim_endpoints: Will only remove the endpoints of the streamlines that
+    are outside the mask. The middle part of the streamline may go
+    outside the mask, to compensate for hole in the mask for example. No new
+    streamlines will be generated.
+
+--label: Label containing 2 blobs. Streamlines will be cut so they go from the
+first label region to the second label region. The two blobs must be disjoint.
+
+Both scenarios will erase data_per_point and data_per_streamline. Streamlines
+will be extended so they reach the boundary of the mask or the two labels,
+therefore won't be equal to the input streamlines.
+
+To generate a label map from a binary mask, you can use the following command:
+    scil_labels_from_mask.py
 
 Formerly: scil_cut_streamlines.py
 """
@@ -25,18 +38,26 @@ from dipy.io.streamline import save_tractogram
 from dipy.io.stateful_tractogram import StatefulTractogram
 from dipy.tracking.streamlinespeed import compress_streamlines
 import nibabel as nib
-import numpy as np
-import scipy.ndimage as ndi
 
+from scilpy.image.labels import get_data_as_labels
 from scilpy.io.image import get_data_as_mask
 from scilpy.io.streamlines import load_tractogram_with_reference
-from scilpy.io.utils import (add_overwrite_arg, add_reference_arg,
+from scilpy.io.utils import (add_overwrite_arg, add_processes_arg,
+                             add_reference_arg,
                              add_verbose_arg, assert_inputs_exist,
-                             assert_outputs_exist, assert_headers_compatible)
+                             assert_outputs_exist, assert_headers_compatible,
+                             add_compression_arg)
 from scilpy.tractograms.streamline_and_mask_operations import \
-    cut_outside_of_mask_streamlines, cut_between_mask_two_blobs_streamlines
+    cut_streamlines_with_mask, cut_streamlines_between_labels, \
+    CuttingStyle
 from scilpy.tractograms.streamline_operations import \
     resample_streamlines_step_size
+
+# Mapping the arguments to the cutting style
+# (keep_longest, trim_endpoints) -> CuttingStyle
+args_to_style = {(False, False): CuttingStyle.DEFAULT,
+                 (True, False): CuttingStyle.KEEP_LONGEST,
+                 (False, True): CuttingStyle.TRIM_ENDPOINTS}
 
 
 def _build_arg_parser():
@@ -45,23 +66,39 @@ def _build_arg_parser():
         formatter_class=argparse.RawTextHelpFormatter)
     p.add_argument('in_tractogram',
                    help='Input tractogram file.')
-    p.add_argument('in_mask',
-                   help='Binary mask containing either 1 or 2 blobs.')
-    p.add_argument('out_tractogram',
-                   help='Output tractogram file. Note: data_per_point will be '
-                        'discarded, if any!')
 
-    p.add_argument('--resample', dest='step_size', type=float,
+    g1 = p.add_mutually_exclusive_group(required=True)
+    g1.add_argument('--mask',
+                    help='Binary mask.')
+    g1.add_argument('--labels',
+                    help='Label containing 2 blobs.')
+    p.add_argument('out_tractogram',
+                   help='Output tractogram file. Note: data_per_point and '
+                        'data_per_streamline will be discarded.')
+    p.add_argument('--label_ids', nargs=2, type=int,
+                   help='List of labels indices to use to cut '
+                        'streamlines (2 values).')
+    p.add_argument('--resample', dest='step_size', type=float, default=None,
                    help='Resample streamlines to a specific step-size in mm '
                         '[%(default)s].')
-    p.add_argument('--compress', dest='error_rate', type=float,
-                   help='Maximum compression distance in mm [%(default)s].')
-    p.add_argument('--biggest_blob', action='store_true',
-                   help='Use the biggest entity and force the 1 ROI scenario.')
+    p.add_argument('--min_length', type=float, default=20,
+                   help='Minimum length of streamlines to keep (in mm) '
+                        '[%(default)s].')
+    g = p.add_argument_group('Cutting options', 'Options for cutting '
+                             'streamlines with --mask.')
+    g2 = g.add_mutually_exclusive_group()
+    g2.add_argument('--keep_longest', action='store_true',
+                    help='If set, will keep the longest segment of the '
+                         'streamline that is within the mask.')
+    g2.add_argument('--trim_endpoints', action='store_true',
+                    help='If set, will only remove the endpoints of the '
+                         'streamlines that are outside the mask.')
 
+    add_compression_arg(p)
+    add_overwrite_arg(p)
+    add_processes_arg(p)
     add_reference_arg(p)
     add_verbose_arg(p)
-    add_overwrite_arg(p)
 
     return p
 
@@ -71,60 +108,61 @@ def main():
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
-    # Verifications
-    assert_inputs_exist(parser, [args.in_tractogram, args.in_mask],
-                        args.reference)
+    assert_inputs_exist(parser, args.in_tractogram, optional=[args.mask,
+                                                              args.labels,
+                                                              args.reference])
     assert_outputs_exist(parser, args, args.out_tractogram)
-    assert_headers_compatible(parser, [args.in_tractogram, args.in_mask],
+    assert_headers_compatible(parser, args.in_tractogram,
+                              optional=[args.mask,
+                                        args.labels],
                               reference=args.reference)
+
+    if args.labels and (args.keep_longest or args.trim_endpoints):
+        parser.error('Cannot use --keep_longest or --trim_endpoints with '
+                     'labels.')
 
     # Loading
     sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
-    mask_img = nib.load(args.in_mask)
-    binary_mask = get_data_as_mask(mask_img)
-
     # Streamlines must be in voxel space to deal correctly with bounding box.
     sft.to_vox()
     sft.to_corner()
-
-    # Processing
+    # Resample streamlines to a specific step-size in mm. May impact the
+    # cutting process.
     if args.step_size is not None:
         sft = resample_streamlines_step_size(sft, args.step_size)
 
-    # Segment into blobs, count each.
-    bundle_disjoint, _ = ndi.label(binary_mask)
-    unique, count = np.unique(bundle_disjoint, return_counts=True)
+    if len(sft.streamlines) == 0:
+        parser.error('Input tractogram is empty.')
 
-    # Cut streamlines based on user options
-    if args.biggest_blob:
-        logging.info("Biggest blob found: {} voxels.".format(np.max(count)))
-        val = unique[np.argmax(count[1:])+1]
-        binary_mask[bundle_disjoint != val] = 0
-        unique = [0, val]
-    if len(unique) == 2:
-        logging.info('Found only one blob in the provided mask. '
-                     'cut_outside_of_mask_streamlines function selected.')
-        new_sft = cut_outside_of_mask_streamlines(sft, binary_mask)
-    elif len(unique) == 3:
-        logging.info('Found only two blobs in the provided mask. '
-                     'cut_between_mask_two_blobs_streamlines '
-                     'function selected.')
-        new_sft = cut_between_mask_two_blobs_streamlines(sft, binary_mask)
+    # Mask scenario, either keeping the longest segment of the streamline that
+    # is in the mask, trimming the endpoints of the streamlines outside of the
+    # mask or cutting the streamlines outside of the mask.
+    if args.mask:
+        style = args_to_style[args.keep_longest, args.trim_endpoints]
+        mask_img = nib.load(args.mask)
+        binary_mask = get_data_as_mask(mask_img)
 
+        new_sft = cut_streamlines_with_mask(
+            sft, binary_mask, cutting_style=style,
+            min_len=args.min_length, processes=args.nbr_processes)
+    # Label scenario. The script will cut streamlines so they are going from
+    # label 1 to label 2.
     else:
-        logging.warning('The provided mask has MORE THAN 2 blobs. '
-                        'cut_between_mask_two_blobs_streamlines function '
-                        'selected. This may cause problems with the outputed '
-                        'streamlines. Please inspect the output carefully.')
-        new_sft = cut_between_mask_two_blobs_streamlines(sft, binary_mask)
+        label_img = nib.load(args.labels)
+        label_data = get_data_as_labels(label_img)
+
+        new_sft = cut_streamlines_between_labels(
+            sft, label_data, args.label_ids, min_len=args.min_length,
+            processes=args.nbr_processes)
 
     # Saving
     if len(new_sft) == 0:
         logging.warning('No streamline intersected the provided mask. '
                         'Saving empty tractogram.')
-    elif args.error_rate is not None:
+    # Compress streamlines if requested
+    elif args.compress_th:
         compressed_strs = [compress_streamlines(
-            s, args.error_rate) for s in new_sft.streamlines]
+            s, args.compress_th) for s in new_sft.streamlines]
         new_sft = StatefulTractogram.from_sft(
             compressed_strs, sft, data_per_streamline=sft.data_per_streamline)
 

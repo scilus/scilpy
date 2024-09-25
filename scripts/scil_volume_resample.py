@@ -12,9 +12,11 @@ import argparse
 import logging
 
 import nibabel as nib
+import numpy as np
 
 from scilpy.io.utils import (add_verbose_arg, add_overwrite_arg,
-                             assert_inputs_exist, assert_outputs_exist)
+                             assert_inputs_exist, assert_outputs_exist,
+                             assert_headers_compatible)
 from scilpy.image.volume_operations import resample_volume
 
 
@@ -66,6 +68,7 @@ def main():
     # Checking args
     assert_inputs_exist(parser, args.in_image, args.ref)
     assert_outputs_exist(parser, args, args.out_image)
+
     if args.enforce_dimensions and not args.ref:
         parser.error("Cannot enforce dimensions without a reference image")
 
@@ -81,9 +84,20 @@ def main():
 
     img = nib.load(args.in_image)
 
+    ref_img = None
+    if args.ref:
+        ref_img = nib.load(args.ref)
+        # Must not verify that headers are compatible. But can verify that, at
+        # least, the last columns of their affines are compatible.
+        if not np.array_equal(img.affine[:, -1], ref_img.affine[:, -1]):
+            parser.error("The --ref image should have the same affine as the "
+                         "input image (but with a different sampling).")
+
     # Resampling volume
-    resampled_img = resample_volume(img, ref=args.ref, res=args.volume_size,
-                                    iso_min=args.iso_min, zoom=args.voxel_size,
+    resampled_img = resample_volume(img, ref_img=ref_img,
+                                    volume_shape=args.volume_size,
+                                    iso_min=args.iso_min,
+                                    voxel_res=args.voxel_size,
                                     interp=args.interp,
                                     enforce_dimensions=args.enforce_dimensions)
 

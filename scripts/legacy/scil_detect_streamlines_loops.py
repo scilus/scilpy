@@ -12,7 +12,7 @@ your existing pipelines accordingly.
 """
 
 
-@deprecate_script("scil_detect_streamlines_loops.py", DEPRECATION_MSG, '1.7.0')
+@deprecate_script("scil_detect_streamlines_loops.py", DEPRECATION_MSG, '2.0.0')
 def main():
     new_main()
 

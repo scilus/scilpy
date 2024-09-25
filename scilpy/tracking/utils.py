@@ -1,26 +1,24 @@
 # -*- coding: utf-8 -*-
 import logging
+from typing import Iterable
+
 import nibabel as nib
 import numpy as np
-
+from nibabel.streamlines import TrkFile
+from nibabel.streamlines.tractogram import LazyTractogram, TractogramItem
 from tqdm import tqdm
-from typing import Iterable
 
 from dipy.core.sphere import HemiSphere
 from dipy.data import get_sphere
 from dipy.direction import (DeterministicMaximumDirectionGetter,
-                            ProbabilisticDirectionGetter,
-                            PTTDirectionGetter)
+                            ProbabilisticDirectionGetter, PTTDirectionGetter)
 from dipy.direction.peaks import PeaksAndMetrics
-from dipy.io.utils import (get_reference_info,
-                           create_tractogram_header)
+from dipy.io.utils import create_tractogram_header, get_reference_info
 from dipy.reconst.shm import sh_to_sf_matrix
-from dipy.tracking.streamlinespeed import length, compress_streamlines
+from dipy.tracking.streamlinespeed import compress_streamlines, length
+from scilpy.io.utils import (add_compression_arg, add_overwrite_arg,
+                             add_sh_basis_args)
 from scilpy.reconst.utils import find_order_from_nb_coeff, get_maximas
-from nibabel.streamlines import TrkFile
-from nibabel.streamlines.tractogram import LazyTractogram, TractogramItem
-
-from scilpy.io.utils import add_sh_basis_args, add_overwrite_arg
 
 
 class TrackingDirection(list):
@@ -85,35 +83,33 @@ def add_tracking_options(p):
 
 
 def add_tracking_ptt_options(p):
-    """ NOT USED IN SCILPY!!! TO DELETE??? """
     track_g = p.add_argument_group('PTT options')
     track_g.add_argument('--probe_length', dest='probe_length',
                          type=float, default=1.0,
-                         help='The length of the probes. Shorter probe_length '
-                              + 'yields more dispersed fibers. [%(default)s]')
+                         help='The length of the probes. Smaller value\n'
+                              'yields more dispersed fibers. [%(default)s]')
     track_g.add_argument('--probe_radius', dest='probe_radius',
                          type=float, default=0,
-                         help='The radius of the probe. A large probe_radius '
-                              + 'helps mitigate noise in the pmf but it might '
-                              + 'make it harder to sample thin and intricate '
-                              + 'connections, also the boundary of fiber '
-                              + 'bundles might be eroded. [%(default)s]')
+                         help='The radius of the probe. A large probe_radius\n'
+                              'helps mitigate noise in the pmf but it might\n'
+                              'make it harder to sample thin and intricate\n'
+                              'connections, also the boundary of fiber\n'
+                              'bundles might be eroded. [%(default)s]')
     track_g.add_argument('--probe_quality', dest='probe_quality',
                          type=int, default=3,
-                         help='The quality of the probe. This parameter sets '
-                              + 'the number of segments to split the cylinder '
-                              + 'along the length of the probe (minimum=2) '
-                              + '[%(default)s]')
+                         help='The quality of the probe. This parameter sets\n'
+                              'the number of segments to split the cylinder\n'
+                              'along the length of the probe (minimum=2) '
+                              '[%(default)s]')
     track_g.add_argument('--probe_count', dest='probe_count',
                          type=int, default=1,
-                         help='The number of probes. This parameter sets the '
-                              + 'number of parallel lines used to model the '
-                              + 'cylinder (minimum=1). [%(default)s]')
-    track_g.add_argument('--data_support_exponent', dest='support_exponent',
+                         help='The number of probes. This parameter sets the\n'
+                              'number of parallel lines used to model the\n'
+                              'cylinder (minimum=1). [%(default)s]')
+    track_g.add_argument('--support_exponent',
                          type=float, default=3,
-                         help='Data support to the power dataSupportExponent '
-                              + 'is used for rejection sampling.'
-                              + '[%(default)s]')
+                         help='Data support exponent, used for rejection\n'
+                              'sampling. [%(default)s]')
 
     return track_g
 
@@ -138,18 +134,16 @@ def add_out_options(p):
     scil_tracking_local_dev scripts.
     """
     out_g = p.add_argument_group('Output options')
-    out_g.add_argument('--compress', type=float, metavar='thresh',
-                       help='If set, will compress streamlines. The parameter '
-                            'value is the \ndistance threshold. A rule of '
-                            'thumb is to set it to 0.1mm for \ndeterministic '
-                            'streamlines and 0.2mm for probabilitic '
-                            'streamlines.')
+    msg = ("\nA rule of thumb is to set it to 0.1mm for deterministic \n"
+           "streamlines and to 0.2mm for probabilitic streamlines.")
+    add_compression_arg(out_g, additional_msg=msg)
+
     add_overwrite_arg(out_g)
     out_g.add_argument('--save_seeds', action='store_true',
                        help='If set, save the seeds used for the tracking \n '
                             'in the data_per_streamline property.\n'
                             'Hint: you can then use '
-                            'scilpy_compute_seed_density_map.')
+                            'scil_tractogram_seed_density_map.')
     return out_g
 
 
@@ -178,8 +172,8 @@ def tqdm_if_verbose(generator: Iterable, verbose: bool, *args, **kwargs):
 
 
 def save_tractogram(
-    streamlines_generator, tracts_format, ref_img, total_nb_seeds,
-    out_tractogram, min_length, max_length, compress, save_seeds, verbose
+        streamlines_generator, tracts_format, ref_img, total_nb_seeds,
+        out_tractogram, min_length, max_length, compress, save_seeds, verbose
 ):
     """ Save the streamlines on-the-fly using a generator. Tracts are
     filtered according to their length and compressed if requested. Seeds
@@ -226,7 +220,8 @@ def save_tractogram(
                                           leave=False):
             if (scaled_min_length <= length(strl) <= scaled_max_length):
                 # Seeds are saved with origin `center` by our own convention.
-                # Other scripts (e.g. scil_compute_seed_density_map) expect so.
+                # Other scripts (e.g. scil_tractogram_seed_density_map) expect
+                # so.
                 dps = {}
                 if save_seeds:
                     dps['seeds'] = seed
@@ -248,7 +243,7 @@ def save_tractogram(
                 else:
                     # Streamlines are dumped in true world space with
                     # origin center as expected by .tck files.
-                    strl = np.dot(strl, ref_img.affine[:3, :3]) +\
+                    strl = np.dot(strl, ref_img.affine[:3, :3]) + \
                         ref_img.affine[:3, 3]
 
                 yield TractogramItem(strl, dps, {})
@@ -265,7 +260,9 @@ def save_tractogram(
 
 
 def get_direction_getter(in_img, algo, sphere, sub_sphere, theta, sh_basis,
-                         voxel_size, sf_threshold, sh_to_pmf, is_legacy=True):
+                         voxel_size, sf_threshold, sh_to_pmf,
+                         probe_length, probe_radius, probe_quality,
+                         probe_count, support_exponent, is_legacy=True):
     """ Return the direction getter object.
 
     Parameters
@@ -289,6 +286,25 @@ def get_direction_getter(in_img, algo, sphere, sub_sphere, theta, sh_basis,
     sh_to_pmf: bool
         Map sherical harmonics to spherical function (pmf) before tracking
         (faster, requires more memory).
+    probe_length : float
+        The length of the probes. Shorter probe_length
+        yields more dispersed fibers.
+    probe_radius : float
+        The radius of the probe. A large probe_radius
+        helps mitigate noise in the pmf but it might
+        make it harder to sample thin and intricate
+        connections, also the boundary of fiber
+        bundles might be eroded.
+    probe_quality : int
+        The quality of the probe. This parameter sets
+        the number of segments to split the cylinder
+        along the length of the probe (minimum=2).
+    probe_count : int
+        The number of probes. This parameter sets the
+        number of parallel lines used to model the
+        cylinder (minimum=1).
+    support_exponent : float
+        Data support exponent, used for rejection sampling.
     is_legacy : bool, optional
         Whether or not the SH basis is in its legacy form.
 
@@ -323,7 +339,11 @@ def get_direction_getter(in_img, algo, sphere, sub_sphere, theta, sh_basis,
             dg_class = PTTDirectionGetter
             # Considering the step size usually used, the probe length
             # can be set as the voxel size.
-            kwargs = {'probe_length': voxel_size}
+            kwargs = {'probe_length': probe_length,
+                      'probe_radius': probe_radius,
+                      'probe_quality': probe_quality,
+                      'probe_count': probe_count,
+                      'data_support_exponent': support_exponent}
         elif algo == 'det':
             dg_class = DeterministicMaximumDirectionGetter
         else:
@@ -346,17 +366,17 @@ def get_direction_getter(in_img, algo, sphere, sub_sphere, theta, sh_basis,
             # find the closest direction on the sphere.
             logging.info('Input detected as peaks.')
             nb_peaks = img_data.shape[-1] // 3
-            slices = np.arange(0, 15+1, 3)
-            peak_values = np.zeros(img_shape_3d+(nb_peaks,))
-            peak_indices = np.zeros(img_shape_3d+(nb_peaks,))
+            slices = np.arange(0, 15 + 1, 3)
+            peak_values = np.zeros(img_shape_3d + (nb_peaks,))
+            peak_indices = np.zeros(img_shape_3d + (nb_peaks,))
 
             for idx in np.argwhere(np.sum(img_data, axis=-1)):
                 idx = tuple(idx)
                 for i in range(nb_peaks):
                     peak_values[idx][i] = np.linalg.norm(
-                        img_data[idx][slices[i]:slices[i+1]], axis=-1)
+                        img_data[idx][slices[i]:slices[i + 1]], axis=-1)
                     peak_indices[idx][i] = sphere.find_closest(
-                        img_data[idx][slices[i]:slices[i+1]])
+                        img_data[idx][slices[i]:slices[i + 1]])
 
             dg.peak_dirs = img_data
         else:
@@ -365,8 +385,8 @@ def get_direction_getter(in_img, algo, sphere, sub_sphere, theta, sh_basis,
             logging.info('Input detected as fodf.')
             npeaks = 5
             peak_dirs = np.zeros((img_shape_3d + (npeaks, 3)))
-            peak_values = np.zeros((img_shape_3d + (npeaks, )))
-            peak_indices = np.full((img_shape_3d + (npeaks, )), -1,
+            peak_values = np.zeros((img_shape_3d + (npeaks,)))
+            peak_indices = np.full((img_shape_3d + (npeaks,)), -1,
                                    dtype='int')
             b_matrix, _ = sh_to_sf_matrix(sphere,
                                           find_order_from_nb_coeff(img_data),

@@ -2,15 +2,18 @@
 # -*- coding: utf-8 -*-
 
 """
-Save individual connection of an hd5f from
-scil_tractogram_segment_bundles_for_connectivity.py.
+Save connections of a hdf5 created with
+>> scil_tractogram_segment_connections_from_labels.py.
+
 Useful for quality control and visual inspections.
 
-It can either save all connections, individual connections specified with
-edge_keys or connections from specific nodes with node_keys.
+It can either save all connections (default), individual connections specified
+with --edge_keys or connections from specific nodes specified with --node_keys.
 
-With the option save_empty, a label_lists, as a txt file, must be provided.
-This option saves existing connections and empty connections.
+If a labels_list is provided, it will save all possible connections between the
+labels in the list. If no labels_list is provided, it will save all connections
+in the hdf5 file. If no argument is provided, it will save only the
+connections that are present in the hdf5 file.
 
 The output is a directory containing the thousands of connections:
 out_dir/
@@ -26,16 +29,13 @@ import argparse
 import logging
 import os
 
-from dipy.io.stateful_tractogram import Space, Origin, StatefulTractogram
 from dipy.io.streamline import save_tractogram
-from dipy.io.utils import create_nifti_header
 import h5py
 import itertools
 import numpy as np
 
-from scilpy.io.hdf5 import reconstruct_streamlines_from_hdf5
-from scilpy.io.utils import (add_overwrite_arg,
-                             add_verbose_arg,
+from scilpy.io.hdf5 import reconstruct_sft_from_hdf5
+from scilpy.io.utils import (add_overwrite_arg, add_verbose_arg,
                              assert_inputs_exist,
                              assert_output_dirs_exist_and_empty)
 
@@ -53,22 +53,21 @@ def _build_arg_parser():
                    help='Include the data_per_streamline the metadata.')
 
     group = p.add_mutually_exclusive_group()
-    group.add_argument('--edge_keys', nargs='+',
-                       help='Keys to identify the edges of '
-                            'interest (LABEL1_LABEL2).')
+    group.add_argument('--edge_keys', nargs='+', metavar='LABEL1_LABEL2',
+                       help='Keys to identify the edges (connections) of '
+                            'interest.')
+    group.add_argument('--node_keys', nargs='+', metavar='NODE',
+                       help='Node keys to identify the sub-networks of '
+                            'interest.\nEquivalent to adding any --edge_keys '
+                            'node_LABEL2 or LABEL2_node.')
 
-    group.add_argument('--node_keys', nargs='+',
-                       help='Node keys to identify the '
-                            'sub-network of interest.')
-
-    p.add_argument('--save_empty', action='store_true',
-                   help='Save empty connections.')
-    p.add_argument('--labels_list',
-                   help='A txt file containing a list '
-                        'saved by the decomposition script.')
+    p.add_argument('--save_empty', nargs='?', metavar='labels_list',
+                   dest='labels_list', const=True,
+                   help='Save empty connections.\nSee script description for '
+                        'more information on labels_list usage.')
 
     add_verbose_arg(p)
-    add_overwrite_arg(p)
+    add_overwrite_arg(p, will_delete_dirs=True)
 
     return p
 
@@ -78,50 +77,59 @@ def main():
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
-    assert_inputs_exist(parser, args.in_hdf5)
+    # Verifications
+    check_labels = args.labels_list if isinstance(
+        args.labels_list, str) else None
+    assert_inputs_exist(parser, args.in_hdf5, check_labels)
     assert_output_dirs_exist_and_empty(parser, args, args.out_dir,
                                        create_dir=True)
-    if args.save_empty and args.labels_list is None:
-        parser.error("The option --save_empty requires --labels_list.")
 
+    # Processing
     with h5py.File(args.in_hdf5, 'r') as hdf5_file:
-        if args.save_empty:
+        all_hdf5_keys = list(hdf5_file.keys())
+
+        if isinstance(args.labels_list, str):
             all_labels = np.loadtxt(args.labels_list, dtype='str')
             comb_list = list(itertools.combinations(all_labels, r=2))
             comb_list.extend(zip(all_labels, all_labels))
-            keys = [i[0]+'_'+i[1] for i in comb_list]
+            all_keys = [i[0]+'_'+i[1] for i in comb_list]
+            keys_origin = "the labels_list file's labels combination"
+            allow_empty = True
+        elif args.labels_list:
+            all_keys = all_hdf5_keys
+            keys_origin = "the hdf5 stored keys"
+            allow_empty = True
         else:
-            keys = hdf5_file.keys()
+            all_keys = all_hdf5_keys
+            keys_origin = "the hdf5 stored keys"
+            allow_empty = False
 
         if args.edge_keys is not None:
-            selected_keys = [key for key in keys if key in args.edge_keys]
+            selected_keys = args.edge_keys
+
+            # Check that all selected_keys exist.
+            impossible_keys = np.setdiff1d(selected_keys, all_keys)
+            if len(impossible_keys) > 0:
+                parser.error("The following key(s) to not exist in {}: {}\n"
+                             "Please verify your --edge_keys."
+                             .format(keys_origin, impossible_keys))
+
         elif args.node_keys is not None:
             selected_keys = []
             for node in args.node_keys:
-                selected_keys.extend([key for key in keys
+                selected_keys.extend([key for key in all_keys
                                       if key.startswith(node + '_')
                                       or key.endswith('_' + node)])
+            logging.debug("All keys found for provided nodes are: {}"
+                          .format(selected_keys))
         else:
-            selected_keys = keys
+            selected_keys = all_keys
+            logging.debug("All keys are: {}".format(selected_keys))
 
-        affine = hdf5_file.attrs['affine']
-        dimensions = hdf5_file.attrs['dimensions']
-        voxel_sizes = hdf5_file.attrs['voxel_sizes']
-        header = create_nifti_header(affine, dimensions, voxel_sizes)
         for key in selected_keys:
-            streamlines = reconstruct_streamlines_from_hdf5(hdf5_file[key])
-
-            if len(streamlines) == 0 and not args.save_empty:
-                continue
-
-            sft = StatefulTractogram(streamlines, header, Space.VOX,
-                                     origin=Origin.TRACKVIS)
-            if args.include_dps:
-                for dps_key in hdf5_file[key].keys():
-                    if dps_key not in ['data', 'offsets', 'lengths']:
-                        sft.data_per_streamline[dps_key] = \
-                            hdf5_file[key][dps_key]
-
+            sft, _ = reconstruct_sft_from_hdf5(hdf5_file, key,
+                                               load_dps=args.include_dps,
+                                               allow_empty=allow_empty)
             save_tractogram(sft, '{}.trk'
                             .format(os.path.join(args.out_dir, key)))
 

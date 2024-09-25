@@ -2,12 +2,12 @@
 # -*- coding: utf-8 -*-
 
 """
-Removal of streamlines that are out of the volume bounding box. In voxel space
+Removal of streamlines that are out of the volume bounding box. In voxel space,
 no negative coordinate and no above volume dimension coordinate are possible.
-Any streamline that do not respect these two conditions are removed.
+Any streamline that do not respect these two conditions is removed.
 
 The --cut_invalid option will cut streamlines so that their longest segment are
-within the bounding box
+within the bounding box instead of removing them.
 
 Formerly: scil_remove_invalid_streamlines.py
 """
@@ -15,13 +15,11 @@ Formerly: scil_remove_invalid_streamlines.py
 import argparse
 import logging
 
-from dipy.io.streamline import save_tractogram
-import numpy as np
-
-from scilpy.io.streamlines import load_tractogram_with_reference
+from scilpy.io.streamlines import load_tractogram_with_reference, \
+    save_tractogram
 from scilpy.io.utils import (add_overwrite_arg, add_verbose_arg,
                              add_reference_arg, assert_inputs_exist,
-                             assert_outputs_exist)
+                             assert_outputs_exist, ranged_type)
 from scilpy.tractograms.streamline_operations import (
     cut_invalid_streamlines,
     remove_overlapping_points_streamlines,
@@ -43,12 +41,14 @@ def _build_arg_parser():
                    help='Cut invalid streamlines rather than removing them.\n'
                         'Keep the longest segment only.')
     p.add_argument('--remove_single_point', action='store_true',
-                   help='Consider single point streamlines invalid.')
+                   help='Consider single point streamlines as invalid.')
     p.add_argument('--remove_overlapping_points', action='store_true',
-                   help='Consider streamlines with overlapping points invalid.')
-    p.add_argument('--threshold', type=float, default=0.001,
-                   help='Maximum distance between two points to be considered'
-                        ' overlapping [%(default)s mm].')
+                   help='Consider streamlines with overlapping points as '
+                        'invalid.')
+    p.add_argument('--threshold', type=ranged_type(float, 0, None),
+                   default=0.001,
+                   help='Maximum distance between two points to be considered '
+                        'overlapping [%(default)s mm].')
     p.add_argument('--no_empty', action='store_true',
                    help='Do not save empty tractogram.')
 
@@ -68,13 +68,14 @@ def main():
     # this script.
     args.bbox_check = False
 
+    # Verifications
     assert_inputs_exist(parser, args.in_tractogram, args.reference)
     assert_outputs_exist(parser, args, args.out_tractogram)
 
-    if args.threshold < 0:
-        parser.error("Threshold must be positive.")
-
+    # Loading
     sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
+
+    # Processing
     ori_len = len(sft)
     ori_len_pts = len(sft.streamlines._data)
     if args.cut_invalid:
@@ -96,10 +97,7 @@ def main():
     logging.warning('Removed {} invalid streamlines.'.format(
         ori_len - len(sft)))
 
-    if len(sft) > 0 or (not args.no_empty and len(sft) == 0):
-        save_tractogram(sft, args.out_tractogram)
-    else:
-        logging.warning('No valid streamline, not saving due to --no_empty.')
+    save_tractogram(sft, args.out_tractogram, args.no_empty)
 
 
 if __name__ == "__main__":

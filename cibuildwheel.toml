@@ -1,0 +1,46 @@
+[tool.cibuildwheel]
+
+# We only build native to the local machine. If desired, this can be changed
+# to auto to build for all locally supported platforms. 32-bit builds on a
+# 64-bit architecture can be disabled by setting this to auto64.
+archs = ["native"]
+
+# We use build (instead of steuptools or pip) to create the Scilpy package
+build-frontend = "build"
+
+# We build for all those python versions, plus extras
+# (see below for skipped implementations)
+# TODO: add back *311-* when we pass to h5py >=3.8
+build = "*39-* *310-*"
+
+# By default, we skip :
+#  - All Pypa builds, since we have C extensions (not fully supported)
+#  - All windows builds (spams doesn't handle them)
+#  - All aarch64 builds (we don't have wheels for vtk)
+skip = "pp* *-win* *-win32* *aarch64"
+
+# Here, we want to run pytest on scilpy, once mocking accelerate all of them
+# For now, we only ensure the wheel has installed sucessfully
+test-command = "echo 'Wheel installed successfully'"
+
+# Dipy forgot to list packaging, we should not need this after 1.8.0
+before-test = "pip install packaging"
+
+# Install blas, lapack, freetype on x86_64
+[tool.cibuildwheel.linux]
+before-all = "yum -y update && yum -y install blas-devel lapack-devel freetype-devel"
+before-test = "yum -y update && yum -y install openblas-devel lapack freetype && pip install packaging"
+
+# Musl Linux uses APK instead of YUM, on x86_64
+[[tool.cibuildwheel.overrides]]
+select = "*-musllinux*"
+before-all = "apk add --no-cache blas-dev lapack-dev freetype-dev"
+before-test = "apk add --no-cache openblas-dev lapack freetype && pip install packaging"
+
+# To reinstate once vtk has official linux aarch64 wheels available (we won't build them for them)
+#[[tool.cibuildwheel.overrides]]
+#select = "*aarch64"
+#before-test = """
+#pip install packaging
+#pip config set global.extra-index-url https://gitlab.kitware.com/api/v4/projects/13/packages/pypi/simple/
+#"""

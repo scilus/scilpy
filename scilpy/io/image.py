@@ -6,7 +6,7 @@ import nibabel as nib
 import numpy as np
 import os
 
-from scilpy.utils.util import is_float
+from scilpy.utils import is_float
 
 
 def load_img(arg):
@@ -32,42 +32,6 @@ def load_img(arg):
     return img, dtype
 
 
-def merge_labels_into_mask(atlas, filtering_args):
-    """
-    Merge labels into a mask.
-
-    Parameters
-    ----------
-    atlas: np.ndarray
-        Atlas with labels as a numpy array (uint16) to merge.
-
-    filtering_args: str
-        Filtering arguments from the command line.
-
-    Return
-    ------
-    mask: nibabel.nifti1.Nifti1Image
-        Mask obtained from the combination of multiple labels.
-    """
-    mask = np.zeros(atlas.shape, dtype=np.uint16)
-
-    if ' ' in filtering_args:
-        values = filtering_args.split(' ')
-        for filter_opt in values:
-            if ':' in filter_opt:
-                values = [int(x) for x in filter_opt.split(':')]
-                mask[(atlas >= int(min(values))) & (atlas <= int(max(values)))] = 1
-            else:
-                mask[atlas == int(filter_opt)] = 1
-    elif ':' in filtering_args:
-        values = [int(x) for x in filtering_args.split(':')]
-        mask[(atlas >= int(min(values))) & (atlas <= int(max(values)))] = 1
-    else:
-        mask[atlas == int(filtering_args)] = 1
-
-    return mask
-
-
 def assert_same_resolution(images):
     """
     Check the resolution of multiple images.
@@ -85,7 +49,8 @@ def assert_same_resolution(images):
 
     for curr_image in images[1:]:
         if not is_header_compatible(images[0], curr_image):
-            raise Exception("Images are not of the same resolution/affine")
+            raise Exception(f"Images are not of the same resolution/affine : "
+                            f"({curr_image}) vs ({images[0]})")
 
 
 def get_data_as_mask(mask_img, dtype=np.uint8):

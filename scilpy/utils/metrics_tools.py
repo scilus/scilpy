@@ -216,7 +216,7 @@ def get_bundle_metrics_mean_std_per_point(streamlines, bundle_name,
                                           correlation_values=None,
                                           density_weighting=False):
     """
-    Compute the mean and std PER POiNT of the bundle for every given metric.
+    Compute the mean and std PER POINT of the bundle for every given metric.
 
     Parameters
     ----------
@@ -227,18 +227,18 @@ def get_bundle_metrics_mean_std_per_point(streamlines, bundle_name,
     metrics: sequence
         list of nibabel objects representing the metrics files
     labels: np.ndarray
-        List of labels obtained with scil_label_and_distance_maps.py
+        List of labels obtained with scil_bundle_label_map.py
     distance_values: np.ndarray
-        List of distances obtained with scil_compute_bundle_voxel_label_map.py
+        List of distances obtained with scil_bundle_label_map.py
     correlation_values: np.ndarray
-        List of correlations obtained with scil_compute_bundle_voxel_label_map.py
+        List of correlations obtained with scil_bundle_label_map.py
     density_weighting: bool
         If true, weight statistics by the number of streamlines passing through
         each voxel. [False]
 
     Returns
     -------
-    stats
+    stats: dict
     """
     # Computing infos on bundle
     unique_labels = np.unique(labels)[1:]
@@ -377,30 +377,3 @@ def plot_metrics_stats(means, stds, title=None, xlabel=None,
 
     plt.close(fig)
     return fig
-
-
-def get_roi_metrics_mean_std(density_map, metrics_files):
-    """
-    Returns the mean and standard deviation of each metric, using the
-    provided density map. This can be a binary mask,
-    or contain weighted values between 0 and 1.
-
-    Parameters
-    ------------
-    density_map : ndarray
-        3D numpy array containing a density map.
-    metrics_files : sequence
-        list of nibabel objects representing the metrics files.
-
-    Returns
-    ---------
-    stats : list
-        list of tuples where the first element of the tuple is the mean
-        of a metric, and the second element is the standard deviation.
-
-    """
-
-    return map(lambda metric_file:
-               weighted_mean_std(density_map,
-                                 metric_file.get_fdata(dtype=np.float64)),
-               metrics_files)

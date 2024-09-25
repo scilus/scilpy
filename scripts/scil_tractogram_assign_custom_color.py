@@ -57,18 +57,18 @@ import matplotlib.pyplot as plt
 from scipy.ndimage import map_coordinates
 
 from scilpy.io.streamlines import load_tractogram_with_reference
-from scilpy.io.utils import (assert_inputs_exist,
-                             assert_outputs_exist,
-                             add_overwrite_arg,
+from scilpy.io.utils import (add_overwrite_arg,
                              add_reference_arg,
                              add_verbose_arg,
+                             assert_inputs_exist,
+                             assert_outputs_exist,
                              load_matrix_in_any_format)
 from scilpy.tractograms.dps_and_dpp_management import add_data_as_color_dpp
-from scilpy.tractograms.streamline_operations import (get_values_along_length,
-                                                      get_angles)
-from scilpy.viz.utils import (ambiant_occlusion,
-                              get_colormap,
-                              prepare_colorbar_figure)
+from scilpy.tractograms.streamline_operations import (
+    get_streamlines_as_linspaces, get_angles)
+from scilpy.viz.color import (
+    get_lookup_table, prepare_colorbar_figure, ambiant_occlusion,
+    generate_local_coloring)
 
 
 def _build_arg_parser():
@@ -179,7 +179,7 @@ def main():
     sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
     LUT = load_matrix_in_any_format(args.LUT) if args.LUT else None
 
-    cmap = get_colormap(args.colormap)
+    cmap = get_lookup_table(args.colormap)
 
     # Loading data. Depending on the type of loading, format data now to a 1D
     # array (one value per point or per streamline)
@@ -215,19 +215,13 @@ def main():
             data = nib.load(args.from_anatomy).get_fdata()
             data = map_coordinates(data, concat_points, order=0)
     elif args.along_profile:
-        data = get_values_along_length(sft)
-    elif args.local_angle:
-        data = get_angles(sft)
-    else:  # args.local_orientation:
-        # Existing code in VIZ, move to function
-        diff = [np.diff(list(s), axis=0) for s in sft.streamlines]
-        # Repeat first segment so that the number of segments matches
-        # the number of points
-        diff = [[d[0]] + list(d) for d in diff]
-        # Flatten the list of segments
-        orientations = np.asarray([o for d in diff for o in d])
-        # Turn the segments into colors
-        data = colormap.orient2rgb(orientations)
+        data = get_streamlines_as_linspaces(sft)
+        data = np.hstack(data)
+    elif args.local_orientation:
+        data = generate_local_coloring(sft)
+    else:  # args.local_angle:
+        data = get_angles(sft, add_zeros=True)
+        data = np.hstack(data)
 
     # Processing
     if not args.local_orientation:

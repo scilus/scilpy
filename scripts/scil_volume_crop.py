@@ -24,7 +24,7 @@ from scilpy.io.utils import (add_overwrite_arg,
                              add_verbose_arg,
                              assert_inputs_exist,
                              assert_outputs_exist)
-from scilpy.utils.util import compute_nifti_bounding_box
+from scilpy.image.utils import compute_nifti_bounding_box
 from scilpy.image.volume_operations import crop_volume
 
 
@@ -50,7 +50,7 @@ def _build_arg_parser():
                          'the bounding box to crop input file.')
     g1.add_argument('--output_bbox',
                     help='Path of the pickle file where to write the '
-                         'computed bounding box.')
+                         'computed bounding box. (.pickle extension)')
     return p
 
 

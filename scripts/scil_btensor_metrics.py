@@ -104,7 +104,7 @@ def _build_arg_parser():
     g2.add_argument(
         '--op',
         help='Output filename for the order parameter. The OP will not be '
-             'outputed if this is not given. Computation of the OP also '
+             'output if this is not given. Computation of the OP also '
              'requires a precomputed FA map (given using --fa).')
     g2.add_argument(
         '--fa',

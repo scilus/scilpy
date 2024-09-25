@@ -2,8 +2,8 @@
 # -*- coding: utf-8 -*-
 
 """
-This script is designed to compare and help visualize differences between
-two tractograms. This can be especially useful in studies where multiple
+This script is designed to compare and help visualize differences between two
+tractograms. This can be especially useful in studies where multiple
 tractograms from different algorithms or parameters need to be compared.
 
 A similar script (scil_bundle_pairwise_comparison.py) is available for bundles,
@@ -19,7 +19,7 @@ The difference is computed in terms of
 - A patch-wise correlation between streamline density maps from both
     tractograms. This compares where the high/low density regions agree or not
     (out_corr.nii.gz)
-- A heatmap combining all the previous metrics using an harmonic means of the
+- A heatmap combining all the previous metrics using a harmonic means of the
     normalized metrics to summarize general agreement (out_heatmap.nii.gz)
 """
 
@@ -29,16 +29,17 @@ import os
 
 import nibabel as nib
 
+from scilpy.io.image import get_data_as_mask
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg, add_reference_arg,
                              assert_inputs_exist,
                              assert_outputs_exist,
-                             assert_output_dirs_exist_and_empty,
                              add_processes_arg,
                              add_verbose_arg,
                              assert_headers_compatible,
                              validate_nbr_processes)
-from scilpy.tractanalysis.reproducibility_measures import tractogram_pairwise_comparison
+from scilpy.tractanalysis.reproducibility_measures import \
+    tractogram_pairwise_comparison
 
 
 def _build_arg_parser():
@@ -53,8 +54,8 @@ def _build_arg_parser():
                    help='Input tractogram 2.')
 
     p.add_argument('--out_dir', default='',
-                   help='Directory where all output files will be saved. '
-                        '\nIf not specified, outputs will be saved in the '
+                   help='Directory where all output files will be saved.\n'
+                        'If not specified, outputs will be saved in the '
                         'current directory.')
     p.add_argument('--out_prefix', default='out',
                    help='Prefix for output files. Useful for distinguishing '
@@ -76,42 +77,43 @@ def _build_arg_parser():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
-
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
+    # Verifications
     assert_inputs_exist(parser, [args.in_tractogram_1, args.in_tractogram_2],
                         [args.in_mask, args.reference])
-    to_verify = [args.in_tractogram_1, args.in_tractogram_2]
-    if args.in_mask:
-        to_verify.append(args.in_mask)
-    assert_headers_compatible(parser, to_verify, reference=args.reference)
+    assert_headers_compatible(parser,
+                              [args.in_tractogram_1, args.in_tractogram_2],
+                              args.in_mask, reference=args.reference)
 
     if args.out_prefix and args.out_prefix[-1] == '_':
         args.out_prefix = args.out_prefix[:-1]
-    out_corr_filename = os.path.join(args.out_dir,
-                                     '{}_correlation.nii.gz'.format(args.out_prefix))
-    out_acc_filename = os.path.join(args.out_dir,
-                                    '{}_acc.nii.gz'.format(args.out_prefix))
-    out_diff_filename = os.path.join(args.out_dir,
-                                     '{}_diff.nii.gz'.format(args.out_prefix))
-    out_merge_filename = os.path.join(args.out_dir,
-                                      '{}_heatmap.nii.gz'.format(args.out_prefix))
-    assert_output_dirs_exist_and_empty(parser, args, [], optional=args.out_dir)
+    out_corr_filename = os.path.join(
+        args.out_dir, '{}_correlation.nii.gz'.format(args.out_prefix))
+    out_acc_filename = os.path.join(
+        args.out_dir, '{}_acc.nii.gz'.format(args.out_prefix))
+    out_diff_filename = os.path.join(
+        args.out_dir, '{}_diff.nii.gz'.format(args.out_prefix))
+    out_merge_filename = os.path.join(
+        args.out_dir, '{}_heatmap.nii.gz'.format(args.out_prefix))
     assert_outputs_exist(parser, args, [out_corr_filename,
                                         out_acc_filename,
                                         out_merge_filename],
                          out_diff_filename)
     nbr_cpu = validate_nbr_processes(parser, args)
 
+    # Loading
     logging.info('Loading tractograms...')
     sft_1 = load_tractogram_with_reference(parser, args, args.in_tractogram_1)
     sft_2 = load_tractogram_with_reference(parser, args, args.in_tractogram_2)
-    mask = nib.load(args.in_mask) if args.in_mask else None
+    mask = get_data_as_mask(nib.load(args.in_mask)) if args.in_mask else None
 
-    acc_data, corr_data, diff_data, heatmap = \
+    # Processing
+    acc_data, corr_data, diff_data, heatmap, _ = \
         tractogram_pairwise_comparison(sft_1, sft_2, mask, nbr_cpu,
                                        args.skip_streamlines_distance)
 
+    # Saving
     logging.info('Saving results...')
     nib.save(nib.Nifti1Image(acc_data, sft_1.affine), out_acc_filename)
     nib.save(nib.Nifti1Image(corr_data, sft_1.affine), out_corr_filename)

@@ -3,6 +3,7 @@ from contextlib import nullcontext
 import itertools
 import logging
 import multiprocessing
+from operator import mod
 import os
 import sys
 from tempfile import TemporaryDirectory
@@ -58,7 +59,7 @@ class Tracker(object):
         max_invalid_dirs: int
             Number of consecutives invalid directions allowed during tracking.
         compression_th : float,
-            Maximal distance threshold for compression. If None or 0, no
+            Maximal distance threshold for compression. If None, no
             compression is applied.
         nbr_processes: int
             Number of sub processes to use.
@@ -141,7 +142,7 @@ class Tracker(object):
             streamline.
         """
         if self.nbr_processes < 2:
-            chunk_id = 1
+            chunk_id = 0
             lines, seeds = self._get_streamlines(chunk_id)
         else:
             # Each process will use get_streamlines_at_seeds
@@ -339,7 +340,7 @@ class Tracker(object):
             # on current process ID.
             eps = s + chunk_id / (self.nbr_processes + 1)
             line_generator = np.random.default_rng(
-                np.uint32(hash((seed + (eps, eps, eps), self.rng_seed))))
+                np.abs(hash((seed + (eps, eps, eps), self.rng_seed))))
 
             # Forward and backward tracking
             line = self._get_line_both_directions(seed, line_generator)
@@ -347,7 +348,7 @@ class Tracker(object):
             if line is not None:
                 streamline = np.array(line, dtype='float32')
 
-                if self.compression_th and self.compression_th > 0:
+                if self.compression_th is not None:
                     # Compressing. Threshold is in mm. Verifying space.
                     if self.space == Space.VOX:
                         # Equivalent of sft.to_voxmm:
