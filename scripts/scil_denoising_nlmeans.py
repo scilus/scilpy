@@ -102,9 +102,9 @@ def _build_arg_parser():
              ">SENSE reconstruction (Philips scanners) or the number of \n"
              ">coils for a GRAPPA reconstruction (Siemens and GE). Use 0 to \n"
              ">disable the correction factor, as for example if the noise is\n"
-             ">Gaussian distributed. See [1] for more information.\n")
-    # ??????????? VOIR SI TOUJOURS D'ACTUALITE????? ON AVAIT: We force to zero as the 3T
-    # is either oversmoothed or still noisy, but we prefer the second option"
+             ">Gaussian distributed. See [1] for more information.\n"
+             "Note. If you don't know the number of coils, 0 will probably "
+             "work.")
 
     g = p.add_argument_group("Noise estimation options: basic")
     gg = g.add_mutually_exclusive_group()

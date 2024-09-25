@@ -34,4 +34,3 @@ def test_execution_piesno(script_runner, monkeypatch):
                             'dwi_denoised.nii.gz', '--processes', '1',
                             '--piesno', '--number_coils', '4')
     assert ret.success
-
