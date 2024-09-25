@@ -2,6 +2,7 @@
 import copy
 import logging
 import os
+import threading
 
 from dipy.io.utils import is_header_compatible, get_reference_info
 from dipy.tracking.streamlinespeed import length
@@ -17,6 +18,8 @@ from scilpy.tractanalysis.reproducibility_measures import \
     compute_bundle_adjacency_voxel
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
 from scilpy.utils.metrics_tools import compute_lesion_stats
+
+d = threading.local()
 
 
 def load_node_nifti(directory, in_label, out_label, ref_img):
@@ -35,65 +38,69 @@ def load_node_nifti(directory, in_label, out_label, ref_img):
 def multi_proc_compute_connectivity_matrices_from_hdf5(args):
     hdf5_filename = args[0]
     labels_img = args[1]
-    comb = args[2]
+    in_label, out_label = args[2]
     measures_to_compute = copy.copy(args[3])
     similarity = args[4]
     weighted = args[5]
     include_dps = args[6]
     min_lesion_vol = args[7]
+
+    # prints and loggings not showing???
+    print("Multiprocessing, ID {}: computing info for bundle {}."
+                 .format(d.id, args[2]))
     return compute_connectivity_matrices_from_hdf5(
-        hdf5_filename, labels_img, comb, measures_to_compute,
+        hdf5_filename, labels_img, in_label, out_label, measures_to_compute,
         similarity, weighted, include_dps, min_lesion_vol)
 
 
 def compute_connectivity_matrices_from_hdf5(
-        hdf5_filename, labels_img, comb, measures_to_compute,
+        hdf5_filename, labels_img, in_label, out_label,
+        compute_volume, compute_length,
+        measures_to_compute,
         similarity, weighted, include_dps, min_lesion_vol):
+    """
+
+    """
+    affine, dimensions, voxel_sizes, _ = get_reference_info(labels_img)
+
     if similarity is not None:
         similarity_directory = similarity[0]
 
-    in_label, out_label = comb
-    hdf5_file = h5py.File(hdf5_filename, 'r')
-    key = '{}_{}'.format(in_label, out_label)
-    if key not in hdf5_file:
-        return
-    streamlines = reconstruct_streamlines_from_hdf5(hdf5_file[key])
-    if len(streamlines) == 0:
-        return
+    # Getting the bundle from the hdf5
+    with h5py.File(hdf5_filename, 'r') as hdf5_file:
+        key = '{}_{}'.format(in_label, out_label)
+        if key not in hdf5_file:
+            logging.debug("Connection {} not found in the hdf5".format(key))
+            return
+        streamlines = reconstruct_streamlines_from_hdf5(hdf5_file[key])
+        if len(streamlines) == 0:
+            return
 
-    affine, dimensions, voxel_sizes, _ = get_reference_info(labels_img)
     measures_to_return = {}
-    assert_header_compatible_hdf5(hdf5_file, (affine, dimensions))
 
     # Precompute to save one transformation, insert later
-    if 'length' in measures_to_compute:
+    if compute_length:
         streamlines_copy = list(streamlines)
         # scil_tractogram_segment_connections_from_labels.py requires
         # isotropic voxels
-        mean_length = np.average(length(streamlines_copy))*voxel_sizes[0]
+        mean_length = np.average(length(streamlines_copy)) * voxel_sizes[0]
+        measures_to_return['length'] = mean_length
 
     # If density is not required, do not compute it
     # Only required for volume, similarity and any metrics
     if not ((len(measures_to_compute) == 1 and
-             ('length' in measures_to_compute or
-              'streamline_count' in measures_to_compute)) or
+             (compute_length or 'streamline_count' in measures_to_compute)) or
             (len(measures_to_compute) == 2 and
-             ('length' in measures_to_compute and
-              'streamline_count' in measures_to_compute))):
+             (compute_length and 'streamline_count' in measures_to_compute))):
 
-        density = compute_tract_counts_map(streamlines,
-                                           dimensions)
+        density = compute_tract_counts_map(streamlines, dimensions)
 
-    if 'volume' in measures_to_compute:
+    if compute_volume:
         measures_to_return['volume'] = np.count_nonzero(density) * \
             np.prod(voxel_sizes)
-        measures_to_compute.remove('volume')
     if 'streamline_count' in measures_to_compute:
         measures_to_return['streamline_count'] = len(streamlines)
         measures_to_compute.remove('streamline_count')
-    if 'length' in measures_to_compute:
-        measures_to_return['length'] = mean_length
-        measures_to_compute.remove('length')
     if 'similarity' in measures_to_compute and similarity_directory:
         density_sim = load_node_nifti(similarity_directory,
                                       in_label, out_label,

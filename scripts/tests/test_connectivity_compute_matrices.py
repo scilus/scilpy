@@ -31,5 +31,5 @@ def test_execution_connectivity(script_runner, monkeypatch):
                             '--similarity', in_avg, 'sim.npy',
                             '--metrics', in_afd, 'afd_max.npy',
                             '--density_weighting', '--no_self_connection',
-                            '--processes', '1')
+                            '--processes', '4', '-v')
     assert ret.success
