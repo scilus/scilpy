@@ -36,23 +36,19 @@ Each connection can be seen as a 'bundle'.
   - Volume-weighted: Volume of the bundle.
   - Similarity: mean density??
       Uses pre-computed density maps, which can be obtained with
-      >> ????
+      >> scil_connectivity_hdf5_average_density_map.py
   - Any metric: You can provide your own maps through --metrics. The average
-     non-zero value in the volume occupied by the bundle will be reported in
-     the matrices nodes.
-     Ex: --metrics FA.niigz fa.npy --metrics T1.nii.gz t1.npy
-     You can also use metric maps already masked for each bundle, through
-     --segmented_maps. All segmented maps in the input folder will be used.
-     This can be used, for instance, for maps output by the script
-     >> ????
+      non-zero value in the volume occupied by the bundle will be reported in
+      the matrices nodes.
+      Ex: --metrics FA.niigz fa.npy --metrics T1.nii.gz t1.npy
   - Lesions-related metrics: The option --lesion_load will compute 3
-     lesion(s)-related matrices (saved in the chosen output directory):
-     lesion_count.npy, lesion_vol.npy, and lesion_sc.npy. They represent the
-     number of lesion, the total volume of lesion(s) and the total number of
-     streamlines going through the lesion(s) for each bundle.
-     (See also >> scil_analyse_lesion_load.py)
+      lesion(s)-related matrices (saved in the chosen output directory):
+      lesion_count.npy, lesion_vol.npy, and lesion_sc.npy. They represent the
+      number of lesion, the total volume of lesion(s) and the total number of
+      streamlines going through the lesion(s) for each bundle. See also:
+      >> scil_analyse_lesion_load.py
   - Mean DPS: Mean values in the data_per_streamline of each streamline in the
-     bundles.
+      bundles.
 
 ??? The bundles should be averaged version in the same space. This will
 compute the weighted-dice between each node and their homologuous average
@@ -110,12 +106,6 @@ def _build_arg_parser():
                         'weighted matrix (.npy).\n'
                         'The density maps should be named using the same '
                         'labels as in the hdf5 (LABEL1_LABEL2.nii.gz).')
-    g.add_argument('--segmented_maps', nargs=2, action='append',
-                   metavar=('IN_FOLDER', 'OUT_FILE'),
-                   help='Input folder containing pre-segmented maps \n,'
-                        'which should be named using labels in the hdf5 '
-                        '(LABEL1_LABEL2.nii.gz),\n'
-                        'and output file for the weighted matrix (.npy).')
     g.add_argument('--metrics', nargs=2, action='append',
                    metavar=('IN_FILE', 'OUT_FILE'),
                    help='Input (.nii.gz). and output file (.npy) for a metric '
@@ -175,14 +165,6 @@ def main():
     if args.similarity:
         measures_to_compute.append('similarity')
         measures_output_filename.append(args.similarity[1])
-
-    # Adding measures from pre-computed maps.
-    dict_maps_out_name = {}
-    if args.segmented_maps is not None:
-        for in_folder, out_name in args.segmented_maps:
-            measures_to_compute.append(in_folder)
-            dict_maps_out_name[in_folder] = out_name
-            measures_output_filename.append(out_name)
 
     # Adding measures from pre-computed metrics.
     dict_metrics_out_name = {}
@@ -316,8 +298,6 @@ def main():
             matrix_basename = args.similarity[1]
         elif measure in dict_metrics_out_name:
             matrix_basename = dict_metrics_out_name[measure]
-        elif measure in dict_maps_out_name:
-            matrix_basename = dict_maps_out_name[measure]
         elif measure in dict_lesion_out_name:
             matrix_basename = dict_lesion_out_name[measure]
         else:
