@@ -50,6 +50,7 @@ import argparse
 import logging
 
 from dipy.io.streamline import save_tractogram
+from fury import colormap
 import nibabel as nib
 import numpy as np
 import matplotlib.pyplot as plt
@@ -106,13 +107,17 @@ def _build_arg_parser():
     p1.add_argument('--along_profile', action='store_true',
                     help='Color streamlines according to each point position'
                          'along its length.')
+    p1.add_argument('--local_orientation', action='store_true',
+                    help="Color streamlines according to the angle between "
+                         "each segment (in degree). \nAngles at first and "
+                         "last points are set to 0.")
     p1.add_argument('--local_angle', action='store_true',
                     help="Color streamlines according to the angle between "
                          "each segment (in degree). \nAngles at first and "
                          "last points are set to 0.")
 
     g2 = p.add_argument_group(title='Coloring options')
-    g2.add_argument('--ambiant_occlusion', nargs='?', const=8, type=int,
+    g2.add_argument('--ambiant_occlusion', nargs='?', const=4, type=int,
                     help='Impact factor of the ambiant occlusion '
                     'approximation. [%(default)s]')
     g2.add_argument('--colormap', default='jet',
@@ -150,6 +155,9 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
+
+    if args.local_orientation and args.out_colorbar:
+        parser.error("Cannot save a colorbar with local orientation coloring.")
 
     # Verifications
     assert_inputs_exist(parser, args.in_tractogram, args.reference)
@@ -208,13 +216,28 @@ def main():
             data = map_coordinates(data, concat_points, order=0)
     elif args.along_profile:
         data = get_values_along_length(sft)
-    else:  # args.local_angle:
+    elif args.local_angle:
         data = get_angles(sft)
+    else:  # args.local_orientation:
+        # Existing code in VIZ, move to function
+        diff = [np.diff(list(s), axis=0) for s in sft.streamlines]
+        # Repeat first segment so that the number of segments matches
+        # the number of points
+        diff = [[d[0]] + list(d) for d in diff]
+        # Flatten the list of segments
+        orientations = np.asarray([o for d in diff for o in d])
+        # Turn the segments into colors
+        data = colormap.orient2rgb(orientations)
 
     # Processing
-    sft, lbound, ubound = add_data_as_color_dpp(
-        sft, cmap, data, args.clip_outliers, args.min_range, args.max_range,
-        args.min_cmap, args.max_cmap, args.log, LUT)
+    if not args.local_orientation:
+        sft, lbound, ubound = add_data_as_color_dpp(
+            sft, cmap, data, args.clip_outliers, args.min_range, args.max_range,
+            args.min_cmap, args.max_cmap, args.log, LUT)
+    else:
+        sft.data_per_point['color'] = sft.streamlines.copy()
+        data *= 255
+        sft.data_per_point['color']._data = data.astype(np.uint8)
 
     # Saving
     if args.ambiant_occlusion:

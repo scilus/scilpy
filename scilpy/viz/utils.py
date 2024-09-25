@@ -187,7 +187,7 @@ def format_hexadecimal_color_to_rgb(color):
     return red, green, blue
 
 
-def ambiant_occlusion(sft, colors, factor=8):
+def ambiant_occlusion(sft, colors, factor=4):
     pts = sft.streamlines._data
     hsv = mcolors.rgb_to_hsv(colors)
 

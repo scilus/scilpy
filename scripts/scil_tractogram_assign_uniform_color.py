@@ -42,7 +42,7 @@ def _build_arg_parser():
     p.add_argument('in_tractograms', nargs='+',
                    help='Input tractograms (.trk or .tck).')
 
-    p.add_argument('--ambiant_occlusion', nargs='?', const=8, type=int,
+    p.add_argument('--ambiant_occlusion', nargs='?', const=4, type=int,
                    help='Impact factor of the ambiant occlusion '
                    'approximation.\n Use factor or 2. Decrease for '
                    'lighter and increase for darker [%(default)s].')
