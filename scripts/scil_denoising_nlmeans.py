@@ -24,7 +24,8 @@ available:
      > It is expected that
      >   1. The data has a noisy, non-masked background and
      >   2. The data is a repetition of the same measurements along the last
-     >      axis, i.e. dMRI or fMRI data, not structural data like T1/T2.")
+     >      axis, i.e. dMRI or fMRI data, not structural data like T1 or T2
+     >      images.
 
 The two last methods require the number of coils in the data to be known.
 Typically, if you know that the noise follows a Gaussian distribution, you
@@ -122,9 +123,6 @@ def _build_arg_parser():
     g.add_argument('--save_piesno_mask', metavar='filepath',
                    help="If set, save piesno mask.")
 
-    p.add_argument('--log', dest="logfile", metavar='file',
-                   help='If supplied, name of the text file to store the '
-                        'logs.')
     add_processes_arg(p)
     add_verbose_arg(p)
     add_overwrite_arg(p)
@@ -137,10 +135,6 @@ def main():
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     # Verifications
-    if args.logfile is not None:
-        logging.getLogger().addHandler(logging.FileHandler(args.logfile,
-                                                           mode='w'))
-
     if (args.number_coils is not None and args.number_coils == 0 and
             not args.gaussian):
         logging.warning("Usually, with --number_coils 0, the data ìs "
@@ -165,8 +159,7 @@ def main():
 
     assert_inputs_exist(parser, args.in_image,
                         [args.mask_denoise, args.mask_sigma])
-    assert_outputs_exist(parser, args, args.out_image,
-                         [args.logfile, args.save_piesno_mask])
+    assert_outputs_exist(parser, args, args.out_image, args.save_piesno_mask)
     assert_headers_compatible(parser, args.in_image,
                               [args.mask_denoise, args.mask_sigma])
 
