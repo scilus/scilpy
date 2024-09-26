@@ -267,8 +267,7 @@ def main():
         # Since a bundle can be present twice in a single voxel by being
         # associated with more than one fixel, we count the presence of a
         # bundle if > 0.
-        vd_masks = np.where(np.sum(fd_masks, axis=-2) > 0,
-                                    1, 0)
+        vd_masks = np.where(np.sum(fd_masks, axis=-2) > 0, 1, 0)
         # Compute number of bundles per voxel by taking the sum of the mask
         nb_bundles_per_voxel = np.sum(vd_masks, axis=-1)
 
@@ -282,7 +281,7 @@ def main():
                 nib.save(nib.Nifti1Image(fd_masks[..., i], affine),
                          "{}_{}_{}{}.nii.gz".format(fd_mask_name, norm_name,
                                                     bundle_n, suffix))
-                if norm != "fixel": # If fixel, voxel maps mean nothing
+                if norm != "fixel":  # If fixel, voxel maps mean nothing
                     nib.save(nib.Nifti1Image(vd_maps[..., i], affine),
                              "{}_{}_{}{}.nii.gz".format(vd_map_name, norm_name,
                                                         bundle_n, suffix))
@@ -354,7 +353,7 @@ def main():
     bundles_idx = np.arange(0, len(bundles_names), 1)
     lookup_table = np.array([bundles_names, bundles_idx])
     np.savetxt("{}{}bundles_LUT{}.txt".format(out_dir, prefix, suffix),
-                lookup_table, fmt='%s')
+               lookup_table, fmt='%s')
 
 
 if __name__ == "__main__":
