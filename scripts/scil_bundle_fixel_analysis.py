@@ -252,7 +252,7 @@ def main():
                             nbr_processes=args.nbr_processes)
 
     for norm in args.norm:
-        norm_name = norm + "norm"
+        norm_name = norm + "-norm"
         logging.info("Performing normalization of type {}.".format(norm))
         logging.info("Computing density masks from density maps.")
         fd_masks, fd_maps = maps_to_masks(fd_maps, args.abs_thr, args.rel_thr,
