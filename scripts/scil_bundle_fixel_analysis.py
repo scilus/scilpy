@@ -27,7 +27,7 @@ The script produces various output:
       as the fixel-type, then the sum of the density over each fixel is 1, so
       the sum over a voxel will be higher than 1 (except in the single-fiber
       case). The density maps can be computed using the streamline count, or
-      any streamline weighting like COMMIT or SIF, through the
+      any streamline weighting like COMMIT or SIFT, through the
       data_per_streamline using the --dps_key argument. NOTE: This is a 5D file
       that will not be easily inputed to a regular viewer. Use --split_bundles
       or --split_fixels options to save the 4D versions for visualization.
