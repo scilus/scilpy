@@ -38,25 +38,25 @@ def load_node_nifti(directory, in_label, out_label, ref_img):
 
 def multi_proc_compute_connectivity_matrices_from_hdf5(args):
     (hdf5_filename, labels_img, comb,
-    compute_volume, compute_streamline_count, compute_length,
-    similarity_directory, metrics, lesion_data, include_dps,
-     weighted, min_lesion_vol) = args
+     compute_volume, compute_streamline_count, compute_length,
+     similarity_directory, metrics_data, metrics_names, lesion_data,
+     include_dps, weighted, min_lesion_vol) = args
 
     print("Multiprocessing, ID {}: computing info for bundle {}."
           .format(d.id, comb))
-    # -----------------sys.stdout.flush()  # Else, prints do not show with multi-processing??
     return compute_connectivity_matrices_from_hdf5(
         hdf5_filename, labels_img, comb[0], comb[1],
         compute_volume, compute_streamline_count, compute_length,
-        similarity_directory, metrics, lesion_data, include_dps,
-        weighted, min_lesion_vol)
+        similarity_directory, metrics_data, metrics_names, lesion_data,
+        include_dps, weighted, min_lesion_vol)
 
 
 def compute_connectivity_matrices_from_hdf5(
         hdf5_filename, labels_img, in_label, out_label,
         compute_volume=True, compute_streamline_count=True,
-        compute_length=True, similarity_directory=None, metrics=None,
-        lesion_data=None, include_dps=False, weighted=False, min_lesion_vol=0):
+        compute_length=True, similarity_directory=None, metrics_data=None,
+        metrics_names=None, lesion_data=None, include_dps=False,
+        weighted=False, min_lesion_vol=0):
     """
     Parameters
     ----------
@@ -79,26 +79,34 @@ def compute_connectivity_matrices_from_hdf5(
         length of streamlines in the bundle.
     similarity_directory: str
         If not None, ??
-    metrics: list[np.ndarray]
-        List of 3D data with metrics to use. If set, the returned dictionary
-        will contain an entry 'metrics' with a list of floats of the same
-        length, with the mean value of each metric.
+    metrics: Tuple[list[np.ndarray], list[str]]
+        List of 3D data with metrics to use, with the list of associated metric
+        names. If set, the returned dictionary will contain an entry for each
+        name, with the mean value of each metric.
     lesion_data: Tuple[list, np.ndarray]
         The (lesion_labels, lesion_data) for lesion load analysis. If set, the
-        returned dictionary will contain an entry 'lesion_load' with a
-        dictionary: {'vol': total lesion volume, 'streamline_count': number of
-        streamlines passing through lesions, 'count': number of lesions}.
+        returned dictionary will contain the three entries 'lesion_volume':
+        the total lesion volume, 'lesion_streamline_count': the number of
+        streamlines passing through lesions, 'lesion_count': the number of
+        lesions.
     include_dps: bool
-        If true, return an entry 'dps' with a dictionary: {dps_key: mean dps
-        value}.
+        If true, return an entry for each dps with the mean dps value.
     weighted: bool
         If true, weight the results with the density map.
     min_lesion_vol: float
         Minimum lesion volume for a lesion to be considered.
+
+    Returns
+    -------
+    final_dict: {(in_label, out_label): (measures_dict, dps_keys)}
+        A dictionary with the node as key and as value:
+        measures_dict: The dictionary of returned values.
+        dps_keys: The list of keys included from dps.
+        If the connection is not found, None is returned instead.
     """
-    node_name = '{}_{}'.format(in_label, out_label)
-    if metrics is None:
-        metrics = []
+    if len(metrics_data) > 0:
+        assert len(metrics_data) == len(metrics_names)
+
     affine, dimensions, voxel_sizes, _ = get_reference_info(labels_img)
 
     # Getting the bundle from the hdf5
@@ -112,24 +120,23 @@ def compute_connectivity_matrices_from_hdf5(
             logging.debug("Connection {} contained no streamline".format(key))
             return None
 
-    measures_to_return = {}
-
-    # Precompute to save one transformation, insert later
-    if compute_length:
-        # scil_tractogram_segment_connections_from_labels.py requires
-        # isotropic voxels
-        mean_length = np.average(length(list(streamlines))) * voxel_sizes[0]
-        measures_to_return['length'] = mean_length
-
     # If density is not required, do not compute it
     # Only required for volume, similarity and any metrics
     if (compute_volume or similarity_directory is not None or
             len(metrics) > 0):
         density = compute_tract_counts_map(streamlines, dimensions)
 
+    measures_to_return = {}
+
+    if compute_length:
+        # scil_tractogram_segment_connections_from_labels.py requires
+        # isotropic voxels
+        mean_length = np.average(length(list(streamlines))) * voxel_sizes[0]
+        measures_to_return['length'] = mean_length
+
     if compute_volume:
         measures_to_return['volume'] = np.count_nonzero(density) * \
-            np.prod(voxel_sizes)
+                                       np.prod(voxel_sizes)
 
     if compute_streamline_count:
         measures_to_return['streamline_count'] = len(streamlines)
@@ -144,14 +151,12 @@ def compute_connectivity_matrices_from_hdf5(
 
         measures_to_return['similarity'] = ba_vox
 
-    metrics_values = []
-    for metric_data in metrics:
+    for metric_data, metric_name in zip(metrics_data, metrics_names):
         if weighted:
             avg_value = np.average(metric_data, weights=density)
         else:
             avg_value = np.average(metric_data[density > 0])
-        metrics_values.append(avg_value)
-    measures_to_return['metrics'] = metrics_values
+        measures_to_return[metric_name] = avg_value
 
     if lesion_data is not None:
         lesion_labels, lesion_img = lesion_data
@@ -171,28 +176,23 @@ def compute_connectivity_matrices_from_hdf5(
             np.where(tmp_ind == [0, 1][True])[0].tolist())
 
         if tmp_dict:
-            measures_to_return['lesion'] = {
-                'vol': tmp_dict['lesion_total_volume'],
-                'count': tmp_dict['lesion_count'],
-                'streamlines_count': streamlines_count
-            }
+            measures_to_return['lesion_vol'] = tmp_dict['lesion_total_volume']
+            measures_to_return['lesion_count'] = tmp_dict['lesion_count']
+            measures_to_return['lesion_streamline_count'] = streamlines_count
         else:
-            measures_to_return['lesion'] = {
-                'vol': 0,
-                'count': 0,
-                'streamlines_count': 0
-            }
+            measures_to_return['lesion_vol'] = 0
+            measures_to_return['lesion_count'] = 0
+            measures_to_return['lesion_streamline_count'] = 0
 
+    dps_keys = []
     if include_dps:
-        dps_values = {}
         for dps_key in hdf5_file[key].keys():
             if dps_key not in ['data', 'offsets', 'lengths']:
                 if 'commit' in dps_key:
-                    dps_values[dps_key] = np.sum(hdf5_file[key][dps_key])
+                    dps_values = np.sum(hdf5_file[key][dps_key])
                 else:
-                    dps_values[dps_key] = np.average(hdf5_file[key][dps_key])
-        measures_to_return['dps'] = dps_values
+                    dps_values = np.average(hdf5_file[key][dps_key])
+                measures_to_return[dps_key] = dps_values
+                dps_keys.append(dps_key)
 
-    logging.debug("Values for node {}_{}: {}"
-                  .format(in_label, out_label, measures_to_return))
-    return {node_name: measures_to_return}
+    return {(in_label, out_label): measures_to_return}, dps_keys

@@ -80,7 +80,8 @@ from scilpy.io.utils import (add_overwrite_arg, add_processes_arg,
                              add_verbose_arg,
                              assert_inputs_exist, assert_outputs_exist,
                              validate_nbr_processes, assert_inputs_dirs_exist,
-                             assert_headers_compatible)
+                             assert_headers_compatible,
+                             assert_output_dirs_exist_and_empty)
 from scilpy.connectivity.connectivity import d
 
 
@@ -141,37 +142,60 @@ def _build_arg_parser():
     return p
 
 
-def menage_a_faire(parser, args):
-    # Verifying now most of the outputs.
-    # Other will be verified later when we know the label combination.
-    # Summarizing all options chosen by user in measures_to_compute.
-    measures_to_compute = []
-    measures_output_filename = []
-
-    # Adding measures from lesions.
-    dict_lesion_out_name = {}
+def check_inputs_outputs(parser, args):
+    optional_input_volumes = []
+    optional_output_matrices = [args.volume, args.streamline_count,
+                                args.length]
+    out_dirs = [args.include_dps]
+    if args.metrics is not None:
+        optional_input_volumes.extend([m[0] for m in args.metrics])
+        optional_output_matrices.extend([m[1] for m in args.metrics])
     if args.lesion_load is not None:
-        in_name = args.lesion_load[0]
+        optional_input_volumes.append(args.lesion_load[0])
+        optional_output_matrices.append(args.lesion_load[1])
+    if args.similarity is not None:
+        optional_output_matrices.append(args.similarity[1])
+        # Note. Inputs in the --similarity folder are not checked yet!
+        # But at least checking that the folder exists
+        assert_inputs_dirs_exist(parser, [], args.similarity[0])
+    if args.lesion_load is not None:
+        out_dirs.append(args.lesion_load[1])
 
-        out_name_1 = os.path.join(args.lesion_load[1], 'lesion_vol.npy')
-        out_name_2 = os.path.join(args.lesion_load[1], 'lesion_count.npy')
-        out_name_3 = os.path.join(args.lesion_load[1], 'lesion_sc.npy')
+    # Inputs
+    assert_inputs_exist(parser, [args.in_hdf5, args.in_labels],
+                        [args.force_labels_list] + optional_input_volumes)
 
-        dict_lesion_out_name[in_name + 'vol'] = out_name_1
-        dict_lesion_out_name[in_name + 'count'] = out_name_2
-        dict_lesion_out_name[in_name + 'sc'] = out_name_3
-        measures_output_filename.extend([out_name_1, out_name_2, out_name_3])
+    # Headers
+    assert_headers_compatible(parser, args.in_labels, optional_input_volumes)
+    with h5py.File(args.in_hdf5, 'r') as hdf5:
+        vol = nib.load(args.in_labels)
+        assert_header_compatible_hdf5(hdf5, vol)
 
-    # Verifying all outputs that will be used for all measures.
-    logging.info('The following measures will be computed and save: {}'.format(
-        measures_output_filename))
+    # Outputs
+    assert_outputs_exist(parser, args, [], optional_output_matrices)
+    assert_output_dirs_exist_and_empty(parser, args, [], out_dirs)
+    for m in optional_output_matrices:
+        if m is not None and m[-4:] != '.npy':
+            parser.error("Expecting .npy for the output matrix, got: {}"
+                         .format(m))
 
-    if args.include_dps:
-        if not os.path.isdir(args.include_dps):
-            os.makedirs(args.include_dps)
-        logging.info('data_per_streamline weighting is activated.')
 
-    return measures_to_compute, dict_lesion_out_name
+def fill_matrix_and_save(measures_dict, labels_list, measure_keys, filenames):
+    matrix = np.zeros((len(labels_list), len(labels_list), len(measure_keys)))
+
+    # Run one loop on node. Fill all matrices at once.
+    for in_label, out_label in measures_dict:
+        curr_node_dict = measures_dict[(in_label, out_label)]
+        for i, key in enumerate(measure_keys):
+            in_pos = labels_list.index(in_label)
+            out_pos = labels_list.index(out_label)
+            matrix[in_pos, out_pos, i] = curr_node_dict[key]
+            matrix[out_pos, in_pos, i] = curr_node_dict[key]
+
+    for i, f in enumerate(filenames):
+        logging.info("Saving resulting {} in file {}"
+                     .format(measure_keys[i], f))
+        np.save(f, matrix[:, :, i])
 
 
 def main():
@@ -181,22 +205,9 @@ def main():
     coloredlogs.install(level=logging.getLevelName(args.verbose))
 
     # Verifications
-    optional_volumes = []
-    if args.metrics is not None:
-        optional_volumes.extend([m[0] for m in args.metrics])
-    if args.lesion_load is not None:
-        optional_volumes.append(args.lesion_load[0])
-    assert_inputs_exist(parser, [args.in_hdf5, args.in_labels],
-                        [args.force_labels_list] + optional_volumes)
-    if args.similarity is not None:
-        # Note. Inputs in the --similarity folder are not checked yet!
-        # But at least checking that the folder exists
-        assert_inputs_dirs_exist(parser, [], args.similarity[0])
-    assert_headers_compatible(parser, args.in_labels, optional_volumes)
-    with h5py.File(args.in_hdf5, 'r') as hdf5:
-        vol = nib.load(args.in_labels)
-        assert_header_compatible_hdf5(hdf5, vol)
+    check_inputs_outputs(parser, args)
 
+    # Verifying that at least one option is selected
     compute_volume = args.volume is not None
     compute_streamline_count = args.streamline_count is not None
     compute_length = args.length is not None
@@ -205,9 +216,6 @@ def main():
             similarity_directory is not None or len(args.metrics) > 0 or
             args.lesion_load is not None or args.include_dps):
         parser.error("Please select at least one output matrix to compute.")
-
-    (measures_to_compute, dict_lesion_out_name) = menage_a_faire(parser, args)
-    # assert_outputs_exist(parser, args, measures_to_compute)
 
     # Loading the data
     img_labels = nib.load(args.in_labels)
@@ -248,14 +256,15 @@ def main():
 
     # Running everything!
     nbr_cpu = validate_nbr_processes(parser, args)
-    measures_dict_list = []
+    outputs = []
     if nbr_cpu == 1:
         for comb in comb_list:
-            measures_dict_list.append(compute_connectivity_matrices_from_hdf5(
+            outputs.append(compute_connectivity_matrices_from_hdf5(
                 args.in_hdf5, img_labels, comb[0], comb[1],
                 compute_volume, compute_streamline_count, compute_length,
-                similarity_directory, metrics_data, lesion_data,
-                args.include_dps, args.density_weighting, args.min_lesion_vol))
+                similarity_directory, (metrics_data, metrics_names),
+                lesion_data, args.include_dps, args.density_weighting,
+                args.min_lesion_vol))
     else:
         def set_num(counter):
             d.id = next(counter) + 1
@@ -265,7 +274,7 @@ def main():
                                     initargs=(itertools.count(),))
 
         # Dividing the process bundle by bundle
-        measures_dict_list = pool.map(
+        outputs = pool.map(
             multi_proc_compute_connectivity_matrices_from_hdf5,
             zip(itertools.repeat(args.in_hdf5),
                 itertools.repeat(img_labels),
@@ -275,6 +284,7 @@ def main():
                 itertools.repeat(compute_length),
                 itertools.repeat(similarity_directory),
                 itertools.repeat(metrics_data),
+                itertools.repeat(metrics_names),
                 itertools.repeat(lesion_data),
                 itertools.repeat(args.include_dps),
                 itertools.repeat(args.density_weighting),
@@ -284,51 +294,60 @@ def main():
         pool.join()
 
     # Removing None entries (combinaisons that do not exist)
-    measures_dict_list = [it for it in measures_dict_list if it is not None]
-    if len(measures_dict_list) == 0:
+    outputs = [it for it in outputs if it is not None]
+    if len(outputs) == 0:
         raise ValueError('No connection found at all! Matrices would be '
                          'all-zeros. Exiting.')
+
+    measures_dict_list = [it[0] for it in outputs]
+    dps_keys = [it[1] for it in outputs]
+    logging.info("GOT dps {}".format(dps_keys))
+    logging.info("GOT dicts {}".format(measures_dict_list))
+
+    # Verify that all bundles had the same dps_keys
+    if len(dps_keys) > 1 and not dps_keys[1:] == dps_keys[:-1]:
+        raise ValueError("DPS keys not consistant throughout the hdf5 "
+                         "connections. Verify your tractograms, or do not "
+                         "use --include_dps.")
+    dps_keys = dps_keys[0]
 
     # Fusing the multiprocessing output into a single dictionary
     measures_dict = {}
     for node in measures_dict_list:
         measures_dict.update(node)
-    logging.info("As dict: {}".format(measures_dict))
-    logging.info("Nb keys: {}".format(len(measures_dict.keys())))
+
+    logging.info("GOT dps {}".format(dps_keys))
+    logging.info("GOT dicts {}".format(measures_dict))
 
     # Filling out all the matrices (symmetric) in the order of labels_list
-    exit(1)
-    nbr_of_measures = len(list(measures_dict.values())[0])
-    matrix = np.zeros((len(labels_list), len(labels_list), nbr_of_measures))
-
-    for in_label, out_label in measures_dict:
-        curr_node_dict = measures_dict[(in_label, out_label)]
-        measures_ordering = list(curr_node_dict.keys())
-
-        for i, measure in enumerate(curr_node_dict):
-            in_pos = labels_list.index(in_label)
-            out_pos = labels_list.index(out_label)
-            matrix[in_pos, out_pos, i] = curr_node_dict[measure]
-            matrix[out_pos, in_pos, i] = curr_node_dict[measure]
-
-    # Saving the matrices separatly with the specified name or dps
-    for i, measure in enumerate(measures_ordering):
-        if measure == 'volume':
-            matrix_basename = args.volume
-        elif measure == 'streamline_count':
-            matrix_basename = args.streamline_count
-        elif measure == 'length':
-            matrix_basename = args.length
-        elif measure == 'similarity':
-            matrix_basename = args.similarity[1]
-        elif measure in dict_metrics_out_name:
-            matrix_basename = dict_metrics_out_name[measure]
-        elif measure in dict_lesion_out_name:
-            matrix_basename = dict_lesion_out_name[measure]
-        else:
-            matrix_basename = measure
-
-        np.save(matrix_basename, matrix[:, :, i])
+    keys = []
+    filenames = []
+    if compute_volume:
+        keys.append(['volume'])
+        filenames.append(args.volume)
+    if compute_length:
+        keys.append(['length'])
+        filenames.append(args.length)
+    if compute_streamline_count:
+        keys.append(['streamline_count'])
+        filenames.append(args.streamline_count)
+    if similarity_directory is not None:
+        keys.append(['similarity'])
+        filenames.append(args.similarity[1])
+    if len(args.metrics) > 0:
+        keys.extend(metrics_names)
+        filenames.extend([m[1] for m in args.metrics])
+    if args.lesion_load is not None:
+        keys.extend(['lesion_vol', 'lesion_count', 'lesion_streamline_count'])
+        filenames.extend(
+            [os.path.join(args.lesion_load[1], 'lesion_vol.npy'),
+             os.path.join(args.lesion_load[1], 'lesion_count.npy'),
+             os.path.join(args.lesion_load[1], 'lesion_sc.npy')])
+    if args.include_dps:
+        keys.extend(dps_keys)
+        filenames.extend([os.path.join(args.include_dps, "{}.npy".format(k))
+                          for k in dps_keys])
+    fill_matrix_and_save(measures_dict, labels_list, keys, filenames)
 
 
 if __name__ == "__main__":
