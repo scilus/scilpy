@@ -2,6 +2,7 @@
 import copy
 import logging
 import os
+import sys
 import threading
 
 from dipy.io.utils import is_header_compatible, get_reference_info
@@ -36,154 +37,162 @@ def load_node_nifti(directory, in_label, out_label, ref_img):
 
 
 def multi_proc_compute_connectivity_matrices_from_hdf5(args):
-    hdf5_filename = args[0]
-    labels_img = args[1]
-    in_label, out_label = args[2]
-    measures_to_compute = copy.copy(args[3])
-    similarity = args[4]
-    weighted = args[5]
-    include_dps = args[6]
-    min_lesion_vol = args[7]
+    (hdf5_filename, labels_img, comb,
+    compute_volume, compute_streamline_count, compute_length,
+    similarity_directory, metrics, lesion_data, include_dps,
+     weighted, min_lesion_vol) = args
 
-    # prints and loggings not showing???
     print("Multiprocessing, ID {}: computing info for bundle {}."
-                 .format(d.id, args[2]))
+          .format(d.id, comb))
+    # -----------------sys.stdout.flush()  # Else, prints do not show with multi-processing??
     return compute_connectivity_matrices_from_hdf5(
-        hdf5_filename, labels_img, in_label, out_label, measures_to_compute,
-        similarity, weighted, include_dps, min_lesion_vol)
+        hdf5_filename, labels_img, comb[0], comb[1],
+        compute_volume, compute_streamline_count, compute_length,
+        similarity_directory, metrics, lesion_data, include_dps,
+        weighted, min_lesion_vol)
 
 
 def compute_connectivity_matrices_from_hdf5(
         hdf5_filename, labels_img, in_label, out_label,
-        compute_volume, compute_length,
-        measures_to_compute,
-        similarity, weighted, include_dps, min_lesion_vol):
+        compute_volume=True, compute_streamline_count=True,
+        compute_length=True, similarity_directory=None, metrics=None,
+        lesion_data=None, include_dps=False, weighted=False, min_lesion_vol=0):
     """
-
+    Parameters
+    ----------
+    hdf5_filename: str
+        Name of the hdf5 file containing the precomputed connections (bundles)
+    labels_img: np.ndarray
+        Data as labels
+    in_label: str
+        Name of one extremity of the bundle to analyse.
+    out_label: str
+        Name of the other extremity. Current node is {in_label}_{out_label}.
+    compute_volume: bool
+        If true, return 'volume' in the returned dictionary with the volume of
+        the bundle.
+    compute_streamline_count: bool
+        If true, return 'streamline_count' in the returned dictionary, with
+        the number of streamlines in the bundle.
+    compute_length: bool
+        If true, return 'length' in the returned dictionary, with the mean
+        length of streamlines in the bundle.
+    similarity_directory: str
+        If not None, ??
+    metrics: list[np.ndarray]
+        List of 3D data with metrics to use. If set, the returned dictionary
+        will contain an entry 'metrics' with a list of floats of the same
+        length, with the mean value of each metric.
+    lesion_data: Tuple[list, np.ndarray]
+        The (lesion_labels, lesion_data) for lesion load analysis. If set, the
+        returned dictionary will contain an entry 'lesion_load' with a
+        dictionary: {'vol': total lesion volume, 'streamline_count': number of
+        streamlines passing through lesions, 'count': number of lesions}.
+    include_dps: bool
+        If true, return an entry 'dps' with a dictionary: {dps_key: mean dps
+        value}.
+    weighted: bool
+        If true, weight the results with the density map.
+    min_lesion_vol: float
+        Minimum lesion volume for a lesion to be considered.
     """
+    node_name = '{}_{}'.format(in_label, out_label)
+    if metrics is None:
+        metrics = []
     affine, dimensions, voxel_sizes, _ = get_reference_info(labels_img)
-
-    if similarity is not None:
-        similarity_directory = similarity[0]
 
     # Getting the bundle from the hdf5
     with h5py.File(hdf5_filename, 'r') as hdf5_file:
         key = '{}_{}'.format(in_label, out_label)
         if key not in hdf5_file:
             logging.debug("Connection {} not found in the hdf5".format(key))
-            return
+            return None
         streamlines = reconstruct_streamlines_from_hdf5(hdf5_file[key])
         if len(streamlines) == 0:
-            return
+            logging.debug("Connection {} contained no streamline".format(key))
+            return None
 
     measures_to_return = {}
 
     # Precompute to save one transformation, insert later
     if compute_length:
-        streamlines_copy = list(streamlines)
         # scil_tractogram_segment_connections_from_labels.py requires
         # isotropic voxels
-        mean_length = np.average(length(streamlines_copy)) * voxel_sizes[0]
+        mean_length = np.average(length(list(streamlines))) * voxel_sizes[0]
         measures_to_return['length'] = mean_length
 
     # If density is not required, do not compute it
     # Only required for volume, similarity and any metrics
-    if not ((len(measures_to_compute) == 1 and
-             (compute_length or 'streamline_count' in measures_to_compute)) or
-            (len(measures_to_compute) == 2 and
-             (compute_length and 'streamline_count' in measures_to_compute))):
-
+    if (compute_volume or similarity_directory is not None or
+            len(metrics) > 0):
         density = compute_tract_counts_map(streamlines, dimensions)
 
     if compute_volume:
         measures_to_return['volume'] = np.count_nonzero(density) * \
             np.prod(voxel_sizes)
-    if 'streamline_count' in measures_to_compute:
+
+    if compute_streamline_count:
         measures_to_return['streamline_count'] = len(streamlines)
-        measures_to_compute.remove('streamline_count')
-    if 'similarity' in measures_to_compute and similarity_directory:
+
+    if similarity_directory is not None:
         density_sim = load_node_nifti(similarity_directory,
-                                      in_label, out_label,
-                                      labels_img)
+                                      in_label, out_label, labels_img)
         if density_sim is None:
             ba_vox = 0
         else:
             ba_vox = compute_bundle_adjacency_voxel(density, density_sim)
 
         measures_to_return['similarity'] = ba_vox
-        measures_to_compute.remove('similarity')
 
-    for measure in measures_to_compute:
-        # Maps
-        if isinstance(measure, str) and os.path.isdir(measure):
-            map_dirname = measure
-            map_data = load_node_nifti(map_dirname,
-                                       in_label, out_label,
-                                       labels_img)
-            measures_to_return[map_dirname] = np.average(
-                map_data[map_data > 0])
-        elif isinstance(measure, tuple):
-            if not isinstance(measure[0], tuple) \
-                    and os.path.isfile(measure[0]):
-                metric_filename = measure[0]
-                metric_img = measure[1]
-                if not is_header_compatible(metric_img, labels_img):
-                    logging.error('{} do not have a compatible header'.format(
-                        metric_filename))
-                    raise IOError
+    metrics_values = []
+    for metric_data in metrics:
+        if weighted:
+            avg_value = np.average(metric_data, weights=density)
+        else:
+            avg_value = np.average(metric_data[density > 0])
+        metrics_values.append(avg_value)
+    measures_to_return['metrics'] = metrics_values
 
-                metric_data = metric_img.get_fdata(dtype=np.float64)
-                if weighted:
-                    avg_value = np.average(metric_data, weights=density)
-                else:
-                    avg_value = np.average(metric_data[density > 0])
-                measures_to_return[metric_filename] = avg_value
-            # lesion
-            else:
-                lesion_filename = measure[0][0]
-                computed_lesion_labels = measure[0][1]
-                lesion_img = measure[1]
-                if not is_header_compatible(lesion_img, labels_img):
-                    logging.error('{} do not have a compatible header'.format(
-                        lesion_filename))
-                    raise IOError
+    if lesion_data is not None:
+        lesion_labels, lesion_img = lesion_data
+        voxel_sizes = lesion_img.header.get_zooms()[0:3]
+        lesion_img.set_filename('tmp.nii.gz')
+        lesion_atlas = get_data_as_labels(lesion_img)
+        tmp_dict = compute_lesion_stats(
+            density.astype(bool), lesion_atlas,
+            voxel_sizes=voxel_sizes, single_label=True,
+            min_lesion_vol=min_lesion_vol,
+            precomputed_lesion_labels=lesion_labels)
 
-                voxel_sizes = lesion_img.header.get_zooms()[0:3]
-                lesion_img.set_filename('tmp.nii.gz')
-                lesion_atlas = get_data_as_labels(lesion_img)
-                tmp_dict = compute_lesion_stats(
-                    density.astype(bool), lesion_atlas,
-                    voxel_sizes=voxel_sizes, single_label=True,
-                    min_lesion_vol=min_lesion_vol,
-                    precomputed_lesion_labels=computed_lesion_labels)
+        tmp_ind = _streamlines_in_mask(list(streamlines),
+                                       lesion_atlas.astype(np.uint8),
+                                       np.eye(3), [0, 0, 0])
+        streamlines_count = len(
+            np.where(tmp_ind == [0, 1][True])[0].tolist())
 
-                tmp_ind = _streamlines_in_mask(list(streamlines),
-                                               lesion_atlas.astype(np.uint8),
-                                               np.eye(3), [0, 0, 0])
-                streamlines_count = len(
-                    np.where(tmp_ind == [0, 1][True])[0].tolist())
-
-                if tmp_dict:
-                    measures_to_return[lesion_filename+'vol'] = \
-                        tmp_dict['lesion_total_volume']
-                    measures_to_return[lesion_filename+'count'] = \
-                        tmp_dict['lesion_count']
-                    measures_to_return[lesion_filename+'sc'] = \
-                        streamlines_count
-                else:
-                    measures_to_return[lesion_filename+'vol'] = 0
-                    measures_to_return[lesion_filename+'count'] = 0
-                    measures_to_return[lesion_filename+'sc'] = 0
+        if tmp_dict:
+            measures_to_return['lesion'] = {
+                'vol': tmp_dict['lesion_total_volume'],
+                'count': tmp_dict['lesion_count'],
+                'streamlines_count': streamlines_count
+            }
+        else:
+            measures_to_return['lesion'] = {
+                'vol': 0,
+                'count': 0,
+                'streamlines_count': 0
+            }
 
     if include_dps:
+        dps_values = {}
         for dps_key in hdf5_file[key].keys():
             if dps_key not in ['data', 'offsets', 'lengths']:
-                out_file = os.path.join(include_dps, dps_key)
                 if 'commit' in dps_key:
-                    measures_to_return[out_file] = np.sum(
-                        hdf5_file[key][dps_key])
+                    dps_values[dps_key] = np.sum(hdf5_file[key][dps_key])
                 else:
-                    measures_to_return[out_file] = np.average(
-                        hdf5_file[key][dps_key])
+                    dps_values[dps_key] = np.average(hdf5_file[key][dps_key])
+        measures_to_return['dps'] = dps_values
 
-    return {(in_label, out_label): measures_to_return}
+    logging.debug("Values for node {}_{}: {}"
+                  .format(in_label, out_label, measures_to_return))
+    return {node_name: measures_to_return}

@@ -47,6 +47,7 @@ Each connection can be seen as a 'bundle'.
       number of lesion, the total volume of lesion(s) and the total number of
       streamlines going through the lesion(s) for each bundle. See also:
       >> scil_analyse_lesion_load.py
+      >> scil_lesions_info.py
   - Mean DPS: Mean values in the data_per_streamline of each streamline in the
       bundles.
 
@@ -109,7 +110,7 @@ def _build_arg_parser():
                         'weighted matrix (.npy).\n'
                         'The density maps should be named using the same '
                         'labels as in the hdf5 (LABEL1_LABEL2.nii.gz).')
-    g.add_argument('--metrics', nargs=2, action='append',
+    g.add_argument('--metrics', nargs=2, action='append', default=[],
                    metavar=('IN_FILE', 'OUT_FILE'),
                    help='Input (.nii.gz). and output file (.npy) for a metric '
                         'weighted matrix.')
@@ -146,38 +147,11 @@ def menage_a_faire(parser, args):
     # Summarizing all options chosen by user in measures_to_compute.
     measures_to_compute = []
     measures_output_filename = []
-    if args.volume:
-        measures_to_compute.append('volume')
-        measures_output_filename.append(args.volume)
-    if args.streamline_count:
-        measures_to_compute.append('streamline_count')
-        measures_output_filename.append(args.streamline_count)
-    if args.length:
-        measures_to_compute.append('length')
-        measures_output_filename.append(args.length)
-    if args.similarity:
-        measures_to_compute.append('similarity')
-        measures_output_filename.append(args.similarity[1])
-
-    # Adding measures from pre-computed metrics.
-    dict_metrics_out_name = {}
-    if args.metrics is not None:
-        for in_name, out_name in args.metrics:
-            # This is necessary to support more than one map for weighting
-            measures_to_compute.append((in_name, nib.load(in_name)))
-            dict_metrics_out_name[in_name] = out_name
-            measures_output_filename.append(out_name)
 
     # Adding measures from lesions.
     dict_lesion_out_name = {}
     if args.lesion_load is not None:
         in_name = args.lesion_load[0]
-        lesion_img = nib.load(in_name)
-        lesion_data = get_data_as_mask(lesion_img, dtype=bool)
-        lesion_atlas, _ = ndi.label(lesion_data)
-        measures_to_compute.append(((in_name, np.unique(lesion_atlas)[1:]),
-                                    nib.Nifti1Image(lesion_atlas,
-                                                    lesion_img.affine)))
 
         out_name_1 = os.path.join(args.lesion_load[1], 'lesion_vol.npy')
         out_name_2 = os.path.join(args.lesion_load[1], 'lesion_count.npy')
@@ -189,10 +163,6 @@ def menage_a_faire(parser, args):
         measures_output_filename.extend([out_name_1, out_name_2, out_name_3])
 
     # Verifying all outputs that will be used for all measures.
-    if not measures_to_compute:
-        parser.error('No connectivity measures were selected, nothing '
-                     'to compute.')
-
     logging.info('The following measures will be computed and save: {}'.format(
         measures_output_filename))
 
@@ -201,7 +171,7 @@ def menage_a_faire(parser, args):
             os.makedirs(args.include_dps)
         logging.info('data_per_streamline weighting is activated.')
 
-    return measures_to_compute, dict_metrics_out_name, dict_lesion_out_name
+    return measures_to_compute, dict_lesion_out_name
 
 
 def main():
@@ -215,7 +185,7 @@ def main():
     if args.metrics is not None:
         optional_volumes.extend([m[0] for m in args.metrics])
     if args.lesion_load is not None:
-        optional_volumes.extend([ll[0] for ll in args.lesion_load])
+        optional_volumes.append(args.lesion_load[0])
     assert_inputs_exist(parser, [args.in_hdf5, args.in_labels],
                         [args.force_labels_list] + optional_volumes)
     if args.similarity is not None:
@@ -227,8 +197,16 @@ def main():
         vol = nib.load(args.in_labels)
         assert_header_compatible_hdf5(hdf5, vol)
 
-    (measures_to_compute, dict_metrics_out_name,
-     dict_lesion_out_name) = menage_a_faire(parser, args)
+    compute_volume = args.volume is not None
+    compute_streamline_count = args.streamline_count is not None
+    compute_length = args.length is not None
+    similarity_directory = args.similarity[0] if args.similarity else None
+    if not (compute_volume or compute_streamline_count or compute_length or
+            similarity_directory is not None or len(args.metrics) > 0 or
+            args.lesion_load is not None or args.include_dps):
+        parser.error("Please select at least one output matrix to compute.")
+
+    (measures_to_compute, dict_lesion_out_name) = menage_a_faire(parser, args)
     # assert_outputs_exist(parser, args, measures_to_compute)
 
     # Loading the data
@@ -241,6 +219,28 @@ def main():
             args.force_labels_list, dtype=np.int16).tolist()
     logging.info("Found {} labels.".format(len(labels_list)))
 
+    # Not preloading the similarity (density) files, as there are many
+    # (one per node). Can be loaded and discarded when treating each node.
+
+    # Preloading the metrics here (FA, T1) to avoid reloading for each
+    # node! But if there are many metrics, this could be heavy to keep in
+    # memory, especially if multiprocessing is used. Still probably better.
+    metrics_data = []
+    metrics_names = []
+    for m in args.metrics:
+        metrics_names.append(m[1])
+        metrics_data.append(nib.load(m[0]).get_fdata(dtype=np.float64))
+
+    # Preloading the lesion file
+    lesion_data = None
+    if args.lesion_load is not None:
+        lesion_img = nib.load(args.lesion_load[0])
+        lesion_data = get_data_as_mask(lesion_img, dtype=bool)
+        lesion_atlas, _ = ndi.label(lesion_data)
+        lesion_labels = np.unique(lesion_atlas)[1:]
+        atlas_img = nib.Nifti1Image(lesion_atlas, lesion_img.affine)
+        lesion_data = (lesion_labels, atlas_img)
+
     # Finding all connectivity combo (start-finish)
     comb_list = list(itertools.combinations(labels_list, r=2))
     if not args.no_self_connection:
@@ -249,20 +249,20 @@ def main():
     # Running everything!
     nbr_cpu = validate_nbr_processes(parser, args)
     measures_dict_list = []
-    compute_volume = args.volume is not None
-    compute_length = args.length is not None
     if nbr_cpu == 1:
         for comb in comb_list:
             measures_dict_list.append(compute_connectivity_matrices_from_hdf5(
                 args.in_hdf5, img_labels, comb[0], comb[1],
-                compute_volume, compute_length, args.similarity, args.density_weighting,
-                args.include_dps, args.min_lesion_vol))
+                compute_volume, compute_streamline_count, compute_length,
+                similarity_directory, metrics_data, lesion_data,
+                args.include_dps, args.density_weighting, args.min_lesion_vol))
     else:
         def set_num(counter):
             d.id = next(counter) + 1
 
         logging.info("PREPARING MULTIPOOLING: {}".format(comb_list))
-        pool = multiprocessing.Pool(nbr_cpu, initializer=set_num, initargs=(itertools.count(),))
+        pool = multiprocessing.Pool(nbr_cpu, initializer=set_num,
+                                    initargs=(itertools.count(),))
 
         # Dividing the process bundle by bundle
         measures_dict_list = pool.map(
@@ -271,35 +271,33 @@ def main():
                 itertools.repeat(img_labels),
                 comb_list,
                 itertools.repeat(compute_volume),
+                itertools.repeat(compute_streamline_count),
                 itertools.repeat(compute_length),
-                itertools.repeat(args.similarity),
-                itertools.repeat(args.density_weighting),
+                itertools.repeat(similarity_directory),
+                itertools.repeat(metrics_data),
+                itertools.repeat(lesion_data),
                 itertools.repeat(args.include_dps),
+                itertools.repeat(args.density_weighting),
                 itertools.repeat(args.min_lesion_vol)
                 ))
         pool.close()
         pool.join()
 
     # Removing None entries (combinaisons that do not exist)
-    # Fusing the multiprocessing output into a single dictionary
     measures_dict_list = [it for it in measures_dict_list if it is not None]
-    if not measures_dict_list:
-        raise ValueError('Empty matrix, no entries to save.')
-    measures_dict = measures_dict_list[0]
-    for dix in measures_dict_list[1:]:
-        measures_dict.update(dix)
+    if len(measures_dict_list) == 0:
+        raise ValueError('No connection found at all! Matrices would be '
+                         'all-zeros. Exiting.')
 
-    if args.no_self_connection:
-        total_elem = len(labels_list) ** 2 - len(labels_list)
-        results_elem = len(measures_dict.keys()) * 2 - len(labels_list)
-    else:
-        total_elem = len(labels_list) ** 2
-        results_elem = len(measures_dict.keys()) * 2
-
-    logging.info('Out of {} possible nodes, {} contain value'.format(
-        total_elem, results_elem))
+    # Fusing the multiprocessing output into a single dictionary
+    measures_dict = {}
+    for node in measures_dict_list:
+        measures_dict.update(node)
+    logging.info("As dict: {}".format(measures_dict))
+    logging.info("Nb keys: {}".format(len(measures_dict.keys())))
 
     # Filling out all the matrices (symmetric) in the order of labels_list
+    exit(1)
     nbr_of_measures = len(list(measures_dict.values())[0])
     matrix = np.zeros((len(labels_list), len(labels_list), nbr_of_measures))
 
