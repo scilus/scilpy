@@ -34,9 +34,12 @@ Each connection can be seen as a 'bundle'.
   - Streamline count.
   - Length: mean streamline length (mm).
   - Volume-weighted: Volume of the bundle.
-  - Similarity: mean density??
+  - Similarity: mean density.
       Uses pre-computed density maps, which can be obtained with
       >> scil_connectivity_hdf5_average_density_map.py
+      The bundles should be averaged version in the same space. This will
+      compute the weighted-dice between each node and their homologuous average
+      version.
   - Any metric: You can provide your own maps through --metrics. The average
       non-zero value in the volume occupied by the bundle will be reported in
       the matrices nodes.
@@ -50,10 +53,6 @@ Each connection can be seen as a 'bundle'.
       >> scil_lesions_info.py
   - Mean DPS: Mean values in the data_per_streamline of each streamline in the
       bundles.
-
-??? The bundles should be averaged version in the same space. This will
-compute the weighted-dice between each node and their homologuous average
-version.
 
 Formerly: scil_compute_connectivity.py
 """
@@ -82,7 +81,6 @@ from scilpy.io.utils import (add_overwrite_arg, add_processes_arg,
                              validate_nbr_processes, assert_inputs_dirs_exist,
                              assert_headers_compatible,
                              assert_output_dirs_exist_and_empty)
-from scilpy.connectivity.connectivity import d
 
 
 def _build_arg_parser():
@@ -262,7 +260,7 @@ def main():
             outputs.append(compute_connectivity_matrices_from_hdf5(
                 args.in_hdf5, img_labels, comb[0], comb[1],
                 compute_volume, compute_streamline_count, compute_length,
-                similarity_directory, (metrics_data, metrics_names),
+                similarity_directory, metrics_data, metrics_names,
                 lesion_data, args.include_dps, args.density_weighting,
                 args.min_lesion_vol))
     else:
