@@ -41,9 +41,6 @@ def multi_proc_compute_connectivity_matrices_from_hdf5(args):
      compute_volume, compute_streamline_count, compute_length,
      similarity_directory, metrics_data, metrics_names, lesion_data,
      include_dps, weighted, min_lesion_vol) = args
-
-    print("Multiprocessing, ID {}: computing info for bundle {}."
-          .format(d.id, comb))
     return compute_connectivity_matrices_from_hdf5(
         hdf5_filename, labels_img, comb[0], comb[1],
         compute_volume, compute_streamline_count, compute_length,
@@ -79,10 +76,12 @@ def compute_connectivity_matrices_from_hdf5(
         length of streamlines in the bundle.
     similarity_directory: str
         If not None, ??
-    metrics: Tuple[list[np.ndarray], list[str]]
+    metrics_data: list[np.ndarray]
         List of 3D data with metrics to use, with the list of associated metric
         names. If set, the returned dictionary will contain an entry for each
         name, with the mean value of each metric.
+    metrics_names: list[str]
+        The metrics names.
     lesion_data: Tuple[list, np.ndarray]
         The (lesion_labels, lesion_data) for lesion load analysis. If set, the
         returned dictionary will contain the three entries 'lesion_volume':
@@ -98,11 +97,11 @@ def compute_connectivity_matrices_from_hdf5(
 
     Returns
     -------
-    final_dict: {(in_label, out_label): (measures_dict, dps_keys)}
-        A dictionary with the node as key and as value:
-        measures_dict: The dictionary of returned values.
+    final_dict: Tuple[dict, list[str]] or None
+        dict: {(in_label, out_label): measures_dict}
+            A dictionary with the node as key and as the dictionary as
+            described above.
         dps_keys: The list of keys included from dps.
-        If the connection is not found, None is returned instead.
     """
     if len(metrics_data) > 0:
         assert len(metrics_data) == len(metrics_names)

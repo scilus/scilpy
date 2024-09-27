@@ -184,13 +184,13 @@ def fill_matrix_and_save(measures_dict, labels_list, measure_keys, filenames):
     matrix = np.zeros((len(labels_list), len(labels_list), len(measure_keys)))
 
     # Run one loop on node. Fill all matrices at once.
-    for in_label, out_label in measures_dict:
-        curr_node_dict = measures_dict[(in_label, out_label)]
-        for i, key in enumerate(measure_keys):
+    for label_key, node_values in measures_dict.items():
+        in_label, out_label = label_key
+        for i, measure_key in enumerate(measure_keys):
             in_pos = labels_list.index(in_label)
             out_pos = labels_list.index(out_label)
-            matrix[in_pos, out_pos, i] = curr_node_dict[key]
-            matrix[out_pos, in_pos, i] = curr_node_dict[key]
+            matrix[in_pos, out_pos, i] = node_values[measure_key]
+            matrix[out_pos, in_pos, i] = node_values[measure_key]
 
     for i, f in enumerate(filenames):
         logging.info("Saving resulting {} in file {}"
@@ -266,12 +266,7 @@ def main():
                 lesion_data, args.include_dps, args.density_weighting,
                 args.min_lesion_vol))
     else:
-        def set_num(counter):
-            d.id = next(counter) + 1
-
-        logging.info("PREPARING MULTIPOOLING: {}".format(comb_list))
-        pool = multiprocessing.Pool(nbr_cpu, initializer=set_num,
-                                    initargs=(itertools.count(),))
+        pool = multiprocessing.Pool(nbr_cpu)
 
         # Dividing the process bundle by bundle
         outputs = pool.map(
@@ -301,8 +296,6 @@ def main():
 
     measures_dict_list = [it[0] for it in outputs]
     dps_keys = [it[1] for it in outputs]
-    logging.info("GOT dps {}".format(dps_keys))
-    logging.info("GOT dicts {}".format(measures_dict_list))
 
     # Verify that all bundles had the same dps_keys
     if len(dps_keys) > 1 and not dps_keys[1:] == dps_keys[:-1]:
@@ -316,23 +309,20 @@ def main():
     for node in measures_dict_list:
         measures_dict.update(node)
 
-    logging.info("GOT dps {}".format(dps_keys))
-    logging.info("GOT dicts {}".format(measures_dict))
-
     # Filling out all the matrices (symmetric) in the order of labels_list
     keys = []
     filenames = []
     if compute_volume:
-        keys.append(['volume'])
+        keys.append('volume')
         filenames.append(args.volume)
     if compute_length:
-        keys.append(['length'])
+        keys.append('length')
         filenames.append(args.length)
     if compute_streamline_count:
-        keys.append(['streamline_count'])
+        keys.append('streamline_count')
         filenames.append(args.streamline_count)
     if similarity_directory is not None:
-        keys.append(['similarity'])
+        keys.append('similarity')
         filenames.append(args.similarity[1])
     if len(args.metrics) > 0:
         keys.extend(metrics_names)
