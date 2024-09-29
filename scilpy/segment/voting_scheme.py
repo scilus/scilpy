@@ -108,31 +108,30 @@ class VotingScheme(object):
         """
         if min_vote == 0:
             streamlines_ids = np.asarray([], dtype=np.uint32)
-            # vote_score = np.asarray([], dtype=np.uint32)
-            return streamlines_ids  # , vote_score
+            return streamlines_ids
 
         streamlines_ids = np.argwhere(bundles_wise_vote[bundle_id] >= min_vote)
         streamlines_ids = np.asarray(streamlines_ids[:, 1], dtype=np.uint32)
 
-        # vote_score = bundles_wise_vote.T[streamlines_ids].tocsr()[:, bundle_id]
-        # vote_score = np.squeeze(vote_score.toarray().astype(np.uint32).T)
-
-        return streamlines_ids  # , vote_score
+        return streamlines_ids
 
     def _save_recognized_bundles(self, sft, bundle_names,
-                                 bundles_wise_vote,
+                                 bundles_wise_vote, bundles_wise_score,
                                  minimum_vote, extension):
         """
         Will save multiple TRK/TCK file and results.json (contains indices)
 
         Parameters
         ----------
-        sft : TODO
+        sft : StatefulTractogram
+            Whole brain tractogram (original to dissect)
         bundle_names : list
             Bundle names as defined in the configuration file.
             Will save the bundle using that filename and the extension.
         bundles_wise_vote : lil_matrix
-            Array of zeros of shape (nbr_bundles x nbr_streamlines).
+            Array of vote of shape (nbr_bundles x nbr_streamlines).
+        bundles_wise_score : lil_matrix
+            Array of score of shape (nbr_bundles x nbr_streamlines).
         minimum_vote : np.ndarray
             Value for the vote ratio for a streamline to be considered.
             (0 < minimal_vote < 1)
@@ -163,6 +162,9 @@ class VotingScheme(object):
 
             curr_results_dict = {}
             curr_results_dict['indices'] = streamlines_id.tolist()
+            scores = np.asarray(bundles_wise_score, float)[
+                bundle_id][streamlines_id]
+            curr_results_dict['scores'] = scores.tolist()
             results_dict[basename] = curr_results_dict
 
         out_logfile = os.path.join(self.output_directory, 'results.json')
@@ -259,13 +261,27 @@ class VotingScheme(object):
         bundles_wise_vote = lil_matrix((len(bundle_names),
                                         len_wb_streamlines),
                                        dtype=np.uint8)
+        bundles_wise_score = lil_matrix((len(bundle_names),
+                                         len_wb_streamlines),
+                                        dtype=np.float32)
 
-        for bundle_id, recognized_indices in all_recognized_dict:
+        for bundle_id, recognized_indices, recognized_scores in all_recognized_dict:
+            tmp_timer = time()
             if recognized_indices is not None:
                 tmp_values = bundles_wise_vote[bundle_id, recognized_indices.T]
                 bundles_wise_vote[bundle_id,
                                   recognized_indices.T] = tmp_values.toarray() + 1
+                tmp_values = bundles_wise_score[bundle_id,
+                                                recognized_indices.T]
+                bundles_wise_score[bundle_id,
+                                   recognized_indices.T] = tmp_values.toarray() + recognized_scores
+            logging.debug('***** {0} took {1} sec. to be processed'.format(
+                bundle_names[bundle_id], round(time() - tmp_timer, 2)))
+
+        tmp_timer = time()
         bundles_wise_vote = bundles_wise_vote.tocsr()
+        bundles_wise_score = bundles_wise_score.tocsr()
+        bundles_wise_score /= bundles_wise_vote
 
         # Once everything was run, save the results using a voting system
         minimum_vote = np.array(bundle_count) * self.minimal_vote_ratio
@@ -273,8 +289,12 @@ class VotingScheme(object):
         minimum_vote = minimum_vote.astype(np.uint8)
 
         _, ext = os.path.splitext(input_tractograms_path[0])
+        logging.info(
+            '**** to convert to csr {0}'.format(round(time() - tmp_timer, 2)))
+
         self._save_recognized_bundles(concat_sft, bundle_names,
                                       bundles_wise_vote,
+                                      bundles_wise_score,
                                       minimum_vote, ext)
 
         logging.info('Saving of {0} files in {1} took {2} sec.'.format(
@@ -310,6 +330,8 @@ def single_recognize(args):
             Unique value to each bundle to identify them.
         recognized_indices : (numpy.ndarray)
             Streamlines indices from the original tractogram.
+        recognized_scores : (numpy.ndarray)
+            Scores of the recognized streamlines.
     """
     rbx = args[0]
     model_filepath = args[1]
@@ -326,11 +348,13 @@ def single_recognize(args):
     slr_transform_type = 'similarity'
 
     recognize_timer = time()
-    recognized_indices = rbx.recognize(model_bundle,
-                                       model_clust_thr=mct,
-                                       pruning_thr=bundle_pruning_thr,
-                                       slr_transform_type=slr_transform_type,
-                                       identifier=shorter_tag)
+    results = rbx.recognize(model_bundle,
+                            model_clust_thr=mct,
+                            pruning_thr=bundle_pruning_thr,
+                            slr_transform_type=slr_transform_type,
+                            identifier=shorter_tag)
+
+    recognized_indices, recognized_scores = results
 
     logging.info('Model {0} recognized {1} streamlines'.format(
                  shorter_tag, len(recognized_indices)))
@@ -339,6 +363,7 @@ def single_recognize(args):
                                          round(time() - recognize_timer, 2)))
     if recognized_indices is None:
         recognized_indices = []
+        recognized_scores = []
 
     bundle_id = bundle_names.index(shorter_tag+ext)
-    return bundle_id, np.asarray(recognized_indices, dtype=int)
+    return bundle_id, recognized_indices, recognized_scores

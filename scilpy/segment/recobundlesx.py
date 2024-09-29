@@ -13,9 +13,10 @@ from dipy.tracking.streamline import (select_random_set_of_streamlines,
                                       transform_streamlines)
 from nibabel.streamlines.array_sequence import ArraySequence
 import numpy as np
+from scipy.sparse import SparseEfficiencyWarning
 
 from scilpy.io.streamlines import reconstruct_streamlines_from_memmap
-
+warnings.simplefilter("ignore", SparseEfficiencyWarning)
 
 class RecobundlesX(object):
     """
@@ -60,6 +61,7 @@ class RecobundlesX(object):
         self.models_streamlines = None
         self.model_centroids = None
         self.final_pruned_indices = None
+        self.final_pruned_scores = None
 
     def recognize(self, model_bundle,
                   model_clust_thr=8, pruning_thr=8,
@@ -90,25 +92,25 @@ class RecobundlesX(object):
         self._cluster_model_bundle(model_clust_thr,
                                    identifier=identifier)
 
-        if not self._reduce_search_space(neighbors_reduction_thr=16):
+        if not self._reduce_search_space(neighbors_reduction_thr=18):
             if identifier:
                 logging.error('{0} did not find any neighbors in '
                               'the tractogram'.format(identifier))
-            return np.array([], dtype=np.uint32)
+            return np.array([], dtype=np.uint32), np.array([], dtype=float)
 
         self._register_model_to_neighb(slr_transform_type=slr_transform_type)
 
         # self._reduce_search_space(neighbors_reduction_thr=12)
-        if not self._reduce_search_space(neighbors_reduction_thr=12):
+        if not self._reduce_search_space(neighbors_reduction_thr=15):
             if identifier:
                 logging.error('{0} did not find any neighbors in '
                               'the tractogram'.format(identifier))
-            return np.array([], dtype=np.uint32)
+            return np.array([], dtype=np.uint32), np.array([], dtype=float)
 
         self.prune_far_from_model(pruning_thr=pruning_thr)
 
         self.cleanup()
-        return self.get_final_pruned_indices()
+        return self.get_final_pruned_indices(), self.get_final_pruned_scores()
 
     def _cluster_model_bundle(self, model_clust_thr, identifier):
         """
@@ -261,13 +263,27 @@ class RecobundlesX(object):
         logging.debug("Fast search took of dimensions {0}: {1} sec.".format(
             dist_mat.shape, np.round(time() - t0, 2)))
 
-        sparse_dist_mat = np.abs(dist_mat.tocsr())
-        sparse_dist_vec = np.squeeze(np.max(sparse_dist_mat, axis=0).toarray())
-        pruned_indices = np.where(sparse_dist_vec > 1e-6)[0]
+        # Because FSS uses zeros to populate the matrix when unmatched, we need
+        # to use a max function to avoid zeros
+        sparse_dist_mat = np.abs(dist_mat)
+        sparse_dist_vec_max = np.squeeze(np.max(sparse_dist_mat, axis=0).toarray())
 
-        # Since the neighbors were clustered, a mapping of indices is neccesary
-        self.final_pruned_indices = self.neighb_indices[pruned_indices].astype(
-            np.uint32)
+        # Then we find the smallest distance for each streamline, we will
+        # ignore the zeros later on
+        sparse_dist_mat.eliminate_zeros()
+        sparse_dist_vec_min = np.squeeze(np.min(sparse_dist_mat, axis=0).toarray())
+        pruned_indices = np.where(sparse_dist_vec_max > 1e-6)[0]
+        
+        # If no streamlines were recognized, return an empty array
+        if len(pruned_indices) == 0:
+            logging.error('No streamlines were recognized')
+            self.final_pruned_indices = np.array([], dtype=np.uint32)
+            self.final_pruned_scores = np.array([], dtype=float)
+        else:
+            # Since the neighbors were clustered, a mapping of indices is neccesary
+            self.final_pruned_indices = self.neighb_indices[pruned_indices].astype(
+                np.uint32)
+            self.final_pruned_scores = sparse_dist_vec_min[pruned_indices]
 
         return self.final_pruned_indices
 
@@ -276,6 +292,12 @@ class RecobundlesX(object):
         Public getter for the final indices recognize by the algorithm.
         """
         return self.final_pruned_indices
+    
+    def get_final_pruned_scores(self):
+        """
+        Public getter for the final indices recognize by the algorithm.
+        """
+        return self.final_pruned_scores
 
     def cleanup(self):
         del self.neighb_centroids
