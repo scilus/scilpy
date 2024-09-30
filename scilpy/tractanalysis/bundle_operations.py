@@ -60,6 +60,7 @@ def uniformize_bundle_sft(sft, axis=None, ref_bundle=None, swap=False):
     old_origin = sft.origin
     sft.to_vox()
     sft.to_corner()
+    print('a', sft)
     density = get_endpoints_density_map(sft, point_to_select=3)
     indices = np.argwhere(density > 0)
     kmeans = KMeans(n_clusters=2, random_state=0, copy_x=True,
