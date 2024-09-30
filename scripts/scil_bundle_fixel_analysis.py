@@ -89,6 +89,10 @@ The script produces various output:
     be one single_bundle_mask_{bundle_name}.nii.gz per bundle, and a whole WM
     version single_bundle_mask_WM.nii.gz.
     These will have the shape (x, y, z).
+
+    WARNING: If multiple normalization types are given, along with the
+    split_bundles, split_fixels and single_bundle arguments, this script will
+    produce a lot of outputs.
 """
 
 import argparse
@@ -256,8 +260,9 @@ def main():
         norm_name = norm + "-norm"
         logging.info("Performing normalization of type {}.".format(norm))
         logging.info("Computing density masks from density maps.")
-        fd_masks, fd_maps = maps_to_masks(fd_maps_original, args.abs_thr,
-                                          args.rel_thr, norm, len(bundles))
+        fd_masks, fd_maps = maps_to_masks(np.copy(fd_maps_original),
+                                          args.abs_thr, args.rel_thr, norm,
+                                          len(bundles))
 
         logging.info("Computing additional derivatives.")
         # Compute number of bundles per fixel
