@@ -254,7 +254,7 @@ def main():
     logging.info("Computing fixel density for all bundles.")
     fd_maps_original = fixel_density(peaks, bundles, args.dps_key,
                                      args.max_theta,
-                              		 nbr_processes=args.nbr_processes)
+                                     nbr_processes=args.nbr_processes)
 
     for norm in args.norm:
         norm_name = norm + "-norm"
