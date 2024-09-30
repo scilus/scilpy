@@ -32,20 +32,19 @@ Examples:
 - scil_search_keywords.py --search_category tractogram
 - scil_search_keywords.py -v sh
 - scil_search_keywords.py -v DEBUG sh
-
 """
 
 import argparse
 import logging
 import pathlib
+import shutil
 
 try:
     import nltk
     nltk.download('punkt', quiet=True)
 except ImportError:
-    print("You must install the 'nltk' package to use this script."
-          "Please run 'pip install nltk'.")
-    exit(1)
+    raise ImportError("You must install the 'nltk' package to use this script."
+                      "Please run 'pip install nltk'.")
 
 from colorama import Fore, Style
 import json
@@ -72,9 +71,11 @@ def _build_arg_parser():
 
     p.add_argument('--search_category', action='store_true',
                    help='Search within a specific category of scripts.')
-
     p.add_argument('--no_synonyms', action='store_true',
                    help='Search without using synonyms.')
+
+    p.add_argument('--regenerate_help_files', action='store_true',
+                   help='Regenerate help files for all scripts.')
 
     add_verbose_arg(p)
 
@@ -92,6 +93,8 @@ def main():
     selected_object = None
     if args.search_category:
         selected_object = prompt_user_for_object()
+    else:
+        selected_object = ''
 
     # keywords are single words. Phrases are composed keywords
     keywords, phrases = _extract_keywords_and_phrases(args.keywords)
@@ -108,22 +111,20 @@ def main():
     script_dir = pathlib.Path(__file__).parent
     hidden_dir = script_dir / '.hidden'
 
+    if args.regenerate_help_files:
+        shutil.rmtree(hidden_dir)
+
     if not hidden_dir.exists():
         hidden_dir.mkdir()
-        logging.info('This is your first time running this script.\n'
-                     'Generating help files may take a few minutes,'
-                     'please be patient.\n'
-                     'Subsequent searches will be much faster.')
-        _generate_help_files()
+        logging.info('This is your first time running this script. '
+                     'Generating help files may take a few minutes\n '
+                     'Please be patient, subsequent searches will be faster.')
 
-    matches = []
+    _generate_help_files()
+
     scores = {}
-    docstrings = {}  # To store the docstrings of each script
 
-    # pattern to search for
-    search_pattern = f'scil_{"{}_" if selected_object else ""}*.py'
-
-    def update_matches_and_scores(filename, score_details, docstring=None):
+    def update_matches_and_scores(filename, score_details):
         """
         Update the matches and scores for the given filename based
         on the score details.
@@ -135,51 +136,34 @@ def main():
         score_details : dict
             A dictionary containing the scores for the keywords
                 and phrases found in the script.
-            This dictionary should have a 'total_score' key
-                indicating the cumulative score.
-        docstring : str, optional
-            The docstring of the script.
         Returns
         -------
         None
             Just updates the global `matches` and `scores` lists/dictionaries.
         """
-        if score_details['total_score'] > 0:
-            if filename not in matches:
-                matches.append(filename)
-                scores[filename] = score_details
-                if docstring:
-                    docstrings[filename] = docstring
-            else:
-                for key, value in score_details.items():
-                    if key != 'total_score':
-                        scores[filename][key] = scores[filename].get(
-                            key, 0) + value
-                scores[filename]['total_score'] += score_details['total_score']
-                if docstring:
-                    docstrings[filename] = docstring
+        for key, value in score_details.items():
+            if value == 0:
+                continue
 
-    for script in sorted(script_dir.glob(search_pattern.format(selected_object))):
+            if filename not in scores:
+                scores[filename] = {key: value}
+            elif key not in scores[filename]:
+                scores[filename].update({key: value})
+            else:
+                scores[filename][key] += value
+
+        return
+
+    for script in sorted(hidden_dir.glob(f'scil_{selected_object}*.help')):
         filename = script.stem
-        if filename == '__init__' or filename == 'scil_search_keywords':
-            continue
 
         # Search through the docstring
-        search_text = _get_docstring_from_script_path(str(script))
+        with open(script, 'r') as f:
+            search_text = f.read()
+
         score_details = _calculate_score(
             stemmed_keywords, stemmed_phrases, search_text, filename=filename)
-        update_matches_and_scores(filename, score_details,
-                                  docstring=search_text)
-
-        # Search in help files
-        help_file = hidden_dir / f"{filename}.py.help"
-        if help_file.exists():
-            with open(help_file, 'r') as f:
-                search_text = f.read()
-            score_details = _calculate_score(
-                stemmed_keywords, stemmed_phrases,
-                search_text, filename=filename)
-            update_matches_and_scores(filename, score_details)
+        update_matches_and_scores(filename, score_details)
 
     # Search in keywords file
     with open(VOCAB_FILE_PATH, 'r') as f:
@@ -187,8 +171,6 @@ def main():
 
     for script in vocab_data['scripts']:
         script_name = script['name']
-        if selected_object and not script_name.startswith(f'scil_{selected_object}_'):
-            continue
         script_keywords = script['keywords']
         search_text = ' '.join(script_keywords)
         score_details = _calculate_score(
@@ -197,58 +179,80 @@ def main():
 
     # Search in synonyms file if not args.no_synonyms is not specified
     if not args.no_synonyms:
-        for keyword in keywords + phrases:
+        full_list_to_verify = set(stemmed_keywords + stemmed_phrases)
+        for keyword in full_list_to_verify:
             synonyms = _get_synonyms(keyword, vocab_data['synonyms'])
-            for script in sorted(script_dir.glob(search_pattern.format(selected_object))):
+
+            for script in sorted(hidden_dir.glob(f'scil_{selected_object}*.help')):
+                score_details = {}
                 filename = script.stem
-                if filename == '__init__' or filename == 'scil_search_keywords':
-                    continue
-                search_text = _get_docstring_from_script_path(str(script))
-                # Initialize or get existing score_details for the script
-                score_details = scores.get(filename, {'total_score': 0})
+
+                with open(script, 'r') as f:
+                    search_text = f.read()
 
                 for synonym in synonyms:
-                    if synonym in search_text and synonym != keyword:
-                        # Update score_details with count of each synonym found
-                        score_details[keyword + ' synonyms'] = score_details.get(
-                            keyword + ' synonyms', 0) + search_text.count(synonym)
-                        score_details['total_score'] += search_text.count(
-                            synonym)
+                    if filename in scores and synonym in scores[filename]:
+                        continue
 
-                # Directly update scores dictionary
-                scores[filename] = score_details
+                    if ' ' in synonym:
+                        stemmed_phrases = [synonym]
+                        stemmed_keywords = []
+                    else:
+                        stemmed_keywords = [synonym]
+                        stemmed_phrases = []
+
+                    score_details = _calculate_score(stemmed_keywords,
+                                                     stemmed_phrases,
+                                                     search_text,
+                                                     script_name,
+                                                     suffix=' (synonyms)')
+
+                    # Directly update scores dictionary
+                    if filename in scores:
+                        scores[filename].update(score_details)
+                    else:
+                        scores[filename] = score_details
+
+    matches = list(scores.keys())
 
     if not matches:
         logging.info(_make_title(' No results found! '))
+        return
+
+    total_scores = {match: sum(scores[match].values()) for match in matches}
+    sorted_matches = sorted(total_scores, key=total_scores.get)
 
     # Sort matches by score and display them
-    else:
-        sorted_matches = sorted(
-            matches, key=lambda x: scores[x]['total_score'], reverse=False)
+    logging.info(_make_title(' Results Ordered by Score '))
+    for match in sorted_matches:
+        if total_scores[match] == 0:
+            continue
+        logging.info(f"{Fore.BLUE}{Style.BRIGHT}{match}{Style.RESET_ALL}")
 
-        logging.info(_make_title(' Results Ordered by Score '))
-        for match in sorted_matches:
-            if scores[match]['total_score'] > 0:
-                logging.info(f"{Fore.BLUE}{Style.BRIGHT}{match}{Style.RESET_ALL}")
+        for word, score in scores[match].items():
+            original_word = keyword_mapping.get(
+                word, phrase_mapping.get(word, word))
+            logging.info(
+                f"{Fore.GREEN}Occurrence of '{original_word}': {score}{Style.RESET_ALL}")
 
-            for word, score in scores[match].items():
-                if word != 'total_score':
-                    logging.info(f"{Fore.GREEN}Occurrence of '{keyword_mapping.get(word, phrase_mapping.get(word, word))}': {score}{Style.RESET_ALL}")
+        # Highlight keywords based on verbosity level
+        with open(hidden_dir / f'{match}.help', 'r') as f:
+            docstrings = f.read()
+        highlighted_docstring = _highlight_keywords(docstrings,
+                                                    stemmed_keywords)
+        if args.verbose == 'INFO':
+            first_sentence = _split_first_sentence(
+                highlighted_docstring)[0]
+            logging.info(f"{first_sentence.strip()}")
+        elif args.verbose == 'DEBUG':
+            logging.debug(f"{highlighted_docstring.strip()}")
+        logging.info(
+            f"{Fore.RED}Total Score: {total_scores[match]}{Style.RESET_ALL}")
+        logging.info(f"{Fore.BLUE}{'=' * SPACING_LEN}")
+        logging.info("\n")
 
-            # Highlight keywords based on verbosity level
-            if match in docstrings:
-                highlighted_docstring = _highlight_keywords(docstrings[match],
-                                                            stemmed_keywords)
-                if args.verbose == 'INFO':
-                    first_sentence = _split_first_sentence(highlighted_docstring)[0]
-                    logging.info(f"{first_sentence.strip()}")
-                elif args.verbose == 'DEBUG':
-                    logging.debug(f"{highlighted_docstring.strip()}")    
-            logging.info(f"{Fore.RED}Total Score: {scores[match]['total_score']}{Style.RESET_ALL}")
-            logging.info(f"{Fore.BLUE}{'=' * SPACING_LEN}")
-            logging.info("\n")
-        logging.info(_make_title(
-            ' Results Ordered by Score (Best results at the bottom) '))
+    logging.info(_make_title(
+        ' Results Ordered by Score (Best results at the bottom) '))
 
 
 if __name__ == '__main__':

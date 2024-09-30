@@ -2,12 +2,13 @@ import ast
 import nltk
 import pathlib
 import subprocess
-from nltk.stem import PorterStemmer
+from nltk.stem import WordNetLemmatizer
 from colorama import Fore, Style
 import re
 from tqdm import tqdm
 
-stemmer = PorterStemmer()
+stemmer = WordNetLemmatizer()
+nltk.download('wordnet', quiet=True)
 
 RED = '\033[31m'
 BOLD = '\033[1m'
@@ -124,7 +125,7 @@ def _stem_keywords(keywords):
     list of str
         Stemmed keywords.
     """
-    return [stemmer.stem(keyword) for keyword in keywords]
+    return [stemmer.lemmatize(keyword) for keyword in keywords]
 
 
 def _stem_text(text):
@@ -142,7 +143,7 @@ def _stem_text(text):
         Stemmed text.
     """
     words = nltk.word_tokenize(text)
-    return ' '.join([stemmer.stem(word) for word in words])
+    return ' '.join([stemmer.lemmatize(word) for word in words])
 
 
 def _stem_phrase(phrase):
@@ -160,7 +161,7 @@ def _stem_phrase(phrase):
         Stemmed phrase.
     """
     words = phrase.split()
-    return ' '.join([stemmer.stem(word) for word in words])
+    return ' '.join([stemmer.lemmatize(word) for word in words])
 
 
 def _generate_help_files():
@@ -180,55 +181,39 @@ def _generate_help_files():
     """
 
     scripts_dir = pathlib.Path(__file__).parent.parent.parent / 'scripts'
+    help_dir = scripts_dir / '.hidden'
 
     scripts = [script for script in scripts_dir.glob('*.py')
                if script.name not in ['__init__.py',
                                       'scil_search_keywords.py']]
-    total_scripts = len(scripts)
+
+    helps = [help for help in help_dir.glob('*.help')]
+    scripts_to_regenerate = [script for script in scripts
+                             if help_dir / f'{script.name}.help' not in helps]
+
+    # Check if all help files are present
+    if len(scripts_to_regenerate) == 0:
+        print("All help files are already generated.")
+        return
 
     # Hidden directory to store help files
     hidden_dir = scripts_dir / '.hidden'
     hidden_dir.mkdir(exist_ok=True)
 
     # Iterate over all scripts and generate help files
-    with tqdm(total=total_scripts, desc="Generating help files") as pbar:
-        for script in scripts:
-            help_file = hidden_dir / f'{script.name}.help'
-            # Check if help file already exists
-            if help_file.exists():
-                tqdm.write(f'Help file for {script.name} already exists. Skipping.')
-                pbar.update(1)
-                continue
+    for script in tqdm(scripts_to_regenerate):
+        help_file = hidden_dir / f'{script.name}.help'
+        # Check if help file already exists
+        if help_file.exists():
+            continue
 
-            # Run the script with --h and capture the output
-            result = subprocess.run(
-                ['python', script, '--h'], capture_output=True, text=True)
+        # Run the script with --h and capture the output
+        result = subprocess.run(['python', script, '--h'],
+                                capture_output=True, text=True)
 
-            # Save the output to the hidden file
-            with open(help_file, 'w') as f:
-                f.write(result.stdout)
-
-            tqdm.write(f'Help file saved to {help_file}')
-            pbar.update(1)
-
-    # Check if any help files are missing and regenerate them
-    with tqdm(total=total_scripts, desc="Checking missing help files") as pbar:
-        for script in scripts_dir.glob('*.py'):
-            if script.name == '__init__.py' or script.name == 'scil_search_keywords.py':
-                pbar.update(1)
-                continue
-            help_file = hidden_dir / f'{script.name}.help'
-            if not help_file.exists():
-                # Run the script with --h and capture the output
-                result = subprocess.run(
-                    ['python', script, '--h'], capture_output=True, text=True)
-
-                # Save the output to the hidden file
-                with open(help_file, 'w') as f:
-                    f.write(result.stdout)
-
-                tqdm.write(f'Regenerated help output for {script.name}')
-            pbar.update(1)
+        # Save the output to the hidden file
+        with open(help_file, 'w') as f:
+            f.write(result.stdout)
 
 
 def _highlight_keywords(text, stemmed_keywords):
@@ -250,7 +235,7 @@ def _highlight_keywords(text, stemmed_keywords):
     words = text.split()
     highlighted_text = []
     for word in words:
-        stemmed_word = stemmer.stem(word)
+        stemmed_word = stemmer.lemmatize(word)
         if stemmed_word in stemmed_keywords:
             highlighted_text.append(
                 f'{Fore.RED}{Style.BRIGHT}{word}{Style.RESET_ALL}')
@@ -276,11 +261,13 @@ def _get_synonyms(keyword, synonyms_data):
         List of synonyms for the given keyword.
     """
     keyword = keyword.lower()
+    complete_synonyms = []
     for synonym_set in synonyms_data:
         synonym_set = [synonym.lower() for synonym in synonym_set]
         if keyword in synonym_set:
-            return synonym_set
-    return []
+            complete_synonyms.extend(synonym_set)
+
+    return set(complete_synonyms)
 
 
 def _extract_keywords_and_phrases(keywords):
@@ -303,13 +290,14 @@ def _extract_keywords_and_phrases(keywords):
     for keyword in keywords:
         # if keyword contain blank space (contains more that 1 word)
         if ' ' in keyword:
-            phrases_list.append(keyword)
+            phrases_list.append(keyword.lower())
         else:
-            keywords_list.append(keyword)
+            keywords_list.append(keyword.lower())
+
     return keywords_list, phrases_list
 
 
-def _calculate_score(keywords, phrases, text, filename):
+def _calculate_score(keywords, phrases, text, filename, suffix=''):
     """
     Calculate a score for how well the text and filename match the keywords.
 
@@ -332,12 +320,12 @@ def _calculate_score(keywords, phrases, text, filename):
     """
     stemmed_text = _stem_text(text.lower())
     stemmed_filename = _stem_text(filename.lower())
-    score_details = {'total_score': 0}
+    score_details = {}
 
     def is_match(found_word, keyword):
         if len(keyword) <= 3:
             return found_word == keyword
-        return stemmer.stem(found_word) == stemmer.stem(keyword)
+        return stemmer.lemmatize(found_word) == stemmer.lemmatize(keyword)
 
     for keyword in keywords:
         keyword = keyword.lower()
@@ -351,12 +339,13 @@ def _calculate_score(keywords, phrases, text, filename):
             if is_match(found_word, keyword):
                 keyword_score += 1
 
-        score_details[keyword] = keyword_score
-        score_details['total_score'] += keyword_score
+        if keyword_score > 0:
+            score_details[keyword + suffix] = keyword_score
 
     for phrase in phrases:
         phrase_stemmed = _stem_text(phrase.lower())
         phrase_score = stemmed_text.count(phrase_stemmed)
-        score_details[phrase] = phrase_score
-        score_details['total_score'] += phrase_score
+        if phrase_score > 0:
+            score_details[phrase + suffix] = phrase_score
+
     return score_details
