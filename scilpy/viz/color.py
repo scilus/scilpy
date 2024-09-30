@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from dipy.io.stateful_tractogram import StatefulTractogram
-from fury.colormap import distinguishable_colormap, colormap
+from fury import colormap
 import matplotlib.pyplot as plt
 from matplotlib import colors as mcolors
 import numpy as np
@@ -40,7 +40,7 @@ BASE_10_COLORS = convert_color_names_to_rgb(["Red",
                                              "Brown"])
 
 
-def generate_n_colors(n, generator=distinguishable_colormap,
+def generate_n_colors(n, generator=colormap.distinguishable_colormap,
                       pick_from_base10=True, shuffle=False):
     """
     Generate a set of N colors. When using the default parameters, colors will
