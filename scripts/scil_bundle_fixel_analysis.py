@@ -248,15 +248,16 @@ def main():
 
     # Compute fixel density (FD) maps and masks
     logging.info("Computing fixel density for all bundles.")
-    fd_maps = fixel_density(peaks, bundles, args.dps_key, args.max_theta,
-                            nbr_processes=args.nbr_processes)
+    fd_maps_original = fixel_density(peaks, bundles, args.dps_key,
+                                     args.max_theta,
+                              		 nbr_processes=args.nbr_processes)
 
     for norm in args.norm:
         norm_name = norm + "-norm"
         logging.info("Performing normalization of type {}.".format(norm))
         logging.info("Computing density masks from density maps.")
-        fd_masks, fd_maps = maps_to_masks(fd_maps, args.abs_thr, args.rel_thr,
-                                          norm, len(bundles))
+        fd_masks, fd_maps = maps_to_masks(fd_maps_original, args.abs_thr,
+                                          args.rel_thr, norm, len(bundles))
 
         logging.info("Computing additional derivatives.")
         # Compute number of bundles per fixel
