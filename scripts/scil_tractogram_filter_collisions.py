@@ -7,7 +7,11 @@ streamline, filters all intersecting streamlines and saves the resulting
 tractogram and diameters.
 
 IMPORTANT: The input tractogram needs to have been resampled to segments of
-at most 0.2mm. Otherwise performance will drop significantly.
+at most 0.2mm. Otherwise performance will drop significantly. This is because
+this script relies on a KDTree to find all neighboring streamline segments of
+any given point. Because the search radius is set at the length of the longest
+fibertube segment, the performance drops significantly if they are not
+shortened to ~0.2mm.
 (see scil_tractogram_resample_nb_points.py)
 
 The filtering is deterministic and follows this approach:
@@ -28,10 +32,10 @@ be computed.
 
 Computed metrics:
     - min_external_distance
-        Smallest distance separating two fibers.
+        Smallest distance separating two streamlines, outside their diameter.
     - max_voxel_anisotropic
         Diagonal vector of the largest possible anisotropic voxel that
-        would not intersect two fibers.
+        would not intersect two streamlines, given their diameter.
     - max_voxel_isotropic
         Isotropic version of max_voxel_anisotropic made by using the smallest
         component.
@@ -46,7 +50,7 @@ Computed metrics:
         Ex: max_voxel_anisotropic: (1, 0, 0)
             max_voxel_isotropic: (0, 0, 0)
             max_voxel_rotated: (0.5774, 0.5774, 0.5774)
-    - rotation_matrix [separate file]
+    - rotation_matrix
         4D transformation matrix representing the rotation to be applied on
         the tractogram to align max_voxel_rotated with the coordinate system
         (see scil_tractogram_apply_transform.py).
@@ -90,7 +94,7 @@ def _build_arg_parser():
     p.add_argument('out_tractogram',
                    help='Tractogram output file free of collision (must \n'
                    'be .trk). By default, the diameters will be \n'
-                   'saved as data-per-streamline.')
+                   'saved as data_per_streamline.')
 
     p.add_argument('--save_colliding', action='store_true',
                    help='Useful for visualization. If set, the script will \n'
@@ -115,14 +119,16 @@ def _build_arg_parser():
                    help='If set, the transformation required to align the \n'
                    '"max_voxel_rotated" metric with the coordinate system \n'
                    'will be saved at the given location (must be .txt). \n'
-                   'This option will require computing metrics.')
+                   'This option requires computing all the metrics, even \n'
+                   'if --out_metrics is not provided. If it is provided, '
+                   'metrics are not computed twice.')
 
-    p.add_argument('--min_distance', default=None, type=float,
-                   help='If set, streamtubes will be filtered more \n'
-                   'aggressively so that they are a certain \n'
-                   'distance apart. In other words, enforces a \n'
-                   'resolution at which the data is void of \n'
-                   'partial-volume effect. [%(default)s]')
+    p.add_argument('--min_distance', default=0, type=float,
+                   help='If set, streamlines will be filtered more \n'
+                   'aggressively so that they are a certain distance apart \n'
+                   '(external to their diameter). In other words, enforces \n'
+                   'a resolution at which the data is void of \n'
+                   'partial-volume effect. (Value in mm) [%(default)s]')
 
     p.add_argument('--disable_shuffling', action='store_true',
                    help='If set, no shuffling will be performed before \n'

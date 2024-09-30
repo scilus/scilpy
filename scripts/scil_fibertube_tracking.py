@@ -50,11 +50,13 @@ def _build_arg_parser():
         description=__doc__)
 
     p.add_argument('in_fibertubes',
-                   help='Path to the tractogram file containing the \n'
-                        'fibertubes with their respective diameter saved \n'
-                        'as data_per_streamline (must be .trk). \n'
-                        'The fibertubes must be void of any collision \n'
-                        '(see scil_filter_intersections.py). \n')
+                   help='Path to the tractogram (must be .trk) file \n'
+                        'containing fibertubes. They must be: \n'
+                        '1- Void of any collision. \n'
+                        '2- With their respective diameter saved \n'
+                        'as data_per_streamline. \n'
+                        'For both of these requirements, see \n'
+                        'scil_tractogram_filter_collisions.')
 
     p.add_argument('out_tractogram',
                    help='Tractogram output file (must be .trk or .tck).')
@@ -115,18 +117,18 @@ def _build_arg_parser():
 
     seed_group = p.add_argument_group(
         'Seeding options',
-        'When no option is provided, uses --nb_seeds_per_fiber 5.')
+        'When no option is provided, uses --nb_seeds_per_fibertube 5.')
     seed_group.add_argument(
-        '--nb_seeds_per_fiber', type=int, default=5,
+        '--nb_seeds_per_fibertube', type=int, default=5,
         help='The number of seeds planted in the first segment \n'
-             'of each fiber. The total amount of streamlines will \n'
-             'be [nb_seeds_per_fiber] * [nb_fibers]. [%(default)s]')
+             'of each fibertube. The total amount of streamlines will \n'
+             'be [nb_seeds_per_fibertube] * [nb_fibertubes]. [%(default)s]')
     seed_group.add_argument(
-        '--nb_fibers', type=int,
+        '--nb_fibertubes', type=int,
         help='If set, the script will only track a specified \n'
              'amount of fibers. Otherwise, the entire tractogram \n'
              'will be tracked. The total amount of streamlines \n'
-             'will be [nb_seeds_per_fiber] * [nb_fibers].')
+             'will be [nb_seeds_per_fibertube] * [nb_fibertubes].')
 
     rand_g = p.add_argument_group('Random options')
     rand_g.add_argument(
@@ -216,7 +218,7 @@ def main():
 
     logging.debug("Instantiating seed generator")
     seed_generator = FibertubeSeedGenerator(centerlines, diameters,
-                                            args.nb_seeds_per_fiber)
+                                            args.nb_seeds_per_fibertube)
 
     logging.debug("Instantiating propagator")
     propagator = FibertubePropagator(datavolume, args.step_size,
@@ -224,13 +226,13 @@ def main():
                                      our_origin)
 
     logging.debug("Instantiating tracker")
-    max_nbr_seeds = args.nb_seeds_per_fiber * len(centerlines)
-    if args.nb_fibers:
-        if args.nb_fibers > len(centerlines):
+    max_nbr_seeds = args.nb_seeds_per_fibertube * len(centerlines)
+    if args.nb_fibertubes:
+        if args.nb_fibertubes > len(centerlines):
             raise ValueError("The provided number of seeded fibers exceeds" +
                              "the number of available fibertubes.")
         else:
-            nbr_seeds = args.nb_seeds_per_fiber * args.nb_fibers
+            nbr_seeds = args.nb_seeds_per_fibertube * args.nb_fibertubes
     else:
         nbr_seeds = max_nbr_seeds
 
@@ -262,8 +264,8 @@ def main():
     config = {
         'step_size': args.step_size,
         'blur_radius': args.blur_radius,
-        'nb_fibers': args.nb_fibers,
-        'nb_seeds_per_fiber': args.nb_seeds_per_fiber
+        'nb_fibertubes': args.nb_fibertubes,
+        'nb_seeds_per_fibertube': args.nb_seeds_per_fibertube
     }
     if args.out_config:
         with open(args.out_config, 'w') as outfile:

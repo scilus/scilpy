@@ -46,6 +46,12 @@ class IntersectionFinder:
         self._obstacle = []
         self._excluded = []
 
+        if self.max_seg_length >= 0.3:
+            logging.warning("The longest streamline segment is over 0.3mm. " +
+                            "Performance may drop significantly. " +
+                            "Resampling to ~0.2mm is recommended. "
+                            "(See scil_tractogram_resample_nb_points.py)")
+
     @property
     def invalid(self):
         """Streamlines that hit another streamline and should be
@@ -152,7 +158,7 @@ class IntersectionFinder:
                     obstacle[neighbor_si] = True
                     break
 
-                if (min_distance is not None and
+                if (min_distance != 0 and
                         external_distance < (min_distance /
                                              (math.sqrt(2) / 2))):
                     excluded[si] = True

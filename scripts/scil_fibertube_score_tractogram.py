@@ -20,17 +20,17 @@ error" or "mae".
 
 Computed metrics:
     - truth_vc_ratio
-        Proportion of VC at ground-truth resolution.
+        Proportion of VC.
     - truth_ic_ratio
-        Proportion of IC at ground-truth resolution.
+        Proportion of IC.
     - truth_nc_ratio
-        Proportion of NC at ground-truth resolution.
+        Proportion of NC.
     - res_vc_ratio
-        Proportion of VC at the tracking sphere resolution.
+        Proportion of VC at the resolution of the blur_radius parameter.
     - res_ic_ratio
-        Proportion of IC at the tracking sphere resolution.
+        Proportion of IC at the resolution of the blur_radius parameter.
     - res_nc_ratio
-        Proportion of NC at the tracking sphere resolution.
+        Proportion of NC at the resolution of the blur_radius parameter.
     - mae_min
         Minimum MAE for the tractogram.
     - mae_max
