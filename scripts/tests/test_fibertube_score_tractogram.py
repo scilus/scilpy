@@ -31,8 +31,8 @@ def init_data():
     config = {
         'step_size': 0.001,
         'blur_radius': 0.001,
-        'nb_fibers': 2,
-        'nb_seeds_per_fiber': 1,
+        'nb_fibertubes': 2,
+        'nb_seeds_per_fibertube': 1,
     }
 
     sft_fibertubes = StatefulTractogram(streamlines, mask_img, Space.VOX,

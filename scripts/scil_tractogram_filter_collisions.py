@@ -30,7 +30,7 @@ bias, streamlines are shuffled first unless --disable_shuffling is set.
 If the --out_metrics parameter is given, several metrics about the data will
 be computed.
 
-Computed metrics:
+Computed metrics (all expressed in mm):
     - min_external_distance
         Smallest distance separating two streamlines, outside their diameter.
     - max_voxel_anisotropic
@@ -39,17 +39,13 @@ Computed metrics:
     - max_voxel_isotropic
         Isotropic version of max_voxel_anisotropic made by using the smallest
         component.
-        Ex: max_voxel_anisotropic: (3, 5, 5)
-            max_voxel_isotropic: (3, 3, 3)
+        Ex: max_voxel_anisotropic: (3, 5, 5) => max_voxel_isotropic: (3, 3, 3)
     - max_voxel_rotated
-        Largest possible isotropic voxel if the tractogram is rotated. It is
-        obtained by measuring the smallest distance between two streamlines,
-        outside of their diameter.
+        Largest possible isotropic voxel obtainable if the tractogram is rotated.
         It is only usable if the entire tractogram is rotated according to
         [rotation_matrix].
-        Ex: max_voxel_anisotropic: (1, 0, 0)
-            max_voxel_isotropic: (0, 0, 0)
-            max_voxel_rotated: (0.5774, 0.5774, 0.5774)
+        Ex: max_voxel_anisotropic: (1, 0, 0) => max_voxel_isotropic: (0, 0, 0)
+            => max_voxel_rotated: (0.5774, 0.5774, 0.5774)
     - rotation_matrix
         4D transformation matrix representing the rotation to be applied on
         the tractogram to align max_voxel_rotated with the coordinate system

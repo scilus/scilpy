@@ -168,9 +168,8 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    if args.verbose:
-        logging.getLogger().setLevel(logging.DEBUG)
-        logging.getLogger('numba').setLevel(logging.WARNING)
+    logging.getLogger().setLevel(logging.getLevelName(args.verbose))
+    logging.getLogger('numba').setLevel(logging.WARNING)
 
     if not nib.streamlines.is_supported(args.in_fibertubes):
         parser.error('Invalid input streamline file format (must be trk ' +
@@ -180,11 +179,16 @@ def main():
         parser.error('Invalid output streamline file format (must be trk ' +
                      'or tck): {0}'.format(args.out_tractogram))
 
-    out_tractogram_no_ext, ext = os.path.splitext(args.out_tractogram)
+    _, out_config_ext = os.path.splitext(args.out_config)
+    out_tractogram_no_ext, out_tractogram_ext = os.path.splitext(args.out_tractogram)
+
+    if out_config_ext != '.txt':
+        parser.error('Invalid output file format (must be txt): {0}'
+                     .format(args.out_config))
 
     outputs = [args.out_tractogram]
     if not args.do_not_save_seeds:
-        outputs.append(out_tractogram_no_ext + '_seeds' + ext)
+        outputs.append(out_tractogram_no_ext + '_seeds' + out_tractogram_ext)
 
     assert_inputs_exist(parser, [args.in_fibertubes])
     assert_outputs_exist(parser, args, outputs, [args.out_config])

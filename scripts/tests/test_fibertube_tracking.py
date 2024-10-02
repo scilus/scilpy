@@ -77,7 +77,7 @@ def test_execution_seeding(script_runner, monkeypatch):
     init_data()
     ret = script_runner.run('scil_fibertube_tracking.py',
                             'tractogram.trk', 'tracking.trk', '0.1', '0.3',
-                            '--nb_fibers', '1', '--nb_seeds_per_fiber', '3',
+                            '--nb_fibertubes', '1', '--nb_seeds_per_fibertube', '3',
                             '--skip', '3', '--min_length', '0', '-f')
 
     assert ret.success

@@ -72,15 +72,19 @@ def _build_arg_parser():
         formatter_class=argparse.RawTextHelpFormatter)
 
     p.add_argument('in_fibertubes',
-                   help='Path to the tractogram file containing the \n'
-                   'fibertubes with their respective diameter saved \n'
-                   'data_per_streamline (must be .trk). \n'
-                   'The fibertubes must be void of any collision \n'
-                   '(see scil_filter_intersections.py). \n')
+                   help='Path to the tractogram file (must be .trk) \n'
+                   'containing ground-truth fibertubes. They must be: \n'
+                   '1- Void of any collision. \n'
+                   '2- With their respective diameter saved \n'
+                   'as data_per_streamline. \n'
+                   'For both of these requirements, see \n'
+                   'scil_tractogram_filter_collisions.')
 
-    p.add_argument('in_tractogram',
-                   help='Path to a text file containing the ground-truth \n'
-                   'reconstruction (must be .trk) with seeds saved as \n'
+    p.add_argument('in_tracking',
+                   help='Path to the tractogram file (must be .trk) \n'
+                   'containing the reconstruction of ground-truth \n'
+                   'fibertubes made from fibertube tracking. Seeds \n'
+                   'used for tracking must be saved as \n'
                    'data_per_streamline.')
 
     p.add_argument('in_config',
@@ -127,7 +131,7 @@ def main():
                      .format(args.out_metrics))
 
     assert_inputs_exist(parser, [args.in_fibertubes, args.in_config,
-                                 args.in_tractogram])
+                                 args.in_tracking])
     assert_outputs_exist(parser, args, [args.out_metrics])
 
     our_space = Space.VOXMM
@@ -147,7 +151,7 @@ def main():
                            len(centerlines))
 
     logging.debug('Loading reconstructed tractogram')
-    in_sft = load_tractogram(args.in_tractogram, 'same', our_space,
+    in_sft = load_tractogram(args.in_tracking, 'same', our_space,
                              our_origin)
     streamlines = in_sft.get_streamlines_copy()
     streamlines, streamlines_length = get_streamlines_as_fixed_array(
@@ -156,7 +160,7 @@ def main():
     logging.debug("Loading seeds")
     if "seeds" not in in_sft.data_per_streamline:
         parser.error('No seeds found as data per streamline on ' +
-                     args.in_tractogram)
+                     args.in_tracking)
 
     seeds = in_sft.data_per_streamline['seeds']
     seeds_fiber = resolve_origin_seeding(seeds, centerlines, diameters)
