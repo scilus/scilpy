@@ -58,8 +58,6 @@ import nibabel as nib
 from nibabel.streamlines.array_sequence import ArraySequence
 import numpy as np
 import scipy.ndimage as ndi
-from sklearn.preprocessing import MinMaxScaler
-from sklearn.svm import SVC
 
 from scilpy.image.volume_math import neighborhood_correlation_
 from scilpy.io.streamlines import load_tractogram_with_reference
@@ -70,15 +68,10 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_output_dirs_exist_and_empty)
 from scilpy.tractanalysis.bundle_operations import uniformize_bundle_sft
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
-from scilpy.tractanalysis.distance_to_centroid import (min_dist_to_centroid,
-                                                       compute_distance_map,
-                                                       associate_labels,
-                                                       correct_labels_jump)
+from scilpy.tractanalysis.distance_to_centroid import (subdivide_bundles,
+                                                       compute_distance_map)
 from scilpy.tractograms.streamline_and_mask_operations import \
     cut_streamlines_with_mask
-from scilpy.tractograms.streamline_operations import \
-    resample_streamlines_num_points, resample_streamlines_step_size
-from scilpy.utils.streamlines import uniformize_bundle_sft
 from scilpy.viz.color import get_lookup_table
 
 
@@ -124,12 +117,13 @@ def _build_arg_parser():
                    'distance.')
     p.add_argument('--skip_uniformize', action='store_true',
                    help='Skip uniformization of the bundles orientation.')
-    p.add_argument('--correlation_thr', type=float, default=0.1,
+    p.add_argument('--correlation_thr', type=float, const=0.1, nargs='?',
+                   default=0,
                    help='Threshold for the correlation map. Only for multi '
                         'bundle case. [%(default)s]')
-    p.add_argument('--streamlines_thr', type=int, default=2,
+    p.add_argument('--streamlines_thr', type=int, const=2, nargs='?',
                    help='Threshold for the minimum number of streamlines in a '
-                   'voxel to be included [%(default)s].')
+                        'voxel to be included [%(default)s].')
 
     add_reference_arg(p)
     add_verbose_arg(p)
@@ -152,6 +146,9 @@ def main():
 
     if args.verbose:
         logging.getLogger().setLevel(logging.INFO)
+
+    # TODO check if correlation thr is positive
+    # TODO check if streamlines thr is positive (above 1)
 
     # When doing longitudinal data, the split in subsection can be done
     # on all the bundles at once. Needs to be co-registered.
@@ -184,7 +181,10 @@ def main():
         density = compute_tract_counts_map(sft.streamlines,
                                            sft.dimensions).astype(float)
         binary = np.zeros(sft.dimensions, dtype=np.uint8)
-        binary[density >= args.streamlines_thr] = 1
+        if args.streamlines_thr is not None:
+            binary[density >= args.streamlines_thr] = 1
+        else:
+            binary[density > 0] = 1
         binary_list.append(binary)
         density_list.append(density)
 
@@ -196,23 +196,28 @@ def main():
                  f'{round(time.time() - timer, 3)}.')
 
     if len(density_list) > 1:
+        timer = time.time()
         corr_map = neighborhood_correlation_(density_list)
+        logging.info(f'Computed correlation map in '
+                     f'{round(time.time() - timer, 3)} seconds')
     else:
         corr_map = density_list[0].astype(float)
         corr_map[corr_map > 0] = 1
 
     # Slightly cut the bundle at the edge to clean up single streamline voxels
     # with no neighbor. Remove isolated voxels to keep a single 'blob'
-    binary_map = np.max(binary_list, axis=0)
-    binary_map[corr_map < args.correlation_thr] = 0
+    binary_mask = np.max(binary_list, axis=0)
 
-    # TODO eliminate the bottom quartile of the blob
-    bundle_disjoint, _ = ndi.label(binary_map)
-    unique, count = np.unique(bundle_disjoint, return_counts=True)
-    val = unique[np.argmax(count[1:])+1]
-    binary_map[bundle_disjoint != val] = 0
+    if args.correlation_thr > 1e-3:
+        binary_mask[corr_map < args.correlation_thr] = 0
 
-    nib.save(nib.Nifti1Image(corr_map * binary_map, sft_list[0].affine),
+    if args.streamlines_thr is not None:
+        bundle_disjoint, _ = ndi.label(binary_mask)
+        unique, count = np.unique(bundle_disjoint, return_counts=True)
+        val = unique[np.argmax(count[1:])+1]
+        binary_mask[bundle_disjoint != val] = 0
+
+    nib.save(nib.Nifti1Image(corr_map * binary_mask, sft_list[0].affine),
              os.path.join(args.out_dir, 'correlation_map.nii.gz'))
 
     # A bundle must be contiguous, we can't have isolated voxels.
@@ -221,99 +226,30 @@ def main():
     concat_sft.to_vox()
     concat_sft.to_corner()
     for i in range(len(sft_list)):
-        sft_list[i] = cut_streamlines_with_mask(sft_list[i],
-                                                binary_map)
+        if args.streamlines_thr is not None:
+            sft_list[i] = cut_streamlines_with_mask(sft_list[i],
+                                                    binary_mask)
+        else:
+            sft_list[i].data_per_streamline = {}
+            sft_list[i].data_per_point = {}
+
         if len(sft_list[i]):
             concat_sft += sft_list[i]
     logging.info(f'Chop bundle(s) in {round(time.time() - timer, 3)} seconds.')
 
+    # Here
+    method = 'hyperplane' if args.hyperplane else 'centerline'
     args.nb_pts = len(sft_centroid.streamlines[0]) if args.nb_pts is None \
         else args.nb_pts
-
-    # This allows to have a more uniform (in size) first and last labels
-    endpoints_extended = False
-    if args.hyperplane and args.nb_pts >= 5:
-        args.nb_pts += 2
-        endpoints_extended = True
-
-    sft_centroid = resample_streamlines_num_points(sft_centroid, args.nb_pts)
+    labels_map = subdivide_bundles(concat_sft, sft_centroid, binary_mask,
+                                   args.nb_pts, method=method)
 
     timer = time.time()
-    if not args.hyperplane:
-        indices = np.array(np.nonzero(binary_map), dtype=int).T
-        labels = min_dist_to_centroid(indices,
-                                      sft_centroid[0].streamlines._data,
-                                      nb_pts=args.nb_pts)
-        logging.info('Computed labels using the euclidian method '
-                     f'in {round(time.time() - timer, 3)} seconds')
-    else:
-        logging.info('Computing Labels using the hyperplane method.\n'
-                     '\tThis can take a while...')
-        # Select 2000 elements from the SFTs to train the classifier
-        random_indices = np.random.choice(len(concat_sft),
-                                          min(len(concat_sft), 2000),
-                                          replace=False)
-        tmp_sft = resample_streamlines_step_size(concat_sft[random_indices],
-                                                 1.0)
-        # Associate the labels to the streamlines using the centroids as
-        # reference (to handle shorter bundles due to missing data)
-        mini_timer = time.time()
-        sample_size = np.count_nonzero(binary_map) // args.nb_pts
-        labels, points, = associate_labels(tmp_sft, sft_centroid,
-                                           args.nb_pts, sample_set=True,
-                                           sample_size=sample_size)
-
-        logging.info('\tAssociated labels to centroids in '
-                     f'{round(time.time() - mini_timer, 3)} seconds')
-
-        # Initialize the scaler
-        mini_timer = time.time()
-        scaler = MinMaxScaler(feature_range=(-1, 1))
-        scaler.fit(points)
-        scaled_streamline_data = scaler.transform(points)
-
-        svc = SVC(C=1.0, kernel='rbf', random_state=1)
-
-        svc.fit(X=scaled_streamline_data, y=labels)
-        logging.info('\tSVC fit of training data in '
-                     f'{round(time.time() - mini_timer, 3)} seconds')
-
-        # Scale the coordinates of the voxels
-        mini_timer = time.time()
-        voxel_coords = np.array(np.where(binary_map)).T
-        scaled_voxel_coords = scaler.transform(voxel_coords)
-
-        # Predict the labels for the voxels
-        labels = svc.predict(X=scaled_voxel_coords)
-        logging.info('\tSVC prediction of labels in '
-                     f'{round(time.time() - mini_timer, 3)} seconds')
-
-    logging.info('Computed labels using the hyperplane method '
-                 f'in {round(time.time() - timer, 3)} seconds')
-    labels_map = np.zeros(binary_map.shape, dtype=np.uint16)
-    labels_map[np.where(binary_map)] = labels
-
-    # # Correct the hyperplane labels to have a more uniform size
-
-    timer = time.time()
-    tmp_sft = resample_streamlines_step_size(concat_sft, 1.0)
-    labels_map = correct_labels_jump(labels_map, tmp_sft.streamlines,
-                                     args.nb_pts - 2)
-
-    if args.hyperplane and endpoints_extended:
-        labels_map[labels_map == args.nb_pts] = args.nb_pts - 1
-        labels_map[labels_map == 1] = 2
-        labels_map[labels_map > 0] -= 1
-        args.nb_pts -= 2
-    logging.info('Corrected labels jump in '
-                 f'{round(time.time() - timer, 3)} seconds')
-
-    timer = time.time()
-    distance_map = compute_distance_map(labels_map, binary_map,
+    distance_map = compute_distance_map(labels_map, binary_mask,
                                         args.use_manhattan, args.nb_pts)
     logging.info('Computed distance map in '
                  f'{round(time.time() - timer, 3)} seconds')
-
+    print(binary_mask.shape, np.count_nonzero(binary_mask))
     timer = time.time()
     cmap = get_lookup_table(args.colormap)
     for i, sft in enumerate(sft_list):
@@ -341,17 +277,17 @@ def main():
                 continue
 
             if len(sft):
-                tmp_data=ndi.map_coordinates(
+                tmp_data = ndi.map_coordinates(
                     map, sft.streamlines._data.T - 0.5, order=0)
 
                 if basename == 'labels':
-                    max_val=args.nb_pts
+                    max_val = args.nb_pts
                 elif basename == 'correlation':
-                    max_val=1
+                    max_val = 1
                 else:
-                    max_val=np.max(tmp_data)
-                max_val=args.nb_pts
-                new_sft.data_per_point['color']._data=cmap(
+                    max_val = np.max(tmp_data)
+                max_val = args.nb_pts
+                new_sft.data_per_point['color']._data = cmap(
                     tmp_data / max_val)[:, 0:3] * 255
 
                 # Save the tractogram

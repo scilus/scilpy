@@ -1,4 +1,8 @@
 # -*- coding: utf-8 -*-
+from scilpy.tractograms.streamline_operations import \
+    resample_streamlines_num_points, resample_streamlines_step_size
+import time
+import logging
 from scilpy.tractograms.streamline_and_mask_operations import get_head_tail_density_maps
 import heapq
 
@@ -61,8 +65,8 @@ def associate_labels(target_sft, source_sft, nb_pts=20, sample_set=False,
     curr_ind = 0
     target_labels = np.zeros(target_sft.streamlines._data.shape[0],
                              dtype=float)
-    
-    # TODO Single prediction array 
+
+    # TODO Single prediction array
     for streamline in target_sft.streamlines:
         head_tail = [streamline[0], streamline[-1]]
         scaled_head_tail_data = scaler.transform(head_tail)
@@ -216,14 +220,14 @@ def masked_manhattan_distance(mask, target_positions):
     return distances
 
 
-def compute_distance_map(labels_map, binary_map, is_euclidian, nb_pts):
+def compute_distance_map(labels_map, binary_mask, is_euclidian, nb_pts):
     """
     Computes the distance map for each label in the labels_map.
 
     Parameters:
     labels_map (numpy.ndarray):
         A 3D array representing the labels map.
-    binary_map (numpy.ndarray):
+    binary_mask (numpy.ndarray):
         A 3D binary map used to calculate barycenter binary map.
     hyperplane (bool):
         A flag to determine the type of distance calculation.
@@ -253,10 +257,10 @@ def compute_distance_map(labels_map, binary_map, is_euclidian, nb_pts):
                    valid_data[:, i]) for i in range(tmp_barycenter.shape[1])]).T
     barycenters[head-1:tail] = interpolated_data
 
-    distance_map = np.zeros(binary_map.shape, dtype=float)
+    distance_map = np.zeros(binary_mask.shape, dtype=float)
     barycenter_strs = [barycenters[head-1:tail]]
     barycenter_bin = compute_tract_counts_map(barycenter_strs,
-                                              binary_map.shape)
+                                              binary_mask.shape)
     barycenter_bin[barycenter_bin > 0] = 1
 
     for label in range(head, tail+1):
@@ -280,7 +284,7 @@ def compute_distance_map(labels_map, binary_map, is_euclidian, nb_pts):
             distance_map[labels_map == label] = np.min(distances, axis=0)
         else:
             coords = [tuple(coord) for coord in barycenter_intersect_coords]
-            curr_dists = masked_manhattan_distance(binary_map, coords)
+            curr_dists = masked_manhattan_distance(binary_mask, coords)
             distance_map[labels_map == label] = \
                 curr_dists[labels_map == label]
 
@@ -290,8 +294,8 @@ def compute_distance_map(labels_map, binary_map, is_euclidian, nb_pts):
 def correct_labels_jump(labels_map, streamlines, nb_pts):
     labels_data = ndi.map_coordinates(labels_map, streamlines._data.T - 0.5,
                                       order=0)
-    binary_map = np.zeros(labels_map.shape, dtype=np.uint8)
-    binary_map[labels_map > 0] = 1
+    binary_mask = np.zeros(labels_map.shape, dtype=np.uint8)
+    binary_mask[labels_map > 0] = 1
 
     # It is not allowed that labels jumps labels for consistency
     # Streamlines should have continous labels
@@ -351,7 +355,7 @@ def correct_labels_jump(labels_map, streamlines, nb_pts):
     labels_map = np.zeros(labels_map.shape, dtype=np.uint16)
 
     for ind in indices:
-        neighbor_ids = kd_tree.query_ball_point(ind, r=2.0)
+        neighbor_ids = kd_tree.query_ball_point(ind, r=1.0)
         if not len(neighbor_ids):
             _, neighbor_ids = kd_tree.query(ind, k=5)
         labels_val = np.median(final_labels._data[neighbor_ids])
@@ -366,4 +370,87 @@ def correct_labels_jump(labels_map, streamlines, nb_pts):
                                                      sigma=2)
     labels_map = np.argmax(tmp_labels_map, axis=-1).astype(np.uint16)
 
-    return binary_map * labels_map
+    return binary_mask * labels_map
+
+
+def subdivide_bundles(sft, sft_centroid, binary_mask, nb_pts,
+                      method='centerline'):
+    # This allows to have a more uniform (in size) first and last labels
+    endpoints_extended = False
+    if method == 'hyperplane' and nb_pts >= 5:
+        nb_pts += 2
+        endpoints_extended = True
+
+    sft_centroid = resample_streamlines_num_points(sft_centroid, nb_pts)
+
+    timer = time.time()
+    if method == 'centerline':
+        indices = np.array(np.nonzero(binary_mask), dtype=int).T
+        labels = min_dist_to_centroid(indices,
+                                      sft_centroid[0].streamlines._data,
+                                      nb_pts=nb_pts)
+        logging.info('Computed labels using the euclidian method '
+                     f'in {round(time.time() - timer, 3)} seconds')
+    else:
+        logging.info('Computing Labels using the hyperplane method.\n'
+                     '\tThis can take a while...')
+        # Select 2000 elements from the SFTs to train the classifier
+        random_indices = np.random.choice(len(sft),
+                                          min(len(sft), 2000),
+                                          replace=False)
+        tmp_sft = resample_streamlines_step_size(sft[random_indices],
+                                                 1.0)
+        # Associate the labels to the streamlines using the centroids as
+        # reference (to handle shorter bundles due to missing data)
+        mini_timer = time.time()
+        sample_size = np.count_nonzero(binary_mask) // nb_pts
+        labels, points, = associate_labels(tmp_sft, sft_centroid,
+                                           nb_pts, sample_set=True,
+                                           sample_size=sample_size)
+
+        logging.info('\tAssociated labels to centroids in '
+                     f'{round(time.time() - mini_timer, 3)} seconds')
+
+        # Initialize the scaler
+        mini_timer = time.time()
+        scaler = MinMaxScaler(feature_range=(-1, 1))
+        scaler.fit(points)
+        scaled_streamline_data = scaler.transform(points)
+
+        svc = SVC(C=1.0, kernel='rbf', random_state=1)
+
+        svc.fit(X=scaled_streamline_data, y=labels)
+        logging.info('\tSVC fit of training data in '
+                     f'{round(time.time() - mini_timer, 3)} seconds')
+
+        # Scale the coordinates of the voxels
+        mini_timer = time.time()
+        voxel_coords = np.array(np.where(binary_mask)).T
+        scaled_voxel_coords = scaler.transform(voxel_coords)
+
+        # Predict the labels for the voxels
+        labels = svc.predict(X=scaled_voxel_coords)
+        logging.info('\tSVC prediction of labels in '
+                     f'{round(time.time() - mini_timer, 3)} seconds')
+
+        logging.info('Computed labels using the hyperplane method '
+                     f'in {round(time.time() - timer, 3)} seconds')
+    labels_map = np.zeros(binary_mask.shape, dtype=np.uint16)
+    labels_map[np.where(binary_mask)] = labels
+
+    # # Correct the hyperplane labels to have a more uniform size
+
+    timer = time.time()
+    tmp_sft = resample_streamlines_step_size(sft, 1.0)
+    labels_map = correct_labels_jump(labels_map, tmp_sft.streamlines,
+                                     nb_pts - 2)
+
+    if method == 'hyperplane' and endpoints_extended:
+        labels_map[labels_map == nb_pts] = nb_pts - 1
+        labels_map[labels_map == 1] = 2
+        labels_map[labels_map > 0] -= 1
+        nb_pts -= 2
+    logging.info('Corrected labels jump in '
+                 f'{round(time.time() - timer, 3)} seconds')
+
+    return labels_map
