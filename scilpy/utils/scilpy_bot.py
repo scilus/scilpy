@@ -2,23 +2,20 @@ import ast
 import nltk
 import pathlib
 import subprocess
-from nltk.stem import WordNetLemmatizer
+from nltk.stem import WordNetLemmatizer, PorterStemmer
 from colorama import Fore, Style
 import re
 from tqdm import tqdm
 
-stemmer = WordNetLemmatizer()
-nltk.download('wordnet', quiet=True)
-
-RED = '\033[31m'
-BOLD = '\033[1m'
-END_COLOR = '\033[0m'
-SPACING_CHAR = '='
 SPACING_LEN = 80
+
+stemmer_a = WordNetLemmatizer()
+stemmer_b = PorterStemmer()
+nltk.download('wordnet', quiet=True)
 
 # Path to the JSON file containing script information and keywords
 VOCAB_FILE_PATH = pathlib.Path(
-    __file__).parent.parent.parent/'data' / 'vocabulary' / 'vocabulary.json'
+    __file__).parent.parent.parent/'data' / 'vocabulary.json'
 
 
 OBJECTS = [
@@ -55,7 +52,8 @@ def _make_title(text):
     """
     Returns a formatted title string with centered text and spacing
     """
-    return f'{Fore.BLUE}{Style.BRIGHT}{text.center(80, "=")}{Style.RESET_ALL}'
+    return f'{Fore.LIGHTBLUE_EX}{Style.BRIGHT}{text.center(SPACING_LEN, "=")}' \
+           f'{Style.RESET_ALL}'
 
 
 def _get_docstring_from_script_path(script):
@@ -111,6 +109,27 @@ def _split_first_sentence(text):
     return sentence, remaining
 
 
+def _stem_word(word):
+    """
+    Stem a word using two different stemmers and return the most appropriate
+    stem.
+
+    Parameters
+    ----------
+    word : str
+        Word to stem.
+
+    Returns
+    -------
+    str
+        Stemmed word.
+    """
+    if len(word) <= 3:
+        return word
+    version_b = stemmer_b.stem(word)
+    return version_b
+
+
 def _stem_keywords(keywords):
     """
     Stem a list of keywords using PorterStemmer.
@@ -125,7 +144,7 @@ def _stem_keywords(keywords):
     list of str
         Stemmed keywords.
     """
-    return [stemmer.lemmatize(keyword) for keyword in keywords]
+    return [_stem_word(keyword) for keyword in keywords]
 
 
 def _stem_text(text):
@@ -143,7 +162,7 @@ def _stem_text(text):
         Stemmed text.
     """
     words = nltk.word_tokenize(text)
-    return ' '.join([stemmer.lemmatize(word) for word in words])
+    return ' '.join([_stem_word(word) for word in words])
 
 
 def _stem_phrase(phrase):
@@ -161,7 +180,7 @@ def _stem_phrase(phrase):
         Stemmed phrase.
     """
     words = phrase.split()
-    return ' '.join([stemmer.lemmatize(word) for word in words])
+    return ' '.join([_stem_word(word) for word in words])
 
 
 def _generate_help_files():
@@ -216,7 +235,7 @@ def _generate_help_files():
             f.write(result.stdout)
 
 
-def _highlight_keywords(text, stemmed_keywords):
+def _highlight_keywords(text, all_expressions):
     """
     Highlight the stemmed keywords in the given text using colorama.
 
@@ -224,24 +243,29 @@ def _highlight_keywords(text, stemmed_keywords):
     ----------
     text : str
         Text to highlight keywords in.
-    stemmed_keywords : list of str
-        Stemmed keywords to highlight.
+    all_expressions : list of str
+        List of all things to highlight.
 
     Returns
     -------
     str
         Text with highlighted keywords.
     """
-    words = text.split()
-    highlighted_text = []
-    for word in words:
-        stemmed_word = stemmer.lemmatize(word)
-        if stemmed_word in stemmed_keywords:
-            highlighted_text.append(
-                f'{Fore.RED}{Style.BRIGHT}{word}{Style.RESET_ALL}')
-        else:
-            highlighted_text.append(word)
-    return ' '.join(highlighted_text)
+    # Iterate over each keyword in the list
+    for kw in all_expressions:
+        # Create a regex pattern to match any word containing the keyword
+        pattern = re.compile(
+            r'\b(\w?' + re.escape(kw) + r's?\w?)\b', re.IGNORECASE)
+
+        # Function to apply highlighting to the matched word
+        def apply_highlight(match):
+            return f'{Fore.LIGHTYELLOW_EX}{Style.BRIGHT}{match.group(0)}' \
+                   f'{Style.RESET_ALL}'
+
+        # Replace the matched word with its highlighted version
+        text = pattern.sub(apply_highlight, text)
+
+    return text
 
 
 def _get_synonyms(keyword, synonyms_data):
@@ -264,19 +288,21 @@ def _get_synonyms(keyword, synonyms_data):
     complete_synonyms = []
     for synonym_set in synonyms_data:
         synonym_set = [synonym.lower() for synonym in synonym_set]
-        if keyword in synonym_set:
+        stemmed_synonyms_set = [_stem_word(synonym) for synonym in synonym_set]
+
+        if keyword in synonym_set or _stem_word(keyword) in stemmed_synonyms_set:
             complete_synonyms.extend(synonym_set)
 
-    return set(complete_synonyms)
+    return list(set(complete_synonyms))
 
 
-def _extract_keywords_and_phrases(keywords):
+def _extract_keywords_and_phrases(expressions):
     """
     Extract keywords and phrases from the provided list.
 
     Parameters
     ----------
-    keywords : list of str
+    expressions : list of str
         List of keywords and phrases.
 
     Returns
@@ -284,17 +310,17 @@ def _extract_keywords_and_phrases(keywords):
     list of str, list of str
         List of individual keywords and list of phrases.
     """
-    keywords_list = []
-    phrases_list = []
+    keywords_set = set()
+    phrases_set = set()
 
-    for keyword in keywords:
+    for expression in expressions:
         # if keyword contain blank space (contains more that 1 word)
-        if ' ' in keyword:
-            phrases_list.append(keyword.lower())
+        if ' ' in expression:
+            phrases_set.add(expression.lower())
         else:
-            keywords_list.append(keyword.lower())
+            keywords_set.add(expression.lower())
 
-    return keywords_list, phrases_list
+    return list(keywords_set), list(phrases_set)
 
 
 def _calculate_score(keywords, phrases, text, filename, suffix=''):
@@ -325,19 +351,22 @@ def _calculate_score(keywords, phrases, text, filename, suffix=''):
     def is_match(found_word, keyword):
         if len(keyword) <= 3:
             return found_word == keyword
-        return stemmer.lemmatize(found_word) == stemmer.lemmatize(keyword)
+        return _stem_word(found_word) == _stem_word(keyword)
 
     for keyword in keywords:
         keyword = keyword.lower()
         # Use regular expressions to match whole words only
-        keyword_pattern = re.compile(r'\b' + re.escape(keyword) + r'\b')
-        found_words = keyword_pattern.findall(
-            stemmed_text) + keyword_pattern.findall(stemmed_filename)
+
+        keyword_pattern = re.compile(
+            r'\b(\w?' + re.escape(keyword) + r's?\w?)\b', re.IGNORECASE)
+        found_words = keyword_pattern.findall(stemmed_text) \
+            + keyword_pattern.findall(stemmed_filename)
         keyword_score = 0
 
         for found_word in found_words:
             if is_match(found_word, keyword):
                 keyword_score += 1
+                continue
 
         if keyword_score > 0:
             score_details[keyword + suffix] = keyword_score
@@ -349,3 +378,36 @@ def _calculate_score(keywords, phrases, text, filename, suffix=''):
             score_details[phrase + suffix] = phrase_score
 
     return score_details
+
+
+def update_matches_and_scores(scores, filename, score_details):
+    """
+    Update the matches and scores for the given filename based
+    on the score details.
+
+    Parameters
+    ----------
+    scores : dict
+        A dictionary containing the scores for the keywords (to be updated).
+    filename : str
+        The name of the script file being analyzed.
+    score_details : dict
+        A dictionary containing the scores for the keywords
+            and phrases found in the script.
+    Returns
+    -------
+    None
+        Just updates the global `matches` and `scores` lists/dictionaries.
+    """
+    for key, value in score_details.items():
+        if value == 0:
+            continue
+
+        if filename not in scores:
+            scores[filename] = {key: value}
+        elif key not in scores[filename]:
+            scores[filename].update({key: value})
+        else:
+            scores[filename][key] += value
+
+    return scores

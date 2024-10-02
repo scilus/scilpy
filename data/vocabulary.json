@@ -736,8 +736,13 @@
       ]
     },
     {
-      "name": "scil_tractogram_alter.py",
-      "keywords": []
+      "name": "scil_bundle_alter_to_target_dice.py",
+      "keywords": [
+        "cut",
+        "dice",
+        "transform",
+        "trim"
+      ]
     },
     {
       "name": "scil_tractogram_apply_transform.py",
@@ -894,19 +899,11 @@
       "keywords": []
     },
     {
-      "name": "scil_tractogram_segment_and_score.py",
+      "name": "scil_tractogram_segment_with_ROI_and_score.py",
       "keywords": []
     },
     {
-      "name": "scil_tractogram_segment_bundles_for_connectivity.py",
-      "keywords": []
-    },
-    {
-      "name": "scil_tractogram_segment_bundles.py",
-      "keywords": []
-    },
-    {
-      "name": "scil_tractogram_segment_one_bundle.py",
+      "name": "scil_tractogram_segment_connections_from_labels.py",
       "keywords": []
     },
     {
@@ -1059,6 +1056,11 @@
     }
   ],
   "synonyms": [
+    [
+      "tractogram",
+      "streamline",
+      "whole brain"
+    ],
     [
       "bundle",
       "tract",
@@ -2030,10 +2032,6 @@
     [
       "isbi2013-full",
       "dataset from the hardi challenge at the conference isbi2013"
-    ],
-    [
-      "mgh-ucla hcp",
-      "(massachusetts general hospital - university of california, los angeles) human connectome project"
     ],
     [
       "nmse",

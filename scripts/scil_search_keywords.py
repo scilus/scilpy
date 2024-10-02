@@ -34,6 +34,12 @@ Examples:
 - scil_search_keywords.py -v DEBUG sh
 """
 
+# TODO harmonize variable names
+# TODO add more tests (generic even if code evolves)
+# TODO add more comments about the stemming and synonyms
+# TODO Order imports and functions alphabetically
+# TODO remove useless code if any
+
 import argparse
 import logging
 import pathlib
@@ -50,7 +56,7 @@ from colorama import Fore, Style
 import json
 
 from scilpy.utils.scilpy_bot import (
-    _get_docstring_from_script_path, _stem_keywords,
+    _stem_keywords, update_matches_and_scores,
     _stem_phrase, _generate_help_files,
     _get_synonyms, _extract_keywords_and_phrases,
     _calculate_score, _make_title, prompt_user_for_object,
@@ -66,8 +72,9 @@ def _build_arg_parser():
     p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawTextHelpFormatter)
 
-    p.add_argument('keywords', nargs='+',
-                   help='Search the provided list of keywords.')
+    p.add_argument('expressions', nargs='+',
+                   help='Search the provided list of expressions.\n'
+                        'Use quotes to search for phrases.')
 
     p.add_argument('--search_category', action='store_true',
                    help='Search within a specific category of scripts.')
@@ -96,10 +103,26 @@ def main():
     else:
         selected_object = ''
 
+    args.expressions = [expression.lower() for expression in args.expressions]
+
     # keywords are single words. Phrases are composed keywords
-    keywords, phrases = _extract_keywords_and_phrases(args.keywords)
+    keywords, phrases = _extract_keywords_and_phrases(args.expressions)
+
+    with open(VOCAB_FILE_PATH, 'r') as f:
+        vocab_data = json.load(f)
+
+    # If synonyms are enabled, extend the search to include synonyms
+    if not args.no_synonyms:
+        all_expressions = keywords + phrases
+        extended_expressions = set()
+        for expression in all_expressions:
+            synonyms = _get_synonyms(expression, vocab_data['synonyms'])
+            extended_expressions.update(synonyms)
+        extended_expressions.update(args.expressions)
+        keywords, phrases = _extract_keywords_and_phrases(extended_expressions)
+
     stemmed_keywords = _stem_keywords(keywords)
-    stemmed_phrases = [_stem_phrase(phrase) for phrase in phrases]
+    stemmed_phrases = list(set([_stem_phrase(phrase) for phrase in phrases]))
 
     # Create a mapping of stemmed to original keywords
     # This will be needed to display the occurence of the keywords
@@ -122,104 +145,46 @@ def main():
 
     _generate_help_files()
 
-    scores = {}
+    scores_per_script = {}
 
-    def update_matches_and_scores(filename, score_details):
-        """
-        Update the matches and scores for the given filename based
-        on the score details.
-
-        Parameters
-        ----------
-        filename : str
-            The name of the script file being analyzed.
-        score_details : dict
-            A dictionary containing the scores for the keywords
-                and phrases found in the script.
-        Returns
-        -------
-        None
-            Just updates the global `matches` and `scores` lists/dictionaries.
-        """
-        for key, value in score_details.items():
-            if value == 0:
-                continue
-
-            if filename not in scores:
-                scores[filename] = {key: value}
-            elif key not in scores[filename]:
-                scores[filename].update({key: value})
-            else:
-                scores[filename][key] += value
-
-        return
-
+    # Search through the docstrings of all scripts
     for script in sorted(hidden_dir.glob(f'scil_{selected_object}*.help')):
-        filename = script.stem
+        script_name = script.stem
 
-        # Search through the docstring
         with open(script, 'r') as f:
             search_text = f.read()
 
         score_details = _calculate_score(
-            stemmed_keywords, stemmed_phrases, search_text, filename=filename)
-        update_matches_and_scores(filename, score_details)
+            stemmed_keywords, stemmed_phrases, search_text,
+            filename=script_name)
 
-    # Search in keywords file
-    with open(VOCAB_FILE_PATH, 'r') as f:
-        vocab_data = json.load(f)
+        scores_per_script = update_matches_and_scores(scores_per_script,
+                                                      script_name, score_details)
 
+    # Search in additional keywords in the vocabulary file
     for script in vocab_data['scripts']:
+        if selected_object and selected_object not in script:
+            continue
+
         script_name = script['name']
         script_keywords = script['keywords']
         search_text = ' '.join(script_keywords)
         score_details = _calculate_score(
             stemmed_keywords, stemmed_phrases, search_text, script_name)
-        update_matches_and_scores(script_name, score_details)
+        scores_per_script = update_matches_and_scores(scores_per_script,
+                                                      script_name, score_details)
 
-    # Search in synonyms file if not args.no_synonyms is not specified
-    if not args.no_synonyms:
-        full_list_to_verify = set(stemmed_keywords + stemmed_phrases)
-        for keyword in full_list_to_verify:
-            synonyms = _get_synonyms(keyword, vocab_data['synonyms'])
+    # Remove scripts with no matches
+    scores_per_script = {script: score for script,
+                         score in scores_per_script.items() if score}
+    matched_scripts = list(scores_per_script.keys())
 
-            for script in sorted(hidden_dir.glob(f'scil_{selected_object}*.help')):
-                score_details = {}
-                filename = script.stem
-
-                with open(script, 'r') as f:
-                    search_text = f.read()
-
-                for synonym in synonyms:
-                    if filename in scores and synonym in scores[filename]:
-                        continue
-
-                    if ' ' in synonym:
-                        stemmed_phrases = [synonym]
-                        stemmed_keywords = []
-                    else:
-                        stemmed_keywords = [synonym]
-                        stemmed_phrases = []
-
-                    score_details = _calculate_score(stemmed_keywords,
-                                                     stemmed_phrases,
-                                                     search_text,
-                                                     script_name,
-                                                     suffix=' (synonyms)')
-
-                    # Directly update scores dictionary
-                    if filename in scores:
-                        scores[filename].update(score_details)
-                    else:
-                        scores[filename] = score_details
-
-    matches = list(scores.keys())
-
-    if not matches:
+    if not matched_scripts:
         logging.info(_make_title(' No results found! '))
         return
 
-    total_scores = {match: sum(scores[match].values()) for match in matches}
+    total_scores = {match: sum(
+        scores_per_script[match].values()) for match in matched_scripts}
     sorted_matches = sorted(total_scores, key=total_scores.get)
 
     # Sort matches by score and display them
@@ -227,28 +192,42 @@ def main():
     for match in sorted_matches:
         if total_scores[match] == 0:
             continue
-        logging.info(f"{Fore.BLUE}{Style.BRIGHT}{match}{Style.RESET_ALL}")
-
-        for word, score in scores[match].items():
-            original_word = keyword_mapping.get(
-                word, phrase_mapping.get(word, word))
-            logging.info(
-                f"{Fore.GREEN}Occurrence of '{original_word}': {score}{Style.RESET_ALL}")
 
         # Highlight keywords based on verbosity level
         with open(hidden_dir / f'{match}.help', 'r') as f:
             docstrings = f.read()
+
+        all_experessions = stemmed_keywords + keywords + phrases \
+            + stemmed_phrases
+        if not args.no_synonyms:
+            all_experessions += synonyms
+
+        all_experessions = set(all_experessions)
+
         highlighted_docstring = _highlight_keywords(docstrings,
-                                                    stemmed_keywords)
+                                                    all_experessions)
         if args.verbose == 'INFO':
             first_sentence = _split_first_sentence(
                 highlighted_docstring)[0]
             logging.info(f"{first_sentence.strip()}")
         elif args.verbose == 'DEBUG':
             logging.debug(f"{highlighted_docstring.strip()}")
+
+        # Print the basic information at the end
         logging.info(
-            f"{Fore.RED}Total Score: {total_scores[match]}{Style.RESET_ALL}")
-        logging.info(f"{Fore.BLUE}{'=' * SPACING_LEN}")
+            f"{Fore.LIGHTYELLOW_EX}Total Score: {total_scores[match]}"
+            f"{Style.RESET_ALL}")
+
+        logging.info(
+            f"{Fore.LIGHTBLUE_EX}{Style.BRIGHT}{match}{Style.RESET_ALL}")
+
+        for word, score in scores_per_script[match].items():
+            original_word = keyword_mapping.get(
+                word, phrase_mapping.get(word, word))
+            logging.info(
+                f"{Fore.LIGHTGREEN_EX}Occurrence of '{original_word}': ' \
+                f'{score}{Style.RESET_ALL}")
+        logging.info(f"{Fore.LIGHTBLUE_EX}{'=' * SPACING_LEN}")
         logging.info("\n")
 
     logging.info(_make_title(
