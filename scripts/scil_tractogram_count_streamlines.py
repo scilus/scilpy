@@ -44,7 +44,7 @@ def main():
     assert_inputs_exist(parser, args.in_tractogram)
 
     bundle_name, _ = os.path.splitext(os.path.basename(args.in_tractogram))
-    count = int(lazy_streamlines_count(args.in_tractogram))
+    count = lazy_streamlines_count(args.in_tractogram)
 
     if args.print_count_alone:
         print(count)

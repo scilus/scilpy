@@ -68,7 +68,8 @@ def get_binary_mask_from_labels(atlas, label_list):
     return mask
 
 
-def get_labels_from_mask(mask_data, labels=None, background_label=0):
+def get_labels_from_mask(mask_data, labels=None, background_label=0,
+                         min_voxel_count=0):
     """
     Get labels from a binary mask which contains multiple blobs. Each blob
     will be assigned a label, by default starting from 1. Background will
@@ -83,6 +84,9 @@ def get_labels_from_mask(mask_data, labels=None, background_label=0):
         label.
     background_label: int
         Label for the background.
+    min_voxel_count: int, optional
+        Minimum number of voxels for a blob to be considered. Blobs with fewer
+        voxels will be ignored.
 
     Returns
     -------
@@ -91,6 +95,19 @@ def get_labels_from_mask(mask_data, labels=None, background_label=0):
     """
     # Get the number of structures and assign labels to each blob
     label_map, nb_structures = ndi.label(mask_data)
+    if min_voxel_count:
+        new_count = 0
+        for label in range(1, nb_structures + 1):
+            if np.count_nonzero(label_map == label) < min_voxel_count:
+                label_map[label_map == label] = 0
+            else:
+                new_count += 1
+                label_map[label_map == label] = new_count
+        logging.debug(
+            f"Ignored blob {nb_structures-new_count} with fewer "
+            "than {min_voxel_count} voxels")
+        nb_structures = new_count
+
     # Assign labels to each blob if provided
     if labels:
         # Only keep the first nb_structures labels if the number of labels

@@ -48,6 +48,7 @@ jobs:
 
       - name: Install Scilpy
         run: |
+          export SETUPTOOLS_USE_DISTUTILS=stdlib
           python -m pip install --upgrade pip wheel
           python -m pip install --upgrade "setuptools<71.0.0" 
           python -m pip install -e .
@@ -63,6 +64,7 @@ jobs:
         with:
           name: test-coverage-${{ github.run_id }}
           retention-days: 1
+          include-hidden-files: true
           path: |
             .coverage
             .test_reports/

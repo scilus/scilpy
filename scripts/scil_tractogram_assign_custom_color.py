@@ -63,8 +63,8 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_outputs_exist,
                              load_matrix_in_any_format)
 from scilpy.tractograms.dps_and_dpp_management import add_data_as_color_dpp
-from scilpy.tractograms.streamline_operations import (get_values_along_length,
-                                                      get_angles)
+from scilpy.tractograms.streamline_operations import (
+    get_streamlines_as_linspaces, get_angles)
 from scilpy.viz.color import get_lookup_table
 from scilpy.viz.color import prepare_colorbar_figure
 
@@ -204,9 +204,11 @@ def main():
             data = nib.load(args.from_anatomy).get_fdata()
             data = map_coordinates(data, concat_points, order=0)
     elif args.along_profile:
-        data = get_values_along_length(sft)
+        data = get_streamlines_as_linspaces(sft)
+        data = np.hstack(data)
     else:  # args.local_angle:
-        data = get_angles(sft)
+        data = get_angles(sft, add_zeros=True)
+        data = np.hstack(data)
 
     # Processing
     sft, lbound, ubound = add_data_as_color_dpp(
