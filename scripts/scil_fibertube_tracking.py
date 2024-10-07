@@ -159,7 +159,6 @@ def _build_arg_parser():
     add_overwrite_arg(out_g)
     add_processes_arg(p)
     add_verbose_arg(p)
-    add_json_args(p)
 
     return p
 
@@ -179,12 +178,13 @@ def main():
         parser.error('Invalid output streamline file format (must be trk ' +
                      'or tck): {0}'.format(args.out_tractogram))
 
-    _, out_config_ext = os.path.splitext(args.out_config)
-    out_tractogram_no_ext, out_tractogram_ext = os.path.splitext(args.out_tractogram)
+    if args.out_config:
+        _, out_config_ext = os.path.splitext(args.out_config)
+        if out_config_ext != '.txt':
+            parser.error('Invalid output file format (must be txt): {0}'
+                        .format(args.out_config))
 
-    if out_config_ext != '.txt':
-        parser.error('Invalid output file format (must be txt): {0}'
-                     .format(args.out_config))
+    out_tractogram_no_ext, out_tractogram_ext = os.path.splitext(args.out_tractogram)
 
     outputs = [args.out_tractogram]
     if not args.do_not_save_seeds:

@@ -137,7 +137,6 @@ def _build_arg_parser():
 
     add_overwrite_arg(p)
     add_verbose_arg(p)
-    add_json_args(p)
 
     return p
 

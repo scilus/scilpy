@@ -13,9 +13,9 @@ IC: "Invalid Connection": Represents a streamline that ended in the final
 NC: "No Connection": Contains streamlines that have not ended in the final
     segment of any fibertube.
 
-A "coordinate absolute error" is the distance between a streamline coordinate
-and the closest point on its corresponding fibertube. The average of all
-coordinate absolute errors of a streamline is called the "Mean absolute
+A "coordinate absolute error" is the distance in mm between a streamline
+coordinate and the closest point on its corresponding fibertube. The average
+of all coordinate absolute errors of a streamline is called the "Mean absolute
 error" or "mae".
 
 Computed metrics:
@@ -41,9 +41,9 @@ Computed metrics:
         Median MAE for the tractogram.
 
 See also:
-    - scil_ft_tracking.py to perform a fibertube tracking
     - scil_tractogram_filter_collisions.py to prepare data for fibertube
       tracking
+    - scil_fibertube_tracking.py to perform a fibertube tracking
 """
 
 import os
@@ -107,7 +107,6 @@ def _build_arg_parser():
 
     add_verbose_arg(p)
     add_overwrite_arg(p)
-    add_json_args(p)
 
     return p
 
@@ -116,9 +115,8 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    if args.verbose:
-        logging.getLogger().setLevel(logging.DEBUG)
-        logging.getLogger('numba').setLevel(logging.WARNING)
+    logging.getLogger().setLevel(logging.getLevelName(args.verbose))
+    logging.getLogger('numba').setLevel(logging.WARNING)
 
     if not nib.streamlines.is_supported(args.in_fibertubes):
         parser.error('Invalid input streamline file format (must be trk ' +

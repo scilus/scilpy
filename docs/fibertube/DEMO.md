@@ -45,7 +45,7 @@ segments no longer than 0.2 mm.
 
 To resample a tractogram, we can use this script from scilpy:
 ```
-scil_tractogram_resample_nb_points.py centerlines.trk centerlines_resampled.trk --step_size 0.2
+scil_tractogram_resample_nb_points.py centerlines.trk centerlines_resampled.trk --step_size 0.2 -f
 ```
 
 Next, we want to filter out intersecting fibertubes, to make the data anatomically plausible and remove any partial volume effect.
@@ -55,7 +55,7 @@ Next, we want to filter out intersecting fibertubes, to make the data anatomical
 This is accomplished using `scil_tractogram_filter_collisions.py`. <br>
 
 ```
-scil_tractogram_filter_collisions.py centerlines_resampled.trk diameters.txt fibertubes.trk --save_colliding --out_metrics metrics.txt -v
+scil_tractogram_filter_collisions.py centerlines_resampled.trk diameters.txt fibertubes.trk --save_colliding --out_metrics metrics.txt -v -f
 ```
 
 After a short wait, you should get something like:
@@ -118,46 +118,65 @@ This should take a few minutes at most. However, if you don't mind waiting a lit
 
 > [!NOTE]
 > Given the time required for each streamline, the `--processes` parameter will be very useful.
- HERE
-## Visualizing fibertube coverage of tracked streamlines
-Another useful script is:
-```
-python ../ft_visualize_coverage.py disco_centerlines_clean.tck disco_centerlines_clean_diameters.txt reconstruction.tck reconstruction_config.txt --reference disco_mask.nii.gz
-```
-
-> [!IMPORTANT]
-> At first, the result might look a bit underwhelming, but if you zoom sufficiently and try to bring the camera through a streamtube,
-> you will be able to observe the original fibertube (in red) along the tracked streamlines (in green).
-
-![Reconstructed streamlines alongside ground-truth fibers, visualized in 3D](https://github.com/VincentBeaud/fibertube_tracking/assets/77688542/5b055a1b-45e8-42de-b5e5-7f667bf8299c)
-
 
 ### Reconstruction analysis
-By using the `ft_reconstruction_metrics.py` script, you are able to obtain measures on the quality of the fibertube reconstruction. Here is a description of the computed metrics:
+By using the `scil_fibertube_score_tractogram.py` script, you are able to obtain measures on the quality of the fibertube tracking that was performed. Here is a description of the computed metrics:
 
-VC: "Valid Connection": Streamlines that ended in the final
-    segment of the fiber in which they have been seeded. <br>
-IC: "Invalid Connection": Streamlines that ended in the final
-    segment of another fiber. <br>
-NC: "No Connection": Streamlines that have not ended in the final
-    segment of any fiber. <br>
+VC: "Valid Connection": Represents a streamline that ended in the final
+    segment of the fibertube in which it was seeded.
+IC: "Invalid Connection": Represents a streamline that ended in the final
+    segment of another fibertube.
+NC: "No Connection": Contains streamlines that have not ended in the final
+    segment of any fibertube.
 
-An "Error" is the distance between a streamline coordinate and the
-closest point on its corresponding fibertube. The average of all errors
-of a streamline is called the "Mean error" or "me".
+A "coordinate absolute error" is the distance in mm between a streamline
+coordinate and the closest point on its corresponding fibertube. The average
+of all coordinate absolute errors of a streamline is called the "Mean absolute
+error" or "mae".
 
 Computed metrics:
-- truth_vc
-    <br>Connections that are valid at ground-truth resolution.
-- truth_ic
-- truth_nc
-- res_vc
-    <br>Connections that are valid at degraded resolution.
-- res_ic
-- res_nc
-- me_min
-- me_max
-- me_mean
-- me_med
+    - truth_vc_ratio
+        Proportion of VC.
+    - truth_ic_ratio
+        Proportion of IC.
+    - truth_nc_ratio
+        Proportion of NC.
+    - res_vc_ratio
+        Proportion of VC at the resolution of the blur_radius parameter.
+    - res_ic_ratio
+        Proportion of IC at the resolution of the blur_radius parameter.
+    - res_nc_ratio
+        Proportion of NC at the resolution of the blur_radius parameter.
+    - mae_min
+        Minimum MAE for the tractogram.
+    - mae_max
+        Maximum MAE for the tractogram.
+    - mae_mean
+        Average MAE for the tractogram.
+    - mae_med
+        Median MAE for the tractogram.
+
+Let's do:
+```
+scil_fibertube_score_tractogram.py fibertubes.trk tracking.trk tracking_config.txt reconstruction_metrics.txt -v -f
+```
+
+giving us the following output in `reconstruction_metrics.txt`:
+```
+{
+  "truth_vc_ratio": 0.0,
+  "truth_ic_ratio": 0.0,
+  "truth_nc_ratio": 1.0,
+  "res_vc_ratio": 0.4,
+  "res_ic_ratio": 0.0,
+  "res_nc_ratio": 0.6,
+  "mae_min": 0.0014691361472782293,
+  "mae_max": 0.0055722481609273775,
+  "mae_mean": 0.003883039143304128,
+  "mae_med": 0.003927314695651083
+}
+```
+
+This data tells us that none of our streamline managed to stay within the fibertube in which it was seeded (`"truth_vc_ratio": 0.0`). However, 40% of streamlinea are at most one `blur_radius` away from the end of their respective fibertube (`"res_vc_ratio": 0.4`). Lastly, we notice that the streamline with the "worst" trajectory was on average 5.5um away from its fibertube (`"mae_max": 0.0055722481609273775`). We can suspect that it started very good early on, but eventually drifted further than 10um, rendering it a NC.
 
 ## End of Demo
