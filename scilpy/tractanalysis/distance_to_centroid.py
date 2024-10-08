@@ -43,6 +43,7 @@ def min_dist_to_centroid(bundle_pts, centroid_pts, nb_pts):
 
 def associate_labels(target_sft, source_sft, nb_pts=20, sample_set=False,
                      sample_size=None):
+    # DOCSTRING
     curr_ind = 0
     source_labels = np.zeros(source_sft.streamlines._data.shape[0],
                              dtype=float)
@@ -375,6 +376,7 @@ def correct_labels_jump(labels_map, streamlines, nb_pts):
 
 def subdivide_bundles(sft, sft_centroid, binary_mask, nb_pts,
                       method='centerline'):
+    # TODO DOCSTRING !
     # This allows to have a more uniform (in size) first and last labels
     endpoints_extended = False
     if method == 'hyperplane' and nb_pts >= 5:
