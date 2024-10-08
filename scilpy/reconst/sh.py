@@ -350,6 +350,7 @@ def _maps_from_sh_parallel(args):
     afd_max = np.zeros(data_shape)
     afd_sum = np.zeros(data_shape)
     rgb_map = np.zeros((data_shape, 3))
+    ga_map = np.zeros(data_shape)
     gfa_map = np.zeros(data_shape)
     qa_map = np.zeros((data_shape, peak_values.shape[1]))
 
@@ -374,9 +375,18 @@ def _maps_from_sh_parallel(args):
                 afd_sum[idx] = np.sqrt(np.dot(shm_coeff[idx], shm_coeff[idx]))
                 qa_map = peak_values[idx] - odf.min()
                 global_max = max(global_max, peak_values[idx][0])
+            # Property 4 of section 2.2 in Cheng et al. 2009
+            ga_norm_thr = 1e-1
+            shm_coeff_i_norm = np.linalg.norm(shm_coeff[idx])
+            if shm_coeff_i_norm <= ga_norm_thr:
+                ga_map[idx] = 0
+            else:
+                c = (shm_coeff[idx]) / shm_coeff_i_norm
+                cdotu = np.clip(c[0], -1, 1)
+                ga_map[idx] = np.arccos(cdotu)
 
     return chunk_id, nufo_map, afd_max, afd_sum, rgb_map, \
-        gfa_map, qa_map, max_odf, global_max
+        ga_map, gfa_map, qa_map, max_odf, global_max
 
 
 def maps_from_sh(shm_coeff, peak_dirs, peak_values, peak_indices, sphere,
@@ -414,7 +424,7 @@ def maps_from_sh(shm_coeff, peak_dirs, peak_values, peak_indices, sphere,
     Returns
     -------
     tuple of np.ndarray
-        nufo_map, afd_max, afd_sum, rgb_map, gfa, qa
+        nufo_map, afd_max, afd_sum, rgb_map, ga, gfa, qa
     """
     sh_order = order_from_ncoef(shm_coeff.shape[-1])
     B, _ = sh_to_sf_matrix(sphere, sh_order, sh_basis_type)
@@ -459,6 +469,7 @@ def maps_from_sh(shm_coeff, peak_dirs, peak_values, peak_indices, sphere,
     afd_max_array = np.zeros(data_shape[0:3])
     afd_sum_array = np.zeros(data_shape[0:3])
     rgb_map_array = np.zeros(data_shape[0:3] + (3,))
+    ga_map_array = np.zeros(data_shape[0:3])
     gfa_map_array = np.zeros(data_shape[0:3])
     qa_map_array = np.zeros(data_shape[0:3] + (npeaks,))
 
@@ -468,12 +479,13 @@ def maps_from_sh(shm_coeff, peak_dirs, peak_values, peak_indices, sphere,
     tmp_afd_max_array = np.zeros((np.count_nonzero(mask)))
     tmp_afd_sum_array = np.zeros((np.count_nonzero(mask)))
     tmp_rgb_map_array = np.zeros((np.count_nonzero(mask), 3))
+    tmp_ga_map_array = np.zeros((np.count_nonzero(mask)))
     tmp_gfa_map_array = np.zeros((np.count_nonzero(mask)))
     tmp_qa_map_array = np.zeros((np.count_nonzero(mask), npeaks))
 
     all_time_max_odf = -np.inf
     all_time_global_max = -np.inf
-    for (i, nufo_map, afd_max, afd_sum, rgb_map,
+    for (i, nufo_map, afd_max, afd_sum, rgb_map, ga_map,
          gfa_map, qa_map, max_odf, global_max) in results:
         all_time_max_odf = max(all_time_global_max, max_odf)
         all_time_global_max = max(all_time_global_max, global_max)
@@ -482,6 +494,7 @@ def maps_from_sh(shm_coeff, peak_dirs, peak_values, peak_indices, sphere,
         tmp_afd_max_array[chunk_len[i]:chunk_len[i+1]] = afd_max
         tmp_afd_sum_array[chunk_len[i]:chunk_len[i+1]] = afd_sum
         tmp_rgb_map_array[chunk_len[i]:chunk_len[i+1], :] = rgb_map
+        tmp_ga_map_array[chunk_len[i]:chunk_len[i+1]] = ga_map
         tmp_gfa_map_array[chunk_len[i]:chunk_len[i+1]] = gfa_map
         tmp_qa_map_array[chunk_len[i]:chunk_len[i+1], :] = qa_map
 
@@ -489,9 +502,9 @@ def maps_from_sh(shm_coeff, peak_dirs, peak_values, peak_indices, sphere,
     afd_max_array[mask] = tmp_afd_max_array
     afd_sum_array[mask] = tmp_afd_sum_array
     rgb_map_array[mask] = tmp_rgb_map_array
+    ga_map_array[mask] = tmp_ga_map_array
     gfa_map_array[mask] = tmp_gfa_map_array
     qa_map_array[mask] = tmp_qa_map_array
-
     rgb_map_array /= all_time_max_odf
     rgb_map_array *= 255
     qa_map_array /= all_time_global_max
@@ -501,8 +514,8 @@ def maps_from_sh(shm_coeff, peak_dirs, peak_values, peak_indices, sphere,
             or np.array_equal(np.array([1]), afd_unique):
         logging.warning('All AFD_max values are 1. The peaks seem normalized.')
 
-    return(nufo_map_array, afd_max_array, afd_sum_array,
-           rgb_map_array, gfa_map_array, qa_map_array)
+    return (nufo_map_array, afd_max_array, afd_sum_array,
+            rgb_map_array, gfa_map_array, ga_map_array, qa_map_array)
 
 
 def _convert_sh_basis_parallel(args):
