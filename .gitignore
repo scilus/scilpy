@@ -71,3 +71,6 @@ target/
 
 # Virtualenv
 venv/
+
+# Hidden folder
+.hidden/
