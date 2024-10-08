@@ -29,8 +29,8 @@ import os
 
 import numpy as np
 
-from scilpy.connectivity.connectivity_tools import (compute_olo,
-                                                    apply_reordering)
+from scilpy.connectivity.matrix_tools import (compute_olo,
+                                              apply_reordering)
 from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist,
                              load_matrix_in_any_format,

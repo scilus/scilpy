@@ -50,7 +50,7 @@ import logging
 import nibabel as nib
 import numpy as np
 
-from scilpy.connectivity.connectivity_tools import \
+from scilpy.connectivity.matrix_tools import \
     normalize_matrix_from_values, normalize_matrix_from_parcel
 from scilpy.image.volume_math import normalize_max, normalize_sum, base_10_log
 from scilpy.io.utils import (add_overwrite_arg,

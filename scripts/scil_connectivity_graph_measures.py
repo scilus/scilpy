@@ -36,7 +36,7 @@ import json
 import logging
 import os
 
-from scilpy.connectivity.connectivity_tools import evaluate_graph_measures
+from scilpy.connectivity.matrix_tools import evaluate_graph_measures
 from scilpy.io.utils import (add_json_args,
                              add_overwrite_arg,
                              add_verbose_arg,
