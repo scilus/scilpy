@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 
-import psutil
 import logging
 from time import time
 import warnings
 
 from dipy.align.streamlinear import (BundleMinDistanceMetric,
                                      StreamlineLinearRegistration)
+from dipy.io.stateful_tractogram import set_sft_logger_level
 from dipy.segment.fss import FastStreamlineSearch, nearest_from_matrix_col
 from dipy.segment.clustering import qbx_and_merge
 from dipy.tracking.distances import bundles_distances_mdf
@@ -14,18 +14,19 @@ from dipy.tracking.streamline import (select_random_set_of_streamlines,
                                       transform_streamlines)
 from nibabel.streamlines.array_sequence import ArraySequence
 import numpy as np
-from scipy.sparse import SparseEfficiencyWarning, hstack, vstack
+from scipy.sparse import SparseEfficiencyWarning, vstack
 
 from scilpy.io.streamlines import reconstruct_streamlines_from_memmap
 warnings.simplefilter("ignore", SparseEfficiencyWarning)
 
+logger = logging.getLogger("BundleSeg")
 
-class RecobundlesX(object):
+class BundleSeg(object):
     """
     This class is a 'remastered' version of the Dipy Recobundles class.
     Made to be used in sync with the voting_scheme.
     Adapted in many way for HPC processing and increase control over
-    parameters and logging.
+    parameters and logger.
     However, in essence they do the same thing.
     https://github.com/nipy/dipy/blob/master/dipy/segment/bundles.py
 
@@ -81,7 +82,7 @@ class RecobundlesX(object):
             Define the transformation for the local SLR.
             [translation, rigid, similarity, scaling]
         identifier : str
-            Identify the current bundle being recognized for the logging.
+            Identify the current bundle being recognized for the logger.
 
         Returns
         -------
@@ -96,17 +97,18 @@ class RecobundlesX(object):
 
         if not self._reduce_search_space(neighbors_reduction_thr=18):
             if identifier:
-                logging.error('{0} did not find any neighbors in '
+                logger.error('{0} did not find any neighbors in '
                               'the tractogram'.format(identifier))
             return np.array([], dtype=np.uint32), np.array([], dtype=float)
 
         self._register_model_to_neighb(slr_transform_type=slr_transform_type)
 
-        if not self._reduce_search_space(neighbors_reduction_thr=15):
-            if identifier:
-                logging.error('{0} did not find any neighbors in '
-                              'the tractogram'.format(identifier))
-            return np.array([], dtype=np.uint32), np.array([], dtype=float)
+        # # Second reduction of the search space (after SLR)
+        # if not self._reduce_search_space(neighbors_reduction_thr=16):
+        #     if identifier:
+        #         logger.error('{0} did not find any neighbors in '
+        #                       'the tractogram'.format(identifier))
+        #     return np.array([], dtype=np.uint32), np.array([], dtype=float)
 
         self.prune_far_from_model(pruning_thr=pruning_thr)
 
@@ -120,7 +122,7 @@ class RecobundlesX(object):
         Parameters
         ----------
         model_clust_thr, float, distance in mm for clustering.
-        identifier, str, name of the bundle for logging.
+        identifier, str, name of the bundle for logger.
         """
         thresholds = [30, 20, 15, model_clust_thr]
         model_cluster_map = qbx_and_merge(self.model_streamlines, thresholds,
@@ -131,7 +133,7 @@ class RecobundlesX(object):
         self.model_centroids = ArraySequence(model_cluster_map.centroids)
         len_centroids = len(self.model_centroids)
         if len_centroids > 1000:
-            logging.warning('Model {0} simplified at threshold '
+            logger.warning('Model {0} simplified at threshold '
                             '{1}mm with {2} centroids'.format(identifier,
                                                               str(model_clust_thr),
                                                               str(len_centroids)))
@@ -266,7 +268,7 @@ class RecobundlesX(object):
                 else:
                     dist_mat = vstack((dist_mat, tmp_dist_mat))
 
-        logging.debug("Fast search took of dimensions {0}: {1} sec.".format(
+        logger.debug("Fast search took of dimensions {0}: {1} sec.".format(
             dist_mat.shape, np.round(time() - t0, 2)))
 
         # Identify the closest neighbors (remove the zeros, not matched)
@@ -275,7 +277,7 @@ class RecobundlesX(object):
 
         # If no streamlines were recognized, return an empty array
         if len(non_zero_ids) == 0:
-            logging.error('No streamlines were recognized')
+            logger.error('No streamlines were recognized')
             self.final_pruned_indices = np.array([], dtype=np.uint32)
             self.final_pruned_scores = np.array([], dtype=float)
         else:

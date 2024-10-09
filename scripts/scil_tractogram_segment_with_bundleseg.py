@@ -44,6 +44,8 @@ from scilpy.io.utils import (add_overwrite_arg, add_processes_arg,
                              load_matrix_in_any_format, ranged_type)
 from scilpy.segment.voting_scheme import VotingScheme
 
+logger = logging.getLogger("BundleSeg")
+
 EPILOG = """
 [1] St-Onge, Etienne, Kurt G. Schilling, and Francois Rheault.
 "BundleSeg: A versatile,reliable and reproducible approach to white
@@ -97,7 +99,9 @@ def _build_arg_parser():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
-    logging.getLogger().setLevel(logging.getLevelName(args.verbose))
+
+    logger.setLevel(logging.getLevelName(args.verbose))
+    logging.getLogger().setLevel(logging.getLevelName('INFO'))
 
     # Verifications
     in_models_directories = [
@@ -106,8 +110,8 @@ def main():
         if os.path.isdir(os.path.join(args.in_directory, x))]
     if len(in_models_directories) == 0:
         parser.error("Found no model in {}".format(args.in_directory))
-    logging.info("Found {} models in your model directory!"
-                 .format(len(in_models_directories)))
+    logger.info("Found {} models in your model directory!"
+                .format(len(in_models_directories)))
 
     assert_inputs_exist(parser, args.in_tractograms +
                         [args.in_config_file, args.in_transfo],
@@ -132,7 +136,7 @@ def main():
         fmt='%(asctime)s, %(name)s %(levelname)s %(message)s',
         datefmt='%H:%M:%S')
     file_handler.setFormatter(formatter)
-    logging.getLogger().addHandler(file_handler)
+    logger.addHandler(file_handler)
     coloredlogs.install(level=logging.getLevelName(args.verbose))
 
     # Processing.
