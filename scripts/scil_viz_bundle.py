@@ -30,11 +30,12 @@ import os
 import random
 
 from dipy.tracking.streamline import set_number_of_points
-from fury import window, actor, colormap
+from fury import window, actor
 
 from scilpy.io.utils import (assert_inputs_exist,
                              add_verbose_arg,
                              parser_color_type)
+from scilpy.viz.color import generate_local_coloring
 
 
 streamline_actor = {'tube': actor.streamtube,
@@ -185,15 +186,7 @@ def main():
         elif args.uniform_coloring:  # Assign uniform coloring to streamlines
             color = tuple(np.asarray(args.uniform_coloring) / 255)
         elif args.local_coloring:  # Compute coloring from local orientations
-            # Compute segment orientation
-            diff = [np.diff(list(s), axis=0) for s in streamlines]
-            # Repeat first segment so that the number of segments matches
-            # the number of points
-            diff = [[d[0]] + list(d) for d in diff]
-            # Flatten the list of segments
-            orientations = np.asarray([o for d in diff for o in d])
-            # Turn the segments into colors
-            color = colormap.orient2rgb(orientations)
+            color = generate_local_coloring(streamlines)
         else:  # Streamline color will depend on the streamlines' endpoints.
             color = None
         # TODO: Coloring from a volume of local orientations
