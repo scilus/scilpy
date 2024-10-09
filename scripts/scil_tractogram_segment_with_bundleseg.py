@@ -78,7 +78,7 @@ def _build_arg_parser():
                         'recognized often enough.\n'
                         'The ratio is a value between 0 and 1. Ex: If you '
                         'have 5 input model directories and a '
-                        'minimal_vote_ratio of 0.5, you will need at least 3'
+                        'minimal_vote_ratio of 0.5, you will need at least 3 '
                         'votes. [%(default)s]')
 
     p.add_argument('--seed', type=int, default=0,

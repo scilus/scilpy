@@ -101,10 +101,11 @@ class VotingScheme(object):
         Will find the maximum values of a specific row (bundle_id), make
         sure they are the maximum values across bundles (argmax) and above the
         min_vote threshold. Return the indices respecting all three conditions.
-        :param bundle_id, int, indices of the bundles in the lil_matrix.
+        :param bundle_id, int, indices of the bundles in the csr_matrix.
         :param min_vote, int, minimum value for considering (voting).
-        :param bundles_wise_vote, lil_matrix, bundles-wise sparse matrix
-            use for voting.
+
+        :param bundles_wise_vote, scipy.sparse.csr_matrix,
+            bundles-wise sparse matrix use for voting.
         """
         if min_vote == 0:
             streamlines_ids = np.asarray([], dtype=np.uint32)
@@ -154,16 +155,17 @@ class VotingScheme(object):
                              bundle_names[bundle_id], len(streamlines_id)))
 
             # All models of the same bundle have the same basename
-            basename = os.path.join(self.output_directory,
-                                    os.path.splitext(bundle_names[bundle_id])[0])
+            basename = os.path.splitext(bundle_names[bundle_id])[0]
             new_sft = sft[streamlines_id.T]
             new_sft.remove_invalid_streamlines()
-            save_tractogram(new_sft, basename + extension)
+            save_tractogram(new_sft, os.path.join(self.output_directory,
+                                                  basename + extension))
 
             curr_results_dict = {}
             curr_results_dict['indices'] = streamlines_id.tolist()
-            scores = np.asarray(bundles_wise_score, float)[
-                bundle_id][streamlines_id]
+
+            scores = bundles_wise_score[bundle_id,
+                                        streamlines_id].toarray().flatten()
             curr_results_dict['scores'] = scores.tolist()
             results_dict[basename] = curr_results_dict
 
@@ -189,20 +191,22 @@ class VotingScheme(object):
 
         # Load the subject tractogram
         load_timer = time()
-        concat_sft = None
         reference = 'same' if reference is None else reference
 
-        for tractogram_path in input_tractograms_path:
-            sft = load_tractogram(tractogram_path, reference,
-                                  bbox_valid_check=False)
+        def load_and_concat_wrapper(input_tractograms_path, reference):
+            concat_sft = None
+            for tractogram_path in input_tractograms_path:
+                sft = load_tractogram(tractogram_path, reference,
+                                      bbox_valid_check=False)
 
-            if concat_sft is None:
-                concat_sft = sft
-            else:
-                concat_sft = concat_sft + sft
+                concat_sft = sft if concat_sft is None else concat_sft + sft
 
+            return concat_sft
+
+        concat_sft = load_and_concat_wrapper(input_tractograms_path, reference)
         wb_streamlines = concat_sft.streamlines
         len_wb_streamlines = len(wb_streamlines)
+
         logging.debug('Tractogram {0} with {1} streamlines '
                       'is loaded in {2} seconds'.format(input_tractograms_path,
                                                         len_wb_streamlines,
@@ -213,7 +217,7 @@ class VotingScheme(object):
         model_bundles_dict, bundle_names, bundle_count = \
             self._load_bundles_dictionary()
 
-        thresholds = [45, 35, 25, 12]
+        thresholds = [45, 35, 25, 15, 12]
         rng = np.random.RandomState(seed)
         cluster_timer = time()
         with warnings.catch_warnings(record=True) as _:
@@ -233,12 +237,12 @@ class VotingScheme(object):
                                             round(time() - cluster_timer, 2),
                                             len(cluster_map.centroids)))
 
-        concat_sft.streamlines._data = concat_sft.streamlines._data.astype(
-            'float16')
         tmp_dir, tmp_memmap_filenames = streamlines_to_memmap(wb_streamlines,
                                                               'float16')
         rbx = RecobundlesX(tmp_memmap_filenames,
                            clusters_indices, centroids)
+
+        del wb_streamlines, concat_sft
 
         # Update all RecobundlesX initialisation into a single dictionnary
         pool = multiprocessing.Pool(nbr_processes)
@@ -266,7 +270,6 @@ class VotingScheme(object):
                                         dtype=np.float32)
 
         for bundle_id, recognized_indices, recognized_scores in all_recognized_dict:
-            tmp_timer = time()
             if recognized_indices is not None:
                 tmp_values = bundles_wise_vote[bundle_id, recognized_indices.T]
                 bundles_wise_vote[bundle_id,
@@ -275,13 +278,13 @@ class VotingScheme(object):
                                                 recognized_indices.T]
                 bundles_wise_score[bundle_id,
                                    recognized_indices.T] = tmp_values.toarray() + recognized_scores
-            logging.debug('***** {0} took {1} sec. to be processed'.format(
-                bundle_names[bundle_id], round(time() - tmp_timer, 2)))
 
         tmp_timer = time()
+
         bundles_wise_vote = bundles_wise_vote.tocsr()
         bundles_wise_score = bundles_wise_score.tocsr()
-        bundles_wise_score /= bundles_wise_vote
+        bundles_wise_score[bundles_wise_vote !=
+                           0] /= bundles_wise_vote[bundles_wise_vote != 0]
 
         # Once everything was run, save the results using a voting system
         minimum_vote = np.array(bundle_count) * self.minimal_vote_ratio
@@ -289,9 +292,9 @@ class VotingScheme(object):
         minimum_vote = minimum_vote.astype(np.uint8)
 
         _, ext = os.path.splitext(input_tractograms_path[0])
-        logging.info(
-            '**** to convert to csr {0}'.format(round(time() - tmp_timer, 2)))
 
+        # Reload the tractograms (RAM saving)
+        concat_sft = load_and_concat_wrapper(input_tractograms_path, reference)
         self._save_recognized_bundles(concat_sft, bundle_names,
                                       bundles_wise_vote,
                                       bundles_wise_score,
@@ -344,7 +347,7 @@ def single_recognize(args):
     shorter_tag, ext = os.path.splitext(os.path.basename(model_filepath))
 
     # Now hardcoded (not useful with FSS from Etienne)
-    mct = 8
+    mct = 4
     slr_transform_type = 'similarity'
 
     recognize_timer = time()

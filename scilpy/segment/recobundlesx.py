@@ -1,22 +1,24 @@
 # -*- coding: utf-8 -*-
 
+import psutil
 import logging
 from time import time
 import warnings
 
 from dipy.align.streamlinear import (BundleMinDistanceMetric,
                                      StreamlineLinearRegistration)
-from dipy.segment.fss import FastStreamlineSearch
+from dipy.segment.fss import FastStreamlineSearch, nearest_from_matrix_col
 from dipy.segment.clustering import qbx_and_merge
 from dipy.tracking.distances import bundles_distances_mdf
 from dipy.tracking.streamline import (select_random_set_of_streamlines,
                                       transform_streamlines)
 from nibabel.streamlines.array_sequence import ArraySequence
 import numpy as np
-from scipy.sparse import SparseEfficiencyWarning
+from scipy.sparse import SparseEfficiencyWarning, hstack, vstack
 
 from scilpy.io.streamlines import reconstruct_streamlines_from_memmap
 warnings.simplefilter("ignore", SparseEfficiencyWarning)
+
 
 class RecobundlesX(object):
     """
@@ -100,7 +102,6 @@ class RecobundlesX(object):
 
         self._register_model_to_neighb(slr_transform_type=slr_transform_type)
 
-        # self._reduce_search_space(neighbors_reduction_thr=12)
         if not self._reduce_search_space(neighbors_reduction_thr=15):
             if identifier:
                 logging.error('{0} did not find any neighbors in '
@@ -250,40 +251,38 @@ class RecobundlesX(object):
         """
         # Neighbors can be refined since the search space is smaller
         t0 = time()
-
         neighb_streamlines = reconstruct_streamlines_from_memmap(
             self.memmap_filenames, self.neighb_indices, strs_dtype=np.float16)
 
         with warnings.catch_warnings(record=True) as _:
             fss = FastStreamlineSearch(neighb_streamlines,
                                        pruning_thr, resampling=12)
-            dist_mat = fss.radius_search(self.model_streamlines,
-                                         pruning_thr)
+
+            for chuck_id in range(0, len(self.model_centroids), 1000):
+                tmp_dist_mat = fss.radius_search(
+                    self.model_centroids[chuck_id:chuck_id+1000], pruning_thr)
+                if chuck_id == 0:
+                    dist_mat = tmp_dist_mat
+                else:
+                    dist_mat = vstack((dist_mat, tmp_dist_mat))
 
         logging.debug("Fast search took of dimensions {0}: {1} sec.".format(
             dist_mat.shape, np.round(time() - t0, 2)))
 
-        # Because FSS uses zeros to populate the matrix when unmatched, we need
-        # to use a max function to avoid zeros
-        sparse_dist_mat = np.abs(dist_mat)
-        sparse_dist_vec_max = np.squeeze(np.max(sparse_dist_mat, axis=0).toarray())
+        # Identify the closest neighbors (remove the zeros, not matched)
+        dist_mat = np.abs(dist_mat)
+        non_zero_ids, _, scores = nearest_from_matrix_col(dist_mat)
 
-        # Then we find the smallest distance for each streamline, we will
-        # ignore the zeros later on
-        sparse_dist_mat.eliminate_zeros()
-        sparse_dist_vec_min = np.squeeze(np.min(sparse_dist_mat, axis=0).toarray())
-        pruned_indices = np.where(sparse_dist_vec_max > 1e-6)[0]
-        
         # If no streamlines were recognized, return an empty array
-        if len(pruned_indices) == 0:
+        if len(non_zero_ids) == 0:
             logging.error('No streamlines were recognized')
             self.final_pruned_indices = np.array([], dtype=np.uint32)
             self.final_pruned_scores = np.array([], dtype=float)
         else:
             # Since the neighbors were clustered, a mapping of indices is neccesary
-            self.final_pruned_indices = self.neighb_indices[pruned_indices].astype(
+            self.final_pruned_indices = self.neighb_indices[non_zero_ids].astype(
                 np.uint32)
-            self.final_pruned_scores = sparse_dist_vec_min[pruned_indices]
+            self.final_pruned_scores = scores.astype(float)
 
         return self.final_pruned_indices
 
@@ -292,7 +291,7 @@ class RecobundlesX(object):
         Public getter for the final indices recognize by the algorithm.
         """
         return self.final_pruned_indices
-    
+
     def get_final_pruned_scores(self):
         """
         Public getter for the final indices recognize by the algorithm.
