@@ -94,7 +94,7 @@ def _build_arg_parser():
     p2.add_argument('--exploration_mode', action='store_true',
                     help='Use higher pruning threshold, but optimal filtering '
                     'can be explored using scil_bundle_explore_bundleseg.py')
-    p2.add_argument('--modify_distance_thr', type=float, default=1.0,
+    p2.add_argument('--modify_distance_thr', type=float, default=0.0,
                     help='Increase or decrease the distance threshold for '
                          'pruning for all bundles in the configuration '
                          '[%(default)s]')
