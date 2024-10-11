@@ -788,6 +788,8 @@ def compute_distance_map(mask_1, mask_2, symmetric=False,
         If True, compute the symmetric distance map. Default is np.inf
     max_distance: float, optional
         Maximum distance to consider for kdtree exploration. Default is None.
+        If you put any value, coordinates further than this value will be
+        considered as np.inf.
 
     Returns
     -------
@@ -811,3 +813,72 @@ def compute_distance_map(mask_1, mask_2, symmetric=False,
         distance_map[np.where(mask_2)] = distance
 
     return distance_map
+
+
+def compute_nawm(lesion_atlas, nb_ring, ring_thickness, mask=None):
+    """
+    Compute the NAWM (Normal Appearing White Matter) from a lesion map.
+    The rings go from 2 to nb_ring + 2, with the lesion being 1.
+
+    The optional mask is used to compute the rings only in the mask
+    region. This can be useful to avoid useless computation.
+
+    If the lesion_atlas is binary, the output will be 3D. If the lesion_atlas
+    is a label map, the output will be 4D, with each label having its own NAWM.
+
+    Parameters
+    ----------
+    lesion_atlas: np.ndarray
+        Lesion map. Can be binary or label map.
+    nb_ring: int
+        Number of rings to compute.
+    ring_thickness: int
+        Thickness of the rings.
+    mask: np.ndarray, optional
+        Mask where to compute the NAWM. Default is None.
+
+    Returns
+    -------
+    nawm: np.ndarray
+        NAWM volume(s), 3D if binary lesion map, 4D if label lesion map.
+
+    """
+    if ring_thickness < 1:
+        raise ValueError("Ring thickness must be at least 1.")
+
+    if np.unique(lesion_atlas).size == 1:
+        raise ValueError('Input lesion map is empty.')
+    is_binary = True if np.unique(lesion_atlas).size == 2 else False
+    labels = np.unique(lesion_atlas)[1:]
+    nawm = np.zeros(lesion_atlas.shape + (len(labels),), dtype=float)
+
+    if mask is None:
+        mask = np.ones(lesion_atlas.shape, dtype=np.uint8)
+
+    max_distance = (nb_ring * ring_thickness) + 1
+
+    for i, label in enumerate(labels):
+        curr_mask = np.zeros(lesion_atlas.shape, dtype=np.uint8)
+        curr_mask[lesion_atlas == label] = 1
+        curr_dist_map = compute_distance_map(mask,
+                                             curr_mask,
+                                             max_distance=max_distance)
+        curr_dist_map[np.isinf(curr_dist_map)] = 0
+
+        # Mask to remember where values were computed
+        to_increase_mask = np.zeros(lesion_atlas.shape, dtype=np.uint8)
+        to_increase_mask[curr_dist_map > 0] = 1
+
+        # Compute the rings. The lesion should be 1, and the first ring
+        # should be 2, and the max ring should be nb_ring + 1.
+        curr_dist_map = np.ceil(curr_dist_map / ring_thickness)
+        curr_dist_map[to_increase_mask > 0] += 1
+        curr_dist_map[curr_mask > 0] += 1
+        curr_dist_map[curr_dist_map > nb_ring + 1] = 0
+
+        nawm[..., i] = curr_dist_map
+
+    if is_binary:
+        nawm = np.squeeze(nawm)
+
+    return nawm.astype(np.uint16)

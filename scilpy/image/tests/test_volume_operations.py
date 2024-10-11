@@ -13,6 +13,8 @@ from scilpy.image.volume_operations import (apply_transform,
                                             compute_distance_map, compute_snr,
                                             crop_volume, flip_volume,
                                             mask_data_with_default_cube,
+                                            compute_distance_map,
+                                            compute_nawm,
                                             merge_metrics, normalize_metric,
                                             resample_volume, reshape_volume,
                                             register_image)
@@ -360,3 +362,32 @@ def test_compute_distance_map_wrong_shape():
         assert False
     except ValueError:
         assert True
+
+
+def test_compute_nawm_3D():
+    lesion_img = np.zeros((3, 3, 3))
+    lesion_img[1, 1, 1] = 1
+
+    nawm = compute_nawm(lesion_img, nb_ring=0, ring_thickness=2)
+    assert np.sum(nawm) == 1
+
+    try:
+        nawm = compute_nawm(lesion_img, nb_ring=2, ring_thickness=0)
+        assert False
+    except ValueError:
+        assert True
+
+    nawm = compute_nawm(lesion_img, nb_ring=1, ring_thickness=2)
+    assert np.sum(nawm) == 53
+
+
+def test_compute_nawm_4D():
+    lesion_img = np.zeros((10, 10, 10))
+    lesion_img[4, 4, 4] = 1
+    lesion_img[2, 2, 2] = 2
+
+    nawm = compute_nawm(lesion_img, nb_ring=2, ring_thickness=1)
+    assert nawm.shape == (10, 10, 10, 2)
+    val, count = np.unique(nawm[..., 0], return_counts=True)
+    assert np.array_equal(val, [0, 1, 2, 3])
+    assert np.array_equal(count, [967, 1, 6, 26])
