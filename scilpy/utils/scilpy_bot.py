@@ -1,17 +1,23 @@
+# -*- coding: utf-8 -*-
 import ast
-import nltk
-import pathlib
-import subprocess
-from nltk.stem import WordNetLemmatizer, PorterStemmer
 from colorama import Fore, Style
+import pathlib
 import re
+import subprocess
+
+import nltk
+from nltk.stem import PorterStemmer
 from tqdm import tqdm
 
 SPACING_LEN = 80
 
-stemmer_a = WordNetLemmatizer()
-stemmer_b = PorterStemmer()
-nltk.download('wordnet', quiet=True)
+stemmer = PorterStemmer()
+try:
+    nltk.download('punkt', quiet=True)
+    nltk.download('wordnet', quiet=True)
+except ImportError:
+    raise ImportError("You must install the 'nltk' package to use this script."
+                      "Please run 'pip install nltk'.")
 
 # Path to the JSON file containing script information and keywords
 VOCAB_FILE_PATH = pathlib.Path(
@@ -126,7 +132,7 @@ def _stem_word(word):
     """
     if len(word) <= 3:
         return word
-    version_b = stemmer_b.stem(word)
+    version_b = stemmer.stem(word)
     return version_b
 
 

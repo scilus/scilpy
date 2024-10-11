@@ -41,6 +41,8 @@ Examples:
 # TODO remove useless code if any
 
 import argparse
+from colorama import Fore, Style
+import json
 import logging
 import pathlib
 import shutil
@@ -48,12 +50,10 @@ import shutil
 try:
     import nltk
     nltk.download('punkt', quiet=True)
+    nltk.download('wordnet', quiet=True)
 except ImportError:
     raise ImportError("You must install the 'nltk' package to use this script."
                       "Please run 'pip install nltk'.")
-
-from colorama import Fore, Style
-import json
 
 from scilpy.utils.scilpy_bot import (
     _stem_keywords, update_matches_and_scores,
@@ -64,8 +64,6 @@ from scilpy.utils.scilpy_bot import (
 )
 from scilpy.utils.scilpy_bot import SPACING_LEN, VOCAB_FILE_PATH
 from scilpy.io.utils import add_verbose_arg
-
-nltk.download('punkt', quiet=True)
 
 
 def _build_arg_parser():
