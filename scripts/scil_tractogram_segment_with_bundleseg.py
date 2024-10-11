@@ -143,9 +143,9 @@ def main():
     if args.exploration_mode:
         for key in config.keys():
             config[key] = 12
-    elif args.increase_distance_thr is not None:
+    elif args.modify_distance_thr is not None:
         for key in config.keys():
-            config[key] += args.increase_distance_thr
+            config[key] += args.modify_distance_thr
 
     # (verifying now tractograms' extensions. Loading will only be later.)
     for in_tractogram in args.in_tractograms:

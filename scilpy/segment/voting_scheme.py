@@ -22,8 +22,7 @@ from scilpy.segment.bundleseg import BundleSeg, get_duration
 
 logger = logging.getLogger("BundleSeg")
 global MCT, TCT
-MCT = 4
-TCT = 15
+MCT, TCT = 4, 15
 
 
 class VotingScheme(object):
@@ -260,6 +259,8 @@ class VotingScheme(object):
 
         for bundle_id, recognized_indices, recognized_scores in all_recognized_dict:
             if recognized_indices is not None:
+                if len(recognized_indices) == 0:
+                    continue
                 tmp_values = bundles_wise_vote[bundle_id, recognized_indices.T]
                 bundles_wise_vote[bundle_id, recognized_indices.T] = \
                     tmp_values.toarray() + 1
@@ -340,7 +341,6 @@ def single_recognize(args):
                             pruning_thr=bundle_pruning_thr,
                             slr_transform_type=slr_transform_type,
                             identifier=shorter_tag)
-
     recognized_indices, recognized_scores = results
 
     logger.info(f'Model {shorter_tag} recognized {len(recognized_indices)} '
@@ -348,9 +348,6 @@ def single_recognize(args):
     logger.debug(f'Model {model_filepath} with parameters tct={TCT}, mct={MCT}, '
                  f'bpt={bundle_pruning_thr} '
                  f'took {get_duration(recognize_timer)} sec.')
-    if recognized_indices is None:
-        recognized_indices = []
-        recognized_scores = []
 
     bundle_id = bundle_names.index(shorter_tag+ext)
     return bundle_id, recognized_indices, recognized_scores

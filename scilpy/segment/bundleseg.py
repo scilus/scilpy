@@ -6,7 +6,6 @@ import warnings
 
 from dipy.align.streamlinear import (BundleMinDistanceMetric,
                                      StreamlineLinearRegistration)
-from dipy.io.stateful_tractogram import set_sft_logger_level
 from dipy.segment.fss import FastStreamlineSearch, nearest_from_matrix_col
 from dipy.segment.clustering import qbx_and_merge
 from dipy.tracking.distances import bundles_distances_mdf
@@ -14,10 +13,9 @@ from dipy.tracking.streamline import (select_random_set_of_streamlines,
                                       transform_streamlines)
 from nibabel.streamlines.array_sequence import ArraySequence
 import numpy as np
-from scipy.sparse import SparseEfficiencyWarning, vstack
+from scipy.sparse import vstack
 
 from scilpy.io.streamlines import reconstruct_streamlines_from_memmap
-warnings.simplefilter("ignore", SparseEfficiencyWarning)
 
 logger = logging.getLogger("BundleSeg")
 
@@ -71,8 +69,6 @@ class BundleSeg(object):
         self.neighb_indices = None
         self.models_streamlines = None
         self.model_centroids = None
-        self.final_pruned_indices = None
-        self.final_pruned_scores = None
 
     def recognize(self, model_bundle,
                   model_clust_thr=8, pruning_thr=8,
@@ -103,18 +99,19 @@ class BundleSeg(object):
         self._cluster_model_bundle(model_clust_thr,
                                    identifier=identifier)
 
-        if not self._reduce_search_space(neighbors_reduction_thr=18):
+        if self._reduce_search_space(neighbors_reduction_thr=18) == 0:
             if identifier:
                 logger.error(f'{identifier} did not find any neighbors in '
                              'the tractogram')
-            return np.array([], dtype=np.uint32), np.array([], dtype=float)
+            return [], []
 
         self._register_model_to_neighb(slr_transform_type=slr_transform_type)
 
-        self.prune_far_from_model(pruning_thr=pruning_thr)
-
+        pruned_indices, pruned_scores = self.prune_far_from_model(
+            pruning_thr=pruning_thr)
         self.cleanup()
-        return self.get_final_pruned_indices(), self.get_final_pruned_scores()
+
+        return pruned_indices, pruned_scores
 
     def _cluster_model_bundle(self, model_clust_thr, identifier):
         """
@@ -144,6 +141,7 @@ class BundleSeg(object):
         :param neighbors_reduction_thr, float, distance in mm for thresholding
             to discard distant streamlines.
         """
+
         centroid_matrix = bundles_distances_mdf(self.model_centroids,
                                                 self.centroids).astype(np.float16)
         centroid_matrix[centroid_matrix >
@@ -263,39 +261,28 @@ class BundleSeg(object):
                 tmp_dist_mat = fss.radius_search(
                     self.model_centroids[chuck_id:chuck_id+1000], pruning_thr)
                 if chuck_id == 0:
-                    dist_mat = tmp_dist_mat
+                    dist_mat = tmp_dist_mat.copy()
                 else:
                     dist_mat = vstack((dist_mat, tmp_dist_mat))
 
         logger.debug(f'Fast search took of dimensions {dist_mat.shape}: '
                      f'{get_duration(t0)} sec.')
+        if dist_mat.size == 0:
+            return [], []
 
         # Identify the closest neighbors (remove the zeros, not matched)
         dist_mat = np.abs(dist_mat)
         non_zero_ids, _, scores = nearest_from_matrix_col(dist_mat)
 
         # If no streamlines were recognized, return an empty array
-        if len(non_zero_ids) == 0:
-            logger.error('No streamlines were recognized')
-            self.final_pruned_indices = np.array([], dtype=np.uint32)
-            self.final_pruned_scores = np.array([], dtype=float)
-        else:
+        if len(non_zero_ids) != 0:
             # Since the neighbors were clustered, a mapping of indices is neccesary
-            self.final_pruned_indices = self.neighb_indices[non_zero_ids].astype(
+            final_pruned_indices = self.neighb_indices[non_zero_ids].astype(
                 np.uint32)
-            self.final_pruned_scores = scores.astype(float)
-
-    def get_final_pruned_indices(self):
-        """
-        Public getter for the final indices recognize by the algorithm.
-        """
-        return self.final_pruned_indices
-
-    def get_final_pruned_scores(self):
-        """
-        Public getter for the final indices recognize by the algorithm.
-        """
-        return self.final_pruned_scores
+            final_pruned_scores = scores.astype(float)
+            return final_pruned_indices, final_pruned_scores
+        else:
+            return [], []
 
     def cleanup(self):
         del self.neighb_centroids
