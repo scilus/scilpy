@@ -9,8 +9,7 @@ from time import time
 import warnings
 
 from dipy.io.streamline import load_tractogram, save_tractogram
-from dipy.io.stateful_tractogram import StatefulTractogram, Space, \
-    set_sft_logger_level
+from dipy.io.stateful_tractogram import StatefulTractogram, Space
 from dipy.segment.clustering import qbx_and_merge
 from dipy.tracking.streamline import transform_streamlines
 import nibabel as nib
@@ -19,9 +18,12 @@ import numpy as np
 from scipy.sparse import lil_matrix
 
 from scilpy.io.streamlines import streamlines_to_memmap
-from scilpy.segment.bundleseg import BundleSeg
+from scilpy.segment.bundleseg import BundleSeg, get_duration
 
 logger = logging.getLogger("BundleSeg")
+global MCT, TCT
+MCT = 4
+TCT = 15
 
 
 class VotingScheme(object):
@@ -74,10 +76,8 @@ class VotingScheme(object):
                         for tag, bundle in all_atlas_models]
             bundles_filepath.append(tmp_list)
 
-        logger.info('{0} sub-model directory were found each '
-                    'with {1} model bundles'.format(
-                        len(self.atlas_dir),
-                        len(bundle_names)))
+        logger.info(f'{len(self.atlas_dir)} sub-model directory were found each '
+                    f'with {len(bundle_names)} model bundles')
 
         model_bundles_dict = {}
         bundle_counts = []
@@ -187,7 +187,7 @@ class VotingScheme(object):
         seed : int
             Seed for the RandomState.
         """
-
+        global MCT, TCT
         # Load the subject tractogram
         load_timer = time()
         reference = input_tractograms_path[0] if reference is None else reference
@@ -202,17 +202,16 @@ class VotingScheme(object):
         wb_streamlines = concat_sft.streamlines
         len_wb_streamlines = len(wb_streamlines)
 
-        logger.debug('Tractogram {0} with {1} streamlines '
-                     'is loaded in {2} seconds'.format(input_tractograms_path,
-                                                       len_wb_streamlines,
-                                                       round(time() -
-                                                             load_timer, 2)))
+        logger.debug(f'Tractogram {input_tractograms_path} with '
+                     f'{len_wb_streamlines} streamlines '
+                     f'is loaded in {get_duration(load_timer)} seconds')
+
         total_timer = time()
         # Each type of bundle is processed separately
         model_bundles_dict, bundle_names, bundle_count = \
             self._load_bundles_dictionary()
 
-        thresholds = [45, 35, 25, 15]
+        thresholds = [45, 35, 25, TCT]
         rng = np.random.RandomState(seed)
         cluster_timer = time()
         with warnings.catch_warnings(record=True) as _:
@@ -227,10 +226,9 @@ class VotingScheme(object):
         clusters_indices = ArraySequence(clusters_indices)
         clusters_indices._data = clusters_indices._data.astype(np.uint32)
 
-        logger.info('QBx with seed {0} at 12mm took {1}sec. gave '
-                    '{2} centroids'.format(seed,
-                                           round(time() - cluster_timer, 2),
-                                           len(cluster_map.centroids)))
+        logger.info(f'QBx with seed {seed} at {TCT}mm took '
+                    f'{get_duration(cluster_timer)}sec. gave '
+                    f'{len(cluster_map.centroids)} centroids')
 
         tmp_dir, tmp_memmap_filenames = streamlines_to_memmap(wb_streamlines,
                                                               'float16')
@@ -249,10 +247,8 @@ class VotingScheme(object):
         pool.join()
         tmp_dir.cleanup()
 
-        logger.info('bsg took {0} sec. for {1} bundles from {2} atlas'.format(
-            round(time() - total_timer, 2),
-            len(bundle_names),
-            len(self.atlas_dir)))
+        logger.info(f'BundleSeg took {get_duration(total_timer)} sec. for '
+                    f'{len(bundle_names)} bundles from {len(self.atlas_dir)} atlas')
 
         save_timer = time()
         bundles_wise_vote = lil_matrix((len(bundle_names),
@@ -291,7 +287,7 @@ class VotingScheme(object):
 
         logger.info(f'Saving of {len(bundle_names)} files in '
                     f'{self.output_directory} took '
-                    f'{round(time() - save_timer, 2)} sec.')
+                    f'{get_duration(save_timer)} sec.')
 
 
 def single_recognize(args):
@@ -324,6 +320,7 @@ def single_recognize(args):
         recognized_scores : (numpy.ndarray)
             Scores of the recognized streamlines.
     """
+    global MCT, TCT
     bsg = args[0]
     model_filepath = args[1]
     bundle_pruning_thr = args[2][0]
@@ -335,23 +332,22 @@ def single_recognize(args):
     shorter_tag, ext = os.path.splitext(os.path.basename(model_filepath))
 
     # Now hardcoded (not useful with FSS from Etienne)
-    mct = 4
     slr_transform_type = 'similarity'
 
     recognize_timer = time()
     results = bsg.recognize(model_bundle,
-                            model_clust_thr=mct,
+                            model_clust_thr=MCT,
                             pruning_thr=bundle_pruning_thr,
                             slr_transform_type=slr_transform_type,
                             identifier=shorter_tag)
 
     recognized_indices, recognized_scores = results
 
-    logger.info('Model {0} recognized {1} streamlines'.format(
-        shorter_tag, len(recognized_indices)))
-    logger.debug('Model {0} with parameters tct=12, mct=8, bpt={1} '
-                 'took {2} sec.'.format(model_filepath, bundle_pruning_thr,
-                                        round(time() - recognize_timer, 2)))
+    logger.info(f'Model {shorter_tag} recognized {len(recognized_indices)} '
+                'streamlines')
+    logger.debug(f'Model {model_filepath} with parameters tct={TCT}, mct={MCT}, '
+                 f'bpt={bundle_pruning_thr} '
+                 f'took {get_duration(recognize_timer)} sec.')
     if recognized_indices is None:
         recognized_indices = []
         recognized_scores = []

@@ -21,6 +21,12 @@ recognition will be.
 
 Example data and usage available at: https://zenodo.org/record/7950602
 
+For CPU usage, it can be variable (advanced CPU vs. basic CPU):
+    On personal computer: 4 CPU per subject and then it is better to parallelize
+    across subjects.
+    On a cluster: 8 CPU per subject and then it is better to parallelize across
+    subjects.
+
 For RAM usage, it is recommanded to use this heuristic:
     (size of inputs tractogram (GB) * number of processes) < RAM (GB)
 This is important because many instances of data structures are initialized
@@ -83,6 +89,16 @@ def _build_arg_parser():
                         'minimal_vote_ratio of 0.5, you will need at least 3 '
                         'votes. [%(default)s]')
 
+    g = p.add_argument_group(title='Exploration mode')
+    p2 = g.add_mutually_exclusive_group()
+    p2.add_argument('--exploration_mode', action='store_true',
+                    help='Use higher pruning threshold, but optimal filtering '
+                    'can be explored using scil_bundle_explore_bundleseg.py')
+    p2.add_argument('--modify_distance_thr', type=float, default=1.0,
+                    help='Increase or decrease the distance threshold for '
+                         'pruning for all bundles in the configuration '
+                         '[%(default)s]')
+
     p.add_argument('--seed', type=int, default=0,
                    help='Random number generator seed %(default)s.')
     p.add_argument('--inverse', action='store_true',
@@ -120,8 +136,16 @@ def main():
 
     # Loading
     transfo = load_matrix_in_any_format(args.in_transfo)
+
     with open(args.in_config_file) as json_data:
         config = json.load(json_data)
+
+    if args.exploration_mode:
+        for key in config.keys():
+            config[key] = 12
+    elif args.increase_distance_thr is not None:
+        for key in config.keys():
+            config[key] += args.increase_distance_thr
 
     # (verifying now tractograms' extensions. Loading will only be later.)
     for in_tractogram in args.in_tractograms:
@@ -144,7 +168,7 @@ def main():
         transfo = np.linalg.inv(transfo)
 
     # Note. Loading and saving are managed through the VotingScheme class.
-    # For code simplicity, it is still RecobundlesX class and all, but
+    # For code simplicity, it is still BundleSeg class and all, but
     # the last pruning step was modified to be in line with BundleSeg.
     voting = VotingScheme(config, in_models_directories,
                           transfo, args.out_dir,

@@ -21,6 +21,14 @@ warnings.simplefilter("ignore", SparseEfficiencyWarning)
 
 logger = logging.getLogger("BundleSeg")
 
+
+def get_duration(start_time):
+    """
+    Helper function to get the duration of a process.
+    """
+    return np.round(time() - start_time, 2)
+
+
 class BundleSeg(object):
     """
     This class is a 'remastered' version of the Dipy Recobundles class.
@@ -97,18 +105,11 @@ class BundleSeg(object):
 
         if not self._reduce_search_space(neighbors_reduction_thr=18):
             if identifier:
-                logger.error('{0} did not find any neighbors in '
-                              'the tractogram'.format(identifier))
+                logger.error(f'{identifier} did not find any neighbors in '
+                             'the tractogram')
             return np.array([], dtype=np.uint32), np.array([], dtype=float)
 
         self._register_model_to_neighb(slr_transform_type=slr_transform_type)
-
-        # # Second reduction of the search space (after SLR)
-        # if not self._reduce_search_space(neighbors_reduction_thr=16):
-        #     if identifier:
-        #         logger.error('{0} did not find any neighbors in '
-        #                       'the tractogram'.format(identifier))
-        #     return np.array([], dtype=np.uint32), np.array([], dtype=float)
 
         self.prune_far_from_model(pruning_thr=pruning_thr)
 
@@ -133,10 +134,8 @@ class BundleSeg(object):
         self.model_centroids = ArraySequence(model_cluster_map.centroids)
         len_centroids = len(self.model_centroids)
         if len_centroids > 1000:
-            logger.warning('Model {0} simplified at threshold '
-                            '{1}mm with {2} centroids'.format(identifier,
-                                                              str(model_clust_thr),
-                                                              str(len_centroids)))
+            logger.warning(f'Model {identifier} simplified at threshold '
+                           f'{model_clust_thr}mm with {len_centroids} centroids')
 
     def _reduce_search_space(self, neighbors_reduction_thr=18):
         """
@@ -268,8 +267,8 @@ class BundleSeg(object):
                 else:
                     dist_mat = vstack((dist_mat, tmp_dist_mat))
 
-        logger.debug("Fast search took of dimensions {0}: {1} sec.".format(
-            dist_mat.shape, np.round(time() - t0, 2)))
+        logger.debug(f'Fast search took of dimensions {dist_mat.shape}: '
+                     f'{get_duration(t0)} sec.')
 
         # Identify the closest neighbors (remove the zeros, not matched)
         dist_mat = np.abs(dist_mat)
@@ -285,8 +284,6 @@ class BundleSeg(object):
             self.final_pruned_indices = self.neighb_indices[non_zero_ids].astype(
                 np.uint32)
             self.final_pruned_scores = scores.astype(float)
-
-        return self.final_pruned_indices
 
     def get_final_pruned_indices(self):
         """
