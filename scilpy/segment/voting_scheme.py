@@ -261,12 +261,12 @@ class VotingScheme(object):
         for bundle_id, recognized_indices, recognized_scores in all_recognized_dict:
             if recognized_indices is not None:
                 tmp_values = bundles_wise_vote[bundle_id, recognized_indices.T]
-                bundles_wise_vote[bundle_id,
-                                  recognized_indices.T] = tmp_values.toarray() + 1
+                bundles_wise_vote[bundle_id, recognized_indices.T] = \
+                    tmp_values.toarray() + 1
                 tmp_values = bundles_wise_score[bundle_id,
                                                 recognized_indices.T]
-                bundles_wise_score[bundle_id,
-                                   recognized_indices.T] = tmp_values.toarray() + recognized_scores
+                bundles_wise_score[bundle_id, recognized_indices.T] = \
+                    tmp_values.toarray() + recognized_scores
 
         bundles_wise_vote = bundles_wise_vote.tocsr()
         bundles_wise_score = bundles_wise_score.tocsr()

@@ -10,7 +10,7 @@ FURY for 3D rendering.
 It includes tools to slice images, filter streamlines, and interactively
 visualize bundles and a reference image.
 
-This script is intended to be used after running BundleSeg: 
+This script is intended to be used after running BundleSeg:
     scil_tractogram_segment_with_bundleseg.py
 To explore thresholds the option --exploration_mode must be used to segment
 using a much higher distance threshold.
@@ -41,7 +41,8 @@ from scilpy.io.utils import (add_overwrite_arg,
 def update_scene():
     """
     Update the scene with the current index and threshold.
-    Renders the streamlines for the current index and threshold based on the filtering.
+    Renders the streamlines for the current index and threshold based on the
+    filtering.
     """
     global current_index, config, sft, stream_actor, scene, filter_slider, \
         bundle_name_textbox
@@ -93,7 +94,8 @@ def build_label(text):
 def setup(sft, ref_img, config, mask):
     """
     Set up the visualization scene, including UI elements and event handlers.
-    This function adds slicers, filters, and other UI components to interact with the 3D data.
+    This function adds slicers, filters, and other UI components to interact
+    with the 3D data.
 
     Parameters:
     - sft: StatefulTractogram, containing the streamlines to be visualized.
@@ -366,7 +368,7 @@ def setup(sft, ref_img, config, mask):
 
     # Add elements to the scene
     show_m = window.ShowManager(scene=scene, title='BundleSeg',
-                                     size=(1200, 900))
+                                size=(1200, 900))
     show_m.scene.add(panel_slicers)
     show_m.scene.add(panel_options)
     show_m.scene.add(bundle_name_textbox)
@@ -380,10 +382,10 @@ def setup(sft, ref_img, config, mask):
             size_old = size
             size = obj.GetSize()
             size_change = [size[0] - size_old[0], 0]
-            panel_options.center = [
-                panel_options.center[0] + size_change[0], panel_options.center[1]]
-            panel_slicers.center = [
-                panel_slicers.center[0] + size_change[0], panel_slicers.center[1]]
+            panel_options.center = [panel_options.center[0] + size_change[0],
+                                    panel_options.center[1]]
+            panel_slicers.center = [panel_slicers.center[0] + size_change[0],
+                                    panel_slicers.center[1]]
 
     # Adjust camera and set the initial view
     scene.zoom(1.5)
