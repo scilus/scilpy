@@ -307,10 +307,8 @@ def perform_operation_dpp_to_dps(op_name, sft, dpp_name, endpoints_only=False):
     if endpoints_only:
         new_data_per_streamline = []
         for s in sft.data_per_point[dpp_name]:
-            start = s[0]
-            end = s[-1]
-            concat = np.concatenate((start[:], end[:]))
-            new_data_per_streamline.append(call_op(concat))
+            fake_s = np.asarray([s[0], s[-1]])
+            new_data_per_streamline.append(call_op(fake_s))
     else:
         new_data_per_streamline = []
         for s in sft.data_per_point[dpp_name]:

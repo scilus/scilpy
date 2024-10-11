@@ -50,6 +50,7 @@ import argparse
 import logging
 
 from dipy.io.streamline import save_tractogram
+from fury import colormap
 import nibabel as nib
 import numpy as np
 import matplotlib.pyplot as plt
@@ -63,10 +64,11 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_outputs_exist,
                              load_matrix_in_any_format)
 from scilpy.tractograms.dps_and_dpp_management import add_data_as_color_dpp
-from scilpy.tractograms.streamline_operations import (get_values_along_length,
-                                                      get_angles)
-from scilpy.viz.color import get_lookup_table
-from scilpy.viz.color import prepare_colorbar_figure
+from scilpy.tractograms.streamline_operations import (
+    get_streamlines_as_linspaces, get_angles)
+from scilpy.viz.color import (
+    get_lookup_table, prepare_colorbar_figure, ambiant_occlusion,
+    generate_local_coloring)
 
 
 def _build_arg_parser():
@@ -105,12 +107,19 @@ def _build_arg_parser():
     p1.add_argument('--along_profile', action='store_true',
                     help='Color streamlines according to each point position'
                          'along its length.')
+    p1.add_argument('--local_orientation', action='store_true',
+                    help="Color streamlines according to the angle between "
+                         "each segment (in degree). \nAngles at first and "
+                         "last points are set to 0.")
     p1.add_argument('--local_angle', action='store_true',
                     help="Color streamlines according to the angle between "
                          "each segment (in degree). \nAngles at first and "
                          "last points are set to 0.")
 
     g2 = p.add_argument_group(title='Coloring options')
+    g2.add_argument('--ambiant_occlusion', nargs='?', const=4, type=int,
+                    help='Impact factor of the ambiant occlusion '
+                    'approximation. [%(default)s]')
     g2.add_argument('--colormap', default='jet',
                     help='Select the colormap for colored trk (dps/dpp) '
                     '[%(default)s].\nUse two Matplotlib named color separeted '
@@ -128,8 +137,7 @@ def _build_arg_parser():
     g2.add_argument('--max_cmap', type=float,
                     help='Set the maximum value of the colormap.')
     g2.add_argument('--log', action='store_true',
-                    help='Apply a base 10 logarithm for colored trk (dps/dpp).'
-                    )
+                    help='Apply a base 10 logarithm for colored trk (dps/dpp).')
     g2.add_argument('--LUT', metavar='FILE',
                     help='If the dps/dpp or anatomy contain integer labels, '
                          'the value will be substituted.\nIf the LUT has 20 '
@@ -147,6 +155,9 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
+
+    if args.local_orientation and args.out_colorbar:
+        parser.error("Cannot save a colorbar with local orientation coloring.")
 
     # Verifications
     assert_inputs_exist(parser, args.in_tractogram, args.reference)
@@ -204,16 +215,28 @@ def main():
             data = nib.load(args.from_anatomy).get_fdata()
             data = map_coordinates(data, concat_points, order=0)
     elif args.along_profile:
-        data = get_values_along_length(sft)
+        data = get_streamlines_as_linspaces(sft)
+        data = np.hstack(data)
+    elif args.local_orientation:
+        data = generate_local_coloring(sft)
     else:  # args.local_angle:
-        data = get_angles(sft)
+        data = get_angles(sft, add_zeros=True)
+        data = np.hstack(data)
 
     # Processing
-    sft, lbound, ubound = add_data_as_color_dpp(
-        sft, cmap, data, args.clip_outliers, args.min_range, args.max_range,
-        args.min_cmap, args.max_cmap, args.log, LUT)
+    if not args.local_orientation:
+        sft, lbound, ubound = add_data_as_color_dpp(
+            sft, cmap, data, args.clip_outliers, args.min_range, args.max_range,
+            args.min_cmap, args.max_cmap, args.log, LUT)
+    else:
+        sft.data_per_point['color'] = sft.streamlines.copy()
+        data *= 255
+        sft.data_per_point['color']._data = data.astype(np.uint8)
 
     # Saving
+    if args.ambiant_occlusion:
+        sft.data_per_point['color']._data = ambiant_occlusion(
+            sft, sft.data_per_point['color']._data, args.ambiant_occlusion)
     save_tractogram(sft, args.out_tractogram)
 
     if args.out_colorbar:

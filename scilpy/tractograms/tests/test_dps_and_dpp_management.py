@@ -4,6 +4,7 @@ import numpy as np
 from dipy.io.stateful_tractogram import StatefulTractogram, Space, Origin
 
 from scilpy.image.volume_space_management import DataVolume
+from scilpy.tests.utils import nan_array_equal
 from scilpy.tractograms.dps_and_dpp_management import (
     add_data_as_color_dpp, convert_dps_to_dpp, project_map_to_streamlines,
     project_dpp_to_map, perform_operation_on_dpp, perform_operation_dpp_to_dps,
@@ -24,18 +25,6 @@ def _get_small_sft():
                                   reference=fake_ref,
                                   space=Space.VOX, origin=Origin('corner'))
     return fake_sft
-
-
-def nan_array_equal(a, b):
-    a = np.asarray(a)
-    b = np.asarray(b)
-
-    nan_a = np.argwhere(np.isnan(a))
-    nan_b = np.argwhere(np.isnan(a))
-
-    a = a[~np.isnan(a)]
-    b = b[~np.isnan(b)]
-    return np.array_equal(a, b) and np.array_equal(nan_a, nan_b)
 
 
 def test_add_data_as_color_dpp():
@@ -143,11 +132,26 @@ def test_project_dpp_to_map():
     fake_sft = _get_small_sft()
     fake_sft.data_per_point['my_dpp'] = [[1]*3, [2]*4]
 
-    map_data = project_dpp_to_map(fake_sft, 'my_dpp', sum_lines=True)
+    # Average
+    map_data = project_dpp_to_map(fake_sft, 'my_dpp')
+    expected = np.zeros((3, 3, 3))  # fake_ref is 3x3x3
+    expected[0, 0, 0] = 1  # the 3 points of the first streamline
+    expected[1, 1, 1] = 2  # the 4 points of the second streamline
+    assert np.array_equal(map_data, expected)
 
+    # Sum
+    map_data = project_dpp_to_map(fake_sft, 'my_dpp', sum_lines=True)
     expected = np.zeros((3, 3, 3))  # fake_ref is 3x3x3
     expected[0, 0, 0] = 3 * 1  # the 3 points of the first streamline
     expected[1, 1, 1] = 4 * 2  # the 4 points of the second streamline
+    assert np.array_equal(map_data, expected)
+
+    # Option 'endpoints_only':
+    map_data = project_dpp_to_map(fake_sft, 'my_dpp', sum_lines=True,
+                                  endpoints_only=True)
+    expected = np.zeros((3, 3, 3))  # fake_ref is 3x3x3
+    expected[0, 0, 0] = 2 * 1  # only 2 points of the first streamline
+    expected[1, 1, 1] = 2 * 2  # only 2 points of the second streamline
     assert np.array_equal(map_data, expected)
 
 
@@ -176,11 +180,22 @@ def test_perform_operation_on_dpp():
     assert np.array_equal(dpp[0].squeeze(), [1] * 3)
     assert np.array_equal(dpp[1].squeeze(), [2] * 4)
 
+    # Option 'endpoints only':
+    dpp = perform_operation_on_dpp('max', fake_sft, 'my_dpp',
+                                   endpoints_only=True)
+    assert nan_array_equal(dpp[0].squeeze(), [1.0, np.nan, 1])
+    assert nan_array_equal(dpp[1].squeeze(), [2.0, np.nan, 2])
+
 
 def test_perform_operation_dpp_to_dps():
     fake_sft = _get_small_sft()
+
+    # This fake dpp contains two values per point: [1, 0] at each point for the
+    # first streamline (length 3), [2, 0] for the second (length 4).
     fake_sft.data_per_point['my_dpp'] = [[[1, 0]]*3,
                                          [[2, 0]]*4]
+
+    # Operations are done separately for each value.
 
     # Mean:
     dps = perform_operation_dpp_to_dps('mean', fake_sft, 'my_dpp')
@@ -201,6 +216,12 @@ def test_perform_operation_dpp_to_dps():
     dps = perform_operation_dpp_to_dps('max', fake_sft, 'my_dpp')
     assert np.array_equal(dps[0], [1, 0])
     assert np.array_equal(dps[1], [2, 0])
+
+    # Option 'endpoints_only':
+    dps = perform_operation_dpp_to_dps('sum', fake_sft, 'my_dpp',
+                                       endpoints_only=True)
+    assert np.array_equal(dps[0], [2 * 1, 0])
+    assert np.array_equal(dps[1], [2 * 2, 0])
 
 
 def test_perform_correlation_on_endpoints():
