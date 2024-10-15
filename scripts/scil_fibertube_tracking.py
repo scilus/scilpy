@@ -182,9 +182,10 @@ def main():
         _, out_config_ext = os.path.splitext(args.out_config)
         if out_config_ext != '.txt':
             parser.error('Invalid output file format (must be txt): {0}'
-                        .format(args.out_config))
+                         .format(args.out_config))
 
-    out_tractogram_no_ext, out_tractogram_ext = os.path.splitext(args.out_tractogram)
+    out_tractogram_no_ext, out_tractogram_ext = os.path.splitext(
+        args.out_tractogram)
 
     outputs = [args.out_tractogram]
     if not args.do_not_save_seeds:

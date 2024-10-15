@@ -41,7 +41,8 @@ Computed metrics (all expressed in mm):
         component.
         Ex: max_voxel_anisotropic: (3, 5, 5) => max_voxel_isotropic: (3, 3, 3)
     - max_voxel_rotated
-        Largest possible isotropic voxel obtainable if the tractogram is rotated.
+        Largest possible isotropic voxel obtainable if the tractogram is
+        rotated.
         It is only usable if the entire tractogram is rotated according to
         [rotation_matrix].
         Ex: max_voxel_anisotropic: (1, 0, 0) => max_voxel_isotropic: (0, 0, 0)
