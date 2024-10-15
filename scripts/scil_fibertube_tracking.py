@@ -274,11 +274,10 @@ def main():
     }
     if args.out_config:
         with open(args.out_config, 'w') as outfile:
-            json.dump(config, outfile,
-                      indent=args.indent, sort_keys=args.sort_keys)
+            json.dump(config, outfile)
     else:
         print('Config:\n',
-              json.dumps(config, indent=args.indent, sort_keys=args.sort_keys))
+              json.dumps(config))
 
 
 if __name__ == "__main__":

@@ -202,8 +202,7 @@ def main():
         'mae_med': np.median(mean_errors),
     }
     with open(args.out_metrics, 'w') as outfile:
-        json.dump(metrics, outfile,
-                  indent=args.indent, sort_keys=args.sort_keys)
+        json.dump(metrics, outfile)
 
     if args.save_error_tractogram:
         sft = StatefulTractogram.from_sft(error_tractogram, truth_sft)

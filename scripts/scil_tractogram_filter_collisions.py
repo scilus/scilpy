@@ -86,7 +86,8 @@ def _build_arg_parser():
                    'diameters in mm. Each line corresponds \n'
                    'to the identically numbered streamline. \n'
                    'If unsure, refer to the diameters text file of the \n'
-                   'DiSCo dataset.')
+                   'DiSCo dataset. If a single diameter is provided, all \n'
+                   'streamlines will be given this diameter.')
 
     p.add_argument('out_tractogram',
                    help='Tractogram output file free of collision (must \n'
@@ -243,8 +244,7 @@ def main():
             }
 
             with open(args.out_metrics, 'w') as outfile:
-                json.dump(metrics, outfile,
-                          indent=args.indent, sort_keys=args.sort_keys)
+                json.dump(metrics, outfile)
 
         if args.out_max_voxel_rotation is not None:
             max_voxel_rotated_transform = np.r_[np.c_[
