@@ -1,0 +1,6 @@
+{
+  "step_size": 0.01,
+  "blur_radius": 0.01,
+  "nb_fibertubes": 3,
+  "nb_seeds_per_fibertube": 5
+}
