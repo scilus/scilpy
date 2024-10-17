@@ -50,7 +50,7 @@ from scilpy.io.utils import (add_overwrite_arg, add_processes_arg,
                              load_matrix_in_any_format, ranged_type)
 from scilpy.segment.voting_scheme import VotingScheme
 
-logger = logging.getLogger("BundleSeg")
+logger = logging.getLogger('BundleSeg')
 
 EPILOG = """
 [1] St-Onge, Etienne, Kurt G. Schilling, and Francois Rheault.
@@ -142,7 +142,7 @@ def main():
 
     if args.exploration_mode:
         for key in config.keys():
-            config[key] = 12
+            config[key] = 10
     elif args.modify_distance_thr is not None:
         for key in config.keys():
             config[key] += args.modify_distance_thr
@@ -170,6 +170,7 @@ def main():
     # Note. Loading and saving are managed through the VotingScheme class.
     # For code simplicity, it is still BundleSeg class and all, but
     # the last pruning step was modified to be in line with BundleSeg.
+
     voting = VotingScheme(config, in_models_directories,
                           transfo, args.out_dir,
                           minimal_vote_ratio=args.minimal_vote_ratio)

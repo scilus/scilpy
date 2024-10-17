@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import gc
 import logging
 from time import time
 import warnings
@@ -17,7 +18,7 @@ from scipy.sparse import vstack
 
 from scilpy.io.streamlines import reconstruct_streamlines_from_memmap
 
-logger = logging.getLogger("BundleSeg")
+logger = logging.getLogger('BundleSeg')
 
 
 def get_duration(start_time):
@@ -43,13 +44,15 @@ class BundleSeg(object):
         clustering, Neuroimage, 2017.
     """
 
-    def __init__(self, memmap_filenames, clusters_indices, wb_centroids,
-                 rng=None):
+    def __init__(self, memmap_filenames, transformation,
+                 clusters_indices, wb_centroids, rng=None):
         """
         Parameters
         ----------
         memmap_filenames : tuple
             tuple of filenames for the data, offsets and lengths.
+        transformation : numpy.ndarray
+            Transformation matrix to apply to the model streamlines.
         clusters_indices: ArraySequence
             ArraySequence containing the indices of the streamlines per
             cluster.
@@ -60,14 +63,18 @@ class BundleSeg(object):
             If None then RandomState is initialized internally.
         """
         self.memmap_filenames = memmap_filenames
+        self.transformation = transformation
         self.wb_clusters_indices = clusters_indices
-        self.centroids = wb_centroids
+        self.wb_centroids = wb_centroids
         self.rng = rng
+
+        # For memory management
+        self.wb_centroids._data = self.wb_centroids._data.astype(np.float16)
 
         # For declaration outside of init
         self.neighb_centroids = None
         self.neighb_indices = None
-        self.models_streamlines = None
+        self.model_streamlines = None
         self.model_centroids = None
 
     def recognize(self, model_bundle,
@@ -94,12 +101,12 @@ class BundleSeg(object):
             Streamlines that were recognized by Recobundles and these
             parameters.
         """
-
         self.model_streamlines = model_bundle
+
         self._cluster_model_bundle(model_clust_thr,
                                    identifier=identifier)
 
-        if self._reduce_search_space(neighbors_reduction_thr=18) == 0:
+        if self._reduce_search_space(neighbors_reduction_thr=16) == 0:
             if identifier:
                 logger.error(f'{identifier} did not find any neighbors in '
                              'the tractogram')
@@ -107,9 +114,16 @@ class BundleSeg(object):
 
         self._register_model_to_neighb(slr_transform_type=slr_transform_type)
 
+        if self._reduce_search_space(neighbors_reduction_thr=14) == 0:
+            if identifier:
+                logger.error(f'{identifier} did not find any neighbors in '
+                             'the tractogram')
+            return [], []
+        del self.neighb_centroids, self.model_centroids
+        gc.collect()
+
         pruned_indices, pruned_scores = self.prune_far_from_model(
             pruning_thr=pruning_thr)
-        self.cleanup()
 
         return pruned_indices, pruned_scores
 
@@ -129,6 +143,9 @@ class BundleSeg(object):
                                           verbose=False)
 
         self.model_centroids = ArraySequence(model_cluster_map.centroids)
+        self.model_centroids._data = self.model_centroids._data.astype(
+            np.float16)
+
         len_centroids = len(self.model_centroids)
         if len_centroids > 1000:
             logger.warning(f'Model {identifier} simplified at threshold '
@@ -143,7 +160,7 @@ class BundleSeg(object):
         """
 
         centroid_matrix = bundles_distances_mdf(self.model_centroids,
-                                                self.centroids).astype(np.float16)
+                                                self.wb_centroids).astype(np.float16)
         centroid_matrix[centroid_matrix >
                         neighbors_reduction_thr] = np.inf
 
@@ -156,12 +173,14 @@ class BundleSeg(object):
             self.neighb_indices.extend(self.wb_clusters_indices[i])
         self.neighb_indices = np.array(self.neighb_indices, dtype=np.uint32)
 
-        self.neighb_centroids = [self.centroids[i]
-                                 for i in close_clusters_indices]
+        self.neighb_centroids = ArraySequence([self.wb_centroids[i]
+                                               for i in close_clusters_indices])
+        self.neighb_centroids._data = self.neighb_centroids._data.astype(
+            np.float16)
 
         return self.neighb_indices.size
 
-    def _register_model_to_neighb(self, select_model=1000, select_target=1000,
+    def _register_model_to_neighb(self, select_model=250, select_target=250,
                                   slr_transform_type='similarity'):
         """
         Parameters
@@ -181,6 +200,7 @@ class BundleSeg(object):
         """
         possible_slr_transform_type = {'translation': 0, 'rigid': 1,
                                        'similarity': 2, 'scaling': 3}
+
         static = select_random_set_of_streamlines(self.model_centroids,
                                                   select_model, self.rng)
         moving = select_random_set_of_streamlines(self.neighb_centroids,
@@ -235,8 +255,12 @@ class BundleSeg(object):
                                                    bounds=bounds_dof[:9],
                                                    num_threads=1)
                 slm = slr.optimize(static, moving)
-        self.model_centroids = transform_streamlines(self.model_centroids,
-                                                     np.linalg.inv(slm.matrix))
+
+        # Apply the transformation to the model streamlines
+        self.model_streamlines = transform_streamlines(self.model_streamlines,
+                                                       np.linalg.inv(slm.matrix))
+        self.model_streamlines._data = self.model_streamlines._data.astype(
+            np.float16)
 
     def prune_far_from_model(self, pruning_thr=10):
         """
@@ -253,39 +277,55 @@ class BundleSeg(object):
         neighb_streamlines = reconstruct_streamlines_from_memmap(
             self.memmap_filenames, self.neighb_indices, strs_dtype=np.float16)
 
+        # Typically the neighbors is bigger than the model, so we flip the
+        # FSS to be more memory efficient
         with warnings.catch_warnings(record=True) as _:
-            fss = FastStreamlineSearch(neighb_streamlines,
+            fss = FastStreamlineSearch(self.model_streamlines,
                                        pruning_thr, resampling=12)
 
-            for chuck_id in range(0, len(self.model_centroids), 1000):
+            CHUNK_SIZE = 1000
+            dist_mat_list = []
+            for chuck_id in range(0, len(neighb_streamlines), CHUNK_SIZE):
                 tmp_dist_mat = fss.radius_search(
-                    self.model_centroids[chuck_id:chuck_id+1000], pruning_thr)
-                if chuck_id == 0:
-                    dist_mat = tmp_dist_mat.copy()
-                else:
-                    dist_mat = vstack((dist_mat, tmp_dist_mat))
+                    neighb_streamlines[chuck_id:chuck_id+CHUNK_SIZE],
+                    pruning_thr)
+                tmp_dist_mat.data = tmp_dist_mat.data.astype(np.float16)
+                dist_mat_list.append(tmp_dist_mat.copy())
+                del tmp_dist_mat
+                gc.collect()
+
+            dist_mat = vstack(dist_mat_list)
+            for tmp_dist_mat in dist_mat_list:
+                del tmp_dist_mat
+            gc.collect()
+            dist_mat.data = dist_mat.data.astype(np.float16)
+            dist_mat = dist_mat.T
 
         logger.debug(f'Fast search took of dimensions {dist_mat.shape}: '
                      f'{get_duration(t0)} sec.')
-        if dist_mat.size == 0:
+        if dist_mat.size == 0 or dist_mat.shape[1] <= 1:
             return [], []
 
         # Identify the closest neighbors (remove the zeros, not matched)
-        dist_mat = np.abs(dist_mat)
+        np.absolute(dist_mat.data, out=dist_mat.data)
         non_zero_ids, _, scores = nearest_from_matrix_col(dist_mat)
+
+        del dist_mat, neighb_streamlines
+        del fss.ref_slines, fss.bin_dict, fss
+        gc.collect()
 
         # If no streamlines were recognized, return an empty array
         if len(non_zero_ids) != 0:
             # Since the neighbors were clustered, a mapping of indices is neccesary
             final_pruned_indices = self.neighb_indices[non_zero_ids].astype(
                 np.uint32)
-            final_pruned_scores = scores.astype(float)
+            final_pruned_scores = scores.astype(np.float16)
             return final_pruned_indices, final_pruned_scores
         else:
             return [], []
 
     def cleanup(self):
-        del self.neighb_centroids
-        del self.neighb_indices
-        del self.model_streamlines
-        del self.model_centroids
+        for indices in [self.neighb_indices, self.wb_clusters_indices]:
+            if indices is not None:
+                del indices
+        del self.model_streamlines._data, self.model_streamlines

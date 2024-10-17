@@ -1,28 +1,32 @@
 # -*- coding: utf-8 -*-
 
+from collections import OrderedDict
+import gc
 from itertools import product, repeat
 import json
 import logging
+from multiprocessing import Manager
 import multiprocessing
 import os
 from time import time
 import warnings
 
-from dipy.io.streamline import load_tractogram, save_tractogram
+from dipy.io.streamline import save_tractogram
 from dipy.io.stateful_tractogram import StatefulTractogram, Space
 from dipy.segment.clustering import qbx_and_merge
 from dipy.tracking.streamline import transform_streamlines
 import nibabel as nib
 from nibabel.streamlines.array_sequence import ArraySequence
 import numpy as np
-from scipy.sparse import lil_matrix
+from scipy.sparse import lil_matrix, coo_matrix, csr_matrix, csc_matrix
 
-from scilpy.io.streamlines import streamlines_to_memmap
+from scilpy.io.streamlines import streamlines_to_memmap, \
+    reconstruct_streamlines_from_memmap
 from scilpy.segment.bundleseg import BundleSeg, get_duration
 
-logger = logging.getLogger("BundleSeg")
+logger = logging.getLogger('BundleSeg')
 global MCT, TCT
-MCT, TCT = 4, 15
+MCT, TCT = 4, 12
 
 
 class VotingScheme(object):
@@ -71,12 +75,20 @@ class VotingScheme(object):
         for key in self.config.keys():
             bundle_names.append(key)
             all_atlas_models = product(self.atlas_dir, [key])
+
             tmp_list = [os.path.join(tag, bundle)
                         for tag, bundle in all_atlas_models]
-            bundles_filepath.append(tmp_list)
+            for filepath in tmp_list:
+                if not os.path.isfile(filepath):
+                    basename = os.path.basename(filepath)
+                    tmp_list.remove(filepath)
+                    bundle_names.remove(basename)
 
-        logger.info(f'{len(self.atlas_dir)} sub-model directory were found each '
-                    f'with {len(bundle_names)} model bundles')
+            if len(tmp_list) > 0:
+                bundles_filepath.append(tmp_list)
+
+        logger.info(f'{len(self.atlas_dir)} sub-model directories were found. '
+                    f'with {len(bundle_names)} model bundles totals')
 
         model_bundles_dict = {}
         bundle_counts = []
@@ -86,12 +98,8 @@ class VotingScheme(object):
                 if not os.path.isfile(filename):
                     continue
                 count += 1
-                streamlines = nib.streamlines.load(filename).streamlines
-                bundle = transform_streamlines(streamlines,
-                                               self.transformation)
 
-                model_bundles_dict[filename] = (self.config[basename],
-                                                bundle)
+                model_bundles_dict[filename] = self.config[basename]
             bundle_counts.append(count)
 
         if sum(bundle_counts) == 0:
@@ -115,11 +123,12 @@ class VotingScheme(object):
             return streamlines_ids
 
         streamlines_ids = np.argwhere(bundles_wise_vote[bundle_id] >= min_vote)
-        streamlines_ids = np.asarray(streamlines_ids[:, 1], dtype=np.uint32)
+        streamlines_ids = np.asarray(streamlines_ids, dtype=np.uint32)
 
-        return streamlines_ids
+        return np.squeeze(streamlines_ids)
 
-    def _save_recognized_bundles(self, sft, bundle_names,
+    def _save_recognized_bundles(self, memmap_filenames, reference,
+                                 bundle_names,
                                  bundles_wise_vote, bundles_wise_score,
                                  minimum_vote, extension):
         """
@@ -127,8 +136,10 @@ class VotingScheme(object):
 
         Parameters
         ----------
-        sft : StatefulTractogram
-            Whole brain tractogram (original to dissect)
+        memmap_filenames : list
+            List of filenames for the memmap files.
+        reference : str
+            Reference file for the header.
         bundle_names : list
             Bundle names as defined in the configuration file.
             Will save the bundle using that filename and the extension.
@@ -148,13 +159,18 @@ class VotingScheme(object):
                 bundle_id,
                 minimum_vote[bundle_id],
                 bundles_wise_vote)
+            if streamlines_id.ndim == 0:
+                continue
 
             logger.info(f'{bundle_names[bundle_id]} final recognition got '
                         f'{len(streamlines_id)} streamlines')
 
             # All models of the same bundle have the same basename
             basename = os.path.splitext(bundle_names[bundle_id])[0]
-            new_sft = sft[streamlines_id.T]
+            steamlines = reconstruct_streamlines_from_memmap(
+                memmap_filenames, streamlines_id,
+                strs_dtype=np.float16)
+            new_sft = StatefulTractogram(steamlines, reference, Space.RASMM)
             new_sft.remove_invalid_streamlines()
             save_tractogram(new_sft, os.path.join(self.output_directory,
                                                   basename + extension))
@@ -163,7 +179,7 @@ class VotingScheme(object):
             curr_results_dict['indices'] = streamlines_id.tolist()
 
             scores = bundles_wise_score[bundle_id,
-                                        streamlines_id].toarray().flatten()
+                                        streamlines_id].flatten()
             curr_results_dict['scores'] = scores.tolist()
             results_dict[basename] = curr_results_dict
 
@@ -191,14 +207,10 @@ class VotingScheme(object):
         load_timer = time()
         reference = input_tractograms_path[0] if reference is None else reference
 
-        wb_streamlines = []
+        wb_streamlines = ArraySequence()
         for in_tractogram in input_tractograms_path:
-            sft = load_tractogram(in_tractogram, reference)
-            wb_streamlines.extend(sft.streamlines)
-
-        concat_sft = StatefulTractogram(
-            wb_streamlines, reference, space=Space.RASMM)
-        wb_streamlines = concat_sft.streamlines
+            wb_streamlines.extend(
+                nib.streamlines.load(in_tractogram).streamlines)
         len_wb_streamlines = len(wb_streamlines)
 
         logger.debug(f'Tractogram {input_tractograms_path} with '
@@ -218,6 +230,7 @@ class VotingScheme(object):
                                         thresholds,
                                         nb_pts=12, rng=rng,
                                         verbose=False)
+
         clusters_indices = []
         for cluster in cluster_map.clusters:
             clusters_indices.append(cluster.indices)
@@ -231,46 +244,58 @@ class VotingScheme(object):
 
         tmp_dir, tmp_memmap_filenames = streamlines_to_memmap(wb_streamlines,
                                                               'float16')
-        bsg = BundleSeg(tmp_memmap_filenames,
+
+        # Memory cleanup (before multiprocessing)
+        cluster_map.refdata = None
+        for ref in gc.get_referrers(cluster_map) + \
+                gc.get_referrers(wb_streamlines):
+            if isinstance(ref, ArraySequence):
+                del ref._data
+            del ref
+        del wb_streamlines, cluster_map
+        gc.collect()
+        # End of memory cleanup
+
+        bsg = BundleSeg(tmp_memmap_filenames, self.transformation,
                         clusters_indices, centroids)
 
         # Update all BundleSeg initialisation into a single dictionnary
-        pool = multiprocessing.Pool(nbr_processes)
-        all_recognized_dict = pool.map(single_recognize,
-                                       zip(repeat(bsg),
-                                           model_bundles_dict.keys(),
-                                           model_bundles_dict.values(),
-                                           repeat(bundle_names),
-                                           repeat([seed])))
-        pool.close()
-        pool.join()
-        tmp_dir.cleanup()
+        with Manager() as manager:
+            model_bundles_dict = manager.dict(model_bundles_dict)
+            pool = multiprocessing.Pool(nbr_processes)
+            all_recognized_dict = pool.imap_unordered(
+                single_recognize,
+                zip(repeat(bsg), model_bundles_dict.keys(),
+                    model_bundles_dict.values(),
+                    repeat(bundle_names), repeat([seed])))
+            pool.close()
+            pool.join()
 
         logger.info(f'BundleSeg took {get_duration(total_timer)} sec. for '
                     f'{len(bundle_names)} bundles from {len(self.atlas_dir)} atlas')
 
-        save_timer = time()
-        bundles_wise_vote = lil_matrix((len(bundle_names),
+        array_timer = time()
+        t0 = time()
+        bundles_wise_vote = np.zeros((len(bundle_names),
                                         len_wb_streamlines),
                                        dtype=np.uint8)
-        bundles_wise_score = lil_matrix((len(bundle_names),
+        bundles_wise_score = np.zeros((len(bundle_names),
                                          len_wb_streamlines),
-                                        dtype=np.float32)
-
+                                        dtype=np.float16)
+    
         for bundle_id, recognized_indices, recognized_scores in all_recognized_dict:
             if recognized_indices is not None:
                 if len(recognized_indices) == 0:
                     continue
                 tmp_values = bundles_wise_vote[bundle_id, recognized_indices.T]
-                bundles_wise_vote[bundle_id, recognized_indices.T] = \
-                    tmp_values.toarray() + 1
+                bundles_wise_vote[bundle_id, recognized_indices.T] += 1
                 tmp_values = bundles_wise_score[bundle_id,
                                                 recognized_indices.T]
-                bundles_wise_score[bundle_id, recognized_indices.T] = \
-                    tmp_values.toarray() + recognized_scores
+                bundles_wise_score[bundle_id, recognized_indices.T] += recognized_scores
 
-        bundles_wise_vote = bundles_wise_vote.tocsr()
-        bundles_wise_score = bundles_wise_score.tocsr()
+        print(f'Bundle voting took {get_duration(array_timer)} sec.')
+        # bundles_wise_vote = bundles_wise_vote.tocsr()
+        # bundles_wise_score = bundles_wise_score.tocsr()
         bundles_wise_score[bundles_wise_vote !=
                            0] /= bundles_wise_vote[bundles_wise_vote != 0]
 
@@ -278,13 +303,19 @@ class VotingScheme(object):
         minimum_vote = np.array(bundle_count) * self.minimal_vote_ratio
         minimum_vote[np.logical_and(minimum_vote > 0, minimum_vote < 1)] = 1
         minimum_vote = minimum_vote.astype(np.uint8)
+        logging.info(f'Bundle voting took {get_duration(array_timer)} sec.')
+
 
         _, ext = os.path.splitext(input_tractograms_path[0])
-
-        self._save_recognized_bundles(concat_sft, bundle_names,
+        
+        save_timer = time()
+        self._save_recognized_bundles(tmp_memmap_filenames,
+                                      reference,
+                                      bundle_names,
                                       bundles_wise_vote,
                                       bundles_wise_score,
                                       minimum_vote, ext)
+        tmp_dir.cleanup()
 
         logger.info(f'Saving of {len(bundle_names)} files in '
                     f'{self.output_directory} took '
@@ -300,12 +331,10 @@ def single_recognize(args):
     bsg : Object
         Initialize bsg object with QBx ClusterMap as values
     model_filepath : str
-        Path to the model bundle file
-    params : tuple
-        bundle_pruning_thr : float
-            Threshold for pruning the model bundle
-        streamlines: ArraySequence
-            Streamlines of the model bundle
+        Filepath of the model to recognize.
+    model_dict : dict
+        Dictionary containing the model filepaths as keys and the
+        corresponding parameters and streamlines as values.
     bundle_names : list
         List of string with bundle names for models (to get bundle_id)
     seed : int
@@ -324,10 +353,13 @@ def single_recognize(args):
     global MCT, TCT
     bsg = args[0]
     model_filepath = args[1]
-    bundle_pruning_thr = args[2][0]
-    model_bundle = args[2][1]
+    bundle_pruning_thr = args[2]
     bundle_names = args[3]
     np.random.seed(args[4][0])
+
+    model_bundle = nib.streamlines.load(model_filepath).streamlines
+    model_bundle = transform_streamlines(model_bundle,
+                                         bsg.transformation)
 
     # Use for logging and finding the bundle_id
     shorter_tag, ext = os.path.splitext(os.path.basename(model_filepath))
@@ -342,6 +374,7 @@ def single_recognize(args):
                             slr_transform_type=slr_transform_type,
                             identifier=shorter_tag)
     recognized_indices, recognized_scores = results
+    del model_bundle._data, model_bundle
 
     logger.info(f'Model {shorter_tag} recognized {len(recognized_indices)} '
                 'streamlines')
