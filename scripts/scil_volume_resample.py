@@ -23,8 +23,7 @@ import nibabel as nib
 import numpy as np
 
 from scilpy.io.utils import (add_verbose_arg, add_overwrite_arg,
-                             assert_inputs_exist, assert_outputs_exist,
-                             assert_headers_compatible)
+                             assert_inputs_exist, assert_outputs_exist)
 from scilpy.image.volume_operations import resample_volume
 
 
@@ -61,6 +60,9 @@ def _build_arg_parser():
              "quad: quadratic\ncubic: cubic\nDefaults to linear")
     p.add_argument('--enforce_dimensions', action='store_true',
                    help='Enforce the reference volume dimension.')
+
+    p.add_argument('--fodf', action='store_true',
+                   help='Flag to indicate that the input is a FODF volume.')
 
     add_verbose_arg(p)
     add_overwrite_arg(p)
@@ -107,6 +109,7 @@ def main():
                                     iso_min=args.iso_min,
                                     voxel_res=args.voxel_size,
                                     interp=args.interp,
+                                    fodf=args.fodf,
                                     enforce_dimensions=args.enforce_dimensions)
 
     # Saving results
