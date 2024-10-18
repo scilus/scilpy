@@ -30,6 +30,7 @@ def test_execution_tractometry_euclidian(script_runner):
                             '--colormap', 'viridis')
     assert ret.success
 
+
 def test_execution_tractometry_hyperplane(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
     in_bundle = os.path.join(SCILPY_HOME, 'tractometry',
