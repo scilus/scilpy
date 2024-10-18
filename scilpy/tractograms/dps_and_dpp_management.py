@@ -4,6 +4,80 @@ import numpy as np
 from scilpy.viz.color import clip_and_normalize_data_for_cmap
 
 
+def merge_two_identical_sft(sft1, sft2, dpp_keys1=None, dps_keys1=None,
+                            dpp_keys2=None, dps_keys2=None, auto_fix=False):
+    """
+    Combines data_per_point and data_per_streamline from two identical
+    tractograms.
+
+    Parameters
+    ----------
+    sft1: StatefulTractogram
+        Tractogram1
+    sft2: StatefulTractogram
+        Tractogram2, with the same streamlines.
+    dpp_keys1: list, optional
+        If set, the list of dpp keys to keep in sft1.
+    dps_keys1: list, optional
+        If set, the list of dps keys to keep in sft2
+    dpp_keys2: list, optional
+        Idem
+    dps_keys2: list, optional
+        Idem
+    auto_fix: bool
+        If some dpp or dps keys from sft2 already exist in sft1, they will be
+        renamed automatically (suffix _2). If False, an error will be raised
+        instead.
+
+    Returns
+    -------
+    sft: StatefulTractogram
+        Tractogram with combined dpp / dps.
+    """
+    if dpp_keys1 is None:
+        dpp_keys1 = list(sft1.data_per_point.keys())
+    if dps_keys1 is None:
+        dps_keys1 = list(sft1.data_per_streamline.keys())
+    if dpp_keys2 is None:
+        dpp_keys2 = list(sft2.data_per_point.keys())
+    if dps_keys2 is None:
+        dps_keys2 = list(sft2.data_per_streamline.keys())
+
+    # Keep the chosen subset of sft1
+    dpp = {key: sft1.data_per_point[key] for key in dpp_keys1}
+    dps = {key: sft1.data_per_streamline[key] for key in dps_keys1}
+
+    # Merge chosen_keys in sft2
+    def _add_suffix_if_required(new_key, existing_keys):
+        _out_key = new_key
+        if new_key in new_key:
+            if not auto_fix:
+                raise ValueError("Data per point key '{}' from tractogram2 "
+                                 "already exists in tractogram1."
+                                 .format(new_key))
+            suffix = '_2'
+
+            # Verify if _2 exists.
+            while new_key + suffix in existing_keys:
+                suffix = '_' + suffix
+
+            _out_key = new_key + suffix
+        return _out_key
+
+    for key in dpp_keys2:
+        out_key = _add_suffix_if_required(key, dpp.keys())
+        dpp[out_key] = sft2.data_per_point[key]
+
+    for key in dps_keys2:
+        out_key = _add_suffix_if_required(key, dps.keys())
+        dps[out_key] = sft2.data_per_streamline[key]
+
+    print("???", dpp.keys())
+    print("???", dps.keys())
+    sft = sft1.from_sft(sft1.streamlines, sft1, dpp, dps)
+    return sft
+
+
 def add_data_as_color_dpp(sft, cmap, data, clip_outliers=False, min_range=None,
                           max_range=None, min_cmap=None, max_cmap=None,
                           log=False, LUT=None):
