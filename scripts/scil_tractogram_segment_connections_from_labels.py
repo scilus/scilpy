@@ -29,7 +29,8 @@ See also:
 The segmentation process
 ------------------------
 Segmenting a tractogram based on its endpoints is not as straighforward as one
-could imagine. [EXPLAIN THE ISSUES]
+could imagine. The endpoints could be outside any labelled region.
+
 The current strategy is to keep the longest streamline segment connecting 2
 regions. If the streamline crosses other gray matter regions before reaching
 its final connected region, the kept connection is still the longest. This is
@@ -137,10 +138,11 @@ def _build_arg_parser():
                    help='Tractogram filename (s). Format must be one of \n'
                         'trk, tck, vtk, fib, dpy.\n'
                         'If you have many tractograms for a single subject '
-                        '(ex, coming \nfrom Ensemble Tracking)')
+                        '(ex, coming \nfrom Ensemble Tracking), we will '
+                        'merge them together.')
     p.add_argument('in_labels',
                    help='Labels file name (nifti). Labels must have 0 as '
-                        'background.')
+                        'background. Volumes must have isotropic voxels.')
     p.add_argument('out_hdf5',
                    help='Output hdf5 file (.h5).')
 

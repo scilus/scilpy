@@ -729,6 +729,37 @@ def assert_inputs_exist(parser, required, optional=None):
             check(optional_file)
 
 
+def assert_inputs_dirs_exist(parser, required, optional=None):
+    """
+    Assert that all inputs directories exist. If not, print parser's usage and
+    exit.
+
+    Parameters
+    ----------
+    parser: argparse.ArgumentParser object
+        Parser.
+    required: string or list of paths
+        Required paths to be checked.
+    optional: string or list of paths
+        Optional paths to be checked.
+    """
+    def check(path):
+        if not os.path.isdir(path):
+            parser.error('Input directory {} does not exist'.format(path))
+
+    if isinstance(required, str):
+        required = [required]
+
+    if isinstance(optional, str):
+        optional = [optional]
+
+    for required_file in required:
+        check(required_file)
+    for optional_file in optional or []:
+        if optional_file is not None:
+            check(optional_file)
+
+
 def assert_outputs_exist(parser, args, required, optional=None,
                          check_dir_exists=True):
     """
