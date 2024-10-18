@@ -122,7 +122,7 @@ def compute_connectivity_matrices_from_hdf5(
     # If density is not required, do not compute it
     # Only required for volume, similarity and any metrics
     if (compute_volume or similarity_directory is not None or
-            len(metrics) > 0):
+            len(metrics_data) > 0):
         density = compute_tract_counts_map(streamlines, dimensions)
 
     measures_to_return = {}
