@@ -156,6 +156,7 @@ def _build_arg_parser():
         'be saved at the specified location (must be .txt). If not given, \n'
         'the config will be printed in the console.')
 
+    add_json_args(out_g)
     add_overwrite_arg(out_g)
     add_processes_arg(p)
     add_verbose_arg(p)
@@ -274,10 +275,12 @@ def main():
     }
     if args.out_config:
         with open(args.out_config, 'w') as outfile:
-            json.dump(config, outfile)
+            json.dump(config, outfile,
+                      indent=args.indent, sort_keys=args.sort_keys)
     else:
         print('Config:\n',
-              json.dumps(config))
+              json.dumps(config, indent=args.indent,
+                         sort_keys=args.sort_keys))
 
 
 if __name__ == "__main__":
