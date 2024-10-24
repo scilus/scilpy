@@ -4,10 +4,13 @@ import inspect
 import json
 import logging
 import os
+import tqdm
 
 import numpy as np
 from scipy import ndimage as ndi
 from scipy.spatial import cKDTree
+
+from scilpy.tractanalysis.reproducibility_measures import compute_bundle_adjacency_voxel
 
 
 def load_wmparc_labels():
@@ -494,3 +497,117 @@ def merge_labels_into_mask(atlas, filtering_args):
         mask[atlas == int(filtering_args)] = 1
 
     return mask
+
+
+def harmonize_labels(original_data, min_voxel_overlap=1, max_adjacency=1e2):
+    """
+    Harmonize lesion labels across multiple 3D volumes by ensuring consistent
+    labeling.
+
+    This function takes multiple 3D NIfTI volumes with labeled regions
+    (e.g., lesions) and harmonizes the labels so that regions that are the same
+    across different volumes are assigned a consistent label. It operates by
+    iteratively comparing labels in each volume to those in previous volumes
+    and matching them based on spatial proximity and overlap.
+
+    Parameters
+    ----------
+    original_data : list of numpy.ndarray
+        A list of 3D numpy arrays where each array contains labeled regions.
+        Labels should be non-zero integers, where each unique integer represents
+        a different region or lesion.
+    min_voxel_overlap : int, optional
+        Minimum number of overlapping voxels required for two regions (lesions)
+        from different volumes to be considered as potentially the same lesion.
+        Default is 1.
+    max_adjacency : float, optional
+        Maximum distance allowed between the centroids of two regions for them
+        to be considered as the same lesion. Default is 1e2 (infinite).
+
+    Returns
+    -------
+    list of numpy.ndarray
+        A list of 3D numpy arrays with the same shape as `original_data`, where
+        labels have been harmonized across all volumes. Each region across
+        volumes that is identified as the same will have the same label.
+    """
+
+    relabeled_data = [np.zeros_like(data) for data in original_data]
+    relabeled_data[0] = original_data[0]
+    labels = np.unique(original_data)[1:]
+
+    # We will iterate over all possible combinations of labels
+    N = len(original_data)
+    total_iteration = ((N * (N - 1)) // 2)
+    tqdm_bar = tqdm.tqdm(total=total_iteration, desc="Harmonizing labels")
+
+    # We want to label images in order
+    for first_pass in range(len(original_data)):
+        unmatched_labels = np.unique(original_data[first_pass])[1:].tolist()
+        best_match_score = {label: 999999 for label in labels}
+        best_match_pos = {label: None for label in labels}
+
+        # We iterate over all previous images to find the best match
+        for second_pass in range(0, first_pass):
+            tqdm_bar.update(1)
+
+            # We check all existing labels in relabeled data
+            for label_ind_1 in range(len(labels)):
+                label_1 = labels[label_ind_1]
+
+                if label_1 not in original_data[first_pass]:
+                    continue
+
+                # This check requires to at least overlap by N voxel
+                coord_1 = np.where(original_data[first_pass] == label_1)
+                overlap_labels_count = np.unique(relabeled_data[second_pass][coord_1],
+                                                 return_counts=True)
+
+                potential_labels_val = overlap_labels_count[0].tolist()
+                potential_labels_count = overlap_labels_count[1].tolist()
+                potential_labels = []
+                for val, count in zip(potential_labels_val,
+                                      potential_labels_count):
+                    if val != 0 and count > min_voxel_overlap:
+                        potential_labels.append(val)
+
+                # We check all labels touching the previous label
+                for label_2 in potential_labels:
+                    tmp_data_1 = np.zeros_like(original_data[0])
+                    tmp_data_2 = np.zeros_like(original_data[0])
+
+                    # We always compare the previous relabeled data with the next
+                    # original data
+                    tmp_data_1[original_data[first_pass] == label_1] = 1
+                    tmp_data_2[relabeled_data[second_pass] == label_2] = 1
+
+                    # They should have a similar shape (TODO: parameters)
+                    adjacency = compute_bundle_adjacency_voxel(
+                        tmp_data_1, tmp_data_2)
+                    if adjacency > max_adjacency:
+                        continue
+
+                    if adjacency < best_match_score[label_1]:
+                        best_match_score[label_1] = adjacency
+                        best_match_pos[label_1] = label_2
+
+            # We relabel the data and keep track of the unmatched labels
+            for label in labels:
+                if best_match_pos[label] is not None:
+                    old_label = label
+                    new_label = best_match_pos[label]
+                    relabeled_data[first_pass][original_data[first_pass]
+                                               == old_label] = new_label
+                    if old_label in unmatched_labels:
+                        unmatched_labels.remove(old_label)
+
+        # Anything that is left should be given a new label
+        if first_pass == 0:
+            continue
+        next_label = np.max(relabeled_data[:first_pass]) + 1
+        for label in unmatched_labels:
+            relabeled_data[first_pass][original_data[first_pass]
+                                       == label] = next_label
+            next_label += 1
+
+    return relabeled_data
