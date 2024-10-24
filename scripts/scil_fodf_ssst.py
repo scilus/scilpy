@@ -135,7 +135,8 @@ def main():
                                  is_output_legacy=is_legacy,
                                  nbr_processes=args.nbr_processes)
     nib.save(nib.Nifti1Image(shm_coeff.astype(np.float32),
-                             vol.affine, vol.header), args.out_fODF)
+                             affine=vol.affine,
+                             header=vol.header), args.out_fODF)
 
 
 if __name__ == "__main__":
