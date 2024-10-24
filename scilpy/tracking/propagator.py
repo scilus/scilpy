@@ -11,6 +11,7 @@ from dipy.reconst.shm import sh_to_sf_matrix
 from scilpy.reconst.utils import (get_sphere_neighbours,
                                   get_sh_order_and_fullness)
 from scilpy.tracking.utils import sample_distribution, TrackingDirection
+from scilpy.image.volume_space_management import FibertubeDataVolume
 
 
 class PropagationStatus(Enum):
@@ -498,8 +499,8 @@ class ODFPropagator(PropagatorOnSphere):
 
             # Sampling one.
             if np.sum(sf) > 0:
-                v_out = directions[sample_distribution(sf,
-                                                       self.line_rng_generator)]
+                v_out = directions[
+                    sample_distribution(sf, self.line_rng_generator)]
             else:
                 return None
         elif self.algo == 'det':
@@ -573,3 +574,116 @@ class ODFPropagator(PropagatorOnSphere):
             if 0 < sf[i] == np.max(sf[self.maxima_neighbours[i]]):
                 maxima.append(self.dirs[i])
         return maxima
+
+
+class FibertubePropagator(AbstractPropagator):
+    """
+    Simplified propagator for using fibertube data. It is probabilistic and
+    uses the volume of intersection between fibertube segments and the
+    blurring sphere as a random distribution for picking a segment. This
+    segment is then used as the propagation direction.
+    """
+    def __init__(self, datavolume: FibertubeDataVolume, step_size, rk_order,
+                 theta, space, origin):
+        """"
+        Parameters
+        ----------
+        datavolume: FibertubeDataVolume
+            Trackable fibertube dataset object.
+        step_size: float
+            The step size for tracking. Important: step size should be in the
+            same units as the space of the tracking!
+        rk_order: int
+            Order for the Runge Kutta integration.
+        theta: float
+            Maximum angle (radians) between two steps.
+        space: dipy Space
+            Space of the streamlines during tracking. value.
+        origin: dipy Origin
+            Origin of the streamlines during tracking. All coordinates
+            received in the propagator's methods will be expected to respect
+            that origin.
+
+        A note on space and origin: All coordinates received in the
+        propagator's methods will be expected to respect those values. Tracker
+        will verify that the propagator has the same internal values as itself.
+        """
+
+        if not (rk_order == 1 or rk_order == 2 or rk_order == 4):
+            raise ValueError("Invalid runge-kutta order. Is " +
+                             str(rk_order) + ". Choices : 1, 2, 4")
+
+        self.datavolume = datavolume
+        self.step_size = step_size
+        self.rk_order = rk_order
+        self.theta = theta
+        self.space = space
+        self.origin = origin
+        self.normalize_directions = True
+        # Will be reset at each new streamline.
+        self.line_rng_generator = None
+
+    def reset_data(self, new_data=None):
+        return super().reset_data(new_data)
+
+    def prepare_forward(self, seeding_pos, random_generator):
+        direction = self.datavolume.get_absolute_direction(*seeding_pos)
+
+        # Validate seeding within a fibertube.
+        if direction is None:
+            return PropagationStatus.ERROR
+
+        self.line_rng_generator = random_generator
+
+        return TrackingDirection(direction)
+
+    def prepare_backward(self, line, forward_dir):
+        return super().prepare_backward(line, forward_dir)
+
+    def finalize_streamline(self, last_pos, v_in):
+        return super().finalize_streamline(last_pos, v_in)
+
+    def propagate(self, line, v_in):
+        return super().propagate(line, v_in)
+
+    def _sample_next_direction(self, pos, v_in):
+        directions, volumes = self._get_possible_next_dirs(pos, v_in)
+
+        # Sampling one.
+        if np.sum(volumes) > 0:
+            v_out = directions[
+                sample_distribution(volumes, self.line_rng_generator)]
+            return v_out
+        return None
+
+    def _get_possible_next_dirs(self, pos, v_in):
+        directions, volumes = (
+            self.datavolume.get_value_at_coordinate(*pos, self.space,
+                                                    self.origin))
+
+        # Angle threshold
+        valid_dirs = []
+        valid_volumes = []
+
+        for i, dir in enumerate(directions):
+            num = np.dot(v_in, dir)
+            cosine = num / (np.linalg.norm(v_in) *
+                            np.linalg.norm(dir))
+
+            # Flip direction if facing the wrong way
+            if cosine < 0:
+                cosine = abs(cosine)
+                dir = -dir
+
+            cosine = np.clip(cosine, -1, 1)
+
+            if (np.arccos(cosine) > self.theta):
+                continue
+
+            valid_dirs.append(dir)
+            valid_volumes.append(volumes[i])
+
+        valid_dirs = np.array(valid_dirs)
+        valid_volumes = np.array(valid_volumes)
+
+        return valid_dirs, valid_volumes
