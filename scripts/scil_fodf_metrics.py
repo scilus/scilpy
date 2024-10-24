@@ -12,6 +12,9 @@ NuFO is the the number of maxima of the fODF with an ABSOLUTE amplitude above
 the threshold set using --at, AND an amplitude above the RELATIVE threshold
 set using --rt.
 
+GA is the Geometric Anisotropy, which is the geodesic distance between the
+ODF and the isotropic ODF, ∈ [0, arccos(1/√4π)]. See [3] eq.7 for more details.
+
 The --at argument should be set to a value which is 1.5 times the maximal
 value of the fODF in the ventricules. This can be obtained with the
 scil_fodf_max_in_ventricles.py script.
@@ -29,6 +32,18 @@ output.
 
 See [Raffelt et al. NeuroImage 2012] and [Dell'Acqua et al HBM 2013] for the
 definitions.
+
+References
+----------
+[1] Raffelt et al. (2012). Apparent Fibre Density: a novel measure for the
+    analysis of diffusion-weighted magnetic resonance images. NeuroImage.
+[2] Dell'Acqua et al. (2013). Tract density imaging: description of a
+    reproducible method and demonstration of its usefulness in neuropsychiatric
+    research. Human Brain Mapping.
+[3] Cheng, J., Ghosh, A., Jiang, T., & Deriche, R. (2009). A Riemannian
+    framework for orientation distribution function computing. In International
+    Conference on Medical Image Computing and Computer-Assisted Intervention
+    (pp. 911-918). Berlin, Heidelberg: Springer Berlin Heidelberg.
 
 Formerly: scil_compute_fodf_metrics.py
 """
@@ -100,6 +115,11 @@ def _build_arg_parser():
                    help='Output filename for the NuFO map.')
     g.add_argument('--rgb', metavar='file', default='',
                    help='Output filename for the RGB map.')
+    g.add_argument('--ga', metavar='file', default='',
+                   help='Output filename for the Geometric Anisotropy map.')
+    g.add_argument('--gfa', metavar='file', default='',
+                   help='Output filename for the Generalized Fractional '
+                        'Anisotropy map.')
     g.add_argument('--peaks', metavar='file', default='',
                    help='Output filename for the extracted peaks.')
     g.add_argument('--peak_values', metavar='file', default='',
@@ -122,12 +142,14 @@ def main():
         args.afd_sum = args.afd_sum or 'afd_sum.nii.gz'
         args.nufo = args.nufo or 'nufo.nii.gz'
         args.rgb = args.rgb or 'rgb.nii.gz'
+        args.ga = args.ga or 'ga.nii.gz'
+        args.gfa = args.gfa or 'gfa.nii.gz'
         args.peaks = args.peaks or 'peaks.nii.gz'
         args.peak_values = args.peak_values or 'peak_values.nii.gz'
         args.peak_indices = args.peak_indices or 'peak_indices.nii.gz'
 
     arglist = [args.afd_max, args.afd_total, args.afd_sum, args.nufo,
-               args.rgb, args.peaks, args.peak_values,
+               args.rgb, args.ga, args.gfa, args.peaks, args.peak_values,
                args.peak_indices]
     if args.not_all and not any(arglist):
         parser.error('When using --not_all, you need to specify at least '
@@ -161,10 +183,11 @@ def main():
                                      nbr_processes=args.nbr_processes)
 
     # Computing maps
-    if args.nufo or args.afd_max or args.afd_total or args.afd_sum or args.rgb:
-        nufo_map, afd_max, afd_sum, rgb_map, \
-            _, _ = maps_from_sh(data, peak_dirs, peak_values, peak_indices,
-                                sphere, nbr_processes=args.nbr_processes)
+    if (args.nufo or args.afd_max or args.afd_total or
+            args.afd_sum or args.rgb or args.gfa or args.ga):
+        nufo_map, afd_max, afd_sum, rgb_map, gfa_map, ga_map, \
+             _ = maps_from_sh(data, peak_dirs, peak_values, peak_indices,
+                              sphere, nbr_processes=args.nbr_processes)
 
         # Save result
         if args.nufo:
@@ -188,6 +211,14 @@ def main():
         if args.rgb:
             nib.save(nib.Nifti1Image(rgb_map.astype('uint8'), affine),
                      args.rgb)
+
+        if args.gfa:
+            nib.save(nib.Nifti1Image(gfa_map.astype(np.float32), affine),
+                     args.gfa)
+
+        if args.ga:
+            nib.save(nib.Nifti1Image(ga_map.astype(np.float32), affine),
+                     args.ga)
 
     if args.peaks or args.peak_values:
         if not args.abs_peaks_and_values:
