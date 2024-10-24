@@ -1,19 +1,19 @@
-# Demo Workshop
+# Demo
 In this demo, you will be introduced to the main scripts of this project as you apply them on simple data.
 <br><br>
-Our main objective is better understand and quantify the fundamental limitations of tractography algorithms, and how they might evolve as we approach microscopy resolution where individual axons can be seen, tracked or segmented. To do so, we will be evaluating tractography's ability to reconstruct individual white matter fiber strands at various simulated extreme resolutions.
+Our main objective is better understand and quantify the fundamental limitations of tractography algorithms, and how they might evolve as we approach microscopy resolution where individual axons can be seen. To do so, we will be evaluating tractography's ability to reconstruct individual white matter fiber strands at various simulated extreme resolutions.
 ## Terminology
 Here is a list of terms and definitions used in this project.
 
 General:
 - Axon: Bio-physical object. Portion of the nerve cell that carries out the electrical impulse to other neurons. (On the order of 0.1 to 1um)
-- Streamline: Virtual object. Series of equidistant 3D coordinates approximating an underlying fiberous structure.
+- Streamline: Virtual object. Series of 3D coordinates approximating an underlying fiber structure.
 
 Fibertube Tracking:
-- Centerline: Virtual object. Series of equidistant 3D coordinates representing the directional information of a fibertube.
-- Fibertube: Virtual representation of an axon. It is composed of a centerline and a single diameter for its whole length.
-- Fibertube segment: Because centerlines are made of discrete coordinates, fibertubes end up being composed of a series of equally lengthed adjacent cylinders. A fibertube segment is any single one of those cylinders.
-- Fibertube Tractography: The application of a tractography algorithm directly on fibertubes to reconstruct them. Contrary to traditional white matter fiber tractography, fibertube tractography does not rely on a discretized grid of fODFs or peaks.
+- Fibertube: Virtual representation of an axon. Tube obtained from combining a diameter to a streamline.
+- Centerline: Virtual object. Streamline passing through the center of a tubular structure.
+- Fibertube segment: Cylindrical segment of a fibertube that comes as a result of the discretization of its centerline.
+- Fibertube Tractography: The computational tractography method that reconstructs fibertubes. Contrary to traditional white matter fiber tractography, fibertube tractography does not rely on a discretized grid of fODFs or peaks. It directly tracks and reconstructs fibertubes, i.e. streamlines that have an associated diameter.
 
 ![Fibertube visualized in Blender](https://github.com/VincentBeaud/fibertube_tracking/assets/77688542/25494d10-a8d5-46fa-93d9-0072287d0105)
 
@@ -33,7 +33,7 @@ This project can be split into 3 major steps:
 
 The data required to perform fibertube tractography comes in two files:
 - `./centerlines.trk` contains the entire ground-truth of the DISCO dataset.
-- `./diameters.txt` contains the diameters.
+- `./diameters.txt` contains the diameter to be applied to each centerline in the centerlines.trk file above.
 
 ![DISCO subset visualized in MI-Brain](https://github.com/VincentBeaud/fibertube_tracking/assets/77688542/197b3f1f-2f57-41d0-af0a-5f7377bab274)
 
@@ -69,6 +69,12 @@ After a short wait, you should get something like:
 
 As you may have guessed from the output name, this script automatically combines the diameter to the centerlines as data_per_streamline in the output tractogram. This is why we named it "fibertubes.trk".
 
+If you wish to know how many fibertubes are left after filtering, you can run the following command:
+
+```scil_tractogram_print_info.py fibertube.txt```
+
+
+
 ## Visualising collisions
 By calling:
 ```
@@ -88,7 +94,6 @@ Before we get into tracking. Here is an overview of the metrics that we saved in
 Ex: max_voxel_anisotropic: (3, 5, 5) => max_voxel_isotropic: (3, 3, 3)
 - `max_voxel_rotated`: Largest possible isotropic voxel obtainable if the tractogram is rotated. It is only usable if the entire tractogram is rotated according to [rotation_matrix].
 Ex: max_voxel_anisotropic: (1, 0, 0) => max_voxel_rotated: (0.5774, 0.5774, 0.5774)
-- `rotation_matrix`: 4D transformation matrix representing the rotation to be applied on the tractogram to align max_voxel_rotated with the coordinate system (see scil_tractogram_apply_transform.py).
 
 ![Metrics (without max_voxel_rotated) visualized in Blender](https://github.com/VincentBeaud/perfect_tracking/assets/77688542/95cd4e50-1a36-49af-ac11-0d5f33d3f32e)
 <br>
@@ -101,7 +106,7 @@ Ex: max_voxel_anisotropic: (1, 0, 0) => max_voxel_rotated: (0.5774, 0.5774, 0.57
 We're finally at the tracking phase! Using the script `scil_fibertube_tracking.py`, you are able to track without relying on a discretized grid of directions or fODFs. Instead, you will be propagating a streamline through fibertubes and degrading the resolution by using a `blur_radius`. The way it works is as follows:
 
 ### Tracking
-When the tracking algorithm is about to select a new direction to propagate the current streamline, it will build a sphere of radius `blur_radius` and pick randomely from all the fibertube segments intersecting with it. The larger the intersection volume, the more likely a fibertube segment is to be picked and used as a tracking direction. This makes fibertube tracking inherently probabilistic.
+When the tracking algorithm is about to select a new direction to propagate the current streamline, it will build a sphere of radius `blur_radius` and pick randomly from all the fibertube segments intersecting with it. The larger the intersection volume, the more likely a fibertube segment is to be picked and used as a tracking direction. This makes fibertube tracking inherently probabilistic.
 Theoretically, with a `blur_radius` of 0, any given set of coordinates has either a single tracking direction because it is within a fibertube, or no direction at all from being out of one. In fact, this behavior won't change until the diameter of the sphere is larger than the smallest distance separating two fibertubes. When this happens, more than one fibertubes will intersect the `blur_radius` sphere and introduce partial volume effect.
 
 
@@ -129,31 +134,31 @@ IC: "Invalid Connection": Represents a streamline that ended in the final
 NC: "No Connection": Contains streamlines that have not ended in the final
     segment of any fibertube.
 
-A "coordinate absolute error" is the distance in mm between a streamline
+The "absolute error" of a coordinate is the distance in mm between this streamline
 coordinate and the closest point on its corresponding fibertube. The average
 of all coordinate absolute errors of a streamline is called the "Mean absolute
 error" or "mae".
 
 Computed metrics:
-    - truth_vc_ratio
+   - truth_vc_ratio <br>
         Proportion of VC.
-    - truth_ic_ratio
+   - truth_ic_ratio <br>
         Proportion of IC.
-    - truth_nc_ratio
+   - truth_nc_ratio <br>
         Proportion of NC.
-    - res_vc_ratio
+   - res_vc_ratio <br>
         Proportion of VC at the resolution of the blur_radius parameter.
-    - res_ic_ratio
+   - res_ic_ratio <br>
         Proportion of IC at the resolution of the blur_radius parameter.
-    - res_nc_ratio
+   - res_nc_ratio <br>
         Proportion of NC at the resolution of the blur_radius parameter.
-    - mae_min
+   - mae_min <br>
         Minimum MAE for the tractogram.
-    - mae_max
+   - mae_max <br>
         Maximum MAE for the tractogram.
-    - mae_mean
+   - mae_mean <br>
         Average MAE for the tractogram.
-    - mae_med
+   - mae_med <br>
         Median MAE for the tractogram.
 
 Let's do:
@@ -177,6 +182,7 @@ giving us the following output in `reconstruction_metrics.txt`:
 }
 ```
 
-This data tells us that none of our streamline managed to stay within the fibertube in which it was seeded (`"truth_vc_ratio": 0.0`). However, 40% of streamlinea are at most one `blur_radius` away from the end of their respective fibertube (`"res_vc_ratio": 0.4`). Lastly, we notice that the streamline with the "worst" trajectory was on average 5.5um away from its fibertube (`"mae_max": 0.0055722481609273775`). We can suspect that it started very good early on, but eventually drifted further than 10um, rendering it a NC.
+This data tells us that none of our streamline managed to stay within the fibertube in which it was seeded (`"truth_vc_ratio": 0.0`). However, 40% of streamlines are at most one `blur_radius` away from the end of their respective fibertube (`"res_vc_ratio": 0.4`). Lastly, we notice that the streamline with the "worst" trajectory was on average 5.5um away from its fibertube (`"mae_max": 0.0055722481609273775`). We can suspect that it started very good early on, but eventually drifted further than 10um, rendering it a NC.
 
 ## End of Demo
+
