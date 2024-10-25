@@ -131,37 +131,41 @@ This should take a few minutes at most. However, if you don't mind waiting a lit
 ### Reconstruction analysis
 By using the `scil_fibertube_score_tractogram.py` script, you are able to obtain measures on the quality of the fibertube tracking that was performed. Here is a description of the computed metrics:
 
-VC: "Valid Connection": Represents a streamline that ended in the final
-    segment of the fibertube in which it was seeded. <br>
-IC: "Invalid Connection": Represents a streamline that ended in the first or
-    final segment of another fibertube. <br>
-NC: "No Connection": Contains streamlines that have not ended in the first or
-    final segment of any fibertube. <br>
+VC: "Valid Connection": A streamline that passes WITHIN the final segment of <br>
+    the fibertube in which it was seeded. <br>
+IC: "Invalid Connection": A streamline that ended in the final segment of <br>
+    another fibertube. <br>
+NC: "No Connection": A streamlines that has not ended in the final segment <br>
+    of any fibertube. <br>
 
-The "absolute error" of a coordinate is the distance in mm between this streamline
-coordinate and the closest point on its corresponding fibertube. The average
-of all coordinate absolute errors of a streamline is called the "Mean absolute
-error" or "mae".
+Res_VC: "Resolution-wise Valid Connection": A streamline that passes closer <br>
+    than [blur_darius] away from the last segment of the fibertube in which it <br>
+    was seeded. <br>
+Res_IC: "Resolution-wise Invalid Connection": A streamline that passes closer <br>
+    than [blur_darius] away from the first or last segment of another <br>
+    fibertube. <br>
+Res_NC: "Resolution-wise No Connection": A streamlines that does not pass <br>
+    closer than [blur_radius] away from the first or last segment of any <br>
+    fibertube. <br>
+
+The "absolute error" of a coordinate is the distance in mm between that <br>
+coordinate and the closest point on its corresponding fibertube. The average <br>
+of all coordinate absolute errors of a streamline is called the "Mean absolute <br>
+error" or "mae". <br>
 
 Computed metrics:
    - truth_vc_ratio <br>
-        Proportion of VC.
+        Number of VC divided by the number of streamlines.
    - truth_ic_ratio <br>
-        Proportion of IC.
+        Number of IC divided by the number of streamlines.
    - truth_nc_ratio <br>
-        Proportion of NC.
+        Number of NC divided by the number of streamlines.
    - res_vc_ratio <br>
-        Proportion of VC at the resolution of the blur_radius parameter. The
-        streamline passes at a distance of at most [blur_darius] away from
-        the last segment of its fibertube.
+        Number of Res_VC divided by the number of streamlines.
    - res_ic_ratio <br>
-        Proportion of IC at the resolution of the blur_radius parameter. The
-        streamline passes at a distance of at most [blur_darius] away from the
-        first or last segment of another fibertube.
+        Number of Res_IC divided by the number of streamlines.
    - res_nc_ratio <br>
-        Proportion of NC at the resolution of the blur_radius parameter. The
-        streamline does not pass below [blur_radius] away from the first or
-        last segment of any fibertube.
+        Number of Res_NC divided by the number of streamlines.
    - mae_min <br>
         Minimum MAE for the tractogram.
    - mae_max <br>
