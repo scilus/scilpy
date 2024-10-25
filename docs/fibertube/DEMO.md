@@ -132,11 +132,11 @@ This should take a few minutes at most. However, if you don't mind waiting a lit
 By using the `scil_fibertube_score_tractogram.py` script, you are able to obtain measures on the quality of the fibertube tracking that was performed. Here is a description of the computed metrics:
 
 VC: "Valid Connection": Represents a streamline that ended in the final
-    segment of the fibertube in which it was seeded.
+    segment of the fibertube in which it was seeded. <br>
 IC: "Invalid Connection": Represents a streamline that ended in the first or
-    final segment of another fibertube.
+    final segment of another fibertube. <br>
 NC: "No Connection": Contains streamlines that have not ended in the first or
-    final segment of any fibertube.
+    final segment of any fibertube. <br>
 
 The "absolute error" of a coordinate is the distance in mm between this streamline
 coordinate and the closest point on its corresponding fibertube. The average
