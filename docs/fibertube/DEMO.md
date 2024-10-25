@@ -133,10 +133,10 @@ By using the `scil_fibertube_score_tractogram.py` script, you are able to obtain
 
 VC: "Valid Connection": Represents a streamline that ended in the final
     segment of the fibertube in which it was seeded.
-IC: "Invalid Connection": Represents a streamline that ended in the final
-    segment of another fibertube.
-NC: "No Connection": Contains streamlines that have not ended in the final
-    segment of any fibertube.
+IC: "Invalid Connection": Represents a streamline that ended in the first or
+    final segment of another fibertube.
+NC: "No Connection": Contains streamlines that have not ended in the first or
+    final segment of any fibertube.
 
 The "absolute error" of a coordinate is the distance in mm between this streamline
 coordinate and the closest point on its corresponding fibertube. The average
@@ -151,11 +151,17 @@ Computed metrics:
    - truth_nc_ratio <br>
         Proportion of NC.
    - res_vc_ratio <br>
-        Proportion of VC at the resolution of the blur_radius parameter.
+        Proportion of VC at the resolution of the blur_radius parameter. The
+        streamline passes at a distance of at most [blur_darius] away from
+        the last segment of its fibertube.
    - res_ic_ratio <br>
-        Proportion of IC at the resolution of the blur_radius parameter.
+        Proportion of IC at the resolution of the blur_radius parameter. The
+        streamline passes at a distance of at most [blur_darius] away from the
+        first or last segment of another fibertube.
    - res_nc_ratio <br>
-        Proportion of NC at the resolution of the blur_radius parameter.
+        Proportion of NC at the resolution of the blur_radius parameter. The
+        streamline does not pass below [blur_radius] away from the first or
+        last segment of any fibertube.
    - mae_min <br>
         Minimum MAE for the tractogram.
    - mae_max <br>
