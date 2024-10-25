@@ -26,11 +26,17 @@ Computed metrics:
     - truth_nc_ratio
         Proportion of NC.
     - res_vc_ratio
-        Proportion of VC at the resolution of the blur_radius parameter.
+        Proportion of VC at the resolution of the blur_radius parameter. The
+        streamline passes at a distance of at most [blur_darius] away from
+        the last segment of its fibertube.
     - res_ic_ratio
-        Proportion of IC at the resolution of the blur_radius parameter.
+        Proportion of IC at the resolution of the blur_radius parameter. The
+        streamline passes at a distance of at most [blur_darius] away from the
+        first or last segment of another fibertube.
     - res_nc_ratio
-        Proportion of NC at the resolution of the blur_radius parameter.
+        Proportion of NC at the resolution of the blur_radius parameter. The
+        streamline does not pass below [blur_radius] away from the first or
+        last segment of any fibertube.
     - mae_min
         Minimum MAE for the tractogram.
     - mae_max
