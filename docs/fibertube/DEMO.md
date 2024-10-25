@@ -88,7 +88,7 @@ In white and lower opacity is the original tractogram passed as `--ref_tractogra
 ![Filtered intersections visualized in 3D](https://github.com/VincentBeaud/fibertube_tracking/assets/77688542/4bc75029-0d43-4664-8502-fd528e9d93f4)
 
 ### Fibertube metrics
-Before we get into tracking. Here is an overview of the metrics that we saved in `metrics.txt`:
+Before we get into tracking. Here is an overview of the metrics that we saved in `metrics.txt`. They are all expressed in mm:
 
 - `min_external_distance`: Smallest distance separating two fibertubes, outside their diameter.
 - `max_voxel_anisotropic`: Diagonal vector of the largest possible anisotropic voxel that would not intersect two fibertubes.
