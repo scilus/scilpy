@@ -379,33 +379,48 @@ def endpoint_connectivity(step_size, blur_radius, centerlines,
         truth_connected = False
         res_connected = False
         for fi, fiber in enumerate(centerlines):
-            fib_pt1 = fiber[centerlines_length[fi] - 2]
-            fib_pt2 = fiber[centerlines_length[fi] - 1]
+            fib_end_pt1 = fiber[centerlines_length[fi] - 2]
+            fib_end_pt2 = fiber[centerlines_length[fi] - 1]
             radius = diameters[fi] / 2
 
             # Check all the points of the estimated last segment of streamline
             estimated_overstep_mm = (radius + blur_radius + step_size)
             estimated_streamline_last_seg_nb_pts = int(
-                (np.linalg.norm(fib_pt2-fib_pt1) +
+                (np.linalg.norm(fib_end_pt2-fib_end_pt1) +
                  estimated_overstep_mm) // step_size)
 
             # Streamlines are reversed. streamline[:n] gives the last n points
             for point in streamline[:estimated_streamline_last_seg_nb_pts]:
                 seed_fi = seeds_fiber[si]
 
-                if point_in_cylinder(fib_pt1, fib_pt2, radius, point):
+                # Is in start segment of a fibertube and not ours
+                if point_in_cylinder(fiber[0], fiber[1], radius, point) and fi != seed_fi:
+                    truth_connected = True
+                    truth_ic.append((si, fi))
+
+                # Is in end segment of a fibertube
+                if point_in_cylinder(fib_end_pt1, fib_end_pt2, radius, point):
                     truth_connected = True
                     if fi == seed_fi:
                         truth_vc.append(si)
                     else:
                         truth_ic.append((si, fi))
 
-                volume, _ = sphere_cylinder_intersection(
+                # Passes by start segment of a fibertube and not ours
+                volume_start, _ = sphere_cylinder_intersection(
                         point, blur_radius,
-                        fib_pt1, fib_pt2, radius,
+                        fiber[0], fiber[1], radius,
                         1000, random_generator)
+                if volume_start != 0 and fi != seed_fi:
+                    res_connected = True
+                    res_ic.append((si, fi))
 
-                if volume != 0:
+                # Passes by end segment of a fibertube
+                volume_end, _ = sphere_cylinder_intersection(
+                        point, blur_radius,
+                        fib_end_pt1, fib_end_pt2, radius,
+                        1000, random_generator)
+                if volume_end != 0:
                     res_connected = True
                     if fi == seed_fi:
                         res_vc.append(si)
