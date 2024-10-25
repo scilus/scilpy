@@ -394,7 +394,8 @@ def endpoint_connectivity(step_size, blur_radius, centerlines,
                 seed_fi = seeds_fiber[si]
 
                 # Is in start segment of a fibertube and not ours
-                if point_in_cylinder(fiber[0], fiber[1], radius, point) and fi != seed_fi:
+                if (point_in_cylinder(fiber[0], fiber[1], radius, point)
+                    and fi != seed_fi):
                     truth_connected = True
                     truth_ic.append((si, fi))
 
