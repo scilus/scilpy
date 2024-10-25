@@ -15,7 +15,9 @@ Fibertube Tracking:
 - Fibertube segment: Cylindrical segment of a fibertube that comes as a result of the discretization of its centerline.
 - Fibertube Tractography: The computational tractography method that reconstructs fibertubes. Contrary to traditional white matter fiber tractography, fibertube tractography does not rely on a discretized grid of fODFs or peaks. It directly tracks and reconstructs fibertubes, i.e. streamlines that have an associated diameter.
 
-![Fibertube visualized in Blender](https://github.com/VincentBeaud/fibertube_tracking/assets/77688542/25494d10-a8d5-46fa-93d9-0072287d0105)
+
+![Fibertube visualized in 3D](https://github.com/user-attachments/assets/e5dbeb23-ff2f-48ae-85c4-e0e98a0c0070)
+
 
 ## Methodology
 This project can be split into 3 major steps:
@@ -35,7 +37,7 @@ The data required to perform fibertube tractography comes in two files:
 - `./centerlines.trk` contains the entire ground-truth of the DISCO dataset.
 - `./diameters.txt` contains the diameter to be applied to each centerline in the centerlines.trk file above.
 
-![DISCO subset visualized in MI-Brain](https://github.com/VincentBeaud/fibertube_tracking/assets/77688542/197b3f1f-2f57-41d0-af0a-5f7377bab274)
+![DISCO subset visualized in 3D](https://github.com/VincentBeaud/fibertube_tracking/assets/77688542/197b3f1f-2f57-41d0-af0a-5f7377bab274)
 
 The first thing to do is resample `centerlines.trk` so that each centerline is formed of
 segments no longer than 0.2 mm.
@@ -50,7 +52,7 @@ scil_tractogram_resample_nb_points.py centerlines.trk centerlines_resampled.trk 
 
 Next, we want to filter out intersecting fibertubes, to make the data anatomically plausible and remove any partial volume effect.
 
-![Fibertube intersection visualized in Blender](https://github.com/VincentBeaud/perfect_tracking/assets/77688542/ede5d949-d7a5-4619-b75b-72fd41d65b38)
+![Fibertube intersection visualized in 3D](https://github.com/VincentBeaud/perfect_tracking/assets/77688542/ede5d949-d7a5-4619-b75b-72fd41d65b38)
 
 This is accomplished using `scil_tractogram_filter_collisions.py`. <br>
 
@@ -95,9 +97,11 @@ Ex: max_voxel_anisotropic: (3, 5, 5) => max_voxel_isotropic: (3, 3, 3)
 - `max_voxel_rotated`: Largest possible isotropic voxel obtainable if the tractogram is rotated. It is only usable if the entire tractogram is rotated according to [rotation_matrix].
 Ex: max_voxel_anisotropic: (1, 0, 0) => max_voxel_rotated: (0.5774, 0.5774, 0.5774)
 
-![Metrics (without max_voxel_rotated) visualized in Blender](https://github.com/VincentBeaud/perfect_tracking/assets/77688542/95cd4e50-1a36-49af-ac11-0d5f33d3f32e)
+![Metrics (without max_voxel_rotated) visualized in 3D](https://github.com/user-attachments/assets/43cebcbe-e3b1-4ca0-999e-e042db8aa937)
 <br>
-![max_voxel_rotated visualized in Blender](https://github.com/VincentBeaud/perfect_tracking/assets/77688542/72812e47-371f-4005-b289-1de0d70d2f33)
+
+![max_voxel_rotated visualized in 3D](https://github.com/user-attachments/assets/924ab3f9-33da-458f-a98b-b4e88b051ae8)
+
 
 > [!NOTE]
 > This information can be useful for analyzing the reconstruction obtained through tracking, as well as for performing track density imaging.
