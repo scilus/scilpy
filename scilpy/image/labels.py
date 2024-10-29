@@ -610,4 +610,4 @@ def harmonize_labels(original_data, min_voxel_overlap=1, max_adjacency=1e2):
                                        == label] = next_label
             next_label += 1
 
-    return relabeled_data
+    return relabeled_data.astype(np.uint16)

@@ -10,6 +10,13 @@ overlap criteria.
 The script works iteratively, so the multiple inputs should be in chronological
 order (and changing the order affects the output). All images should be
 co-registered.
+
+To obtain labels from binary mask use scil_labels_from_mask.py
+
+WARNING: this script requires all files to have all lesions segmented.
+If your data only show new lesions at each timepoints (common in manual
+segmentation), use the option --incremental_lesions to merge past timepoints.
+    T1 = T1, T2 = T1 + T2, T3 = T1 + T2 + T3
 """
 
 import argparse
@@ -18,7 +25,8 @@ import os
 import nibabel as nib
 import numpy as np
 
-from scilpy.image.labels import get_data_as_labels, harmonize_labels
+from scilpy.image.labels import (get_data_as_labels, harmonize_labels,
+                                 get_labels_from_mask)
 from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist,
                              assert_output_dirs_exist_and_empty,
@@ -48,6 +56,10 @@ def _build_arg_parser():
                    help='Minimum number of overlapping voxels between '
                    'lesions for them to be considered as the potential '
                    'match [%(default)s].')
+
+    p.add_argument('--incremental_lesions', action='store_true',
+                   help='If lesions files only show new lesions at each '
+                        'timepoint, this will merge past timepoints.')
     p.add_argument('--debug_mode', action='store_true',
                    help='Add a fake voxel to the corner to ensure consistent '
                         'colors in MI-Brain.')
@@ -66,6 +78,19 @@ def main():
 
     imgs = [nib.load(filename) for filename in args.in_images]
     original_data = [get_data_as_labels(img) for img in imgs]
+
+    masks = []
+    if args.incremental_lesions:
+        for i, data in enumerate(original_data):
+            mask = np.zeros_like(data)
+            mask[data > 0] = 1
+            masks.append(mask)
+            if i > 0:
+                new_data = np.sum(masks, axis=0)
+                new_data[new_data > 0] = 1
+            else:
+                new_data = mask
+            original_data[i] = get_labels_from_mask(new_data)
 
     relabeled_data = harmonize_labels(original_data,
                                       args.min_voxel_overlap,
