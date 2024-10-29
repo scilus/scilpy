@@ -15,7 +15,7 @@ from dipy.utils.optpkg import optional_package
 cvx, have_cvxpy, _ = optional_package("cvxpy")
 
 
-def get_ventricles_max_fodf(data, fa, md, zoom, sh_basis,
+def get_ventricles_max_fodf(data, mask, fa, md, zoom, sh_basis,
                             fa_threshold, md_threshold,
                             small_dims=False, is_legacy=True):
     """
@@ -32,6 +32,8 @@ def get_ventricles_max_fodf(data, fa, md, zoom, sh_basis,
     data: ndarray (x, y, z, ncoeffs)
          Input fODF file in spherical harmonics coefficients. Uses sphere
          'repulsion100' to convert to SF values.
+    mask: ndarray (x, y, z)
+         Mask of the data. If set, only the data inside the mask will be used
     fa: ndarray (x, y, z)
          FA (Fractional Anisotropy) volume from DTI
     md: ndarray (x, y, z)
@@ -63,7 +65,6 @@ def get_ventricles_max_fodf(data, fa, md, zoom, sh_basis,
     order = find_order_from_nb_coeff(data)
     sphere = get_sphere('repulsion100')
     b_matrix, _ = sh_to_sf_matrix(sphere, order, sh_basis, legacy=is_legacy)
-    mask = np.zeros(data.shape[:-1])
 
     # 1000 works well at 2x2x2 = 8 mm3
     # Hence, we multiply by the volume of a voxel
@@ -103,17 +104,28 @@ def get_ventricles_max_fodf(data, fa, md, zoom, sh_basis,
     # Ok. Now find ventricle voxels.
     sum_of_max = 0
     count = 0
-    for i in all_i:
-        for j in all_j:
-            for k in all_k:
-                if count > max_number_of_voxels - 1:
-                    continue
-                if fa[i, j, k] < fa_threshold \
-                        and md[i, j, k] > md_threshold:
+    if mask is not None:
+        count = np.count_nonzero(mask)
+        for i in all_i:
+            for j in all_j:
+                for k in all_k:
+                    if count > max_number_of_voxels - 1:
+                        continue
                     sf = np.dot(data[i, j, k], b_matrix)
                     sum_of_max += sf.max()
-                    count += 1
-                    mask[i, j, k] = 1
+    else:
+        mask = np.zeros(data.shape[:-1])
+        for i in all_i:
+            for j in all_j:
+                for k in all_k:
+                    if count > max_number_of_voxels - 1:
+                        continue
+                    if fa[i, j, k] < fa_threshold \
+                            and md[i, j, k] > md_threshold:
+                        sf = np.dot(data[i, j, k], b_matrix)
+                        sum_of_max += sf.max()
+                        count += 1
+                        mask[i, j, k] = 1
 
     logging.info('Number of voxels detected: {}'.format(count))
     if count == 0:

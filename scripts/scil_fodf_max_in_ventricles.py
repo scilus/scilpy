@@ -3,7 +3,7 @@
 
 """
 Script to compute the maximum fODF in the ventricles. The ventricules are
-estimated from an MD and FA threshold.
+estimated from an MD and FA threshold or a mask.
 
 This allows to clip the noise of fODF using an absolute thresold.
 
@@ -16,6 +16,7 @@ import logging
 import nibabel as nib
 import numpy as np
 
+from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_overwrite_arg,
                              add_sh_basis_args, add_verbose_arg,
                              assert_inputs_exist, assert_outputs_exist,
@@ -36,10 +37,15 @@ def _build_arg_parser():
 
     p.add_argument('in_fodfs',  metavar='fODFs',
                    help='Path of the fODF volume in spherical harmonics (SH).')
-    p.add_argument('in_fa',  metavar='FA',
+    
+    p.add_argument('--fa',  metavar='FA',
                    help='Path to the FA volume.')
-    p.add_argument('in_md',  metavar='MD',
+    p.add_argument('--md',  metavar='MD',
                    help='Path to the mean diffusivity (MD) volume.')
+    p.add_argument('--mask', metavar='mask',
+                     help='Path to the mask volume. If set, the mask will be used '
+                            'to compute the ventricles.\nOtherwise, the ventricles '
+                            'will be computed using the FA and MD volumes.')
 
     p.add_argument('--fa_threshold', type=float, default='0.1',
                    help='Maximal threshold of FA (voxels under that threshold '
@@ -71,7 +77,14 @@ def main():
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
-    assert_inputs_exist(parser, [args.in_fodfs, args.in_fa, args.in_md])
+    if not args.mask:
+        if not(args.fa and args.md):
+            parser.error('You can either provide a mask or you need both a FA and a MD map.')
+    elif args.fa or args.md:
+        parser.error('You can either provide a mask or a FA and a MD map, not both.')
+
+
+    assert_inputs_exist(parser, args.in_fodfs, [args.fa, args.md, args.mask])
     assert_outputs_exist(parser, args, [],
                          [args.max_value_output, args.mask_output])
 
@@ -80,15 +93,22 @@ def main():
     fodf = img_fODFs.get_fdata(dtype=np.float32)
     zoom = img_fODFs.header.get_zooms()[:3]
 
-    img_fa = nib.load(args.in_fa)
-    fa = img_fa.get_fdata(dtype=np.float32)
+    fa = None
+    md = None
+    mask = None
+    if args.mask:
+        img_mask = nib.load(args.mask)
+        mask = get_data_as_mask(img_mask)
+    else:
+        img_fa = nib.load(args.fa)
+        fa = img_fa.get_fdata(dtype=np.float32)
 
-    img_md = nib.load(args.in_md)
-    md = img_md.get_fdata(dtype=np.float32)
+        img_md = nib.load(args.md)
+        md = img_md.get_fdata(dtype=np.float32)
 
     sh_basis, is_legacy = parse_sh_basis_arg(args)
 
-    value, mask = get_ventricles_max_fodf(fodf, fa, md, zoom, sh_basis,
+    value, mask = get_ventricles_max_fodf(fodf, mask, fa, md, zoom, sh_basis,
                                           args.fa_threshold, args.md_threshold,
                                           small_dims=args.small_dims,
                                           is_legacy=is_legacy)
