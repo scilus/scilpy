@@ -43,9 +43,11 @@ def _build_arg_parser():
     p.add_argument('--md',  metavar='MD',
                    help='Path to the mean diffusivity (MD) volume.')
     p.add_argument('--mask', metavar='mask',
-                     help='Path to the mask volume. If set, the mask will be used '
-                            'to compute the ventricles.\nOtherwise, the ventricles '
-                            'will be computed using the FA and MD volumes.')
+                     help='Path to the ventricles mask volume.\n'
+                          'If set, the mask will be used '
+                          'to compute the maximum fODF in the ventricles.\n'
+                          'Otherwise, the ventricles '
+                          'will be computed using the FA and MD volumes.')
 
     p.add_argument('--fa_threshold', type=float, default='0.1',
                    help='Maximal threshold of FA (voxels under that threshold '
