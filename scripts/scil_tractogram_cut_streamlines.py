@@ -81,7 +81,7 @@ def _build_arg_parser():
     p.add_argument('--resample', dest='step_size', type=float, default=None,
                    help='Resample streamlines to a specific step-size in mm '
                         '[%(default)s].')
-    p.add_argument('--min_length', type=float, default=20,
+    p.add_argument('--min_length', type=float, default=0,
                    help='Minimum length of streamlines to keep (in mm) '
                         '[%(default)s].')
     g = p.add_argument_group('Cutting options', 'Options for cutting '
