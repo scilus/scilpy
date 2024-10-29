@@ -154,11 +154,11 @@ of all coordinate absolute errors of a streamline is called the "Mean absolute <
 error" or "mae". <br>
 
 Computed metrics:
-   - truth_vc_ratio <br>
+   - vc_ratio <br>
         Number of VC divided by the number of streamlines.
-   - truth_ic_ratio <br>
+   - ic_ratio <br>
         Number of IC divided by the number of streamlines.
-   - truth_nc_ratio <br>
+   - nc_ratio <br>
         Number of NC divided by the number of streamlines.
    - res_vc_ratio <br>
         Number of Res_VC divided by the number of streamlines.
