@@ -53,6 +53,5 @@ def test_execution_processing_fail(script_runner, monkeypatch):
                          'fa.nii.gz')    
     ret = script_runner.run('scil_fodf_max_in_ventricles.py', in_fodf,
                             '--fa', in_fa,
-                            '--mask', in_mask, 
-                            '--sh_basis', 'tournier07')
+                            '--mask', in_mask)
     assert not ret.success
