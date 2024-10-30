@@ -1,7 +1,7 @@
 # Demo Workshop
 In this demo, you will be introduced to the main scripts of this project as you apply them on simple data.
 <br><br>
-Our main objective is better understand and quantify the fundamental limitations of tractography algorithms, and how they might evolve as we approach microscopy resolution where individual axons can be seen, tracked or segmented. To do so, we will be evaluating tractography's ability to reconstruct individual white matter fiber strands at various simulated extreme resolutions.
+Our main objective is better understand and quantify the fundamental limitations of tractography algorithms, and how they might evolve as we approach microscopy resolution where individual axons can be seen, tracked or segmented. To do so, we will be evaluating tractography's ability to reconstruct individual white matter fiber strands at simulated extreme resolutions (mimicking "infinite" resolution).
 ## Terminology
 Here is a list of terms and definitions used in this project.
 
@@ -25,7 +25,7 @@ This project can be split into 3 major steps:
 - Tracking and experimentation <br>
   We will perform 'Fibertube Tracking' on our newly formed set of fibertubes with a variety of parameter combinations.
 - Calculation of metrics <br>
-  By passing the resulting tractogram through different analytic pipelines and scripts (like Tractometer), we will acquire connectivity and fiber reconstruction scores for each of the parameter combinations.
+  By passing the resulting tractogram through different evaluation scripts (like Tractometer), we will acquire connectivity and fiber reconstruction scores for each of the parameter combinations.
 
 ## Preparing the data
 > [!IMPORTANT]
@@ -48,7 +48,7 @@ To resample a tractogram, we can use this script from scilpy:
 scil_tractogram_resample_nb_points.py centerlines.trk centerlines_resampled.trk --step_size 0.2 -f
 ```
 
-Next, we want to filter out intersecting fibertubes, to make the data anatomically plausible and remove any partial volume effect.
+Next, we want to filter out intersecting fibertubes (collisions), to make the data anatomically plausible and remove any partial volume effect.
 
 ![Fibertube intersection visualized in Blender](https://github.com/VincentBeaud/perfect_tracking/assets/77688542/ede5d949-d7a5-4619-b75b-72fd41d65b38)
 
@@ -64,6 +64,7 @@ After a short wait, you should get something like:
 ├── centerlines_resampled_obstacle.trk
 ├── centerlines_resampled_invalid.trk
 ├── fibertubes.trk
+├── metrics.txt
 ...
 ```
 
@@ -80,7 +81,7 @@ In white and lower opacity is the original tractogram passed as `--ref_tractogra
 ![Filtered intersections visualized in 3D](https://github.com/VincentBeaud/fibertube_tracking/assets/77688542/4bc75029-0d43-4664-8502-fd528e9d93f4)
 
 ### Fibertube metrics
-Before we get into tracking. Here is an overview of the metrics that we saved in `metrics.txt`:
+Before we get into tracking. Here is an overview of the metrics that were saved in `metrics.txt`:
 
 - `min_external_distance`: Smallest distance separating two fibertubes, outside their diameter.
 - `max_voxel_anisotropic`: Diagonal vector of the largest possible anisotropic voxel that would not intersect two fibertubes.
