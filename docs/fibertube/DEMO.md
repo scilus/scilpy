@@ -16,7 +16,8 @@ Fibertube Tracking:
 - Fibertube Tractography: The computational tractography method that reconstructs fibertubes. Contrary to traditional white matter fiber tractography, fibertube tractography does not rely on a discretized grid of fODFs or peaks. It directly tracks and reconstructs fibertubes, i.e. streamlines that have an associated diameter.
 
 
-![Fibertube visualized in 3D](https://github.com/user-attachments/assets/c75a6a10-5070-4fe8-b58d-0297214fc1ab)
+![Fibertube visualized in 3D](https://github.com/user-attachments/assets/2e4253b3-05ca-4881-8482-3a96db0a76c9)
+
 
 
 ## Methodology
