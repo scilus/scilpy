@@ -135,9 +135,13 @@ VC: "Valid Connection": A streamline that passes WITHIN the final segment of the
 IC: "Invalid Connection": A streamline that ended in the final segment of another fibertube. <br>
 NC: "No Connection": A streamlines that has not ended in the final segment of any fibertube. <br>
 
+![Visual representation of VC, IC, and NC](https://github.com/user-attachments/assets/76abc40e-600b-4d3b-8e23-db404baf8477)
+
 Res_VC: "Resolution-wise Valid Connection": A streamline that passes closer than [blur_darius] away from the last segment of the fibertube in which it was seeded. <br>
 Res_IC: "Resolution-wise Invalid Connection": A streamline that passes closer than [blur_darius] away from the first or last segment of another fibertube. <br>
 Res_NC: "Resolution-wise No Connection": A streamlines that does not pass closer than [blur_radius] away from the first or last segment of any fibertube. <br>
+
+![Visual representation of Res_VC, Res_IC, and Res_NC](https://github.com/user-attachments/assets/3b3539a5-d4f5-4132-bfd6-c92cffa2e825)
 
 The "absolute error" of a coordinate is the distance in mm between that coordinate and the closest point on its corresponding fibertube. The average of all coordinate absolute errors of a streamline is called the "Mean absolute error" or "mae".
 
@@ -171,9 +175,9 @@ scil_fibertube_score_tractogram.py fibertubes.trk tracking.trk tracking_config.t
 giving us the following output in `reconstruction_metrics.txt`:
 ```
 {
-  "truth_vc_ratio": 0.0,
-  "truth_ic_ratio": 0.0,
-  "truth_nc_ratio": 1.0,
+  "vc_ratio": 0.0,
+  "ic_ratio": 0.0,
+  "nc_ratio": 1.0,
   "res_vc_ratio": 0.4,
   "res_ic_ratio": 0.0,
   "res_nc_ratio": 0.6,
@@ -184,7 +188,7 @@ giving us the following output in `reconstruction_metrics.txt`:
 }
 ```
 
-This data tells us that none of our streamline managed to stay within the fibertube in which it was seeded (`"truth_vc_ratio": 0.0`). However, 40% of streamlines are at most one `blur_radius` away from the end of their respective fibertube (`"res_vc_ratio": 0.4`). Lastly, we notice that the streamline with the "worst" trajectory was on average 5.5um away from its fibertube (`"mae_max": 0.0055722481609273775`).
+This data tells us that none of our streamline managed to stay within the fibertube in which it was seeded (`"vc_ratio": 0.0`). However, 40% of streamlines are at most one `blur_radius` away from the end of their respective fibertube (`"res_vc_ratio": 0.4`). Lastly, we notice that the streamline with the "worst" trajectory was on average 5.5um away from its fibertube (`"mae_max": 0.0055722481609273775`).
 
 ## End of Demo
 
