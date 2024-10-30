@@ -54,6 +54,7 @@ See also:
     - scil_tractogram_filter_collisions.py to prepare data for fibertube
       tracking
     - scil_fibertube_tracking.py to perform a fibertube tracking
+    - docs/fibertube/DEMO.md
 """
 
 import os
