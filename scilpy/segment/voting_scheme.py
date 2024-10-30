@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from collections import OrderedDict
 import gc
 from itertools import product, repeat
 import json
@@ -18,7 +17,6 @@ from dipy.tracking.streamline import transform_streamlines
 import nibabel as nib
 from nibabel.streamlines.array_sequence import ArraySequence
 import numpy as np
-from scipy.sparse import lil_matrix, coo_matrix, csr_matrix, csc_matrix
 
 from scilpy.io.streamlines import streamlines_to_memmap, \
     reconstruct_streamlines_from_memmap
@@ -88,7 +86,7 @@ class VotingScheme(object):
                 bundles_filepath.append(tmp_list)
 
         logger.info(f'{len(self.atlas_dir)} sub-model directories were found. '
-                    f'with {len(bundle_names)} model bundles totals')
+                    f'with {len(bundle_names)} model bundles total')
 
         model_bundles_dict = {}
         bundle_counts = []
@@ -274,40 +272,32 @@ class VotingScheme(object):
         logger.info(f'BundleSeg took {get_duration(total_timer)} sec. for '
                     f'{len(bundle_names)} bundles from {len(self.atlas_dir)} atlas')
 
-        array_timer = time()
-        t0 = time()
         bundles_wise_vote = np.zeros((len(bundle_names),
-                                        len_wb_streamlines),
-                                       dtype=np.uint8)
+                                      len_wb_streamlines),
+                                     dtype=np.uint8)
         bundles_wise_score = np.zeros((len(bundle_names),
-                                         len_wb_streamlines),
-                                        dtype=np.float16)
-    
+                                       len_wb_streamlines),
+                                      dtype=np.float16)
+
         for bundle_id, recognized_indices, recognized_scores in all_recognized_dict:
             if recognized_indices is not None:
                 if len(recognized_indices) == 0:
                     continue
-                tmp_values = bundles_wise_vote[bundle_id, recognized_indices.T]
-                bundles_wise_vote[bundle_id, recognized_indices.T] += 1
-                tmp_values = bundles_wise_score[bundle_id,
-                                                recognized_indices.T]
-                bundles_wise_score[bundle_id, recognized_indices.T] += recognized_scores
 
-        print(f'Bundle voting took {get_duration(array_timer)} sec.')
-        # bundles_wise_vote = bundles_wise_vote.tocsr()
-        # bundles_wise_score = bundles_wise_score.tocsr()
-        bundles_wise_score[bundles_wise_vote !=
-                           0] /= bundles_wise_vote[bundles_wise_vote != 0]
+                bundles_wise_vote[bundle_id, recognized_indices.T] += 1
+                bundles_wise_score[bundle_id,
+                                   recognized_indices.T] += recognized_scores
+
+        bundles_wise_score[bundles_wise_vote != 0] \
+            /= bundles_wise_vote[bundles_wise_vote != 0]
 
         # Once everything was run, save the results using a voting system
         minimum_vote = np.array(bundle_count) * self.minimal_vote_ratio
         minimum_vote[np.logical_and(minimum_vote > 0, minimum_vote < 1)] = 1
         minimum_vote = minimum_vote.astype(np.uint8)
-        logging.info(f'Bundle voting took {get_duration(array_timer)} sec.')
-
 
         _, ext = os.path.splitext(input_tractograms_path[0])
-        
+
         save_timer = time()
         self._save_recognized_bundles(tmp_memmap_filenames,
                                       reference,
