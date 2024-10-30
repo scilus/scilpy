@@ -16,17 +16,17 @@ Fibertube Tracking:
 - Fibertube Tractography: The computational tractography method that reconstructs fibertubes. Contrary to traditional white matter fiber tractography, fibertube tractography does not rely on a discretized grid of fODFs or peaks. It directly tracks and reconstructs fibertubes, i.e. streamlines that have an associated diameter.
 
 
-![Fibertube visualized in 3D](https://github.com/user-attachments/assets/e5dbeb23-ff2f-48ae-85c4-e0e98a0c0070)
+![Fibertube visualized in 3D](https://github.com/user-attachments/assets/c75a6a10-5070-4fe8-b58d-0297214fc1ab)
 
 
 ## Methodology
 This project can be split into 3 major steps:
 
 - Preparing ground-truth data <br>
-  We will be using the ground-truth of simulated phantoms and ensuring that they are void of any collision given an axonal diameter for each streamline.
+  We will be using the ground-truth of simulated phantoms of streamlines with a diameter (giving us fibertubes) ensuring that they are void of any collision, i.e. fibertubes in the simulated phantom should not intersect one another. This is physically impossible to respect the geometry of axons.
 - Tracking and experimentation <br>
   We will perform 'Fibertube Tracking' on our newly formed set of fibertubes with a variety of parameter combinations.
-- Calculation of metrics <br>
+- Evaluation metrics computation <br>
   By passing the resulting tractogram through different evaluation scripts (like Tractometer), we will acquire connectivity and fiber reconstruction scores for each of the parameter combinations.
 
 ## Preparing the data
@@ -74,9 +74,7 @@ As you may have guessed from the output name, this script automatically combines
 
 If you wish to know how many fibertubes are left after filtering, you can run the following command:
 
-```scil_tractogram_print_info.py fibertube.txt```
-
-
+```scil_tractogram_print_info.py fibertubes.trk```
 
 ## Visualising collisions
 By calling:
@@ -108,7 +106,7 @@ Ex: max_voxel_anisotropic: (1, 0, 0) => max_voxel_rotated: (0.5774, 0.5774, 0.57
 > This information can be useful for analyzing the reconstruction obtained through tracking, as well as for performing track density imaging.
 
 ## Performing fibertube tracking
-We're finally at the tracking phase! Using the script `scil_fibertube_tracking.py`, you are able to track without relying on a discretized grid of directions or fODFs. Instead, you will be propagating a streamline through fibertubes and degrading the resolution by using a `blur_radius`. The way it works is as follows:
+We're finally at the tracking phase! Using the script `scil_fibertube_tracking.py`, you are able to track without relying on a discretized grid of directions or fODFs. Instead, you will be propagating a streamline through fibertubes and controlling the resolution by using a `blur_radius`. The way it works is as follows:
 
 ### Tracking
 When the tracking algorithm is about to select a new direction to propagate the current streamline, it will build a sphere of radius `blur_radius` and pick randomly from all the fibertube segments intersecting with it. The larger the intersection volume, the more likely a fibertube segment is to be picked and used as a tracking direction. This makes fibertube tracking inherently probabilistic.
@@ -116,7 +114,7 @@ Theoretically, with a `blur_radius` of 0, any given set of coordinates has eithe
 
 
 ### Seeding
-For now, a number of seeds is set randomly within the first segment of every fibertube. We can however change how many fibers will be tracked, as well as the amount of seeds within each. (See Seeding options in the help menu).
+For now, a number of seeds is set randomly within the first segment of every fibertube. We can however change the number of fibertubes that will be tracked, as well as the amount of seeds within each. (See Seeding options in the help menu).
 
 <br>
 The interface of the script is very similar to `scil_tracking_local_dev.py`, but simplified and with a `blur_radius` option. Let us do:
@@ -132,27 +130,15 @@ This should take a few minutes at most. However, if you don't mind waiting a lit
 ### Reconstruction analysis
 By using the `scil_fibertube_score_tractogram.py` script, you are able to obtain measures on the quality of the fibertube tracking that was performed. Here is a description of the computed metrics:
 
-VC: "Valid Connection": A streamline that passes WITHIN the final segment of <br>
-    the fibertube in which it was seeded. <br>
-IC: "Invalid Connection": A streamline that ended in the final segment of <br>
-    another fibertube. <br>
-NC: "No Connection": A streamlines that has not ended in the final segment <br>
-    of any fibertube. <br>
+VC: "Valid Connection": A streamline that passes WITHIN the final segment of the fibertube in which it was seeded. <br>
+IC: "Invalid Connection": A streamline that ended in the final segment of another fibertube. <br>
+NC: "No Connection": A streamlines that has not ended in the final segment of any fibertube. <br>
 
-Res_VC: "Resolution-wise Valid Connection": A streamline that passes closer <br>
-    than [blur_darius] away from the last segment of the fibertube in which it <br>
-    was seeded. <br>
-Res_IC: "Resolution-wise Invalid Connection": A streamline that passes closer <br>
-    than [blur_darius] away from the first or last segment of another <br>
-    fibertube. <br>
-Res_NC: "Resolution-wise No Connection": A streamlines that does not pass <br>
-    closer than [blur_radius] away from the first or last segment of any <br>
-    fibertube. <br>
+Res_VC: "Resolution-wise Valid Connection": A streamline that passes closer than [blur_darius] away from the last segment of the fibertube in which it was seeded. <br>
+Res_IC: "Resolution-wise Invalid Connection": A streamline that passes closer than [blur_darius] away from the first or last segment of another fibertube. <br>
+Res_NC: "Resolution-wise No Connection": A streamlines that does not pass closer than [blur_radius] away from the first or last segment of any fibertube. <br>
 
-The "absolute error" of a coordinate is the distance in mm between that <br>
-coordinate and the closest point on its corresponding fibertube. The average <br>
-of all coordinate absolute errors of a streamline is called the "Mean absolute <br>
-error" or "mae". <br>
+The "absolute error" of a coordinate is the distance in mm between that coordinate and the closest point on its corresponding fibertube. The average of all coordinate absolute errors of a streamline is called the "Mean absolute error" or "mae".
 
 Computed metrics:
    - vc_ratio <br>
@@ -176,7 +162,7 @@ Computed metrics:
    - mae_med <br>
         Median MAE for the tractogram.
 
-Let's do:
+To score the produced tractogram, we run:
 ```
 scil_fibertube_score_tractogram.py fibertubes.trk tracking.trk tracking_config.txt reconstruction_metrics.txt -v -f
 ```
