@@ -6,31 +6,41 @@ Given ground-truth fibertubes and a tractogram obtained through fibertube
 tracking, computes metrics about the quality of individual fiber
 reconstruction.
 
-VC: "Valid Connection": Represents a streamline that ended in the final
-    segment of the fibertube in which it was seeded.
-IC: "Invalid Connection": Represents a streamline that ended in the final
-    segment of another fibertube.
-NC: "No Connection": Contains streamlines that have not ended in the final
-    segment of any fibertube.
+VC: "Valid Connection": A streamline that passes WITHIN the final segment of
+    the fibertube in which it was seeded.
+IC: "Invalid Connection": A streamline that ended in the final segment of
+    another fibertube.
+NC: "No Connection": A streamlines that has not ended in the final segment
+    of any fibertube.
 
-A "coordinate absolute error" is the distance in mm between a streamline
+Res_VC: "Resolution-wise Valid Connection": A streamline that passes closer
+    than [blur_darius] away from the last segment of the fibertube in which it
+    was seeded.
+Res_IC: "Resolution-wise Invalid Connection": A streamline that passes closer
+    than [blur_darius] away from the first or last segment of another
+    fibertube.
+Res_NC: "Resolution-wise No Connection": A streamlines that does not pass
+    closer than [blur_radius] away from the first or last segment of any
+    fibertube.
+
+The "absolute error" of a coordinate is the distance in mm between that
 coordinate and the closest point on its corresponding fibertube. The average
 of all coordinate absolute errors of a streamline is called the "Mean absolute
 error" or "mae".
 
 Computed metrics:
     - truth_vc_ratio
-        Proportion of VC.
+        Number of VC divided by the number of streamlines.
     - truth_ic_ratio
-        Proportion of IC.
+        Number of IC divided by the number of streamlines.
     - truth_nc_ratio
-        Proportion of NC.
+        Number of NC divided by the number of streamlines.
     - res_vc_ratio
-        Proportion of VC at the resolution of the blur_radius parameter.
+        Number of Res_VC divided by the number of streamlines.
     - res_ic_ratio
-        Proportion of IC at the resolution of the blur_radius parameter.
+        Number of Res_IC divided by the number of streamlines.
     - res_nc_ratio
-        Proportion of NC at the resolution of the blur_radius parameter.
+        Number of Res_NC divided by the number of streamlines.
     - mae_min
         Minimum MAE for the tractogram.
     - mae_max
