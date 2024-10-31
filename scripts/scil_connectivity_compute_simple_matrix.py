@@ -142,7 +142,7 @@ def main():
     # Save figure will all versions of the matrix.
     if (not args.hide_fig) or args.save_fig is not None:
         prepare_figure_connectivity(matrix)
-        
+
         if args.save_fig:
             plt.savefig(args.save_fig)
 
