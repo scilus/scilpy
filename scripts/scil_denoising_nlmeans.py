@@ -57,6 +57,7 @@ from dipy.denoise.noise_estimate import estimate_sigma
 import nibabel as nib
 import numpy as np
 
+from scilpy.image.volume_metrics import estimate_piesno_sigma
 from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_processes_arg,
                              add_overwrite_arg,
@@ -64,7 +65,6 @@ from scilpy.io.utils import (add_processes_arg,
                              assert_inputs_exist,
                              assert_outputs_exist,
                              assert_headers_compatible, ranged_type)
-from scilpy.image.volume_metrics import estimate_piesno_sigma
 
 
 def _build_arg_parser():
