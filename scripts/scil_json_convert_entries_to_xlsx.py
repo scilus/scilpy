@@ -80,7 +80,7 @@ def _get_stats_parse_function(stats, stats_over_population):
     if len(first_bundle_stats.keys()) == 4 and \
             set(first_bundle_stats.keys()) == \
             set(['lesion_total_vol', 'lesion_avg_vol', 'lesion_std_vol',
-                 'lesion_count']):  # when you have lesion stats 
+                 'lesion_count']):  # when you have lesion stats
         return _parse_lesion
     elif type(first_bundle_substat) is dict:
         sub_keys = list(first_bundle_substat.keys())

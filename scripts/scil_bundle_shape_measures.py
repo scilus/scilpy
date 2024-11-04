@@ -268,11 +268,12 @@ def main():
                     output_measures_dict['irregularity_of_end_surface_head'])
             output_measures_dict['group_stats']['avg_irregularity_tail'] = \
                 np.average(
-                    output_measures_dict['irregularity_of_end_surface_tail'])            
+                    output_measures_dict['irregularity_of_end_surface_tail'])
 
-            list_metrics = ['surface_area', 'irregularity', 'end_surface_area_head',
-                            'end_surface_area_tail', 'radius_head', 'radius_tail',
-                            'fractal_dimension']
+            list_metrics = ['surface_area', 'irregularity',
+                            'end_surface_area_head',
+                            'end_surface_area_tail', 'radius_head',
+                            'radius_tail', 'fractal_dimension']
             for curr_metric in list_metrics:
                 output_measures_dict['group_stats']['avg_' + curr_metric] = \
                     np.average(output_measures_dict[curr_metric])
