@@ -23,7 +23,7 @@ def _build_arg_parser():
     p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawTextHelpFormatter)
     p.add_argument('in_eigenvalues',
-                   help='MRDS eigenvalues file')
+                   help='MRDS eigenvalues file.')
 
     p.add_argument('--mask',
                    help='Path to a binary mask.\nOnly data inside '
@@ -37,13 +37,13 @@ def _build_arg_parser():
 
     g = p.add_argument_group(title='MRDS-Metrics files flags')
     g.add_argument('--fa', dest='fa', metavar='file', default='',
-                   help='Output filename for the MRDS fixel-FA diffusivity.')
+                   help='Output filename for the MRDS FA diffusivity.')
     g.add_argument('--ad', dest='ad', metavar='file', default='',
-                   help='Output filename for the MRDS fixel-AD diffusivity.')
+                   help='Output filename for the MRDS AD diffusivity.')
     g.add_argument('--rd', dest='rd', metavar='file', default='',
-                   help='Output filename for the MRDS fixel-RD diffusivity.')
+                   help='Output filename for the MRDS RD diffusivity.')
     g.add_argument('--md', dest='md', metavar='file', default='',
-                   help='Output filename for the MRDS fixel-MD diffusivity.')
+                   help='Output filename for the MRDS MD diffusivity.')
 
     add_verbose_arg(p)
     add_overwrite_arg(p)
@@ -63,12 +63,14 @@ def main():
         args.md = args.md or 'mrds_md.nii.gz'
 
     assert_inputs_exist(parser, args.in_eigenvalues, args.mask)
-    assert_outputs_exist(parser, args, [args.fa, args.ad, args.rd, args.md])
     assert_headers_compatible(parser, args.in_eigenvalues, args.mask)
+    assert_outputs_exist(parser, args, [], 
+                         optional=[args.fa, args.ad, args.rd, args.md])
 
     eigenvalues_img = nib.load(args.in_eigenvalues)
     lambdas = eigenvalues_img.get_fdata(dtype=np.float32)
 
+    header = eigenvalues_img.header
     affine = eigenvalues_img.affine
 
     X, Y, Z = lambdas.shape[0:3]
@@ -89,7 +91,10 @@ def main():
                        fractional_anisotropy(lambdas[:, :, :, 3:6]),
                        fractional_anisotropy(lambdas[:, :, :, 6:9])),
                       axis=3)
-        nib.save(nib.Nifti1Image(np.where(mask[..., None], fa, 0), affine),
+        nib.save(nib.Nifti1Image(np.where(mask[..., None], fa, 0),
+                                 affine=affine,
+                                 header=header,
+                                 dtype=np.float32),
                  args.fa)
 
     if args.ad:
@@ -97,7 +102,10 @@ def main():
                        lambdas[:, :, :, 3],
                        lambdas[:, :, :, 6]),
                       axis=3)
-        nib.save(nib.Nifti1Image(np.where(mask[..., None], ad, 0), affine),
+        nib.save(nib.Nifti1Image(np.where(mask[..., None], ad, 0),
+                                 affine=affine,
+                                 header=header,
+                                 dtype=np.float32),
                  args.ad)
 
     if args.rd:
@@ -105,7 +113,10 @@ def main():
                        (lambdas[:, :, :, 4] + lambdas[:, :, :, 5])/2,
                        (lambdas[:, :, :, 7] + lambdas[:, :, :, 8])/2),
                       axis=3)
-        nib.save(nib.Nifti1Image(np.where(mask[..., None], rd, 0), affine),
+        nib.save(nib.Nifti1Image(np.where(mask[..., None], rd, 0),
+                                 affine=affine,
+                                 header=header,
+                                 dtype=np.float32),
                  args.rd)
 
     if args.md:
@@ -113,7 +124,10 @@ def main():
                        np.average(lambdas[:, :, :, 3:6], axis=3),
                        np.average(lambdas[:, :, :, 6:9], axis=3)),
                       axis=3)
-        nib.save(nib.Nifti1Image(np.where(mask[..., None], md, 0), affine),
+        nib.save(nib.Nifti1Image(np.where(mask[..., None], md, 0),
+                                 affine=affine,
+                                 header=header,
+                                 dtype=np.float32),
                  args.md)
 
 
