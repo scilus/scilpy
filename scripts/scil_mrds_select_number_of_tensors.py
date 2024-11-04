@@ -109,6 +109,8 @@ def main():
     # MOdel SElector MAP
     mosemap_img = nib.load(args.in_volume)
     mosemap = get_data_as_labels(mosemap_img)
+    header= mosemap_img.header
+    
     affine = mosemap_img.affine
     X, Y, Z = mosemap.shape[0:3]
 
@@ -143,11 +145,26 @@ def main():
             pdds_out[X, Y, Z, :] = pdds[N][X, Y, Z, :]
 
     # write output files
-    nib.save(nib.Nifti1Image(compsize_out, affine), output_files[0])
-    nib.save(nib.Nifti1Image(eigenvalues_out, affine), output_files[1])
-    nib.save(nib.Nifti1Image(iso_out, affine), output_files[2])
-    nib.save(nib.Nifti1Image(numcomp_out, affine), output_files[3])
-    nib.save(nib.Nifti1Image(pdds_out, affine), output_files[4])
+    nib.save(nib.Nifti1Image(compsize_out, 
+                             affine=affine,
+                             header=header,
+                             dtype=np.float32), output_files[0])
+    nib.save(nib.Nifti1Image(eigenvalues_out, 
+                             affine=affine,
+                             header=header,
+                             dtype=np.float32), output_files[1])
+    nib.save(nib.Nifti1Image(iso_out,
+                             affine=affine,
+                             header=header,
+                             dtype=np.float32), output_files[2])
+    nib.save(nib.Nifti1Image(numcomp_out,
+                             affine=affine,
+                             header=header,
+                             dtype=np.uint8), output_files[3])
+    nib.save(nib.Nifti1Image(pdds_out,
+                             affine=affine,
+                             header=header,
+                             dtype=np.float32), output_files[4])
 
 
 if __name__ == '__main__':
