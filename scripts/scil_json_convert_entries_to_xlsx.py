@@ -75,16 +75,16 @@ def _get_stats_parse_function(stats, stats_over_population):
         first_bundle_stats.keys())[0]]
 
     if len(first_bundle_stats.keys()) == 1 and\
-            _are_all_elements_scalars(first_bundle_stats):
+            _are_all_elements_scalars(first_bundle_stats):  # when you have only on key per bundle
         return _parse_scalar_stats
     if len(first_bundle_stats.keys()) == 4 and \
             set(first_bundle_stats.keys()) == \
             set(['lesion_total_vol', 'lesion_avg_vol', 'lesion_std_vol',
-                 'lesion_count']):
+                 'lesion_count']):  # when you have lesion stats 
         return _parse_lesion
     elif type(first_bundle_substat) is dict:
         sub_keys = list(first_bundle_substat.keys())
-        if set(sub_keys) == set(['mean', 'std']):
+        if set(sub_keys) == set(['mean', 'std']):  # when you have mean and std per stats
             if stats_over_population:
                 return _parse_per_label_population_stats
             else:
@@ -93,7 +93,7 @@ def _get_stats_parse_function(stats, stats_over_population):
             return _parse_per_point_meanstd
         elif _are_all_elements_scalars(first_bundle_substat):
             return _parse_per_label_scalar
-    else:
+    else:  # when you have multiple metrics per bundle
         return _parse_stats
 
     raise IOError('Unable to recognize stats type!')
@@ -212,14 +212,14 @@ def _parse_stats(stats, subs, bundles):
     df_names = list(metrics_keys)
 
     for metric_name in metrics_keys:
-        if metric_name in dps_dpp:
+        if metric_name in dps_dpp:  # remove dps and dpp keys
             df_names.remove(metric_name)
         else:
             curr_metric = np.full((nb_subs, nb_bundles), np.NaN)
             for bundle_id, bundle_name in enumerate(bundles):
                 for sub_id, sub_name in enumerate(subs):
                     b_stat = stats[sub_name][bundle_name].get(metric_name)
-                    if b_stat is not None and metric_name not in dps_dpp:
+                    if b_stat is not None:
                         curr_metric[sub_id, bundle_id] = b_stat
 
             dataframes.append(pd.DataFrame(data=curr_metric,
