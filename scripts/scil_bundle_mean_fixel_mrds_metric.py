@@ -80,13 +80,13 @@ def main():
     if args.fa is not None:
         in_metrics.append(args.fa)
         out_metrics.append('{}_mrds_fFA.nii.gz'.format(args.prefix))
-    if args.md is not None: 
+    if args.md is not None:
         in_metrics.append(args.md)
         out_metrics.append('{}_mrds_fMD.nii.gz'.format(args.prefix))
     if args.rd is not None:
         in_metrics.append(args.rd)
         out_metrics.append('{}_mrds_fRD.nii.gz'.format(args.prefix))
-    if args.ad is not None: 
+    if args.ad is not None:
         in_metrics.append(args.ad)
         out_metrics.append('{}_mrds_fAD.nii.gz'.format(args.prefix))
 

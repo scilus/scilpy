@@ -35,7 +35,7 @@ def mrds_metrics_along_streamlines(sft, mrds_pdds,
     all_metric = mrds_sum[0]
     for curr_metric in mrds_sum[1:]:
         all_metric += curr_metric
-    
+
     non_zeros = np.nonzero(all_metric)
     weights_nz = weights[non_zeros]
     for metric_idx in range(len(metrics)):
@@ -73,7 +73,7 @@ def mrds_metric_sums_along_streamlines(sft, mrds_pdds, metrics,
 
     sft.to_vox()
     sft.to_corner()
-    
+
     X, Y, Z = metrics[0].shape[0:3]
     metrics_sum_map = np.zeros((len(metrics), X, Y, Z))
     weight_map = np.zeros(metrics[0].shape[:-1])
@@ -117,8 +117,9 @@ def mrds_metric_sums_along_streamlines(sft, mrds_pdds, metrics,
 
             metric_val = [0.0]*len(metrics)
             if (cos_theta > min_cos_theta).any():
-                fixel_idx = np.argmax(np.squeeze(cos_theta), axis=0)  # (n_segs)
-                
+                fixel_idx = np.argmax(np.squeeze(cos_theta),
+                                      axis=0)  # (n_segs)
+
                 for metric_idx, curr_metric in enumerate(metrics):
                     metric_val[metric_idx] = curr_metric[vox_idx][fixel_idx]
 
