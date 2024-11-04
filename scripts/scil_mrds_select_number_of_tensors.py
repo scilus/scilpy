@@ -13,23 +13,25 @@ Each MRDS input is a list of 5 files:
 
     --N1 is the MRDS solution with 1 tensor.
     --N2 is the MRDS solution with 2 tensors.
-    --N3 is the MRDS solution with 2 tensors.
+    --N3 is the MRDS solution with 3 tensors.
 
     Example:
-    scil_mrds_modsel_todi.py nufo.nii.gz \
-    --N1 V1_compsize.nii.gz V1_eigenvalues.nii.gz \
-         V1_isotropic.nii.gz \
-         V1_numcomp.nii.gz \
-         V1_pdds.nii.gz \
-    --N2 V2_compsize.nii.gz V2_eigenvalues.nii.gz \
-         V2_isotropic.nii.gz \
-         V2_numcomp.nii.gz \
-         V2_pdds.nii.gz \
-    --N3 V3_compsize.nii.gz \
-         V3_eigenvalues.nii.gz \
-         V3_isotropic.nii.gz \
-         V3_numcomp.nii.gz \
-         V3_pdds.nii.gz
+    scil_mrds_modsel_todi.py nufo.nii.gz
+        --N1 V1_compsize.nii.gz
+             V1_eigenvalues.nii.gz
+             V1_isotropic.nii.gz
+             V1_numcomp.nii.gz
+             V1_pdds.nii.gz
+        --N2 V2_compsize.nii.gz
+             V2_eigenvalues.nii.gz
+             V2_isotropic.nii.gz
+             V2_numcomp.nii.gz
+             V2_pdds.nii.gz
+        --N3 V3_compsize.nii.gz
+             V3_eigenvalues.nii.gz
+             V3_isotropic.nii.gz
+             V3_numcomp.nii.gz
+             V3_pdds.nii.gz
 """
 
 import argparse
@@ -52,18 +54,18 @@ def _build_arg_parser():
                                 formatter_class=argparse.RawTextHelpFormatter)
     p.add_argument('in_volume',
                    help='Volume with the number of expected tensors.'
-                        ' (Example: NUFO volumes)')
+                        ' (Example: NUFO volume)')
 
     g = p.add_argument_group(title='MRDS inputs')
     g.add_argument('--N1', nargs=5, required=True,
                    help='MRDS solution with 1 tensor.')
     g.add_argument('--N2', nargs=5, required=True,
-                   help='MRDS solution with 2 tensor.')
+                   help='MRDS solution with 2 tensors.')
     g.add_argument('--N3', nargs=5, required=True,
-                   help='MRDS solution with 3 tensor.')
+                   help='MRDS solution with 3 tensors.')
 
     p.add_argument('--prefix', default='results',
-                   help='prefix of the MRDS results [%(default)s]')
+                   help='prefix of the MRDS results [%(default)s].')
     p.add_argument('--mask',
                    help='Optional mask filename.')
 
@@ -77,15 +79,15 @@ def _build_arg_parser():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
-    logging.getLogger().setLevel(logging.getLevelName(args.verbose))
+    logging.getLogger().setLevel(args.verbose.upper())
 
     assert_inputs_exist(parser, [args.in_volume] + args.N1 + args.N2 + args.N3,
                         optional=args.mask)
-    output_files = ["{}_MRDS_COMP_SIZE.nii.gz".format(args.prefix),
-                    "{}_MRDS_EIGENVALUES.nii.gz".format(args.prefix),
-                    "{}_MRDS_ISOTROPIC.nii.gz".format(args.prefix),
-                    "{}_MRDS_NUM_COMP.nii.gz".format(args.prefix),
-                    "{}_MRDS_PDDs_CARTESIAN.nii.gz".format(args.prefix)]
+    output_files = ["{}_MRDS_compsize.nii.gz".format(args.prefix),
+                    "{}_MRDS_eigenvalues.nii.gz".format(args.prefix),
+                    "{}_MRDS_isotropic.nii.gz".format(args.prefix),
+                    "{}_MRDS_num_comp.nii.gz".format(args.prefix),
+                    "{}_MRDS_pdds_cartesian.nii.gz".format(args.prefix)]
     assert_outputs_exist(parser, args, output_files)
     assert_headers_compatible(parser, [args.in_volume] +
                               args.N1 + args.N2 + args.N3)
