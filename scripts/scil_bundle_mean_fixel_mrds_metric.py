@@ -2,8 +2,8 @@
 # -*- coding: utf-8 -*-
 
 """
-Given a bundle and MRDS metric, compute the fixel-specific
-metric at each voxel intersected by the bundle. Intersected voxels are
+Given a bundle and MRDS metrics, compute the fixel-specific
+metrics at each voxel intersected by the bundle. Intersected voxels are
 found by computing the intersection between the voxel grid and each streamline
 in the input tractogram.
 
