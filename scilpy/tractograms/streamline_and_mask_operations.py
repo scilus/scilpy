@@ -4,13 +4,14 @@ from multiprocessing import Pool
 
 import numpy as np
 from dipy.io.stateful_tractogram import StatefulTractogram
-from dipy.tracking.streamlinespeed import set_number_of_points
 
 from nibabel.streamlines import ArraySequence
 
 from scipy.ndimage import map_coordinates
 
 from scilpy.tractograms.uncompress import uncompress
+from scilpy.tractograms.streamline_operations import \
+    resample_streamlines_step_size
 
 from scilpy.tractanalysis.quick_tools import (get_next_real_point,
                                               get_previous_real_point)
@@ -24,7 +25,7 @@ class CuttingStyle(Enum):
     TRIM_ENDPOINTS = 2
 
 
-def get_endpoints_density_map(sft, point_to_select=1):
+def get_endpoints_density_map(sft, point_to_select=1, to_millimeters=False):
     """
     Compute an endpoints density map, supports selecting more than one points
     at each end.
@@ -36,6 +37,10 @@ def get_endpoints_density_map(sft, point_to_select=1):
     point_to_select: int
         Instead of computing the density based on the first and last points,
         select more than one at each end.
+    to_millimeters: bool
+        Resample the streamlines to have a step size of 1 mm. This
+        allows the user to compute endpoints with mms instead of points.
+        Especially useful with compressed streamlines.
 
     Returns
     -------
@@ -44,11 +49,11 @@ def get_endpoints_density_map(sft, point_to_select=1):
     """
 
     endpoints_map_head, endpoints_map_tail = \
-        get_head_tail_density_maps(sft, point_to_select)
+        get_head_tail_density_maps(sft, point_to_select, to_millimeters)
     return endpoints_map_head + endpoints_map_tail
 
 
-def get_head_tail_density_maps(sft, point_to_select=1):
+def get_head_tail_density_maps(sft, point_to_select=1, to_millimeters=False):
     """
     Compute two separate endpoints density maps for the head and tail of
     a list of streamlines.
@@ -59,8 +64,11 @@ def get_head_tail_density_maps(sft, point_to_select=1):
         The streamlines to compute endpoints density from.
     point_to_select: int
         Instead of computing the density based on the first and last points,
-        select more than one at each end. To support compressed streamlines,
-        a resampling to 0.5mm per segment is performed.
+        select more than one at each end.
+    to_millimeters: bool
+        Resample the streamlines to have a step size of 1 mm. This
+        allows the user to compute endpoints with mms instead of points.
+        Especially useful with compressed streamlines.
 
     Returns
     -------
@@ -74,11 +82,18 @@ def get_head_tail_density_maps(sft, point_to_select=1):
     sft.to_vox()
     sft.to_corner()
 
+    if to_millimeters:
+        # Resample the streamlines to have a step size of 1 mm
+        streamlines = resample_streamlines_step_size(sft, 1.0).streamlines
+    else:
+        streamlines = sft.streamlines
+
     dimensions = sft.dimensions
-    streamlines = sft.streamlines
+    # Uncompress the streamlines to get the indices of the voxels intersected
+    list_indices, points_to_indices = uncompress(
+        streamlines, return_mapping=True)
 
-    list_indices, points_to_indices = uncompress(sft.streamlines, return_mapping=True)
-
+    # Initialize the endpoints maps
     endpoints_map_head = np.zeros(dimensions)
     endpoints_map_tail = np.zeros(dimensions)
 
@@ -87,7 +102,8 @@ def get_head_tail_density_maps(sft, point_to_select=1):
     for indices, points in zip(list_indices, points_to_indices):
 
         # Get the head and tail coordinates
-        head_indices = indices[:points[point_to_select], :]
+        # +1 to include the last point
+        head_indices = indices[:points[point_to_select]+1, :]
         tail_indices = indices[points[-point_to_select]:, :]
 
         # Add the points to the endpoints map
