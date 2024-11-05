@@ -77,31 +77,23 @@ def get_head_tail_density_maps(sft, point_to_select=1):
     dimensions = sft.dimensions
     streamlines = sft.streamlines
 
+    list_indices, points_to_indices = uncompress(sft.streamlines, return_mapping=True)
+
     endpoints_map_head = np.zeros(dimensions)
     endpoints_map_tail = np.zeros(dimensions)
 
     # A possible optimization would be to compute all coordinates first
     # and then do the np.add.at only once.
-    for streamline in streamlines:
-
-        # Resample the streamline to make sure we have enough points
-        nb_point = max(len(streamline), point_to_select*2)
-        streamline = set_number_of_points(streamline, nb_point)
+    for indices, points in zip(list_indices, points_to_indices):
 
         # Get the head and tail coordinates
-        points_list_head = streamline[0:point_to_select, :]
-        points_list_tail = streamline[-point_to_select:, :]
-
-        # Convert the points to indices by rounding them and clipping them
-        head_indices = np.clip(
-            points_list_head, 0, np.asarray(dimensions) - 1).astype(int).T
-        tail_indices = np.clip(
-            points_list_tail, 0, np.asarray(dimensions) - 1).astype(int).T
+        head_indices = indices[:points[point_to_select], :]
+        tail_indices = indices[points[-point_to_select]:, :]
 
         # Add the points to the endpoints map
         # Note: np.add.at is used to support duplicate points
-        np.add.at(endpoints_map_tail, tuple(tail_indices), 1)
-        np.add.at(endpoints_map_head, tuple(head_indices), 1)
+        np.add.at(endpoints_map_head, tuple(head_indices.T), 1)
+        np.add.at(endpoints_map_tail, tuple(tail_indices.T), 1)
 
     return endpoints_map_head, endpoints_map_tail
 
