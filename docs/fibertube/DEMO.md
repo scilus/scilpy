@@ -143,7 +143,8 @@ Res_VC: "Resolution-wise Valid Connection": A streamline that passes closer than
 Res_IC: "Resolution-wise Invalid Connection": A streamline that passes closer than [blur_darius] away from the first or last segment of another fibertube. <br>
 Res_NC: "Resolution-wise No Connection": A streamlines that does not pass closer than [blur_radius] away from the first or last segment of any fibertube. <br>
 
-![Visual representation of Res_VC, Res_IC, and Res_NC](https://github.com/user-attachments/assets/aae13ee8-44b8-4660-b46d-f97aaf035796)
+![Visual representation of Res_VC, Res_IC, and Res_NC](https://github.com/user-attachments/assets/c480f5e6-14f8-456a-b8e8-77569661c452)
+
 
 The "absolute error" of a coordinate is the distance in mm between that coordinate and the closest point on its corresponding fibertube. The average of all coordinate absolute errors of a streamline is called the "Mean absolute error" or "mae".
 
