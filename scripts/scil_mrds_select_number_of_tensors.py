@@ -18,17 +18,17 @@ Each MRDS input is a list of 5 files:
 
     Example:
     scil_mrds_modsel_todi.py nufo.nii.gz
-        --N1 V1_signalfraction.nii.gz
+        --N1 V1_signal_fraction.nii.gz
              V1_eigenvalues.nii.gz
              V1_isotropic.nii.gz
              V1_numcomp.nii.gz
              V1_pdds.nii.gz
-        --N2 V2_signalfraction.nii.gz
+        --N2 V2_signal_fraction.nii.gz
              V2_eigenvalues.nii.gz
              V2_isotropic.nii.gz
              V2_numcomp.nii.gz
              V2_pdds.nii.gz
-        --N3 V3_signalfraction.nii.gz
+        --N3 V3_signal_fraction.nii.gz
              V3_eigenvalues.nii.gz
              V3_isotropic.nii.gz
              V3_numcomp.nii.gz
@@ -84,7 +84,7 @@ def main():
 
     assert_inputs_exist(parser, [args.in_volume] + args.N1 + args.N2 + args.N3,
                         optional=args.mask)
-    output_files = ["{}_MRDS_compsize.nii.gz".format(args.prefix),
+    output_files = ["{}_MRDS_signal_fraction.nii.gz".format(args.prefix),
                     "{}_MRDS_eigenvalues.nii.gz".format(args.prefix),
                     "{}_MRDS_isotropic.nii.gz".format(args.prefix),
                     "{}_MRDS_num_comp.nii.gz".format(args.prefix),
@@ -95,13 +95,13 @@ def main():
 
     mrds_files = [args.N1, args.N2, args.N3]
 
-    compsize = []
+    signal_fraction = []
     eigenvalues = []
     iso = []
     numcomp = []
     pdds = []
     for N in range(3):
-        compsize.append(nib.load(mrds_files[N][0]).get_fdata(dtype=np.float32))
+        signal_fraction.append(nib.load(mrds_files[N][0]).get_fdata(dtype=np.float32))
         eigenvalues.append(nib.load(mrds_files[N][1]).get_fdata(dtype=np.float32))
         iso.append(nib.load(mrds_files[N][2]).get_fdata(dtype=np.float32))
         numcomp.append(nib.load(mrds_files[N][3]).get_fdata(dtype=np.float32))
@@ -125,7 +125,7 @@ def main():
     voxels = itertools.product(range(X), range(Y), range(Z))
     filtered_voxels = ((x, y, z) for (x, y, z) in voxels if mask[x, y, z])
 
-    compsize_out = np.zeros((X, Y, Z, 3))
+    signal_fraction_out = np.zeros((X, Y, Z, 3))
     eigenvalues_out = np.zeros((X, Y, Z, 9))
     iso_out = np.zeros((X, Y, Z, 2))
     numcomp_out = np.zeros((X, Y, Z), dtype=np.uint8)
@@ -139,14 +139,14 @@ def main():
             N = 2
 
         if N > -1:
-            compsize_out[X, Y, Z, :] = compsize[N][X, Y, Z, :]
+            signal_fraction_out[X, Y, Z, :] = signal_fraction[N][X, Y, Z, :]
             eigenvalues_out[X, Y, Z, :] = eigenvalues[N][X, Y, Z, :]
             iso_out[X, Y, Z, :] = iso[N][X, Y, Z, :]
             numcomp_out[X, Y, Z] = int(numcomp[N][X, Y, Z])
             pdds_out[X, Y, Z, :] = pdds[N][X, Y, Z, :]
 
     # write output files
-    nib.save(nib.Nifti1Image(compsize_out,
+    nib.save(nib.Nifti1Image(signal_fraction_out,
                              affine=affine,
                              header=header,
                              dtype=np.float32), output_files[0])
