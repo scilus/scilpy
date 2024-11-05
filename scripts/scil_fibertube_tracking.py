@@ -2,22 +2,28 @@
 # -*- coding: utf-8 -*-
 
 """
-Local streamline tractography based on the architecture of
-scil_tracking_local_dev.py, adapted for fibertube tracking.
+Implementation of the fibertube tracking environment using the
+architecture of scil_local_tracking_dev.py.
 
-Void of the concept of grid, voxels and resolution. Instead, the tracking
-algorithm is executed directly on fibertubes (Virtual representation of
-axons). To simulate a lower resolution, a blur_radius parameter forming a
-"tracking sphere" is introduced. At each step, a random direction will be
-picked from the fibertube segments intersecting with the tracking sphere.
+Contrary to traditional white matter fiber tractography, fibertube 
+tractography does not rely on a discretized grid of fODFs or peaks. It
+directly tracks and reconstructs fibertubes, i.e. streamlines that have an
+associated diameter.
 
-Algorithm type is inherently probabilistic with a distribution weighted by the
-volume of intersection between each fibertube segment and the tracking sphere.
+When the tracking algorithm is about to select a new direction to propagate
+the current streamline, it will build a sphere of radius blur_radius and pick
+randomly from all the fibertube segments intersecting with it. The larger the
+intersection volume, the more likely a fibertube segment is to be picked and
+used as a tracking direction. This makes fibertube tracking inherently
+probabilistic. 
 
-The tracking direction is chosen in the aperture cone defined by the
-previous tracking direction and the angular constraint.
+Possible tracking directions are filtered to respect the aperture cone defined
+by the previous tracking direction and the angular constraint.
 
 Seeding is done within the first segment of each fibertube.
+
+For a better understanding of Fibertube Tracking please see:
+    - docs/fibertube/DEMO.md
 """
 
 import os

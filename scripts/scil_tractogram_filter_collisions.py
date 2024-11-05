@@ -51,6 +51,9 @@ Computed metrics (all expressed in mm):
         4D transformation matrix representing the rotation to be applied on
         the tractogram to align max_voxel_rotated with the coordinate system
         (see scil_tractogram_apply_transform.py).
+
+See also:
+    - docs/fibertube/DEMO.md
 """
 
 import os
