@@ -38,7 +38,8 @@ The data required to perform fibertube tractography comes in two files:
 - `./centerlines.trk` contains the entire ground-truth of the DISCO dataset.
 - `./diameters.txt` contains the diameter to be applied to each centerline in the centerlines.trk file above.
 
-![DISCO subset visualized in 3D](https://github.com/VincentBeaud/fibertube_tracking/assets/77688542/197b3f1f-2f57-41d0-af0a-5f7377bab274)
+![DISCO subset visualized in 3D](https://github.com/user-attachments/assets/f7b7727b-6f3e-4db9-939e-26066784f5eb)
+
 
 The first thing to do is resample `centerlines.trk` so that each centerline is formed of
 segments no longer than 0.2 mm.
@@ -53,7 +54,8 @@ scil_tractogram_resample_nb_points.py centerlines.trk centerlines_resampled.trk 
 
 Next, we want to filter out intersecting fibertubes (collisions), to make the data anatomically plausible and remove any partial volume effect.
 
-![Fibertube intersection visualized in 3D](https://github.com/VincentBeaud/perfect_tracking/assets/77688542/ede5d949-d7a5-4619-b75b-72fd41d65b38)
+![Fibertube intersection visualized in 3D](https://github.com/user-attachments/assets/d9b0519b-c1e3-4de0-8529-92aa92041ce2)
+
 
 This is accomplished using `scil_tractogram_filter_collisions.py`. <br>
 
@@ -85,7 +87,7 @@ scil_viz_tractogram_collisions.py centerlines_resampled_invalid.trk --obstacle c
 You are able to see exactly which streamline has been filtered ("invalid" - In red) as well as the streamlines they collided with ("obstacle" - In green).
 In white and lower opacity is the original tractogram passed as `--ref_tractogram`.
 
-![Filtered intersections visualized in 3D](https://github.com/VincentBeaud/fibertube_tracking/assets/77688542/4bc75029-0d43-4664-8502-fd528e9d93f4)
+![Filtered intersections visualized in 3D](https://github.com/user-attachments/assets/d88982c3-2228-41e1-a81a-d2ce23ec8151)
 
 ### Fibertube metrics
 Before we get into tracking. Here is an overview of the metrics that we saved in `metrics.txt`. (Values expressed in mm):
