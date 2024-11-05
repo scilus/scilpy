@@ -2,14 +2,15 @@
 # -*- coding: utf-8 -*-
 
 """
-Fit the info from a NuFO map to the plausible MRDS solutions.
+Use the NUFO map information to select the plausible number of tensors
+in the MRDS solutions.
 
 Each MRDS input is a list of 5 files:
-    - Component size
+    - Signal fraction of each tensor
     - Eigenvalues
     - Isotropic
     - Number of components
-    - PDDs
+    - PDDs (Principal Diffusion Directions)
 
     --N1 is the MRDS solution with 1 tensor.
     --N2 is the MRDS solution with 2 tensors.
@@ -17,17 +18,17 @@ Each MRDS input is a list of 5 files:
 
     Example:
     scil_mrds_modsel_todi.py nufo.nii.gz
-        --N1 V1_compsize.nii.gz
+        --N1 V1_signalfraction.nii.gz
              V1_eigenvalues.nii.gz
              V1_isotropic.nii.gz
              V1_numcomp.nii.gz
              V1_pdds.nii.gz
-        --N2 V2_compsize.nii.gz
+        --N2 V2_signalfraction.nii.gz
              V2_eigenvalues.nii.gz
              V2_isotropic.nii.gz
              V2_numcomp.nii.gz
              V2_pdds.nii.gz
-        --N3 V3_compsize.nii.gz
+        --N3 V3_signalfraction.nii.gz
              V3_eigenvalues.nii.gz
              V3_isotropic.nii.gz
              V3_numcomp.nii.gz
@@ -109,8 +110,8 @@ def main():
     # MOdel SElector MAP
     mosemap_img = nib.load(args.in_volume)
     mosemap = get_data_as_labels(mosemap_img)
-    header= mosemap_img.header
-    
+    header = mosemap_img.header
+
     affine = mosemap_img.affine
     X, Y, Z = mosemap.shape[0:3]
 
@@ -145,11 +146,11 @@ def main():
             pdds_out[X, Y, Z, :] = pdds[N][X, Y, Z, :]
 
     # write output files
-    nib.save(nib.Nifti1Image(compsize_out, 
+    nib.save(nib.Nifti1Image(compsize_out,
                              affine=affine,
                              header=header,
                              dtype=np.float32), output_files[0])
-    nib.save(nib.Nifti1Image(eigenvalues_out, 
+    nib.save(nib.Nifti1Image(eigenvalues_out,
                              affine=affine,
                              header=header,
                              dtype=np.float32), output_files[1])
