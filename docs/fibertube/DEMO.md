@@ -137,13 +137,13 @@ VC: "Valid Connection": A streamline that passes WITHIN the final segment of the
 IC: "Invalid Connection": A streamline that ended in the final segment of another fibertube. <br>
 NC: "No Connection": A streamlines that has not ended in the final segment of any fibertube. <br>
 
-![Visual representation of VC, IC, and NC](https://github.com/user-attachments/assets/76abc40e-600b-4d3b-8e23-db404baf8477)
+![Visual representation of VC, IC, and NC](https://github.com/user-attachments/assets/4871cb09-313e-499a-b56d-a668bdb631db)
 
 Res_VC: "Resolution-wise Valid Connection": A streamline that passes closer than [blur_darius] away from the last segment of the fibertube in which it was seeded. <br>
 Res_IC: "Resolution-wise Invalid Connection": A streamline that passes closer than [blur_darius] away from the first or last segment of another fibertube. <br>
 Res_NC: "Resolution-wise No Connection": A streamlines that does not pass closer than [blur_radius] away from the first or last segment of any fibertube. <br>
 
-![Visual representation of Res_VC, Res_IC, and Res_NC](https://github.com/user-attachments/assets/3b3539a5-d4f5-4132-bfd6-c92cffa2e825)
+![Visual representation of Res_VC, Res_IC, and Res_NC](https://github.com/user-attachments/assets/aae13ee8-44b8-4660-b46d-f97aaf035796)
 
 The "absolute error" of a coordinate is the distance in mm between that coordinate and the closest point on its corresponding fibertube. The average of all coordinate absolute errors of a streamline is called the "Mean absolute error" or "mae".
 
