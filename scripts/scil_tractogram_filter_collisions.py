@@ -123,10 +123,12 @@ def _build_arg_parser():
 
     p.add_argument('--min_distance', default=0, type=float,
                    help='If set, streamlines will be filtered more \n'
-                   'aggressively so that they are a certain distance apart \n'
-                   '(external to their diameter). In other words, enforces \n'
-                   'a resolution at which the data is void of \n'
-                   'partial-volume effect. (Value in mm) [%(default)s]')
+                   'aggressively so that even if they don\'t collide, \n'
+                   'being below [min_distance] apart (external to their \n'
+                   'diameter) will be interpreted as a collision. This \n'
+                   'option is the same as filtering with a large diameter \n'
+                   'but only saving a small diameter in out_tractogram. \n'
+                   '(Value in mm) [%(default)s]')
 
     p.add_argument('--disable_shuffling', action='store_true',
                    help='If set, no shuffling will be performed before \n'

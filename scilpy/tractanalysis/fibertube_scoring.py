@@ -262,6 +262,7 @@ def mean_reconstruction_error(centerlines, centerlines_length, diameters,
         centers, indices, _ = streamlines_to_segments(centerlines, False)
     centers_fixed_length = len(centerlines[0])-1
 
+    # Building a tree for first fibertube
     tree = nbKDTree(centers[:centerlines_length[0]-1])
     tree_fi = 0
 
@@ -281,10 +282,10 @@ def mean_reconstruction_error(centerlines, centerlines_length, diameters,
                          centerlines_length[seeded_fi] - 1)])
 
         # Querying nearest neighbor for each coordinate of the streamline.
-        neighbor_indices = tree.query_parallel(streamline)[1]
+        neighbors = tree.query_parallel(streamline)[1]
 
         for pi, point in enumerate(streamline):
-            nearest_index = neighbor_indices[pi][0]
+            nearest_index = neighbors[pi][0]
 
             # Retrieving the closest cylinder segment.
             _, pi = indices[nearest_index]
@@ -325,8 +326,6 @@ def endpoint_connectivity(step_size, blur_radius, centerlines,
         segment of another fiber.
     NC: "No Connection": Contains streamlines that have not ended in the final
         segment of any fiber.
-
-    TODO: Particularly inefficient. Could be improved with a KDTree.
 
     Parameters
     ----------
@@ -369,71 +368,79 @@ def endpoint_connectivity(step_size, blur_radius, centerlines,
     resolution_nc: list
         No-connections at simulated resolution.
     """
-    truth_vc = []
-    truth_ic = []
-    truth_nc = []
-    res_vc = []
-    res_ic = []
-    res_nc = []
+
+    # objmode allows the execution of non numba-compatible code within a numba
+    # function
+    with objmode(centers='float64[:, :]', indices='int64[:, :]',
+                 max_seg_length='float64'):
+        centers, indices, max_seg_length = streamlines_to_segments(
+            centerlines, False)
+    
+    centerline_fixed_length = len(centerlines[0])-1
+
+    kdtree_centers = np.zeros((0, 3))
+    for fi, fiber in enumerate(centerlines):
+        kdtree_centers = np.concatenate(
+            (kdtree_centers, centers[centerline_fixed_length * fi:
+             (centerline_fixed_length * fi + centerlines_length[fi] - 1)]))
+    
+    tree = nbKDTree(kdtree_centers)
+
+    truth_vc = set()
+    truth_ic = set()
+    truth_nc = set()
+    res_vc = set()
+    res_ic = set()
+    res_nc = set()
+    
     for si, streamline in enumerate(streamlines):
         truth_connected = False
         res_connected = False
-        for fi, fiber in enumerate(centerlines):
+
+        seed_fi = seeds_fiber[si]
+        point_before_last = streamline[1]
+        neighbors = tree.query_radius(point_before_last, max_seg_length)[0]
+
+        for neighbor_segi in neighbors:
+            fi = indices[neighbor_segi][0]
+            fiber = centerlines[fi]
             fib_end_pt1 = fiber[centerlines_length[fi] - 2]
             fib_end_pt2 = fiber[centerlines_length[fi] - 1]
             radius = diameters[fi] / 2
 
-            # Check all the points of the estimated last segment of streamline
-            estimated_overstep_mm = (radius + blur_radius + step_size)
-            estimated_streamline_last_seg_nb_pts = int(
-                (np.linalg.norm(fib_end_pt2-fib_end_pt1) +
-                 estimated_overstep_mm) // step_size)
+            # Is in start segment of a fibertube and not ours
+            if point_in_cylinder(fiber[0], fiber[1],
+                                 radius, point_before_last) and fi != seed_fi:
+                truth_connected = True
+                truth_ic.add((si, fi))
 
-            # Streamlines are reversed. streamline[:n] gives the last n points
-            for point in streamline[:estimated_streamline_last_seg_nb_pts]:
-                seed_fi = seeds_fiber[si]
+            # Is in end segment of a fibertube
+            if point_in_cylinder(fib_end_pt1, fib_end_pt2, radius,
+                                 point_before_last):
+                truth_connected = True
+                if fi == seed_fi:
+                    truth_vc.add(si)
+                else:
+                    truth_ic.add((si, fi))
 
-                # Is in start segment of a fibertube and not ours
-                if point_in_cylinder(fiber[0], fiber[1],
-                                     radius, point) and fi != seed_fi:
-                    truth_connected = True
-                    truth_ic.append((si, fi))
+            # Passes by start segment of a fibertube and not ours
+            dist, _, _ = dist_point_segment(fiber[0], fiber[1], point_before_last)
+            if dist < radius + blur_radius and fi != seed_fi:
+                res_connected = True
+                res_ic.add((si, fi))
 
-                # Is in end segment of a fibertube
-                if point_in_cylinder(fib_end_pt1, fib_end_pt2, radius, point):
-                    truth_connected = True
-                    if fi == seed_fi:
-                        truth_vc.append(si)
-                    else:
-                        truth_ic.append((si, fi))
-
-                # Passes by start segment of a fibertube and not ours
-                volume_start, _ = sphere_cylinder_intersection(
-                        point, blur_radius,
-                        fiber[0], fiber[1], radius,
-                        1000, random_generator)
-                if volume_start != 0 and fi != seed_fi:
-                    res_connected = True
-                    res_ic.append((si, fi))
-
-                # Passes by end segment of a fibertube
-                volume_end, _ = sphere_cylinder_intersection(
-                        point, blur_radius,
-                        fib_end_pt1, fib_end_pt2, radius,
-                        1000, random_generator)
-                if volume_end != 0:
-                    res_connected = True
-                    if fi == seed_fi:
-                        res_vc.append(si)
-                    else:
-                        res_ic.append((si, fi))
-
-                if truth_connected or res_connected:
-                    break
+            # Passes by end segment of a fibertube
+            dist, _, _ = dist_point_segment(fib_end_pt1, fib_end_pt2, point_before_last)
+            if dist < radius + blur_radius:
+                res_connected = True
+                if fi == seed_fi:
+                    res_vc.add(si)
+                else:
+                    res_ic.add((si, fi))
 
         if not truth_connected:
-            truth_nc.append(si)
+            truth_nc.add(si)
         if not res_connected:
-            res_nc.append(si)
+            res_nc.add(si)
 
-    return truth_vc, truth_ic, truth_nc, res_vc, res_ic, res_nc
+    return list(truth_vc), list(truth_ic), list(truth_nc), list(res_vc), list(res_ic), list(res_nc)

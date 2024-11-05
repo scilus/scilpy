@@ -75,7 +75,7 @@ class IntersectionFinder:
         other reasons."""
         return self._excluded
 
-    def find_intersections(self, min_distance: float = None):
+    def find_intersections(self, min_distance = 0):
         """
         Finds intersections within the initialized data of the object
 
@@ -95,9 +95,13 @@ class IntersectionFinder:
         Parameters
         ----------
         min_distance: float
-            If set, streamtubes will be filtered more aggressively so that
-            they are a certain distance apart. In other words, enforces a
-            resolution at which the data is void of partial-volume effect.
+            If set, streamlines will be filtered more
+            aggressively so that even if they don\'t collide,
+            being below [min_distance] apart (external to their
+            diameter) will be interpreted as a collision. This
+            option is the same as filtering with a large diameter
+            but only saving a small diameter in out_tractogram.
+            (Value in mm)
         """
         start_time = time.time()
         streamlines = self.streamlines
@@ -148,19 +152,19 @@ class IntersectionFinder:
                 rp = self.diameters[si] / 2
                 rq = self.diameters[neighbor_si] / 2
 
-                distance, _, p_coll, _ = dist_segment_segment(p0, p1, q0, q1)
-                collide = distance <= rp + rq + self.FLOAT_EPSILON
+                distance, _, p_coll, q_coll = dist_segment_segment(p0, p1, q0, q1)
+                collide = distance <= rp + rq
                 external_distance = distance - rp - rq
 
                 if collide:
                     invalid[si] = True
-                    collisions[si] = p_coll
+
+                    collision_point = (p_coll + q_coll) / 2
+                    collisions[si] = collision_point
+
                     obstacle[neighbor_si] = True
                     break
-
-                if (min_distance != 0 and
-                        external_distance < (min_distance /
-                                             (math.sqrt(2) / 2))):
+                if min_distance != 0 and external_distance < min_distance:
                     excluded[si] = True
                     break
 
@@ -209,8 +213,8 @@ class IntersectionFinder:
             elif not self._excluded[si]:
                 out_streamlines.append(s)
                 out_diameters.append(self.diameters[si])
-                if self._obstacle[si]:
-                    out_obstacle.append(s)
+            if self._obstacle[si]:
+                out_obstacle.append(s)
 
         out_sft = StatefulTractogram.from_sft(
             out_streamlines, self.in_sft,

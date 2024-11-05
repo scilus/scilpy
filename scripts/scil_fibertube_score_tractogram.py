@@ -29,11 +29,11 @@ of all coordinate absolute errors of a streamline is called the "Mean absolute
 error" or "mae".
 
 Computed metrics:
-    - truth_vc_ratio
+    - vc_ratio
         Number of VC divided by the number of streamlines.
-    - truth_ic_ratio
+    - ic_ratio
         Number of IC divided by the number of streamlines.
-    - truth_nc_ratio
+    - nc_ratio
         Number of NC divided by the number of streamlines.
     - res_vc_ratio
         Number of Res_VC divided by the number of streamlines.
@@ -110,6 +110,14 @@ def _build_arg_parser():
                    'visual representation of all the coordinate absolute \n'
                    'errors of the entire tractogram. The file name is \n'
                    'derived from the out_metrics parameter.')
+    
+    p.add_argument(
+        '--out_tracked_fibertubes', type=str, default=None,
+        help='If set, the fibertubes that were used for seeding will be \n'
+        'saved separately at the specified location (must be .trk). This \n'
+        'parameter is not required for scoring the tracking result, as the \n'
+        'seeding information of each streamline is always saved as \n'
+        'data_per_streamline.')
 
     p.add_argument('--rng_seed', type=int, default=0,
                    help='If set, all random values will be generated \n'
@@ -134,10 +142,16 @@ def main():
                      'or tck): {0}'.format(args.in_fibertubes))
 
     out_metrics_no_ext, ext = os.path.splitext(args.out_metrics)
-
     if ext != '.txt':
         parser.error('Invalid output file format (must be txt): {0}'
                      .format(args.out_metrics))
+
+    if args.out_tracked_fibertubes:
+        _, out_tracked_fibertubes_ext = os.path.splitext(
+            args.out_tracked_fibertubes)
+        if out_tracked_fibertubes_ext != '.trk':
+            parser.error('Invalid output file format (must be trk): {0}'
+                         .format(args.out_tracked_fibertubes))
 
     assert_inputs_exist(parser, [args.in_fibertubes, args.in_config,
                                  args.in_tracking])
@@ -185,6 +199,18 @@ def main():
     for num in seeds_fiber:
         if num == -1:
             raise ValueError('Could not resolve origin seeding regions')
+
+    if args.out_tracked_fibertubes:
+        # Set for removing doubles
+        tracked_fibertubes_indices = set(seeds_fiber)
+        tracked_fibertubes = []
+
+        for fi in tracked_fibertubes_indices:
+            tracked_fibertubes.append(centerlines[fi][:centerlines_length[fi]])
+
+        tracked_sft = StatefulTractogram.from_sft(tracked_fibertubes, truth_sft)
+        save_tractogram(tracked_sft, args.out_tracked_fibertubes,
+                        bbox_valid_check=False)
 
     logging.debug("Computing endpoint connectivity")
     rand_gen = np.random.default_rng(args.rng_seed)
