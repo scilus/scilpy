@@ -120,10 +120,6 @@ def _build_arg_parser():
         'seeding information of each streamline is always saved as \n'
         'data_per_streamline.')
 
-    p.add_argument('--rng_seed', type=int, default=0,
-                   help='If set, all random values will be generated \n'
-                   'using the specified seed. [%(default)s]')
-
     add_json_args(p)
     add_verbose_arg(p)
     add_overwrite_arg(p)
@@ -214,13 +210,12 @@ def main():
                         bbox_valid_check=False)
 
     logging.debug("Computing endpoint connectivity")
-    rand_gen = np.random.default_rng(args.rng_seed)
     (truth_vc, truth_ic, truth_nc,
      res_vc, res_ic, res_nc) = endpoint_connectivity(
         step_size, blur_radius,
         centerlines, centerlines_length,
         diameters, streamlines,
-        seeds_fiber, rand_gen)
+        seeds_fiber)
 
     logging.debug("Computing reconstruction error")
     (mean_errors, error_tractogram) = mean_reconstruction_error(

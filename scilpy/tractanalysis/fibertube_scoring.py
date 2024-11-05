@@ -315,7 +315,7 @@ def mean_reconstruction_error(centerlines, centerlines_length, diameters,
 @njit
 def endpoint_connectivity(step_size, blur_radius, centerlines,
                           centerlines_length, diameters, streamlines,
-                          seeds_fiber, random_generator):
+                          seeds_fiber):
     """
     For every streamline, find whether or not it has reached the end segment
     of its fiber.
@@ -349,9 +349,6 @@ def endpoint_connectivity(step_size, blur_radius, centerlines,
         Array of the same length as there are streamlines. For every
         streamline, contains the index of the fiber in which it has been
         seeded.
-    random_generator: any
-        Random generator used to generate samples for estimating the volume of
-        intersection between blurring sphere and fibertube segments.
 
     Return
     ------
@@ -368,6 +365,7 @@ def endpoint_connectivity(step_size, blur_radius, centerlines,
     resolution_nc: list
         No-connections at simulated resolution.
     """
+    ratio = blur_radius / step_size
 
     # objmode allows the execution of non numba-compatible code within a numba
     # function
@@ -392,14 +390,16 @@ def endpoint_connectivity(step_size, blur_radius, centerlines,
     res_vc = set()
     res_ic = set()
     res_nc = set()
-    
+
     for si, streamline in enumerate(streamlines):
         truth_connected = False
         res_connected = False
 
         seed_fi = seeds_fiber[si]
-        point_before_last = streamline[1]
-        neighbors = tree.query_radius(point_before_last, max_seg_length)[0]
+        # streamline[0] is the last point of the streamline
+        neighbors = tree.query_radius(streamline[0],
+                                      max(blur_radius, step_size)
+                                      +max_seg_length)[0]
 
         for neighbor_segi in neighbors:
             fi = indices[neighbor_segi][0]
@@ -408,29 +408,37 @@ def endpoint_connectivity(step_size, blur_radius, centerlines,
             fib_end_pt2 = fiber[centerlines_length[fi] - 1]
             radius = diameters[fi] / 2
 
+            # Connectivity
             # Is in start segment of a fibertube and not ours
-            if point_in_cylinder(fiber[0], fiber[1],
-                                 radius, point_before_last) and fi != seed_fi:
+            dist, _, _, _ = dist_segment_segment(
+                fiber[0], fiber[1], streamline[int(np.floor(ratio))],
+                streamline[int(np.ceil(ratio))+1])
+            if dist < radius and fi != seed_fi:
                 truth_connected = True
                 truth_ic.add((si, fi))
 
             # Is in end segment of a fibertube
-            if point_in_cylinder(fib_end_pt1, fib_end_pt2, radius,
-                                 point_before_last):
+            dist, _, _, _ = dist_segment_segment(
+                fib_end_pt1, fib_end_pt2, streamline[int(np.floor(ratio))],
+                streamline[int(np.ceil(ratio))+1])
+            if dist < radius:
                 truth_connected = True
                 if fi == seed_fi:
                     truth_vc.add(si)
                 else:
                     truth_ic.add((si, fi))
 
+            # Resolution-wise connectivity
             # Passes by start segment of a fibertube and not ours
-            dist, _, _ = dist_point_segment(fiber[0], fiber[1], point_before_last)
+            dist, _, _, _ = dist_segment_segment(fiber[0], fiber[1],
+                                                 streamline[1], streamline[0])
             if dist < radius + blur_radius and fi != seed_fi:
                 res_connected = True
                 res_ic.add((si, fi))
 
             # Passes by end segment of a fibertube
-            dist, _, _ = dist_point_segment(fib_end_pt1, fib_end_pt2, point_before_last)
+            dist, _, _, _ = dist_segment_segment(fib_end_pt1, fib_end_pt2,
+                                                 streamline[1], streamline[0])
             if dist < radius + blur_radius:
                 res_connected = True
                 if fi == seed_fi:
