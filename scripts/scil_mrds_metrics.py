@@ -2,7 +2,8 @@
 # -*- coding: utf-8 -*-
 
 """
-Script to compute all of the Multi-Resolution Discrete-Search (MRDS) metrics.
+Script to compute FA/MD/RD/AD for each tensor solution of MRDS.
+It will output the results in 4 different 4D files.
 """
 
 import logging
@@ -37,13 +38,13 @@ def _build_arg_parser():
 
     g = p.add_argument_group(title='MRDS-Metrics files flags')
     g.add_argument('--fa', dest='fa', metavar='file', default='',
-                   help='Output filename for the MRDS FA diffusivity.')
+                   help='Output filename for the FA.')
     g.add_argument('--ad', dest='ad', metavar='file', default='',
-                   help='Output filename for the MRDS AD diffusivity.')
+                   help='Output filename for the AD.')
     g.add_argument('--rd', dest='rd', metavar='file', default='',
-                   help='Output filename for the MRDS RD diffusivity.')
+                   help='Output filename for the RD.')
     g.add_argument('--md', dest='md', metavar='file', default='',
-                   help='Output filename for the MRDS MD diffusivity.')
+                   help='Output filename for the MD.')
 
     add_verbose_arg(p)
     add_overwrite_arg(p)
@@ -64,7 +65,7 @@ def main():
 
     assert_inputs_exist(parser, args.in_eigenvalues, args.mask)
     assert_headers_compatible(parser, args.in_eigenvalues, args.mask)
-    assert_outputs_exist(parser, args, [], 
+    assert_outputs_exist(parser, args, [],
                          optional=[args.fa, args.ad, args.rd, args.md])
 
     eigenvalues_img = nib.load(args.in_eigenvalues)
