@@ -86,10 +86,10 @@ The first thing to do is resample ``centerlines.trk`` so that each
 centerline is formed of segments no longer than 0.2 mm.
 
 Note: This is because the next script will rely on a KDTree to find
-      all neighboring fibertube segments of any given point. Because the
-      search radius is set at the length of the longest fibertube segment,
-      the performance drops significantly if they are not shortened to
-      ~0.2mm.
+all neighboring fibertube segments of any given point. Because the
+search radius is set at the length of the longest fibertube segment,
+the performance drops significantly if they are not shortened to
+~0.2mm.
 
 To resample a tractogram, we can use this script from scilpy:
 
@@ -171,8 +171,8 @@ saved in ``metrics.txt``. (Values expressed in mm):
    :alt: max_voxel_rotated visualized in 3D
 
 Note: This information can be useful for analyzing the
-      reconstruction obtained through tracking, as well as for performing
-      track density imaging.
+reconstruction obtained through tracking, as well as for performing
+track density imaging.
 
 Performing fibertube tracking
 -----------------------------
@@ -222,7 +222,7 @@ waiting a little bit, feel free to play with the parameters and explore
 the resulting tractogram.
 
 Note: Given the time required for each streamline, the
-      ``--processes`` parameter will be very useful.
+``--processes`` parameter will be very useful.
 
 Reconstruction analysis
 ~~~~~~~~~~~~~~~~~~~~~~~
