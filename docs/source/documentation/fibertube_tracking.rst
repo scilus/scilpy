@@ -71,7 +71,7 @@ Then, execute the following command:
 `cp ~/.scilpy/others/fibercup_bundles.trk ./centerlines.trk` to bring the data
 to your current location and rename it to `centerlines.trk`.
 
-Here is the tractogram that you have just fetched:
+
 .. image:: https://github.com/user-attachments/assets/3be43cc9-60ec-4e97-95ef-a436c32bba83
    :alt: Fibercup subset visualized in 3D
 
