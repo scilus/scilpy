@@ -110,7 +110,7 @@ This is accomplished using ``scil_tractogram_filter_collisions.py``.
 
    scil_tractogram_filter_collisions.py centerlines_resampled.trk diameters.txt fibertubes.trk --save_colliding --out_metrics metrics.txt -v -f
 
-After a short wait, you should get something like:
+After 3-5 minutes, you should get something like:
 
 ::
 
@@ -215,14 +215,11 @@ Seeding options in the help menu).
 
 ::
 
-   scil_fibertube_tracking.py fibertubes.trk tracking.trk 0.01 0.01 --nb_fibertubes 3 --out_config tracking_config.txt --processes 4 -v -f
+   scil_fibertube_tracking.py fibertubes.trk tracking.trk 0.01 0.01 --nb_fibertubes 3 --out_config tracking_config.txt --processes 0 -v -f
 
-This should take a few minutes at most. However, if you don't mind
-waiting a little bit, feel free to play with the parameters and explore
-the resulting tractogram.
-
-Note: Given the time required for each streamline, the
-``--processes`` parameter will be very useful.
+This should take around 5 minutes depending on how many processes can be
+run simultaniously. The loading bar of each thread will only update every
+100 streamlines. It may look like it's frozen, but it will finish soon!
 
 Reconstruction analysis
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -231,22 +228,29 @@ By using the ``scil_fibertube_score_tractogram.py`` script, you are able
 to obtain measures on the quality of the fibertube tracking that was
 performed. Here is a description of the computed metrics:
 
-VC: "Valid Connection": A streamline that passes WITHIN the final
-segment of the fibertube in which it was seeded. IC: "Invalid
-Connection": A streamline that ended in the final segment of another
-fibertube. NC: "No Connection": A streamlines that has not ended in the
-final segment of any fibertube.
+VC: "Valid Connection": A streamline that passes WITHIN the final segment
+of the fibertube in which it was seeded.
+
+IC: "Invalid Connection": A streamline that ended in the final segment of
+another fibertube.
+
+NC: "No Connection": A streamlines that has not ended in the final segment
+of any fibertube.
 
 .. image:: https://github.com/user-attachments/assets/4871cb09-313e-499a-b56d-a668bdb631db
    :alt: Visual representation of VC, IC, and NC
 
 Res_VC: "Resolution-wise Valid Connection": A streamline that passes
-closer than [blur_darius] away from the last segment of the fibertube in
-which it was seeded. Res_IC: "Resolution-wise Invalid Connection": A
-streamline that passes closer than [blur_darius] away from the first or
-last segment of another fibertube. Res_NC: "Resolution-wise No
-Connection": A streamlines that does not pass closer than [blur_radius]
-away from the first or last segment of any fibertube.
+closer than [blur_darius] away from the last segment of the fibertube
+in which it was seeded.
+
+Res_IC: "Resolution-wise Invalid Connection": A streamline that passes
+closer than [blur_darius] away from the first or last segment of another
+fibertube.
+
+Res_NC: "Resolution-wise No Connection": A streamlines that does not pass
+closer than [blur_radius] away from the first or last segment of any
+fibertube.
 
 .. image:: https://github.com/user-attachments/assets/c480f5e6-14f8-456a-b8e8-77569661c452
    :alt: Visual representation of Res_VC, Res_IC, and Res_NC
@@ -280,24 +284,24 @@ giving us the following output in ``reconstruction_metrics.txt``:
 ::
 
    {
-     "vc_ratio": 0.0,
+     "vc_ratio": 0.13333333333333333,
      "ic_ratio": 0.0,
-     "nc_ratio": 1.0,
-     "res_vc_ratio": 0.4,
-     "res_ic_ratio": 0.0,
-     "res_nc_ratio": 0.6,
-     "mae_min": 0.0014691361472782293,
-     "mae_max": 0.0055722481609273775,
-     "mae_mean": 0.003883039143304128,
-     "mae_med": 0.003927314695651083
+     "nc_ratio": 0.8666666666666667,
+     "res_vc_ratio": 0.8,
+     "res_ic_ratio": 0.13333333333333333,
+     "res_nc_ratio": 0.06666666666666667,
+     "mae_min": 2.023046655518677e-06,
+     "mae_max": 5.140102678615527,
+     "mae_mean": 0.7342005034643644,
+     "mae_med": 0.0009090212918552973
    }
 
-This data tells us that none of our streamline managed to stay within
-the fibertube in which it was seeded (``"vc_ratio": 0.0``). However, 40%
-of streamlines pass closer than one ``blur_radius`` away from the end of
-their respective fibertube (``"res_vc_ratio": 0.4``). Lastly, we notice
-that the streamline with the "worst" trajectory was on average 5.5um
-away from its fibertube (``"mae_max": 0.0055722481609273775``).
+This data tells us that about 13% of our streamlines managed to stay
+within the fibertube in which they were seeded (``"vc_ratio": 0.0``).
+However, 80% of streamlines ended closer than one ``blur_radius`` away from
+the end of their respective fibertube (``"res_vc_ratio": 0.8``).
+Lastly, we notice that the streamline with the "worst" trajectory was on average 5.14mm
+away from its fibertube (``"mae_max": 5.140102678615527``).
 
 End of Demo
 -----------
