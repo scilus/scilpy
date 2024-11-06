@@ -144,7 +144,7 @@ You are able to see exactly which streamline has been filtered
 ("obstacle" - In green). In white and lower opacity is the original
 tractogram passed as ``--ref_tractogram``.
 
-.. image:: https://github.com/user-attachments/assets/d88982c3-2228-41e1-a81a-d2ce23ec8151
+.. image:: https://github.com/user-attachments/assets/9cb95488-227f-4c96-b88c-ead9100ac708
    :alt: Filtered intersections visualized in 3D
 
 Fibertube metrics
