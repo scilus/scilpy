@@ -62,14 +62,14 @@ Preparing the data
 
 To obtain the data required for this demo, activate your scilpy virtual
 environment, navigate to the scilpy repository on your computer and enter
-the command: `pytest -v`. This will pull all the files required for testing
+the command: ``pytest -v``. This will pull all the files required for testing
 and then begin the test sequence. As soon as the tests start, you can abort
 the process and navigate to any location outside of the scilpy repository that
 you see fit for this demo.
 
 Then, execute the following command:
-`cp ~/.scilpy/others/fibercup_bundles.trk ./centerlines.trk` to bring the data
-to your current location and rename it to `centerlines.trk`.
+``cp ~/.scilpy/others/fibercup_bundles.trk ./centerlines.trk`` to bring the data
+to your current location and rename it to ``centerlines.trk``.
 
 
 .. image:: https://github.com/user-attachments/assets/3be43cc9-60ec-4e97-95ef-a436c32bba83
