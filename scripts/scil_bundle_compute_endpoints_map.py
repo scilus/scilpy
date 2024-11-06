@@ -53,6 +53,9 @@ def _build_arg_parser():
     p.add_argument('--nb_points', type=int, default=1,
                    help="Number of points to consider at the extremities"
                         " of the streamlines. [%(default)s]")
+    p.add_argument('--mm', action='store_true',
+                   help='Compute the endpoints in mm instead of nb. of '
+                        'points. Useful for compressed streamlines.')
 
     add_json_args(p)
     add_reference_arg(p)
@@ -89,7 +92,7 @@ def main():
         tail_name = args.endpoints_map_head
 
     endpoints_map_head, endpoints_map_tail = \
-        get_head_tail_density_maps(sft, args.nb_points)
+        get_head_tail_density_maps(sft, args.nb_points, to_millimeters=args.mm)
 
     if args.binary:
         endpoints_map_head = (endpoints_map_head > 0).astype(np.int16)
