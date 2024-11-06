@@ -72,7 +72,7 @@ Then, execute the following command:
 to your current location and rename it to `centerlines.trk`.
 
 Here is the tractogram that you have just fetched:
-.. image:: https://github.com/user-attachments/assets/f7b7727b-6f3e-4db9-939e-26066784f5eb
+.. image:: https://github.com/user-attachments/assets/3be43cc9-60ec-4e97-95ef-a436c32bba83
    :alt: Fibercup subset visualized in 3D
 
 Now that we have a tractogram to act as our set of centerlines, we will need
