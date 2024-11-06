@@ -18,6 +18,8 @@ import pandas as pd
 from scilpy.io.utils import (add_overwrite_arg, add_verbose_arg,
                              assert_inputs_exist, assert_outputs_exist)
 
+dps_dpp = ['data_per_streamline_keys', 'data_per_point_keys']
+
 
 def _get_all_bundle_names(stats):
     bnames = set()
@@ -73,20 +75,16 @@ def _get_stats_parse_function(stats, stats_over_population):
         first_bundle_stats.keys())[0]]
 
     if len(first_bundle_stats.keys()) == 1 and\
-            _are_all_elements_scalars(first_bundle_stats):
+            _are_all_elements_scalars(first_bundle_stats):  # when you have only on key per bundle
         return _parse_scalar_stats
-    elif len(first_bundle_stats.keys()) == 4 and \
+    if len(first_bundle_stats.keys()) == 4 and \
             set(first_bundle_stats.keys()) == \
             set(['lesion_total_vol', 'lesion_avg_vol', 'lesion_std_vol',
-                 'lesion_count']):
+                 'lesion_count']):  # when you have lesion stats
         return _parse_lesion
-    elif len(first_bundle_stats.keys()) == 4 and \
-            set(first_bundle_stats.keys()) == \
-            set(['min_length', 'max_length', 'mean_length', 'std_length']):
-        return _parse_lengths
     elif type(first_bundle_substat) is dict:
         sub_keys = list(first_bundle_substat.keys())
-        if set(sub_keys) == set(['mean', 'std']):
+        if set(sub_keys) == set(['mean', 'std']):  # when you have mean and std per stats
             if stats_over_population:
                 return _parse_per_label_population_stats
             else:
@@ -95,6 +93,8 @@ def _get_stats_parse_function(stats, stats_over_population):
             return _parse_per_point_meanstd
         elif _are_all_elements_scalars(first_bundle_substat):
             return _parse_per_label_scalar
+    else:  # when you have multiple metrics per bundle
+        return _parse_stats
 
     raise IOError('Unable to recognize stats type!')
 
@@ -201,39 +201,31 @@ def _parse_scalar_lesions(stats, subs, bundles):
     return dataframes, df_names
 
 
-def _parse_lengths(stats, subs, bundles):
+def _parse_stats(stats, subs, bundles):
     nb_subs = len(subs)
     nb_bundles = len(bundles)
 
-    min_lengths = np.full((nb_subs, nb_bundles), np.NaN)
-    max_lengths = np.full((nb_subs, nb_bundles), np.NaN)
-    mean_lengths = np.full((nb_subs, nb_bundles), np.NaN)
-    std_lengths = np.full((nb_subs, nb_bundles), np.NaN)
+    dataframes = []
 
-    for sub_id, sub_name in enumerate(subs):
-        for bundle_id, bundle_name in enumerate(bundles):
-            b_stat = stats[sub_name].get(bundle_name)
+    # Check all metrics keys
+    metrics_keys = stats[subs[0]][bundles[0]].keys()
+    df_names = list(metrics_keys)
 
-            if b_stat is not None:
-                min_lengths[sub_id, bundle_id] = b_stat['min_length']
-                max_lengths[sub_id, bundle_id] = b_stat['max_length']
-                mean_lengths[sub_id, bundle_id] = b_stat['mean_length']
-                std_lengths[sub_id, bundle_id] = b_stat['std_length']
+    for metric_name in metrics_keys:
+        if metric_name in dps_dpp:  # remove dps and dpp keys
+            df_names.remove(metric_name)
+        else:
+            curr_metric = np.full((nb_subs, nb_bundles), np.NaN)
+            for bundle_id, bundle_name in enumerate(bundles):
+                for sub_id, sub_name in enumerate(subs):
+                    b_stat = stats[sub_name][bundle_name].get(metric_name)
+                    if b_stat is not None:
+                        curr_metric[sub_id, bundle_id] = b_stat
 
-    dataframes = [pd.DataFrame(data=min_lengths,
-                               index=subs,
-                               columns=bundles),
-                  pd.DataFrame(data=max_lengths,
-                               index=subs,
-                               columns=bundles),
-                  pd.DataFrame(data=mean_lengths,
-                               index=subs,
-                               columns=bundles),
-                  pd.DataFrame(data=std_lengths,
-                               index=subs,
-                               columns=bundles)]
-
-    df_names = ["min_length", "max_length", "mean_length", "std_length"]
+            dataframes.append(pd.DataFrame(data=curr_metric,
+                                           index=subs,
+                                           columns=bundles))
+            del curr_metric
 
     return dataframes, df_names
 
