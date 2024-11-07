@@ -214,6 +214,11 @@ direction.
 .. image:: https://github.com/user-attachments/assets/0308c206-c396-41c5-a0e1-bb69b692c101
    :alt: Visualization of the blurring sphere intersecting with segments
 
+
+For more information and better visualization, watch the following
+presentation: https://docs.google.com/presentation/d/1nRV2j_A8bHOcjGSHtNmD8MsA9n5pHvR8/edit#slide=id.p19
+
+
 This makes fibertube tracking inherently probabilistic.
 Theoretically, with a ``blur_radius`` of 0, any given set of coordinates
 has either a single tracking direction because it is within a fibertube,
