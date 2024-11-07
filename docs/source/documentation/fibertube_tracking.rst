@@ -44,15 +44,15 @@ Methodology
 
 This project can be split into 3 major steps:
 
--  Preparing ground-truth data We will be using the ground-truth of
-   simulated phantoms of streamlines with a diameter (giving us
-   fibertubes) ensuring that they are void of any collision, i.e.
+-  Preparing ground-truth data: We will be using the ground-truth of
+   simulated phantoms of streamlines, along with a diameter (giving us
+   fibertubes) and ensuring that they are void of any collision, i.e.
    fibertubes in the simulated phantom should not intersect one another.
    This is physically impossible to respect the geometry of axons.
--  Tracking and experimentation We will perform 'Fibertube Tracking' on
+-  Tracking and experimentation: We will perform fibertube tracking on
    our newly formed set of fibertubes with a variety of parameter
    combinations.
--  Evaluation metrics computation By passing the resulting tractogram
+-  Evaluation metrics computation: By passing the resulting tractogram
    through different evaluation scripts (like Tractometer), we will
    acquire connectivity and fiber reconstruction scores for each of the
    parameter combinations.
@@ -60,17 +60,18 @@ This project can be split into 3 major steps:
 Preparing the data
 ------------------
 
-To obtain the data required for this demo, activate your scilpy virtual
-environment, navigate to the scilpy repository on your computer and enter
-the command: ``pytest -v``. This will pull all the files required for testing
-and then begin the test sequence. As soon as the tests start, you can abort
-the process and navigate to any location outside of the scilpy repository that
-you see fit for this demo.
+To obtain the data required for this demo, open a terminal and activate your
+scilpy virtual environment. Then, navigate to the scilpy repository on your
+computer and enter the command: ``pytest -v``. This will pull all the files
+required for testing scilpy scripts and then begin the testing sequence. As
+soon as the tests start, you can abort the process and navigate to any location
+outside of the scilpy repository that you see fit for this demo.
 
 Then, execute the following command:
-``cp ~/.scilpy/others/fibercup_bundles.trk ./centerlines.trk`` to bring the data
-to your current location and rename it to ``centerlines.trk``.
+``cp ~/.scilpy/others/fibercup_bundles.trk ./centerlines.trk`` to bring our
+data to your current location and rename it to ``centerlines.trk``.
 
+It is a subset of the FiberCup phantom ground truth:
 
 .. image:: https://github.com/user-attachments/assets/3be43cc9-60ec-4e97-95ef-a436c32bba83
    :alt: Fibercup subset visualized in 3D
@@ -78,11 +79,10 @@ to your current location and rename it to ``centerlines.trk``.
 Now that we have a tractogram to act as our set of centerlines, we will need
 to create a file containing the diameters. To do this, create a text file
 named `diameters.txt` and enter `0.001` on the very first line. This single
-diameter will be used in conjunction with the centerlines to form a set of
-fibertubes.
+diameter will later be applied to all the centerlines to form a set of fibertubes.
 
 
-The first thing to do is resample ``centerlines.trk`` so that each
+The first thing to do to is resample ``centerlines.trk`` so that each
 centerline is formed of segments no longer than 0.2 mm.
 
 Note: This is because the next script will rely on a KDTree to find
@@ -98,8 +98,9 @@ To resample a tractogram, we can use this script from scilpy:
    scil_tractogram_resample_nb_points.py centerlines.trk centerlines_resampled.trk --step_size 0.2 -f
 
 Next, we want to filter out intersecting fibertubes (collisions), to
-make the data anatomically plausible and remove any partial volume
-effect.
+make the data anatomically plausible and ensure that there exists a
+resolution at which there is no unit of space containing partial
+volume.
 
 .. image:: https://github.com/user-attachments/assets/d9b0519b-c1e3-4de0-8529-92aa92041ce2
    :alt: Fibertube intersection visualized in 3D
@@ -148,7 +149,7 @@ tractogram passed as ``--ref_tractogram``.
    :alt: Filtered intersections visualized in 3D
 
 Fibertube metrics
-~~~~~~~~~~~~~~~~~
+-----------------
 
 Before we get into tracking. Here is an overview of the metrics that we
 saved in ``metrics.txt``. (Values expressed in mm):
@@ -160,10 +161,18 @@ saved in ``metrics.txt``. (Values expressed in mm):
 -  ``max_voxel_isotropic``: Isotropic version of max_voxel_anisotropic
    made by using the smallest component. Ex: max_voxel_anisotropic: (3,
    5, 5) => max_voxel_isotropic: (3, 3, 3)
--  ``max_voxel_rotated``: Largest possible isotropic voxel obtainable if
-   the tractogram is rotated. It is only usable if the entire tractogram
+-  ``max_voxel_rotated``: Largest possible isotropic voxel obtainable with
+   a different coordinate system. It is only usable if the entire tractogram
    is rotated according to [rotation_matrix]. Ex: max_voxel_anisotropic:
    (1, 0, 0) => max_voxel_rotated: (0.5774, 0.5774, 0.5774)
+
+If the option is provided. The following matrix would be saved in a
+different file:
+
+-  ``rotation_matrix``: 4D transformation matrix containing the rotation to be
+   applied on the tractogram to align max_voxel_rotated with the coordinate
+   system. (see scil_tractogram_apply_transform.py).
+
 
 |Metrics (without max_voxel_rotated) visualized in 3D|
 
@@ -172,7 +181,7 @@ saved in ``metrics.txt``. (Values expressed in mm):
 
 Note: This information can be useful for analyzing the
 reconstruction obtained through tracking, as well as for performing
-track density imaging.
+track density imaging at extreme resolutions.
 
 Performing fibertube tracking
 -----------------------------
@@ -183,23 +192,6 @@ a discretized grid of directions or fODFs. Instead, you will be
 propagating a streamline through fibertubes and controlling the
 resolution by using a ``blur_radius``. The way it works is as follows:
 
-Tracking
-~~~~~~~~
-
-When the tracking algorithm is about to select a new direction to
-propagate the current streamline, it will build a sphere of radius
-``blur_radius`` and pick randomly from all the fibertube segments
-intersecting with it. The larger the intersection volume, the more
-likely a fibertube segment is to be picked and used as a tracking
-direction. This makes fibertube tracking inherently probabilistic.
-Theoretically, with a ``blur_radius`` of 0, any given set of coordinates
-has either a single tracking direction because it is within a fibertube,
-or no direction at all from being out of one. In fact, this behavior
-won't change until the diameter of the sphere is larger than the
-smallest distance separating two fibertubes. When this happens, more
-than one fibertubes will intersect the ``blur_radius`` sphere and
-introduce partial volume effect.
-
 Seeding
 ~~~~~~~
 
@@ -208,18 +200,40 @@ every fibertube. We can however change the number of fibertubes that
 will be tracked, as well as the amount of seeds within each. (See
 Seeding options in the help menu).
 
-.. raw:: html
+Tracking
+~~~~~~~~
 
-   <br>
-   The interface of the script is very similar to `scil_tracking_local_dev.py`, but simplified and with a `blur_radius` option. Let us do:
+When the tracking algorithm is about to select a new direction to
+propagate the current streamline, it will build a sphere of radius
+``blur_radius`` and pick randomly from all the fibertube segments
+intersecting with it. The larger the intersection volume, the more
+likely a fibertube segment is to be picked and used as a tracking
+direction.
+
+
+.. image:: https://github.com/user-attachments/assets/0308c206-c396-41c5-a0e1-bb69b692c101
+   :alt: Visualization of the blurring sphere intersecting with segments
+
+This makes fibertube tracking inherently probabilistic.
+Theoretically, with a ``blur_radius`` of 0, any given set of coordinates
+has either a single tracking direction because it is within a fibertube,
+or no direction at all from being out of one. In fact, this behavior
+won't change until the diameter of the sphere is larger than the
+smallest distance separating two fibertubes. When this happens, more
+than one fibertubes will intersect the ``blur_radius`` sphere and
+introduce partial volume effect.
+
+The interface of the script is very similar to
+``scil_tracking_local_dev.py``, but simplified and with a ``blur_radius``
+option. Let us do:
 
 ::
 
-   scil_fibertube_tracking.py fibertubes.trk tracking.trk 0.01 0.01 --nb_fibertubes 3 --out_config tracking_config.txt --processes 0 -v -f
+   scil_fibertube_tracking.py fibertubes.trk tracking.trk 0.01 0.01 --nb_fibertubes 3 --out_config tracking_config.txt --processes 4 -v -f
 
-This should take around 5 minutes depending on how many processes can be
-run simultaniously. The loading bar of each thread will only update every
-100 streamlines. It may look like it's frozen, but it will finish soon!
+This should take around 5 minutes. The loading bar of each thread will
+only update every 100 streamlines. It may look like it's frozen, but it
+rest assured it's still going!
 
 Reconstruction analysis
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -228,14 +242,14 @@ By using the ``scil_fibertube_score_tractogram.py`` script, you are able
 to obtain measures on the quality of the fibertube tracking that was
 performed. Here is a description of the computed metrics:
 
-VC: "Valid Connection": A streamline that passes WITHIN the final segment
+VC: "Valid Connection": A streamline that ended within the final segment
 of the fibertube in which it was seeded.
 
-IC: "Invalid Connection": A streamline that ended in the final segment of
-another fibertube.
+IC: "Invalid Connection": A streamline that ended in the first or final
+segment of another fibertube.
 
-NC: "No Connection": A streamlines that has not ended in the final segment
-of any fibertube.
+NC: "No Connection": A streamlines that has not ended in the first or final
+segment of any fibertube.
 
 .. image:: https://github.com/user-attachments/assets/4871cb09-313e-499a-b56d-a668bdb631db
    :alt: Visual representation of VC, IC, and NC
@@ -259,6 +273,13 @@ The "absolute error" of a coordinate is the distance in mm between that
 coordinate and the closest point on its corresponding fibertube. The
 average of all coordinate absolute errors of a streamline is called the
 "Mean absolute error" or "mae".
+
+Here is a visual representation of streamlines (Green) tracked along a fibertube
+(Only the centerline is shown in blue) with their coordinate absolute error (Red).
+
+
+.. image:: https://github.com/user-attachments/assets/73235244-0bf1-4506-9e4e-0b94d4bf993f
+   :alt: Visualization of the coordinate absolute error
 
 Computed metrics:
 
@@ -297,11 +318,11 @@ giving us the following output in ``reconstruction_metrics.txt``:
    }
 
 This data tells us that about 13% of our streamlines managed to stay
-within the fibertube in which they were seeded (``"vc_ratio": 0.0``).
+within the fibertube in which they were seeded (``"vc_ratio": 0.13333~``).
 However, 80% of streamlines ended closer than one ``blur_radius`` away from
 the end of their respective fibertube (``"res_vc_ratio": 0.8``).
-Lastly, we notice that the streamline with the "worst" trajectory was on average 5.14mm
-away from its fibertube (``"mae_max": 5.140102678615527``).
+Lastly, we notice that the streamline with the "worst" trajectory was on average
+5.14mm away from its fibertube (``"mae_max": 5.140102678615527``).
 
 End of Demo
 -----------
