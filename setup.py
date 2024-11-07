@@ -82,7 +82,7 @@ opts = dict(name=NAME,
             },
             ext_modules=get_extensions(),
             python_requires=PYTHON_VERSION,
-            setup_requires=['cython', 'numpy'],
+            setup_requires=[],
             install_requires=external_dependencies,
             entry_points={
                 'console_scripts': ["{}=scripts.{}:main".format(
