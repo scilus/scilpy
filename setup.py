@@ -82,7 +82,7 @@ opts = dict(name=NAME,
             },
             ext_modules=get_extensions(),
             python_requires=PYTHON_VERSION,
-            setup_requires=[], # replaced by PEP518 (pyproject.toml)
+            setup_requires=[],  # replaced by PEP518 (pyproject.toml)
             install_requires=external_dependencies,
             entry_points={
                 'console_scripts': ["{}=scripts.{}:main".format(
