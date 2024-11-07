@@ -6,12 +6,12 @@ Given ground-truth fibertubes and a tractogram obtained through fibertube
 tracking, computes metrics about the quality of individual fiber
 reconstruction.
 
-VC: "Valid Connection": A streamline that passes WITHIN the final segment of
-    the fibertube in which it was seeded.
-IC: "Invalid Connection": A streamline that ended in the final segment of
-    another fibertube.
-NC: "No Connection": A streamlines that has not ended in the final segment
-    of any fibertube.
+VC: "Valid Connection": A streamline that ended within the final segment
+    of the fibertube in which it was seeded.
+IC: "Invalid Connection": A streamline that ended in the first or final
+    segment of another fibertube.
+NC: "No Connection": A streamline that has not ended in the first or final
+    segment of any fibertube.
 
 Res_VC: "Resolution-wise Valid Connection": A streamline that passes closer
     than [blur_darius] away from the last segment of the fibertube in which it
