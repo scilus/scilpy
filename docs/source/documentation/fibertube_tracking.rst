@@ -253,7 +253,7 @@ of the fibertube in which it was seeded.
 IC: "Invalid Connection": A streamline that ended in the first or final
 segment of another fibertube.
 
-NC: "No Connection": A streamlines that has not ended in the first or final
+NC: "No Connection": A streamline that has not ended in the first or final
 segment of any fibertube.
 
 .. image:: https://github.com/user-attachments/assets/4871cb09-313e-499a-b56d-a668bdb631db
