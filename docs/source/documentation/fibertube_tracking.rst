@@ -1,4 +1,4 @@
-Introduction to the Fibertube Tracking project through an interactive demo.
+Introduction to the Fibertube Tracking environment through an interactive demo.
 ====
 
 In this demo, you will be introduced to the main scripts of this project

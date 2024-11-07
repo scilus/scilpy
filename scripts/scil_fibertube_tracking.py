@@ -276,7 +276,8 @@ def main():
     config = {
         'step_size': args.step_size,
         'blur_radius': args.blur_radius,
-        'nb_fibertubes': args.nb_fibertubes,
+        'nb_fibertubes': args.nb_fibertubes if args.nb_fibertubes
+            else len(centerlines) ,
         'nb_seeds_per_fibertube': args.nb_seeds_per_fibertube
     }
     if args.out_config:
