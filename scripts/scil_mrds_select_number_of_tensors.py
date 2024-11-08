@@ -9,8 +9,8 @@ Each MRDS input is a list of 5 files:
     - Signal fraction of each tensor
     - Eigenvalues
     - Isotropic
-    - Number of components
-    - PDDs (Principal Diffusion Directions)
+    - Number of tensors
+    - Eigenvectors
 
     --N1 is the MRDS solution with 1 tensor.
     --N2 is the MRDS solution with 2 tensors.
@@ -21,18 +21,18 @@ Each MRDS input is a list of 5 files:
         --N1 V1_signal_fraction.nii.gz
              V1_eigenvalues.nii.gz
              V1_isotropic.nii.gz
-             V1_numcomp.nii.gz
-             V1_pdds.nii.gz
+             V1_num_tensors.nii.gz
+             V1_evecs.nii.gz
         --N2 V2_signal_fraction.nii.gz
              V2_eigenvalues.nii.gz
              V2_isotropic.nii.gz
-             V2_numcomp.nii.gz
-             V2_pdds.nii.gz
+             V2_num_tensors.nii.gz
+             V2_evecs.nii.gz
         --N3 V3_signal_fraction.nii.gz
              V3_eigenvalues.nii.gz
              V3_isotropic.nii.gz
-             V3_numcomp.nii.gz
-             V3_pdds.nii.gz
+             V3_num_tensors.nii.gz
+             V3_evecs.nii.gz
 """
 
 import argparse
@@ -88,7 +88,7 @@ def main():
                     "{}_MRDS_eigenvalues.nii.gz".format(args.prefix),
                     "{}_MRDS_isotropic.nii.gz".format(args.prefix),
                     "{}_MRDS_num_comp.nii.gz".format(args.prefix),
-                    "{}_MRDS_pdds_cartesian.nii.gz".format(args.prefix)]
+                    "{}_MRDS_evecs.nii.gz".format(args.prefix)]
     assert_outputs_exist(parser, args, output_files)
     assert_headers_compatible(parser, [args.in_volume] +
                               args.N1 + args.N2 + args.N3)
@@ -98,14 +98,14 @@ def main():
     signal_fraction = []
     eigenvalues = []
     iso = []
-    numcomp = []
-    pdds = []
+    num_tensors = []
+    evecs = []
     for N in range(3):
         signal_fraction.append(nib.load(mrds_files[N][0]).get_fdata(dtype=np.float32))
         eigenvalues.append(nib.load(mrds_files[N][1]).get_fdata(dtype=np.float32))
         iso.append(nib.load(mrds_files[N][2]).get_fdata(dtype=np.float32))
-        numcomp.append(nib.load(mrds_files[N][3]).get_fdata(dtype=np.float32))
-        pdds.append(nib.load(mrds_files[N][4]).get_fdata(dtype=np.float32))
+        num_tensors.append(nib.load(mrds_files[N][3]).get_fdata(dtype=np.float32))
+        evecs.append(nib.load(mrds_files[N][4]).get_fdata(dtype=np.float32))
 
     # MOdel SElector MAP
     mosemap_img = nib.load(args.in_volume)
@@ -128,8 +128,8 @@ def main():
     signal_fraction_out = np.zeros((X, Y, Z, 3))
     eigenvalues_out = np.zeros((X, Y, Z, 9))
     iso_out = np.zeros((X, Y, Z, 2))
-    numcomp_out = np.zeros((X, Y, Z), dtype=np.uint8)
-    pdds_out = np.zeros((X, Y, Z, 9))
+    num_tensors_out = np.zeros((X, Y, Z), dtype=np.uint8)
+    evecs_out = np.zeros((X, Y, Z, 9))
 
     # select data using mosemap
     for (X, Y, Z) in filtered_voxels:
@@ -142,8 +142,8 @@ def main():
             signal_fraction_out[X, Y, Z, :] = signal_fraction[N][X, Y, Z, :]
             eigenvalues_out[X, Y, Z, :] = eigenvalues[N][X, Y, Z, :]
             iso_out[X, Y, Z, :] = iso[N][X, Y, Z, :]
-            numcomp_out[X, Y, Z] = int(numcomp[N][X, Y, Z])
-            pdds_out[X, Y, Z, :] = pdds[N][X, Y, Z, :]
+            num_tensors_out[X, Y, Z] = int(num_tensors[N][X, Y, Z])
+            evecs_out[X, Y, Z, :] = evecs[N][X, Y, Z, :]
 
     # write output files
     nib.save(nib.Nifti1Image(signal_fraction_out,
@@ -158,11 +158,11 @@ def main():
                              affine=affine,
                              header=header,
                              dtype=np.float32), output_files[2])
-    nib.save(nib.Nifti1Image(numcomp_out,
+    nib.save(nib.Nifti1Image(num_tensors_out,
                              affine=affine,
                              header=header,
                              dtype=np.uint8), output_files[3])
-    nib.save(nib.Nifti1Image(pdds_out,
+    nib.save(nib.Nifti1Image(evecs_out,
                              affine=affine,
                              header=header,
                              dtype=np.float32), output_files[4])
