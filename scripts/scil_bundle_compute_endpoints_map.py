@@ -50,12 +50,14 @@ def _build_arg_parser():
                         'Can be useful when the reference is not in RAS.')
     p.add_argument('--binary', action='store_true',
                    help="Save outputs as a binary mask instead of a heat map.")
-    p.add_argument('--nb_points', type=int, default=1,
-                   help="Number of points to consider at the extremities"
-                        " of the streamlines. [%(default)s]")
-    p.add_argument('--mm', action='store_true',
-                   help='Compute the endpoints in mm instead of nb. of '
-                        'points. Useful for compressed streamlines.')
+
+    distance_g = p.add_argument_group(title='Distance options')
+    distance_g.add_argument('--distance', type=int, default=1,
+                            help="Distance to consider at the extremities "
+                            "of the streamlines. [%(default)s]")
+    distance_g.add_argument('--unit', type=str, choices=['points', 'mm'],
+                            default='points',
+                            help='Unit of the distance. [%(default)s]')
 
     add_json_args(p)
     add_reference_arg(p)
@@ -87,13 +89,20 @@ def main():
     head_name = args.endpoints_map_head
     tail_name = args.endpoints_map_tail
 
+    # Swap head and tail if necessary
     if swap:
         head_name = args.endpoints_map_tail
         tail_name = args.endpoints_map_head
 
-    endpoints_map_head, endpoints_map_tail = \
-        get_head_tail_density_maps(sft, args.nb_points, to_millimeters=args.mm)
+    # Distance and unit to consider at the extremities of the streamlines
+    nb_points = args.distance
+    to_mm = args.unit == 'mm'
 
+    # Compute the density maps
+    endpoints_map_head, endpoints_map_tail = \
+        get_head_tail_density_maps(sft, nb_points, to_millimeters=to_mm)
+
+    # Convert streamline density to binary mask
     if args.binary:
         endpoints_map_head = (endpoints_map_head > 0).astype(np.int16)
         endpoints_map_tail = (endpoints_map_tail > 0).astype(np.int16)
@@ -118,7 +127,7 @@ def main():
         }
     }
 
-    print(json.dumps(stats, indent=args.indent))
+    logging.info((json.dumps(stats, indent=args.indent)))
 
 
 if __name__ == '__main__':
