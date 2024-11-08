@@ -1,0 +1,9 @@
+# Minimal build configuration at detailed here:
+# https://github.com/pypa/pip/issues/11457
+
+[build-system]
+requires = [
+    "setuptools >= 64",
+    "Cython==3.0.*",
+    "numpy==1.25.*"
+]
