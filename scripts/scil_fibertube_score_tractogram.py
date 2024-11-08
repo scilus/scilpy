@@ -54,7 +54,7 @@ See also:
     - scil_tractogram_filter_collisions.py to prepare data for fibertube
       tracking
     - scil_fibertube_tracking.py to perform a fibertube tracking
-    - docs/fibertube/DEMO.md
+    - docs/source/documentation/fibertube_tracking.rst
 """
 
 import os
@@ -111,7 +111,7 @@ def _build_arg_parser():
                    'visual representation of all the coordinate absolute \n'
                    'errors of the entire tractogram. The file name is \n'
                    'derived from the out_metrics parameter.')
-    
+
     p.add_argument(
         '--out_tracked_fibertubes', type=str, default=None,
         help='If set, the fibertubes that were used for seeding will be \n'
@@ -205,7 +205,8 @@ def main():
         for fi in tracked_fibertubes_indices:
             tracked_fibertubes.append(centerlines[fi][:centerlines_length[fi]])
 
-        tracked_sft = StatefulTractogram.from_sft(tracked_fibertubes, truth_sft)
+        tracked_sft = StatefulTractogram.from_sft(tracked_fibertubes,
+                                                  truth_sft)
         save_tractogram(tracked_sft, args.out_tracked_fibertubes,
                         bbox_valid_check=False)
 

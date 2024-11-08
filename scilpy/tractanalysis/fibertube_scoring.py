@@ -9,8 +9,7 @@ from scipy.spatial.transform import Rotation
 from scilpy.tracking.fibertube_utils import (streamlines_to_segments,
                                              point_in_cylinder,
                                              dist_segment_segment,
-                                             dist_point_segment,
-                                             sphere_cylinder_intersection)
+                                             dist_point_segment)
 from scilpy.tracking.utils import tqdm_if_verbose
 
 
@@ -373,7 +372,7 @@ def endpoint_connectivity(step_size, blur_radius, centerlines,
                  max_seg_length='float64'):
         centers, indices, max_seg_length = streamlines_to_segments(
             centerlines, False)
-    
+
     centerline_fixed_length = len(centerlines[0])-1
 
     kdtree_centers = np.zeros((0, 3))
@@ -381,7 +380,7 @@ def endpoint_connectivity(step_size, blur_radius, centerlines,
         kdtree_centers = np.concatenate(
             (kdtree_centers, centers[centerline_fixed_length * fi:
              (centerline_fixed_length * fi + centerlines_length[fi] - 1)]))
-    
+
     tree = nbKDTree(kdtree_centers)
 
     truth_vc = set()
@@ -399,7 +398,7 @@ def endpoint_connectivity(step_size, blur_radius, centerlines,
         # streamline[0] is the last point of the streamline
         neighbors = tree.query_radius(streamline[0],
                                       max(blur_radius, step_size)
-                                      +max_seg_length)[0]
+                                      + max_seg_length)[0]
 
         for neighbor_segi in neighbors:
             fi = indices[neighbor_segi][0]
@@ -451,4 +450,5 @@ def endpoint_connectivity(step_size, blur_radius, centerlines,
         if not res_connected:
             res_nc.add(si)
 
-    return list(truth_vc), list(truth_ic), list(truth_nc), list(res_vc), list(res_ic), list(res_nc)
+    return (list(truth_vc), list(truth_ic), list(truth_nc), list(res_vc),
+            list(res_ic), list(res_nc))

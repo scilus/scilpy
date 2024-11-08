@@ -53,7 +53,7 @@ Computed metrics (all expressed in mm):
         (see scil_tractogram_apply_transform.py).
 
 See also:
-    - docs/fibertube/DEMO.md
+    - docs/source/documentation/fibertube_tracking.rst
 """
 
 import os

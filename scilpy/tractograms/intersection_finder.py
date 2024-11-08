@@ -75,7 +75,7 @@ class IntersectionFinder:
         other reasons."""
         return self._excluded
 
-    def find_intersections(self, min_distance = 0):
+    def find_intersections(self, min_distance=0):
         """
         Finds intersections within the initialized data of the object
 
@@ -152,7 +152,8 @@ class IntersectionFinder:
                 rp = self.diameters[si] / 2
                 rq = self.diameters[neighbor_si] / 2
 
-                distance, _, p_coll, q_coll = dist_segment_segment(p0, p1, q0, q1)
+                distance, _, p_coll, q_coll = dist_segment_segment(p0, p1,
+                                                                   q0, q1)
                 collide = distance <= rp + rq
                 external_distance = distance - rp - rq
 
