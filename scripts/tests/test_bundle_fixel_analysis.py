@@ -61,18 +61,25 @@ def test_multiple_norm(script_runner, monkeypatch):
                             '--processes', '1', '-f')
     assert ret.success
     assert os.path.isfile('bundles_LUT.txt')
-    assert os.path.isfile('fixel_density_maps_voxel-norm.nii.gz')
-    assert os.path.isfile('fixel_density_maps_fixel-norm.nii.gz')
-    assert os.path.isfile('fixel_density_maps_none-norm.nii.gz')
+    for n in ['voxel', 'fixel', 'none']:
+        assert os.path.isfile('fixel_density_maps_{}-norm.nii.gz'.format(n))
+        assert os.path.isfile('fixel_density_map_{}-norm_f1.nii.gz'.format(n))
+        assert os.path.isfile('fixel_density_map_{}-norm_f2.nii.gz'.format(n))
+        assert os.path.isfile('fixel_density_map_{}-norm_f3.nii.gz'.format(n))
+        assert os.path.isfile('fixel_density_map_{}-norm_f4.nii.gz'.format(n))
+        assert os.path.isfile('fixel_density_map_{}-norm_f5.nii.gz'.format(n))
+        assert os.path.isfile('fixel_density_map_{}-'
+                              'norm_test.nii.gz'.format(n))
+        assert os.path.isfile('nb_bundles_per_fixel_{}-norm.nii.gz'.format(n))
+        assert os.path.isfile('nb_bundles_per_voxel_{}-norm.nii.gz'.format(n))
+        assert os.path.isfile('single_bundle_mask_{}-'
+                              'norm_WM.nii.gz'.format(n))
+        assert os.path.isfile('single_bundle_mask_{}-'
+                              'norm_test.nii.gz'.format(n))
+    
     assert os.path.isfile('voxel_density_maps_voxel-norm.nii.gz')
     assert not os.path.isfile('voxel_density_maps_fixel-norm.nii.gz')
     assert os.path.isfile('voxel_density_maps_none-norm.nii.gz')
-    assert os.path.isfile('fixel_density_map_fixel-norm_f1.nii.gz')
-    assert os.path.isfile('fixel_density_map_fixel-norm_test.nii.gz')
-    assert os.path.isfile('nb_bundles_per_fixel_voxel-norm.nii.gz')
-    assert os.path.isfile('nb_bundles_per_voxel_voxel-norm.nii.gz')
-    assert os.path.isfile('single_bundle_mask_fixel-norm_WM.nii.gz')
-    assert os.path.isfile('single_bundle_mask_fixel-norm_test.nii.gz')
 
 # We would need a tractogram with data_per_streamline to test the --dps_key
 # option
