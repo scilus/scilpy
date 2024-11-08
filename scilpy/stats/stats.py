@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
 
-import logging
-
 from itertools import combinations
+import logging
 
 import scipy.stats
 
@@ -49,7 +48,7 @@ def verify_homoscedasticity(data_by_group, normality=False, alpha=0.05):
         The sample data separated by groups.
         Possibly of different group size.
     normality: bool
-        Whether or not the sample data of each groups can be considered normal
+        Whether or not the sample data of each group can be considered normal
     alpha: float
         Type 1 error of the equality of variance test
         Probability of false positive or rejecting null hypothesis
@@ -98,7 +97,7 @@ def verify_group_difference(data_by_group, normality=False,
         The sample data separated by groups.
         Possibly of different group size.
     normality: bool
-        Whether or not the sample data of each groups can be considered normal.
+        Whether or not the sample data of each group can be considered normal.
     homoscedasticity: bool
         Whether or not the equality of variance across groups can be assumed.
     alpha: float

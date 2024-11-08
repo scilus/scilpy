@@ -215,70 +215,68 @@ def main():
         pool.join()
 
     output_measures_dict = {}
-    for measure_dict in all_measures_dict:
-        # Empty bundle should not make the script crash
-        if measure_dict is not None:
-            for measure_name in measure_dict.keys():
-                # Create an empty list first
-                if measure_name not in output_measures_dict:
-                    output_measures_dict[measure_name] = []
-                output_measures_dict[measure_name].append(
-                    measure_dict[measure_name])
-    # add group stats if user wants
-    if args.group_statistics:
-        # length and span are weighted by streamline count
-        group_total_length = np.sum(
-            np.multiply(output_measures_dict['avg_length'],
-                        output_measures_dict['streamlines_count']))
-        group_total_span = np.sum(
-            np.multiply(output_measures_dict['span'],
-                        output_measures_dict['streamlines_count']))
-        group_streamlines_count = \
-            np.sum(output_measures_dict['streamlines_count'])
-        group_avg_length = group_total_length / group_streamlines_count
-        group_avg_span = group_total_span / group_streamlines_count
-        group_avg_vol = np.average(output_measures_dict['volume'])
-        group_avg_diam = \
-            2 * np.sqrt(group_avg_vol / (np.pi * group_avg_length))
-        output_measures_dict['group_stats'] = {}
-        output_measures_dict['group_stats']['total_streamlines_count'] = \
-            float(group_streamlines_count)
-        output_measures_dict['group_stats']['avg_streamline_length'] = \
-            group_avg_length
-        # max and min length of all streamlines in all input bundles
-        output_measures_dict['group_stats']['max_streamline_length'] = \
-            float(np.max(output_measures_dict['max_length']))
-        output_measures_dict['group_stats']['min_streamline_length'] = \
-            float(np.min(output_measures_dict['min_length']))
-        output_measures_dict['group_stats']['avg_streamline_span'] = \
-            group_avg_span
-        # computed with other set averages and not weighted by streamline count
-        output_measures_dict['group_stats']['avg_volume'] = group_avg_vol
-        output_measures_dict['group_stats']['avg_curl'] = \
-            group_avg_length / group_avg_span
-        output_measures_dict['group_stats']['avg_diameter'] = group_avg_diam
-        output_measures_dict['group_stats']['avg_elongation'] = \
-            group_avg_length / group_avg_diam
-        output_measures_dict['group_stats']['avg_surface_area'] = \
-            np.average(output_measures_dict['surface_area'])
-        output_measures_dict['group_stats']['avg_irreg'] = \
-            np.average(output_measures_dict['irregularity'])
-        output_measures_dict['group_stats']['avg_end_surface_area_head'] = \
-            np.average(output_measures_dict['end_surface_area_head'])
-        output_measures_dict['group_stats']['avg_end_surface_area_tail'] = \
-            np.average(output_measures_dict['end_surface_area_tail'])
-        output_measures_dict['group_stats']['avg_radius_head'] = \
-            np.average(output_measures_dict['radius_head'])
-        output_measures_dict['group_stats']['avg_radius_tail'] = \
-            np.average(output_measures_dict['radius_tail'])
-        output_measures_dict['group_stats']['avg_irregularity_head'] = \
-            np.average(
-                output_measures_dict['irregularity_of_end_surface_head'])
-        output_measures_dict['group_stats']['avg_irregularity_tail'] = \
-            np.average(
-                output_measures_dict['irregularity_of_end_surface_tail'])
-        output_measures_dict['group_stats']['avg_fractal_dimension'] = \
-            np.average(output_measures_dict['fractal_dimension'])
+    if len(args.in_bundles) == 1:
+        output_measures_dict = all_measures_dict[0]
+    else:
+        for measure_dict in all_measures_dict:
+            # Empty bundle should not make the script crash
+            if measure_dict is not None:
+                for measure_name in measure_dict.keys():
+                    # Create an empty list first
+                    if measure_name not in output_measures_dict:
+                        output_measures_dict[measure_name] = []
+                    output_measures_dict[measure_name].append(
+                        measure_dict[measure_name])
+        # add group stats if user wants
+        if args.group_statistics:
+            # length and span are weighted by streamline count
+            group_total_length = np.sum(
+                np.multiply(output_measures_dict['avg_length'],
+                            output_measures_dict['streamlines_count']))
+            group_total_span = np.sum(
+                np.multiply(output_measures_dict['span'],
+                            output_measures_dict['streamlines_count']))
+            group_streamlines_count = \
+                np.sum(output_measures_dict['streamlines_count'])
+            group_avg_length = group_total_length / group_streamlines_count
+            group_avg_span = group_total_span / group_streamlines_count
+            group_avg_vol = np.average(output_measures_dict['volume'])
+            group_avg_diam = \
+                2 * np.sqrt(group_avg_vol / (np.pi * group_avg_length))
+            output_measures_dict['group_stats'] = {}
+            output_measures_dict['group_stats']['total_streamlines_count'] = \
+                float(group_streamlines_count)
+            output_measures_dict['group_stats']['avg_streamline_length'] = \
+                group_avg_length
+            # max and min length of all streamlines in all input bundles
+            output_measures_dict['group_stats']['max_streamline_length'] = \
+                float(np.max(output_measures_dict['max_length']))
+            output_measures_dict['group_stats']['min_streamline_length'] = \
+                float(np.min(output_measures_dict['min_length']))
+            output_measures_dict['group_stats']['avg_streamline_span'] = \
+                group_avg_span
+            # computed with other set averages and not weighted by
+            # streamline count
+            output_measures_dict['group_stats']['avg_volume'] = group_avg_vol
+            output_measures_dict['group_stats']['avg_curl'] = \
+                group_avg_length / group_avg_span
+            output_measures_dict['group_stats']['avg_diameter'] = group_avg_diam
+            output_measures_dict['group_stats']['avg_elongation'] = \
+                group_avg_length / group_avg_diam
+            output_measures_dict['group_stats']['avg_irregularity_head'] = \
+                np.average(
+                    output_measures_dict['irregularity_of_end_surface_head'])
+            output_measures_dict['group_stats']['avg_irregularity_tail'] = \
+                np.average(
+                    output_measures_dict['irregularity_of_end_surface_tail'])
+
+            list_metrics = ['surface_area', 'irregularity',
+                            'end_surface_area_head',
+                            'end_surface_area_tail', 'radius_head',
+                            'radius_tail', 'fractal_dimension']
+            for curr_metric in list_metrics:
+                output_measures_dict['group_stats']['avg_' + curr_metric] = \
+                    np.average(output_measures_dict[curr_metric])
 
     if args.out_json:
         with open(args.out_json, 'w') as outfile:

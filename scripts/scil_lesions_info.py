@@ -49,6 +49,8 @@ def _build_arg_parser():
                     help='Path of the bundle binary mask (.nii.gz).')
     p1.add_argument('--bundle_labels_map',
                     help='Path of the bundle labels map (.nii.gz).')
+    p.add_argument('--min_lesion_vol', type=float, default=7,
+                   help='Minimum lesion volume in mm3 [%(default)s].')
 
     p.add_argument('--out_lesion_atlas', metavar='FILE',
                    help='Save the labelized lesion(s) map (.nii.gz).')
