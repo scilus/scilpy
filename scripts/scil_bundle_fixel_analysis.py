@@ -69,7 +69,7 @@ The script produces various output:
 
     If more than one normalization type is given, every output will be computed
     for each normalization. In any case, the normalization type is added after
-    the basename of the output, such as fixel_density_maps_voxel_norm.
+    the basename of the output, such as fixel_density_maps_voxel-norm.
 
     If the split_bundles argument is given, the script will also save the
     fixel_density_maps and fixel_density_masks separated by bundles, with

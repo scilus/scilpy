@@ -57,10 +57,22 @@ def test_multiple_norm(script_runner, monkeypatch):
                             '--norm', 'fixel', 'none', 'voxel',
                             '--split_bundles', '--split_fixels',
                             '--single_bundle',
+                            '--out_dir', '.',
                             '--processes', '1', '-f')
     assert ret.success
-    print(tmp_dir.name + "/fixel_density_maps.nii.gz")
-    assert os.path.exists(tmp_dir.name + "/fixel_density_maps.nii.gz")
+    assert os.path.isfile('bundles_LUT.txt')
+    assert os.path.isfile('fixel_density_maps_voxel-norm.nii.gz')
+    assert os.path.isfile('fixel_density_maps_fixel-norm.nii.gz')
+    assert os.path.isfile('fixel_density_maps_none-norm.nii.gz')
+    assert os.path.isfile('voxel_density_maps_voxel-norm.nii.gz')
+    assert not os.path.isfile('voxel_density_maps_fixel-norm.nii.gz')
+    assert os.path.isfile('voxel_density_maps_none-norm.nii.gz')
+    assert os.path.isfile('fixel_density_map_fixel-norm_f1.nii.gz')
+    assert os.path.isfile('fixel_density_map_fixel-norm_test.nii.gz')
+    assert os.path.isfile('nb_bundles_per_fixel_voxel-norm.nii.gz')
+    assert os.path.isfile('nb_bundles_per_voxel_voxel-norm.nii.gz')
+    assert os.path.isfile('single_bundle_mask_fixel-norm_WM.nii.gz')
+    assert os.path.isfile('single_bundle_mask_fixel-norm_test.nii.gz')
 
 # We would need a tractogram with data_per_streamline to test the --dps_key
 # option
