@@ -14,7 +14,7 @@ docopt==0.6.*
 dvc==3.48.*
 dvc-http==2.32.*
 formulaic==0.3.*
-fury==0.10.*
+fury==0.11.*
 future==0.18.*
 GitPython==3.1.*
 h5py==3.10.*
@@ -26,7 +26,8 @@ nibabel==5.2.*
 nilearn==0.9.*
 numba==0.59.1
 numba-kdtree==0.4.0
-numpy==1.26.*
+nltk==3.8.*
+numpy==1.25.*
 openpyxl==3.0.*
 packaging == 23.2.*
 Pillow==10.2.*

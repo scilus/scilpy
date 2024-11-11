@@ -84,7 +84,7 @@ def test_get_endpoints_density_map_five_points():
     sft, reference, *_ = _setup_files()
 
     endpoints_map = get_endpoints_density_map(
-        sft, point_to_select=5)
+        sft, point_to_select=5, to_millimeters=True)
 
     in_result = os.path.join(SCILPY_HOME, 'tractograms',
                              'streamline_and_mask_operations',
@@ -111,6 +111,7 @@ def test_get_head_tail_density_maps():
                              'bundle_4_endpoints_1point.nii.gz')
 
     result = nib.load(in_result).get_fdata()
+
     assert np.allclose(head_map + tail_map, result)
 
 
