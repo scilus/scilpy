@@ -59,7 +59,7 @@ def get_testing_files_dict():
         "fodf_filtering.zip": "5985c0644321ecf81fd694fb91e2c898",
         "processing.zip": "eece5cdbf437b8e4b5cb89c797872e28",
         "surface_vtk_fib.zip": "241f3afd6344c967d7176b43e4a99a41",
-        "tractograms.zip": "5497d0bf3ccc35f8f4f117829d790267"
+        "tractograms.zip": "1eb29085db974b5e58d32b13eb76fbe6"
     }
 
 
