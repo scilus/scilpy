@@ -61,6 +61,7 @@ import json
 import argparse
 import logging
 import numpy as np
+import nibabel as nib
 
 from scilpy.tractograms.intersection_finder import IntersectionFinder
 from dipy.io.stateful_tractogram import StatefulTractogram
@@ -73,6 +74,8 @@ from scilpy.io.utils import (assert_inputs_exist,
                              add_overwrite_arg,
                              add_verbose_arg,
                              add_json_args)
+from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
+from scilpy.tractanalysis.todi import TrackOrientationDensityImaging
 
 
 def _build_arg_parser():
@@ -233,6 +236,8 @@ def main():
 
     if args.out_metrics is not None or args.out_max_voxel_rotation is not None:
         logging.info('Computing metrics')
+
+        
         min_ext_dist, min_ext_dist_vect = (
             min_external_distance(
                 out_sft.streamlines,
@@ -240,6 +245,39 @@ def main():
                 args.verbose != 'WARNING'))
         max_voxel_ani, max_voxel_iso = max_voxels(min_ext_dist_vect)
         mvr_rot, mvr_edge = max_voxel_rotated(min_ext_dist_vect)
+
+        # Computing mean tube density per voxel.
+        out_sft.to_vox()
+        # Because compute_todi expects streamline points (in voxel coordinates)
+        # to be in the range [0, size] rather than [-0.5, size - 0.5], we shift
+        # the voxel origin to corner.
+        out_sft.to_corner()
+
+        _, data_shape, _, _ = out_sft.space_attributes
+        todi_obj = TrackOrientationDensityImaging(tuple(data_shape))
+        todi_obj.compute_todi(out_sft.streamlines)
+        img = todi_obj.get_tdi()
+        img = todi_obj.reshape_to_3d(img)
+        
+        nb_voxels_nonzero = np.count_nonzero(img)
+        sum = np.sum(img, axis=-1)
+        sum = np.sum(sum, axis=-1)
+        sum = np.sum(sum, axis=-1)
+
+        mean_seg_volume = np.pi * ((np.mean(diameters)/2) ** 2) * (
+            np.linalg.norm(in_sft.streamlines[0][1] -
+                           in_sft.streamlines[0][0]))
+
+        mean_seg_count = sum / nb_voxels_nonzero
+        mean_volume = mean_seg_count * mean_seg_volume
+        mean_density = mean_volume / (out_sft.voxel_sizes[0]*
+                                      out_sft.voxel_sizes[1]*
+                                      out_sft.voxel_sizes[2])
+
+        print(mean_seg_count, mean_volume, mean_density)
+        
+        #img = nib.Nifti1Image(img.astype(np.float32), affine)
+        #img.to_filename(args.out_tdi)
 
         if args.out_metrics:
             metrics = {
