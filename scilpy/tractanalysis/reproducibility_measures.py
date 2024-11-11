@@ -279,8 +279,14 @@ def compute_bundle_adjacency_voxel(binary_1, binary_2, non_overlap=False):
     -------
     float: Distance in millimeters between both bundles.
     """
-    b1_ind = np.argwhere(binary_1 > 0)
-    b2_ind = np.argwhere(binary_2 > 0)
+    if isinstance(binary_1, np.ndarray) and isinstance(binary_2, np.ndarray) \
+        and binary_1.ndim == 3 and binary_2.ndim == 3:
+        b1_ind = np.argwhere(binary_1 > 0)
+        b2_ind = np.argwhere(binary_2 > 0)
+    else:
+        b1_ind = binary_1
+        b2_ind = binary_2
+
     b1_tree = cKDTree(b1_ind)
     b2_tree = cKDTree(b2_ind)
 

@@ -154,6 +154,11 @@ def flip_sft(sft, flip_axes):
     -------
     flipped_sft: StatefulTractogram
     """
+    old_space = sft.space
+    old_origin = sft.origin
+    sft.to_vox()
+    sft.to_center()
+
     if len(flip_axes) == 0:
         # Could return sft. But creating new SFT (or deep copy).
         flipped_streamlines = sft.streamlines
@@ -173,6 +178,11 @@ def flip_sft(sft, flip_axes):
         flipped_streamlines, sft,
         data_per_point=sft.data_per_point,
         data_per_streamline=sft.data_per_streamline)
+
+    new_sft.to_space(old_space)
+    new_sft.to_origin(old_origin)
+    sft.to_space(old_space)
+    sft.to_origin(old_origin)
 
     return new_sft
 
