@@ -2,7 +2,8 @@
 # -*- coding: utf-8 -*-
 
 """
-Script to compute FA/MD/RD/AD for each tensor solution of MRDS.
+Script to compute FA/MD/RD/AD for
+each Multi-ResolutionDiscrete-Search (MRDS) solutions.
 It will output the results in 4 different 4D files.
 """
 
@@ -23,8 +24,12 @@ from scilpy.io.utils import (add_overwrite_arg,
 def _build_arg_parser():
     p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawTextHelpFormatter)
-    p.add_argument('in_eigenvalues',
-                   help='MRDS eigenvalues file.')
+    p.add_argument('in_evals',
+                   help='MRDS eigenvalues file (Shape: [X, Y, Z, 9]).\n'
+                        'The last dimensions, value 1-3 are associated with '
+                        '1 tensor, 4-6 with 2 tensors, 7-9 with 3 tensors.'
+                        'This file is one of the output '
+                        'of scil_mrds_select_number_of_tensors.py.')
 
     p.add_argument('--mask',
                    help='Path to a binary mask.\nOnly data inside '
@@ -32,18 +37,18 @@ def _build_arg_parser():
                         'reconstruction. (Default: %(default)s)')
 
     p.add_argument(
-        '--not_all', action='store_true', dest='not_all',
+        '--not_all', action='store_true',
         help='If set, will only save the metrics explicitly specified using '
              'the other metrics flags. (Default: not set).')
 
     g = p.add_argument_group(title='MRDS-Metrics files flags')
-    g.add_argument('--fa', dest='fa', metavar='file', default='',
+    g.add_argument('--fa', metavar='file', default='',
                    help='Output filename for the FA.')
-    g.add_argument('--ad', dest='ad', metavar='file', default='',
+    g.add_argument('--ad', metavar='file', default='',
                    help='Output filename for the AD.')
-    g.add_argument('--rd', dest='rd', metavar='file', default='',
+    g.add_argument('--rd', metavar='file', default='',
                    help='Output filename for the RD.')
-    g.add_argument('--md', dest='md', metavar='file', default='',
+    g.add_argument('--md', metavar='file', default='',
                    help='Output filename for the MD.')
 
     add_verbose_arg(p)
@@ -63,16 +68,16 @@ def main():
         args.rd = args.rd or 'mrds_rd.nii.gz'
         args.md = args.md or 'mrds_md.nii.gz'
 
-    assert_inputs_exist(parser, args.in_eigenvalues, args.mask)
-    assert_headers_compatible(parser, args.in_eigenvalues, args.mask)
+    assert_inputs_exist(parser, args.in_evals, args.mask)
+    assert_headers_compatible(parser, args.in_evals, args.mask)
     assert_outputs_exist(parser, args, [],
                          optional=[args.fa, args.ad, args.rd, args.md])
 
-    eigenvalues_img = nib.load(args.in_eigenvalues)
-    lambdas = eigenvalues_img.get_fdata(dtype=np.float32)
+    evals_img = nib.load(args.in_evals)
+    lambdas = evals_img.get_fdata(dtype=np.float32)
 
-    header = eigenvalues_img.header
-    affine = eigenvalues_img.affine
+    header = evals_img.header
+    affine = evals_img.affine
 
     X, Y, Z = lambdas.shape[0:3]
 
@@ -92,7 +97,7 @@ def main():
                        fractional_anisotropy(lambdas[:, :, :, 3:6]),
                        fractional_anisotropy(lambdas[:, :, :, 6:9])),
                       axis=3)
-        nib.save(nib.Nifti1Image(np.where(mask[..., None], fa, 0),
+        nib.save(nib.Nifti1Image(fa * mask[..., None],
                                  affine=affine,
                                  header=header,
                                  dtype=np.float32),
@@ -103,7 +108,7 @@ def main():
                        lambdas[:, :, :, 3],
                        lambdas[:, :, :, 6]),
                       axis=3)
-        nib.save(nib.Nifti1Image(np.where(mask[..., None], ad, 0),
+        nib.save(nib.Nifti1Image(ad * mask[..., None],
                                  affine=affine,
                                  header=header,
                                  dtype=np.float32),
@@ -114,7 +119,7 @@ def main():
                        (lambdas[:, :, :, 4] + lambdas[:, :, :, 5])/2,
                        (lambdas[:, :, :, 7] + lambdas[:, :, :, 8])/2),
                       axis=3)
-        nib.save(nib.Nifti1Image(np.where(mask[..., None], rd, 0),
+        nib.save(nib.Nifti1Image(rd * mask[..., None],
                                  affine=affine,
                                  header=header,
                                  dtype=np.float32),
@@ -125,7 +130,7 @@ def main():
                        np.average(lambdas[:, :, :, 3:6], axis=3),
                        np.average(lambdas[:, :, :, 6:9], axis=3)),
                       axis=3)
-        nib.save(nib.Nifti1Image(np.where(mask[..., None], md, 0),
+        nib.save(nib.Nifti1Image(md * mask[..., None],
                                  affine=affine,
                                  header=header,
                                  dtype=np.float32),
