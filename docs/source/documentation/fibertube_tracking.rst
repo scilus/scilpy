@@ -63,8 +63,8 @@ Preparing the data
 To obtain the data required for this demo, open a terminal and activate your
 scilpy virtual environment. Then, navigate to the scilpy repository on your
 computer and enter the command: ``pytest -v``. This will pull all the files
-required for testing scilpy scripts and then begin the testing sequence. As
-soon as the tests start, you can abort the process and navigate to any location
+required for testing scilpy scripts and then begin the testing sequence. **As
+soon as the tests start, you can abort the process** and navigate to any location
 outside of the scilpy repository that you see fit for this demo.
 
 Then, execute the following command:
