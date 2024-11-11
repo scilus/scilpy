@@ -240,7 +240,8 @@ def find_streamlines_with_connectivity(
 
 
 def compute_triu_connectivity_from_labels(tractogram, data_labels,
-                                          hide_background=None):
+                                          keep_background=False,
+                                          hide_labels=None):
     """
     Compute a connectivity matrix.
 
@@ -252,17 +253,20 @@ def compute_triu_connectivity_from_labels(tractogram, data_labels,
         vox space, corner origin.
     data_labels: np.ndarray
         The loaded nifti image.
-    hide_background: Optional[int]
-        If not None, streamlines ending in a voxel with given label are
-        ignored (i.e. matrix is set to 0 for that label). Suggestion: 0.
+    keep_background: Bool
+        By default, the background (label 0) is not included in the matrix.
+        If True, label 0 is kept.
+    hide_labels: Optional[List[int]]
+        If not None, streamlines ending in a voxel with a given label are
+        ignored (i.e. matrix is set to 0 for that label).
 
     Returns
     -------
     matrix: np.ndarray
         With use_scilpy: shape (nb_labels + 1, nb_labels + 1)
         Else, shape (nb_labels, nb_labels)
-    labels: List
-        The list of labels. With use_scilpy, last label is: "Not Found".
+    ordered_labels: List
+        The list of labels. Name of each row / column.
     start_labels: List
         For each streamline, the label at starting point.
     end_labels: List
@@ -278,8 +282,9 @@ def compute_triu_connectivity_from_labels(tractogram, data_labels,
     else:
         streamlines = tractogram
 
-    real_labels = list(np.sort(np.unique(data_labels)))
-    nb_labels = len(real_labels)
+    ordered_labels = list(np.sort(np.unique(data_labels)))
+    assert ordered_labels[0] >= 0, "Only accepting positive labels."
+    nb_labels = len(ordered_labels)
     logging.debug("Computing connectivity matrix for {} labels."
                   .format(nb_labels))
 
@@ -288,9 +293,9 @@ def compute_triu_connectivity_from_labels(tractogram, data_labels,
     end_labels = []
 
     for s in streamlines:
-        start = real_labels.index(
+        start = ordered_labels.index(
             data_labels[tuple(np.floor(s[0, :]).astype(int))])
-        end = real_labels.index(
+        end = ordered_labels.index(
             data_labels[tuple(np.floor(s[-1, :]).astype(int))])
 
         start_labels.append(start)
@@ -303,19 +308,31 @@ def compute_triu_connectivity_from_labels(tractogram, data_labels,
     matrix = np.triu(matrix)
     assert matrix.sum() == len(streamlines)
 
-    if hide_background is not None:
-        idx = real_labels.index(hide_background)
-        nb_hidden = np.sum(matrix[idx, :]) + np.sum(matrix[:, idx]) - \
-            matrix[idx, idx]
-        if nb_hidden > 0:
-            logging.warning("CAREFUL! {} streamlines had one or both "
-                            "endpoints in a non-labelled area "
-                            "(background = label {}; line/column {})"
-                            .format(nb_hidden, hide_background, idx))
-            matrix[idx, :] = 0
-            matrix[:, idx] = 0
-        else:
-            logging.info("No streamlines with endpoints in the background :)")
-        real_labels[idx] = ("Hidden background ({})".format(hide_background))
+    # Rejecting background
+    if not keep_background and ordered_labels[0] == 0:
+        logging.debug("Rejecting background.")
+        ordered_labels = ordered_labels[1:]
+        matrix = matrix[1:, 1:]
 
-    return matrix, real_labels, start_labels, end_labels
+    # Hiding labels
+    if hide_labels is not None:
+        for label in hide_labels:
+            if label not in ordered_labels:
+                logging.warning("Cannot hide label {} because it was not in "
+                                "the data.".format(label))
+                continue
+            idx = ordered_labels.index(label)
+            nb_hidden = np.sum(matrix[idx, :]) + np.sum(matrix[:, idx]) - \
+                matrix[idx, idx]
+            if nb_hidden > 0:
+                logging.warning("{} streamlines had one or both endpoints "
+                                "in hidden label {} (line/column {})"
+                                .format(nb_hidden, label, idx))
+                matrix[idx, :] = 0
+                matrix[:, idx] = 0
+            else:
+                logging.info("No streamlines with endpoints in hidden label "
+                             "{} (line/column {}) :)".format(label, idx))
+            ordered_labels[idx] = ("Hidden label ({})".format(label))
+
+    return matrix, ordered_labels, start_labels, end_labels

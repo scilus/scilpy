@@ -55,19 +55,23 @@ def _build_arg_parser():
     p.add_argument('out_labels',
                    help="Out .txt file. Will show the ordered labels (i.e. "
                         "the columns and lines' tags).")
-    p.add_argument('--hide_background', nargs='?', const=0, type=int,
-                   help="If true, set the connectivity matrix value for "
-                        "chosen label (default: 0), to 0. \nAny streamline "
-                        "with an endpoint in this chosen label is thus "
-                        "discarded.")
 
-    p.add_argument('--hide_fig', action='store_true',
+    g = p.add_argument_group("Label management options")
+    g.add_argument('--keep_background', action='store_true',
+                   help="By default, the background (label 0) is not included "
+                        "in the matrix. \nUse this option to keep it.")
+    g.add_argument('--hide_labels', metavar='label', nargs='+',
+                   help="Set given labels' weights to 0 in the matrix. \n"
+                        "Their row and columns wil be kept but set to 0.")
+
+    g = p.add_argument_group("Figure options")
+    g.add_argument('--hide_fig', action='store_true',
                    help="If set, does not show the matrices with matplotlib "
                         "(you can still use --save_fig)")
-    p.add_argument('--save_fig', metavar='file.png',
+    g.add_argument('--save_fig', metavar='file.png',
                    help="If set, saves the figure to file.")
 
-    g = p.add_argument_group("Out .npy option")
+    g = p.add_argument_group("Output matrix (.npy) options")
     g = g.add_mutually_exclusive_group()
     g.add_argument('--binary', action='store_true',
                    help="If set, saves the result as binary. Else, the "
@@ -114,7 +118,7 @@ def prepare_figure_connectivity(matrix):
 def main():
     p = _build_arg_parser()
     args = p.parse_args()
-
+    logging.getLogger().setLevel(args.verbose)
     if args.verbose == 'DEBUG':
         # Currently, with debug, matplotlib prints a lot of stuff. Why??
         logging.getLogger().setLevel(logging.INFO)
@@ -135,9 +139,10 @@ def main():
     data_labels = get_data_as_labels(in_img)
 
     # Computing
-    matrix, ordered_labels, start_labels, end_labels = \
+    matrix, ordered_labels, _, _ = \
         compute_triu_connectivity_from_labels(
-            in_sft, data_labels, hide_background=args.hide_background)
+            in_sft, data_labels, keep_background=args.keep_background,
+            hide_labels=args.hide_labels)
 
     # Save figure will all versions of the matrix.
     if (not args.hide_fig) or args.save_fig is not None:
