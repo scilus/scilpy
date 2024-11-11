@@ -9,11 +9,15 @@ from dipy.io.gradients import read_bvals_bvecs
 from numpy.testing import assert_equal, assert_almost_equal
 
 from scilpy import SCILPY_HOME
-from scilpy.image.volume_operations import (apply_transform, compute_snr,
+from scilpy.image.volume_operations import (apply_transform,
+                                            compute_distance_map, compute_snr,
                                             crop_volume, flip_volume,
+                                            mask_data_with_default_cube,
+                                            compute_distance_map,
+                                            compute_nawm,
                                             merge_metrics, normalize_metric,
-                                            resample_volume, register_image,
-                                            mask_data_with_default_cube)
+                                            resample_volume, reshape_volume,
+                                            register_image)
 from scilpy.io.fetcher import fetch_data, get_testing_files_dict
 from scilpy.image.utils import compute_nifti_bounding_box
 
@@ -201,6 +205,67 @@ def test_resample_volume():
     assert resampled_img.affine[0, 0] == 3
 
 
+def test_reshape_volume_pad():
+    # 3D img
+    img = nib.Nifti1Image(
+        np.arange(1, (3**3)+1).reshape((3, 3, 3)).astype(float),
+        np.eye(4))
+
+    # 1) Reshaping to 4x4x4, padding with 0
+    reshaped_img = reshape_volume(img, (4, 4, 4))
+
+    assert_equal(reshaped_img.affine[:, -1], [-1, -1, -1, 1])
+    assert_equal(reshaped_img.get_fdata()[0, 0, 0], 0)
+
+    # 2) Reshaping to 4x4x4, padding with -1
+    reshaped_img = reshape_volume(img, (4, 4, 4), mode='constant',
+                                  cval=-1)
+    assert_equal(reshaped_img.get_fdata()[0, 0, 0], -1)
+
+    # 3) Reshaping to 4x4x4, padding with edge
+    reshaped_img = reshape_volume(img, (4, 4, 4), mode='edge')
+    assert_equal(reshaped_img.get_fdata()[0, 0, 0], 1)
+
+    # 4D img (2 "stacked" 3D volumes)
+    img = nib.Nifti1Image(
+        np.arange(1, ((3**3) * 2)+1).reshape((3, 3, 3, 2)).astype(float),
+        np.eye(4))
+
+    # 2) Reshaping to 5x5x5, padding with 0
+    reshaped_img = reshape_volume(img, (5, 5, 5))
+    assert_equal(reshaped_img.get_fdata()[0, 0, 0, 0], 0)
+
+
+def test_reshape_volume_crop():
+    # 3D img
+    img = nib.Nifti1Image(
+        np.arange(1, (3**3)+1).reshape((3, 3, 3)).astype(float),
+        np.eye(4))
+
+    # 1) Cropping to 1x1x1
+    reshaped_img = reshape_volume(img, (1, 1, 1))
+    assert_equal(reshaped_img.get_fdata().shape, (1, 1, 1))
+    assert_equal(reshaped_img.affine[:, -1], [1, 1, 1, 1])
+    assert_equal(reshaped_img.get_fdata()[0, 0, 0], 14)
+
+    # 2) Cropping to 2x2x2
+    reshaped_img = reshape_volume(img, (2, 2, 2))
+    assert_equal(reshaped_img.get_fdata().shape, (2, 2, 2))
+    assert_equal(reshaped_img.affine[:, -1], [0, 0, 0, 1])
+    assert_equal(reshaped_img.get_fdata()[0, 0, 0], 1)
+
+    # 4D img
+    img = nib.Nifti1Image(
+        np.arange(1, ((3**3) * 2)+1).reshape((3, 3, 3, 2)).astype(float),
+        np.eye(4))
+
+    # 2) Cropping to 2x2x2
+    reshaped_img = reshape_volume(img, (2, 2, 2))
+    assert_equal(reshaped_img.get_fdata().shape, (2, 2, 2, 2))
+    assert_equal(reshaped_img.affine[:, -1], [0, 0, 0, 1])
+    assert_equal(reshaped_img.get_fdata()[0, 0, 0, 0], 1)
+
+
 def test_normalize_metric_basic():
     metric = np.array([1, 2, 3, 4, 5])
     expected_output = np.array([0., 0.25, 0.5, 0.75, 1.])
@@ -240,3 +305,89 @@ def test_mask_data_with_default_cube():
     assert out[0, 0, 0] == 0
     assert out[-1, -1, -1] == 0
     assert out[6, 6, 6] == 1
+
+
+def test_distance_map_smallest_first():
+    mask_1 = np.zeros((3, 3, 3))
+    mask_1[0, 0, 0] = 1
+
+    mask_2 = np.zeros((3, 3, 3))
+    mask_2[1:3, 1:3, 1:3] = 1
+
+    distance = compute_distance_map(mask_1, mask_2)
+    assert np.abs(np.sum(distance) - 1.732050) < 1e-6
+
+
+def test_compute_distance_map_biggest_first():
+    # Swap both masks
+    mask_2 = np.zeros((3, 3, 3))
+    mask_2[0, 0, 0] = 1
+
+    mask_1 = np.zeros((3, 3, 3))
+    mask_1[1:3, 1:3, 1:3] = 1
+
+    distance = compute_distance_map(mask_1, mask_2)
+    assert np.abs(np.sum(distance) - 21.544621) < 1e-6
+
+
+def test_compute_distance_map_symmetric():
+    mask_1 = np.zeros((3, 3, 3))
+    mask_1[0, 0, 0] = 1
+
+    mask_2 = np.zeros((3, 3, 3))
+    mask_2[1:3, 1:3, 1:3] = 1
+
+    distance = compute_distance_map(mask_1, mask_2, symmetric=True)
+    assert np.abs(np.sum(distance) - 23.276672) < 1e-6
+
+
+def test_compute_distance_map_overlap():
+    mask_1 = np.zeros((3, 3, 3))
+    mask_1[1, 1, 1] = 1
+
+    mask_2 = np.zeros((3, 3, 3))
+    mask_2[1:3, 1:3, 1:3] = 1
+
+    distance = compute_distance_map(mask_1, mask_2)
+    assert np.all(distance == 0)
+
+
+def test_compute_distance_map_wrong_shape():
+    mask_1 = np.zeros((3, 3, 3))
+    mask_2 = np.zeros((3, 3, 4))
+
+    # Different shapes, test should fail
+    try:
+        compute_distance_map(mask_1, mask_2)
+        assert False
+    except ValueError:
+        assert True
+
+
+def test_compute_nawm_3D():
+    lesion_img = np.zeros((3, 3, 3))
+    lesion_img[1, 1, 1] = 1
+
+    nawm = compute_nawm(lesion_img, nb_ring=0, ring_thickness=2)
+    assert np.sum(nawm) == 1
+
+    try:
+        nawm = compute_nawm(lesion_img, nb_ring=2, ring_thickness=0)
+        assert False
+    except ValueError:
+        assert True
+
+    nawm = compute_nawm(lesion_img, nb_ring=1, ring_thickness=2)
+    assert np.sum(nawm) == 53
+
+
+def test_compute_nawm_4D():
+    lesion_img = np.zeros((10, 10, 10))
+    lesion_img[4, 4, 4] = 1
+    lesion_img[2, 2, 2] = 2
+
+    nawm = compute_nawm(lesion_img, nb_ring=2, ring_thickness=1)
+    assert nawm.shape == (10, 10, 10, 2)
+    val, count = np.unique(nawm[..., 0], return_counts=True)
+    assert np.array_equal(val, [0, 1, 2, 3])
+    assert np.array_equal(count, [967, 1, 6, 26])

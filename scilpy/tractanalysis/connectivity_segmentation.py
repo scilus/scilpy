@@ -15,7 +15,7 @@ from scilpy.tractograms.streamline_and_mask_operations import \
     compute_streamline_segment
 from scilpy.tractograms.streamline_operations import \
     (remove_loops as perform_remove_loops,
-     remove_shap_turns_qb,
+     remove_sharp_turns_qb,
      remove_streamlines_with_overlapping_points, filter_streamlines_by_length)
 
 
@@ -341,7 +341,7 @@ def construct_hdf5_from_connectivity(
         if remove_curv_dev:
             logging.debug("- Step 4: Removing sharp turns (Qb threshold: {})"
                           .format(curv_qb_distance))
-            no_qb_curv_ids = remove_shap_turns_qb(
+            no_qb_curv_ids = remove_sharp_turns_qb(
                 current_sft.streamlines, qb_threshold=curv_qb_distance)
             qb_curv_ids = np.setdiff1d(np.arange(len(current_sft)),
                                        no_qb_curv_ids)

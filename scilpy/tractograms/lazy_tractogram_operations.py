@@ -31,11 +31,14 @@ def lazy_streamlines_count(in_tractogram_path):
 
     tractogram_file = nib.streamlines.load(in_tractogram_path,
                                            lazy_load=True)
-    return tractogram_file.header[key]
+    return int(tractogram_file.header[key])
 
 
 def lazy_concatenate(in_tractograms, out_ext):
     """
+    Concatenates tractograms, if they can be concatenated. Headers must be
+    compatible.
+
     Parameters
     ----------
     in_tractograms: list
@@ -45,7 +48,7 @@ def lazy_concatenate(in_tractograms, out_ext):
 
     Returns
     -------
-    out_tractogram: Lazy tractogram
+    out_tractogram: LazyTractogram
         The concatenated data
     header: nibabel header or None
         Depending on the data type.
