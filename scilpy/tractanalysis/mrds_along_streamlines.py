@@ -9,7 +9,7 @@ def mrds_metrics_along_streamlines(sft, mrds_pdds,
                                    metrics, max_theta,
                                    length_weighting):
     """
-    Compute mean map for a given lobe-specific metric along streamlines.
+    Compute mean map for a given fixel-specific metric along streamlines.
 
     Parameters
     ----------
@@ -34,7 +34,7 @@ def mrds_metrics_along_streamlines(sft, mrds_pdds,
 
     all_metric = mrds_sum[0]
     for curr_metric in mrds_sum[1:]:
-        all_metric += curr_metric
+        all_metric += np.abs(curr_metric)
 
     non_zeros = np.nonzero(all_metric)
     weights_nz = weights[non_zeros]
@@ -56,7 +56,7 @@ def mrds_metric_sums_along_streamlines(sft, mrds_pdds, metrics,
     mrds_pdds : ndarray (X, Y, Z, 3*N_TENSORS)
         MRDS principal diffusion directions (PDDs) of the tensors
     metrics : list of ndarray (X, Y, Z, N_TENSORS)
-        The fixel-specific metric of interest.
+        Fixel-specific metrics.
     max_theta : float
         Maximum angle in degrees between the fiber direction and the
         MRDS principal diffusion direction.
@@ -66,7 +66,7 @@ def mrds_metric_sums_along_streamlines(sft, mrds_pdds, metrics,
     Returns
     -------
     metric_sum_map : np.array
-        fixel-specific metric sum map.
+        fixel-specific metrics sum map.
     weight_map : np.array
         Segment lengths.
     """

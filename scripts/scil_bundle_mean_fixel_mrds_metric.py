@@ -13,12 +13,15 @@ possibility to capture fixel-based fractional anisotropy (fixel-FA), mean
 diffusivity (fixel-MD), radial diffusivity (fixel-RD) and
 axial diffusivity (fixel-AD).
 
-Fixel-specific metrics are metrics extracted from Bingham distributions fitted
-to fODF. Their are as many values per voxel as there are lobes extracted. The
+Fixel-specific metrics are metrics extracted from
+Multi-Resolution Discrete-Search (MRDS) solutions.
+There are as many values per voxel as there are fixels extracted. The
 values chosen for a given voxel is the one belonging to the lobe better aligned
 with the current streamline segment.
 
-Output metrics will be name: [prefix]_mrds_f[metric_name].nii.gz
+Input files come from scil_mrds_metrics.py command.
+
+Output metrics will be name: [prefix]_mrds_[metric_name].nii.gz
 
 Please use a bundle file rather than a whole tractogram.
 """
@@ -63,7 +66,7 @@ def _build_arg_parser():
                         'segment lengths. [%(default)s]')
 
     p.add_argument('--max_theta', default=60, type=float,
-                   help='Maximum angle (in degrees) condition on lobe '
+                   help='Maximum angle (in degrees) condition on fixel '
                         'alignment. [%(default)s]')
 
     add_reference_arg(p)
@@ -80,15 +83,15 @@ def main():
     if args.fa is not None:
         in_metrics.append(args.fa)
         out_metrics.append('{}_mrds_fFA.nii.gz'.format(args.prefix))
-    if args.md is not None:
-        in_metrics.append(args.md)
-        out_metrics.append('{}_mrds_fMD.nii.gz'.format(args.prefix))
-    if args.rd is not None:
-        in_metrics.append(args.rd)
-        out_metrics.append('{}_mrds_fRD.nii.gz'.format(args.prefix))
     if args.ad is not None:
         in_metrics.append(args.ad)
         out_metrics.append('{}_mrds_fAD.nii.gz'.format(args.prefix))
+    if args.rd is not None:
+        in_metrics.append(args.rd)
+        out_metrics.append('{}_mrds_fRD.nii.gz'.format(args.prefix))
+    if args.md is not None:
+        in_metrics.append(args.md)
+        out_metrics.append('{}_mrds_fMD.nii.gz'.format(args.prefix))
 
     if in_metrics == []:
         parser.error('At least one metric is required.')
@@ -114,7 +117,6 @@ def main():
                                        args.length_weighting)
 
     for metric_id, curr_metric in enumerate(fixel_metrics):
-
         nib.Nifti1Image(curr_metric.astype(np.float32),
                         affine=affine,
                         header=header,
