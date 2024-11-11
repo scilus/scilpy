@@ -60,16 +60,20 @@ This project can be split into 3 major steps:
 Preparing the data
 ------------------
 
-To obtain the data required for this demo, open a terminal and activate your
+To download the data required for this demo, open a terminal and activate your
 scilpy virtual environment. Then, navigate to the scilpy repository on your
-computer and enter the command: ``pytest -v``. This will pull all the files
-required for testing scilpy scripts and then begin the testing sequence. **As
-soon as the tests start, you can abort the process** and navigate to any location
-outside of the scilpy repository that you see fit for this demo.
+computer and enter the command: ``pytest -v`` **\***.
+
+**\*As soon as the tests start, you can abort the process** and
+navigate to any location outside of the scilpy repository that you see fit
+for this demo. All the necessary files are now downloaded on your computer.
 
 Then, execute the following command:
-``cp ~/.scilpy/others/fibercup_bundles.trk ./centerlines.trk`` to bring our
-data to your current location and rename it to ``centerlines.trk``.
+::
+
+   cp ~/.scilpy/others/fibercup_bundles.trk ./centerlines.trk
+
+to bring our data to the current location and rename it to ``centerlines.trk``.
 
 It is a subset of the FiberCup phantom ground truth:
 
@@ -77,13 +81,13 @@ It is a subset of the FiberCup phantom ground truth:
    :alt: Fibercup subset visualized in 3D
 
 Now that we have a tractogram to act as our set of centerlines, we will need
-to create a file containing the diameters. To do this, create a text file
-named `diameters.txt` and enter `0.001` on the very first line. This single
-diameter will later be applied to all the centerlines to form a set of fibertubes.
+to create a file containing the diameters. To do this, enter the command:
+``echo 0.001 >diameter.txt`` This single diameter will later be applied to
+all the centerlines to form a set of 1um thick fibertubes.
 
 
-The first thing to do to is resample ``centerlines.trk`` so that each
-centerline is formed of segments no longer than 0.2 mm.
+The first thing to do with our data is to resample ``centerlines.trk``
+so that each centerline is formed of segments no longer than 0.2 mm.
 
 Note: This is because the next script will rely on a KDTree to find
 all neighboring fibertube segments of any given point. Because the
