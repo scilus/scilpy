@@ -1,0 +1,2061 @@
+{
+  "scripts": [
+    {
+      "name": "scil_bids_validate.py",
+      "keywords": []
+    },
+    {
+      "name": "scil_bingham_metrics.py",
+      "keywords": [
+        "fiber density",
+        "fiber spread",
+        "fiber fraction",
+        "fixel"
+      ]
+    },
+    {
+      "name": "scil_btensor_metrics.py",
+      "keywords": [
+        "b-tensor",
+        "b-tensor encoding",
+        "tensor-valued diffusion MRI",
+        "micro-FA",
+        "uFA",
+        "order parameter",
+        "OP",
+        "DIVIDE",
+        "microstructure",
+        "linear tensor encoding (LTE)",
+        "planar tensor encoding (PTE)",
+        "spherical tensor encoding (STE)",
+        "multidimensional diffusion MRI"
+      ]
+    },
+    {
+      "name": "scil_bundle_clean_qbx_clusters.py",
+      "keywords": []
+    },
+    {
+      "name": "scil_bundle_compute_centroid.py",
+      "keywords": []
+    },
+    {
+      "name": "scil_bundle_compute_endpoints_map.py",
+      "keywords": []
+    },
+    {
+      "name": "scil_bundle_diameter.py",
+      "keywords": []
+    },
+    {
+      "name": "scil_bundle_filter_by_occurence.py",
+      "keywords": []
+    },
+    {
+      "name": "scil_bundle_generate_priors.py",
+      "keywords": []
+    },
+    {
+      "name": "scil_bundle_label_map.py",
+      "keywords": [
+        "parcellate",
+        "subdivide",
+        "split"
+      ]
+    },
+    {
+      "name": "scil_bundle_mean_fixel_afd_from_hdf5.py",
+      "keywords": []
+    },
+    {
+      "name": "scil_bundle_mean_fixel_afd.py",
+      "keywords": []
+    },
+    {
+      "name": "scil_bundle_mean_fixel_bingham_metric.py",
+      "keywords": [
+        "tractometry",
+        "lobe metrics",
+        "fiber density",
+        "fiber spread",
+        "fiber fraction",
+        "mean along bundle"
+      ]
+    },
+    {
+      "name": "scil_bundle_mean_std.py",
+      "keywords": []
+    },
+    {
+      "name": "scil_bundle_pairwise_comparison.py",
+      "keywords": []
+    },
+    {
+      "name": "scil_bundle_reject_outliers.py",
+      "keywords": []
+    },
+    {
+      "name": "scil_bundle_score_many_bundles_one_tractogram.py",
+      "keywords": []
+    },
+    {
+      "name": "scil_bundle_score_same_bundle_many_segmentations.py",
+      "keywords": []
+    },
+    {
+      "name": "scil_bundle_shape_measures.py",
+      "keywords": [
+        "geometry"
+      ]
+    },
+    {
+      "name": "scil_bundle_uniformize_endpoints.py",
+      "keywords": []
+    },
+    {
+      "name": "scil_bundle_volume_per_label.py",
+      "keywords": []
+    },
+    {
+      "name": "scil_connectivity_compare_populations.py",
+      "keywords": []
+    },
+    {
+      "name": "scil_connectivity_compute_matrices.py",
+      "keywords": []
+    },
+    {
+      "name": "scil_connectivity_compute_pca.py",
+      "keywords": []
+    },
+    {
+      "name": "scil_connectivity_filter.py",
+      "keywords": []
+    },
+    {
+      "name": "scil_connectivity_graph_measures.py",
+      "keywords": []
+    },
+    {
+      "name": "scil_connectivity_hdf5_average_density_map.py",
+      "keywords": []
+    },
+    {
+      "name": "scil_connectivity_math.py",
+      "keywords": []
+    },
+    {
+      "name": "scil_connectivity_normalize.py",
+      "keywords": []
+    },
+    {
+      "name": "scil_connectivity_pairwise_agreement.py",
+      "keywords": []
+    },
+    {
+      "name": "scil_connectivity_print_filenames.py",
+      "keywords": []
+    },
+    {
+      "name": "scil_connectivity_reorder_rois.py",
+      "keywords": []
+    },
+    {
+      "name": "scil_denoising_nlmeans.py",
+      "keywords": []
+    },
+    {
+      "name": "scil_dki_metrics.py",
+      "keywords": []
+    },
+    {
+      "name": "scil_dti_convert_tensors.py",
+      "keywords": [
+        "tensor",
+        "tensors",
+        "triangular matrix",
+        "fsl format",
+        "nifti format",
+        "mrtrix format",
+        "dipy format"
+      ]
+    },
+    {
+      "name": "scil_dti_metrics.py",
+      "keywords": [
+        "dti",
+        "metrics",
+        "diffusion tensor",
+        "FA",
+        "MD",
+        "AD",
+        "RD",
+        "RGB",
+        "eigenvector",
+        "eigenvalue",
+        "diffusivity"
+      ]
+    },
+    {
+      "name": "scil_dwi_apply_bias_field.py",
+      "keywords": []
+    },
+    {
+      "name": "scil_dwi_compute_snr.py",
+      "keywords": []
+    },
+    {
+      "name": "scil_dwi_concatenate.py",
+      "keywords": [
+        "merge",
+        "fuse",
+        "concatenate",
+        "diffusion data",
+        "DWI"
+      ]
+    },
+    {
+      "name": "scil_dwi_convert_FDF.py",
+      "keywords": []
+    },
+    {
+      "name": "scil_dwi_detect_volume_outliers.py",
+      "keywords": []
+    },
+    {
+      "name": "scil_dwi_extract_b0.py",
+      "keywords": [
+        "b0 extraction",
+        "b0",
+        "b-value 0",
+        "extract"
+      ]
+    },
+    {
+      "name": "scil_dwi_extract_shell.py",
+      "keywords": [
+        "shell extraction",
+        "b-value extraction",
+        "DWI",
+        "shell/b-value selection",
+        "extract",
+        "DWI split",
+        "DWI splitting",
+        "multiple shells"
+      ]
+    },
+    {
+      "name": "scil_dwi_powder_average.py",
+      "keywords": [
+        "powder average",
+        "DWI"
+      ]
+    },
+    {
+      "name": "scil_dwi_prepare_eddy_command.py",
+      "keywords": []
+    },
+    {
+      "name": "scil_dwi_prepare_topup_command.py",
+      "keywords": []
+    },
+    {
+      "name": "scil_dwi_reorder_philips.py",
+      "keywords": [
+        "philips",
+        "DWI reorder",
+        "original gradient table"
+      ]
+    },
+    {
+      "name": "scil_dwi_split_by_indices.py",
+      "keywords": [
+        "DWI splitting",
+        "DWI split",
+        "indices"
+      ]
+    },
+    {
+      "name": "scil_dwi_to_sh.py",
+      "keywords": [
+        "signal",
+        "spherical harmonics"
+      ]
+    },
+    {
+      "name": "scil_fodf_max_in_ventricles.py",
+      "keywords": [
+        "ventricles",
+        "maximum fODF",
+        "absolute threshold"
+      ]
+    },
+    {
+      "name": "scil_fodf_memsmt.py",
+      "keywords": [
+        "b-tensor",
+        "b-tensor encoding",
+        "multi-encoding",
+        "multi-shell",
+        "multi-tissue",
+        "memsmt",
+        "linear tensor encoding (LTE)",
+        "planar tensor encoding (PTE)",
+        "spherical tensor encoding (STE)",
+        "multidimensional diffusion MRI",
+        "volume fraction",
+        "CSD",
+        "constrained spherical deconvolution",
+        "fODF"
+      ]
+    },
+    {
+      "name": "scil_fodf_metrics.py",
+      "keywords": [
+        "fODF metrics",
+        "NuFO",
+        "peaks",
+        "directions",
+        "peak values",
+        "peak indices",
+        "RGB",
+        "AFD"
+      ]
+    },
+    {
+      "name": "scil_fodf_msmt.py",
+      "keywords": [
+        "CSD",
+        "constrained spherical deconvolution",
+        "multi-shell",
+        "multi-tissue",
+        "msmt",
+        "volume fraction",
+        "fODF"
+      ]
+    },
+    {
+      "name": "scil_fodf_ssst.py",
+      "keywords": [
+        "CSD",
+        "constrained spherical deconvolution",
+        "single-shell",
+        "single-tissue",
+        "ssst",
+        "fODF"
+      ]
+    },
+    {
+      "name": "scil_fodf_to_bingham.py",
+      "keywords": [
+        "lobe",
+        "lobe-specific",
+        "bingham-odf"
+      ]
+    },
+    {
+      "name": "scil_freewater_maps.py",
+      "keywords": []
+    },
+    {
+      "name": "scil_freewater_priors.py",
+      "keywords": []
+    },
+    {
+      "name": "scil_frf_mean.py",
+      "keywords": [
+        "fiber response function",
+        "response function",
+        "RF",
+        "FRF",
+        "mean",
+        "mean FRF"
+      ]
+    },
+    {
+      "name": "scil_frf_memsmt.py",
+      "keywords": [
+        "fiber response function",
+        "response function",
+        "RF",
+        "FRF",
+        "b-tensor",
+        "b-tensor encoding",
+        "multi-encoding",
+        "multi-shell",
+        "multi-tissue",
+        "memsmt",
+        "linear tensor encoding (LTE)",
+        "planar tensor encoding (PTE)",
+        "spherical tensor encoding (STE)",
+        "multidimensional diffusion MRI"
+      ]
+    },
+    {
+      "name": "scil_frf_msmt.py",
+      "keywords": [
+        "fiber response function",
+        "response function",
+        "RF",
+        "FRF",
+        "multi-shell",
+        "multi-tissue",
+        "msmt"
+      ]
+    },
+    {
+      "name": "scil_frf_set_diffusivities.py",
+      "keywords": [
+        "fiber response function",
+        "response function",
+        "RF",
+        "FRF",
+        "diffusivity",
+        "diffusivities",
+        "fixed FRF"
+      ]
+    },
+    {
+      "name": "scil_frf_ssst.py",
+      "keywords": [
+        "fiber response function",
+        "response function",
+        "RF",
+        "FRF",
+        "single-shell",
+        "single-tissue",
+        "ssst"
+      ]
+    },
+    {
+      "name": "scil_get_version.py",
+      "keywords": []
+    },
+    {
+      "name": "scil_gradients_apply_transform.py",
+      "keywords": [
+        "gradients",
+        "bvecs",
+        "b-vectors",
+        "transformation",
+        "transform"
+      ]
+    },
+    {
+      "name": "scil_gradients_convert.py",
+      "keywords": [
+        "gradients",
+        "gradient table",
+        "fsl format",
+        "mrtrix format",
+        "bval",
+        "bvec"
+      ]
+    },
+    {
+      "name": "scil_gradients_generate_sampling.py",
+      "keywords": [
+        "gradients",
+        "gradient table",
+        "sampling scheme",
+        "sampling",
+        "hardi",
+        "multi-shell",
+        "caruyer",
+        "optimized gradients"
+      ]
+    },
+    {
+      "name": "scil_gradients_modify_axes.py",
+      "keywords": []
+    },
+    {
+      "name": "scil_gradients_round_bvals.py",
+      "keywords": [
+        "bvals",
+        "b-value",
+        "round bvals",
+        "shell"
+      ]
+    },
+    {
+      "name": "scil_gradients_validate_correct_eddy.py",
+      "keywords": []
+    },
+    {
+      "name": "scil_gradients_validate_correct.py",
+      "keywords": [
+        "fiber coherence index",
+        "coherence"
+      ]
+    },
+    {
+      "name": "scil_header_print_info.py",
+      "keywords": []
+    },
+    {
+      "name": "scil_header_validate_compatibility.py",
+      "keywords": []
+    },
+    {
+      "name": "scil_json_convert_entries_to_xlsx.py",
+      "keywords": []
+    },
+    {
+      "name": "scil_json_harmonize_entries.py",
+      "keywords": []
+    },
+    {
+      "name": "scil_json_merge_entries.py",
+      "keywords": []
+    },
+    {
+      "name": "scil_labels_combine.py",
+      "keywords": []
+    },
+    {
+      "name": "scil_labels_dilate.py",
+      "keywords": []
+    },
+    {
+      "name": "scil_labels_remove.py",
+      "keywords": []
+    },
+    {
+      "name": "scil_labels_split_volume_by_ids.py",
+      "keywords": []
+    },
+    {
+      "name": "scil_labels_split_volume_from_lut.py",
+      "keywords": []
+    },
+    {
+      "name": "scil_lesions_info.py",
+      "keywords": []
+    },
+    {
+      "name": "scil_mti_adjust_B1_header.py",
+      "keywords": [
+        "MTI",
+        "magnetization transfer",
+        "MT",
+        "B1 map",
+        "header",
+        "B1"
+      ]
+    },
+    {
+      "name": "scil_mti_maps_ihMT.py",
+      "keywords": [
+        "MTI",
+        "magnetization transfer",
+        "MT",
+        "ihMT",
+        "ihMTR",
+        "ihMTsat",
+        "myelin",
+        "MTR",
+        "MTsat"
+      ]
+    },
+    {
+      "name": "scil_mti_maps_MT.py",
+      "keywords": [
+        "MTI",
+        "magnetization transfer",
+        "MT",
+        "MTR",
+        "MTsat",
+        "myelin"
+      ]
+    },
+    {
+      "name": "scil_NODDI_maps.py",
+      "keywords": []
+    },
+    {
+      "name": "scil_NODDI_priors.py",
+      "keywords": []
+    },
+    {
+      "name": "scil_plot_stats_per_point.py",
+      "keywords": []
+    },
+    {
+      "name": "scil_qball_metrics.py",
+      "keywords": [
+        "CSA",
+        "QBI",
+        "q-ball imaging",
+        "diffusion odf"
+      ]
+    },
+    {
+      "name": "scil_rgb_convert.py",
+      "keywords": []
+    },
+    {
+      "name": "scil_sh_convert.py",
+      "keywords": [
+        "spherical harmonics",
+        "tournier",
+        "mrtrix",
+        "descoteaux",
+        "dipy",
+        "modern",
+        "legacy"
+      ]
+    },
+    {
+      "name": "scil_sh_fusion.py",
+      "keywords": [
+        "spherical harmonics",
+        "SH",
+        "fusion",
+        "largest magnitude",
+        "merge",
+        "coefficients"
+      ]
+    },
+    {
+      "name": "scil_sh_to_aodf.py",
+      "keywords": [
+        "asymmetric",
+        "asymmetries",
+        "filtering",
+        "full basis"
+      ]
+    },
+    {
+      "name": "scil_sh_to_rish.py",
+      "keywords": [
+        "rotation invariant spherical harmonics",
+        "features"
+      ]
+    },
+    {
+      "name": "scil_sh_to_sf.py",
+      "keywords": [
+        "spherical harmonics",
+        "spherical functions",
+        "SH",
+        "SF",
+        "convertion",
+        "conversion"
+      ]
+    },
+    {
+      "name": "scil_stats_group_comparison.py",
+      "keywords": []
+    },
+    {
+      "name": "scil_surface_apply_transform.py",
+      "keywords": [
+        "registration",
+        "warp",
+        "transformation",
+        "surface",
+        "mesh",
+        "vtk FreeSurfer"
+      ]
+    },
+    {
+      "name": "scil_surface_convert.py",
+      "keywords": [
+        "surface",
+        "mesh",
+        "vtk FreeSurfer"
+      ]
+    },
+    {
+      "name": "scil_surface_flip.py",
+      "keywords": [
+        "surface",
+        "mesh",
+        "vtk FreeSurfer"
+      ]
+    },
+    {
+      "name": "scil_surface_smooth.py",
+      "keywords": [
+        "surface",
+        "mesh",
+        "vtk FreeSurfer"
+      ]
+    },
+    {
+      "name": "scil_tracking_local_dev.py",
+      "keywords": [
+        "development",
+        "runge-kutta",
+        "pure-python",
+        "onboarding",
+        "tractography",
+        "dipy"
+      ]
+    },
+    {
+      "name": "scil_tracking_local.py",
+      "keywords": [
+        "eudx",
+        "tractography",
+        "tracking",
+        "peak tracking",
+        "local tracking",
+        "probabilistic",
+        "deterministic",
+        "prob",
+        "det"
+      ]
+    },
+    {
+      "name": "scil_tracking_pft_maps_edit.py",
+      "keywords": [
+        "particule filtering tractography",
+        "CMC"
+      ]
+    },
+    {
+      "name": "scil_tracking_pft_maps.py",
+      "keywords": [
+        "particle filter tractography",
+        "continuous map criterion",
+        "tracking",
+        "FODF",
+        "CMC",
+        "particle filtering tractography"
+      ]
+    },
+    {
+      "name": "scil_tracking_pft.py",
+      "keywords": [
+        "particle filter tractography",
+        "continuous map criterion",
+        "tracking",
+        "FODF"
+      ]
+    },
+    {
+      "name": "scil_bundle_alter_to_target_dice.py",
+      "keywords": [
+        "cut",
+        "dice",
+        "transform",
+        "trim"
+      ]
+    },
+    {
+      "name": "scil_tractogram_apply_transform.py",
+      "keywords": [
+        "ants",
+        "registration",
+        "affine",
+        "linear",
+        "nonlinear"
+      ]
+    },
+    {
+      "name": "scil_tractogram_apply_transform_to_hdf5.py",
+      "keywords": []
+    },
+    {
+      "name": "scil_tractogram_assign_custom_color.py",
+      "keywords": []
+    },
+    {
+      "name": "scil_tractogram_assign_uniform_color.py",
+      "keywords": []
+    },
+    {
+      "name": "scil_tractogram_commit.py",
+      "keywords": [
+        "microstructure informed",
+        "filtering",
+        "MIT"
+      ]
+    },
+    {
+      "name": "scil_tractogram_compress.py",
+      "keywords": []
+    },
+    {
+      "name": "scil_tractogram_compute_density_map.py",
+      "keywords": [
+        "TDI",
+        "track density imaging",
+        "streamline count"
+      ]
+    },
+    {
+      "name": "scil_tractogram_compute_TODI.py",
+      "keywords": [
+        "track orientation density imaging",
+        "track density imaging",
+        "TDI"
+      ]
+    },
+    {
+      "name": "scil_tractogram_convert_hdf5_to_trk.py",
+      "keywords": []
+    },
+    {
+      "name": "scil_tractogram_convert.py",
+      "keywords": []
+    },
+    {
+      "name": "scil_tractogram_count_streamlines.py",
+      "keywords": []
+    },
+    {
+      "name": "scil_tractogram_cut_streamlines.py",
+      "keywords": []
+    },
+    {
+      "name": "scil_tractogram_detect_loops.py",
+      "keywords": []
+    },
+    {
+      "name": "scil_tractogram_dpp_math.py",
+      "keywords": [
+        "tractogram",
+        "data per point"
+      ]
+    },
+    {
+      "name": "scil_tractogram_extract_ushape.py",
+      "keywords": []
+    },
+    {
+      "name": "scil_tractogram_filter_by_anatomy.py",
+      "keywords": []
+    },
+    {
+      "name": "scil_tractogram_filter_by_length.py",
+      "keywords": []
+    },
+    {
+      "name": "scil_tractogram_filter_by_orientation.py",
+      "keywords": []
+    },
+    {
+      "name": "scil_tractogram_filter_by_roi.py",
+      "keywords": [
+        "segment",
+        "atlas"
+      ]
+    },
+    {
+      "name": "scil_tractogram_fix_trk.py",
+      "keywords": []
+    },
+    {
+      "name": "scil_tractogram_flip.py",
+      "keywords": []
+    },
+    {
+      "name": "scil_tractogram_math.py",
+      "keywords": []
+    },
+    {
+      "name": "scil_tractogram_pairwise_comparison.py",
+      "keywords": []
+    },
+    {
+      "name": "scil_tractogram_print_info.py",
+      "keywords": []
+    },
+    {
+      "name": "scil_tractogram_project_map_to_streamlines.py",
+      "keywords": []
+    },
+    {
+      "name": "scil_tractogram_project_streamlines_to_map.py",
+      "keywords": []
+    },
+    {
+      "name": "scil_tractogram_qbx.py",
+      "keywords": [
+        "clustering"
+      ]
+    },
+    {
+      "name": "scil_tractogram_register.py",
+      "keywords": []
+    },
+    {
+      "name": "scil_tractogram_remove_invalid.py",
+      "keywords": []
+    },
+    {
+      "name": "scil_tractogram_resample_nb_points.py",
+      "keywords": []
+    },
+    {
+      "name": "scil_tractogram_resample.py",
+      "keywords": []
+    },
+    {
+      "name": "scil_tractogram_seed_density_map.py",
+      "keywords": []
+    },
+    {
+      "name": "scil_tractogram_segment_with_ROI_and_score.py",
+      "keywords": []
+    },
+    {
+      "name": "scil_tractogram_segment_connections_from_labels.py",
+      "keywords": []
+    },
+    {
+      "name": "scil_tractogram_shuffle.py",
+      "keywords": []
+    },
+    {
+      "name": "scil_tractogram_smooth.py",
+      "keywords": []
+    },
+    {
+      "name": "scil_tractogram_split.py",
+      "keywords": []
+    },
+    {
+      "name": "scil_viz_bingham_fit.py",
+      "keywords": [
+        "visualisation",
+        "bingham distributions",
+        "bingham odf"
+      ]
+    },
+    {
+      "name": "scil_viz_bundle.py",
+      "keywords": [
+        "visualisation",
+        "bundle",
+        "tractogram",
+        "streamlines"
+      ]
+    },
+    {
+      "name": "scil_viz_bundle_screenshot_mni.py",
+      "keywords": []
+    },
+    {
+      "name": "scil_viz_bundle_screenshot_mosaic.py",
+      "keywords": []
+    },
+    {
+      "name": "scil_viz_connectivity.py",
+      "keywords": []
+    },
+    {
+      "name": "scil_viz_dti_screenshot.py",
+      "keywords": []
+    },
+    {
+      "name": "scil_viz_fodf.py",
+      "keywords": [
+        "visualize",
+        "fiber ODF",
+        "ODF",
+        "SH",
+        "peaks",
+        "background"
+      ]
+    },
+    {
+      "name": "scil_viz_gradients_screenshot.py",
+      "keywords": []
+    },
+    {
+      "name": "scil_viz_tractogram_seeds_3d.py",
+      "keywords": [
+        "visualize",
+        "seed",
+        "density",
+        "3D",
+        "seed density"
+      ]
+    },
+    {
+      "name": "scil_viz_tractogram_seeds.py",
+      "keywords": [
+        "visualize",
+        "seed",
+        "streamline",
+        "streamline origin"
+      ]
+    },
+    {
+      "name": "scil_viz_volume_histogram.py",
+      "keywords": [
+        "visualize",
+        "histogram",
+        "metric"
+      ]
+    },
+    {
+      "name": "scil_viz_volume_scatterplot.py",
+      "keywords": [
+        "visualize",
+        "scatterplot",
+        "distribution",
+        "metric"
+      ]
+    },
+    {
+      "name": "scil_viz_volume_screenshot_mosaic.py",
+      "keywords": []
+    },
+    {
+      "name": "scil_viz_volume_screenshot.py",
+      "keywords": []
+    },
+    {
+      "name": "scil_volume_apply_transform.py",
+      "keywords": []
+    },
+    {
+      "name": "scil_volume_b0_synthesis.py",
+      "keywords": []
+    },
+    {
+      "name": "scil_volume_count_non_zero_voxels.py",
+      "keywords": []
+    },
+    {
+      "name": "scil_volume_crop.py",
+      "keywords": []
+    },
+    {
+      "name": "scil_volume_flip.py",
+      "keywords": []
+    },
+    {
+      "name": "scil_volume_math.py",
+      "keywords": []
+    },
+    {
+      "name": "scil_volume_remove_outliers_ransac.py",
+      "keywords": []
+    },
+    {
+      "name": "scil_volume_resample.py",
+      "keywords": []
+    },
+    {
+      "name": "scil_volume_reshape_to_reference.py",
+      "keywords": []
+    },
+    {
+      "name": "scil_volume_stats_in_labels.py",
+      "keywords": []
+    },
+    {
+      "name": "scil_volume_stats_in_ROI.py",
+      "keywords": []
+    }
+  ],
+  "synonyms": [
+    [
+      "tractogram",
+      "streamline",
+      "whole brain"
+    ],
+    [
+      "bundle",
+      "tract",
+      "pathway",
+      "fasciculus"
+    ],
+    [
+      "multi-shells",
+      "multishell",
+      "multi shell",
+      "msmt"
+    ],
+    [
+      "SH",
+      "spherical harmonic"
+    ],
+    [
+      "single-shell",
+      "single shell",
+      "ssst"
+    ],
+    [
+      "ODF",
+      "orientation distribution function"
+    ],
+    [
+      "DWI",
+      "diffusion weighted imaging"
+    ],
+    [
+      "shell",
+      "bval",
+      "b-value",
+      "bvals"
+    ],
+    [
+      "b-tensor encoding",
+      "tensor-valued"
+    ],
+    [
+      "surface",
+      "mesh"
+    ],
+    [
+      "merge",
+      "fuse",
+      "concatenate",
+      "add"
+    ],
+    [
+      "parcellate",
+      "subdivide",
+      "split",
+      "divide"
+    ],
+    [
+      "k-nn",
+      "knn",
+      "k-nearest neighbors"
+    ],
+    [
+      "1d",
+      "one-dimensional"
+    ],
+    [
+      "2d",
+      "two-dimensional"
+    ],
+    [
+      "3d",
+      "three-dimensional"
+    ],
+    [
+      "ac",
+      "anterior commissure"
+    ],
+    [
+      "ae",
+      "autoencoder"
+    ],
+    [
+      "af",
+      "arcuate fascicle"
+    ],
+    [
+      "ai",
+      "artificial intelligence"
+    ],
+    [
+      "ann",
+      "artificial neural network"
+    ],
+    [
+      "ar",
+      "acoustic radiation"
+    ],
+    [
+      "atr",
+      "anterior thalamic radiation"
+    ],
+    [
+      "cc",
+      "corpus callosum"
+    ],
+    [
+      "cing",
+      "cingulum"
+    ],
+    [
+      "cinta",
+      "clustering in tractography using autoencoders"
+    ],
+    [
+      "cnn",
+      "convolutional neural network"
+    ],
+    [
+      "csd",
+      "constrained spherical deconvolution"
+    ],
+    [
+      "csf",
+      "cerebrospinal fluid"
+    ],
+    [
+      "cst",
+      "corticospinal tract"
+    ],
+    [
+      "dl",
+      "deep learning"
+    ],
+    [
+      "dmri",
+      "diffusion magnetic resonance imaging"
+    ],
+    [
+      "dodf",
+      "diffusion orientation distribution function"
+    ],
+    [
+      "dt",
+      "diffusion tensor"
+    ],
+    [
+      "dti",
+      "diffusion tensor imaging"
+    ],
+    [
+      "dw-mri",
+      "diffusion-weighted magnetic resonance imaging"
+    ],
+    [
+      "dwi",
+      "diffusion-weighted imaging"
+    ],
+    [
+      "dwm",
+      "deep white matter"
+    ],
+    [
+      "eap",
+      "ensemble average (diffusion) propagator"
+    ],
+    [
+      "fa",
+      "fractional anisotropy"
+    ],
+    [
+      "fat",
+      "frontal aslant tract"
+    ],
+    [
+      "fc",
+      "fully connected"
+    ],
+    [
+      "finta",
+      "filtering in tractography using autoencoders"
+    ],
+    [
+      "fmri",
+      "functional magnetic resonance imaging"
+    ],
+    [
+      "fod",
+      "fiber orientation distribution"
+    ],
+    [
+      "fodf",
+      "fiber orientation distribution function"
+    ],
+    [
+      "ft",
+      "fourier transform"
+    ],
+    [
+      "fx",
+      "fornix"
+    ],
+    [
+      "ge",
+      "gradient echo"
+    ],
+    [
+      "gesta",
+      "generative sampling in bundle tractography using autoencoders"
+    ],
+    [
+      "gm",
+      "gray matter"
+    ],
+    [
+      "hardi",
+      "high angular resolution diffusion imaging"
+    ],
+    [
+      "ic",
+      "internal capsule"
+    ],
+    [
+      "icp",
+      "inferior cerebellar peduncle"
+    ],
+    [
+      "ifof",
+      "inferior fronto-occipital fascicle"
+    ],
+    [
+      "ils",
+      "inferior longitudinal system"
+    ],
+    [
+      "jif",
+      "journal impact factor"
+    ],
+    [
+      "mcp",
+      "middle cerebellar peduncle"
+    ],
+    [
+      "ml",
+      "machine learning"
+    ],
+    [
+      "mlp",
+      "multilayer perceptron"
+    ],
+    [
+      "mls",
+      "middle longitudinal system"
+    ],
+    [
+      "mr",
+      "magnetic resonance"
+    ],
+    [
+      "mri",
+      "magnetic resonance imaging"
+    ],
+    [
+      "nn",
+      "neural network"
+    ],
+    [
+      "nos",
+      "number of streamlines"
+    ],
+    [
+      "odf",
+      "orientation distribution function (also referred to as orientation density function)"
+    ],
+    [
+      "or",
+      "optic radiation"
+    ],
+    [
+      "pc",
+      "posterior commissure"
+    ],
+    [
+      "pca",
+      "principal component analysis"
+    ],
+    [
+      "pdf",
+      "probability density function"
+    ],
+    [
+      "pgse",
+      "pulsed-gradient spin echo"
+    ],
+    [
+      "pli",
+      "polarized light imaging"
+    ],
+    [
+      "popt",
+      "parieto-occipital pontine tract"
+    ],
+    [
+      "ps-oct",
+      "polarization-sensitive optical coherence tomography"
+    ],
+    [
+      "rf",
+      "radio frequency"
+    ],
+    [
+      "rnn",
+      "recurrent neural network"
+    ],
+    [
+      "roc",
+      "receiver operating characteristic"
+    ],
+    [
+      "scp",
+      "superior cerebellar peduncle"
+    ],
+    [
+      "sd",
+      "spherical deconvolution"
+    ],
+    [
+      "se",
+      "spin echo"
+    ],
+    [
+      "set",
+      "surface-enhanced tractography"
+    ],
+    [
+      "sls",
+      "superior longitudinal system"
+    ],
+    [
+      "smri",
+      "structural magnetic resonance imaging"
+    ],
+    [
+      "swm",
+      "superficial white matter"
+    ],
+    [
+      "t1-w",
+      "t1-weighted image"
+    ],
+    [
+      "te",
+      "echo time"
+    ],
+    [
+      "tr",
+      "repetition time"
+    ],
+    [
+      "uf",
+      "uncinate fascicle"
+    ],
+    [
+      "vae",
+      "variational autoencoder"
+    ],
+    [
+      "wm",
+      "white matter"
+    ],
+    [
+      "3d",
+      "three dimensions"
+    ],
+    [
+      "4d",
+      "four dimensions"
+    ],
+    [
+      "act",
+      "anatomically-constrained tractography"
+    ],
+    [
+      "amico",
+      "accelerated microstructure imaging via convex optimization"
+    ],
+    [
+      "apm",
+      "average pathlength map"
+    ],
+    [
+      "bet",
+      "brain extraction tool"
+    ],
+    [
+      "cdmri",
+      "computational diffusion mri"
+    ],
+    [
+      "cg",
+      "cingulum"
+    ],
+    [
+      "cmc",
+      "continuous maps criterion"
+    ],
+    [
+      "commit",
+      "convex optimization modeling for microstructure informed tractography"
+    ],
+    [
+      "csa",
+      "constant solid-angle"
+    ],
+    [
+      "csf/lcs/lcr",
+      "cerebrospinal fluid"
+    ],
+    [
+      "c-dec",
+      "connectivity directionally-encoded color"
+    ],
+    [
+      "dec",
+      "directionally-encoded color"
+    ],
+    [
+      "dwi",
+      "diffusion-weighted imaging"
+    ],
+    [
+      "dmri",
+      "diffusion-weighted imaging"
+    ],
+    [
+      "irmd",
+      "diffusion-weighted imaging"
+    ],
+    [
+      "eap",
+      "ensemble average propagator"
+    ],
+    [
+      "epi",
+      "echo-planar imaging"
+    ],
+    [
+      "fast",
+      "fmrib’s automated segmentation tool"
+    ],
+    [
+      "flirt",
+      "fmrib’s linear image registration tool"
+    ],
+    [
+      "fmt",
+      "fast marching tractography"
+    ],
+    [
+      "fsl",
+      "fmrib software library"
+    ],
+    [
+      "grappa",
+      "generalized autocalibrating partially parallel acquisition"
+    ],
+    [
+      "ifof",
+      "inferior fronto-occipital fasciculus"
+    ],
+    [
+      "ipmi",
+      "information processing in medical imaging"
+    ],
+    [
+      "ismrm",
+      "international society for magnetic resonance in medicine"
+    ],
+    [
+      "miccai",
+      "medical image computing and computer assisted intervention"
+    ],
+    [
+      "mprage",
+      "magnetization-prepared rapid acquisition with gradient-echo"
+    ],
+    [
+      "irm",
+      "magnetic resonance imaging"
+    ],
+    [
+      "mri",
+      "magnetic resonance imaging"
+    ],
+    [
+      "odf",
+      "orientation distribution function"
+    ],
+    [
+      "ohbm",
+      "organization for human brain mapping"
+    ],
+    [
+      "pve",
+      "partial volume estimation"
+    ],
+    [
+      "roi",
+      "region of interest"
+    ],
+    [
+      "rtt",
+      "real-time tractography"
+    ],
+    [
+      "sh",
+      "spherical harmonics"
+    ],
+    [
+      "slf",
+      "superior longitudinal fasciculus"
+    ],
+    [
+      "snr",
+      "signal-to-noise ratio"
+    ],
+    [
+      "twi",
+      "track-weighted imaging"
+    ],
+    [
+      "voi",
+      "volume of interest"
+    ],
+    [
+      "ats",
+      "anterior traverse system"
+    ],
+    [
+      "a123",
+      "area 1/2/3 (upper limb, head, and face region)"
+    ],
+    [
+      "a4hf",
+      "area 4 (head and face region)"
+    ],
+    [
+      "a4ul",
+      "area 4 (upperspherical limb region)"
+    ],
+    [
+      "a46",
+      "area 46"
+    ],
+    [
+      "af",
+      "arcuate fasciculus"
+    ],
+    [
+      "bls",
+      "basal longitudinal system"
+    ],
+    [
+      "ca39",
+      "caudal area 39"
+    ],
+    [
+      "cdl",
+      "caudal dorsolateral area"
+    ],
+    [
+      "cvl",
+      "caudal ventrolateral area"
+    ],
+    [
+      "cdl",
+      "caudolateral of area"
+    ],
+    [
+      "csf",
+      "cerebral spinal fluid"
+    ],
+    [
+      "ctoi",
+      "conservative tract of interest"
+    ],
+    [
+      "da9/36",
+      "dorsal area 9/46"
+    ],
+    [
+      "ddi",
+      "dorsal dysgranular insula"
+    ],
+    [
+      "dl6",
+      "dorsolateral area 6"
+    ],
+    [
+      "dl37",
+      "dorsolateral area 37 region"
+    ],
+    [
+      "efc",
+      "extreme/external capsule fibre system"
+    ],
+    [
+      "fodfs",
+      "fibre orientation distribution functions"
+    ],
+    [
+      "fus",
+      "fusiform gyrus"
+    ],
+    [
+      "hcp",
+      "human connectome project"
+    ],
+    [
+      "ifg",
+      "inferior frontal gyrus"
+    ],
+    [
+      "ils",
+      "inferior longitudinal system"
+    ],
+    [
+      "ipl",
+      "inferior parietal lobe"
+    ],
+    [
+      "itg",
+      "inferior temporal gyrus"
+    ],
+    [
+      "ins",
+      "insula"
+    ],
+    [
+      "ipa",
+      "intraparietal area"
+    ],
+    [
+      "la",
+      "lateral area"
+    ],
+    [
+      "locc",
+      "lateral occipital cortex"
+    ],
+    [
+      "cin",
+      "limbic lobe/cingulum"
+    ],
+    [
+      "mme",
+      "mean millimetre error"
+    ],
+    [
+      "mvocc",
+      "medioventral occipital cortex"
+    ],
+    [
+      "mlf",
+      "medial longitudinal fasciculus"
+    ],
+    [
+      "mesls",
+      "mesial longitudinal system"
+    ],
+    [
+      "mfg",
+      "middle frontal gyrus"
+    ],
+    [
+      "midls",
+      "middle longitudinal systems"
+    ],
+    [
+      "mlf",
+      "middle longitudinal fasciculus"
+    ],
+    [
+      "mtg",
+      "middle temporal gyrus"
+    ],
+    [
+      "mni",
+      "montreal neurological institute"
+    ],
+    [
+      "opa",
+      "opercular area"
+    ],
+    [
+      "ofg",
+      "orbital frontal gyrus"
+    ],
+    [
+      "pag",
+      "paracentral gyrus"
+    ],
+    [
+      "pft",
+      "particle-filter tractography"
+    ],
+    [
+      "pocg",
+      "postcentral gyrus"
+    ],
+    [
+      "pts",
+      "posterior traverse system"
+    ],
+    [
+      "pcg",
+      "precentral gyrus"
+    ],
+    [
+      "pcun",
+      "precuneus"
+    ],
+    [
+      "rois",
+      "regions of interest"
+    ],
+    [
+      "rda",
+      "rostrodorsal area"
+    ],
+    [
+      "rva",
+      "rostroventral area"
+    ],
+    [
+      "stoi",
+      "sublobe tract of interest"
+    ],
+    [
+      "sfg",
+      "superior frontal gyrus"
+    ],
+    [
+      "slf",
+      "superior longitudinal fasciculus"
+    ],
+    [
+      "sls",
+      "superior longitudinal system"
+    ],
+    [
+      "spl",
+      "superior parietal lobule"
+    ],
+    [
+      "stl",
+      "superior temporal lobe"
+    ],
+    [
+      "sma",
+      "supplementary motor area"
+    ],
+    [
+      "tois",
+      "tracts of interest"
+    ],
+    [
+      "t",
+      "tesla"
+    ],
+    [
+      "uf",
+      "uncinate fasciculus"
+    ],
+    [
+      "vtois",
+      "variable tract of interest"
+    ],
+    [
+      "abs",
+      "atlas based segmentation"
+    ],
+    [
+      "afd",
+      "apparent fibre density"
+    ],
+    [
+      "ad",
+      "axial diffusivity"
+    ],
+    [
+      "bids",
+      "brain imaging data structure"
+    ],
+    [
+      "lcs",
+      "cerebrospinal fluid"
+    ],
+    [
+      "dodf",
+      "diffusion orientation distribution function"
+    ],
+    [
+      "flair",
+      "fluid-attenuated inversion recovery"
+    ],
+    [
+      "frf",
+      "fibre response function"
+    ],
+    [
+      "rd",
+      "radial diffusivity"
+    ],
+    [
+      "rf",
+      "radio frequency"
+    ],
+    [
+      "scil",
+      "sherbrooke connectivity imaging laboratory"
+    ],
+    [
+      "sp",
+      "multiple sclerosis"
+    ],
+    [
+      "cpu",
+      "central processing unit"
+    ],
+    [
+      "frt",
+      "funk-radon transform"
+    ],
+    [
+      "go",
+      "gigabyte"
+    ],
+    [
+      "gpu",
+      "graphical processing unit"
+    ],
+    [
+      "gru",
+      "gated recurrent unit"
+    ],
+    [
+      "irm",
+      "magnetic resonance imaging"
+    ],
+    [
+      "irmd",
+      "diffusion-weighted magnetic resonance imaging"
+    ],
+    [
+      "lstm",
+      "long short-term memory network"
+    ],
+    [
+      "md",
+      "mean diffusivity"
+    ],
+    [
+      "ram",
+      "random access memory"
+    ],
+    [
+      "rnn",
+      "recurrent neural network"
+    ],
+    [
+      "3d-shore",
+      "three dimensional simple harmonic oscillator based reconstruction and estimation model"
+    ],
+    [
+      "ae",
+      "angular error metric"
+    ],
+    [
+      "cdf",
+      "cohen-daubechies-feauveau"
+    ],
+    [
+      "cdsi",
+      "classical diffusion spectrum imaging model"
+    ],
+    [
+      "cs",
+      "compressive sensing"
+    ],
+    [
+      "csa",
+      "constant solid angle q-ball model"
+    ],
+    [
+      "csd",
+      "constrained spherical deconvolution model"
+    ],
+    [
+      "cv",
+      "cross validation"
+    ],
+    [
+      "ddsi",
+      "diffusion spectrum imaging deconvolution model"
+    ],
+    [
+      "dipy",
+      "diffusion in python software"
+    ],
+    [
+      "dnc",
+      "difference in the number of fiber compartments metric"
+    ],
+    [
+      "dsi",
+      "diffusion spectrum imaging model"
+    ],
+    [
+      "dsi515",
+      "classical diffusion spectrum imaging acquisition scheme with 515 samples"
+    ],
+    [
+      "dsistudio",
+      "dsi studio software"
+    ],
+    [
+      "dti",
+      "diffusion tensor imaging model"
+    ],
+    [
+      "dtk",
+      "diffusion toolkit software"
+    ],
+    [
+      "dtwt",
+      "dual tree wavelet transform"
+    ],
+    [
+      "dw",
+      "diffusion weighted"
+    ],
+    [
+      "dwi",
+      "diffusion weighted imaging"
+    ],
+    [
+      "dwt",
+      "discrete wavelet transform"
+    ],
+    [
+      "fodf",
+      "fiber orientation distribution function"
+    ],
+    [
+      "ib",
+      "invalib bundles metric"
+    ],
+    [
+      "idft",
+      "inverse discrete fourier transform"
+    ],
+    [
+      "isbi",
+      "ieee international symposium on biomedical imaging"
+    ],
+    [
+      "isbi2013",
+      "subset of the dataset from the hardi challenge at the conference isbi2013"
+    ],
+    [
+      "isbi2013-full",
+      "dataset from the hardi challenge at the conference isbi2013"
+    ],
+    [
+      "nmse",
+      "normalized mean square error"
+    ],
+    [
+      "odsi",
+      "optimal diffusion spectrum imaging model"
+    ],
+    [
+      "pccoeff",
+      "pearson correlation coefficient"
+    ],
+    [
+      "pdsi",
+      "plain diffusion spectrum imaging model"
+    ],
+    [
+      "pgse",
+      "pulse-gradient spin-echo"
+    ],
+    [
+      "qbi",
+      "q-ball imaging model"
+    ]
+  ]
+}
