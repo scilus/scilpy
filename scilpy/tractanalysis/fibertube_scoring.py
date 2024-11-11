@@ -400,50 +400,74 @@ def endpoint_connectivity(step_size, blur_radius, centerlines,
                                       max(blur_radius, step_size)
                                       + max_seg_length)[0]
 
+        # Checking VC and Res_VC first
         for neighbor_segi in neighbors:
             fi = indices[neighbor_segi][0]
+            if fi != seed_fi:
+                continue
+        
             fiber = centerlines[fi]
             fib_end_pt1 = fiber[centerlines_length[fi] - 2]
             fib_end_pt2 = fiber[centerlines_length[fi] - 1]
             radius = diameters[fi] / 2
 
             # Connectivity
-            # Is in start segment of a fibertube and not ours
-            dist, _, _, _ = dist_segment_segment(
-                fiber[0], fiber[1], streamline[int(np.floor(ratio))],
-                streamline[int(np.ceil(ratio))+1])
-            if dist < radius and fi != seed_fi:
-                truth_connected = True
-                truth_ic.add((si, fi))
-
-            # Is in end segment of a fibertube
+            # Is in end segment of our fibertube
             dist, _, _, _ = dist_segment_segment(
                 fib_end_pt1, fib_end_pt2, streamline[int(np.floor(ratio))],
                 streamline[int(np.ceil(ratio))+1])
             if dist < radius:
                 truth_connected = True
-                if fi == seed_fi:
-                    truth_vc.add(si)
-                else:
-                    truth_ic.add((si, fi))
-
+                truth_vc.add(si)
+            
             # Resolution-wise connectivity
-            # Passes by start segment of a fibertube and not ours
-            dist, _, _, _ = dist_segment_segment(fiber[0], fiber[1],
-                                                 streamline[1], streamline[0])
-            if dist < radius + blur_radius and fi != seed_fi:
-                res_connected = True
-                res_ic.add((si, fi))
-
-            # Passes by end segment of a fibertube
+            # Passes by end segment of our fibertube
             dist, _, _, _ = dist_segment_segment(fib_end_pt1, fib_end_pt2,
                                                  streamline[1], streamline[0])
             if dist < radius + blur_radius:
                 res_connected = True
-                if fi == seed_fi:
-                    res_vc.add(si)
-                else:
-                    res_ic.add((si, fi))
+                res_vc.add(si)
+
+        # If not VC we check IC/NC and if not Res_VC, we check Res_IC/Res_NC
+        for neighbor_segi in neighbors:
+            fi = indices[neighbor_segi][0]
+            if fi == seed_fi:
+                continue
+
+            fiber = centerlines[fi]
+            fib_end_pt1 = fiber[centerlines_length[fi] - 2]
+            fib_end_pt2 = fiber[centerlines_length[fi] - 1]
+            radius = diameters[fi] / 2
+
+            is_vc = len(truth_vc.intersection({si})) != 0
+            is_res_vc = len(res_vc.intersection({si})) != 0
+
+            # Connectivity
+            # Is in start or end segment of a fibertube which is not ours
+            start_dist, _, _, _ = dist_segment_segment(
+                fiber[0], fiber[1], streamline[int(np.floor(ratio))],
+                streamline[int(np.ceil(ratio))+1])
+            
+            end_dist, _, _, _ = dist_segment_segment(
+                fib_end_pt1, fib_end_pt2, streamline[int(np.floor(ratio))],
+                streamline[int(np.ceil(ratio))+1])
+
+            if not is_vc and (start_dist < radius or end_dist < radius):
+                truth_connected = True
+                truth_ic.add(si)
+
+            # Resolution-wise connectivity
+            # Passes by start or end segment of a fibertube which is not ours
+            start_dist, _, _, _ = dist_segment_segment(
+                fiber[0], fiber[1], streamline[1], streamline[0])
+
+            end_dist, _, _, _ = dist_segment_segment(
+                fib_end_pt1, fib_end_pt2, streamline[1], streamline[0])
+
+            if not is_res_vc and (start_dist < radius + blur_radius or
+                                  end_dist < radius + blur_radius):
+                res_connected = True
+                res_ic.add(si)
 
         if not truth_connected:
             truth_nc.add(si)
