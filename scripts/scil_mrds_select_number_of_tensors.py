@@ -3,36 +3,30 @@
 
 """
 Use the NUFO map information to select the plausible number of tensors
-in the MRDS solutions.
+in the Multi-Resolution Discrete Search (MRDS).
+https://link.springer.com/chapter/10.1007/978-3-031-47292-3_4
 
-Each MRDS input is a list of 5 files:
-    - Signal fraction of each tensor
-    - Eigenvalues
-    - Isotropic
-    - Number of tensors
-    - Eigenvectors
+scil_mrds_select_number_of_tensors.py uses the output from mdtmrds command.
+Some mdtmrds output files will be named differently from the expected input:
+    COMP_SIZE becomes signal_fraction
+    COMP_SIZE becomes num_tensors
+    PDDs_CARTESIAN becomes evecs
+    Eigenvalues becomes evals
 
-    --N1 is the MRDS solution with 1 tensor.
-    --N2 is the MRDS solution with 2 tensors.
-    --N3 is the MRDS solution with 3 tensors.
+mdtmrds: information available soon (not part of scilpy).
+
+Input:
+    Inputs are a list of 5 files for each MRDS solution (V1, V2, V3).
+    - Signal fraction of each tensor ([in_prefix]_V[1,2,3]_signal_fraction.nii.gz)
+    - Eigenvalues ($in_prefix]_V[1,2,3]_eigenvalues.nii.gz)
+    - Isotropic ([in_prefix]_V[1,2,3]_isotropic.nii.gz)
+    - Number of tensors ([in_prefix]_V[1,2,3]_num_tensors.nii.gz)
+    - Eigenvectors ([in_prefix]_V[1,2,3]_evecs.nii.gz)
+
 
     Example:
-    scil_mrds_modsel_todi.py nufo.nii.gz
-        --N1 V1_signal_fraction.nii.gz
-             V1_eigenvalues.nii.gz
-             V1_isotropic.nii.gz
-             V1_num_tensors.nii.gz
-             V1_evecs.nii.gz
-        --N2 V2_signal_fraction.nii.gz
-             V2_eigenvalues.nii.gz
-             V2_isotropic.nii.gz
-             V2_num_tensors.nii.gz
-             V2_evecs.nii.gz
-        --N3 V3_signal_fraction.nii.gz
-             V3_eigenvalues.nii.gz
-             V3_isotropic.nii.gz
-             V3_num_tensors.nii.gz
-             V3_evecs.nii.gz
+        scil_mrds_select_number_of_tensors.py nufo.nii.gz
+            --in_prefix sub-01
 """
 
 import argparse
@@ -53,20 +47,14 @@ from scilpy.io.utils import (add_overwrite_arg, add_processes_arg,
 def _build_arg_parser():
     p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawTextHelpFormatter)
+    p.add_argument('in_prefix',
+                   help='Prefix used for all MRDS solutions.')
     p.add_argument('in_volume',
                    help='Volume with the number of expected tensors.'
                         ' (Example: NUFO volume)')
 
-    g = p.add_argument_group(title='MRDS inputs')
-    g.add_argument('--N1', nargs=5, required=True,
-                   help='MRDS solution with 1 tensor.')
-    g.add_argument('--N2', nargs=5, required=True,
-                   help='MRDS solution with 2 tensors.')
-    g.add_argument('--N3', nargs=5, required=True,
-                   help='MRDS solution with 3 tensors.')
-
-    p.add_argument('--prefix', default='results',
-                   help='prefix of the MRDS results [%(default)s].')
+    p.add_argument('--out_prefix', default='results',
+                   help='Prefix of the MRDS results [%(default)s].')
     p.add_argument('--mask',
                    help='Optional mask filename.')
 
@@ -82,27 +70,33 @@ def main():
     args = parser.parse_args()
     logging.getLogger().setLevel(args.verbose.upper())
 
-    assert_inputs_exist(parser, [args.in_volume] + args.N1 + args.N2 + args.N3,
-                        optional=args.mask)
-    output_files = ["{}_MRDS_signal_fraction.nii.gz".format(args.prefix),
-                    "{}_MRDS_eigenvalues.nii.gz".format(args.prefix),
-                    "{}_MRDS_isotropic.nii.gz".format(args.prefix),
-                    "{}_MRDS_num_comp.nii.gz".format(args.prefix),
-                    "{}_MRDS_evecs.nii.gz".format(args.prefix)]
-    assert_outputs_exist(parser, args, output_files)
-    assert_headers_compatible(parser, [args.in_volume] +
-                              args.N1 + args.N2 + args.N3)
+    mrds_files = []
+    for i in range(1, 4):
+        mrds_files.append([args.in_prefix + '_V{}_signal_fraction.nii.gz'.format(i),
+                           args.in_prefix + '_V{}_evals.nii.gz'.format(i),
+                           args.in_prefix + '_V{}_isotropic.nii.gz'.format(i),
+                           args.in_prefix + '_V{}_num_tensors.nii.gz'.format(i),
+                           args.in_prefix + '_V{}_evecs.nii.gz'.format(i)])
 
-    mrds_files = [args.N1, args.N2, args.N3]
+    assert_inputs_exist(parser, [args.in_volume] + [x for xs in mrds_files for x in xs],
+                        optional=args.mask)
+
+    output_files = ["{}_MRDS_signal_fraction.nii.gz".format(args.out_prefix),
+                    "{}_MRDS_evals.nii.gz".format(args.out_prefix),
+                    "{}_MRDS_isotropic.nii.gz".format(args.out_prefix),
+                    "{}_MRDS_num_tensors.nii.gz".format(args.out_prefix),
+                    "{}_MRDS_evecs.nii.gz".format(args.out_prefix)]
+    assert_outputs_exist(parser, args, output_files)
+    assert_headers_compatible(parser, [args.in_volume] + [x for xs in mrds_files for x in xs])
 
     signal_fraction = []
-    eigenvalues = []
+    evals = []
     iso = []
     num_tensors = []
     evecs = []
     for N in range(3):
         signal_fraction.append(nib.load(mrds_files[N][0]).get_fdata(dtype=np.float32))
-        eigenvalues.append(nib.load(mrds_files[N][1]).get_fdata(dtype=np.float32))
+        evals.append(nib.load(mrds_files[N][1]).get_fdata(dtype=np.float32))
         iso.append(nib.load(mrds_files[N][2]).get_fdata(dtype=np.float32))
         num_tensors.append(nib.load(mrds_files[N][3]).get_fdata(dtype=np.float32))
         evecs.append(nib.load(mrds_files[N][4]).get_fdata(dtype=np.float32))
@@ -126,7 +120,7 @@ def main():
     filtered_voxels = ((x, y, z) for (x, y, z) in voxels if mask[x, y, z])
 
     signal_fraction_out = np.zeros((X, Y, Z, 3))
-    eigenvalues_out = np.zeros((X, Y, Z, 9))
+    evals_out = np.zeros((X, Y, Z, 9))
     iso_out = np.zeros((X, Y, Z, 2))
     num_tensors_out = np.zeros((X, Y, Z), dtype=np.uint8)
     evecs_out = np.zeros((X, Y, Z, 9))
@@ -135,12 +129,13 @@ def main():
     for (X, Y, Z) in filtered_voxels:
         N = mosemap[X, Y, Z]-1
 
+        # Maximum number of tensors is 3
         if N > 2:
             N = 2
 
         if N > -1:
             signal_fraction_out[X, Y, Z, :] = signal_fraction[N][X, Y, Z, :]
-            eigenvalues_out[X, Y, Z, :] = eigenvalues[N][X, Y, Z, :]
+            evals_out[X, Y, Z, :] = evals[N][X, Y, Z, :]
             iso_out[X, Y, Z, :] = iso[N][X, Y, Z, :]
             num_tensors_out[X, Y, Z] = int(num_tensors[N][X, Y, Z])
             evecs_out[X, Y, Z, :] = evecs[N][X, Y, Z, :]
@@ -150,7 +145,7 @@ def main():
                              affine=affine,
                              header=header,
                              dtype=np.float32), output_files[0])
-    nib.save(nib.Nifti1Image(eigenvalues_out,
+    nib.save(nib.Nifti1Image(evals_out,
                              affine=affine,
                              header=header,
                              dtype=np.float32), output_files[1])
