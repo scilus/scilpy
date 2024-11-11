@@ -125,7 +125,7 @@ def _build_arg_parser():
     g.add_argument('--min_lesion_vol', type=float, default=7,
                    help='Minimum lesion volume in mm3 [%(default)s].')
     g.add_argument('--density_weighting', action="store_true",
-                   help='Use density-weighting for the metric weighted'
+                   help='Use density-weighting for the metric weighted '
                         'matrix.')
     g.add_argument('--no_self_connection', action="store_true",
                    help='Eliminate the diagonal from the matrices.')
