@@ -36,7 +36,7 @@ Fibertube Tracking:
    grid of fODFs or peaks. It directly tracks and reconstructs
    fibertubes, i.e. streamlines that have an associated diameter.
 
-.. image:: https://github.com/user-attachments/assets/2e4253b3-05ca-4881-8482-3a96db0a76c9
+.. image:: https://github.com/user-attachments/assets/0286ec53-5bca-4133-93dd-22f360dfcb45
    :alt: Fibertube visualized in 3D
 
 Methodology
@@ -256,7 +256,7 @@ segment of another fibertube.
 NC: "No Connection": A streamline that has not ended in the first or final
 segment of any fibertube.
 
-.. image:: https://github.com/user-attachments/assets/4871cb09-313e-499a-b56d-a668bdb631db
+.. image:: https://github.com/user-attachments/assets/bc61ce87-6581-4714-83d2-9602380f2697
    :alt: Visual representation of VC, IC, and NC
 
 Res_VC: "Resolution-wise Valid Connection": A streamline that passes
@@ -271,7 +271,7 @@ Res_NC: "Resolution-wise No Connection": A streamlines that does not pass
 closer than [blur_radius] away from the first or last segment of any
 fibertube.
 
-.. image:: https://github.com/user-attachments/assets/c480f5e6-14f8-456a-b8e8-77569661c452
+.. image:: https://github.com/user-attachments/assets/d8c1a376-e2b9-454c-9234-5a124bde3c02
    :alt: Visual representation of Res_VC, Res_IC, and Res_NC
 
 The "absolute error" of a coordinate is the distance in mm between that
@@ -283,7 +283,7 @@ Here is a visual representation of streamlines (Green) tracked along a fibertube
 (Only the centerline is shown in blue) with their coordinate absolute error (Red).
 
 
-.. image:: https://github.com/user-attachments/assets/73235244-0bf1-4506-9e4e-0b94d4bf993f
+.. image:: https://github.com/user-attachments/assets/62324b66-f66b-43ae-a772-086560ef713a
    :alt: Visualization of the coordinate absolute error
 
 Computed metrics:
