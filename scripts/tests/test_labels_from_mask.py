@@ -8,7 +8,7 @@ from scilpy import SCILPY_HOME
 from scilpy.io.fetcher import fetch_data, get_testing_files_dict
 
 # If they already exist, this only takes 5 seconds (check md5sum)
-fetch_data(get_testing_files_dict(), keys=['atlas.zip'])
+fetch_data(get_testing_files_dict(), keys=['tractograms.zip'])
 tmp_dir = tempfile.TemporaryDirectory()
 
 
@@ -24,7 +24,7 @@ def test_execution(script_runner, monkeypatch):
                            'bundle_4_head_tail_offset.nii.gz')
     ret = script_runner.run('scil_labels_from_mask.py',
                             in_mask, 'labels_from_mask.nii.gz',
-                            '-f')
+                            '--min_volume', '0', '-f')
     assert ret.success
 
 

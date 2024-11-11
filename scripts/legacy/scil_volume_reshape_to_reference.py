@@ -11,7 +11,7 @@ Please change your existing pipelines accordingly.
 """
 
 
-@deprecate_script("scil_reshape_to_reference.py",
+@deprecate_script("scil_volume_reshape_to_reference.py",
                   DEPRECATION_MSG, '2.0.0')
 def main():
     new_main()
