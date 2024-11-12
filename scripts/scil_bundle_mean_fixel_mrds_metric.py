@@ -21,7 +21,7 @@ with the current streamline segment.
 
 Input files come from scil_mrds_metrics.py command.
 
-Output metrics will be name: [prefix]_mrds_[metric_name].nii.gz
+Output metrics will be named: [prefix]_mrds_[metric_name].nii.gz
 
 Please use a bundle file rather than a whole tractogram.
 """
