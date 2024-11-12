@@ -11,7 +11,7 @@ Some mdtmrds output files will be named differently from the expected input:
     COMP_SIZE becomes signal_fraction
     NUM_COMP becomes num_tensors
     PDDs_CARTESIAN becomes evecs
-    Eigenvalues becomes evals
+    EIGENVALUES becomes evals
 
 mdtmrds: information available soon (not part of scilpy).
 
