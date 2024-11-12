@@ -27,7 +27,7 @@ def _build_arg_parser():
     p.add_argument('in_evals',
                    help='MRDS eigenvalues file (Shape: [X, Y, Z, 9]).\n'
                         'The last dimensions, value 1-3 are associated with '
-                        '1 tensor, 4-6 with 2 tensors, 7-9 with 3 tensors.'
+                        '1 tensor, 4-6 with 2 tensors, 7-9 with 3 tensors.\n'
                         'This file is one of the output '
                         'of scil_mrds_select_number_of_tensors.py.')
 
