@@ -9,7 +9,7 @@ https://link.springer.com/chapter/10.1007/978-3-031-47292-3_4
 scil_mrds_select_number_of_tensors.py uses the output from mdtmrds command.
 Some mdtmrds output files will be named differently from the expected input:
     COMP_SIZE becomes signal_fraction
-    COMP_SIZE becomes num_tensors
+    NUM_COMP becomes num_tensors
     PDDs_CARTESIAN becomes evecs
     Eigenvalues becomes evals
 
@@ -18,7 +18,7 @@ mdtmrds: information available soon (not part of scilpy).
 Input:
     Inputs are a list of 5 files for each MRDS solution (V1, V2, V3).
     - Signal fraction of each tensor ([in_prefix]_V[1,2,3]_signal_fraction.nii.gz)
-    - Eigenvalues ($in_prefix]_V[1,2,3]_eigenvalues.nii.gz)
+    - Eigenvalues ($in_prefix]_V[1,2,3]_evals.nii.gz)
     - Isotropic ([in_prefix]_V[1,2,3]_isotropic.nii.gz)
     - Number of tensors ([in_prefix]_V[1,2,3]_num_tensors.nii.gz)
     - Eigenvectors ([in_prefix]_V[1,2,3]_evecs.nii.gz)
