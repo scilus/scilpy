@@ -3,7 +3,7 @@
 
 """
 Script to compute FA/MD/RD/AD for
-each Multi-ResolutionDiscrete-Search (MRDS) solutions.
+each Multi-ResolutionDiscrete-Search (MRDS) solution.
 It will output the results in 4 different 4D files.
 """
 
