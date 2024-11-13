@@ -11,7 +11,9 @@ at most 0.2mm. Otherwise performance will drop significantly. This is because
 this script relies on a KDTree to find all neighboring streamline segments of
 any given point. Because the search radius is set at the length of the longest
 fibertube segment, the performance drops significantly if they are not
-shortened to ~0.2mm.
+shortened to ~0.2mm. This also means that the radius of the fibertube must not
+go above the length of the longest fibertube, or else some collisions may
+remain undetected.
 (see scil_tractogram_resample_nb_points.py)
 
 The filtering is deterministic and follows this approach:
@@ -31,6 +33,10 @@ If the --out_metrics parameter is given, several metrics about the data will
 be computed.
 
 Computed metrics (all expressed in mm):
+    - fibertube_density
+        Estimate of the following ratio: volume of fibertubes / total volume.
+        "Total volume" is the combined volume of all voxels containing at
+        least one fibertube.
     - min_external_distance
         Smallest distance separating two streamlines, outside their diameter.
     - max_voxel_anisotropic
@@ -61,21 +67,20 @@ import json
 import argparse
 import logging
 import numpy as np
-import nibabel as nib
 
 from scilpy.tractograms.intersection_finder import IntersectionFinder
 from dipy.io.stateful_tractogram import StatefulTractogram
 from dipy.io.streamline import save_tractogram
 from scilpy.io.streamlines import load_tractogram_with_reference
-from scilpy.tractanalysis.fibertube_scoring import (
-    min_external_distance, max_voxels, max_voxel_rotated)
+from scilpy.tractanalysis.fibertube_scoring import (mean_fibertube_density,
+                                                    min_external_distance,
+                                                    max_voxels,
+                                                    max_voxel_rotated)
 from scilpy.io.utils import (assert_inputs_exist,
                              assert_outputs_exist,
                              add_overwrite_arg,
                              add_verbose_arg,
                              add_json_args)
-from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
-from scilpy.tractanalysis.todi import TrackOrientationDensityImaging
 
 
 def _build_arg_parser():
@@ -237,7 +242,6 @@ def main():
     if args.out_metrics is not None or args.out_max_voxel_rotation is not None:
         logging.info('Computing metrics')
 
-        
         min_ext_dist, min_ext_dist_vect = (
             min_external_distance(
                 out_sft.streamlines,
@@ -246,41 +250,20 @@ def main():
         max_voxel_ani, max_voxel_iso = max_voxels(min_ext_dist_vect)
         mvr_rot, mvr_edge = max_voxel_rotated(min_ext_dist_vect)
 
-        # Computing mean tube density per voxel.
-        out_sft.to_vox()
-        # Because compute_todi expects streamline points (in voxel coordinates)
-        # to be in the range [0, size] rather than [-0.5, size - 0.5], we shift
-        # the voxel origin to corner.
-        out_sft.to_corner()
+        mean_segment_lengths = []
+        for streamline in out_sft.streamlines:
+            mean_segment_lengths.append(
+                np.mean(np.linalg.norm(streamline[1:] - streamline[:-1], axis=-1)))
+        mean_segment_length = np.mean(mean_segment_lengths)
 
-        _, data_shape, _, _ = out_sft.space_attributes
-        todi_obj = TrackOrientationDensityImaging(tuple(data_shape))
-        todi_obj.compute_todi(out_sft.streamlines)
-        img = todi_obj.get_tdi()
-        img = todi_obj.reshape_to_3d(img)
-        
-        nb_voxels_nonzero = np.count_nonzero(img)
-        sum = np.sum(img, axis=-1)
-        sum = np.sum(sum, axis=-1)
-        sum = np.sum(sum, axis=-1)
-
-        mean_seg_volume = np.pi * ((np.mean(diameters)/2) ** 2) * (
-            np.linalg.norm(in_sft.streamlines[0][1] -
-                           in_sft.streamlines[0][0]))
-
-        mean_seg_count = sum / nb_voxels_nonzero
-        mean_volume = mean_seg_count * mean_seg_volume
-        mean_density = mean_volume / (out_sft.voxel_sizes[0]*
-                                      out_sft.voxel_sizes[1]*
-                                      out_sft.voxel_sizes[2])
-
-        print(mean_seg_count, mean_volume, mean_density)
-        
-        #img = nib.Nifti1Image(img.astype(np.float32), affine)
-        #img.to_filename(args.out_tdi)
+        mean_density = mean_fibertube_density(
+            out_sft,
+            mean_segment_length,
+            np.mean(diameters))
 
         if args.out_metrics:
             metrics = {
+                'mean_density': mean_density,
                 'min_external_distance': min_ext_dist.tolist(),
                 'max_voxel_anisotropic': max_voxel_ani.tolist(),
                 'max_voxel_isotropic': max_voxel_iso.tolist(),

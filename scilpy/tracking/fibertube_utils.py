@@ -19,13 +19,12 @@ def streamlines_to_segments(streamlines, verbose=False):
 
     Returns
     -------
-    A tuple containing the following values:
-        centers : ndarray[float]
-            A flattened array of all the tractogram's segment centers
-        indices : ndarray[Tuple[int, int]]
-            A flattened array of all the tractogram's segment indices
-        max_length: float
-            Length of the longest segment of the whole tractogram
+    centers : ndarray[float]
+        A flattened array of all the tractogram's segment centers
+    indices : ndarray[Tuple[int, int]]
+        A flattened array of all the tractogram's segment indices
+    max_length: float
+        Length of the longest segment of the whole tractogram
     """
     centers = []
     indices = []

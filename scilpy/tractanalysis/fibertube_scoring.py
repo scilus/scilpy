@@ -11,6 +11,41 @@ from scilpy.tracking.fibertube_utils import (streamlines_to_segments,
                                              dist_segment_segment,
                                              dist_point_segment)
 from scilpy.tracking.utils import tqdm_if_verbose
+from scilpy.tractanalysis.todi import TrackOrientationDensityImaging
+
+
+def mean_fibertube_density(out_sft, mean_segment_length, mean_diameter):
+    """
+    
+    
+    """
+    # Computing mean tube density per voxel.
+    out_sft.to_vox()
+    # Because compute_todi expects streamline points (in voxel coordinates)
+    # to be in the range [0, size] rather than [-0.5, size - 0.5], we shift
+    # the voxel origin to corner.
+    out_sft.to_corner()
+
+    _, data_shape, _, _ = out_sft.space_attributes
+    todi_obj = TrackOrientationDensityImaging(tuple(data_shape))
+    todi_obj.compute_todi(out_sft.streamlines)
+    img = todi_obj.get_tdi()
+    img = todi_obj.reshape_to_3d(img)
+    
+    nb_voxels_nonzero = np.count_nonzero(img)
+    sum = np.sum(img, axis=-1)
+    sum = np.sum(sum, axis=-1)
+    sum = np.sum(sum, axis=-1)
+
+    mean_seg_volume = np.pi * ((mean_diameter/2) ** 2) * mean_segment_length
+
+    mean_seg_count = sum / nb_voxels_nonzero
+    mean_volume = mean_seg_count * mean_seg_volume
+    mean_density = mean_volume / (out_sft.voxel_sizes[0]*
+                                    out_sft.voxel_sizes[1]*
+                                    out_sft.voxel_sizes[2])
+
+    return mean_density
 
 
 def min_external_distance(centerlines, diameters, verbose):
