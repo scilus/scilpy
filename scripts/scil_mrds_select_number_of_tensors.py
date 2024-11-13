@@ -16,12 +16,12 @@ Some mdtmrds output files will be named differently from the expected input:
 mdtmrds: information available soon (not part of scilpy).
 
 Input:
-    Inputs are a list of 5 files for each MRDS solution (V1, V2, V3).
-    - Signal fraction of each tensor ([in_prefix]_V[1,2,3]_signal_fraction.nii.gz)
-    - Eigenvalues ($in_prefix]_V[1,2,3]_evals.nii.gz)
-    - Isotropic ([in_prefix]_V[1,2,3]_isotropic.nii.gz)
-    - Number of tensors ([in_prefix]_V[1,2,3]_num_tensors.nii.gz)
-    - Eigenvectors ([in_prefix]_V[1,2,3]_evecs.nii.gz)
+    Inputs are a list of 5 files for each MRDS solution (D1, D2, D3).
+    - Signal fraction of each tensor ([in_prefix]_D[1,2,3]_signal_fraction.nii.gz)
+    - Eigenvalues ($in_prefix]_D[1,2,3]_evals.nii.gz)
+    - Isotropic ([in_prefix]_D[1,2,3]_isotropic.nii.gz)
+    - Number of tensors ([in_prefix]_D[1,2,3]_num_tensors.nii.gz)
+    - Eigenvectors ([in_prefix]_D[1,2,3]_evecs.nii.gz)
 
 
     Example:
@@ -71,11 +71,11 @@ def main():
 
     mrds_files = []
     for i in range(1, 4):
-        mrds_files.append([args.in_prefix + '_V{}_signal_fraction.nii.gz'.format(i),
-                           args.in_prefix + '_V{}_evals.nii.gz'.format(i),
-                           args.in_prefix + '_V{}_isotropic.nii.gz'.format(i),
-                           args.in_prefix + '_V{}_num_tensors.nii.gz'.format(i),
-                           args.in_prefix + '_V{}_evecs.nii.gz'.format(i)])
+        mrds_files.append([args.in_prefix + '_D{}_signal_fraction.nii.gz'.format(i),
+                           args.in_prefix + '_D{}_evals.nii.gz'.format(i),
+                           args.in_prefix + '_D{}_isotropic.nii.gz'.format(i),
+                           args.in_prefix + '_D{}_num_tensors.nii.gz'.format(i),
+                           args.in_prefix + '_D{}_evecs.nii.gz'.format(i)])
 
     assert_inputs_exist(parser, [args.in_volume] + [x for xs in mrds_files for x in xs],
                         optional=args.mask)
