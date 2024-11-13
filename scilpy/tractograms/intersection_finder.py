@@ -154,10 +154,9 @@ class IntersectionFinder:
 
                 distance, _, p_coll, q_coll = dist_segment_segment(p0, p1,
                                                                    q0, q1)
-                collide = distance <= rp + rq
                 external_distance = distance - rp - rq
 
-                if collide:
+                if external_distance < 0:
                     invalid[si] = True
 
                     collision_point = (p_coll + q_coll) / 2
