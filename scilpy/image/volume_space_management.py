@@ -413,6 +413,7 @@ class FibertubeDataVolume(DataVolume):
         self.dim = reference.dimensions[:3]
         self.data, _ = get_streamlines_as_fixed_array(centerlines)
         self.diameters = diameters
+        self.max_diameter = max(diameters)
 
         # Rest of init
         self.voxres = reference.voxel_sizes
@@ -494,7 +495,8 @@ class FibertubeDataVolume(DataVolume):
         pos = np.array([x, y, z], dtype=np.float64)
 
         neighbors = self.tree.query_radius(
-            pos, self.blur_radius + self.max_seg_length / 2)[0]
+            pos,
+            self.blur_radius + self.max_seg_length / 2 + self.max_diameter)[0]
 
         return self.extract_directions(pos, neighbors, self.blur_radius,
                                        self.segments_indices, self.data,
@@ -504,7 +506,8 @@ class FibertubeDataVolume(DataVolume):
         pos = np.array([x, y, z], np.float64)
 
         neighbors = self.tree.query_radius(
-            pos, self.blur_radius + self.max_seg_length / 2)[0]
+            pos,
+            self.blur_radius + self.max_seg_length / 2 + self.max_diameter)[0]
 
         for segi in neighbors:
             fi, pi = self.segments_indices[segi]

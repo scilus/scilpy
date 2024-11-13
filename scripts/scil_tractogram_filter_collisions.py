@@ -11,9 +11,7 @@ at most 0.2mm. Otherwise performance will drop significantly. This is because
 this script relies on a KDTree to find all neighboring streamline segments of
 any given point. Because the search radius is set at the length of the longest
 fibertube segment, the performance drops significantly if they are not
-shortened to ~0.2mm. This also means that the radius of the fibertube must not
-go above the length of the longest fibertube, or else some collisions may
-remain undetected.
+shortened to ~0.2mm.
 (see scil_tractogram_resample_nb_points.py)
 
 The filtering is deterministic and follows this approach:
@@ -250,16 +248,8 @@ def main():
         max_voxel_ani, max_voxel_iso = max_voxels(min_ext_dist_vect)
         mvr_rot, mvr_edge = max_voxel_rotated(min_ext_dist_vect)
 
-        mean_segment_lengths = []
-        for streamline in out_sft.streamlines:
-            mean_segment_lengths.append(
-                np.mean(np.linalg.norm(streamline[1:] - streamline[:-1], axis=-1)))
-        mean_segment_length = np.mean(mean_segment_lengths)
-
-        mean_density = mean_fibertube_density(
-            out_sft,
-            mean_segment_length,
-            np.mean(diameters))
+        # Fibertube density comes last, because it changes space and origin.
+        mean_density = mean_fibertube_density(out_sft, diameters)
 
         if args.out_metrics:
             metrics = {

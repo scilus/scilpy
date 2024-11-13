@@ -34,6 +34,7 @@ class IntersectionFinder:
             Should produce verbose output.
         """
         self.diameters = diameters
+        self.max_diameter = max(diameters)
         self.verbose = verbose
         self.in_sft = in_sft
         self.streamlines = in_sft.streamlines
@@ -126,9 +127,8 @@ class IntersectionFinder:
             if invalid[si] or excluded[si]:
                 continue
 
-            neighbors = self.tree.query_ball_point(center,
-                                                   self.max_seg_length,
-                                                   workers=-1)
+            neighbors = self.tree.query_ball_point(
+                center, self.max_seg_length + self.max_diameter, workers=-1)
 
             for neighbor_segi in neighbors:
                 neighbor_si = self.seg_indices[neighbor_segi][0]

@@ -14,36 +14,56 @@ from scilpy.tracking.utils import tqdm_if_verbose
 from scilpy.tractanalysis.todi import TrackOrientationDensityImaging
 
 
-def mean_fibertube_density(out_sft, mean_segment_length, mean_diameter):
+def mean_fibertube_density(sft, diameters):
     """
-    
-    
+    Estimates roughly the average per-voxel spatial density of a set of
+    fibertubes. This is obtained by dividing the total volume of each voxel
+    by the volume of fibertube segments intersecting it.
+
+    Parameters
+    ----------
+    sft: StatefulTractogram
+        Tractogram object containing the fibertube centerlines.
+    diameters: array_like
+        Diameters of the fibertubes.
+
+    Returns
+    -------
+    mean_density: float
+        Per-voxel spatial density, averaged for the whole tractogram.
     """
+    mean_segment_lengths = []
+    for streamline in sft.streamlines:
+        mean_segment_lengths.append(
+            np.mean(np.linalg.norm(streamline[1:] - streamline[:-1], axis=-1)))
+    mean_segment_length = np.mean(mean_segment_lengths)
+
     # Computing mean tube density per voxel.
-    out_sft.to_vox()
+    sft.to_vox()
     # Because compute_todi expects streamline points (in voxel coordinates)
     # to be in the range [0, size] rather than [-0.5, size - 0.5], we shift
     # the voxel origin to corner.
-    out_sft.to_corner()
+    sft.to_corner()
 
-    _, data_shape, _, _ = out_sft.space_attributes
+    # Computing TDI
+    _, data_shape, _, _ = sft.space_attributes
     todi_obj = TrackOrientationDensityImaging(tuple(data_shape))
-    todi_obj.compute_todi(out_sft.streamlines)
+    todi_obj.compute_todi(sft.streamlines)
     img = todi_obj.get_tdi()
     img = todi_obj.reshape_to_3d(img)
-    
+
     nb_voxels_nonzero = np.count_nonzero(img)
     sum = np.sum(img, axis=-1)
     sum = np.sum(sum, axis=-1)
     sum = np.sum(sum, axis=-1)
 
-    mean_seg_volume = np.pi * ((mean_diameter/2) ** 2) * mean_segment_length
+    mean_seg_volume = np.pi * ((np.mean(diameters)/2) ** 2) * mean_segment_length
 
     mean_seg_count = sum / nb_voxels_nonzero
     mean_volume = mean_seg_count * mean_seg_volume
-    mean_density = mean_volume / (out_sft.voxel_sizes[0]*
-                                    out_sft.voxel_sizes[1]*
-                                    out_sft.voxel_sizes[2])
+    mean_density = mean_volume / (sft.voxel_sizes[0]*
+                                    sft.voxel_sizes[1]*
+                                    sft.voxel_sizes[2])
 
     return mean_density
 
@@ -73,6 +93,7 @@ def min_external_distance(centerlines, diameters, verbose):
     if len(centerlines) <= 1:
         ValueError("Cannot compute metrics of a tractogram with a single" +
                    "streamline or less")
+    max_diameter = max(diameters)
     seg_centers, seg_indices, max_seg_length = streamlines_to_segments(
         centerlines, verbose)
     tree = KDTree(seg_centers)
@@ -84,7 +105,7 @@ def min_external_distance(centerlines, diameters, verbose):
         si = seg_indices[segi][0]
 
         neighbors = tree.query_ball_point(center,
-                                          max_seg_length,
+                                          max_seg_length + max_diameter,
                                           workers=-1)
 
         for neighbor_segi in neighbors:
@@ -400,6 +421,7 @@ def endpoint_connectivity(step_size, blur_radius, centerlines,
         No-connections at simulated resolution.
     """
     ratio = blur_radius / step_size
+    max_diameter = max(diameters)
 
     # objmode allows the execution of non numba-compatible code within a numba
     # function
@@ -410,12 +432,12 @@ def endpoint_connectivity(step_size, blur_radius, centerlines,
 
     centerline_fixed_length = len(centerlines[0])-1
 
+    # Building KDTree with centerline segments
     kdtree_centers = np.zeros((0, 3))
     for fi, fiber in enumerate(centerlines):
         kdtree_centers = np.concatenate(
             (kdtree_centers, centers[centerline_fixed_length * fi:
              (centerline_fixed_length * fi + centerlines_length[fi] - 1)]))
-
     tree = nbKDTree(kdtree_centers)
 
     truth_vc = set()
@@ -430,10 +452,9 @@ def endpoint_connectivity(step_size, blur_radius, centerlines,
         res_connected = False
 
         seed_fi = seeds_fiber[si]
-        # streamline[0] is the last point of the streamline
-        neighbors = tree.query_radius(streamline[0],
-                                      max(blur_radius, step_size)
-                                      + max_seg_length)[0]
+
+        neighbors = tree.query_radius(
+            streamline[1], blur_radius + max_seg_length / 2 + max_diameter)[0]
 
         # Checking VC and Res_VC first
         for neighbor_segi in neighbors:
