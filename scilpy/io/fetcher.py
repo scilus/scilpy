@@ -60,7 +60,7 @@ def get_testing_files_dict():
         "processing.zip": "eece5cdbf437b8e4b5cb89c797872e28",
         "surface_vtk_fib.zip": "241f3afd6344c967d7176b43e4a99a41",
         "tractograms.zip": "1eb29085db974b5e58d32b13eb76fbe6",
-        "mrds.zip": "aefbeb6fae58d120538afcad5d90140c"
+        "mrds.zip": "5abe6092400e11e9bb2423e2c387e774"
     }
 
 

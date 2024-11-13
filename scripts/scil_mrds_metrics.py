@@ -5,6 +5,10 @@
 Script to compute FA/MD/RD/AD for
 each Multi-ResolutionDiscrete-Search (MRDS) solution.
 It will output the results in 4 different 4D files.
+Each 4th dimension will correspond to each tensor in the MRDS solution.
+e.g. FA of tensor D_1 will be in index 0 of the 4th dimension,
+     FA of tensor D_2 will be in index 1 of the 4th dimension,
+     FA of tensor D_3 will be in index 2 of the 4th dimension.
 """
 
 import logging
@@ -26,10 +30,12 @@ def _build_arg_parser():
                                 formatter_class=argparse.RawTextHelpFormatter)
     p.add_argument('in_evals',
                    help='MRDS eigenvalues file (Shape: [X, Y, Z, 9]).\n'
-                        'The last dimensions, value 1-3 are associated with '
-                        '1 tensor, 4-6 with 2 tensors, 7-9 with 3 tensors.\n'
-                        'This file is one of the output '
-                        'of scil_mrds_select_number_of_tensors.py.')
+                        'The last dimensions, values 1-3 are associated with '
+                        'the first tensor (D_1), 4-6 with the second tensor '
+                        '(D_2), 7-9 with the third tensor (D_3).\n'
+                        'This file is one of the outputs of '
+                        'scil_mrds_select_number_of_tensors.py '
+                        '(*_MRDS_evals.nii.gz).')
 
     p.add_argument('--mask',
                    help='Path to a binary mask.\nOnly data inside '
