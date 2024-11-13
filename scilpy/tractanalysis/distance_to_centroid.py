@@ -230,7 +230,7 @@ def compute_distance_map(labels_map, binary_mask, is_euclidian, nb_pts):
         A 3D array representing the labels map.
     binary_mask (numpy.ndarray):
         A 3D binary map used to calculate barycenter binary map.
-    hyperplane (bool):
+    is_euclidian (bool):
         A flag to determine the type of distance calculation.
     nb_pts (int):
         Number of points to use for computing barycenters.
@@ -303,6 +303,7 @@ def correct_labels_jump(labels_map, streamlines, nb_pts):
     final_streamlines = []
     final_labels = []
     curr_ind = 0
+
     for streamline in streamlines:
         next_ind = curr_ind + len(streamline)
         curr_labels = labels_data[curr_ind:next_ind].astype(int)
@@ -320,12 +321,11 @@ def correct_labels_jump(labels_map, streamlines, nb_pts):
 
         # Find jumps, cut them and find the longest
         gradient = np.ediff1d(curr_labels)
-        max_jump = max(nb_pts // 2, 1)
+        max_jump = max(nb_pts // 4 , 1)
         if len(np.argwhere(np.abs(gradient) > max_jump)) > 0:
             pos_jump = np.where(np.abs(gradient) > max_jump)[0] + 1
             split_chunk = np.split(curr_labels,
                                    pos_jump)
-
             max_len = 0
             max_pos = 0
             for j, chunk in enumerate(split_chunk):
@@ -334,11 +334,9 @@ def correct_labels_jump(labels_map, streamlines, nb_pts):
                     max_pos = j
 
             curr_labels = split_chunk[max_pos]
-            gradient_chunk = np.ediff1d(chunk)
-            if len(np.unique(np.sign(gradient_chunk))) > 1:
-                continue
             streamline = np.split(streamline,
                                   pos_jump)[max_pos]
+            gradient = np.ediff1d(curr_labels)
 
         if is_flip:
             streamline = streamline[::-1]
@@ -350,28 +348,37 @@ def correct_labels_jump(labels_map, streamlines, nb_pts):
     # recompute the labels map with the new streamlines/labels
     final_labels = ArraySequence(final_labels)
     final_streamlines = ArraySequence(final_streamlines)
+    modified_binary_mask = compute_tract_counts_map(final_streamlines,
+                                                    binary_mask.shape)
+    modified_binary_mask[modified_binary_mask > 0] = 1
 
+    # Compute the KDTree for the new streamlines to find the closest
+    # labels for each voxel
     kd_tree = KDTree(final_streamlines._data)
-    indices = np.array(np.nonzero(labels_map), dtype=int).T
+
+    indices = np.array(np.nonzero(modified_binary_mask), dtype=int).T
     labels_map = np.zeros(labels_map.shape, dtype=np.uint16)
-
+    
     for ind in indices:
+        ind = tuple(ind)
         neighbor_ids = kd_tree.query_ball_point(ind, r=1.0)
-        if not len(neighbor_ids):
-            _, neighbor_ids = kd_tree.query(ind, k=5)
-        labels_val = np.median(final_labels._data[neighbor_ids])
+        if len(neighbor_ids) == 0:
+            continue
+        elif len(neighbor_ids) == 1:
+            labels_val = final_labels._data[neighbor_ids]
+            labels_map[ind[0], ind[1], ind[2]] = labels_val
+            continue
 
-        labels_map[ind[0], ind[1], ind[2]] = labels_val
-    # return labels_map
-    # To ensure spatial smoothness, we apply a gaussian filter on the labels
-    tmp_labels_map = np.zeros(labels_map.shape+(nb_pts+3,), dtype=float)
-    for i in np.unique(labels_map)[1:]:
-        tmp_labels_map[labels_map == i, i] = 1
-        tmp_labels_map[..., i] = ndi.gaussian_filter(tmp_labels_map[..., i],
-                                                     sigma=2)
-    labels_map = np.argmax(tmp_labels_map, axis=-1).astype(np.uint16)
+        label_values = np.sort(final_labels._data[neighbor_ids])
+        gradient = np.ediff1d(label_values)
+        if np.max(gradient) > max_jump:
+            continue
+        else:
+            unique, counts = np.unique(label_values, return_counts=True)
+            max_count = np.argmax(counts)
+            labels_map[ind] = unique[max_count] if counts[max_count] / sum(counts) > 0.25 else 0
 
-    return binary_mask * labels_map
+    return labels_map * binary_mask * modified_binary_mask
 
 
 def subdivide_bundles(sft, sft_centroid, binary_mask, nb_pts,
@@ -391,14 +398,14 @@ def subdivide_bundles(sft, sft_centroid, binary_mask, nb_pts,
         labels = min_dist_to_centroid(indices,
                                       sft_centroid[0].streamlines._data,
                                       nb_pts=nb_pts)
-        logging.info('Computed labels using the euclidian method '
+        logging.debug('Computed labels using the euclidian method '
                      f'in {round(time.time() - timer, 3)} seconds')
     else:
-        logging.info('Computing Labels using the hyperplane method.\n'
+        logging.debug('Computing Labels using the hyperplane method.\n'
                      '\tThis can take a while...')
         # Select 2000 elements from the SFTs to train the classifier
         random_indices = np.random.choice(len(sft),
-                                          min(len(sft), 2000),
+                                          min(len(sft), 500),
                                           replace=False)
         tmp_sft = resample_streamlines_step_size(sft[random_indices],
                                                  1.0)
@@ -410,7 +417,7 @@ def subdivide_bundles(sft, sft_centroid, binary_mask, nb_pts,
                                            nb_pts, sample_set=True,
                                            sample_size=sample_size)
 
-        logging.info('\tAssociated labels to centroids in '
+        logging.debug('\tAssociated labels to centroids in '
                      f'{round(time.time() - mini_timer, 3)} seconds')
 
         # Initialize the scaler
@@ -422,7 +429,7 @@ def subdivide_bundles(sft, sft_centroid, binary_mask, nb_pts,
         svc = SVC(C=1.0, kernel='rbf', random_state=1)
 
         svc.fit(X=scaled_streamline_data, y=labels)
-        logging.info('\tSVC fit of training data in '
+        logging.debug('\tSVC fit of training data in '
                      f'{round(time.time() - mini_timer, 3)} seconds')
 
         # Scale the coordinates of the voxels
@@ -432,10 +439,10 @@ def subdivide_bundles(sft, sft_centroid, binary_mask, nb_pts,
 
         # Predict the labels for the voxels
         labels = svc.predict(X=scaled_voxel_coords)
-        logging.info('\tSVC prediction of labels in '
+        logging.debug('\tSVC prediction of labels in '
                      f'{round(time.time() - mini_timer, 3)} seconds')
 
-        logging.info('Computed labels using the hyperplane method '
+        logging.debug('Computed labels using the hyperplane method '
                      f'in {round(time.time() - timer, 3)} seconds')
     labels_map = np.zeros(binary_mask.shape, dtype=np.uint16)
     labels_map[np.where(binary_mask)] = labels
@@ -452,7 +459,7 @@ def subdivide_bundles(sft, sft_centroid, binary_mask, nb_pts,
         labels_map[labels_map == 1] = 2
         labels_map[labels_map > 0] -= 1
         nb_pts -= 2
-    logging.info('Corrected labels jump in '
+    logging.debug('Corrected labels jump in '
                  f'{round(time.time() - timer, 3)} seconds')
 
     return labels_map

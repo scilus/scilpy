@@ -52,8 +52,10 @@ import os
 import time
 
 from dipy.io.streamline import save_tractogram
-from dipy.io.stateful_tractogram import StatefulTractogram
+from dipy.io.stateful_tractogram import StatefulTractogram, Space
 from dipy.io.utils import is_header_compatible
+from dipy.tracking.streamline import transform_streamlines
+from dipy.tracking.streamlinespeed import length
 import nibabel as nib
 from nibabel.streamlines.array_sequence import ArraySequence
 import numpy as np
@@ -65,7 +67,8 @@ from scilpy.io.utils import (add_overwrite_arg,
                              add_reference_arg,
                              add_verbose_arg,
                              assert_inputs_exist,
-                             assert_output_dirs_exist_and_empty)
+                             assert_output_dirs_exist_and_empty,
+                             load_matrix_in_any_format)
 from scilpy.tractanalysis.bundle_operations import uniformize_bundle_sft
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
 from scilpy.tractanalysis.distance_to_centroid import (subdivide_bundles,
@@ -124,6 +127,10 @@ def _build_arg_parser():
     p.add_argument('--streamlines_thr', type=int, const=2, nargs='?',
                    help='Threshold for the minimum number of streamlines in a '
                         'voxel to be included [%(default)s].')
+    p.add_argument('--transformation',
+                   help='Transformation matrix to apply to the centroid')
+    p.add_argument('--inverse', action='store_true',
+                   help='Inverse the transformation matrix.')
 
     add_reference_arg(p)
     add_verbose_arg(p)
@@ -135,7 +142,7 @@ def _build_arg_parser():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
-    logging.getLogger().setLevel(logging.getLevelName(args.verbose))
+    logging.getLogger().setLevel(args.verbose)
 
     assert_inputs_exist(parser, args.in_bundles + [args.in_centroid],
                         optional=args.reference)
@@ -143,9 +150,15 @@ def main():
 
     sft_centroid = load_tractogram_with_reference(parser, args,
                                                   args.in_centroid)
-
-    if args.verbose:
-        logging.getLogger().setLevel(logging.INFO)
+    if args.transformation is not None:
+        streamlines = sft_centroid.streamlines
+        transfo = load_matrix_in_any_format(args.transformation)
+        if args.inverse:
+            transfo = np.linalg.inv(transfo)
+        streamlines = transform_streamlines(
+            streamlines, transfo, in_place=False)
+        sft_centroid = StatefulTractogram(streamlines, args.in_bundles[0],
+                                          space=Space.RASMM)
 
     # TODO check if correlation thr is positive
     # TODO check if streamlines thr is positive (above 1)
@@ -171,8 +184,8 @@ def main():
 
     sft_centroid.to_vox()
     sft_centroid.to_corner()
-    logging.info(f'Loaded {len(args.in_bundles)} bundle(s) in '
-                 f'{round(time.time() - timer, 3)} seconds.')
+    logging.debug(f'Loaded {len(args.in_bundles)} bundle(s) in '
+                  f'{round(time.time() - timer, 3)} seconds.')
 
     density_list = []
     binary_list = []
@@ -192,14 +205,14 @@ def main():
         raise IOError(f'{args.in_centroid} and {args.in_bundles} do not have a '
                       'compatible header')
 
-    logging.info('Computed density and binary map(s) in '
-                 f'{round(time.time() - timer, 3)}.')
+    logging.debug('Computed density and binary map(s) in '
+                  f'{round(time.time() - timer, 3)}.')
 
     if len(density_list) > 1:
         timer = time.time()
         corr_map = neighborhood_correlation_(density_list)
-        logging.info(f'Computed correlation map in '
-                     f'{round(time.time() - timer, 3)} seconds')
+        logging.debug(f'Computed correlation map in '
+                      f'{round(time.time() - timer, 3)} seconds')
     else:
         corr_map = density_list[0].astype(float)
         corr_map[corr_map > 0] = 1
@@ -211,6 +224,8 @@ def main():
     if args.correlation_thr > 1e-3:
         binary_mask[corr_map < args.correlation_thr] = 0
 
+    # A bundle must be contiguous, we can't have isolated voxels.
+    # We will cut it later
     if args.streamlines_thr is not None:
         bundle_disjoint, _ = ndi.label(binary_mask)
         unique, count = np.unique(bundle_disjoint, return_counts=True)
@@ -220,7 +235,6 @@ def main():
     nib.save(nib.Nifti1Image(corr_map * binary_mask, sft_list[0].affine),
              os.path.join(args.out_dir, 'correlation_map.nii.gz'))
 
-    # A bundle must be contiguous, we can't have isolated voxels.
     timer = time.time()
     concat_sft = StatefulTractogram.from_sft([], sft_list[0])
     concat_sft.to_vox()
@@ -235,7 +249,11 @@ def main():
 
         if len(sft_list[i]):
             concat_sft += sft_list[i]
-    logging.info(f'Chop bundle(s) in {round(time.time() - timer, 3)} seconds.')
+
+    # Use later to trim the streamlines without assignement
+    min_len = np.min(length(concat_sft.streamlines))
+    logging.debug(
+        f'Chop bundle(s) in {round(time.time() - timer, 3)} seconds.')
 
     # Here
     method = 'hyperplane' if args.hyperplane else 'centerline'
@@ -243,13 +261,16 @@ def main():
         else args.nb_pts
     labels_map = subdivide_bundles(concat_sft, sft_centroid, binary_mask,
                                    args.nb_pts, method=method)
+    # We trim the streamlines due to looping labels, so we have a new binary mask
+    binary_mask = np.zeros(labels_map.shape, dtype=np.uint8)
+    binary_mask[labels_map > 0] = 1
 
     timer = time.time()
     distance_map = compute_distance_map(labels_map, binary_mask,
-                                        args.use_manhattan, args.nb_pts)
-    logging.info('Computed distance map in '
-                 f'{round(time.time() - timer, 3)} seconds')
-    print(binary_mask.shape, np.count_nonzero(binary_mask))
+                                        not args.use_manhattan, args.nb_pts)
+    logging.debug('Computed distance map in '
+                  f'{round(time.time() - timer, 3)} seconds')
+
     timer = time.time()
     cmap = get_lookup_table(args.colormap)
     for i, sft in enumerate(sft_list):
@@ -259,7 +280,10 @@ def main():
             sub_out_dir = args.out_dir
 
         new_sft = StatefulTractogram.from_sft(sft.streamlines, sft_list[0])
-        new_sft.data_per_point['color'] = ArraySequence(new_sft.streamlines)
+        cut_sft = cut_streamlines_with_mask(new_sft, binary_mask,
+                                            min_len=min_len)
+        print(cut_sft)
+        cut_sft.data_per_point['color'] = ArraySequence(cut_sft.streamlines)
         if not os.path.isdir(sub_out_dir):
             os.mkdir(sub_out_dir)
 
@@ -278,7 +302,7 @@ def main():
 
             if len(sft):
                 tmp_data = ndi.map_coordinates(
-                    map, sft.streamlines._data.T - 0.5, order=0)
+                    map, cut_sft.streamlines._data.T - 0.5, order=0)
 
                 if basename == 'labels':
                     max_val = args.nb_pts
@@ -287,15 +311,15 @@ def main():
                 else:
                     max_val = np.max(tmp_data)
                 max_val = args.nb_pts
-                new_sft.data_per_point['color']._data = cmap(
+                cut_sft.data_per_point['color']._data = cmap(
                     tmp_data / max_val)[:, 0:3] * 255
 
                 # Save the tractogram
-                save_tractogram(new_sft,
+                save_tractogram(cut_sft,
                                 os.path.join(sub_out_dir,
                                              f'{basename}.trk'))
-    logging.info(f'Saved all data to {args.out_dir} in '
-                 f'{round(time.time() - timer, 3)} seconds')
+    logging.debug(f'Saved all data to {args.out_dir} in '
+                  f'{round(time.time() - timer, 3)} seconds')
 
 
 if __name__ == '__main__':

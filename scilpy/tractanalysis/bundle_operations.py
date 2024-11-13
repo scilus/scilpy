@@ -90,9 +90,9 @@ def uniformize_bundle_sft(sft, axis=None, ref_bundle=None, swap=False):
 
             if main_dir_displacement != main_dir_ends \
                     or main_dir_displacement != main_dir_barycenter:
-                logging.info('Ambiguity in orientation, you should use --axis')
+                logging.debug('Ambiguity in orientation, you should use --axis')
             axis = axis_name[main_dir_displacement]
-        logging.info('Orienting endpoints in the {} axis'.format(axis))
+        logging.debug('Orienting endpoints in the {} axis'.format(axis))
         axis_pos = axis_name.index(axis)
 
         if bool(k_means_centers[0][axis_pos] >

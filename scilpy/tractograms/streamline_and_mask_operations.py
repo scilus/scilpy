@@ -248,9 +248,9 @@ def _trim_streamline_in_mask_keep_longest(
     return [cut_strl]
 
 
-def cut_streamlines_with_mask(
-    sft, mask, cutting_style=CuttingStyle.DEFAULT, min_len=0, processes=1
-):
+def cut_streamlines_with_mask(sft, mask,
+                              cutting_style=CuttingStyle.DEFAULT,
+                              min_len=0, processes=1):
     """
     Cut streamlines according to a binary mask. This function erases the
     data_per_point.
