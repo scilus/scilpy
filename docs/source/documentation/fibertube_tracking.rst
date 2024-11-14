@@ -111,6 +111,20 @@ volume.
 
 This is accomplished using ``scil_tractogram_filter_collisions.py``.
 
+**Caution**: Some tractograms, especially if old, were created with a very high
+float precision. ``scil_tractogram_filter_collisions.py`` does not save its
+output with such precision. This means that after filtering once and saving
+the result, new collisions may be created from saving at a lower float 
+precision. It will require a second filtering to be truly collision-free.
+
+If you are using the ``--out_metrics`` parameter on high float precision
+data, the script may even throw an error saying that not all collisions were
+filtered prior to metrics computation.
+
+**Solution**: If you encounter such behaviour, we recommend you load and save
+your tractogram to be filtered with modern tools such as MI-Brain or the
+Nibabel python library. (Which scilpy scripts use)
+
 ::
 
    scil_tractogram_filter_collisions.py centerlines_resampled.trk diameters.txt fibertubes.trk --save_colliding --out_metrics metrics.txt -v -f
