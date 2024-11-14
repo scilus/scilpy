@@ -10,6 +10,14 @@ Warning: This works well on masked images (like with FSL-Bet) volumes since
 it's looking for non-zero data. Therefore, you should validate the results on
 other types of images that haven't been masked.
 
+To:
+    - interpolate/reslice to an arbitrary voxel size, use
+      scil_volume_resample.py.
+    - pad or crop the volume to match the desired shape, use
+      scil_volume_reshape.py.
+    - reshape a volume to match the resolution of another, use
+      scil_volume_reslice_to_reference.py.
+
 Formerly: scil_crop_volume.py
 """
 

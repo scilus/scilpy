@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
 
-from fury.colormap import distinguishable_colormap
+from dipy.io.stateful_tractogram import StatefulTractogram
+from fury import colormap
 import matplotlib.pyplot as plt
-from matplotlib import colors
+from matplotlib import colors as mcolors
 import numpy as np
+from scipy.spatial import KDTree
 
 from scilpy.viz.backends.vtk import get_color_by_name, lut_from_colors
 
@@ -38,7 +40,7 @@ BASE_10_COLORS = convert_color_names_to_rgb(["Red",
                                              "Brown"])
 
 
-def generate_n_colors(n, generator=distinguishable_colormap,
+def generate_n_colors(n, generator=colormap.distinguishable_colormap,
                       pick_from_base10=True, shuffle=False):
     """
     Generate a set of N colors. When using the default parameters, colors will
@@ -98,8 +100,8 @@ def get_lookup_table(name):
 
     if '-' in name:
         name_list = name.split('-')
-        colors_list = [colors.to_rgba(color)[0:3] for color in name_list]
-        cmap = colors.LinearSegmentedColormap.from_list('CustomCmap',
+        colors_list = [mcolors.to_rgba(color)[0:3] for color in name_list]
+        cmap = mcolors.LinearSegmentedColormap.from_list('CustomCmap',
                                                         colors_list)
         return cmap
 
@@ -279,3 +281,76 @@ def prepare_colorbar_figure(cmap, lbound, ubound, nb_values=255, nb_ticks=10,
         ax.set_xticklabels(ticks_labels)
         ax.set_yticks([])
     return fig
+
+
+def ambiant_occlusion(sft, colors, factor=4):
+    """
+    Apply ambiant occlusion to a set of colors based on point density
+    around each points. 
+
+    Parameters
+    ----------
+    sft : StatefulTractogram
+        The streamlines.
+    colors : np.ndarray
+        The original colors to modify.
+    factor : float
+        The factor of occlusion (how density will affect the saturation).
+    
+    Returns
+    -------
+    np.ndarray
+        The modified colors.
+    """
+
+    pts = sft.streamlines._data
+    hsv = mcolors.rgb_to_hsv(colors)
+
+    tree = KDTree(pts)
+    nb_neighbor = np.array(tree.query_ball_point(pts, 1,
+                                                 return_length=True),
+                           dtype=float)
+    nb_neighbor /= np.max(nb_neighbor)
+    occlusion_w = np.exp(-factor * nb_neighbor)
+
+    hsv[:, 1] = np.clip(hsv[:, 1], max(1 / factor, np.min(hsv[:, 1])),
+                        min(1 - 1 / factor, np.max(hsv[:, 1])))
+    hsv[:, 1] -= (occlusion_w / factor)
+
+    occlusion_w = np.clip(occlusion_w, 0.5 + (1 / factor), 1)
+    hsv[:, 2] *= occlusion_w
+    hsv[:, 0:2] = np.clip(hsv[:, 0:2], 0, 1)
+    hsv[:, 2] = np.clip(hsv[:, 2], 0, 255)
+
+    return mcolors.hsv_to_rgb(hsv)
+
+def generate_local_coloring(sft):
+    """
+    Generate a coloring based on the local orientation of the streamlines.
+
+    Parameters
+    ----------
+    sft : StatefulTractogram / ArraySequence / List
+        The tractogram / streamlines to generate the coloring from.
+
+    Returns
+    -------
+    np.ndarray
+        The generated colors.
+    """
+    if isinstance(sft, StatefulTractogram):
+        streamlines = sft.streamlines
+    else:
+        streamlines = sft
+
+    # Compute segment orientation
+    diff = [np.diff(list(s), axis=0) for s in streamlines]
+    # Repeat first segment so that the number of segments matches
+    # the number of points
+    diff = [[d[0]] + list(d) for d in diff]
+    # Flatten the list of segments
+    orientations = np.asarray([o for d in diff for o in d])
+    # Turn the segments into colors
+    color = colormap.orient2rgb(orientations)
+
+    return color

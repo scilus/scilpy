@@ -110,9 +110,10 @@ def maps_to_masks(maps, abs_thr, rel_thr, norm, nb_bundles):
     rel_thr : float
         Value of density maps threshold to obtain density masks, as a ratio of
         the normalized density. Must be between 0 and 1.
-    norm : string, ["fixel", "voxel"]
+    norm : string, ["fixel", "voxel", "none"]
         Way of normalizing the density maps. If fixel, will normalize the maps
         per fixel, in each voxel. If voxel, will normalize the maps per voxel.
+        If none, will not normalize the maps.
     nb_bundles : int (N)
         Number of bundles (N).
 
@@ -140,7 +141,10 @@ def maps_to_masks(maps, abs_thr, rel_thr, norm, nb_bundles):
             maps[..., i] /= fixel_sum
 
     # Apply a threshold on the normalized density
-    masks_rel = maps > rel_thr
+    if norm == "voxel" or norm == "fixel":
+        masks_rel = maps > rel_thr
+    else:
+        masks_rel = maps > 0
     # Compute the fixel density masks from the rel and abs versions
     masks = masks_rel * masks_abs
 

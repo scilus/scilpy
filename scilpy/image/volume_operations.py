@@ -604,6 +604,81 @@ def resample_volume(img, ref_img=None, volume_shape=None, iso_min=False,
     return nib.Nifti1Image(data2.astype(data.dtype), affine2)
 
 
+def reshape_volume(
+    img, volume_shape, mode='constant', cval=0
+):
+    """ Reshape a volume to a specified shape by padding or cropping. The
+    new volume is centered wrt the old volume in world space.
+
+    Parameters
+    ----------
+    img : nib.Nifti1Image
+        The input image.
+    volume_shape : tuple of 3 ints
+        The desired shape of the volume.
+    mode : str, optional
+        Padding mode. See np.pad for more information. Default is 'constant'.
+    cval: float, optional
+        Value to use for padding when mode is 'constant'. Default is 0.
+
+    Returns
+    -------
+    reshaped_img : nib.Nifti1Image
+        The reshaped image.
+    """
+
+    data = img.get_fdata(dtype=np.float32)
+    affine = img.affine
+
+    # Compute the difference between the desired shape and the current shape
+    diff = (np.array(volume_shape) - np.array(data.shape[:3])) // 2
+
+    # Compute the offset to center the data
+    offset = (np.array(volume_shape) - np.array(data.shape[:3])) % 2
+
+    # Compute the padding values (before and after) for all axes
+    pad_width = np.zeros((len(data.shape), 2), dtype=int)
+    for i in range(3):
+        pad_width[i, 0] = int(max(0, diff[i] + offset[i]))
+        pad_width[i, 1] = int(max(0, diff[i]))
+
+    # If dealing with 4D data, do not pad the last dimension
+    if len(data.shape) == 4:
+        pad_width[3, :] = [0, 0]
+
+    # Pad the data
+    kwargs = {
+        'mode': mode,
+    }
+    # Add constant_values only if mode is 'constant'
+    # Otherwise, it will raise an error
+    if mode == 'constant':
+        kwargs['constant_values'] = cval
+    padded_data = np.pad(data, pad_width, **kwargs)
+
+    # Compute the cropping values (before and after) for all axes
+    crop_width = np.zeros((len(data.shape), 2))
+    for i in range(3):
+        crop_width[i, 0] = -diff[i] - offset[i]
+        crop_width[i, 1] = np.ceil(padded_data.shape[i] + diff[i])
+
+    # If dealing with 4D data, do not crop the last dimension
+    if len(data.shape) == 4:
+        crop_width[3, :] = [0, data.shape[3]]
+
+    # Crop the data
+    cropped_data = crop(
+        padded_data, np.maximum(0, crop_width[:, 0]).astype(int),
+        crop_width[:, 1].astype(int))
+
+    # Compute the new affine
+    translation = voxel_to_world(crop_width[:, 0], affine)
+    new_affine = np.copy(affine)
+    new_affine[0:3, 3] = translation[0:3]
+
+    return nib.Nifti1Image(cropped_data, new_affine)
+
+
 def mask_data_with_default_cube(data):
     """Masks data outside a default cube (Cube: data.shape/3 centered)
 
@@ -713,6 +788,8 @@ def compute_distance_map(mask_1, mask_2, symmetric=False,
         If True, compute the symmetric distance map. Default is np.inf
     max_distance: float, optional
         Maximum distance to consider for kdtree exploration. Default is None.
+        If you put any value, coordinates further than this value will be
+        considered as np.inf.
 
     Returns
     -------
@@ -736,3 +813,72 @@ def compute_distance_map(mask_1, mask_2, symmetric=False,
         distance_map[np.where(mask_2)] = distance
 
     return distance_map
+
+
+def compute_nawm(lesion_atlas, nb_ring, ring_thickness, mask=None):
+    """
+    Compute the NAWM (Normal Appearing White Matter) from a lesion map.
+    The rings go from 2 to nb_ring + 2, with the lesion being 1.
+
+    The optional mask is used to compute the rings only in the mask
+    region. This can be useful to avoid useless computation.
+
+    If the lesion_atlas is binary, the output will be 3D. If the lesion_atlas
+    is a label map, the output will be 4D, with each label having its own NAWM.
+
+    Parameters
+    ----------
+    lesion_atlas: np.ndarray
+        Lesion map. Can be binary or label map.
+    nb_ring: int
+        Number of rings to compute.
+    ring_thickness: int
+        Thickness of the rings.
+    mask: np.ndarray, optional
+        Mask where to compute the NAWM. Default is None.
+
+    Returns
+    -------
+    nawm: np.ndarray
+        NAWM volume(s), 3D if binary lesion map, 4D if label lesion map.
+
+    """
+    if ring_thickness < 1:
+        raise ValueError("Ring thickness must be at least 1.")
+
+    if np.unique(lesion_atlas).size == 1:
+        raise ValueError('Input lesion map is empty.')
+    is_binary = True if np.unique(lesion_atlas).size == 2 else False
+    labels = np.unique(lesion_atlas)[1:]
+    nawm = np.zeros(lesion_atlas.shape + (len(labels),), dtype=float)
+
+    if mask is None:
+        mask = np.ones(lesion_atlas.shape, dtype=np.uint8)
+
+    max_distance = (nb_ring * ring_thickness) + 1
+
+    for i, label in enumerate(labels):
+        curr_mask = np.zeros(lesion_atlas.shape, dtype=np.uint8)
+        curr_mask[lesion_atlas == label] = 1
+        curr_dist_map = compute_distance_map(mask,
+                                             curr_mask,
+                                             max_distance=max_distance)
+        curr_dist_map[np.isinf(curr_dist_map)] = 0
+
+        # Mask to remember where values were computed
+        to_increase_mask = np.zeros(lesion_atlas.shape, dtype=np.uint8)
+        to_increase_mask[curr_dist_map > 0] = 1
+
+        # Compute the rings. The lesion should be 1, and the first ring
+        # should be 2, and the max ring should be nb_ring + 1.
+        curr_dist_map = np.ceil(curr_dist_map / ring_thickness)
+        curr_dist_map[to_increase_mask > 0] += 1
+        curr_dist_map[curr_mask > 0] += 1
+        curr_dist_map[curr_dist_map > nb_ring + 1] = 0
+
+        nawm[..., i] = curr_dist_map
+
+    if is_binary:
+        nawm = np.squeeze(nawm)
+
+    return nawm.astype(np.uint16)
