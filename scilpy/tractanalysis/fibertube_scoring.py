@@ -14,7 +14,7 @@ from scilpy.tracking.utils import tqdm_if_verbose
 from scilpy.tractanalysis.todi import TrackOrientationDensityImaging
 
 
-def mean_fibertube_density(sft, diameters):
+def mean_fibertube_density(sft):
     """
     Estimates roughly the average per-voxel spatial density of a set of
     fibertubes. This is obtained by dividing the total volume of each voxel
@@ -23,21 +23,22 @@ def mean_fibertube_density(sft, diameters):
     Parameters
     ----------
     sft: StatefulTractogram
-        Tractogram object containing the fibertube centerlines.
-    diameters: array_like
-        Diameters of the fibertubes.
+        Stateful Tractogram object containing the fibertubes.
 
     Returns
     -------
     mean_density: float
         Per-voxel spatial density, averaged for the whole tractogram.
     """
+    diameters = np.reshape(sft.data_per_streamline['diameters'],
+                           len(sft.streamlines))
+    mean_diameter = np.mean(diameters)
+
     mean_segment_lengths = []
     for streamline in sft.streamlines:
         mean_segment_lengths.append(
             np.mean(np.linalg.norm(streamline[1:] - streamline[:-1], axis=-1)))
     mean_segment_length = np.mean(mean_segment_lengths)
-
     # Computing mean tube density per voxel.
     sft.to_vox()
     # Because compute_todi expects streamline points (in voxel coordinates)
@@ -57,7 +58,7 @@ def mean_fibertube_density(sft, diameters):
     sum = np.sum(sum, axis=-1)
     sum = np.sum(sum, axis=-1)
 
-    mean_seg_volume = np.pi * ((np.mean(diameters)/2) ** 2) * mean_segment_length
+    mean_seg_volume = np.pi * ((mean_diameter/2) ** 2) * mean_segment_length
 
     mean_seg_count = sum / nb_voxels_nonzero
     mean_volume = mean_seg_count * mean_seg_volume
@@ -68,7 +69,7 @@ def mean_fibertube_density(sft, diameters):
     return mean_density
 
 
-def min_external_distance(centerlines, diameters, verbose):
+def min_external_distance(sft, verbose):
     """"
     Calculates the minimal distance in between two fibertubes. A RuntimeError
     is thrown if a collision is detected (i.e. a negative distance is found).
@@ -76,10 +77,8 @@ def min_external_distance(centerlines, diameters, verbose):
 
     Parameters
     ----------
-    centerlines: ndarray
-        Centerlines of the fibertubes.
-    diameters: ndarray
-        Diameters of the fibertubes.
+    sft: StatefulTractogram
+        Stateful Tractogram object containing the fibertubes
     verbose: bool
         Whether to make the function verbose.
 
@@ -90,10 +89,14 @@ def min_external_distance(centerlines, diameters, verbose):
     min_external_distance_vec: ndarray
         Vector representation of min_external_distance.
     """
+    centerlines = sft.streamlines
+    diameters = np.reshape(sft.data_per_streamline['diameters'],
+                           len(centerlines))
+    max_diameter = np.max(diameters)
+
     if len(centerlines) <= 1:
         ValueError("Cannot compute metrics of a tractogram with a single" +
                    "streamline or less")
-    max_diameter = max(diameters)
     seg_centers, seg_indices, max_seg_length = streamlines_to_segments(
         centerlines, verbose)
     tree = KDTree(seg_centers)
@@ -421,7 +424,7 @@ def endpoint_connectivity(step_size, blur_radius, centerlines,
         No-connections at simulated resolution.
     """
     ratio = blur_radius / step_size
-    max_diameter = max(diameters)
+    max_diameter = np.max(diameters)
 
     # objmode allows the execution of non numba-compatible code within a numba
     # function

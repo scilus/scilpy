@@ -242,14 +242,13 @@ def main():
 
         min_ext_dist, min_ext_dist_vect = (
             min_external_distance(
-                out_sft.streamlines,
-                out_sft.data_per_streamline['diameters'],
+                out_sft,
                 args.verbose != 'WARNING'))
         max_voxel_ani, max_voxel_iso = max_voxels(min_ext_dist_vect)
         mvr_rot, mvr_edge = max_voxel_rotated(min_ext_dist_vect)
 
         # Fibertube density comes last, because it changes space and origin.
-        mean_density = mean_fibertube_density(out_sft, diameters)
+        mean_density = mean_fibertube_density(out_sft)
 
         if args.out_metrics:
             metrics = {

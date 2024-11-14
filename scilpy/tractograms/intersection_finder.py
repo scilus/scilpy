@@ -27,14 +27,14 @@ class IntersectionFinder:
         Parameters
         ----------
         tractogram : StatefulTractogram
-            Tractogram to be filtered.
+            Stateful Tractogram object containing streamlines to filter.
         diameters : list
             Diameters of each streamline of the tractogram.
         verbose : bool
             Should produce verbose output.
         """
         self.diameters = diameters
-        self.max_diameter = max(diameters)
+        self.max_diameter = np.max(diameters)
         self.verbose = verbose
         self.in_sft = in_sft
         self.streamlines = in_sft.streamlines
@@ -128,7 +128,9 @@ class IntersectionFinder:
                 continue
 
             neighbors = self.tree.query_ball_point(
-                center, self.max_seg_length + self.max_diameter, workers=-1)
+                center,
+                self.max_seg_length + self.max_diameter + min_distance,
+                workers=-1)
 
             for neighbor_segi in neighbors:
                 neighbor_si = self.seg_indices[neighbor_segi][0]
@@ -158,10 +160,8 @@ class IntersectionFinder:
 
                 if external_distance < 0:
                     invalid[si] = True
-
-                    collision_point = (p_coll + q_coll) / 2
-                    collisions[si] = collision_point
-
+                    # Rough estimate of collision point
+                    collisions[si] = (p_coll + q_coll) / 2
                     obstacle[neighbor_si] = True
                     break
                 if min_distance != 0 and external_distance < min_distance:
