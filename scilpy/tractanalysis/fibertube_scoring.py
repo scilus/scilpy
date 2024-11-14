@@ -130,9 +130,13 @@ def min_external_distance(sft, verbose):
             external_distance = distance - rp - rq
 
             if external_distance < 0:
-                raise RuntimeError('The input fibertubes contained a \n'
-                                   'collision. Filter them prior \n'
-                                   'to acquiring metrics.')
+                raise RuntimeError(
+                    'The input streamlines contained a collision after \n'
+                    'filtering. This is unlikely to be an error of this \n'
+                    'script, and instead may be due to your original data \n'
+                    'using very high float precision. For more info on \n'
+                    'this issue, please see the documentation for'
+                    'scil_tractogram_filter_collisions.py.')
 
             if (external_distance < min_external_distance):
                 min_external_distance = external_distance

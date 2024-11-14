@@ -14,6 +14,22 @@ fibertube segment, the performance drops significantly if they are not
 shortened to ~0.2mm.
 (see scil_tractogram_resample_nb_points.py)
 
+IMPORTANT: Some tractograms, especially if old, were created with a very high
+float precision. scil_tractogram_filter_collisions.py does not save its output
+with such precision. This means that after filtering once and saving the
+result, new collisions may be created from saving at a lower float precision.
+It will require a second filtering to be truly collision-free.
+
+If you are using the --out_metrics parameter on high float precision data, the
+script may even throw an error saying that not all collisions were filtered
+prior to metrics computation.
+
+Solution: If you encounter such behaviour, we recommend you load and save your
+tractogram to be filtered with up-to-date tools such as MI-Brain or the
+Nibabel python library. (Which scilpy scripts use)
+
+----------
+
 The filtering is deterministic and follows this approach:
     - Pick next streamline
     - Iterate over its segments
