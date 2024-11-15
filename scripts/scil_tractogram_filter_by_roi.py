@@ -456,7 +456,11 @@ def main():
                      'streamlines'.format(roi_opt, len(filtered_sft)))
 
         sft = filtered_sft
-        total_kept_ids = total_kept_ids[kept_ids]
+        if kept_ids.size == 0:
+            total_kept_ids = 0
+        else:
+            total_kept_ids = total_kept_ids[kept_ids]
+
         o_dict['streamline_count_after_criteria{}'.format(i)] = \
             len(sft.streamlines)
 
