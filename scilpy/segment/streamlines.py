@@ -137,6 +137,11 @@ def filter_grid_roi(sft, mask, filter_type, is_exclude, filter_distance=0,
         sft of rejected streamlines (if return_rejected_sft)
 
     """
+    if len(sft.streamlines) == 0:
+        if return_sft:
+            if return_rejected_sft:
+                return [], sft, sft
+        return [], sft
 
     if filter_distance != 0:
         bin_struct = generate_binary_structure(3, 2)
