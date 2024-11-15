@@ -74,7 +74,7 @@ from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
 from scilpy.tractanalysis.distance_to_centroid import (subdivide_bundles,
                                                        compute_distance_map)
 from scilpy.tractograms.streamline_and_mask_operations import \
-    cut_streamlines_with_mask
+    cut_streamlines_with_mask, CuttingStyle
 from scilpy.viz.color import get_lookup_table
 
 
@@ -242,7 +242,8 @@ def main():
     for i in range(len(sft_list)):
         if args.streamlines_thr is not None:
             sft_list[i] = cut_streamlines_with_mask(sft_list[i],
-                                                    binary_mask)
+                                                    binary_mask,
+                                                    cutting_style=CuttingStyle.KEEP_LONGEST)
         else:
             sft_list[i].data_per_streamline = {}
             sft_list[i].data_per_point = {}
@@ -278,11 +279,12 @@ def main():
             sub_out_dir = os.path.join(args.out_dir, f'session_{i+1}')
         else:
             sub_out_dir = args.out_dir
-
+        timer = time.time()
         new_sft = StatefulTractogram.from_sft(sft.streamlines, sft_list[0])
         cut_sft = cut_streamlines_with_mask(new_sft, binary_mask,
-                                            min_len=min_len)
-        print(cut_sft)
+                                            min_len=min_len,
+                                            cutting_style=CuttingStyle.KEEP_LONGEST)
+        logging.debug(f'Cut streamlines in {round(time.time() - timer, 3)} seconds')
         cut_sft.data_per_point['color'] = ArraySequence(cut_sft.streamlines)
         if not os.path.isdir(sub_out_dir):
             os.mkdir(sub_out_dir)
@@ -318,8 +320,6 @@ def main():
                 save_tractogram(cut_sft,
                                 os.path.join(sub_out_dir,
                                              f'{basename}.trk'))
-    logging.debug(f'Saved all data to {args.out_dir} in '
-                  f'{round(time.time() - timer, 3)} seconds')
 
 
 if __name__ == '__main__':

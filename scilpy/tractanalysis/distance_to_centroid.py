@@ -41,79 +41,22 @@ def min_dist_to_centroid(bundle_pts, centroid_pts, nb_pts):
     return labels.astype(np.uint16)
 
 
-def associate_labels(target_sft, source_sft, nb_pts=20, sample_set=False,
-                     sample_size=None):
+def associate_labels(target_sft, min_label=1, max_label=20):
     # DOCSTRING
-    curr_ind = 0
-    source_labels = np.zeros(source_sft.streamlines._data.shape[0],
-                             dtype=float)
-    for streamline in source_sft.streamlines:
-        curr_length = np.insert(length(streamline, along=True), 0, 0)
-        curr_labels = np.interp(curr_length,
-                                [0, curr_length[-1]],
-                                [1, nb_pts])
-        curr_labels = np.round(curr_labels)
-        source_labels[curr_ind:curr_ind+len(streamline)] = curr_labels
-        curr_ind += len(streamline)
-
-    scaler = MinMaxScaler(feature_range=(-1, 1))
-    scaler.fit(target_sft.streamlines._data)
-    scaled_streamline_data = scaler.transform(source_sft.streamlines._data)
-
-    svc = SVC(C=1.0, kernel='rbf', random_state=1)
-    svc.fit(X=scaled_streamline_data, y=source_labels)
 
     curr_ind = 0
     target_labels = np.zeros(target_sft.streamlines._data.shape[0],
                              dtype=float)
-
-    # TODO Single prediction array
     for streamline in target_sft.streamlines:
-        head_tail = [streamline[0], streamline[-1]]
-        scaled_head_tail_data = scaler.transform(head_tail)
-        head_tail_labels = svc.predict(X=scaled_head_tail_data)
         curr_length = np.insert(length(streamline, along=True), 0, 0)
         curr_labels = np.interp(curr_length,
                                 [0, curr_length[-1]],
-                                head_tail_labels)
+                                [min_label, max_label])
+        curr_labels = np.round(curr_labels)
         target_labels[curr_ind:curr_ind+len(streamline)] = curr_labels
         curr_ind += len(streamline)
-
-    target_labels = np.round(target_labels).astype(int)
-
-    if sample_set:
-        if sample_size is None:
-            sample_size = np.unique(target_labels, return_counts=True)[1].min()
-
-        # Sort points by labels
-        sorted_indices = target_labels.argsort()
-        sorted_points = target_sft.streamlines._data[sorted_indices]
-        sorted_labels = target_labels[sorted_indices]
-
-        # Find the start and end of each label
-        unique_labels, start_indices = np.unique(
-            sorted_labels, return_index=True)
-        end_indices = np.roll(start_indices, -1)
-        end_indices[-1] = len(target_labels)
-
-        # Sample points and labels for each label
-        sampled_points = []
-        sampled_labels = []
-        for start, end, label in zip(start_indices, end_indices, unique_labels):
-            num_points = end - start
-            indices_to_sample = min(num_points, sample_size)
-            sampled_indices = np.random.choice(
-                np.arange(start, end), size=indices_to_sample, replace=False)
-            sampled_points.append(sorted_points[sampled_indices])
-            sampled_labels.extend([label] * indices_to_sample)
-
-        # Concatenate all sampled points
-        sampled_points = np.concatenate(sampled_points)
-        sampled_labels = np.array(sampled_labels)
-
-        return sampled_labels, sampled_points
-    else:
-        return target_labels, target_sft.streamlines._data
+    
+    return target_labels, target_sft.streamlines._data
 
 
 def find_medoid(points, max_points=10000):
@@ -303,7 +246,6 @@ def correct_labels_jump(labels_map, streamlines, nb_pts):
     final_streamlines = []
     final_labels = []
     curr_ind = 0
-
     for streamline in streamlines:
         next_ind = curr_ind + len(streamline)
         curr_labels = labels_data[curr_ind:next_ind].astype(int)
@@ -317,21 +259,17 @@ def correct_labels_jump(labels_map, streamlines, nb_pts):
         if len(np.argwhere(gradient < 0)) > len(np.argwhere(gradient > 0)):
             streamline = streamline[::-1]
             curr_labels = curr_labels[::-1]
+            gradient *= -1
             is_flip = True
 
         # Find jumps, cut them and find the longest
-        gradient = np.ediff1d(curr_labels)
         max_jump = max(nb_pts // 4 , 1)
         if len(np.argwhere(np.abs(gradient) > max_jump)) > 0:
             pos_jump = np.where(np.abs(gradient) > max_jump)[0] + 1
             split_chunk = np.split(curr_labels,
                                    pos_jump)
-            max_len = 0
-            max_pos = 0
-            for j, chunk in enumerate(split_chunk):
-                if len(chunk) > max_len:
-                    max_len = len(chunk)
-                    max_pos = j
+            # Find the longest chunk using a sort
+            max_pos = np.argmax([len(chunk) for chunk in split_chunk])
 
             curr_labels = split_chunk[max_pos]
             streamline = np.split(streamline,
@@ -348,41 +286,43 @@ def correct_labels_jump(labels_map, streamlines, nb_pts):
     # recompute the labels map with the new streamlines/labels
     final_labels = ArraySequence(final_labels)
     final_streamlines = ArraySequence(final_streamlines)
+
     modified_binary_mask = compute_tract_counts_map(final_streamlines,
                                                     binary_mask.shape)
     modified_binary_mask[modified_binary_mask > 0] = 1
-
+    
     # Compute the KDTree for the new streamlines to find the closest
     # labels for each voxel
-    kd_tree = KDTree(final_streamlines._data)
+    kd_tree = KDTree(final_streamlines._data - 0.5)
 
     indices = np.array(np.nonzero(modified_binary_mask), dtype=int).T
     labels_map = np.zeros(labels_map.shape, dtype=np.uint16)
-    
-    for ind in indices:
-        ind = tuple(ind)
-        neighbor_ids = kd_tree.query_ball_point(ind, r=1.0)
-        if len(neighbor_ids) == 0:
+    neighbor_ids = kd_tree.query_ball_point(indices, r=1.0)
+ 
+    for ind, neighbor_id in zip(indices, neighbor_ids):
+        if len(neighbor_id) == 0:
             continue
-        elif len(neighbor_ids) == 1:
-            labels_val = final_labels._data[neighbor_ids]
-            labels_map[ind[0], ind[1], ind[2]] = labels_val
+        elif len(neighbor_id) == 1:
+            labels_map[tuple(ind)] = final_labels._data[neighbor_id]
             continue
-
-        label_values = np.sort(final_labels._data[neighbor_ids])
+        label_values = final_labels._data[neighbor_id]
         gradient = np.ediff1d(label_values)
         if np.max(gradient) > max_jump:
             continue
         else:
             unique, counts = np.unique(label_values, return_counts=True)
             max_count = np.argmax(counts)
-            labels_map[ind] = unique[max_count] if counts[max_count] / sum(counts) > 0.25 else 0
+            labels_map[tuple(ind)] = unique[max_count] if counts[max_count] / sum(counts) > 0.25 else 0
 
-    return labels_map * binary_mask * modified_binary_mask
+    return labels_map * modified_binary_mask
 
 
 def subdivide_bundles(sft, sft_centroid, binary_mask, nb_pts,
                       method='centerline'):
+    sft.to_vox()
+    sft_centroid.to_vox()
+    sft.to_corner()
+    sft_centroid.to_corner()
     # TODO DOCSTRING !
     # This allows to have a more uniform (in size) first and last labels
     endpoints_extended = False
@@ -393,29 +333,39 @@ def subdivide_bundles(sft, sft_centroid, binary_mask, nb_pts,
     sft_centroid = resample_streamlines_num_points(sft_centroid, nb_pts)
 
     timer = time.time()
+
+    indices = np.array(np.nonzero(binary_mask), dtype=int).T
+    labels = min_dist_to_centroid(indices,
+                                    sft_centroid[0].streamlines._data,
+                                    nb_pts=nb_pts)
+    logging.debug('Computed labels using the euclidian method '
+                    f'in {round(time.time() - timer, 3)} seconds')
+    min_label, max_label = labels.min(), labels.max()
+
     if method == 'centerline':
-        indices = np.array(np.nonzero(binary_mask), dtype=int).T
-        labels = min_dist_to_centroid(indices,
-                                      sft_centroid[0].streamlines._data,
-                                      nb_pts=nb_pts)
-        logging.debug('Computed labels using the euclidian method '
-                     f'in {round(time.time() - timer, 3)} seconds')
-    else:
+        labels_map = np.zeros(binary_mask.shape, dtype=np.uint16)
+        labels_map[tuple(indices.T)] = labels
+    elif method == 'hyperplane':
+        min_label, max_label = labels.min(), labels.max()
+        del labels, indices
         logging.debug('Computing Labels using the hyperplane method.\n'
                      '\tThis can take a while...')
         # Select 2000 elements from the SFTs to train the classifier
-        random_indices = np.random.choice(len(sft),
-                                          min(len(sft), 500),
-                                          replace=False)
+        streamlines_length = [length(streamline) for streamline in sft.streamlines]
+        random_indices = np.random.choice(len(sft.streamlines), 2000)
         tmp_sft = resample_streamlines_step_size(sft[random_indices],
-                                                 1.0)
+                                                 np.min(streamlines_length) / nb_pts)
+
         # Associate the labels to the streamlines using the centroids as
         # reference (to handle shorter bundles due to missing data)
         mini_timer = time.time()
-        sample_size = np.count_nonzero(binary_mask) // nb_pts
-        labels, points, = associate_labels(tmp_sft, sft_centroid,
-                                           nb_pts, sample_set=True,
-                                           sample_size=sample_size)
+        labels, points, = associate_labels(tmp_sft, min_label, max_label)
+
+        kd_tree = KDTree(points)
+        indices = np.array(np.nonzero(binary_mask), dtype=int).T
+
+        nn_indices = kd_tree.query(indices, k=1)[1]
+        labels, points = labels[nn_indices], points[nn_indices]
 
         logging.debug('\tAssociated labels to centroids in '
                      f'{round(time.time() - mini_timer, 3)} seconds')
@@ -434,7 +384,9 @@ def subdivide_bundles(sft, sft_centroid, binary_mask, nb_pts,
 
         # Scale the coordinates of the voxels
         mini_timer = time.time()
-        voxel_coords = np.array(np.where(binary_mask)).T
+        masked_binary_mask = np.zeros(binary_mask.shape, dtype=np.uint8)
+        masked_binary_mask[::2, ::2, ::2] = binary_mask[::2, ::2, ::2]
+        voxel_coords = np.array(np.where(masked_binary_mask)).T
         scaled_voxel_coords = scaler.transform(voxel_coords)
 
         # Predict the labels for the voxels
@@ -444,11 +396,17 @@ def subdivide_bundles(sft, sft_centroid, binary_mask, nb_pts,
 
         logging.debug('Computed labels using the hyperplane method '
                      f'in {round(time.time() - timer, 3)} seconds')
-    labels_map = np.zeros(binary_mask.shape, dtype=np.uint16)
-    labels_map[np.where(binary_mask)] = labels
+        labels_map = np.zeros(binary_mask.shape, dtype=np.uint16)
+        labels_map[np.where(masked_binary_mask)] = labels
 
-    # # Correct the hyperplane labels to have a more uniform size
+        missing_indices = np.argwhere(binary_mask - masked_binary_mask)
+        valid_indices = np.argwhere(masked_binary_mask)
 
+        kd_tree = KDTree(valid_indices)
+        nn_indices = kd_tree.query(missing_indices, k=1)[1]
+        labels_map[tuple(missing_indices.T)] = labels_map[tuple(valid_indices[nn_indices].T)]
+
+    # Correct the labels jump to prevent discontinuities
     timer = time.time()
     tmp_sft = resample_streamlines_step_size(sft, 1.0)
     labels_map = correct_labels_jump(labels_map, tmp_sft.streamlines,

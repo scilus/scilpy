@@ -103,7 +103,8 @@ def get_head_tail_density_maps(sft, point_to_select=1, to_millimeters=False):
 
         # Get the head and tail coordinates
         # +1 to include the last point
-        head_indices = indices[:points[point_to_select]+1, :]
+        point_to_select = min(point_to_select, len(points) - 1)
+        head_indices = indices[:points[point_to_select] + 1, :]
         tail_indices = indices[points[-point_to_select]:, :]
 
         # Add the points to the endpoints map
@@ -249,7 +250,8 @@ def _trim_streamline_in_mask_keep_longest(
 
     # Get the entry and exit points for the longest segment
     # Skip the first point as it caused the split
-    in_strl_idx, out_strl_idx = longest_strml[1], longest_strml[-1]
+    id_to_pick = 0 if np.count_nonzero(roi_data_1_intersect) == len(idx) else 1
+    in_strl_idx, out_strl_idx = longest_strml[id_to_pick], longest_strml[-1]
     cut_strl = compute_streamline_segment(streamline, idx,
                                           in_strl_idx, out_strl_idx,
                                           pts_to_idx)
