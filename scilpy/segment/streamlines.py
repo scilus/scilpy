@@ -140,8 +140,10 @@ def filter_grid_roi(sft, mask, filter_type, is_exclude, filter_distance=0,
     if len(sft.streamlines) == 0:
         if return_sft:
             if return_rejected_sft:
-                return [], sft, sft
-        return [], sft
+                return np.array([]), sft, sft
+            return np.array([]), sft
+        else:
+            return np.array([])
 
     if filter_distance != 0:
         bin_struct = generate_binary_structure(3, 2)
@@ -274,6 +276,9 @@ def filter_ellipsoid(sft, ellipsoid_radius, ellipsoid_center,
     sft: StatefulTractogram
         Filtered sft
     """
+    if len(sft.streamlines) == 0:
+        return np.array([]), sft
+
     pre_filtered_indices, pre_filtered_sft = \
         pre_filtering_for_geometrical_shape(sft, ellipsoid_radius,
                                             ellipsoid_center, filter_type,
@@ -378,6 +383,9 @@ def filter_cuboid(sft, cuboid_radius, cuboid_center,
         Filtered sft.
         Ids of the streamlines passing through the mask.
     """
+    if len(sft.streamlines) == 0:
+        return np.array([]), sft
+
     pre_filtered_indices, pre_filtered_sft = \
         pre_filtering_for_geometrical_shape(sft, cuboid_radius,
                                             cuboid_center, filter_type,
