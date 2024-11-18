@@ -112,7 +112,7 @@ def main():
     s.add(points)
 
     # Show and record if needed
-    if args.save is not None:
+    if args.out_screenshot:
         window.record(s, out_path=args.out_screenshot, size=args.win_size)
     window.show(s)
 
