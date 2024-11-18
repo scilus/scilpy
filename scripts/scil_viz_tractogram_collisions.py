@@ -113,7 +113,7 @@ def main():
 
     # Show and record if needed
     if args.save is not None:
-        window.record(s, out_path=args.save, size=args.win_size)
+        window.record(s, out_path=args.out_screenshot, size=args.win_size)
     window.show(s)
 
 
