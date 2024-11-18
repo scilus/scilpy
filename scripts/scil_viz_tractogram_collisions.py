@@ -40,7 +40,7 @@ def _build_arg_parser():
                    'as visual reference (must be .trk or .tck). It will be \n'
                    'overlaid in white and very low opacity.')
 
-    p.add_argument('--save',
+    p.add_argument('--out_screenshot', default='',
                    help='If set, save a screenshot of the result in the \n'
                    'specified filename (.png, .bmp, .jpeg or .jpg).')
 
