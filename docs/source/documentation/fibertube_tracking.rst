@@ -171,7 +171,8 @@ different file:
    system. (see scil_tractogram_apply_transform.py).
 
 
-|Metrics (without max_voxel_rotated) visualized in 3D|
+.. image:: https://github.com/user-attachments/assets/43cebcbe-e3b1-4ca0-999e-e042db8aa937
+   :alt: Metrics (without max_voxel_rotated) visualized in 3D
 
 .. image:: https://github.com/user-attachments/assets/924ab3f9-33da-458f-a98b-b4e88b051ae8
    :alt: max_voxel_rotated visualized in 3D
