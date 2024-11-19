@@ -2,7 +2,7 @@ Introduction to the Fibertube Tracking environment through an interactive demo.
 ====
 
 In this demo, you will be introduced to the main scripts of this project
-as you apply them on simple data. Our main objective is better
+as you apply them on simple data. Our main objective is to better
 understand and quantify the fundamental limitations of tractography
 algorithms, and how they might evolve as we approach microscopy
 resolution where individual axons can be seen. To do so, we will be
@@ -64,11 +64,7 @@ To download the data required for this demo, open a terminal, move to any
 location you see fit for this demo and execute the following command:
 ::
 
-   wget https://scil.usherbrooke.ca/scil_test_data/dvc-store/files/md5/82/248b4888a63b0aeffc8070cc206995 -O others.zip
-   && unzip others.zip -d Data
-   && chmod -R 755 Data
-   && cp ./Data/others/fibercup_bundles.trk ./centerlines.trk
-   && echo 0.001 >diameter.txt
+   wget https://scil.usherbrooke.ca/scil_test_data/dvc-store/files/md5/82/248b4888a63b0aeffc8070cc206995 -O others.zip && unzip others.zip -d Data && mv others.zip Data/others.zip && chmod -R 755 Data && cp ./Data/others/fibercup_bundles.trk ./centerlines.trk && echo 0.001 >diameters.txt
 
 This will fetch a tractogram to act as our set of centerlines, and then
 generate diameters to form our fibertubes.
@@ -87,7 +83,8 @@ search radius is set at the length of the longest fibertube segment,
 the performance drops significantly if they are not shortened to
 ~0.2mm.
 
-To resample a tractogram, we can use this script from scilpy:
+To resample a tractogram, we can use this script from scilpy. Don't
+forget to activate your scilpy environment first.
 
 ::
 
@@ -134,14 +131,14 @@ By calling:
 
 ::
 
-   scil_viz_tractogram_collisions.py centerlines_resampled_invalid.trk --obstacle centerlines_resampled_obstacle.trk --ref_tractogram centerlines.trk
+   scil_viz_tractogram_collisions.py centerlines_resampled_invalid.trk --in_tractogram_obstacle centerlines_resampled_obstacle.trk --ref_tractogram centerlines.trk
 
 You are able to see exactly which streamline has been filtered
 ("invalid" - In red) as well as the streamlines they collided with
 ("obstacle" - In green). In white and lower opacity is the original
 tractogram passed as ``--ref_tractogram``.
 
-.. image:: https://github.com/user-attachments/assets/9cb95488-227f-4c96-b88c-ead9100ac708
+.. image:: https://github.com/user-attachments/assets/09281b7f-d883-4de5-9570-8815a67a8032
    :alt: Filtered intersections visualized in 3D
 
 Fibertube metrics
@@ -195,7 +192,7 @@ resolution by using a ``blur_radius``. The way it works is as follows:
 Seeding
 ~~~~~~~
 
-For now, a number of seeds is set randomly within the first segment of
+A number of seeds is set randomly within the first segment of
 every fibertube. We can however change the number of fibertubes that
 will be tracked, as well as the amount of seeds within each. (See
 Seeding options in the help menu).
@@ -234,11 +231,11 @@ option. Let us do:
 
 ::
 
-   scil_fibertube_tracking.py fibertubes.trk tracking.trk 0.01 0.01 --nb_fibertubes 3 --out_config tracking_config.json --processes 4 -v -f
+   scil_fibertube_tracking.py fibertubes.trk tracking.trk --blur_radius 0.1 --step_size 0.1 --nb_fibertubes 3 --out_config tracking_config.json --processes 4 -v -f
 
-This should take around 5 minutes. The loading bar of each thread will
-only update every 100 streamlines. It may look like it's frozen, but it
-rest assured it's still going!
+This should take a minute or two. The loading bar of each thread will
+only update every 100 streamlines. It may look like it's frozen, but
+rest assured. it's still going!
 
 Reconstruction analysis
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -303,33 +300,34 @@ To score the produced tractogram, we run:
 
 ::
 
-   scil_fibertube_score_tractogram.py fibertubes.trk tracking.trk tracking_config.json reconstruction_metrics.json -v -f
+   scil_fibertube_score_tractogram.py fibertubes.trk tracking.trk tracking_config.json reconstruction_metrics.json -f
 
 giving us the following output in ``reconstruction_metrics.json``:
 
 ::
 
    {
-     "vc_ratio": 0.13333333333333333,
-     "ic_ratio": 0.0,
-     "nc_ratio": 0.8666666666666667,
-     "res_vc_ratio": 0.8,
-     "res_ic_ratio": 0.13333333333333333,
-     "res_nc_ratio": 0.06666666666666667,
-     "mae_min": 2.023046655518677e-06,
-     "mae_max": 5.140102678615527,
-     "mae_mean": 0.7342005034643644,
-     "mae_med": 0.0009090212918552973
+      "vc_ratio": 0.0,
+      "ic_ratio": 0.0,
+      "nc_ratio": 1.0,
+      "res_vc_ratio": 0.06666666666666667,
+      "res_ic_ratio": 0.0,
+      "res_nc_ratio": 0.9333333333333333,
+      "mae_min": 0.014523808944519356,
+      "mae_max": 9.25675274988759,
+      "mae_mean": 1.3040961801420252,
+      "mae_med": 0.026874907457201936
    }
 
-This data tells us that about 13% of our streamlines managed to stay
-within the fibertube in which they were seeded (``"vc_ratio": 0.13333~``).
-However, 80% of streamlines ended closer than one ``blur_radius`` away from
-the end of their respective fibertube (``"res_vc_ratio": 0.8``).
+This data tells us that about none of our streamlines managed to stay
+within the fibertube in which they were seeded (``"vc_ratio": 0.0``).
+However, 6% of streamlines ended closer than one ``blur_radius`` away from
+the end of their respective fibertube (``"res_vc_ratio": 0.06``).
 Lastly, we notice that the streamline with the "worst" trajectory was on average
-5.14mm away from its fibertube (``"mae_max": 5.140102678615527``).
+~9.26mm away from its fibertube (``"mae_max": 9.25675274988759``).
+
+This is not very good, but it's to be expected with a --blur_radius and
+--step_size of 0.1. If you have a few minutes, try again with 0.01!
 
 End of Demo
 -----------
-
-.. |Metrics (without max_voxel_rotated) visualized in 3D| image:: https://github.com/user-attachments/assets/43cebcbe-e3b1-4ca0-999e-e042db8aa937

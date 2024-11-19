@@ -60,8 +60,8 @@ def main():
     args = parser.parse_args()
 
     assert_inputs_exist(parser, args.in_tractogram_invalid,
-                        [args.obstacle, args.ref_tractogram])
-    assert_outputs_exist(parser, args, [], [args.save])
+                        [args.in_tractogram_obstacle, args.ref_tractogram])
+    assert_outputs_exist(parser, args, [], [args.out_screenshot])
 
     tracts_format = detect_format(args.in_tractogram_invalid)
     if tracts_format is not TrkFile:
@@ -102,7 +102,7 @@ def main():
                                colors=[1., 0., 0.])
     s.add(invalid_actor)
 
-    if args.obstacle:
+    if args.in_tractogram_obstacle:
         obstacle_actor = actor.line(obstacle_sft.streamlines,
                                     colors=[0., 1., 0.])
         s.add(obstacle_actor)

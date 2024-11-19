@@ -233,9 +233,9 @@ def main():
         streamlines_length, seeds_fiber, args.save_error_tractogram)
 
     metrics = {
-        'truth_vc_ratio': len(truth_vc)/len(streamlines),
-        'truth_ic_ratio': len(truth_ic)/len(streamlines),
-        'truth_nc_ratio': len(truth_nc)/len(streamlines),
+        'vc_ratio': len(truth_vc)/len(streamlines),
+        'ic_ratio': len(truth_ic)/len(streamlines),
+        'nc_ratio': len(truth_nc)/len(streamlines),
         'res_vc_ratio': len(res_vc)/len(streamlines),
         'res_ic_ratio': len(res_ic)/len(streamlines),
         'res_nc_ratio': len(res_nc)/len(streamlines),
