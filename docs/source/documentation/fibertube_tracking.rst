@@ -234,9 +234,9 @@ option. Let us do:
 
    scil_fibertube_tracking.py fibertubes.trk tracking.trk --blur_radius 0.1 --step_size 0.1 --nb_fibertubes 3 --out_config tracking_config.json --processes 4 -v -f
 
-This should take a minute or two. The loading bar of each thread will
-only update every 100 streamlines. It may look like it's frozen, but
-rest assured. it's still going!
+This should take a minute or two and will produce 15 streamlines. The loading
+bar of each thread will only update every 100 streamlines. It may look
+like it's frozen, but rest assured. it's still going!
 
 Reconstruction analysis
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -308,24 +308,24 @@ giving us the following output in ``reconstruction_metrics.json``:
 ::
 
    {
-      "vc_ratio": 0.0,
-      "ic_ratio": 0.0,
-      "nc_ratio": 1.0,
-      "res_vc_ratio": 0.06666666666666667,
-      "res_ic_ratio": 0.0,
-      "res_nc_ratio": 0.9333333333333333,
-      "mae_min": 0.014523808944519356,
-      "mae_max": 9.25675274988759,
-      "mae_mean": 1.3040961801420252,
-      "mae_med": 0.026874907457201936
+     "vc_ratio": 0.0,
+     "ic_ratio": 0.0,
+     "nc_ratio": 1.0,
+     "res_vc_ratio": 0.3333333333333333,
+     "res_ic_ratio": 0.3333333333333333,
+     "res_nc_ratio": 0.3333333333333333,
+     "mae_min": 0.004093314514974615,
+     "mae_max": 10.028780087103556,
+     "mae_mean": 3.055598084631571,
+     "mae_med": 0.9429987731800447
    }
 
-This data tells us that about none of our streamlines managed to stay
+This data tells us that none of our 15 streamlines managed to stay
 within the fibertube in which they were seeded (``"vc_ratio": 0.0``).
-However, 6% of streamlines ended closer than one ``blur_radius`` away from
-the end of their respective fibertube (``"res_vc_ratio": 0.06``).
+However, 1/3 of streamlines ended closer than one ``blur_radius`` away from
+the end of their respective fibertube (``"res_vc_ratio": 0.3333333333333333``).
 Lastly, we notice that the streamline with the "worst" trajectory was on average
-~9.26mm away from its fibertube (``"mae_max": 9.25675274988759``).
+~10.03mm away from its fibertube (``"mae_max": 10.028780087103556``).
 
 This is not very good, but it's to be expected with a --blur_radius and
 --step_size of 0.1. If you have a few minutes, try again with 0.01!
