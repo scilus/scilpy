@@ -69,13 +69,13 @@ def _build_arg_parser():
 
     track_g = p.add_argument_group('Tracking options')
     track_g.add_argument(
-        '--blur_radius', type=float, default=0.01,
+        '--blur_radius', type=float, default=0.1,
         help='Radius of the spherical region from which the \n'
         'algorithm will determine the next direction. \n'
         'A blur_radius within [0.001, 0.5] is recommended. \n'
         '[%(default)s]')
     track_g.add_argument(
-        '--step_size', type=float, default=0.01,
+        '--step_size', type=float, default=0.1,
         help='Step size of the tracking algorithm, in mm. \n'
         'It is recommended to use the same value as the \n'
         'blur_radius, in the interval [0.001, 0.5] \n'

@@ -44,7 +44,7 @@ def test_execution(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     init_data()
     ret = script_runner.run('scil_fibertube_tracking.py',
-                            'tractogram.trk', 'tracking.trk', '0.1', '0.3',
+                            'tractogram.trk', 'tracking.trk',
                             '--min_length', '0', '-f')
     assert ret.success
 
@@ -53,7 +53,9 @@ def test_execution_tracking_rk(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     init_data()
     ret = script_runner.run('scil_fibertube_tracking.py',
-                            'tractogram.trk', 'tracking.trk', '0.1', '0.3',
+                            'tractogram.trk', 'tracking.trk',
+                            '--blur_radius', '0.3',
+                            '--step_size', '0.1',
                             '--rk_order', '2', '--min_length', '0', '-f')
     assert ret.success
 
@@ -62,7 +64,9 @@ def test_execution_config(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     init_data()
     ret = script_runner.run('scil_fibertube_tracking.py',
-                            'tractogram.trk', 'tracking.trk', '0.1', '0.3',
+                            'tractogram.trk', 'tracking.trk',
+                            '--blur_radius', '0.3',
+                            '--step_size', '0.1',
                             '--out_config', 'config.json',
                             '--min_length', '0', '-f')
     assert ret.success
@@ -72,7 +76,9 @@ def test_execution_seeding(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     init_data()
     ret = script_runner.run('scil_fibertube_tracking.py',
-                            'tractogram.trk', 'tracking.trk', '0.1', '0.3',
+                            'tractogram.trk', 'tracking.trk',
+                            '--blur_radius', '0.3',
+                            '--step_size', '0.1',
                             '--nb_fibertubes', '1',
                             '--nb_seeds_per_fibertube', '3', '--skip', '3',
                             '--min_length', '0', '-f')

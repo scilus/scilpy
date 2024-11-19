@@ -195,7 +195,7 @@ def main():
 
     if args.out_rotation_matrix:
         if os.path.splitext(args.out_rotation_matrix)[1] != '.mat':
-            raise ValueError("Invalid out_max_voxel_rotation output file" +
+            raise ValueError("Invalid out_rotation_matrix output file" +
                              "format (must be mat): " +
                              "{0}".format(args.out_rotation_matrix))
 
@@ -206,7 +206,7 @@ def main():
 
     assert_inputs_exist(parser, args.in_tractogram)
     assert_outputs_exist(parser, args, outputs,
-                         [args.out_metrics, args.out_max_voxel_rotation])
+                         [args.out_metrics, args.out_rotation_matrix])
 
     logging.debug('Loading tractogram & diameters')
     in_sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
@@ -267,7 +267,7 @@ def main():
         str(len(streamlines) - len(out_sft.streamlines)) +
         ' streamlines have been filtered')
 
-    if args.out_metrics is not None or args.out_max_voxel_rotation is not None:
+    if args.out_metrics is not None or args.out_rotation_matrix is not None:
         logging.info('Computing metrics')
 
         min_ext_dist, min_ext_dist_vect = (
@@ -293,12 +293,11 @@ def main():
                 json.dump(metrics, outfile,
                           indent=args.indent, sort_keys=args.sort_keys)
 
-        if args.out_max_voxel_rotation is not None:
+        if args.out_rotation_matrix is not None:
             max_voxel_rotated_transform = np.r_[np.c_[
                 mvr_rot, [0, 0, 0]], [[0, 0, 0, 1]]]
-            with open(args.out_max_voxel_rotation, 'w') as outfile:
-                json.dump(max_voxel_rotated_transform, outfile,
-                          indent=args.indent, sort_keys=args.sort_keys)
+            with open(args.out_rotation_matrix, 'w') as outfile:
+                np.savetxt(outfile, max_voxel_rotated_transform)
 
 
 if __name__ == "__main__":
