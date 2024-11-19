@@ -26,7 +26,7 @@ class IntersectionFinder:
 
         Parameters
         ----------
-        tractogram : StatefulTractogram
+        in_sft : StatefulTractogram
             Stateful Tractogram object containing streamlines to filter.
         diameters : list
             Diameters of each streamline of the tractogram.

@@ -62,9 +62,9 @@ def mean_fibertube_density(sft):
 
     mean_seg_count = sum / nb_voxels_nonzero
     mean_volume = mean_seg_count * mean_seg_volume
-    mean_density = mean_volume / (sft.voxel_sizes[0]*
-                                    sft.voxel_sizes[1]*
-                                    sft.voxel_sizes[2])
+    mean_density = mean_volume / (sft.voxel_sizes[0] *
+                                  sft.voxel_sizes[1] *
+                                  sft.voxel_sizes[2])
 
     return mean_density
 
@@ -468,7 +468,7 @@ def endpoint_connectivity(step_size, blur_radius, centerlines,
             fi = indices[neighbor_segi][0]
             if fi != seed_fi:
                 continue
-        
+
             fiber = centerlines[fi]
             fib_end_pt1 = fiber[centerlines_length[fi] - 2]
             fib_end_pt2 = fiber[centerlines_length[fi] - 1]
@@ -482,7 +482,7 @@ def endpoint_connectivity(step_size, blur_radius, centerlines,
             if dist < radius:
                 truth_connected = True
                 truth_vc.add(si)
-            
+
             # Resolution-wise connectivity
             # Passes by end segment of our fibertube
             dist, _, _, _ = dist_segment_segment(fib_end_pt1, fib_end_pt2,
@@ -510,7 +510,7 @@ def endpoint_connectivity(step_size, blur_radius, centerlines,
             start_dist, _, _, _ = dist_segment_segment(
                 fiber[0], fiber[1], streamline[int(np.floor(ratio))],
                 streamline[int(np.ceil(ratio))+1])
-            
+
             end_dist, _, _, _ = dist_segment_segment(
                 fib_end_pt1, fib_end_pt2, streamline[int(np.floor(ratio))],
                 streamline[int(np.ceil(ratio))+1])

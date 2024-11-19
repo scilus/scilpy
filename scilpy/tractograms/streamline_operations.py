@@ -976,7 +976,7 @@ def get_streamlines_bounding_box(streamlines):
 def get_streamlines_as_fixed_array(streamlines):
     """
     Obtain streamlines as a fixed array of shape
-    (nbr of streamline, max streamline length, 3).
+    (nbr of streamlines, max streamline length, 3).
 
     Useful for optimization with code precompiling. (See Numba)
 
