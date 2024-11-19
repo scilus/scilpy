@@ -49,7 +49,7 @@ def init_data():
     save_tractogram(sft_fibertubes, 'fibertubes.trk', True)
     save_tractogram(sft_tracking, 'tracking.trk', True)
 
-    with open('config.txt', 'w') as file:
+    with open('config.json', 'w') as file:
         json.dump(config, file, indent=True)
 
 
@@ -62,6 +62,6 @@ def test_execution(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     init_data()
     ret = script_runner.run('scil_fibertube_score_tractogram.py',
-                            'fibertubes.trk', 'tracking.trk', 'config.txt',
-                            'metrix.txt', '--save_error_tractogram')
+                            'fibertubes.trk', 'tracking.trk', 'config.json',
+                            'metrics.json', '--save_error_tractogram', '-f')
     assert ret.success

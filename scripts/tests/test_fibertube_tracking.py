@@ -35,9 +35,8 @@ def init_data():
     save_tractogram(sft, 'tractogram.trk', True)
 
 
-def test_help(script_runner):
-    ret = script_runner.run('scil_fibertube_tracking.py', '--help',
-                            '--min_length', '0')
+def test_help_option(script_runner):
+    ret = script_runner.run('scil_fibertube_tracking.py', '--help')
     assert ret.success
 
 
@@ -64,7 +63,7 @@ def test_execution_config(script_runner, monkeypatch):
     init_data()
     ret = script_runner.run('scil_fibertube_tracking.py',
                             'tractogram.trk', 'tracking.trk', '0.1', '0.3',
-                            '--out_config', 'config.txt',
+                            '--out_config', 'config.json',
                             '--min_length', '0', '-f')
     assert ret.success
 

@@ -263,8 +263,8 @@ def resolve_origin_seeding(seeds, centerlines, diameters):
 
     Return
     ------
-    seeds_fiber: list
-        List containing the fiber index of each seed. If the seed is not in a
+    seeds_fiber: ndarray
+        Array containing the fiber index of each seed. If the seed is not in a
         fiber, its value will be -1.
     """
     seeds_fiber = [-1] * len(seeds)
@@ -275,7 +275,7 @@ def resolve_origin_seeding(seeds, centerlines, diameters):
                 seeds_fiber[si] = fi
                 break
 
-    return seeds_fiber
+    return np.array(seeds_fiber)
 
 
 @njit

@@ -59,6 +59,7 @@ See also:
 
 import os
 import json
+import numba
 import argparse
 import logging
 import numpy as np
@@ -159,8 +160,8 @@ def main():
 
     assert_inputs_exist(parser, [args.in_fibertubes, args.in_config,
                                  args.in_tracking])
-    assert_outputs_exist(parser, args, [args.out_metrics,
-                                        args.out_tracked_fibertubes])
+    assert_outputs_exist(parser, args, [args.out_metrics],
+                         [args.out_tracked_fibertubes])
 
     our_space = Space.VOXMM
     our_origin = Origin('center')

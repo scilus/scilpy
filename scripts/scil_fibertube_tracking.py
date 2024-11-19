@@ -63,7 +63,6 @@ def _build_arg_parser():
                         'as data_per_streamline. \n'
                         'For both of these requirements, see \n'
                         'scil_tractogram_filter_collisions.py.')
-```.
 
     p.add_argument('out_tractogram',
                    help='Tractogram output file (must be .trk or .tck).')

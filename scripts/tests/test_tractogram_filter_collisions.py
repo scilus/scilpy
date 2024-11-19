@@ -111,5 +111,5 @@ def test_execution_filtering_metrics(script_runner, monkeypatch):
 
     ret = script_runner.run('scil_tractogram_filter_collisions.py',
                             'tractogram.trk', 'diameters.txt', 'clean.trk',
-                            '--out_metrics', 'metrics.txt', '-f')
+                            '--out_metrics', 'metrics.json', '-f')
     assert ret.success
