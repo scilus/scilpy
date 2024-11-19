@@ -69,7 +69,7 @@ def _build_arg_parser():
 
     track_g = p.add_argument_group('Tracking options')
     track_g.add_argument(
-        '--blur_radius', type=float, default = 0.01,
+        '--blur_radius', type=float, default=0.01,
         help='Radius of the spherical region from which the \n'
         'algorithm will determine the next direction. \n'
         'A blur_radius within [0.001, 0.5] is recommended. \n'
@@ -190,7 +190,8 @@ def main():
                          .format(args.out_config))
 
     assert_inputs_exist(parser, [args.in_fibertubes])
-    assert_outputs_exist(parser, args, [args.out_tractogram], [args.out_config])
+    assert_outputs_exist(parser, args, [args.out_tractogram],
+                         [args.out_config])
 
     theta = gm.math.radians(args.theta)
 

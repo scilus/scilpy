@@ -113,3 +113,16 @@ def test_execution_filtering_metrics(script_runner, monkeypatch):
                             'tractogram.trk', 'diameters.txt', 'clean.trk',
                             '--out_metrics', 'metrics.json', '-f')
     assert ret.success
+
+def test_execution_rotation_matrix(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
+    init_data()
+
+    # No collision, as we want to keep two streamlines for this test.
+    diameters = [0.001, 0.001]
+    np.savetxt('diameters.txt', diameters)
+
+    ret = script_runner.run('scil_tractogram_filter_collisions.py',
+                            'tractogram.trk', 'diameters.txt', 'clean.trk',
+                            '--out_rotation_matrix', 'rotation.mat', '-f')
+    assert ret.success

@@ -66,7 +66,7 @@ def main():
     tracts_format = detect_format(args.in_tractogram_invalid)
     if tracts_format is not TrkFile:
         raise ValueError("Invalid input streamline file format " +
-                         "(must be trk):" + 
+                         "(must be trk):" +
                          "{0}".format(args.in_tractogram_invalid))
 
     if args.in_tractogram_obstacle:

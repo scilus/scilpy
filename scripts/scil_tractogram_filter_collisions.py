@@ -138,7 +138,7 @@ def _build_arg_parser():
                    'diameter will be computed after filtering and saved at \n'
                    'the given location (must be .json).')
 
-    p.add_argument('--out_max_voxel_rotation', default=None, type=str,
+    p.add_argument('--out_rotation_matrix', default=None, type=str,
                    help='If set, the transformation required to align the \n'
                    '"max_voxel_rotated" metric with the coordinate system \n'
                    'will be saved at the given location (must be .mat). \n'
@@ -178,7 +178,8 @@ def main():
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
     logging.getLogger('numba').setLevel(logging.WARNING)
 
-    in_tractogram_no_ext, in_tractogram_ext = os.path.splitext(args.in_tractogram)
+    in_tractogram_no_ext, in_tractogram_ext = os.path.splitext(
+        args.in_tractogram)
     if in_tractogram_ext != '.trk':
         raise ValueError("Invalid output streamline file format " +
                          "(must be trk): {0}".format(args.in_tractogram))
@@ -190,13 +191,13 @@ def main():
     if args.out_metrics:
         if os.path.splitext(args.out_metrics)[1] != '.json':
             raise ValueError("Invalid metrics output file format " +
-                             "(must be json): {0}".format(args.in_tractogram))
+                             "(must be json): {0}".format(args.out_metrics))
 
-    if args.out_max_voxel_rotation:
-        if os.path.splitext(args.out_max_voxel_rotation)[1] != '.mat':
+    if args.out_rotation_matrix:
+        if os.path.splitext(args.out_rotation_matrix)[1] != '.mat':
             raise ValueError("Invalid out_max_voxel_rotation output file" +
                              "format (must be mat): " +
-                             "{0}".format(args.in_tractogram))
+                             "{0}".format(args.out_rotation_matrix))
 
     outputs = [args.out_tractogram]
     if args.save_colliding:
