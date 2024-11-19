@@ -114,6 +114,7 @@ def test_execution_filtering_metrics(script_runner, monkeypatch):
                             '--out_metrics', 'metrics.json', '-f')
     assert ret.success
 
+
 def test_execution_rotation_matrix(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     init_data()
