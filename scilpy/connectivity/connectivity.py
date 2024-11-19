@@ -31,7 +31,7 @@ def load_node_nifti(directory, in_label, out_label, ref_img):
         if not is_header_compatible(in_filename, ref_img):
             raise IOError('{} do not have a compatible header'.format(
                 in_filename))
-        return nib.load(in_filename).get_fdata(dtype=np.float64)
+        return nib.load(in_filename).get_fdata(dtype=np.float32)
 
     return None
 
@@ -66,13 +66,13 @@ def compute_connectivity_matrices_from_hdf5(
     out_label: str
         Name of the other extremity. Current node is {in_label}_{out_label}.
     compute_volume: bool
-        If true, return 'volume' in the returned dictionary with the volume of
-        the bundle.
+        If true, return 'volume_mm3' in the returned dictionary with the volume
+        of the bundle.
     compute_streamline_count: bool
         If true, return 'streamline_count' in the returned dictionary, with
         the number of streamlines in the bundle.
     compute_length: bool
-        If true, return 'length' in the returned dictionary, with the mean
+        If true, return 'length_mm' in the returned dictionary, with the mean
         length of streamlines in the bundle.
     similarity_directory: str
         If not None, ??
@@ -145,11 +145,11 @@ def compute_connectivity_matrices_from_hdf5(
         # scil_tractogram_segment_connections_from_labels.py requires
         # isotropic voxels
         mean_length = np.average(length(list(streamlines))) * voxel_sizes[0]
-        measures_to_return['length'] = mean_length
+        measures_to_return['length_mm'] = mean_length
 
     if compute_volume:
-        measures_to_return['volume'] = np.count_nonzero(density) * \
-                                       np.prod(voxel_sizes)
+        measures_to_return['volume_mm3'] = np.count_nonzero(density) * \
+                                           np.prod(voxel_sizes)
 
     if compute_streamline_count:
         measures_to_return['streamline_count'] = len(streamlines)

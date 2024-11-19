@@ -86,7 +86,7 @@ from scilpy.io.utils import (add_overwrite_arg, add_processes_arg,
 def _build_arg_parser():
     p = argparse.ArgumentParser(
         description=__doc__,
-        formatter_class=argparse.RawTextHelpFormatter, )
+        formatter_class=argparse.RawTextHelpFormatter)
     p.add_argument('in_hdf5',
                    help='Input filename for the hdf5 container (.h5).')
     p.add_argument('in_labels',
@@ -96,12 +96,14 @@ def _build_arg_parser():
 
     g = p.add_argument_group("Output matrices options")
     g.add_argument('--volume', metavar='OUT_FILE',
-                   help='Output file for the volume weighted matrix (.npy).')
+                   help='Output file for the volume weighted matrix (.npy), '
+                        'computed in mm3.')
     g.add_argument('--streamline_count', metavar='OUT_FILE',
                    help='Output file for the streamline count weighted matrix '
                         '(.npy).')
     g.add_argument('--length', metavar='OUT_FILE',
-                   help='Output file for the length weighted matrix (.npy).')
+                   help='Output file for the length weighted matrix (.npy), '
+                        'weighted in mm.')
     g.add_argument('--similarity', nargs=2,
                    metavar=('IN_FOLDER', 'OUT_FILE'),
                    help='Input folder containing the averaged bundle density\n'
@@ -311,10 +313,10 @@ def main():
     keys = []
     filenames = []
     if compute_volume:
-        keys.append('volume')
+        keys.append('volume_mm3')
         filenames.append(args.volume)
     if compute_length:
-        keys.append('length')
+        keys.append('length_mm')
         filenames.append(args.length)
     if compute_streamline_count:
         keys.append('streamline_count')
