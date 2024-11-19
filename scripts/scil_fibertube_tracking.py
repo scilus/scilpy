@@ -67,16 +67,20 @@ def _build_arg_parser():
     p.add_argument('out_tractogram',
                    help='Tractogram output file (must be .trk or .tck).')
 
-    p.add_argument('step_size', type=float,
-                   help='Step size of the tracking algorithm, in mm. \n'
-                   'A step_size within [0.001, 0.5] is recommended.')
-
-    p.add_argument('blur_radius', type=float,
-                   help='Radius of the spherical region from which the \n'
-                   'algorithm will determine the next direction. \n'
-                   'A blur_radius within [0.001, 0.5] is recommended.')
-
     track_g = p.add_argument_group('Tracking options')
+    track_g.add_argument(
+        '--blur_radius', type=float, default = 0.01,
+        help='Radius of the spherical region from which the \n'
+        'algorithm will determine the next direction. \n'
+        'A blur_radius within [0.001, 0.5] is recommended. \n'
+        '[%(default)s]')
+    track_g.add_argument(
+        '--step_size', type=float, default=0.01,
+        help='Step size of the tracking algorithm, in mm. \n'
+        'It is recommended to use the same value as the \n'
+        'blur_radius, in the interval [0.001, 0.5] \n'
+        'The step_size should never exceed twice the \n'
+        'blur_radius. [%(default)s]')
     track_g.add_argument(
         '--min_length', type=float, default=10.,
         metavar='m',
@@ -151,11 +155,6 @@ def _build_arg_parser():
              "with \n--skip 1,000,000.")
 
     out_g = p.add_argument_group('Output options')
-    out_g.add_argument(
-        '--do_not_save_seeds', action='store_true',
-        help='If set, the seeds used for tracking will not be saved \n'
-             'as data_per_streamline in [out_tractogram]. Seeds are needed \n'
-             'if you wish to compute fibertube reconstruction metrics later.')
     out_g.add_argument(
         '--out_config', default=None, type=str,
         help='If set, the parameter configuration used for tracking will \n'
@@ -247,7 +246,7 @@ def main():
     tracker = Tracker(propagator, fake_mask, seed_generator, nbr_seeds,
                       min_nbr_pts, max_nbr_pts,
                       args.max_invalid_nb_points, 0,
-                      args.nbr_processes, not args.do_not_save_seeds, 'r+',
+                      args.nbr_processes, True, 'r+',
                       rng_seed=args.rng_seed,
                       track_forward_only=args.forward_only,
                       skip=args.skip,
@@ -261,8 +260,7 @@ def main():
     logging.debug('Finished tracking in: ' + str_time + ' seconds')
 
     out_sft = StatefulTractogram.from_sft(streamlines, in_sft)
-    if not args.do_not_save_seeds:
-        out_sft.data_per_streamline['seeds'] = seeds
+    out_sft.data_per_streamline['seeds'] = seeds
     save_tractogram(out_sft, args.out_tractogram)
 
     config = {

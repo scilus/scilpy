@@ -44,9 +44,7 @@ direct impact on which streamline gets filtered out. To counter the resulting
 bias, streamlines are shuffled first unless --disable_shuffling is set.
 
 If the --out_metrics parameter is given, several metrics about the data will
-be computed.
-
-Computed metrics (all expressed in mm):
+be computed (all expressed in mm):
     - fibertube_density
         Estimate of the following ratio: volume of fibertubes / total volume
         where the total volume is the combined volume of all voxels containing
@@ -67,6 +65,8 @@ Computed metrics (all expressed in mm):
         [rotation_matrix].
         Ex: max_voxel_anisotropic: (1, 0, 0) => max_voxel_isotropic: (0, 0, 0)
             => max_voxel_rotated: (0.5774, 0.5774, 0.5774)
+
+If the --out_rotation_matrix option is provided, the following will be saved:
     - rotation_matrix
         4D transformation matrix representing the rotation to be applied on
         the tractogram to align max_voxel_rotated with the coordinate system
@@ -141,7 +141,7 @@ def _build_arg_parser():
     p.add_argument('--out_max_voxel_rotation', default=None, type=str,
                    help='If set, the transformation required to align the \n'
                    '"max_voxel_rotated" metric with the coordinate system \n'
-                   'will be saved at the given location (must be .json). \n'
+                   'will be saved at the given location (must be .mat). \n'
                    'This option requires computing all the metrics, even \n'
                    'if --out_metrics is not provided. If it is provided, '
                    'metrics are not computed twice.')
@@ -193,9 +193,9 @@ def main():
                              "(must be json): {0}".format(args.in_tractogram))
 
     if args.out_max_voxel_rotation:
-        if os.path.splitext(args.out_max_voxel_rotation)[1] != '.json':
+        if os.path.splitext(args.out_max_voxel_rotation)[1] != '.mat':
             raise ValueError("Invalid out_max_voxel_rotation output file" +
-                             "format (must be json): " +
+                             "format (must be mat): " +
                              "{0}".format(args.in_tractogram))
 
     outputs = [args.out_tractogram]
