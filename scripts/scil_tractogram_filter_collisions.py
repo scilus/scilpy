@@ -48,9 +48,9 @@ be computed.
 
 Computed metrics (all expressed in mm):
     - fibertube_density
-        Estimate of the following ratio: volume of fibertubes / total volume.
-        "Total volume" is the combined volume of all voxels containing at
-        least one fibertube.
+        Estimate of the following ratio: volume of fibertubes / total volume
+        where the total volume is the combined volume of all voxels containing
+        at least one fibertube.
     - min_external_distance
         Smallest distance separating two streamlines, outside their diameter.
     - max_voxel_anisotropic

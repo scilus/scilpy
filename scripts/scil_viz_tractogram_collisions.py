@@ -43,7 +43,7 @@ def _build_arg_parser():
                    'as visual reference (must be .trk or .tck). It will be \n'
                    'overlaid in white and very low opacity.')
 
-    p.add_argument('--save',
+    p.add_argument('--out_screenshot', default='',
                    help='If set, save a screenshot of the result in the \n'
                    'specified filename (.png, .bmp, .jpeg or .jpg).')
 
@@ -117,8 +117,8 @@ def main():
     s.add(points)
 
     # Show and record if needed
-    if args.save is not None:
-        window.record(s, out_path=args.save, size=args.win_size)
+    if args.out_screenshot:
+        window.record(s, out_path=args.out_screenshot, size=args.win_size)
     window.show(s)
 
 

@@ -62,7 +62,8 @@ def _build_arg_parser():
                         '2- With their respective diameter saved \n'
                         'as data_per_streamline. \n'
                         'For both of these requirements, see \n'
-                        'scil_tractogram_filter_collisions.')
+                        'scil_tractogram_filter_collisions.py.')
+```.
 
     p.add_argument('out_tractogram',
                    help='Tractogram output file (must be .trk or .tck).')

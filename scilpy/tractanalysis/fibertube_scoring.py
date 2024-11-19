@@ -16,9 +16,9 @@ from scilpy.tractanalysis.todi import TrackOrientationDensityImaging
 
 def mean_fibertube_density(sft):
     """
-    Estimates roughly the average per-voxel spatial density of a set of
-    fibertubes. This is obtained by dividing the total volume of each voxel
-    by the volume of fibertube segments intersecting it.
+    Estimates the average per-voxel spatial density of a set of fibertubes.
+    This is obtained by dividing the volume of fibertube segments present
+    each voxel by the the total volume of the voxel.
 
     Parameters
     ----------
