@@ -280,7 +280,7 @@ def compute_bundle_adjacency_voxel(binary_1, binary_2, non_overlap=False):
     float: Distance in millimeters between both bundles.
     """
     if isinstance(binary_1, np.ndarray) and isinstance(binary_2, np.ndarray) \
-        and binary_1.ndim == 3 and binary_2.ndim == 3:
+            and binary_1.ndim == 3 and binary_2.ndim == 3:
         b1_ind = np.argwhere(binary_1 > 0)
         b2_ind = np.argwhere(binary_2 > 0)
     else:
