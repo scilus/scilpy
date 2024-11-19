@@ -24,16 +24,19 @@ def _build_arg_parser():
         description=__doc__,
         formatter_class=argparse.RawTextHelpFormatter)
 
-    p.add_argument('invalid',
+    p.add_argument('in_tractogram_invalid',
                    help='Tractogram file containing the colliding \n'
                    'streamlines that have been filtered, along their \n'
                    'collision point as data_per_streamline (must be \n'
-                   '.trk). \n')
+                   '.trk). This file is obtained from the \n'
+                   'scil_tractogram_filter_collisions.py script.')
 
-    p.add_argument('--obstacle',
+    p.add_argument('--in_tractogram_obstacle',
                    help='Tractogram file containing the streamlines that \n'
-                   'that [invalid] has collided with. Will be overlaid\n'
-                   'in the viewing window.')
+                   'that [in_tractogram_invalid] has collided with. Will \n'
+                   'be overlaid in the viewing window. This file is \n'
+                   'obtained from the scil_tractogram_filter_collisions.py \n'
+                   'script.')
 
     p.add_argument('--ref_tractogram',
                    help='Tractogram file containing the full tractogram \n'
@@ -56,22 +59,24 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, args.invalid,
+    assert_inputs_exist(parser, args.in_tractogram_invalid,
                         [args.obstacle, args.ref_tractogram])
     assert_outputs_exist(parser, args, [], [args.save])
 
-    tracts_format = detect_format(args.invalid)
+    tracts_format = detect_format(args.in_tractogram_invalid)
     if tracts_format is not TrkFile:
         raise ValueError("Invalid input streamline file format " +
-                         "(must be trk): {0}".format(args.invalid))
+                         "(must be trk):" + 
+                         "{0}".format(args.in_tractogram_invalid))
 
-    if args.obstacle:
-        tracts_format = detect_format(args.obstacle)
+    if args.in_tractogram_obstacle:
+        tracts_format = detect_format(args.in_tractogram_obstacle)
         if tracts_format is not TrkFile:
             raise ValueError("Invalid input streamline file format " +
-                             "(must be trk): {0}".format(args.invalid))
+                             "(must be trk):" +
+                             "{0}".format(args.in_tractogram_invalid))
 
-    invalid_sft = load_tractogram(args.invalid, 'same',
+    invalid_sft = load_tractogram(args.in_tractogram_invalid, 'same',
                                   bbox_valid_check=False)
     invalid_sft.to_voxmm()
     invalid_sft.to_center()
@@ -80,12 +85,12 @@ def main():
         parser.error('Tractogram does not contain collisions')
     collisions = invalid_sft.data_per_streamline['collisions']
 
-    if (args.obstacle):
-        obstacle_sft = load_tractogram(args.obstacle, 'same',
+    if args.in_tractogram_obstacle:
+        obstacle_sft = load_tractogram(args.in_tractogram_obstacle, 'same',
                                        bbox_valid_check=False)
         obstacle_sft.to_voxmm()
         obstacle_sft.to_center()
-    if (args.ref_tractogram):
+    if args.ref_tractogram:
         full_sft = load_tractogram_with_reference(parser, args,
                                                   args.ref_tractogram)
         full_sft.to_voxmm()
@@ -97,12 +102,12 @@ def main():
                                colors=[1., 0., 0.])
     s.add(invalid_actor)
 
-    if (args.obstacle):
+    if args.obstacle:
         obstacle_actor = actor.line(obstacle_sft.streamlines,
                                     colors=[0., 1., 0.])
         s.add(obstacle_actor)
 
-    if (args.ref_tractogram):
+    if args.ref_tractogram:
         full_actor = actor.line(full_sft.streamlines, opacity=0.03,
                                 colors=[1., 1., 1.])
 

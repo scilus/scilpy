@@ -391,9 +391,9 @@ def endpoint_connectivity(step_size, blur_radius, centerlines,
 
     Parameters
     ----------
-    step_size: any
+    step_size: float
         Step_size used during fibertube tracking.
-    blur_radius: any
+    blur_radius: float
         Blur radius used during fibertube tracking.
     centerlines: ndarray
         Fixed array containing ground-truth fibertube centerlines.

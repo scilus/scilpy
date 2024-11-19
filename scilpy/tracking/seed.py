@@ -343,7 +343,6 @@ class FibertubeSeedGenerator(SeedGenerator):
 
     def get_next_pos(self, random_generator: np.random.Generator,
                      shuffled_indices, which_seed):
-
         which_fi = which_seed // self.nb_seeds_per_fibertube
 
         fiber = self.centerlines[shuffled_indices[which_fi]]
@@ -356,7 +355,6 @@ class FibertubeSeedGenerator(SeedGenerator):
 
     def get_next_n_pos(self, random_generator, shuffled_indices,
                        which_seed_start, n):
-
         which_fi = which_seed_start // self.nb_seeds_per_fibertube
 
         fiber = self.centerlines[shuffled_indices[which_fi]]

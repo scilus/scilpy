@@ -394,8 +394,7 @@ class FibertubeDataVolume(DataVolume):
             resolution of the data. Should be a stateful tractogram.
         blur_radius: float
             Radius of the blurring sphere to be used for degrading resolution.
-        origin: dipy Origin
-        random_generator: any
+        random_generator: numpy random generator
         """
         # Prepare data
         if centerlines is None:

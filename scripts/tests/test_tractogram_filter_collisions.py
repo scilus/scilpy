@@ -46,7 +46,6 @@ def test_execution_filtering(script_runner, monkeypatch):
     ret = script_runner.run('scil_tractogram_filter_collisions.py',
                             'tractogram.trk', 'diameters.txt', 'clean.trk',
                             '-f')
-
     assert ret.success
 
 
@@ -60,7 +59,6 @@ def test_execution_filtering_save_colliding(script_runner, monkeypatch):
     ret = script_runner.run('scil_tractogram_filter_collisions.py',
                             'tractogram.trk', 'diameters.txt', 'clean.trk',
                             '--save_colliding', '-f')
-
     assert ret.success
 
 
@@ -74,7 +72,6 @@ def test_execution_filtering_single_diameter(script_runner, monkeypatch):
     ret = script_runner.run('scil_tractogram_filter_collisions.py',
                             'tractogram.trk', 'diameters.txt', 'clean.trk',
                             '-f')
-
     assert ret.success
 
 
@@ -88,7 +85,6 @@ def test_execution_filtering_no_shuffle(script_runner, monkeypatch):
     ret = script_runner.run('scil_tractogram_filter_collisions.py',
                             'tractogram.trk', 'diameters.txt', 'clean.trk',
                             '--disable_shuffling', '-f')
-
     assert ret.success
 
 
@@ -102,7 +98,6 @@ def test_execution_filtering_min_distance(script_runner, monkeypatch):
     ret = script_runner.run('scil_tractogram_filter_collisions.py',
                             'tractogram.trk', 'diameters.txt', 'clean.trk',
                             '--min_distance', '5', '-f')
-
     assert ret.success
 
 
@@ -117,5 +112,4 @@ def test_execution_filtering_metrics(script_runner, monkeypatch):
     ret = script_runner.run('scil_tractogram_filter_collisions.py',
                             'tractogram.trk', 'diameters.txt', 'clean.trk',
                             '--out_metrics', 'metrics.txt', '-f')
-
     assert ret.success

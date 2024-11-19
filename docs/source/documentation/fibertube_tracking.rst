@@ -60,31 +60,23 @@ This project can be split into 3 major steps:
 Preparing the data
 ------------------
 
-To download the data required for this demo, open a terminal and activate your
-scilpy virtual environment. Then, navigate to the scilpy repository on your
-computer and enter the command: ``pytest -v`` **\***.
-
-**\*As soon as the tests start, you can abort the process** and
-navigate to any location outside of the scilpy repository that you see fit
-for this demo. All the necessary files are now downloaded on your computer.
-
-Then, execute the following command:
+To download the data required for this demo, open a terminal, move to any
+location you see fit for this demo and execute the following command:
 ::
 
-   cp ~/.scilpy/others/fibercup_bundles.trk ./centerlines.trk
+   wget https://scil.usherbrooke.ca/scil_test_data/dvc-store/files/md5/82/248b4888a63b0aeffc8070cc206995 -O others.zip
+   && unzip others.zip -d Data
+   && chmod -R 755 Data
+   && cp ./Data/others/fibercup_bundles.trk ./centerlines.trk
+   && echo 0.001 >diameter.txt
 
-to bring our data to the current location and rename it to ``centerlines.trk``.
+This will fetch a tractogram to act as our set of centerlines, and then
+generate diameters to form our fibertubes.
 
-It is a subset of the FiberCup phantom ground truth:
+``centerlines.trk`` is a subset of the FiberCup phantom ground truth:
 
 .. image:: https://github.com/user-attachments/assets/3be43cc9-60ec-4e97-95ef-a436c32bba83
    :alt: Fibercup subset visualized in 3D
-
-Now that we have a tractogram to act as our set of centerlines, we will need
-to create a file containing the diameters. To do this, enter the command:
-``echo 0.001 >diameter.txt`` This single diameter will later be applied to
-all the centerlines to form a set of 1um thick fibertubes.
-
 
 The first thing to do with our data is to resample ``centerlines.trk``
 so that each centerline is formed of segments no longer than 0.2 mm.
@@ -113,7 +105,7 @@ This is accomplished using ``scil_tractogram_filter_collisions.py``.
 
 ::
 
-   scil_tractogram_filter_collisions.py centerlines_resampled.trk diameters.txt fibertubes.trk --save_colliding --out_metrics metrics.txt -v -f
+   scil_tractogram_filter_collisions.py centerlines_resampled.trk diameters.txt fibertubes.trk --save_colliding --out_metrics metrics.json -v -f
 
 After 3-5 minutes, you should get something like:
 
@@ -123,7 +115,7 @@ After 3-5 minutes, you should get something like:
    ├── centerlines_resampled_obstacle.trk
    ├── centerlines_resampled_invalid.trk
    ├── fibertubes.trk
-   ├── metrics.txt
+   ├── metrics.json
    ...
 
 As you may have guessed from the output name, this script automatically
@@ -156,7 +148,7 @@ Fibertube metrics
 -----------------
 
 Before we get into tracking. Here is an overview of the metrics that we
-saved in ``metrics.txt``. (Values expressed in mm):
+saved in ``metrics.json``. (Values expressed in mm):
 
 -  ``min_external_distance``: Smallest distance separating two
    fibertubes, outside their diameter.
@@ -238,7 +230,7 @@ option. Let us do:
 
 ::
 
-   scil_fibertube_tracking.py fibertubes.trk tracking.trk 0.01 0.01 --nb_fibertubes 3 --out_config tracking_config.txt --processes 4 -v -f
+   scil_fibertube_tracking.py fibertubes.trk tracking.trk 0.01 0.01 --nb_fibertubes 3 --out_config tracking_config.json --processes 4 -v -f
 
 This should take around 5 minutes. The loading bar of each thread will
 only update every 100 streamlines. It may look like it's frozen, but it
@@ -307,9 +299,9 @@ To score the produced tractogram, we run:
 
 ::
 
-   scil_fibertube_score_tractogram.py fibertubes.trk tracking.trk tracking_config.txt reconstruction_metrics.txt -v -f
+   scil_fibertube_score_tractogram.py fibertubes.trk tracking.trk tracking_config.json reconstruction_metrics.json -v -f
 
-giving us the following output in ``reconstruction_metrics.txt``:
+giving us the following output in ``reconstruction_metrics.json``:
 
 ::
 

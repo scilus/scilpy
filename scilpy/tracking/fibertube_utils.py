@@ -98,7 +98,7 @@ def sample_sphere(center, radius: float, amount: int,
         Radius of the sphere.
     amount: int
         Amount of samples to be produced.
-    rand_gen: Generator
+    rand_gen: numpy random generator
         Numpy random generator used for producing samples within the sphere.
 
     Returns
@@ -133,7 +133,7 @@ def sample_cylinder(pt1, pt2, radius: float, sample_count: int,
         Radius of the cylinder.
     sample_count: int
         Amount of samples to be produced.
-    rand_gen: Generator
+    rand_gen: numpy random generator
         Numpy random generator used for producing samples within the sphere.
 
     Returns

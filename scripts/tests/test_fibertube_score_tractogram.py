@@ -64,5 +64,4 @@ def test_execution(script_runner, monkeypatch):
     ret = script_runner.run('scil_fibertube_score_tractogram.py',
                             'fibertubes.trk', 'tracking.trk', 'config.txt',
                             'metrix.txt', '--save_error_tractogram')
-
     assert ret.success

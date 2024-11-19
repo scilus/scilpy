@@ -99,12 +99,12 @@ def _build_arg_parser():
                    'data_per_streamline.')
 
     p.add_argument('in_config',
-                   help='Path to a text file containing the fibertube \n'
+                   help='Path to a json file containing the fibertube \n'
                    'parameters used for the tracking process.')
 
     p.add_argument('out_metrics',
                    help='Output file containing the computed measures and \n'
-                   'metrics (must be .txt).')
+                   'metrics (must be .json).')
 
     p.add_argument('--save_error_tractogram', action='store_true',
                    help='If set, a .trk file will be saved, containing a \n'
@@ -115,10 +115,10 @@ def _build_arg_parser():
     p.add_argument(
         '--out_tracked_fibertubes', type=str, default=None,
         help='If set, the fibertubes that were used for seeding will be \n'
-        'saved separately at the specified location (must be .trk). This \n'
-        'parameter is not required for scoring the tracking result, as the \n'
-        'seeding information of each streamline is always saved as \n'
-        'data_per_streamline.')
+        'saved separately at the specified location (must be .trk or \n'
+        '.tck). This parameter is not required for scoring the tracking \n'
+        'result, as the seeding information of each streamline is always \n'
+        'saved as data_per_streamline.')
 
     add_json_args(p)
     add_verbose_arg(p)
@@ -134,25 +134,33 @@ def main():
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
     logging.getLogger('numba').setLevel(logging.WARNING)
 
-    if not nib.streamlines.is_supported(args.in_fibertubes):
-        parser.error('Invalid input streamline file format (must be trk ' +
-                     'or tck): {0}'.format(args.in_fibertubes))
+    if os.path.splitext(args.in_fibertubes)[1] != '.trk':
+        parser.error('Invalid input streamline file format (must be trk):' +
+                     '{0}'.format(args.in_fibertubes))
+
+    if not nib.streamlines.is_supported(args.in_tracking):
+        parser.error('Invalid output streamline file format (must be trk ' +
+                     'or tck): {0}'.format(args.in_tracking))
+
+    if os.path.splitext(args.in_config)[1] != '.json':
+        parser.error('Invalid input streamline file format (must be json):' +
+                     '{0}'.format(args.in_config))
 
     out_metrics_no_ext, ext = os.path.splitext(args.out_metrics)
-    if ext != '.txt':
-        parser.error('Invalid output file format (must be txt): {0}'
+    if ext != '.json':
+        parser.error('Invalid output file format (must be json): {0}'
                      .format(args.out_metrics))
 
     if args.out_tracked_fibertubes:
-        _, out_tracked_fibertubes_ext = os.path.splitext(
-            args.out_tracked_fibertubes)
-        if out_tracked_fibertubes_ext != '.trk':
-            parser.error('Invalid output file format (must be trk): {0}'
-                         .format(args.out_tracked_fibertubes))
+        if not nib.streamlines.is_supported(args.out_tracked_fibertubes):
+            parser.error('Invalid output streamline file format (must be ' +
+                         'trk or tck):' +
+                         '{0}'.format(args.out_tracked_fibertubes))
 
     assert_inputs_exist(parser, [args.in_fibertubes, args.in_config,
                                  args.in_tracking])
-    assert_outputs_exist(parser, args, [args.out_metrics])
+    assert_outputs_exist(parser, args, [args.out_metrics,
+                                        args.out_tracked_fibertubes])
 
     our_space = Space.VOXMM
     our_origin = Origin('center')

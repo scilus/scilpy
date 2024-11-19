@@ -35,7 +35,7 @@ def init_data():
     save_tractogram(sft, 'tractogram.trk', True)
 
 
-def test_help_option(script_runner):
+def test_help(script_runner):
     ret = script_runner.run('scil_fibertube_tracking.py', '--help',
                             '--min_length', '0')
     assert ret.success
@@ -47,7 +47,6 @@ def test_execution(script_runner, monkeypatch):
     ret = script_runner.run('scil_fibertube_tracking.py',
                             'tractogram.trk', 'tracking.trk', '0.1', '0.3',
                             '--min_length', '0', '-f')
-
     assert ret.success
 
 
@@ -57,7 +56,6 @@ def test_execution_tracking_rk(script_runner, monkeypatch):
     ret = script_runner.run('scil_fibertube_tracking.py',
                             'tractogram.trk', 'tracking.trk', '0.1', '0.3',
                             '--rk_order', '2', '--min_length', '0', '-f')
-
     assert ret.success
 
 
@@ -68,7 +66,6 @@ def test_execution_config(script_runner, monkeypatch):
                             'tractogram.trk', 'tracking.trk', '0.1', '0.3',
                             '--out_config', 'config.txt',
                             '--min_length', '0', '-f')
-
     assert ret.success
 
 
@@ -80,5 +77,4 @@ def test_execution_seeding(script_runner, monkeypatch):
                             '--nb_fibertubes', '1',
                             '--nb_seeds_per_fibertube', '3', '--skip', '3',
                             '--min_length', '0', '-f')
-
     assert ret.success

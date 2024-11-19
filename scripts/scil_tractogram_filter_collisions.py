@@ -136,12 +136,12 @@ def _build_arg_parser():
     p.add_argument('--out_metrics', default=None, type=str,
                    help='If set, metrics about the streamlines and their \n'
                    'diameter will be computed after filtering and saved at \n'
-                   'the given location (must be .txt).')
+                   'the given location (must be .json).')
 
     p.add_argument('--out_max_voxel_rotation', default=None, type=str,
                    help='If set, the transformation required to align the \n'
                    '"max_voxel_rotated" metric with the coordinate system \n'
-                   'will be saved at the given location (must be .txt). \n'
+                   'will be saved at the given location (must be .json). \n'
                    'This option requires computing all the metrics, even \n'
                    'if --out_metrics is not provided. If it is provided, '
                    'metrics are not computed twice.')
@@ -178,12 +178,25 @@ def main():
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
     logging.getLogger('numba').setLevel(logging.WARNING)
 
-    in_tractogram_no_ext, _ = os.path.splitext(args.in_tractogram)
-    _, out_tractogram_ext = os.path.splitext(args.out_tractogram)
-
-    if out_tractogram_ext.lower() != '.trk':
+    in_tractogram_no_ext, in_tractogram_ext = os.path.splitext(args.in_tractogram)
+    if in_tractogram_ext != '.trk':
         raise ValueError("Invalid output streamline file format " +
                          "(must be trk): {0}".format(args.in_tractogram))
+
+    if os.path.splitext(args.out_tractogram)[1] != '.trk':
+        raise ValueError("Invalid output streamline file format " +
+                         "(must be trk): {0}".format(args.out_tractogram))
+
+    if args.out_metrics:
+        if os.path.splitext(args.out_metrics)[1] != '.json':
+            raise ValueError("Invalid metrics output file format " +
+                             "(must be json): {0}".format(args.in_tractogram))
+
+    if args.out_max_voxel_rotation:
+        if os.path.splitext(args.out_max_voxel_rotation)[1] != '.json':
+            raise ValueError("Invalid out_max_voxel_rotation output file" +
+                             "format (must be json): " +
+                             "{0}".format(args.in_tractogram))
 
     outputs = [args.out_tractogram]
     if args.save_colliding:
@@ -282,8 +295,9 @@ def main():
         if args.out_max_voxel_rotation is not None:
             max_voxel_rotated_transform = np.r_[np.c_[
                 mvr_rot, [0, 0, 0]], [[0, 0, 0, 1]]]
-            np.savetxt(args.out_max_voxel_rotation,
-                       max_voxel_rotated_transform)
+            with open(args.out_max_voxel_rotation, 'w') as outfile:
+                json.dump(max_voxel_rotated_transform, outfile,
+                          indent=args.indent, sort_keys=args.sort_keys)
 
 
 if __name__ == "__main__":

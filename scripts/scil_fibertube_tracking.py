@@ -159,7 +159,7 @@ def _build_arg_parser():
     out_g.add_argument(
         '--out_config', default=None, type=str,
         help='If set, the parameter configuration used for tracking will \n'
-        'be saved at the specified location (must be .txt). If not given, \n'
+        'be saved at the specified location (must be .json). If not given, \n'
         'the config will be printed in the console.')
 
     add_json_args(out_g)
@@ -177,29 +177,21 @@ def main():
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
     logging.getLogger('numba').setLevel(logging.WARNING)
 
-    if not nib.streamlines.is_supported(args.in_fibertubes):
-        parser.error('Invalid input streamline file format (must be trk ' +
-                     'or tck): {0}'.format(args.in_fibertubes))
+    if os.path.splitext(args.in_fibertubes)[1] != '.trk':
+        parser.error('Invalid input streamline file format (must be trk):' +
+                     '{0}'.format(args.in_fibertubes))
 
     if not nib.streamlines.is_supported(args.out_tractogram):
         parser.error('Invalid output streamline file format (must be trk ' +
                      'or tck): {0}'.format(args.out_tractogram))
 
     if args.out_config:
-        _, out_config_ext = os.path.splitext(args.out_config)
-        if out_config_ext != '.txt':
-            parser.error('Invalid output file format (must be txt): {0}'
+        if os.path.splitext(args.out_config)[1] != '.json':
+            parser.error('Invalid output file format (must be json): {0}'
                          .format(args.out_config))
 
-    out_tractogram_no_ext, out_tractogram_ext = os.path.splitext(
-        args.out_tractogram)
-
-    outputs = [args.out_tractogram]
-    if not args.do_not_save_seeds:
-        outputs.append(out_tractogram_no_ext + '_seeds' + out_tractogram_ext)
-
     assert_inputs_exist(parser, [args.in_fibertubes])
-    assert_outputs_exist(parser, args, outputs, [args.out_config])
+    assert_outputs_exist(parser, args, [args.out_tractogram], [args.out_config])
 
     theta = gm.math.radians(args.theta)
 
