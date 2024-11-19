@@ -48,7 +48,7 @@ def _build_arg_parser():
         description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
     p.add_argument('in_labels',
                    help='Input nifti volume.')
-    p.add_argument('streamlines',
+    p.add_argument('in_tractogram',
                    help='Tractogram (trk or tck).')
     p.add_argument('out_matrix',
                    help="Out .npy file.")
@@ -67,9 +67,10 @@ def _build_arg_parser():
     g = p.add_argument_group("Figure options")
     g.add_argument('--hide_fig', action='store_true',
                    help="If set, does not show the matrices with matplotlib "
-                        "(you can still use --save_fig)")
-    g.add_argument('--save_fig', metavar='file.png',
-                   help="If set, saves the figure to file.")
+                        "(you can still use --out_fig)")
+    g.add_argument('--out_fig', metavar='file.png',
+                   help="If set, saves the figure to file. \nExtension can be "
+                        "any format understood by matplotlib (ex, .png).")
 
     g = p.add_argument_group("Output matrix (.npy) options")
     g = g.add_mutually_exclusive_group()
@@ -128,13 +129,14 @@ def main():
     if ext != '.npy':
         p.error("out_matrix should have a .npy extension.")
 
-    assert_inputs_exist(p, [args.in_labels, args.streamlines], args.reference)
-    assert_headers_compatible(p, [args.in_labels, args.streamlines], [],
+    assert_inputs_exist(p, [args.in_labels, args.in_tractogram], 
+                        args.reference)
+    assert_headers_compatible(p, [args.in_labels, args.in_tractogram], [],
                               args.reference)
-    assert_outputs_exist(p, args, args.out_matrix, args.save_fig)
+    assert_outputs_exist(p, args, args.out_matrix, args.out_fig)
 
     # Loading
-    in_sft = load_tractogram_with_reference(p, args, args.streamlines)
+    in_sft = load_tractogram_with_reference(p, args, args.in_tractogram)
     in_img = nib.load(args.in_labels)
     data_labels = get_data_as_labels(in_img)
 
@@ -145,11 +147,11 @@ def main():
             hide_labels=args.hide_labels)
 
     # Save figure will all versions of the matrix.
-    if (not args.hide_fig) or args.save_fig is not None:
+    if (not args.hide_fig) or args.out_fig is not None:
         prepare_figure_connectivity(matrix)
 
-        if args.save_fig:
-            plt.savefig(args.save_fig)
+        if args.out_fig is not None:
+            plt.savefig(args.out_fig)
 
     # Save matrix
     if args.binary:

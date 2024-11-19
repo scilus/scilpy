@@ -27,5 +27,5 @@ def test_script(script_runner, monkeypatch):
     ret = script_runner.run(
         'scil_connectivity_compute_simple_matrix.py', in_labels, in_sft,
         'out_matrix.npy', 'out_labels.txt', '--hide_labels', '10',
-        '--percentage', '--hide_fig', '--save_fig', 'matrices.png')
+        '--percentage', '--hide_fig', '--out_fig', 'matrices.png')
     assert ret.success
