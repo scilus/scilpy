@@ -108,6 +108,8 @@ def compute_connectivity_matrices_from_hdf5(
 
     affine, dimensions, voxel_sizes, _ = get_reference_info(labels_img)
 
+    measures_to_return = {}
+
     # Getting the bundle from the hdf5
     with h5py.File(hdf5_filename, 'r') as hdf5_file:
         key = '{}_{}'.format(in_label, out_label)
@@ -118,14 +120,26 @@ def compute_connectivity_matrices_from_hdf5(
         if len(streamlines) == 0:
             logging.debug("Connection {} contained no streamline".format(key))
             return None
+        logging.debug("Found {} streamlines for connection {}"
+                      .format(len(streamlines), key))
+
+        # Getting dps info from the hdf5
+        dps_keys = []
+        if include_dps:
+            for dps_key in hdf5_file[key].keys():
+                if dps_key not in ['data', 'offsets', 'lengths']:
+                    if 'commit' in dps_key:
+                        dps_values = np.sum(hdf5_file[key][dps_key])
+                    else:
+                        dps_values = np.average(hdf5_file[key][dps_key])
+                    measures_to_return[dps_key] = dps_values
+                    dps_keys.append(dps_key)
 
     # If density is not required, do not compute it
     # Only required for volume, similarity and any metrics
     if (compute_volume or similarity_directory is not None or
             len(metrics_data) > 0):
         density = compute_tract_counts_map(streamlines, dimensions)
-
-    measures_to_return = {}
 
     if compute_length:
         # scil_tractogram_segment_connections_from_labels.py requires
@@ -182,16 +196,5 @@ def compute_connectivity_matrices_from_hdf5(
             measures_to_return['lesion_vol'] = 0
             measures_to_return['lesion_count'] = 0
             measures_to_return['lesion_streamline_count'] = 0
-
-    dps_keys = []
-    if include_dps:
-        for dps_key in hdf5_file[key].keys():
-            if dps_key not in ['data', 'offsets', 'lengths']:
-                if 'commit' in dps_key:
-                    dps_values = np.sum(hdf5_file[key][dps_key])
-                else:
-                    dps_values = np.average(hdf5_file[key][dps_key])
-                measures_to_return[dps_key] = dps_values
-                dps_keys.append(dps_key)
 
     return {(in_label, out_label): measures_to_return}, dps_keys
