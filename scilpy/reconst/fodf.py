@@ -130,16 +130,25 @@ def _fit_from_model_parallel(args):
     data = args[1]
     chunk_id = args[2]
 
-    sub_fit_array = np.zeros((data.shape[0],), dtype='object')
+    sub_fit_array = _fit_from_model_2d(data, model)
+
+    return chunk_id, sub_fit_array
+
+
+def _fit_from_model_2d(data, model):
+    """
+    Loops on 2D data and fits each voxel separately
+    """
+    # Data: Ravelled 4D data. Shape [N, X] where N is the number of voxels.
+    tmp_fit_array = np.zeros((data.shape[0],), dtype='object')
     for i in range(data.shape[0]):
         if data[i].any():
             try:
-                sub_fit_array[i] = model.fit(data[i])
+                tmp_fit_array[i] = model.fit(data[i])
             except cvx.error.SolverError:
                 coeff = np.full((len(model.n)), np.NaN)
-                sub_fit_array[i] = MSDeconvFit(model, coeff, None)
-
-    return chunk_id, sub_fit_array
+                tmp_fit_array[i] = MSDeconvFit(model, coeff, None)
+    return tmp_fit_array
 
 
 def fit_from_model(model, data, mask=None, nbr_processes=None):
@@ -181,23 +190,30 @@ def fit_from_model(model, data, mask=None, nbr_processes=None):
     # Ravel the first 3 dimensions while keeping the 4th intact, like a list of
     # 1D time series voxels. Then separate it in chunks of len(nbr_processes).
     data = data[mask].reshape((np.count_nonzero(mask), data_shape[3]))
-    chunks = np.array_split(data, nbr_processes)
 
-    chunk_len = np.cumsum([0] + [len(c) for c in chunks])
-    pool = multiprocessing.Pool(nbr_processes)
-    results = pool.map(_fit_from_model_parallel,
-                       zip(itertools.repeat(model),
-                           chunks,
-                           np.arange(len(chunks))))
-    pool.close()
-    pool.join()
+    # Separating the case nbr_processes=1 to help get good coverage metrics
+    # (codecov does not deal well with multiprocessing)
+    if nbr_processes == 1:
+        tmp_fit_array = _fit_from_model_2d(data, model)
+    else:
+        # Separate the data in chunks of len(nbr_processes).
+        chunks = np.array_split(data, nbr_processes)
 
-    # Re-assemble the chunk together in the original shape.
+        pool = multiprocessing.Pool(nbr_processes)
+        results = pool.map(_fit_from_model_parallel,
+                           zip(itertools.repeat(model),
+                               chunks,
+                               np.arange(len(chunks))))
+        pool.close()
+        pool.join()
+
+        # Re-assemble the chunks together.
+        chunk_len = np.cumsum([0] + [len(c) for c in chunks])
+        tmp_fit_array = np.zeros((np.count_nonzero(mask)), dtype='object')
+        for i, fit in results:
+            tmp_fit_array[chunk_len[i]:chunk_len[i+1]] = fit
+
     fit_array = np.zeros(data_shape[0:3], dtype='object')
-    tmp_fit_array = np.zeros((np.count_nonzero(mask)), dtype='object')
-    for i, fit in results:
-        tmp_fit_array[chunk_len[i]:chunk_len[i+1]] = fit
-
     fit_array[mask] = tmp_fit_array
     fit_array = MultiVoxelFit(model, fit_array, mask)
 

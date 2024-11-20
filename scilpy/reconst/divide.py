@@ -263,7 +263,7 @@ def gamma_fit2metrics(params):
 
 
 def _fit_gamma_parallel(args):
-    # # Data: Ravelled 4D data. Shape [N, X] where N is the number of voxels.
+    # Data: Ravelled 4D data. Shape [N, X] where N is the number of voxels.
     data = args[0]
     gtab_infos = args[1]
     fit_iters = args[2]
@@ -273,14 +273,27 @@ def _fit_gamma_parallel(args):
     do_multiple_s0 = args[6]
     chunk_id = args[7]
 
-    sub_fit_array = np.zeros((data.shape[0], 4))
-    for i in range(data.shape[0]):
-        if data[i].any():
-            sub_fit_array[i] = _gamma_data2fit(data[i], gtab_infos, fit_iters,
-                                               random_iters, do_weight_bvals,
-                                               do_weight_pa, do_multiple_s0)
+    sub_fit_array = _fit_gamma_2d(data, gtab_infos, fit_iters,
+                                  random_iters, do_weight_bvals,
+                                  do_weight_pa, do_multiple_s0)
 
     return chunk_id, sub_fit_array
+
+
+def _fit_gamma_2d(data, gtab_infos, fit_iters, random_iters,
+                  do_weight_bvals, do_weight_pa, do_multiple_s0):
+    """
+    Loops on 2D data and fits each voxel separately
+    See _gamma_data2fit for a complete description.
+    """
+    # Data: Ravelled 4D data. Shape [N, X] where N is the number of voxels.
+    tmp_fit_array = np.zeros((data.shape[0], 4))
+    for i in range(data.shape[0]):
+        if data[i].any():
+            tmp_fit_array[i] = _gamma_data2fit(
+                data[i], gtab_infos, fit_iters, random_iters,
+                do_weight_bvals, do_weight_pa, do_multiple_s0)
+    return tmp_fit_array
 
 
 def fit_gamma(data, gtab_infos, mask=None, fit_iters=1, random_iters=50,
@@ -335,12 +348,9 @@ def fit_gamma(data, gtab_infos, mask=None, fit_iters=1, random_iters=50,
     # Separating the case nbr_processes=1 to help get good coverage metrics
     # (codecov does not deal well with multiprocessing)
     if nbr_processes == 1:
-        tmp_fit_array = np.zeros((data.shape[0], 4))
-        for i in range(data.shape[0]):
-            if data[i].any():
-                tmp_fit_array[i] = _gamma_data2fit(
-                    data[i], gtab_infos, fit_iters, random_iters,
-                    do_weight_bvals, do_weight_pa, do_multiple_s0)
+        tmp_fit_array = _fit_gamma_2d(data, gtab_infos, fit_iters,
+                                      random_iters, do_weight_bvals,
+                                      do_weight_pa, do_multiple_s0)
     else:
         # Separate the data in chunks of len(nbr_processes).
         chunks = np.array_split(data, nbr_processes)
@@ -362,9 +372,9 @@ def fit_gamma(data, gtab_infos, mask=None, fit_iters=1, random_iters=50,
         chunk_len = np.cumsum([0] + [len(c) for c in chunks])
         tmp_fit_array = np.zeros((np.count_nonzero(mask), 4))
         for chunk_id, fit in results:
-            tmp_fit_array[chunk_len[chunk_id]:chunk_len[chunk_id+1]] = fit
+            tmp_fit_array[chunk_len[chunk_id]:chunk_len[chunk_id + 1]] = fit
 
-    fit_array = np.zeros((data_shape[0:3])+(4,))
+    fit_array = np.zeros((data_shape[0:3]) + (4,))
     fit_array[mask] = tmp_fit_array
 
     return fit_array
