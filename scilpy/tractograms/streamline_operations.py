@@ -971,3 +971,30 @@ def get_streamlines_bounding_box(streamlines):
         box_max = np.maximum(box_max, np.max(s, axis=0))
 
     return box_min, box_max
+
+
+def get_streamlines_as_fixed_array(streamlines):
+    """
+    Obtain streamlines as a fixed array of shape
+    (nbr of streamlines, max streamline length, 3).
+
+    Useful for optimization with code precompiling. (See Numba)
+
+    Parameters
+    ----------
+    streamlines: list
+
+    Return
+    ------
+    streamlines_fixed: ndarray
+        Streamlines as a fixed length array, padded with 0.
+    lengths: ndarray
+        Single dimensional array of all the streamline lengths.
+    """
+    lengths = [len(streamline) for streamline in streamlines]
+    streamlines_fixed = np.ndarray((len(streamlines), max(lengths), 3))
+    for i, f in enumerate(streamlines_fixed):
+        for j, c in enumerate(streamlines[i]):
+            f[j] = c
+
+    return streamlines_fixed, np.array(lengths)

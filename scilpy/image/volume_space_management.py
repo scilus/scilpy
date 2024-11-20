@@ -1,6 +1,13 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 
+from numba_kdtree import KDTree
+from numba import njit
+from scilpy.tracking.fibertube_utils import (streamlines_to_segments,
+                                             point_in_cylinder,
+                                             sphere_cylinder_intersection)
+from scilpy.tractograms.streamline_operations import \
+    get_streamlines_as_fixed_array
 from dipy.core.interpolation import trilinear_interpolate4d, \
     nearestneighbor_interpolate
 from dipy.io.stateful_tractogram import Origin, Space
@@ -357,3 +364,198 @@ class DataVolume(object):
             True if position is in dataset range and false otherwise.
         """
         return self.is_idx_in_bound(*self.voxmm_to_idx(x, y, z, origin))
+
+
+class FibertubeDataVolume(DataVolume):
+    """
+    Adaptation of the scilpy.image.volume_space_management.AbstractDataVolume
+    interface for fibertube tracking. Instead of a spherical function,
+    provides direction and intersection volume of close-by fiber segments.
+
+    Data given at initialization must have "center" origin. Additionally,
+    FibertubeDataVolume enforces this origin at every function call. This is
+    because the origin must stay coherent with the data given at
+    initialization and cannot change afterwards.
+    """
+
+    VALID_ORIGIN = Origin.NIFTI
+
+    def __init__(self, centerlines, diameters, reference, blur_radius,
+                 random_generator):
+        """
+        Parameters
+        ----------
+        centerlines: list
+            Tractogram containing the fibertube centerlines
+        diameters: list
+            Diameters of each fibertube
+        reference: StatefulTractogram
+            Spatial reference used to obtain the dimensions and pixel
+            resolution of the data. Should be a stateful tractogram.
+        blur_radius: float
+            Radius of the blurring sphere to be used for degrading resolution.
+        random_generator: numpy random generator
+        """
+        # Prepare data
+        if centerlines is None:
+            self.data = []
+            self.tree = None
+            self.segments_indices = None
+            self.max_seg_length = None
+            return
+
+        segments_centers, segments_indices, max_seg_length = (
+            streamlines_to_segments(centerlines, False))
+        self.tree = KDTree(segments_centers)
+        self.segments_indices = segments_indices
+        self.max_seg_length = max_seg_length
+        self.dim = reference.dimensions[:3]
+        self.data, _ = get_streamlines_as_fixed_array(centerlines)
+        self.diameters = diameters
+        self.max_diameter = max(diameters)
+
+        # Rest of init
+        self.voxres = reference.voxel_sizes
+        self.blur_radius = blur_radius
+        self.random_generator = random_generator
+
+    @staticmethod
+    def _validate_origin(origin):
+        if FibertubeDataVolume.VALID_ORIGIN is not origin:
+            raise ValueError("FibertubeDataVolume only supports origin: " +
+                             FibertubeDataVolume.VALID_ORIGIN.value + ". "
+                             "Given origin is: " + origin.value + ".")
+
+    def get_value_at_idx(self, i, j, k):
+        i, j, k = self._clip_idx_to_bound(i, j, k)
+        return self._voxmm_to_value(i, j, k)
+
+    def get_value_at_coordinate(self, x, y, z, space, origin):
+        FibertubeDataVolume._validate_origin(origin)
+
+        if space == Space.VOX:
+            return self._voxmm_to_value(*self.vox_to_voxmm(x, y, z), origin)
+        elif space == Space.VOXMM:
+            return self._voxmm_to_value(x, y, z, origin)
+        else:
+            raise NotImplementedError("We have not prepared the DataVolume "
+                                      "to work in RASMM space yet.")
+
+    def is_idx_in_bound(self, i, j, k):
+        return super().is_idx_in_bound(i, j, k)
+
+    def is_coordinate_in_bound(self, x, y, z, space, origin):
+        FibertubeDataVolume._validate_origin(origin)
+        return super().is_coordinate_in_bound(x, y, z, space, origin)
+
+    @staticmethod
+    def vox_to_idx(x, y, z, origin):
+        FibertubeDataVolume._validate_origin(origin)
+        return super(FibertubeDataVolume,
+                     FibertubeDataVolume).vox_to_idx(x, y, z, origin)
+
+    def voxmm_to_idx(self, x, y, z, origin):
+        FibertubeDataVolume._validate_origin(origin)
+        return super().voxmm_to_idx(x, y, z, origin)
+
+    def vox_to_voxmm(self, x, y, z):
+        """
+        Get mm space coordinates at position x, y, z (vox).
+
+        Parameters
+        ----------
+        x, y, z: floats
+            Position coordinate (vox) along x, y, z axis.
+
+        Return
+        ------
+        x, y, z: floats
+            mm space coordinates for position x, y, z.
+        """
+
+        # Does not depend on origin!
+        # In each dimension:
+        #   In corner: 0 to 1 will become 0 to voxres.
+        #   In center: -0.5 to 0.5 will become -0.5*voxres to 0.5*voxres.
+        return [x * self.voxres[0],
+                y * self.voxres[1],
+                z * self.voxres[2]]
+
+    def _clip_voxmm_to_bound(self, x, y, z, origin):
+        return self.vox_to_voxmm(*self._clip_vox_to_bound(
+            *self.voxmm_to_vox(x, y, z), origin))
+
+    def _vox_to_value(self, x, y, z, origin):
+        return self._voxmm_to_value(*self.vox_to_voxmm(x, y, z), origin)
+
+    def _voxmm_to_value(self, x, y, z, origin):
+        x, y, z = self._clip_voxmm_to_bound(x, y, z, origin)
+
+        pos = np.array([x, y, z], dtype=np.float64)
+
+        neighbors = self.tree.query_radius(
+            pos,
+            self.blur_radius + self.max_seg_length / 2 + self.max_diameter)[0]
+
+        return self.extract_directions(pos, neighbors, self.blur_radius,
+                                       self.segments_indices, self.data,
+                                       self.diameters, self.random_generator)
+
+    def get_absolute_direction(self, x, y, z):
+        pos = np.array([x, y, z], np.float64)
+
+        neighbors = self.tree.query_radius(
+            pos,
+            self.blur_radius + self.max_seg_length / 2 + self.max_diameter)[0]
+
+        for segi in neighbors:
+            fi, pi = self.segments_indices[segi]
+            fiber = self.data[fi]
+            radius = self.diameters[fi] / 2
+
+            if point_in_cylinder(fiber[pi], fiber[pi+1], radius, pos):
+                return fiber[pi+1] - fiber[pi]
+
+        return None
+
+    @staticmethod
+    @njit
+    def extract_directions(pos, neighbors, blur_radius, segments_indices,
+                           centerlines, diameters, random_generator,
+                           volume_nb_samples=1000,
+                           volume_nb_samples_backup=10000):
+        directions = []
+        volumes = []
+
+        for segi in neighbors:
+            fi, pi = segments_indices[segi]
+            fiber = centerlines[fi]
+            fib_pt1 = fiber[pi]
+            fib_pt2 = fiber[pi+1]
+            dir = fib_pt2 - fib_pt1
+            radius = diameters[fi] / 2
+
+            volume, is_estimated = sphere_cylinder_intersection(
+                    pos, blur_radius, fib_pt1,
+                    fib_pt2, radius,
+                    volume_nb_samples,
+                    random_generator)
+
+            # Catch estimation error when using very small blur_radius.
+            if volume == 0 and is_estimated:
+                volume, _ = sphere_cylinder_intersection(
+                    pos, blur_radius, fib_pt1,
+                    fib_pt2, radius,
+                    volume_nb_samples_backup,
+                    random_generator)
+
+            if volume > 0:
+                directions.append(dir / np.linalg.norm(dir))
+                volumes.append(volume)
+
+        if len(volumes) > 0:
+            max_vol = max(volumes)
+            for vol in volumes:
+                vol /= max_vol
+
+        return (directions, volumes)
