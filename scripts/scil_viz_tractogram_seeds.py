@@ -31,7 +31,7 @@ def _build_arg_parser():
                    help='Tractogram file (must be trk)')
     p.add_argument('--save',
                    help='If set, save a screenshot of the result in the '
-                        'specified filename')
+                        'specified filename (.png, .bmp, .jpeg or .jpg).')
 
     add_verbose_arg(p)
     add_overwrite_arg(p)
@@ -65,7 +65,7 @@ def main():
 
     # Make display objects
     streamlines_actor = actor.line(streamlines)
-    points = actor.dot(seeds, color=(1., 1., 1.))
+    points = actor.dot(seeds, colors=(1., 1., 1.))
 
     # Add display objects to canvas
     s = window.Scene()

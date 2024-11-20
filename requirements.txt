@@ -24,6 +24,8 @@ matplotlib==3.6.*
 PyMCubes==0.1.*
 nibabel==5.2.*
 nilearn==0.9.*
+numba==0.59.1
+numba-kdtree==0.4.0
 nltk==3.8.*
 numpy==1.25.*
 openpyxl==3.0.*
