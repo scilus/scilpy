@@ -192,6 +192,20 @@ def _peaks_from_sh_parallel(args):
     chunk_id = args[8]
     is_symmetric = args[9]
 
+    peak_dirs, peak_values, peak_indices = _peaks_from_sh_2d(
+        shm_coeff, B, sphere, relative_peak_threshold,
+        absolute_threshold, min_separation_angle, npeaks,
+        normalize_peaks, is_symmetric)
+    return chunk_id, peak_dirs, peak_values, peak_indices
+
+
+def _peaks_from_sh_2d(shm_coeff, B, sphere, relative_peak_threshold,
+                      absolute_threshold, min_separation_angle, npeaks,
+                      normalize_peaks, is_symmetric):
+    """
+    Loops on 2D data and fits each voxel separately
+    See peaks_from_sh for a complete description.
+    """
     data_shape = shm_coeff.shape[0]
     peak_dirs = np.zeros((data_shape, npeaks, 3))
     peak_values = np.zeros((data_shape, npeaks))
@@ -218,8 +232,7 @@ def _peaks_from_sh_parallel(args):
                 if normalize_peaks:
                     peak_values[idx][:n] /= peaks[0]
                     peak_dirs[idx] *= peak_values[idx][:, None]
-
-    return chunk_id, peak_dirs, peak_values, peak_indices
+    return peak_dirs, peak_values, peak_indices
 
 
 def peaks_from_sh(shm_coeff, sphere, mask=None, relative_peak_threshold=0.5,
@@ -281,53 +294,65 @@ def peaks_from_sh(shm_coeff, sphere, mask=None, relative_peak_threshold=0.5,
         peak_dirs, peak_values, peak_indices
     """
     sh_order = order_from_ncoef(shm_coeff.shape[-1], full_basis)
-    B, _ = sh_to_sf_matrix(sphere, sh_order, sh_basis_type, full_basis,
-                           legacy=is_legacy)
+    B, _ = sh_to_sf_matrix(sphere, sh_order, sh_basis_type,
+                           full_basis, legacy=is_legacy)
 
     data_shape = shm_coeff.shape
     if mask is None:
         mask = np.sum(shm_coeff, axis=3).astype(bool)
 
     nbr_processes = multiprocessing.cpu_count() if nbr_processes is None \
-        or nbr_processes < 0 else nbr_processes
+        or nbr_processes <= 0 else nbr_processes
 
     # Ravel the first 3 dimensions while keeping the 4th intact, like a list of
-    # 1D time series voxels. Then separate it in chunks of len(nbr_processes).
+    # 1D time series voxels.
     shm_coeff = shm_coeff[mask].reshape(
         (np.count_nonzero(mask), data_shape[3]))
-    chunks = np.array_split(shm_coeff, nbr_processes)
-    chunk_len = np.cumsum([0] + [len(c) for c in chunks])
 
-    pool = multiprocessing.Pool(nbr_processes)
-    results = pool.map(_peaks_from_sh_parallel,
-                       zip(chunks,
-                           itertools.repeat(B),
-                           itertools.repeat(sphere),
-                           itertools.repeat(relative_peak_threshold),
-                           itertools.repeat(absolute_threshold),
-                           itertools.repeat(min_separation_angle),
-                           itertools.repeat(npeaks),
-                           itertools.repeat(normalize_peaks),
-                           np.arange(len(chunks)),
-                           itertools.repeat(is_symmetric)))
-    pool.close()
-    pool.join()
+    # Separating the case nbr_processes=1 to help get good coverage metrics
+    # (codecov does not deal well with multiprocessing)
+    if nbr_processes == 1:
+        (tmp_peak_dirs_array, tmp_peak_values_array,
+         tmp_peak_indices_array) = _peaks_from_sh_2d(
+            shm_coeff, B, sphere, relative_peak_threshold,
+            absolute_threshold, min_separation_angle, npeaks,
+            normalize_peaks, is_symmetric)
+    else:
+        # Separate the data in chunks of len(nbr_processes).
+        chunks = np.array_split(shm_coeff, nbr_processes)
 
-    # Re-assemble the chunk together in the original shape.
+        pool = multiprocessing.Pool(nbr_processes)
+        results = pool.map(_peaks_from_sh_parallel,
+                           zip(chunks,
+                               itertools.repeat(B),
+                               itertools.repeat(sphere),
+                               itertools.repeat(relative_peak_threshold),
+                               itertools.repeat(absolute_threshold),
+                               itertools.repeat(min_separation_angle),
+                               itertools.repeat(npeaks),
+                               itertools.repeat(normalize_peaks),
+                               np.arange(len(chunks)),
+                               itertools.repeat(is_symmetric)))
+        pool.close()
+        pool.join()
+
+        # Re-assemble the chunk together..
+        chunk_len = np.cumsum([0] + [len(c) for c in chunks])
+
+        # tmp arrays are necessary to avoid inserting data in returned variable
+        # rather than the original array
+        tmp_peak_dirs_array = np.zeros((np.count_nonzero(mask), npeaks, 3))
+        tmp_peak_values_array = np.zeros((np.count_nonzero(mask), npeaks))
+        tmp_peak_indices_array = np.zeros((np.count_nonzero(mask), npeaks))
+        for i, peak_dirs, peak_values, peak_indices in results:
+            tmp_peak_dirs_array[chunk_len[i]:chunk_len[i+1], :, :] = peak_dirs
+            tmp_peak_values_array[chunk_len[i]:chunk_len[i+1], :] = peak_values
+            tmp_peak_indices_array[chunk_len[i]:chunk_len[i+1], :] = peak_indices
+
+    # Bring back to the original shape
     peak_dirs_array = np.zeros(data_shape[0:3] + (npeaks, 3))
     peak_values_array = np.zeros(data_shape[0:3] + (npeaks,))
     peak_indices_array = np.zeros(data_shape[0:3] + (npeaks,))
-
-    # tmp arrays are neccesary to avoid inserting data in returned variable
-    # rather than the original array
-    tmp_peak_dirs_array = np.zeros((np.count_nonzero(mask), npeaks, 3))
-    tmp_peak_values_array = np.zeros((np.count_nonzero(mask), npeaks))
-    tmp_peak_indices_array = np.zeros((np.count_nonzero(mask), npeaks))
-    for i, peak_dirs, peak_values, peak_indices in results:
-        tmp_peak_dirs_array[chunk_len[i]:chunk_len[i+1], :, :] = peak_dirs
-        tmp_peak_values_array[chunk_len[i]:chunk_len[i+1], :] = peak_values
-        tmp_peak_indices_array[chunk_len[i]:chunk_len[i+1], :] = peak_indices
-
     peak_dirs_array[mask] = tmp_peak_dirs_array
     peak_values_array[mask] = tmp_peak_values_array
     peak_indices_array[mask] = tmp_peak_indices_array
@@ -417,7 +442,7 @@ def maps_from_sh(shm_coeff, peak_dirs, peak_values, peak_indices, sphere,
         nufo_map, afd_max, afd_sum, rgb_map, gfa, qa
     """
     sh_order = order_from_ncoef(shm_coeff.shape[-1])
-    B, _ = sh_to_sf_matrix(sphere, sh_order, sh_basis_type)
+    variable_b, _ = sh_to_sf_matrix(sphere, sh_order, sh_basis_type)
 
     data_shape = shm_coeff.shape
     if mask is None:
@@ -447,7 +472,7 @@ def maps_from_sh(shm_coeff, peak_dirs, peak_values, peak_indices, sphere,
                            peak_dirs_chunks,
                            peak_values_chunks,
                            peak_indices_chunks,
-                           itertools.repeat(B),
+                           itertools.repeat(variable_b),
                            itertools.repeat(sphere),
                            itertools.repeat(gfa_thr),
                            np.arange(len(shm_coeff_chunks))))
@@ -501,8 +526,8 @@ def maps_from_sh(shm_coeff, peak_dirs, peak_values, peak_indices, sphere,
             or np.array_equal(np.array([1]), afd_unique):
         logging.warning('All AFD_max values are 1. The peaks seem normalized.')
 
-    return(nufo_map_array, afd_max_array, afd_sum_array,
-           rgb_map_array, gfa_map_array, qa_map_array)
+    return (nufo_map_array, afd_max_array, afd_sum_array,
+            rgb_map_array, gfa_map_array, qa_map_array)
 
 
 def _convert_sh_basis_parallel(args):

@@ -213,6 +213,7 @@ def fit_from_model(model, data, mask=None, nbr_processes=None):
         for i, fit in results:
             tmp_fit_array[chunk_len[i]:chunk_len[i+1]] = fit
 
+    # Bring back to the original shape
     fit_array = np.zeros(data_shape[0:3], dtype='object')
     fit_array[mask] = tmp_fit_array
     fit_array = MultiVoxelFit(model, fit_array, mask)

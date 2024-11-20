@@ -374,6 +374,7 @@ def fit_gamma(data, gtab_infos, mask=None, fit_iters=1, random_iters=50,
         for chunk_id, fit in results:
             tmp_fit_array[chunk_len[chunk_id]:chunk_len[chunk_id + 1]] = fit
 
+    # Bring back to the original shape
     fit_array = np.zeros((data_shape[0:3]) + (4,))
     fit_array[mask] = tmp_fit_array
 
