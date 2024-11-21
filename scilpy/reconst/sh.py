@@ -185,16 +185,16 @@ def _peaks_from_sh_parallel(args):
      absolute_threshold, min_separation_angle,
      npeaks, normalize_peaks, chunk_id, is_symmetric) = args
 
-    peak_dirs, peak_values, peak_indices = _peaks_from_sh_2d(
+    peak_dirs, peak_values, peak_indices = _peaks_from_sh_loop(
         shm_coeff, B, sphere, relative_peak_threshold,
         absolute_threshold, min_separation_angle, npeaks,
         normalize_peaks, is_symmetric)
     return chunk_id, peak_dirs, peak_values, peak_indices
 
 
-def _peaks_from_sh_2d(shm_coeff, B, sphere, relative_peak_threshold,
-                      absolute_threshold, min_separation_angle, npeaks,
-                      normalize_peaks, is_symmetric):
+def _peaks_from_sh_loop(shm_coeff, B, sphere, relative_peak_threshold,
+                        absolute_threshold, min_separation_angle, npeaks,
+                        normalize_peaks, is_symmetric):
     """
     Loops on 2D (ravelled) data and fits each voxel separately.
     See peaks_from_sh for a complete description of parameters.
@@ -307,7 +307,7 @@ def peaks_from_sh(shm_coeff, sphere, mask=None, relative_peak_threshold=0.5,
     # (codecov does not deal well with multiprocessing)
     if nbr_processes == 1:
         (tmp_peak_dirs_array, tmp_peak_values_array,
-         tmp_peak_indices_array) = _peaks_from_sh_2d(
+         tmp_peak_indices_array) = _peaks_from_sh_loop(
             shm_coeff, B, sphere, relative_peak_threshold,
             absolute_threshold, min_separation_angle, npeaks,
             normalize_peaks, is_symmetric)
@@ -358,13 +358,13 @@ def _maps_from_sh_parallel(args):
     (shm_coeff, peak_values, peak_indices, B, sphere,
      gfa_thr, chunk_id) = args
 
-    res = _maps_from_sh_2d(shm_coeff, peak_values, peak_indices, B,
-                           sphere, gfa_thr)
+    res = _maps_from_sh_loop(shm_coeff, peak_values, peak_indices, B,
+                             sphere, gfa_thr)
     return chunk_id, *res
 
 
-def _maps_from_sh_2d(shm_coeff, peak_values, peak_indices, B, sphere,
-                     gfa_thr):
+def _maps_from_sh_loop(shm_coeff, peak_values, peak_indices, B, sphere,
+                       gfa_thr):
     """
     Loops on 2D (ravelled) data and fits each voxel separately.
     For a more complete description of parameters, see maps_from_sh.
@@ -462,7 +462,7 @@ def maps_from_sh(shm_coeff, peak_values, peak_indices, sphere,
     if nbr_processes == 1:
         (tmp_nufo_map_array, tmp_afd_max_array, tmp_afd_sum_array,
          tmp_rgb_map_array, tmp_gfa_map_array, tmp_qa_map_array,
-         all_time_max_odf, all_time_global_max) = _maps_from_sh_2d(
+         all_time_max_odf, all_time_global_max) = _maps_from_sh_loop(
             shm_coeff, peak_values, peak_indices,
             B, sphere, gfa_thr)
     else:
@@ -539,12 +539,12 @@ def maps_from_sh(shm_coeff, peak_values, peak_indices, sphere,
 
 def _convert_sh_basis_parallel(args):
     (sh, B_in, invB_out, chunk_id) = args
-    sh = _convert_sh_basis_2d(sh, B_in, invB_out)
+    sh = _convert_sh_basis_loop(sh, B_in, invB_out)
 
     return chunk_id, sh
 
 
-def _convert_sh_basis_2d(sh, B_in, invB_out):
+def _convert_sh_basis_loop(sh, B_in, invB_out):
     """
     Loops on 2D (ravelled) data and fits each voxel separately.
     For a more complete description of parameters, see convert_sh_basis.
@@ -625,7 +625,7 @@ def convert_sh_basis(shm_coeff, sphere, mask=None,
     # Separating the case nbr_processes=1 to help get good coverage metrics
     # (codecov does not deal well with multiprocessing)
     if nbr_processes == 1:
-        tmp_shm_coeff_array = _convert_sh_basis_2d(shm_coeff, B_in, invB_out)
+        tmp_shm_coeff_array = _convert_sh_basis_loop(shm_coeff, B_in, invB_out)
     else:
         # Separate the data in chunks of len(nbr_processes).
         shm_coeff_chunks = np.array_split(shm_coeff, nbr_processes)
@@ -653,17 +653,24 @@ def convert_sh_basis(shm_coeff, sphere, mask=None,
 
 
 def _convert_sh_to_sf_parallel(args):
-    sh = args[0]
-    B_in = args[1]
-    new_output_dim = args[2]
-    chunk_id = args[3]
+    (sh, B_in, new_output_dim, chunk_id) = args
+    sf = _convert_sh_to_sf_loop(sh, new_output_dim, B_in)
+    return chunk_id, sf
+
+
+def _convert_sh_to_sf_loop(sh, new_output_dim, B_in):
+    """
+    Loops on 2D data and fits each voxel separately.
+    See convert_sh_to_sf for more information.
+    """
+    # Data: Ravelled 4D data. Shape [N, X] where N is the number of voxels.
     sf = np.zeros((sh.shape[0], new_output_dim), dtype=np.float32)
 
     for idx in range(sh.shape[0]):
         if sh[idx].any():
             sf[idx] = np.dot(sh[idx], B_in)
 
-    return chunk_id, sf
+    return sf
 
 
 def convert_sh_to_sf(shm_coeff, sphere, mask=None, dtype="float32",
@@ -716,30 +723,40 @@ def convert_sh_to_sf(shm_coeff, sphere, mask=None, dtype="float32",
     if mask is None:
         mask = np.sum(shm_coeff, axis=3).astype(bool)
 
+    output_dim = len(sphere.vertices)
+    new_shape = data_shape[:3] + (output_dim,)
+
     # Ravel the first 3 dimensions while keeping the 4th intact, like a list of
-    # 1D time series voxels. Then separate it in chunks of len(nbr_processes).
+    # 1D time series voxels.
     shm_coeff = shm_coeff[mask].reshape(
         (np.count_nonzero(mask), data_shape[3]))
-    shm_coeff_chunks = np.array_split(shm_coeff, nbr_processes)
-    chunk_len = np.cumsum([0] + [len(c) for c in shm_coeff_chunks])
 
-    pool = multiprocessing.Pool(nbr_processes)
-    results = pool.map(_convert_sh_to_sf_parallel,
-                       zip(shm_coeff_chunks,
-                           itertools.repeat(B_in),
-                           itertools.repeat(len(sphere.vertices)),
-                           np.arange(len(shm_coeff_chunks))))
-    pool.close()
-    pool.join()
+    # Separating the case nbr_processes=1 to help get good coverage metrics
+    # (codecov does not deal well with multiprocessing)
+    if nbr_processes == 1:
+        tmp_sf_array = _convert_sh_to_sf_loop(shm_coeff, output_dim, B_in)
+    else:
+        # Separate the data in chunks of len(nbr_processes).
+        shm_coeff_chunks = np.array_split(shm_coeff, nbr_processes)
 
-    # Re-assemble the chunk together in the original shape.
-    new_shape = data_shape[:3] + (len(sphere.vertices),)
+        pool = multiprocessing.Pool(nbr_processes)
+        results = pool.map(_convert_sh_to_sf_parallel,
+                           zip(shm_coeff_chunks,
+                               itertools.repeat(B_in),
+                               itertools.repeat(output_dim),
+                               np.arange(len(shm_coeff_chunks))))
+        pool.close()
+        pool.join()
+
+        # Re-assemble the chunk together.
+        chunk_len = np.cumsum([0] + [len(c) for c in shm_coeff_chunks])
+        tmp_sf_array = np.zeros((np.count_nonzero(mask), new_shape[3]),
+                                dtype=dtype)
+        for i, new_sf in results:
+            tmp_sf_array[chunk_len[i]:chunk_len[i + 1], :] = new_sf
+
+    # Bring back to the original shape
     sf_array = np.zeros(new_shape, dtype=dtype)
-    tmp_sf_array = np.zeros((np.count_nonzero(mask), new_shape[3]),
-                            dtype=dtype)
-    for i, new_sf in results:
-        tmp_sf_array[chunk_len[i]:chunk_len[i + 1], :] = new_sf
-
     sf_array[mask] = tmp_sf_array
 
     return sf_array

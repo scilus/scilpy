@@ -127,14 +127,15 @@ def get_ventricles_max_fodf(data, fa, md, zoom, sh_basis,
 
 def _fit_from_model_parallel(args):
     (model, data, chunk_id) = args
-    sub_fit_array = _fit_from_model_2d(data, model)
+    sub_fit_array = _fit_from_model_loop(data, model)
 
     return chunk_id, sub_fit_array
 
 
-def _fit_from_model_2d(data, model):
+def _fit_from_model_loop(data, model):
     """
-    Loops on 2D data and fits each voxel separately
+    Loops on 2D data and fits each voxel separately.
+    See fit_from_model for more information.
     """
     # Data: Ravelled 4D data. Shape [N, X] where N is the number of voxels.
     tmp_fit_array = np.zeros((data.shape[0],), dtype='object')
@@ -191,7 +192,7 @@ def fit_from_model(model, data, mask=None, nbr_processes=None):
     # Separating the case nbr_processes=1 to help get good coverage metrics
     # (codecov does not deal well with multiprocessing)
     if nbr_processes == 1:
-        tmp_fit_array = _fit_from_model_2d(data, model)
+        tmp_fit_array = _fit_from_model_loop(data, model)
     else:
         # Separate the data in chunks of len(nbr_processes).
         chunks = np.array_split(data, nbr_processes)
