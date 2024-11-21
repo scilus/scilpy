@@ -69,8 +69,9 @@ def test_execution_symmetric_input(script_runner, monkeypatch):
         f"{test_data_root}/fodf_descoteaux07_sub.nii.gz")
 
     # Using a low resolution sphere for peak extraction reduces process time
+    # Using multiprocessing to test this option.
     ret = script_runner.run('scil_aodf_metrics.py', in_fodf,
                             '--sphere', 'repulsion100', '--not_all',
                             '--nufid', 'nufid.nii.gz',
-                            '--processes', '1')
+                            '--processes', '4')
     assert not ret.success

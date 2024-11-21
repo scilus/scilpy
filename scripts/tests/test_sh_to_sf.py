@@ -63,9 +63,10 @@ def test_execution_no_bval(script_runner, monkeypatch):
     in_b0 = os.path.join(SCILPY_HOME, 'processing', 'fa.nii.gz')
 
     # --sphere but no --bval
+    # Testing multiprocessing option
     ret = script_runner.run('scil_sh_to_sf.py', in_sh,
                             'sf_724.nii.gz', '--in_b0', in_b0,
                             '--out_bvec', 'sf_724.bvec', '--b0_scaling',
                             '--sphere', 'symmetric724', '--dtype', 'float32',
-                            '-f', '--processes', '1')
+                            '-f', '--processes', '4')
     assert ret.success
