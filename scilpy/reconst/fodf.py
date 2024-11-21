@@ -126,10 +126,7 @@ def get_ventricles_max_fodf(data, fa, md, zoom, sh_basis,
 
 
 def _fit_from_model_parallel(args):
-    model = args[0]
-    data = args[1]
-    chunk_id = args[2]
-
+    (model, data, chunk_id) = args
     sub_fit_array = _fit_from_model_2d(data, model)
 
     return chunk_id, sub_fit_array
