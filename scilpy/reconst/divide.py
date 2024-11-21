@@ -264,24 +264,18 @@ def gamma_fit2metrics(params):
 
 def _fit_gamma_parallel(args):
     # Data: Ravelled 4D data. Shape [N, X] where N is the number of voxels.
-    data = args[0]
-    gtab_infos = args[1]
-    fit_iters = args[2]
-    random_iters = args[3]
-    do_weight_bvals = args[4]
-    do_weight_pa = args[5]
-    do_multiple_s0 = args[6]
-    chunk_id = args[7]
+    (data, gtab_infos, fit_iters, random_iters,
+     do_weight_bvals, do_weight_pa, do_multiple_s0, chunk_id) = args
 
-    sub_fit_array = _fit_gamma_2d(data, gtab_infos, fit_iters,
-                                  random_iters, do_weight_bvals,
-                                  do_weight_pa, do_multiple_s0)
+    sub_fit_array = _fit_gamma_loop(data, gtab_infos, fit_iters,
+                                    random_iters, do_weight_bvals,
+                                    do_weight_pa, do_multiple_s0)
 
     return chunk_id, sub_fit_array
 
 
-def _fit_gamma_2d(data, gtab_infos, fit_iters, random_iters,
-                  do_weight_bvals, do_weight_pa, do_multiple_s0):
+def _fit_gamma_loop(data, gtab_infos, fit_iters, random_iters,
+                    do_weight_bvals, do_weight_pa, do_multiple_s0):
     """
     Loops on 2D data and fits each voxel separately
     See _gamma_data2fit for a complete description.
@@ -348,9 +342,9 @@ def fit_gamma(data, gtab_infos, mask=None, fit_iters=1, random_iters=50,
     # Separating the case nbr_processes=1 to help get good coverage metrics
     # (codecov does not deal well with multiprocessing)
     if nbr_processes == 1:
-        tmp_fit_array = _fit_gamma_2d(data, gtab_infos, fit_iters,
-                                      random_iters, do_weight_bvals,
-                                      do_weight_pa, do_multiple_s0)
+        tmp_fit_array = _fit_gamma_loop(data, gtab_infos, fit_iters,
+                                        random_iters, do_weight_bvals,
+                                        do_weight_pa, do_multiple_s0)
     else:
         # Separate the data in chunks of len(nbr_processes).
         chunks = np.array_split(data, nbr_processes)

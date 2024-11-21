@@ -25,7 +25,7 @@ def test_execution(script_runner, monkeypatch):
 
     # Using a low resolution sphere for peak extraction reduces process time
     ret = script_runner.run('scil_aodf_metrics.py', in_fodf,
-                            '--sphere', 'repulsion100')
+                            '--sphere', 'repulsion100', '--processes', '1')
     assert ret.success
 
 
@@ -35,7 +35,7 @@ def test_assert_not_all(script_runner, monkeypatch):
         f"{test_data_root}/fodf_descoteaux07_sub_unified_asym.nii.gz")
 
     ret = script_runner.run('scil_aodf_metrics.py', in_fodf,
-                            '--not_all')
+                            '--not_all', '--processes', '1')
     assert not ret.success
 
 
@@ -46,7 +46,8 @@ def test_execution_not_all(script_runner, monkeypatch):
 
     ret = script_runner.run('scil_aodf_metrics.py', in_fodf,
                             '--not_all', '--asi_map',
-                            'asi_map.nii.gz', '-f')
+                            'asi_map.nii.gz', '-f',
+                            '--processes', '1')
     assert ret.success
 
 
@@ -57,7 +58,8 @@ def test_assert_symmetric_input(script_runner, monkeypatch):
 
     # Using a low resolution sphere for peak extraction reduces process time
     ret = script_runner.run('scil_aodf_metrics.py', in_fodf,
-                            '--sphere', 'repulsion100')
+                            '--sphere', 'repulsion100',
+                            '--processes', '1')
     assert not ret.success
 
 
@@ -69,5 +71,6 @@ def test_execution_symmetric_input(script_runner, monkeypatch):
     # Using a low resolution sphere for peak extraction reduces process time
     ret = script_runner.run('scil_aodf_metrics.py', in_fodf,
                             '--sphere', 'repulsion100', '--not_all',
-                            '--nufid', 'nufid.nii.gz')
+                            '--nufid', 'nufid.nii.gz',
+                            '--processes', '1')
     assert not ret.success
