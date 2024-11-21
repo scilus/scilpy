@@ -7,11 +7,12 @@ from scilpy.tractanalysis.grid_intersections import grid_intersections
 
 
 def _fixel_density_parallel(args):
-    peaks = args[0]
-    max_theta = args[1]
-    dps_key = args[2]
-    bundle = args[3]
+    (peaks, max_theta, dps_key, bundle) = args
 
+    return _fixel_density_single_bundle(bundle, peaks, max_theta, dps_key)
+
+
+def _fixel_density_single_bundle(bundle, peaks, max_theta, dps_key):
     sft = load_tractogram(bundle, 'same')
     sft.to_vox()
     sft.to_corner()
@@ -83,14 +84,22 @@ def fixel_density(peaks, bundles, dps_key=None, max_theta=45,
         if nbr_processes is None or nbr_processes <= 0 \
         else nbr_processes
 
-    pool = multiprocessing.Pool(nbr_processes)
-    results = pool.map(_fixel_density_parallel,
-                       zip(itertools.repeat(peaks),
-                           itertools.repeat(max_theta),
-                           itertools.repeat(dps_key),
-                           bundles))
-    pool.close()
-    pool.join()
+    # Separating the case nbr_processes=1 to help get good coverage metrics
+    # (codecov does not deal well with multiprocessing)
+    if nbr_processes == 1:
+        results = []
+        for b in bundles:
+            results.append(
+                _fixel_density_single_bundle(b, peaks, max_theta, dps_key))
+    else:
+        pool = multiprocessing.Pool(nbr_processes)
+        results = pool.map(_fixel_density_parallel,
+                           zip(itertools.repeat(peaks),
+                               itertools.repeat(max_theta),
+                               itertools.repeat(dps_key),
+                               bundles))
+        pool.close()
+        pool.join()
 
     fixel_density = np.moveaxis(np.asarray(results), 0, -1)
 
