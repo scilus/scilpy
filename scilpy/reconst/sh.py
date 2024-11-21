@@ -203,8 +203,8 @@ def _peaks_from_sh_2d(shm_coeff, B, sphere, relative_peak_threshold,
                       absolute_threshold, min_separation_angle, npeaks,
                       normalize_peaks, is_symmetric):
     """
-    Loops on 2D data and fits each voxel separately
-    See peaks_from_sh for a complete description.
+    Loops on 2D (ravelled) data and fits each voxel separately.
+    See peaks_from_sh for a complete description of parameters.
     """
     data_shape = shm_coeff.shape[0]
     peak_dirs = np.zeros((data_shape, npeaks, 3))
@@ -240,7 +240,7 @@ def peaks_from_sh(shm_coeff, sphere, mask=None, relative_peak_threshold=0.5,
                   normalize_peaks=False, npeaks=5,
                   sh_basis_type='descoteaux07', is_legacy=True,
                   nbr_processes=None, full_basis=False, is_symmetric=True):
-    """Computes peaks from given spherical harmonic coefficients
+    """Computes peaks from given spherical harmonic coefficients.
 
     Parameters
     ----------
@@ -362,13 +362,12 @@ def peaks_from_sh(shm_coeff, sphere, mask=None, relative_peak_threshold=0.5,
 
 def _maps_from_sh_parallel(args):
     shm_coeff = args[0]
-    _ = args[1]
-    peak_values = args[2]
-    peak_indices = args[3]
-    B = args[4]
-    sphere = args[5]
-    gfa_thr = args[6]
-    chunk_id = args[7]
+    peak_values = args[1]
+    peak_indices = args[2]
+    B = args[3]
+    sphere = args[4]
+    gfa_thr = args[5]
+    chunk_id = args[6]
 
     res = _maps_from_sh_2d(shm_coeff, peak_values, peak_indices, B,
                            sphere, gfa_thr)
@@ -379,7 +378,7 @@ def _maps_from_sh_2d(shm_coeff, peak_values, peak_indices, B, sphere,
                      gfa_thr):
     """
     Loops on 2D data and fits each voxel separately.
-    For a more complete description, see maps_from_sh.
+    For a more complete description of parameters, see maps_from_sh.
     """
     data_shape = shm_coeff.shape[0]
     nufo_map = np.zeros(data_shape)
@@ -415,7 +414,7 @@ def _maps_from_sh_2d(shm_coeff, peak_values, peak_indices, B, sphere,
             gfa_map, qa_map, max_odf, global_max)
 
 
-def maps_from_sh(shm_coeff, peak_dirs, peak_values, peak_indices, sphere,
+def maps_from_sh(shm_coeff, peak_values, peak_indices, sphere,
                  mask=None, gfa_thr=0, sh_basis_type='descoteaux07',
                  nbr_processes=None):
     """Computes maps from given SH coefficients and peaks
@@ -424,8 +423,6 @@ def maps_from_sh(shm_coeff, peak_dirs, peak_values, peak_indices, sphere,
     ----------
     shm_coeff : np.ndarray
         Spherical harmonic coefficients
-    peak_dirs : np.ndarray
-        Peak directions
     peak_values : np.ndarray
         Peak values
     peak_indices : np.ndarray
@@ -469,7 +466,6 @@ def maps_from_sh(shm_coeff, peak_dirs, peak_values, peak_indices, sphere,
     # 1D time series voxels.
     shm_coeff = shm_coeff[mask].reshape(
         (np.count_nonzero(mask), data_shape[3]))
-    peak_dirs = peak_dirs[mask].reshape((np.count_nonzero(mask), npeaks, 3))
     peak_values = peak_values[mask].reshape((np.count_nonzero(mask), npeaks))
     peak_indices = peak_indices[mask].reshape((np.count_nonzero(mask), npeaks))
 
@@ -482,14 +478,12 @@ def maps_from_sh(shm_coeff, peak_dirs, peak_values, peak_indices, sphere,
     else:
         # Separate the data in chunks of len(nbr_processes).
         shm_coeff_chunks = np.array_split(shm_coeff, nbr_processes)
-        peak_dirs_chunks = np.array_split(peak_dirs, nbr_processes)
         peak_values_chunks = np.array_split(peak_values, nbr_processes)
         peak_indices_chunks = np.array_split(peak_indices, nbr_processes)
 
         pool = multiprocessing.Pool(nbr_processes)
         results = pool.map(_maps_from_sh_parallel,
                            zip(shm_coeff_chunks,
-                               peak_dirs_chunks,
                                peak_values_chunks,
                                peak_indices_chunks,
                                itertools.repeat(B),
