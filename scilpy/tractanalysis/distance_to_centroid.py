@@ -318,7 +318,7 @@ def correct_labels_jump(labels_map, streamlines, nb_pts):
 
 
 def subdivide_bundles(sft, sft_centroid, binary_mask, nb_pts,
-                      method='centerline'):
+                      method='centerline', fix_jumps=True):
     sft.to_vox()
     sft_centroid.to_vox()
     sft.to_corner()
@@ -407,17 +407,20 @@ def subdivide_bundles(sft, sft_centroid, binary_mask, nb_pts,
         labels_map[tuple(missing_indices.T)] = labels_map[tuple(valid_indices[nn_indices].T)]
 
     # Correct the labels jump to prevent discontinuities
-    timer = time.time()
-    tmp_sft = resample_streamlines_step_size(sft, 1.0)
-    labels_map = correct_labels_jump(labels_map, tmp_sft.streamlines,
-                                     nb_pts - 2)
+    if fix_jumps:
+        timer = time.time()
+        tmp_sft = resample_streamlines_step_size(sft, 1.0)
+        labels_map = correct_labels_jump(labels_map, tmp_sft.streamlines,
+                                        nb_pts - 2)
+    logging.debug('Corrected labels jump in '
+                f'{round(time.time() - timer, 3)} seconds')
+    
 
-    if method == 'hyperplane' and endpoints_extended:
+    if endpoints_extended:
         labels_map[labels_map == nb_pts] = nb_pts - 1
         labels_map[labels_map == 1] = 2
         labels_map[labels_map > 0] -= 1
         nb_pts -= 2
-    logging.debug('Corrected labels jump in '
-                 f'{round(time.time() - timer, 3)} seconds')
+
 
     return labels_map

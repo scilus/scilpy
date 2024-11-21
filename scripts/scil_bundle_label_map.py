@@ -262,9 +262,20 @@ def main():
         else args.nb_pts
     labels_map = subdivide_bundles(concat_sft, sft_centroid, binary_mask,
                                    args.nb_pts, method=method)
+
     # We trim the streamlines due to looping labels, so we have a new binary mask
     binary_mask = np.zeros(labels_map.shape, dtype=np.uint8)
     binary_mask[labels_map > 0] = 1
+
+    # We need to count blobs again, as the labels could be not contiguous
+    labelized, _ = ndi.label(binary_mask)
+    if len(np.unique(labelized)) > 2:
+        binary_mask = np.max(binary_list, axis=0)
+        labels_map = subdivide_bundles(concat_sft, sft_centroid, binary_mask,
+                                       args.nb_pts, method='centerline',
+                                       fix_jumps=False)
+        logging.warning('Warning: Some labels were not contiguous. '
+                        'Recomputing labels to centerline method.')
 
     timer = time.time()
     distance_map = compute_distance_map(labels_map, binary_mask,
@@ -284,7 +295,8 @@ def main():
         cut_sft = cut_streamlines_with_mask(new_sft, binary_mask,
                                             min_len=min_len,
                                             cutting_style=CuttingStyle.KEEP_LONGEST)
-        logging.debug(f'Cut streamlines in {round(time.time() - timer, 3)} seconds')
+        logging.debug(
+            f'Cut streamlines in {round(time.time() - timer, 3)} seconds')
         cut_sft.data_per_point['color'] = ArraySequence(cut_sft.streamlines)
         if not os.path.isdir(sub_out_dir):
             os.mkdir(sub_out_dir)
