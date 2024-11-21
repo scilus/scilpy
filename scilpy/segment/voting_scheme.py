@@ -96,7 +96,8 @@ class VotingScheme(object):
 
         return model_bundles_dict, bundle_names, bundle_counts
 
-    def _find_max_in_sparse_matrix(self, bundle_id, min_vote, bundles_wise_vote):
+    def _find_max_in_sparse_matrix(self, bundle_id, min_vote,
+                                   bundles_wise_vote):
         """
         Will find the maximum values of a specific row (bundle_id), make
         sure they are the maximum values across bundles (argmax) and above the
@@ -147,22 +148,24 @@ class VotingScheme(object):
                 bundles_wise_vote)
 
             if not streamlines_id.size:
-                logging.error('{0} final recognition got {1} streamlines'.format(
-                              bundle_names[bundle_id], len(streamlines_id)))
+                logging.error('{0} final recognition got {1} streamlines'
+                              .format(bundle_names[bundle_id],
+                                      len(streamlines_id)))
                 continue
             else:
-                logging.info('{0} final recognition got {1} streamlines'.format(
-                             bundle_names[bundle_id], len(streamlines_id)))
+                logging.info('{0} final recognition got {1} streamlines'
+                             .format(bundle_names[bundle_id],
+                                     len(streamlines_id)))
 
             # All models of the same bundle have the same basename
-            basename = os.path.join(self.output_directory,
-                                    os.path.splitext(bundle_names[bundle_id])[0])
+            basename = os.path.join(
+                self.output_directory,
+                os.path.splitext(bundle_names[bundle_id])[0])
             new_sft = sft[streamlines_id.T]
             new_sft.remove_invalid_streamlines()
             save_tractogram(new_sft, basename + extension)
 
-            curr_results_dict = {}
-            curr_results_dict['indices'] = streamlines_id.tolist()
+            curr_results_dict = {'indices': streamlines_id.tolist()}
             results_dict[basename] = curr_results_dict
 
         out_logfile = os.path.join(self.output_directory, 'results.json')
@@ -252,11 +255,11 @@ class VotingScheme(object):
             # Update all RecobundlesX initialisation into a single list
             pool = multiprocessing.Pool(nbr_processes)
             all_recognized = pool.map(single_recognize_parallel,
-                                           zip(repeat(rbx),
-                                               model_bundles_dict.keys(),
-                                               model_bundles_dict.values(),
-                                               repeat(bundle_names),
-                                               repeat(seed)))
+                                      zip(repeat(rbx),
+                                          model_bundles_dict.keys(),
+                                          model_bundles_dict.values(),
+                                          repeat(bundle_names),
+                                          repeat(seed)))
             pool.close()
             pool.join()
         tmp_dir.cleanup()
