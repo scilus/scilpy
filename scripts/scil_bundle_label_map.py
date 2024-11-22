@@ -117,7 +117,7 @@ def _build_arg_parser():
                         'of the euclidian method (single-centroid).')
     p.add_argument('--use_manhattan', action='store_true',
                    help='Use the manhattan distance instead of the euclidian '
-                   'distance.')
+                        'distance.')
     p.add_argument('--skip_uniformize', action='store_true',
                    help='Skip uniformization of the bundles orientation.')
     p.add_argument('--correlation_thr', type=float, const=0.1, nargs='?',
@@ -268,8 +268,11 @@ def main():
     binary_mask[labels_map > 0] = 1
 
     # We need to count blobs again, as the labels could be not contiguous
-    labelized, _ = ndi.label(binary_mask)
-    if len(np.unique(labelized)) > 2:
+    labelized, count = ndi.label(binary_mask)
+    unique, count = np.unique(labelized, return_counts=True)
+    ratio = count[1] / np.sum(count[1:])
+
+    if len(unique) > 2 and ratio < 0.9:
         binary_mask = np.max(binary_list, axis=0)
         labels_map = subdivide_bundles(concat_sft, sft_centroid, binary_mask,
                                        args.nb_pts, method='centerline',
@@ -278,8 +281,8 @@ def main():
                         'Recomputing labels to centerline method.')
 
     timer = time.time()
-    distance_map = compute_distance_map(labels_map, binary_mask,
-                                        not args.use_manhattan, args.nb_pts)
+    distance_map = compute_distance_map(labels_map, binary_mask, args.nb_pts,
+                                        use_manhattan=args.use_manhattan)
     logging.debug('Computed distance map in '
                   f'{round(time.time() - timer, 3)} seconds')
 

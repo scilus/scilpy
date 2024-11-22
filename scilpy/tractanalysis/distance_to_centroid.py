@@ -164,7 +164,7 @@ def masked_manhattan_distance(mask, target_positions):
     return distances
 
 
-def compute_distance_map(labels_map, binary_mask, is_euclidian, nb_pts):
+def compute_distance_map(labels_map, binary_mask, nb_pts, use_manhattan=False):
     """
     Computes the distance map for each label in the labels_map.
 
@@ -173,16 +173,16 @@ def compute_distance_map(labels_map, binary_mask, is_euclidian, nb_pts):
         A 3D array representing the labels map.
     binary_mask (numpy.ndarray):
         A 3D binary map used to calculate barycenter binary map.
-    is_euclidian (bool):
-        A flag to determine the type of distance calculation.
     nb_pts (int):
         Number of points to use for computing barycenters.
+    use_manhattan (bool):
+        If True, use the Manhattan distance instead of the Euclidian distance.
 
     Returns:
         numpy.ndarray: A 3D array representing the distance map.
     """
     barycenters = compute_labels_map_barycenters(labels_map,
-                                                 is_euclidian=is_euclidian,
+                                                 is_euclidian=not use_manhattan,
                                                  nb_pts=nb_pts)
     # If the first/last few points are NaN, remove them this indicates that the
     # head/tail are not 1-NB_PTS
@@ -221,7 +221,7 @@ def compute_distance_map(labels_map, binary_mask, is_euclidian, nb_pts):
         if barycenter_intersect_coords.size == 0:
             continue
 
-        if is_euclidian:
+        if not use_manhattan:
             distances = np.linalg.norm(
                 barycenter_intersect_coords[:, np.newaxis] - labels_coords,
                 axis=-1)
@@ -408,12 +408,13 @@ def subdivide_bundles(sft, sft_centroid, binary_mask, nb_pts,
 
     # Correct the labels jump to prevent discontinuities
     if fix_jumps:
+        print('Correcting labels jump...')
         timer = time.time()
         tmp_sft = resample_streamlines_step_size(sft, 1.0)
         labels_map = correct_labels_jump(labels_map, tmp_sft.streamlines,
                                         nb_pts - 2)
-    logging.debug('Corrected labels jump in '
-                f'{round(time.time() - timer, 3)} seconds')
+        logging.debug('Corrected labels jump in '
+                    f'{round(time.time() - timer, 3)} seconds')
     
 
     if endpoints_extended:
