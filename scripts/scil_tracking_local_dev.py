@@ -233,8 +233,9 @@ def main():
 
     logging.info("Instantiating propagator.")
     # Converting step size to vox space
-    # We only support iso vox for now.
-    assert odf_sh_res[0] == odf_sh_res[1] == odf_sh_res[2]
+    # We only support iso vox for now but allow slightly different vox 1e-3.
+    assert np.allclose(np.mean(odf_sh_img[:3]),
+                       odf_sh_img[0], atol=1e-03)
     voxel_size = odf_sh_img.header.get_zooms()[0]
     vox_step_size = args.step_size / voxel_size
 

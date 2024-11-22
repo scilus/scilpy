@@ -23,8 +23,7 @@ import nibabel as nib
 import numpy as np
 
 from scilpy.io.utils import (add_verbose_arg, add_overwrite_arg,
-                             assert_inputs_exist, assert_outputs_exist,
-                             assert_headers_compatible)
+                             assert_inputs_exist, assert_outputs_exist)
 from scilpy.image.volume_operations import resample_volume
 
 
@@ -59,6 +58,8 @@ def _build_arg_parser():
         choices=['nn', 'lin', 'quad', 'cubic'],
         help="Interpolation mode.\nnn: nearest neighbour\nlin: linear\n"
              "quad: quadratic\ncubic: cubic\nDefaults to linear")
+    p.add_argument('--enforce_voxel_size', action='store_true',
+                   help='Enforce the voxel size.')
     p.add_argument('--enforce_dimensions', action='store_true',
                    help='Enforce the reference volume dimension.')
 
@@ -110,6 +111,22 @@ def main():
                                     enforce_dimensions=args.enforce_dimensions)
 
     # Saving results
+    zooms = list(resampled_img.header.get_zooms())
+    if len(args.voxel_size) == 1:
+        args.voxel_size = args.voxel_size * 3
+
+    if not np.array_equal(zooms[:3], args.voxel_size):
+        logging.warning('Voxel size is different from expected.'
+                        ' Got: %s, expected: %s',
+                        tuple(zooms), tuple(args.voxel_size))
+        if args.enforce_voxel_size:
+            logging.warning('Enforcing voxel size to %s',
+                            tuple(args.voxel_size))
+            zooms[0] = args.voxel_size[0]
+            zooms[1] = args.voxel_size[0]
+            zooms[2] = args.voxel_size[0]
+            resampled_img.header.set_zooms(tuple(zooms))
+
     logging.info('Saving resampled data to %s', args.out_image)
     nib.save(resampled_img, args.out_image)
 
