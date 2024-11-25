@@ -6,22 +6,18 @@ Given ground-truth fibertubes and a tractogram obtained through fibertube
 tracking, computes metrics about the quality of individual fiber
 reconstruction.
 
-VC: "Valid Connection": A streamline that ended within the final segment
-    of the fibertube in which it was seeded.
-IC: "Invalid Connection": A streamline that ended in the first or final
-    segment of another fibertube.
-NC: "No Connection": A streamline that has not ended in the first or final
-    segment of any fibertube.
+Each streamline is associated with an "Arrival fibertube segment", which is
+the closest fibertube segment to its before-last coordinate. We then define
+the following terms:
 
-Res_VC: "Resolution-wise Valid Connection": A streamline that passes closer
-    than [blur_darius] away from the last segment of the fibertube in which it
-    was seeded.
-Res_IC: "Resolution-wise Invalid Connection": A streamline that passes closer
-    than [blur_darius] away from the first or last segment of another
-    fibertube.
-Res_NC: "Resolution-wise No Connection": A streamlines that does not pass
-    closer than [blur_radius] away from the first or last segment of any
-    fibertube.
+VC: "Valid Connection": A streamline whose arrival fibertube segment is
+the final segment of the fibertube in which is was originally seeded.
+
+IC: "Invalid Connection": A streamline whose arrival fibertube segment is
+the start or final segment of a fibertube in which is was not seeded.
+
+NC: "No Connection": A streamline whose arrival fibertube segment is
+not the start or final segment of any fibertube.
 
 The "absolute error" of a coordinate is the distance in mm between that
 coordinate and the closest point on its corresponding fibertube. The average
@@ -35,12 +31,6 @@ Computed metrics:
         Number of IC divided by the number of streamlines.
     - nc_ratio
         Number of NC divided by the number of streamlines.
-    - res_vc_ratio
-        Number of Res_VC divided by the number of streamlines.
-    - res_ic_ratio
-        Number of Res_IC divided by the number of streamlines.
-    - res_nc_ratio
-        Number of Res_NC divided by the number of streamlines.
     - mae_min
         Minimum MAE for the tractogram.
     - mae_max
@@ -220,8 +210,7 @@ def main():
                         bbox_valid_check=False)
 
     logging.debug("Computing endpoint connectivity")
-    (truth_vc, truth_ic, truth_nc,
-     res_vc, res_ic, res_nc) = endpoint_connectivity(
+    vc, ic, nc = endpoint_connectivity(
         step_size, blur_radius,
         centerlines, centerlines_length,
         diameters, streamlines,
@@ -233,12 +222,9 @@ def main():
         streamlines_length, seeds_fiber, args.save_error_tractogram)
 
     metrics = {
-        'vc_ratio': len(truth_vc)/len(streamlines),
-        'ic_ratio': len(truth_ic)/len(streamlines),
-        'nc_ratio': len(truth_nc)/len(streamlines),
-        'res_vc_ratio': len(res_vc)/len(streamlines),
-        'res_ic_ratio': len(res_ic)/len(streamlines),
-        'res_nc_ratio': len(res_nc)/len(streamlines),
+        'vc_ratio': len(vc)/len(streamlines),
+        'ic_ratio': len(ic)/len(streamlines),
+        'nc_ratio': len(nc)/len(streamlines),
         'mae_min': np.min(mean_errors),
         'mae_max': np.max(mean_errors),
         'mae_mean': np.mean(mean_errors),

@@ -1,4 +1,5 @@
 import numpy as np
+import nibabel as nib
 from numba import objmode
 
 from math import sqrt, acos
@@ -14,59 +15,118 @@ from scilpy.tracking.utils import tqdm_if_verbose
 from scilpy.tractanalysis.todi import TrackOrientationDensityImaging
 
 
-def mean_fibertube_density(sft):
+def fibertube_density(sft, samples_per_voxel_axis, verbose=False):
     """
-    Estimates the average per-voxel spatial density of a set of fibertubes.
-    This is obtained by dividing the volume of fibertube segments present
-    each voxel by the the total volume of the voxel.
+    Estimates the per-voxel spatial density of a set of fibertubes. In other
+    words, how much space is occupied by fibertubes and how much is emptiness.
+
+    Works by building a binary mask segmenting voxels that contain at least
+    a single fibertube. Then, valid voxels are finely sampled and we count the
+    number of samples that landed within a fibertube. For each voxel, this
+    number is then divided by its total amount of samples.
 
     Parameters
     ----------
     sft: StatefulTractogram
         Stateful Tractogram object containing the fibertubes.
+    samples_per_voxel_axis: int
+        Number of samples to be created along a single axis of a voxel. The
+        total number of samples in the voxel will be this number cubed.
+    verbose: bool
+        Whether the function and sub-functions should be verbose.
 
     Returns
     -------
-    mean_density: float
-        Per-voxel spatial density, averaged for the whole tractogram.
+    density_3D: ndarray
+        Per-voxel spatial density of fibertubes as a 3D image.
+    density_flat: list
+        Per-voxel spatial density of fibertubes as a list, containing only
+        the voxels that were valid in the binary mask (i.e. that contained
+        fibertubes). This is useful for calculating measurements on the
+        various density values, like mean, median, etc.
     """
+    if "diameters" not in sft.data_per_streamline:
+        raise ValueError('No diameter found as data_per_streamline '
+                         'in the provided tractogram')
     diameters = np.reshape(sft.data_per_streamline['diameters'],
                            len(sft.streamlines))
-    mean_diameter = np.mean(diameters)
+    max_diameter = np.max(diameters)
 
-    mean_segment_lengths = []
-    for streamline in sft.streamlines:
-        mean_segment_lengths.append(
-            np.mean(np.linalg.norm(streamline[1:] - streamline[:-1], axis=-1)))
-    mean_segment_length = np.mean(mean_segment_lengths)
-    # Computing mean tube density per voxel.
+    # Everything will be in vox for simplicity.
     sft.to_vox()
+    # Building a binary mask using TODI
     # Because compute_todi expects streamline points (in voxel coordinates)
     # to be in the range [0, size] rather than [-0.5, size - 0.5], we shift
     # the voxel origin to corner.
     sft.to_corner()
-
-    # Computing TDI
     _, data_shape, _, _ = sft.space_attributes
     todi_obj = TrackOrientationDensityImaging(tuple(data_shape))
-    todi_obj.compute_todi(sft.streamlines)
-    img = todi_obj.get_tdi()
-    img = todi_obj.reshape_to_3d(img)
+    todi_obj.compute_todi(sft.streamlines, False)
+    mask = todi_obj.get_mask()
+    mask = todi_obj.reshape_to_3d(mask)
 
-    nb_voxels_nonzero = np.count_nonzero(img)
-    sum = np.sum(img, axis=-1)
-    sum = np.sum(sum, axis=-1)
-    sum = np.sum(sum, axis=-1)
+    sampling_density = np.array([samples_per_voxel_axis,
+                                 samples_per_voxel_axis,
+                                 samples_per_voxel_axis])
 
-    mean_seg_volume = np.pi * ((mean_diameter/2) ** 2) * mean_segment_length
+    # Source: dipy.tracking.seeds_from_mask
+    # Grid of points between -.5 and .5, centered at 0, with given density
+    grid = np.mgrid[0: sampling_density[0], 0: sampling_density[1],
+                    0: sampling_density[2]]
+    grid = grid.T.reshape((-1, 3))
+    grid = grid / sampling_density
+    grid += 0.5 / sampling_density - 0.5
+    grid = grid.reshape(*sampling_density, 3)
 
-    mean_seg_count = sum / nb_voxels_nonzero
-    mean_volume = mean_seg_count * mean_seg_volume
-    mean_density = mean_volume / (sft.voxel_sizes[0] *
-                                  sft.voxel_sizes[1] *
-                                  sft.voxel_sizes[2])
+    # Back to corner origin
+    grid += 0.5
 
-    return mean_density
+    # Add samples to each voxel in mask
+    samples = np.empty(mask.shape, dtype=object)
+    for i, j, k in np.ndindex(mask.shape):
+        if mask[i][j][k]:
+            samples[i][j][k] = [i, j, k] + grid
+
+    # Building KDTree from fibertube segments
+    centers, indices, max_seg_length = streamlines_to_segments(
+        sft.streamlines, verbose)
+    tree = KDTree(centers)
+
+    density_grid = np.zeros(mask.shape)
+    density_flat = []
+    # For each voxel, get density
+    for i, j, k in np.ndindex(mask.shape):
+        if not mask[i][j][k]:
+            continue
+
+        voxel_samples = np.reshape(samples[i][j][k], (-1, 3))
+
+        # Returns an list of lists of neighbor indexes.
+        # Ex: [[265, 45, 0, 1231], [12, 67]]
+        all_segments = tree.query_ball_point(voxel_samples,
+                                             max_seg_length/2+max_diameter/2,
+                                             workers=-1)
+
+        nb_samples_in_fibertubes = 0
+        for index, segments in enumerate(all_segments):
+            sample = voxel_samples[index]
+            for segi in segments:
+                fi = indices[segi][0]
+                pi = indices[segi][1]
+                centerline = sft.streamlines[fi]
+                radius = diameters[fi] / 2
+
+                dist, _, p = dist_point_segment(centerline[pi],
+                                                centerline[pi+1],
+                                                np.float32(sample))
+
+                if dist < radius:
+                    nb_samples_in_fibertubes += 1
+
+        density_grid[i][j][k] = nb_samples_in_fibertubes / len(voxel_samples)
+        density_flat.append(density_grid[i][j][k])
+
+    return density_grid, density_flat
 
 
 def min_external_distance(sft, verbose):
@@ -375,24 +435,25 @@ def mean_reconstruction_error(centerlines, centerlines_length, diameters,
 
 
 @njit
-def endpoint_connectivity(step_size, blur_radius, centerlines,
-                          centerlines_length, diameters, streamlines,
-                          seeds_fiber):
+def endpoint_connectivity(blur_radius, centerlines, centerlines_length,
+                          diameters, streamlines, seeds_fiber):
     """
     For every streamline, find whether or not it has reached the end segment
-    of its fiber.
+    of its fibertube. Each streamline is associated with an "Arrival fibertube
+    segment", which is the closest fibertube segment to its before-last
+    coordinate.
 
-    VC: "Valid Connection": Contains streamlines that ended in the final
-        segment of the fiber in which they have been seeded.
-    IC: "Invalid Connection": Contains streamlines that ended in the final
-        segment of another fiber.
-    NC: "No Connection": Contains streamlines that have not ended in the final
-        segment of any fiber.
+    VC: "Valid Connection": A streamline whose arrival fibertube segment is
+    the final segment of the fibertube in which is was originally seeded.
+
+    IC: "Invalid Connection": A streamline whose arrival fibertube segment is
+    the start or final segment of a fibertube in which is was not seeded.
+
+    NC: "No Connection": A streamline whose arrival fibertube segment is
+    not the start or final segment of any fibertube.
 
     Parameters
     ----------
-    step_size: float
-        Step_size used during fibertube tracking.
     blur_radius: float
         Blur radius used during fibertube tracking.
     centerlines: ndarray
@@ -414,20 +475,16 @@ def endpoint_connectivity(step_size, blur_radius, centerlines,
 
     Return
     ------
-    truth_vc: list
-        Connections that are valid at ground-truth resolution.
-    truth_ic: list
-        Connections that are invalid at ground-truth resolution.
-    truth_nc: list
-        No-connections at ground-truth resolution.
-    resolution_vc: list
-        Connections that are valid at simulated resolution.
-    resolution_ic: list
-        Connections that are invalid at simulated resolution.
-    resolution_nc: list
-        No-connections at simulated resolution.
+    vc: list
+        List containing the indices of all streamlines that are valid
+        connections.
+    ic: list
+        List containing the indices of all streamlines that are invalid
+        connections.
+    nc: list
+        List containing the indices of all streamlines that are no
+        connections.
     """
-    ratio = blur_radius / step_size
     max_diameter = np.max(diameters)
 
     # objmode allows the execution of non numba-compatible code within a numba
@@ -437,105 +494,48 @@ def endpoint_connectivity(step_size, blur_radius, centerlines,
         centers, indices, max_seg_length = streamlines_to_segments(
             centerlines, False)
 
-    centerline_fixed_length = len(centerlines[0])-1
+    tree = nbKDTree(centers)
 
-    # Building KDTree with centerline segments
-    kdtree_centers = np.zeros((0, 3))
-    for fi, fiber in enumerate(centerlines):
-        kdtree_centers = np.concatenate(
-            (kdtree_centers, centers[centerline_fixed_length * fi:
-             (centerline_fixed_length * fi + centerlines_length[fi] - 1)]))
-    tree = nbKDTree(kdtree_centers)
-
-    truth_vc = set()
-    truth_ic = set()
-    truth_nc = set()
-    res_vc = set()
-    res_ic = set()
-    res_nc = set()
+    vc = set()
+    ic = set()
+    nc = set()
 
     for si, streamline in enumerate(streamlines):
-        truth_connected = False
-        res_connected = False
-
         seed_fi = seeds_fiber[si]
 
+        # streamline[1] is the last point with a valid direction
         neighbors = tree.query_radius(
             streamline[1], blur_radius + max_seg_length / 2 + max_diameter)[0]
 
-        # Checking VC and Res_VC first
+        min_dist = np.inf
+        min_seg = 0
+
+        # Finding closest segment
+        # There will always be a neighbor to override np.inf
         for neighbor_segi in neighbors:
             fi = indices[neighbor_segi][0]
-            if fi != seed_fi:
-                continue
+            pi = indices[neighbor_segi][1]
 
-            fiber = centerlines[fi]
-            fib_end_pt1 = fiber[centerlines_length[fi] - 2]
-            fib_end_pt2 = fiber[centerlines_length[fi] - 1]
-            radius = diameters[fi] / 2
+            dist, _, _ = dist_point_segment(centerlines[fi][pi],
+                                            centerlines[fi][pi+1],
+                                            streamline[1])
 
-            # Connectivity
-            # Is in end segment of our fibertube
-            dist, _, _, _ = dist_segment_segment(
-                fib_end_pt1, fib_end_pt2, streamline[int(np.floor(ratio))],
-                streamline[int(np.ceil(ratio))+1])
-            if dist < radius:
-                truth_connected = True
-                truth_vc.add(si)
+            if dist < min_dist:
+                min_dist = dist
+                min_seg = neighbor_segi
 
-            # Resolution-wise connectivity
-            # Passes by end segment of our fibertube
-            dist, _, _, _ = dist_segment_segment(fib_end_pt1, fib_end_pt2,
-                                                 streamline[1], streamline[0])
-            if dist < radius + blur_radius:
-                res_connected = True
-                res_vc.add(si)
+        fi = indices[min_seg][0]
+        pi = indices[min_seg][1]
 
-        # If not VC we check IC/NC and if not Res_VC, we check Res_IC/Res_NC
-        for neighbor_segi in neighbors:
-            fi = indices[neighbor_segi][0]
+        # If the closest segment is the last of its centerlines
+        if pi == centerlines_length[fi]-1:
             if fi == seed_fi:
-                continue
+                vc.add(si)
+            else:
+                ic.add(si)
+        elif pi == 0:
+            ic.add(si)
+        else:
+            nc.add(si)
 
-            fiber = centerlines[fi]
-            fib_end_pt1 = fiber[centerlines_length[fi] - 2]
-            fib_end_pt2 = fiber[centerlines_length[fi] - 1]
-            radius = diameters[fi] / 2
-
-            is_vc = len(truth_vc.intersection({si})) != 0
-            is_res_vc = len(res_vc.intersection({si})) != 0
-
-            # Connectivity
-            # Is in start or end segment of a fibertube which is not ours
-            start_dist, _, _, _ = dist_segment_segment(
-                fiber[0], fiber[1], streamline[int(np.floor(ratio))],
-                streamline[int(np.ceil(ratio))+1])
-
-            end_dist, _, _, _ = dist_segment_segment(
-                fib_end_pt1, fib_end_pt2, streamline[int(np.floor(ratio))],
-                streamline[int(np.ceil(ratio))+1])
-
-            if not is_vc and (start_dist < radius or end_dist < radius):
-                truth_connected = True
-                truth_ic.add(si)
-
-            # Resolution-wise connectivity
-            # Passes by start or end segment of a fibertube which is not ours
-            start_dist, _, _, _ = dist_segment_segment(
-                fiber[0], fiber[1], streamline[1], streamline[0])
-
-            end_dist, _, _, _ = dist_segment_segment(
-                fib_end_pt1, fib_end_pt2, streamline[1], streamline[0])
-
-            if not is_res_vc and (start_dist < radius + blur_radius or
-                                  end_dist < radius + blur_radius):
-                res_connected = True
-                res_ic.add(si)
-
-        if not truth_connected:
-            truth_nc.add(si)
-        if not res_connected:
-            res_nc.add(si)
-
-    return (list(truth_vc), list(truth_ic), list(truth_nc), list(res_vc),
-            list(res_ic), list(res_nc))
+    return (list(vc), list(ic), list(nc))
