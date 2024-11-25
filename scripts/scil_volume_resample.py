@@ -112,20 +112,21 @@ def main():
 
     # Saving results
     zooms = list(resampled_img.header.get_zooms())
-    if len(args.voxel_size) == 1:
-        args.voxel_size = args.voxel_size * 3
+    if args.voxel_size:
+        if len(args.voxel_size) == 1:
+            args.voxel_size = args.voxel_size * 3
 
-    if not np.array_equal(zooms[:3], args.voxel_size):
-        logging.warning('Voxel size is different from expected.'
-                        ' Got: %s, expected: %s',
-                        tuple(zooms), tuple(args.voxel_size))
-        if args.enforce_voxel_size:
-            logging.warning('Enforcing voxel size to %s',
-                            tuple(args.voxel_size))
-            zooms[0] = args.voxel_size[0]
-            zooms[1] = args.voxel_size[0]
-            zooms[2] = args.voxel_size[0]
-            resampled_img.header.set_zooms(tuple(zooms))
+        if not np.array_equal(zooms[:3], args.voxel_size):
+            logging.warning('Voxel size is different from expected.'
+                            ' Got: %s, expected: %s',
+                            tuple(zooms), tuple(args.voxel_size))
+            if args.enforce_voxel_size:
+                logging.warning('Enforcing voxel size to %s',
+                                tuple(args.voxel_size))
+                zooms[0] = args.voxel_size[0]
+                zooms[1] = args.voxel_size[0]
+                zooms[2] = args.voxel_size[0]
+                resampled_img.header.set_zooms(tuple(zooms))
 
     logging.info('Saving resampled data to %s', args.out_image)
     nib.save(resampled_img, args.out_image)
