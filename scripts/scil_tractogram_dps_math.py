@@ -116,8 +116,12 @@ def main():
 
     if args.operation == 'export':
         # Extract data and reshape
-        data = np.squeeze(sft.data_per_streamline[args.export_dps_key])
+        if not args.export_dps_key in sft.data_per_streamline.keys():
+            raise ValueError('Data does not have any data_per_streamline'
+                             ' entry stored at this key: {}'
+                                .format(args.export_dps_key))
 
+        data = np.squeeze(sft.data_per_streamline[args.export_dps_key])
         save_matrix_in_any_format(args.export_dps_file, data)
 
 
