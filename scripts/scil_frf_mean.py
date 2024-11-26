@@ -34,9 +34,9 @@ def _build_arg_parser():
     p.add_argument('mean_frf', metavar='file',
                    help='Path of the output mean FRF file.')
 
+    add_precision_arg(p)
     add_verbose_arg(p)
     add_overwrite_arg(p)
-    add_precision_arg(p)
 
     return p
 

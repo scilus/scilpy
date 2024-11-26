@@ -44,9 +44,9 @@ def _build_arg_parser():
                         'evaluated without the x 10**-4 factor. [%(default)s].'
                    )
 
+    add_precision_arg(p)
     add_verbose_arg(p)
     add_overwrite_arg(p)
-    add_precision_arg(p)
 
     return p
 

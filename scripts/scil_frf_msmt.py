@@ -137,9 +137,9 @@ def _build_arg_parser():
                    help='Path to the output CSF frf mask file, the voxels '
                         'used to compute the CSF frf.')
 
+    add_precision_arg(p)
     add_verbose_arg(p)
     add_overwrite_arg(p)
-    add_precision_arg(p)
 
     return p
 
