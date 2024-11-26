@@ -100,7 +100,7 @@ def _gamma_data2fit(signal, gtab_infos, fit_iters=1, random_iters=50,
     Returns
     -------
     best_params : np.array
-        Array containing the parameters of the fit.
+        Array containing the parameters of the fit. Shape: (4,)
     """
     if np.sum(gtab_infos[3]) > 0 and do_multiple_s0 is True:
         ns = len(np.unique(gtab_infos[3])) - 1
@@ -263,23 +263,31 @@ def gamma_fit2metrics(params):
 
 
 def _fit_gamma_parallel(args):
-    data = args[0]
-    gtab_infos = args[1]
-    fit_iters = args[2]
-    random_iters = args[3]
-    do_weight_bvals = args[4]
-    do_weight_pa = args[5]
-    do_multiple_s0 = args[6]
-    chunk_id = args[7]
+    # Data: Ravelled 4D data. Shape [N, X] where N is the number of voxels.
+    (data, gtab_infos, fit_iters, random_iters,
+     do_weight_bvals, do_weight_pa, do_multiple_s0, chunk_id) = args
 
-    sub_fit_array = np.zeros((data.shape[0], 4))
-    for i in range(data.shape[0]):
-        if data[i].any():
-            sub_fit_array[i] = _gamma_data2fit(data[i], gtab_infos, fit_iters,
-                                               random_iters, do_weight_bvals,
-                                               do_weight_pa, do_multiple_s0)
+    sub_fit_array = _fit_gamma_loop(data, gtab_infos, fit_iters,
+                                    random_iters, do_weight_bvals,
+                                    do_weight_pa, do_multiple_s0)
 
     return chunk_id, sub_fit_array
+
+
+def _fit_gamma_loop(data, gtab_infos, fit_iters, random_iters,
+                    do_weight_bvals, do_weight_pa, do_multiple_s0):
+    """
+    Loops on 2D data and fits each voxel separately
+    See _gamma_data2fit for a complete description.
+    """
+    # Data: Ravelled 4D data. Shape [N, X] where N is the number of voxels.
+    tmp_fit_array = np.zeros((data.shape[0], 4))
+    for i in range(data.shape[0]):
+        if data[i].any():
+            tmp_fit_array[i] = _gamma_data2fit(
+                data[i], gtab_infos, fit_iters, random_iters,
+                do_weight_bvals, do_weight_pa, do_multiple_s0)
+    return tmp_fit_array
 
 
 def fit_gamma(data, gtab_infos, mask=None, fit_iters=1, random_iters=50,
@@ -328,30 +336,40 @@ def fit_gamma(data, gtab_infos, mask=None, fit_iters=1, random_iters=50,
         or nbr_processes <= 0 else nbr_processes
 
     # Ravel the first 3 dimensions while keeping the 4th intact, like a list of
-    # 1D time series voxels. Then separate it in chunks of len(nbr_processes).
+    # 1D time series voxels.
     data = data[mask].reshape((np.count_nonzero(mask), data_shape[3]))
-    chunks = np.array_split(data, nbr_processes)
 
-    chunk_len = np.cumsum([0] + [len(c) for c in chunks])
-    pool = multiprocessing.Pool(nbr_processes)
-    results = pool.map(_fit_gamma_parallel,
-                       zip(chunks,
-                           itertools.repeat(gtab_infos),
-                           itertools.repeat(fit_iters),
-                           itertools.repeat(random_iters),
-                           itertools.repeat(do_weight_bvals),
-                           itertools.repeat(do_weight_pa),
-                           itertools.repeat(do_multiple_s0),
-                           np.arange(len(chunks))))
-    pool.close()
-    pool.join()
+    # Separating the case nbr_processes=1 to help get good coverage metrics
+    # (codecov does not deal well with multiprocessing)
+    if nbr_processes == 1:
+        tmp_fit_array = _fit_gamma_loop(data, gtab_infos, fit_iters,
+                                        random_iters, do_weight_bvals,
+                                        do_weight_pa, do_multiple_s0)
+    else:
+        # Separate the data in chunks of len(nbr_processes).
+        chunks = np.array_split(data, nbr_processes)
 
-    # Re-assemble the chunk together in the original shape.
-    fit_array = np.zeros((data_shape[0:3])+(4,))
-    tmp_fit_array = np.zeros((np.count_nonzero(mask), 4))
-    for i, fit in results:
-        tmp_fit_array[chunk_len[i]:chunk_len[i+1]] = fit
+        pool = multiprocessing.Pool(nbr_processes)
+        results = pool.map(_fit_gamma_parallel,
+                           zip(chunks,
+                               itertools.repeat(gtab_infos),
+                               itertools.repeat(fit_iters),
+                               itertools.repeat(random_iters),
+                               itertools.repeat(do_weight_bvals),
+                               itertools.repeat(do_weight_pa),
+                               itertools.repeat(do_multiple_s0),
+                               np.arange(len(chunks))))
+        pool.close()
+        pool.join()
 
+        # Re-assemble the chunks together.
+        chunk_len = np.cumsum([0] + [len(c) for c in chunks])
+        tmp_fit_array = np.zeros((np.count_nonzero(mask), 4))
+        for chunk_id, fit in results:
+            tmp_fit_array[chunk_len[chunk_id]:chunk_len[chunk_id + 1]] = fit
+
+    # Bring back to the original shape
+    fit_array = np.zeros((data_shape[0:3]) + (4,))
     fit_array[mask] = tmp_fit_array
 
     return fit_array
