@@ -157,7 +157,13 @@ def test_outputs_precision(script_runner, monkeypatch):
                             '--in_bvecs', in_bvec_lin, in_bvec_plan,
                             in_bvec_sph, '--in_bdeltas', '1', '-0.5', '0',
                             '--min_nvox', '1', '--precision', '4', '-f')
+
     assert ret.success
+
+    for frf_file in ['wm_frf.txt', 'gm_frf.txt', 'csf_frf.txt']:
+        with open(frf_file, "r") as f:
+            for item in f.readline().strip("\n").split(" "):
+                assert len(item.split(".")[1]) == 4
 
 
 def test_execution_processing(script_runner, monkeypatch):

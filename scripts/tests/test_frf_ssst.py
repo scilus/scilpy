@@ -67,6 +67,10 @@ def test_outputs_precision(script_runner, monkeypatch):
                             '--precision', '4', '-f')
     assert ret.success
 
+    with open("frf.txt", "r") as f:
+        for item in f.readline().strip("\n").split(" "):
+            assert len(item.split(".")[1]) == 4
+
 
 def test_execution_processing(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
