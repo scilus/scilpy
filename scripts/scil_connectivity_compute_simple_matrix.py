@@ -46,10 +46,10 @@ from scilpy.io.utils import assert_inputs_exist, assert_outputs_exist, \
 def _build_arg_parser():
     p = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
-    p.add_argument('in_labels',
-                   help='Input nifti volume.')
     p.add_argument('in_tractogram',
                    help='Tractogram (trk or tck).')
+    p.add_argument('in_labels',
+                   help='Input nifti volume.')
     p.add_argument('out_matrix',
                    help="Out .npy file.")
     p.add_argument('out_labels',
