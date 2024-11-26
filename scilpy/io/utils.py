@@ -281,8 +281,9 @@ def add_skip_b0_check_arg(parser, will_overwrite_with_min,
 def add_precision_arg(parser):
     parser.add_argument('--precision', type=ranged_type(int, 1),
                         default=FLOATING_POINTS_PRECISION,
-                        help='Precision for floating point values. Numbers are '
-                             'truncated up to the number of decimals provided.')
+                        help='Precision for floating point values. Numbers '
+                             'are rounded up to \nthe number of decimals '
+                             'provided. [Default: %(default)s]')
 
 
 def add_verbose_arg(parser):
