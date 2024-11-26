@@ -81,7 +81,7 @@ def main():
 
     if args.enforce_dimensions and not args.ref:
         parser.error("Cannot enforce dimensions without a reference image.")
-    
+
     if args.enforce_voxel_size and not args.voxel_size:
         parser.error("Cannot enforce voxel size without a voxel size.")
 
