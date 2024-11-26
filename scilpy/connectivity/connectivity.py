@@ -75,7 +75,10 @@ def compute_connectivity_matrices_from_hdf5(
         If true, return 'length_mm' in the returned dictionary, with the mean
         length of streamlines in the bundle.
     similarity_directory: str
-        If not None, ??
+        If not None, should be a directory containing nifti files that
+        represent density maps for each connection, using the
+        <in_label>_<out_label>.nii.gz conventions.
+        Typically computed from a template (must be in the same space).
     metrics_data: list[np.ndarray]
         List of 3D data with metrics to use, with the list of associated metric
         names. If set, the returned dictionary will contain an entry for each
