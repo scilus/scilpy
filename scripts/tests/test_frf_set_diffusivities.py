@@ -34,6 +34,15 @@ def test_execution_processing_msmt(script_runner, monkeypatch):
     assert ret.success
 
 
+def test_outputs_precision(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
+    in_frf = os.path.join(SCILPY_HOME, 'commit_amico', 'wm_frf.txt')
+    ret = script_runner.run('scil_frf_set_diffusivities.py', in_frf,
+                            '15,4,4,13,4,4,12,5,5', 'new_frf.txt',
+                            '--precision', '4', '-f')
+    assert ret.success
+
+
 def test_execution_processing__wrong_input(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_frf = os.path.join(SCILPY_HOME, 'commit_amico', 'wm_frf.txt')

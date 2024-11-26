@@ -32,6 +32,14 @@ def test_execution_processing_msmt(script_runner, monkeypatch):
     assert ret.success
 
 
+def test_outputs_precision(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
+    in_frf = os.path.join(SCILPY_HOME, 'commit_amico', 'wm_frf.txt')
+    ret = script_runner.run('scil_frf_mean.py', in_frf, in_frf, 'mfrfp.txt',
+                            '--precision', '4')
+    assert ret.success
+
+
 def test_execution_processing_bad_input(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_wm_frf = os.path.join(SCILPY_HOME, 'commit_amico', 'wm_frf.txt')

@@ -130,6 +130,36 @@ def test_inputs_check(script_runner, monkeypatch):
     assert (not ret.success)
 
 
+def test_outputs_precision(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
+    in_dwi_lin = os.path.join(SCILPY_HOME, 'btensor_testdata',
+                              'dwi_linear.nii.gz')
+    in_bval_lin = os.path.join(SCILPY_HOME, 'btensor_testdata',
+                               'linear.bvals')
+    in_bvec_lin = os.path.join(SCILPY_HOME, 'btensor_testdata',
+                               'linear.bvecs')
+    in_dwi_plan = os.path.join(SCILPY_HOME, 'btensor_testdata',
+                               'dwi_planar.nii.gz')
+    in_bval_plan = os.path.join(SCILPY_HOME, 'btensor_testdata',
+                                'planar.bvals')
+    in_bvec_plan = os.path.join(SCILPY_HOME, 'btensor_testdata',
+                                'planar.bvecs')
+    in_dwi_sph = os.path.join(SCILPY_HOME, 'btensor_testdata',
+                              'dwi_spherical.nii.gz')
+    in_bval_sph = os.path.join(SCILPY_HOME, 'btensor_testdata',
+                               'spherical.bvals')
+    in_bvec_sph = os.path.join(SCILPY_HOME, 'btensor_testdata',
+                               'spherical.bvecs')
+    ret = script_runner.run('scil_frf_memsmt.py', 'wm_frf.txt',
+                            'gm_frf.txt', 'csf_frf.txt', '--in_dwis',
+                            in_dwi_lin, in_dwi_plan, in_dwi_sph, '--in_bvals',
+                            in_bval_lin, in_bval_plan, in_bval_sph,
+                            '--in_bvecs', in_bvec_lin, in_bvec_plan,
+                            in_bvec_sph, '--in_bdeltas', '1', '-0.5', '0',
+                            '--min_nvox', '1', '--precision', '4', '-f')
+    assert ret.success
+
+
 def test_execution_processing(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_dwi_lin = os.path.join(SCILPY_HOME, 'btensor_testdata',
