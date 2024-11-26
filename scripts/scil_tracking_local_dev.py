@@ -235,7 +235,7 @@ def main():
     # Converting step size to vox space
     # We only support iso vox for now but allow slightly different vox 1e-3.
     assert np.allclose(np.mean(odf_sh_res[:3]),
-                       odf_sh_res[0], atol=1e-03)
+                       odf_sh_res, atol=1e-03)
     voxel_size = odf_sh_img.header.get_zooms()[0]
     vox_step_size = args.step_size / voxel_size
 

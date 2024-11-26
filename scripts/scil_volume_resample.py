@@ -59,7 +59,8 @@ def _build_arg_parser():
         help="Interpolation mode.\nnn: nearest neighbour\nlin: linear\n"
              "quad: quadratic\ncubic: cubic\nDefaults to linear")
     p.add_argument('--enforce_voxel_size', action='store_true',
-                   help='Enforce the voxel size.')
+                   help='Enforce --voxel_size even if there is a numerical'
+                   ' difference after resampling.')
     p.add_argument('--enforce_dimensions', action='store_true',
                    help='Enforce the reference volume dimension.')
 
@@ -79,7 +80,10 @@ def main():
     assert_outputs_exist(parser, args, args.out_image)
 
     if args.enforce_dimensions and not args.ref:
-        parser.error("Cannot enforce dimensions without a reference image")
+        parser.error("Cannot enforce dimensions without a reference image.")
+    
+    if args.enforce_voxel_size and not args.voxel_size:
+        parser.error("Cannot enforce voxel size without a voxel size.")
 
     if args.volume_size and (not len(args.volume_size) == 1 and
                              not len(args.volume_size) == 3):
@@ -124,8 +128,8 @@ def main():
                 logging.warning('Enforcing voxel size to %s',
                                 tuple(args.voxel_size))
                 zooms[0] = args.voxel_size[0]
-                zooms[1] = args.voxel_size[0]
-                zooms[2] = args.voxel_size[0]
+                zooms[1] = args.voxel_size[1]
+                zooms[2] = args.voxel_size[2]
                 resampled_img.header.set_zooms(tuple(zooms))
 
     logging.info('Saving resampled data to %s', args.out_image)
