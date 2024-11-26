@@ -446,10 +446,10 @@ def main():
                 radius += distance * sft.space_attributes[2]
 
             if geometry == 'Ellipsoid':
-                filtered_sft, kept_ids = filter_ellipsoid(
+                kept_ids, filtered_sft = filter_ellipsoid(
                     sft, radius, center, mode, is_exclude)
             else:  # geometry == 'Cuboid':
-                filtered_sft, kept_ids = filter_cuboid(
+                kept_ids, filtered_sft = filter_cuboid(
                     sft, radius, center, mode, is_exclude)
 
         logging.info('The filtering options {} resulted in {} included '

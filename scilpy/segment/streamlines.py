@@ -211,7 +211,7 @@ def pre_filtering_for_geometrical_shape(sft, size, center, filter_type,
     center: numpy.ndarray (3)
         Center x/y/z of the ROI.
     filter_type: str
-        One of the 3 following choices, 'any', 'all', 'either_end', 'both_ends'.
+        One of the 4 following choices, 'any', 'all', 'either_end', 'both_ends'.
     is_in_vox: bool
         Value to indicate if the ROI is in voxel space.
 
@@ -263,7 +263,7 @@ def filter_ellipsoid(sft, ellipsoid_radius, ellipsoid_center,
     ellipsoid_center: numpy.ndarray (3)
         Center x/y/z of the ellipsoid.
     filter_type: str
-        One of the 3 following choices, 'any', 'all', 'either_end', 'both_ends'.
+        One of the 4 following choices, 'any', 'all', 'either_end', 'both_ends'.
     is_exclude: bool
         Value to indicate if the ROI is an AND (false) or a NOT (true).
     is_in_vox: bool
@@ -357,7 +357,7 @@ def filter_ellipsoid(sft, ellipsoid_radius, ellipsoid_center,
         data_per_streamline=data_per_streamline,
         data_per_point=data_per_point)
 
-    return new_sft, line_based_indices
+    return line_based_indices, new_sft
 
 
 def filter_cuboid(sft, cuboid_radius, cuboid_center,
@@ -372,16 +372,17 @@ def filter_cuboid(sft, cuboid_radius, cuboid_center,
     cuboid_center: numpy.ndarray (3)
         Center x/y/z of the cuboid.
     filter_type: str
-        One of the 3 following choices, 'any', 'all', 'either_end', 'both_ends'.
+        One of the 4 following choices: 'any', 'all', 'either_end', 'both_ends'.
     is_exclude: bool
         Value to indicate if the ROI is an AND (false) or a NOT (true).
     is_in_vox: bool
         Value to indicate if the ROI is in voxel space.
     Returns
     -------
-    ids : tuple
-        Filtered sft.
+    ids : list
         Ids of the streamlines passing through the mask.
+    sft: StatefulTractogram
+        Filtered sft
     """
     if len(sft.streamlines) == 0:
         return np.array([]), sft
@@ -457,4 +458,4 @@ def filter_cuboid(sft, cuboid_radius, cuboid_center,
         data_per_streamline=data_per_streamline,
         data_per_point=data_per_point)
 
-    return new_sft, line_based_indices
+    return line_based_indices, new_sft
