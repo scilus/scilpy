@@ -18,6 +18,7 @@ import logging
 import numpy as np
 
 from scilpy.io.utils import (add_overwrite_arg,
+                             add_precision_arg,
                              assert_inputs_exist,
                              add_verbose_arg,
                              assert_outputs_exist)
@@ -35,6 +36,7 @@ def _build_arg_parser():
 
     add_verbose_arg(p)
     add_overwrite_arg(p)
+    add_precision_arg(p)
 
     return p
 
@@ -66,7 +68,7 @@ def main():
 
     final_frf = np.mean(all_frfs, axis=0)
 
-    np.savetxt(args.mean_frf, final_frf)
+    np.savetxt(args.mean_frf, final_frf, fmt=f"%.{args.precision}f")
 
 
 if __name__ == "__main__":

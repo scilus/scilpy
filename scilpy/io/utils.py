@@ -22,6 +22,8 @@ from scilpy.utils.filenames import split_name_with_nii
 from scilpy.utils.spatial import RAS_AXES_NAMES
 
 
+FLOATING_POINTS_PRECISION = 12
+
 eddy_options = ["mb", "mb_offs", "slspec", "mporder", "s2v_lambda", "field",
                 "field_mat", "flm", "slm", "fwhm", "niter", "s2v_niter",
                 "cnr_maps", "residuals", "fep", "interp", "s2v_interp",
@@ -274,6 +276,13 @@ def add_skip_b0_check_arg(parser, will_overwrite_with_min,
 
     parser.add_argument(
         '--skip_b0_check', action='store_true', help=msg)
+
+
+def add_precision_arg(parser):
+    parser.add_argument('--precision', type=ranged_type(int, 1),
+                        default=FLOATING_POINTS_PRECISION,
+                        help='Precision for floating point values. Numbers are '
+                             'truncated up to the number of decimals provided.')
 
 
 def add_verbose_arg(parser):
