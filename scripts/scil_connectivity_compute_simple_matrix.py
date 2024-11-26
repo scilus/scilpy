@@ -129,7 +129,7 @@ def main():
     if ext != '.npy':
         p.error("out_matrix should have a .npy extension.")
 
-    assert_inputs_exist(p, [args.in_labels, args.in_tractogram], 
+    assert_inputs_exist(p, [args.in_labels, args.in_tractogram],
                         args.reference)
     assert_headers_compatible(p, [args.in_labels, args.in_tractogram], [],
                               args.reference)
