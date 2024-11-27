@@ -75,6 +75,27 @@ def test_roi_radii_shape_parameter2(script_runner, monkeypatch):
     assert (not ret.success)
 
 
+def test_outputs_precision(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
+    in_dwi = os.path.join(SCILPY_HOME, 'commit_amico',
+                          'dwi.nii.gz')
+    in_bval = os.path.join(SCILPY_HOME, 'commit_amico',
+                           'dwi.bval')
+    in_bvec = os.path.join(SCILPY_HOME, 'commit_amico',
+                           'dwi.bvec')
+    mask = os.path.join(SCILPY_HOME, 'commit_amico', 'mask.nii.gz')
+    ret = script_runner.run('scil_frf_msmt.py', in_dwi,
+                            in_bval, in_bvec, 'wm_frf.txt', 'gm_frf.txt',
+                            'csf_frf.txt', '--mask', mask, '--min_nvox', '20',
+                            '--precision', '4', '-f')
+    assert ret.success
+
+    for frf_file in ['wm_frf.txt', 'gm_frf.txt', 'csf_frf.txt']:
+        with open(frf_file, "r") as f:
+            for item in f.readline().strip("\n").split(" "):
+                assert len(item.split(".")[1]) == 4
+
+
 def test_execution_processing(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_dwi = os.path.join(SCILPY_HOME, 'commit_amico',
