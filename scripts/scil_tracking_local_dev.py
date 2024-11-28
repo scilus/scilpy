@@ -196,7 +196,7 @@ def main():
     # If save_seeds, space and origin must be vox, center. Choosing those
     # values.
     our_space = Space.VOX
-    our_origin = Origin('corner')
+    our_origin = Origin('center')
 
     # Preparing everything
     logging.info("Loading seeding mask.")
