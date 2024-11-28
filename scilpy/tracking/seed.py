@@ -364,3 +364,72 @@ class FibertubeSeedGenerator(SeedGenerator):
                                 random_generator)
 
         return seeds
+
+
+class CustomSeedsGenerator(SeedGenerator):
+    """
+    Adaptation of the scilpy.tracking.seed.SeedGenerator interface for
+    using already generated, custom seeds.
+    """
+    def __init__(self, custom_seeds, voxres, origin, space):
+        """
+        Parameters
+        ----------
+        custom_seeds: list
+            Custom seeding coordinates.
+        """
+        self.voxres = voxres
+        self.origin = origin
+        self.space = space
+        self.seeds = custom_seeds
+        self.count = 0
+
+    def init_generator(self, rng_seed, numbers_to_skip):
+        """
+        Initialize a numpy number generator according to user's parameters.
+        Returns also the shuffled index of all fibertubes.
+
+        The values are not stored in this classed, but are returned to the
+        user, who should add them as arguments in the methods
+        self.get_next_pos()
+        self.get_next_n_pos()
+        The use of this is that with multiprocessing, each process may have its
+        own generator, with less risk of using the wrong one when they are
+        managed by the user.
+
+        Parameters
+        ----------
+        rng_seed : int
+            The "seed" for the random generator.
+        numbers_to_skip : int
+            Number of seeds (i.e. voxels) to skip. Useful if you want to
+            continue sampling from the same generator as in a first experiment
+            (with a fixed rng_seed).
+
+        Return
+        ------
+        random_generator : numpy random generator
+            Initialized numpy number generator.
+        indices : ndarray
+            Shuffled indices of current seeding map, shuffled with current
+            generator.
+        """
+        self.i = numbers_to_skip
+
+        return np.random.default_rng(rng_seed), []
+
+    def get_next_pos(self, random_generator: np.random.Generator,
+                     shuffled_indices, which_seed):
+        seed = self.seeds[self.i]
+        self.i += 1
+
+        print(seed)
+
+        return seed[0], seed[1], seed[2]
+
+    def get_next_n_pos(self, random_generator, shuffled_indices,
+                       which_seed_start, n):
+        seeds = self.seeds[self.i:self.i+n]
+        self.i += n
+
+        return seeds
