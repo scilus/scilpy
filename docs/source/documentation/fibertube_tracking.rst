@@ -258,6 +258,9 @@ the start or final segment of a fibertube in which is was not seeded.
 NC: "No Connection": A streamline whose arrival fibertube segment is
 not the start or final segment of any fibertube.
 
+.. image:: https://github.com/user-attachments/assets/ac36d847-2363-4b23-a69b-43c9d4d40b9a
+   :alt: Visualization of VC, IC and NC
+
 The "absolute error" of a coordinate is the distance in mm between that
 coordinate and the closest point on its corresponding fibertube. The
 average of all coordinate absolute errors of a streamline is called the
