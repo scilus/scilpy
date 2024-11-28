@@ -478,4 +478,4 @@ def endpoint_connectivity(blur_radius, centerlines, centerlines_length,
         else:
             nc.add(si)
 
-    return (list(vc), list(ic), list(nc))
+    return list(vc), list(ic), list(nc)
