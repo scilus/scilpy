@@ -210,13 +210,14 @@ def main():
     seed_res = seed_img.header.get_zooms()[:3]
     if args.in_custom_seeds:
         seeds = np.squeeze(load_matrix_in_any_format(args.in_custom_seeds))
-        seed_generator = CustomSeedsGenerator(seeds, seed_res, space=our_space, origin=our_origin)
+        seed_generator = CustomSeedsGenerator(seeds, seed_res, space=our_space,
+                                              origin=our_origin)
         nbr_seeds = len(seeds)
     else:
         seed_generator = SeedGenerator(seed_data, seed_res,
                                        space=our_space, origin=our_origin,
                                        n_repeats=args.n_repeats_per_seed)
-    
+
         if args.npv:
             # toDo. This will not really produce n seeds per voxel, only true
             #  in average.
@@ -227,8 +228,8 @@ def main():
             # Setting npv = 1.
             nbr_seeds = len(seed_generator.seeds_vox_corner)
         if len(seed_generator.seeds_vox_corner) == 0:
-            parser.error('Seed mask "{}" does not have any voxel with value > 0.'
-                        .format(args.in_seed))
+            parser.error('Seed mask "{}" does not have any voxel with'
+                         ' value > 0.'.format(args.in_seed))
 
     logging.info("Loading tracking mask.")
     mask_img = nib.load(args.in_mask)
