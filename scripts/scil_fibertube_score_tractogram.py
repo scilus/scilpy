@@ -210,11 +210,9 @@ def main():
                         bbox_valid_check=False)
 
     logging.debug("Computing endpoint connectivity")
-    vc, ic, nc = endpoint_connectivity(
-        step_size, blur_radius,
-        centerlines, centerlines_length,
-        diameters, streamlines,
-        seeds_fiber)
+    vc, ic, nc = endpoint_connectivity(blur_radius, centerlines,
+                                       centerlines_length, diameters,
+                                       streamlines, seeds_fiber)
 
     logging.debug("Computing reconstruction error")
     (mean_errors, error_tractogram) = mean_reconstruction_error(
