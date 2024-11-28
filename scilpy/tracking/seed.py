@@ -371,12 +371,15 @@ class CustomSeedsGenerator(SeedGenerator):
     Adaptation of the scilpy.tracking.seed.SeedGenerator interface for
     using already generated, custom seeds.
     """
-    def __init__(self, custom_seeds, voxres, origin, space):
+    def __init__(self, custom_seeds, voxres, space=Space('vox'),
+                 origin=Origin('center')):
         """
         Parameters
         ----------
         custom_seeds: list
             Custom seeding coordinates.
+        voxres: np.ndarray(3,)
+            The pixel resolution, ex, using img.header.get_zooms()[:3].
         """
         self.voxres = voxres
         self.origin = origin
@@ -386,16 +389,8 @@ class CustomSeedsGenerator(SeedGenerator):
 
     def init_generator(self, rng_seed, numbers_to_skip):
         """
-        Initialize a numpy number generator according to user's parameters.
-        Returns also the shuffled index of all fibertubes.
-
-        The values are not stored in this classed, but are returned to the
-        user, who should add them as arguments in the methods
-        self.get_next_pos()
-        self.get_next_n_pos()
-        The use of this is that with multiprocessing, each process may have its
-        own generator, with less risk of using the wrong one when they are
-        managed by the user.
+        Does not do anything. Simulates SeedGenerator's implementation for
+        retro-compatibility.
 
         Parameters
         ----------
@@ -411,8 +406,7 @@ class CustomSeedsGenerator(SeedGenerator):
         random_generator : numpy random generator
             Initialized numpy number generator.
         indices : ndarray
-            Shuffled indices of current seeding map, shuffled with current
-            generator.
+            Empty list for interface retro-compatibility
         """
         self.i = numbers_to_skip
 
@@ -422,8 +416,6 @@ class CustomSeedsGenerator(SeedGenerator):
                      shuffled_indices, which_seed):
         seed = self.seeds[self.i]
         self.i += 1
-
-        print(seed)
 
         return seed[0], seed[1], seed[2]
 
