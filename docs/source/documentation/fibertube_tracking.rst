@@ -243,34 +243,20 @@ Reconstruction analysis
 
 By using the ``scil_fibertube_score_tractogram.py`` script, you are able
 to obtain measures on the quality of the fibertube tracking that was
-performed. Here is a description of the computed metrics:
+performed.
 
-VC: "Valid Connection": A streamline that ended within the final segment
-of the fibertube in which it was seeded.
+Each streamline is associated with an "Arrival fibertube segment", which is
+the closest fibertube segment to its before-last coordinate. We then define
+the following terms:
 
-IC: "Invalid Connection": A streamline that ended in the first or final
-segment of another fibertube.
+VC: "Valid Connection": A streamline whose arrival fibertube segment is
+the final segment of the fibertube in which is was originally seeded.
 
-NC: "No Connection": A streamline that has not ended in the first or final
-segment of any fibertube.
+IC: "Invalid Connection": A streamline whose arrival fibertube segment is
+the start or final segment of a fibertube in which is was not seeded.
 
-.. image:: https://github.com/user-attachments/assets/bc61ce87-6581-4714-83d2-9602380f2697
-   :alt: Visual representation of VC, IC, and NC
-
-Res_VC: "Resolution-wise Valid Connection": A streamline that passes
-closer than [blur_darius] away from the last segment of the fibertube
-in which it was seeded.
-
-Res_IC: "Resolution-wise Invalid Connection": A streamline that passes
-closer than [blur_darius] away from the first or last segment of another
-fibertube.
-
-Res_NC: "Resolution-wise No Connection": A streamlines that does not pass
-closer than [blur_radius] away from the first or last segment of any
-fibertube.
-
-.. image:: https://github.com/user-attachments/assets/d8c1a376-e2b9-454c-9234-5a124bde3c02
-   :alt: Visual representation of Res_VC, Res_IC, and Res_NC
+NC: "No Connection": A streamline whose arrival fibertube segment is
+not the start or final segment of any fibertube.
 
 The "absolute error" of a coordinate is the distance in mm between that
 coordinate and the closest point on its corresponding fibertube. The
