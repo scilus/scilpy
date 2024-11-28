@@ -275,16 +275,16 @@ Here is a visual representation of streamlines (Green) tracked along a fibertube
 
 Computed metrics:
 
--  vc_ratio Number of VC divided by the number of streamlines.
--  ic_ratio Number of IC divided by the number of streamlines.
--  nc_ratio Number of NC divided by the number of streamlines.
--  res_vc_ratio Number of Res_VC divided by the number of streamlines.
--  res_ic_ratio Number of Res_IC divided by the number of streamlines.
--  res_nc_ratio Number of Res_NC divided by the number of streamlines.
--  mae_min Minimum MAE for the tractogram.
--  mae_max Maximum MAE for the tractogram.
--  mae_mean Average MAE for the tractogram.
--  mae_med Median MAE for the tractogram.
+-  vc_ratio: Number of VC divided by the number of streamlines.
+-  ic_ratio: Number of IC divided by the number of streamlines.
+-  nc_ratio: Number of NC divided by the number of streamlines.
+-  res_vc_ratio: Number of Res_VC divided by the number of streamlines.
+-  res_ic_ratio: Number of Res_IC divided by the number of streamlines.
+-  res_nc_ratio: Number of Res_NC divided by the number of streamlines.
+-  mae_min: Minimum MAE for the tractogram.
+-  mae_max: Maximum MAE for the tractogram.
+-  mae_mean: Average MAE for the tractogram.
+-  mae_med: Median MAE for the tractogram.
 
 To score the produced tractogram, we run:
 
