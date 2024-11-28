@@ -111,11 +111,10 @@ def fibertube_density(sft, samples_per_voxel_axis, verbose=False):
 
         voxel_samples = np.reshape(samples[i][j][k], (-1, 3))
 
-        # Returns an list of lists of neighbor indexes.
+        # Returns an list of lists of neighbor indexes for each sample
         # Ex: [[265, 45, 0, 1231], [12, 67]]
-        all_sample_neighbors = tree.query_ball_point(voxel_samples,
-                                             max_seg_length/2+max_diameter/2,
-                                             workers=-1)
+        all_sample_neighbors = tree.query_ball_point(
+            voxel_samples, max_seg_length/2+max_diameter/2, workers=-1)
 
         nb_samples_in_fibertubes = 0
         # Set containing sets of fibertube indexes

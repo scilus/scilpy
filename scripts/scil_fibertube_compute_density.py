@@ -59,7 +59,7 @@ def _build_arg_parser():
                    help='Path of the output file containing central \n'
                         'tendency measures about collision density. \n'
                         '(Must be .json)')
-    
+
     add_overwrite_arg(p)
     add_verbose_arg(p)
     add_json_args(p)
@@ -111,7 +111,7 @@ def main():
      density_flat,
      collision_grid,
      collision_flat) = fibertube_density(sft, 10,
-                                          args.verbose == 'WARNING')
+                                         args.verbose == 'WARNING')
 
     logging.debug('Saving output')
     header = nib.nifti1.Nifti1Header()
@@ -139,8 +139,8 @@ def main():
                       sort_keys=args.sort_keys)
 
     if args.out_collision_map:
-        collision_img = nib.nifti1.Nifti1Image(collision_grid, sft.affine, header,
-                                             extra)
+        collision_img = nib.nifti1.Nifti1Image(collision_grid, sft.affine,
+                                               header, extra)
         nib.save(collision_img, args.out_collision_map)
 
     if args.out_collision_measures:
