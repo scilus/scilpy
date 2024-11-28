@@ -17,7 +17,7 @@ from scilpy.tractanalysis.todi import TrackOrientationDensityImaging
 
 def fibertube_density(sft, samples_per_voxel_axis, verbose=False):
     """
-    Estimates the per-voxel spatial density of a set of fibertubes. In other
+    Estimates the per-voxel volumetric density of a set of fibertubes. In other
     words, how much space is occupied by fibertubes and how much is emptiness.
 
     Works by building a binary mask segmenting voxels that contain at least
@@ -37,10 +37,17 @@ def fibertube_density(sft, samples_per_voxel_axis, verbose=False):
 
     Returns
     -------
-    density_3D: ndarray
-        Per-voxel spatial density of fibertubes as a 3D image.
+    density_grid: ndarray
+        Per-voxel volumetric density of fibertubes as a 3D image.
     density_flat: list
-        Per-voxel spatial density of fibertubes as a list, containing only
+        Per-voxel volumetric density of fibertubes as a list, containing only
+        the voxels that were valid in the binary mask (i.e. that contained
+        fibertubes). This is useful for calculating measurements on the
+        various density values, like mean, median, etc.
+    collision_grid: ndarray
+        Per-voxel density of fibertube collisions.
+    collision_flat: list
+        Per-voxel density of fibertubes collisions as a list, containing only
         the voxels that were valid in the binary mask (i.e. that contained
         fibertubes). This is useful for calculating measurements on the
         various density values, like mean, median, etc.
@@ -94,8 +101,11 @@ def fibertube_density(sft, samples_per_voxel_axis, verbose=False):
 
     density_grid = np.zeros(mask.shape)
     density_flat = []
+    collision_grid = np.zeros(mask.shape)
+    collision_flat = []
     # For each voxel, get density
-    for i, j, k in np.ndindex(mask.shape):
+    for i, j, k in tqdm_if_verbose(np.ndindex(mask.shape), verbose,
+                                   total=len(np.ravel(mask))):
         if not mask[i][j][k]:
             continue
 
@@ -103,30 +113,43 @@ def fibertube_density(sft, samples_per_voxel_axis, verbose=False):
 
         # Returns an list of lists of neighbor indexes.
         # Ex: [[265, 45, 0, 1231], [12, 67]]
-        all_segments = tree.query_ball_point(voxel_samples,
+        all_sample_neighbors = tree.query_ball_point(voxel_samples,
                                              max_seg_length/2+max_diameter/2,
                                              workers=-1)
 
         nb_samples_in_fibertubes = 0
-        for index, segments in enumerate(all_segments):
-            sample = voxel_samples[index]
-            for segi in segments:
+        # Set containing sets of fibertube indexes
+        # This way, each pair of fibertube is only entered once.
+        # This is unless there is a trio. Then the same colliding fibertubes
+        # may be entered more than once.
+        collisions = set()
+        for index, sample in enumerate(voxel_samples):
+            neigbors = all_sample_neighbors[index]
+            fibertubes_touching_sample = set()
+            for segi in neigbors:
                 fi = indices[segi][0]
                 pi = indices[segi][1]
                 centerline = sft.streamlines[fi]
                 radius = diameters[fi] / 2
 
-                dist, _, p = dist_point_segment(centerline[pi],
+                dist, _, _ = dist_point_segment(centerline[pi],
                                                 centerline[pi+1],
                                                 np.float32(sample))
 
                 if dist < radius:
-                    nb_samples_in_fibertubes += 1
+                    fibertubes_touching_sample.add(fi)
+
+            if len(fibertubes_touching_sample) > 0:
+                nb_samples_in_fibertubes += 1
+            if len(fibertubes_touching_sample) > 1:
+                collisions.add(frozenset(fibertubes_touching_sample))
 
         density_grid[i][j][k] = nb_samples_in_fibertubes / len(voxel_samples)
         density_flat.append(density_grid[i][j][k])
+        collision_grid[i][j][k] = len(collisions) / len(voxel_samples)
+        collision_flat.append(collision_grid[i][j][k])
 
-    return density_grid, density_flat
+    return density_grid, density_flat, collision_grid, collision_flat
 
 
 def min_external_distance(sft, verbose):

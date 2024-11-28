@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-Estimates the per-voxel spatial density of a set of fibertubes. In other
+Estimates the per-voxel volumetric density of a set of fibertubes. In other
 words, how much space is occupied by fibertubes and how much is emptiness.
 
 Works by building a binary mask segmenting voxels that contain at least
@@ -21,7 +21,7 @@ import argparse
 import logging
 import numpy as np
 
-from scilpy.io.streamlines import load_tractogram_with_reference
+from scilpy.io.streamlines import load_tractogram
 from scilpy.tractanalysis.fibertube_scoring import fibertube_density
 from scilpy.io.utils import (assert_inputs_exist,
                              assert_outputs_exist,
@@ -44,13 +44,22 @@ def _build_arg_parser():
                         'For both of these requirements, see \n'
                         'scil_tractogram_filter_collisions.py.')
 
-    p.add_argument('out_density', type=str,
-                   help='Path of the output density image file')
+    p.add_argument('--out_density_map', default=None, type=str,
+                   help='Path of the output volumetric density image file')
 
     p.add_argument('--out_density_measures', default=None, type=str,
                    help='Path of the output file containing central \n'
-                        'tendency measures. (Must be .json)')
+                        'tendency measures about volumetric density. \n'
+                        '(Must be .json)')
 
+    p.add_argument('--out_collision_map', default=None, type=str,
+                   help='Path of the output collision density image file')
+
+    p.add_argument('--out_collision_measures', default=None, type=str,
+                   help='Path of the output file containing central \n'
+                        'tendency measures about collision density. \n'
+                        '(Must be .json)')
+    
     add_overwrite_arg(p)
     add_verbose_arg(p)
     add_json_args(p)
@@ -65,6 +74,10 @@ def main():
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
     logging.getLogger('numba').setLevel(logging.WARNING)
 
+    if not (args.out_density_map or args.out_density_measures or
+            args.out_collision_map or args.out_collision_measures):
+        parser.error('No output argument given')
+
     if os.path.splitext(args.in_fibertubes)[1] != '.trk':
         parser.error('Invalid input streamline file format (must be trk):' +
                      '{0}'.format(args.in_fibertubes))
@@ -74,12 +87,18 @@ def main():
             parser.error('Invalid output file format (must be json): {0}'
                          .format(args.out_density_measures))
 
+    if args.out_collision_measures:
+        if os.path.splitext(args.out_collision_measures)[1] != '.json':
+            parser.error('Invalid output file format (must be json): {0}'
+                         .format(args.out_collision_measures))
+
     assert_inputs_exist(parser, args.in_fibertubes)
-    assert_outputs_exist(parser, args, [args.out_density],
-                         [args.out_density_measures])
+    assert_outputs_exist(parser, args, [],
+                         [args.out_density_map, args.out_density_measures,
+                          args.out_collision_map, args.out_collision_measures])
 
     logging.debug('Loading tractogram & diameters')
-    sft = load_tractogram_with_reference(parser, args, args.in_fibertubes)
+    sft = load_tractogram(args.in_fibertubes, 'same')
     sft.to_voxmm()
     sft.to_center()
 
@@ -88,10 +107,13 @@ def main():
                      args.in_fibertubes)
 
     logging.debug('Computing fibertube density')
-    density_3D, density_flat = fibertube_density(sft, 10,
-                                                 args.verbose == 'WARNING')
+    (density_grid,
+     density_flat,
+     collision_grid,
+     collision_flat) = fibertube_density(sft, 10,
+                                          args.verbose == 'WARNING')
 
-    logging.debug('Saving density image')
+    logging.debug('Saving output')
     header = nib.nifti1.Nifti1Header()
     extra = {
         'affine': sft.affine,
@@ -99,9 +121,11 @@ def main():
         'voxel_size': sft.voxel_sizes[0],
         'voxel_order': "RAS"
     }
-    density_img = nib.nifti1.Nifti1Image(density_3D, sft.affine, header,
-                                         extra)
-    nib.save(density_img, args.out_density)
+
+    if args.out_density_map:
+        density_img = nib.nifti1.Nifti1Image(density_grid, sft.affine, header,
+                                             extra)
+        nib.save(density_img, args.out_density_map)
 
     if args.out_density_measures:
         density_measures = {
@@ -112,6 +136,22 @@ def main():
         }
         with open(args.out_density_measures, 'w') as file:
             json.dump(density_measures, file, indent=args.indent,
+                      sort_keys=args.sort_keys)
+
+    if args.out_collision_map:
+        collision_img = nib.nifti1.Nifti1Image(collision_grid, sft.affine, header,
+                                             extra)
+        nib.save(collision_img, args.out_collision_map)
+
+    if args.out_collision_measures:
+        collision_measures = {
+            'mean': np.mean(collision_flat),
+            'median': np.median(collision_flat),
+            'max': np.max(collision_flat),
+            'min': np.min(collision_flat),
+        }
+        with open(args.out_collision_measures, 'w') as file:
+            json.dump(collision_measures, file, indent=args.indent,
                       sort_keys=args.sort_keys)
 
 
