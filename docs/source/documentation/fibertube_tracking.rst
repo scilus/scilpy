@@ -147,10 +147,6 @@ Fibertube metrics
 Before we get into tracking. Here is an overview of the metrics that we
 saved in ``metrics.json``. (Values expressed in mm):
 
--  ``fibertube_density``:
-   Estimate of the following ratio: volume of fibertubes / total volume
-   where the total volume is the combined volume of all voxels containing
-   at least one fibertube.
 -  ``min_external_distance``: Smallest distance separating two
    fibertubes, outside their diameter.
 -  ``max_voxel_anisotropic``: Diagonal vector of the largest possible
@@ -278,9 +274,6 @@ Computed metrics:
 -  vc_ratio: Number of VC divided by the number of streamlines.
 -  ic_ratio: Number of IC divided by the number of streamlines.
 -  nc_ratio: Number of NC divided by the number of streamlines.
--  res_vc_ratio: Number of Res_VC divided by the number of streamlines.
--  res_ic_ratio: Number of Res_IC divided by the number of streamlines.
--  res_nc_ratio: Number of Res_NC divided by the number of streamlines.
 -  mae_min: Minimum MAE for the tractogram.
 -  mae_max: Maximum MAE for the tractogram.
 -  mae_mean: Average MAE for the tractogram.
@@ -297,22 +290,20 @@ giving us the following output in ``reconstruction_metrics.json``:
 ::
 
    {
-     "vc_ratio": 0.0,
-     "ic_ratio": 0.0,
-     "nc_ratio": 1.0,
-     "res_vc_ratio": 0.3333333333333333,
-     "res_ic_ratio": 0.3333333333333333,
-     "res_nc_ratio": 0.3333333333333333,
+     "vc_ratio": 0.3333333333333333,
+     "ic_ratio": 0.4,
+     "nc_ratio": 0.26666666666666666,
      "mae_min": 0.004093314514974615,
      "mae_max": 10.028780087103556,
      "mae_mean": 3.055598084631571,
      "mae_med": 0.9429987731800447
    }
 
-This data tells us that none of our 15 streamlines managed to stay
-within the fibertube in which they were seeded (``"vc_ratio": 0.0``).
-However, 1/3 of streamlines ended closer than one ``blur_radius`` away from
-the end of their respective fibertube (``"res_vc_ratio": 0.3333333333333333``).
+This data tells us that 1/3 of streamlines had the end of their own fibertube as
+their arrival fibertube segment (``"vc_ratio": 0.3333333333333333``).
+For 40% of streamlines, their arrival fibertube segment was the start or end of
+another fibertube (``"ic_ratio": 0.4``). 26% of streamlines had an arrival fibertube
+segment that was not a start or end segment (``"nc_ratio": 0.26666666666666666``).
 Lastly, we notice that the streamline with the "worst" trajectory was on average
 ~10.03mm away from its fibertube (``"mae_max": 10.028780087103556``).
 
