@@ -187,7 +187,6 @@ def main():
     logging.debug("Loading config")
     with open(args.in_config, 'r') as f:
         config = json.load(f)
-    step_size = float(config['step_size'])
     blur_radius = float(config['blur_radius'])
 
     if len(seeds_fiber) != len(streamlines):
