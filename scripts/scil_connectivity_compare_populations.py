@@ -23,7 +23,7 @@ Options:
 matrices before performing the statistical comparison. Reduces the number of
 statistical tests, useful when using --fdr or --bonferroni.
 
---paired with use a paired t-test. Then both groups must have the same number
+--paired will use a paired t-test. Then both groups must have the same number
 of observations (subjects). They must be listed in the right order using --g1
 and --g2.
 

@@ -5,7 +5,7 @@
 Normalize a connectivity matrix coming from
 scil_tractogram_segment_connections_from_labels.py.
 
-3 categories of normalization are available, with option for each. You may
+3 categories of normalization are available, with options for each. You may
 choose any number of non-mutually exclusive options:
 -- Edge attributes
  - length: Multiply each edge by the average bundle length.
