@@ -440,12 +440,13 @@ def endpoint_connectivity(blur_radius, centerlines, centerlines_length,
     ic = set()
     nc = set()
 
+    # streamline[1] is the last point with a valid direction
+    all_neighbors = tree.query_radius(
+        streamlines[:, 1], blur_radius + max_seg_length / 2 + max_diameter)
+
     for si, streamline in enumerate(streamlines):
         seed_fi = seeds_fiber[si]
-
-        # streamline[1] is the last point with a valid direction
-        neighbors = tree.query_radius(
-            streamline[1], blur_radius + max_seg_length / 2 + max_diameter)[0]
+        neighbors = all_neighbors[si]
 
         min_dist = np.inf
         min_seg = 0
