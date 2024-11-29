@@ -2,20 +2,30 @@
 # -*- coding: utf-8 -*-
 
 """
-Performs a network-based statistical comparison for populations g1 and g2. The
-output is a matrix of the same size as the input connectivity matrices, with
-p-values at each edge.
-All input matrices must have the same shape (NxN). For paired t-test, both
-groups must have the same number of observations.
+Performs a statistical comparison between connectivity matrices for populations
+g1 and g2, using a t-test.
+
+The inputs are any connectivity matrix, that can be obtained with
+scil_connectivity_compute_matrices.py, used separately on the two populations.
+All input matrices must have the same shape (NxN).
+
+The output is a matrix of the same size as the input connectivity matrices,
+with p-values at each connection (edge).
 
 For example, if you have streamline count weighted matrices for a MCI and a
-control group and you want to investiguate differences in their connectomes:
+control group, and you want to investiguate differences in their connectomes:
    >>> scil_connectivity_compare_populations.py pval.npy
            --g1 MCI/*_sc.npy --g2 CTL/*_sc.npy
+
+Options:
 
 --filtering_mask will simply multiply the binary mask to all input
 matrices before performing the statistical comparison. Reduces the number of
 statistical tests, useful when using --fdr or --bonferroni.
+
+--paired with use a paired t-test. Then both groups must have the same number
+of observations (subjects). They must be listed in the right order using --g1
+and --g2.
 
 Formerly: scil_compare_connectivity.py
 """
@@ -53,9 +63,11 @@ def _build_arg_parser():
                    help='Output matrix (.npy) containing the edges p-value.')
 
     p.add_argument('--in_g1', nargs='+', required=True,
-                   help='List of matrices for the first population (.npy).')
+                   help='List of matrices for each subject in the first '
+                        'population (.npy).\n')
     p.add_argument('--in_g2', nargs='+', required=True,
-                   help='List of matrices for the second population (.npy).')
+                   help='List of matrices for each subject in the second '
+                        'population (.npy).')
     p.add_argument('--tail', choices=['left', 'right', 'both'], default='both',
                    help='Enables specification of an alternative hypothesis:\n'
                         'left: mean of g1 < mean of g2,\n'
@@ -94,8 +106,7 @@ def main():
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
-    assert_inputs_exist(parser, args.in_g1+args.in_g2,
-                        args.filtering_mask)
+    assert_inputs_exist(parser, args.in_g1+args.in_g2, args.filtering_mask)
     assert_outputs_exist(parser, args, args.out_pval_matrix)
 
     if args.filtering_mask:
