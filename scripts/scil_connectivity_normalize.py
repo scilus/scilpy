@@ -4,7 +4,9 @@
 """
 Normalize a connectivity matrix coming from
 scil_tractogram_segment_connections_from_labels.py.
-3 categories of normalization are available:
+
+3 categories of normalization are available, with option for each. You may
+choose any number of non-mutually exclusive options:
 -- Edge attributes
  - length: Multiply each edge by the average bundle length.
    Compensate for far away connections when using interface seeding.
@@ -31,10 +33,10 @@ scil_tractogram_segment_connections_from_labels.py.
  - sum_to_one: Ensure the sum of all edges weight is one
  - log_10: Apply a base 10 logarithm to all edges weight
 
-The volume and length matrix should come from the
+The volume and length matrices should come from the
 scil_tractogram_segment_connections_from_labels.py script.
 
-A review of the type of normalization is available in:
+A review of the types of normalization is available in:
 Colon-Perez, Luis M., et al. "Dimensionless, scale-invariant, edge weight
 metric for the study of complex structural networks." PLOS one 10.7 (2015).
 
@@ -83,13 +85,14 @@ def _build_arg_parser():
                         help='Volume matrix used for edge-wise division.')
 
     vol = edge_p.add_mutually_exclusive_group()
-    # toDo. Same description for the two options
     vol.add_argument('--parcel_volume', nargs=2,
                      metavar=('ATLAS', 'LABELS_LIST'),
-                     help='Atlas and labels list for edge-wise division.')
+                     help='Atlas and labels list for edge-wise division by \n'
+                          'the sum of node volum.')
     vol.add_argument('--parcel_surface', nargs=2,
                      metavar=('ATLAS', 'LABELS_LIST'),
-                     help='Atlas and labels list for edge-wise division.')
+                     help='Atlas and labels list for edge-wise division by \n'
+                          'the sum of the node surface.')
 
     scaling_p = p.add_argument_group('Scaling options')
     scale = scaling_p.add_mutually_exclusive_group()
