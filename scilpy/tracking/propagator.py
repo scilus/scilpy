@@ -582,6 +582,10 @@ class FibertubePropagator(AbstractPropagator):
     uses the volume of intersection between fibertube segments and the
     blurring sphere as a random distribution for picking a segment. This
     segment is then used as the propagation direction.
+
+    This propagator does NOT map the obtained directions on a discretized
+    sphere. If it did, it would be called an ftOD.
+    (see FibertubeFTODPropagator)
     """
     def __init__(self, datavolume: FibertubeDataVolume, step_size, rk_order,
                  theta, space, origin):
@@ -687,3 +691,24 @@ class FibertubePropagator(AbstractPropagator):
         valid_volumes = np.array(valid_volumes)
 
         return valid_dirs, valid_volumes
+
+
+class FibertubeFTODPropagator(ODFPropagator):
+    """
+    Fibertube propagator that maps local fibertube orientations on a sphere,
+    giving us a Fibertube Orientation Distribution (ftOD). This distribution
+    is still weighted by the volumes of each fibertube.
+
+    # TODO This may be completely false. To be updated after I'm done coding it.
+    This propagator is probabilistic and does the following steps:
+        - Compute the ftOD as a spherical function (SF)
+        - Transform the ftOD to a spherical harmonics (SH) representation
+        - Transform the ftOD back to a spherical function
+        - Sample a direction on the sphere
+
+    The reason for this use of ftOD is to study, across scales, the effect of
+    approximating fODFs with spherical harmonics.
+
+    Simply building a spherical function from the fibertubes' orientation and
+    volume is expected to be similar to the usual Fibertube Propagator.
+    """
