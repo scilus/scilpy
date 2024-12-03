@@ -20,7 +20,7 @@ import nibabel as nib
 import numpy as np
 
 from scilpy.image.labels import get_data_as_labels, get_stats_in_label
-from scilpy.io.utils import (add_overwrite_arg, add_verbose_arg,
+from scilpy.io.utils import (add_json_args, add_overwrite_arg, add_verbose_arg,
                              assert_inputs_exist, assert_headers_compatible)
 from scilpy.utils.filenames import split_name_with_nii
 
@@ -43,7 +43,7 @@ def _build_arg_parser():
                     metavar='file',
                     help='Metrics nifti filename. List of the names of the '
                          'metrics file, \nin nifti format.')
-
+    add_json_args(p)
     add_verbose_arg(p)
     add_overwrite_arg(p)
 
@@ -69,7 +69,8 @@ def main():
                                   for f in tmp_file_list]
     else:
         assert_inputs_exist(parser, [args.in_labels] + args.metrics_file_list)
-    assert_headers_compatible(parser, [args.in_labels] + args.metrics_file_list)
+    assert_headers_compatible(parser,
+                              [args.in_labels] + args.metrics_file_list)
 
     # Loading
     label_data = get_data_as_labels(nib.load(args.in_labels))
@@ -90,7 +91,7 @@ def main():
 
     if len(args.metrics_file_list) == 1:
         json_stats = json_stats[metric_name]
-    print(json.dumps(json_stats))
+    print(json.dumps(json_stats, indent=args.indent, sort_keys=args.sort_keys))
 
 
 if __name__ == "__main__":
