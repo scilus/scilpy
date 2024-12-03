@@ -96,7 +96,8 @@ class VotingScheme(object):
 
         return model_bundles_dict, bundle_names, bundle_counts
 
-    def _find_max_in_sparse_matrix(self, bundle_id, min_vote, bundles_wise_vote):
+    def _find_max_in_sparse_matrix(self, bundle_id, min_vote,
+                                   bundles_wise_vote):
         """
         Will find the maximum values of a specific row (bundle_id), make
         sure they are the maximum values across bundles (argmax) and above the
@@ -147,22 +148,24 @@ class VotingScheme(object):
                 bundles_wise_vote)
 
             if not streamlines_id.size:
-                logging.error('{0} final recognition got {1} streamlines'.format(
-                              bundle_names[bundle_id], len(streamlines_id)))
+                logging.error('{0} final recognition got {1} streamlines'
+                              .format(bundle_names[bundle_id],
+                                      len(streamlines_id)))
                 continue
             else:
-                logging.info('{0} final recognition got {1} streamlines'.format(
-                             bundle_names[bundle_id], len(streamlines_id)))
+                logging.info('{0} final recognition got {1} streamlines'
+                             .format(bundle_names[bundle_id],
+                                     len(streamlines_id)))
 
             # All models of the same bundle have the same basename
-            basename = os.path.join(self.output_directory,
-                                    os.path.splitext(bundle_names[bundle_id])[0])
+            basename = os.path.join(
+                self.output_directory,
+                os.path.splitext(bundle_names[bundle_id])[0])
             new_sft = sft[streamlines_id.T]
             new_sft.remove_invalid_streamlines()
             save_tractogram(new_sft, basename + extension)
 
-            curr_results_dict = {}
-            curr_results_dict['indices'] = streamlines_id.tolist()
+            curr_results_dict = {'indices': streamlines_id.tolist()}
             results_dict[basename] = curr_results_dict
 
         out_logfile = os.path.join(self.output_directory, 'results.json')
@@ -238,16 +241,27 @@ class VotingScheme(object):
         rbx = RecobundlesX(tmp_memmap_filenames,
                            clusters_indices, centroids)
 
-        # Update all RecobundlesX initialisation into a single dictionnary
-        pool = multiprocessing.Pool(nbr_processes)
-        all_recognized_dict = pool.map(single_recognize,
-                                       zip(repeat(rbx),
-                                           model_bundles_dict.keys(),
-                                           model_bundles_dict.values(),
-                                           repeat(bundle_names),
-                                           repeat([seed])))
-        pool.close()
-        pool.join()
+        # Separating the case nbr_processes=1 to help get good coverage metrics
+        # (codecov does not deal well with multiprocessing)
+        if nbr_processes == 1:
+            all_recognized = []
+            for model_filepath, val in zip(model_bundles_dict.keys(),
+                                           model_bundles_dict.values()):
+                bundle_pruning_thr, model_bundle = val
+                all_recognized.append(
+                    single_recognize(rbx, model_filepath, model_bundle,
+                                     bundle_pruning_thr, bundle_names, seed))
+        else:
+            # Update all RecobundlesX initialisation into a single list
+            pool = multiprocessing.Pool(nbr_processes)
+            all_recognized = pool.map(single_recognize_parallel,
+                                      zip(repeat(rbx),
+                                          model_bundles_dict.keys(),
+                                          model_bundles_dict.values(),
+                                          repeat(bundle_names),
+                                          repeat(seed)))
+            pool.close()
+            pool.join()
         tmp_dir.cleanup()
 
         logging.info('RBx took {0} sec. for {1} bundles from {2} atlas'.format(
@@ -260,11 +274,11 @@ class VotingScheme(object):
                                         len_wb_streamlines),
                                        dtype=np.uint8)
 
-        for bundle_id, recognized_indices in all_recognized_dict:
-            if recognized_indices is not None:
-                tmp_values = bundles_wise_vote[bundle_id, recognized_indices.T]
+        for bundle_id, recognized_ind in all_recognized:
+            if recognized_ind is not None:
+                tmp_values = bundles_wise_vote[bundle_id, recognized_ind.T]
                 bundles_wise_vote[bundle_id,
-                                  recognized_indices.T] = tmp_values.toarray() + 1
+                                  recognized_ind.T] = tmp_values.toarray() + 1
         bundles_wise_vote = bundles_wise_vote.tocsr()
 
         # Once everything was run, save the results using a voting system
@@ -283,9 +297,21 @@ class VotingScheme(object):
             round(time() - save_timer, 2)))
 
 
-def single_recognize(args):
+def single_recognize_parallel(args):
+    """Wrapper function to multiprocess recobundles execution."""
+    rbx = args[0]
+    model_filepath = args[1]
+    bundle_pruning_thr, model_bundle = args[2]
+    bundle_names = args[3]
+    seed = args[4]
+    return single_recognize(rbx, model_filepath, model_bundle,
+                            bundle_pruning_thr, bundle_names, seed)
+
+
+def single_recognize(rbx, model_filepath, model_bundle, bundle_pruning_thr,
+                     bundle_names, seed):
     """
-    Wrapper function to multiprocess recobundles execution.
+    Recobundle for a single bundle.
 
     Parameters
     ----------
@@ -293,11 +319,10 @@ def single_recognize(args):
         Initialize RBx object with QBx ClusterMap as values
     model_filepath : str
         Path to the model bundle file
-    params : tuple
-        bundle_pruning_thr : float
-            Threshold for pruning the model bundle
-        streamlines: ArraySequence
-            Streamlines of the model bundle
+    model_bundle: ArraySequence
+        Model bundle.
+    bundle_pruning_thr : float
+        Threshold for pruning the model bundle
     bundle_names : list
         List of string with bundle names for models (to get bundle_id)
     seed : int
@@ -305,18 +330,12 @@ def single_recognize(args):
 
     Returns
     -------
-    transf_neighbor : tuple
-        bundle_id : (int)
-            Unique value to each bundle to identify them.
-        recognized_indices : (numpy.ndarray)
-            Streamlines indices from the original tractogram.
+    bundle_id : int
+        Unique value to each bundle to identify them.
+    recognized_indices : numpy.ndarray
+        Streamlines indices from the original tractogram.
     """
-    rbx = args[0]
-    model_filepath = args[1]
-    bundle_pruning_thr = args[2][0]
-    model_bundle = args[2][1]
-    bundle_names = args[3]
-    np.random.seed(args[4][0])
+    np.random.seed(seed)
 
     # Use for logging and finding the bundle_id
     shorter_tag, ext = os.path.splitext(os.path.basename(model_filepath))

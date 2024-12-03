@@ -163,7 +163,7 @@ def main():
     # Computing maps
     if args.nufo or args.afd_max or args.afd_total or args.afd_sum or args.rgb:
         nufo_map, afd_max, afd_sum, rgb_map, \
-            _, _ = maps_from_sh(data, peak_dirs, peak_values, peak_indices,
+            _, _ = maps_from_sh(data, peak_values, peak_indices,
                                 sphere, nbr_processes=args.nbr_processes)
 
         # Save result

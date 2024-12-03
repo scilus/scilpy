@@ -204,6 +204,16 @@ def test_resample_volume():
     assert_equal(resampled_img.get_fdata(), ref3d)
     assert resampled_img.affine[0, 0] == 3
 
+    # 4) Same test, with a fake 4th dimension
+    moving3d = np.stack((moving3d, moving3d), axis=-1)
+    moving3d_img = nib.Nifti1Image(moving3d, np.eye(4))
+    resampled_img = resample_volume(moving3d_img, voxel_res=(3, 3, 3),
+                                    interp='nn')
+    result = resampled_img.get_fdata()
+    assert_equal(result[:, :, :, 0], ref3d)
+    assert_equal(result[:, :, :, 1], ref3d)
+    assert resampled_img.affine[0, 0] == 3
+
 
 def test_reshape_volume_pad():
     # 3D img
