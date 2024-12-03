@@ -21,5 +21,5 @@ def test_execution(script_runner, monkeypatch):
     in_atlas = os.path.join(SCILPY_HOME, 'plot', 'atlas_brainnetome.nii.gz')
     atlas_lut = os.path.join(SCILPY_HOME, 'plot', 'atlas_brainnetome.json')
     ret = script_runner.run('scil_volume_stats_in_labels.py',
-                            in_atlas, atlas_lut, in_map)
+                            in_atlas, atlas_lut, "--metrics", in_map)
     assert ret.success

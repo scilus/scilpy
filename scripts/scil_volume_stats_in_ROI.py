@@ -125,7 +125,7 @@ def main():
                                     .format(os.path.basename(f)))
                 mean, std = weighted_mean_std(roi_data, data)
                 json_stats[roi_name][metric_name] = {'mean': mean,
-                                                    'std': std}
+                                                     'std': std}
             else:
                 parser.error(
                     'Metric {} is not a 3D image ({}D shape).'
