@@ -22,6 +22,8 @@ from scilpy.utils.filenames import split_name_with_nii
 from scilpy.utils.spatial import RAS_AXES_NAMES
 
 
+FLOATING_POINTS_PRECISION = 12
+
 eddy_options = ["mb", "mb_offs", "slspec", "mporder", "s2v_lambda", "field",
                 "field_mat", "flm", "slm", "fwhm", "niter", "s2v_niter",
                 "cnr_maps", "residuals", "fep", "interp", "s2v_interp",
@@ -274,6 +276,14 @@ def add_skip_b0_check_arg(parser, will_overwrite_with_min,
 
     parser.add_argument(
         '--skip_b0_check', action='store_true', help=msg)
+
+
+def add_precision_arg(parser):
+    parser.add_argument('--precision', type=ranged_type(int, 1),
+                        default=FLOATING_POINTS_PRECISION,
+                        help='Precision for floating point values. Numbers '
+                             'are rounded up to \nthe number of decimals '
+                             'provided. [Default: %(default)s]')
 
 
 def add_verbose_arg(parser):
@@ -715,6 +725,37 @@ def assert_inputs_exist(parser, required, optional=None):
     def check(path):
         if not os.path.isfile(path):
             parser.error('Input file {} does not exist'.format(path))
+
+    if isinstance(required, str):
+        required = [required]
+
+    if isinstance(optional, str):
+        optional = [optional]
+
+    for required_file in required:
+        check(required_file)
+    for optional_file in optional or []:
+        if optional_file is not None:
+            check(optional_file)
+
+
+def assert_inputs_dirs_exist(parser, required, optional=None):
+    """
+    Assert that all inputs directories exist. If not, print parser's usage and
+    exit.
+
+    Parameters
+    ----------
+    parser: argparse.ArgumentParser object
+        Parser.
+    required: string or list of paths
+        Required paths to be checked.
+    optional: string or list of paths
+        Optional paths to be checked.
+    """
+    def check(path):
+        if not os.path.isdir(path):
+            parser.error('Input directory {} does not exist'.format(path))
 
     if isinstance(required, str):
         required = [required]
