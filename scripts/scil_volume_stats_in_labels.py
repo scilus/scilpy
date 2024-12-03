@@ -71,7 +71,6 @@ def main():
         assert_inputs_exist(parser, [args.in_labels] + args.metrics_file_list)
     assert_headers_compatible(parser, [args.in_labels] + args.metrics_file_list)
 
-
     # Loading
     label_data = get_data_as_labels(nib.load(args.in_labels))
     with open(args.in_labels_lut) as f:
@@ -88,7 +87,7 @@ def main():
         # Process
         out_dict = get_stats_in_label(metric_data, label_data, label_dict)
         json_stats[metric_name] = out_dict
-    
+
     if len(args.metrics_file_list) == 1:
         json_stats = json_stats[metric_name]
     print(json.dumps(json_stats))
