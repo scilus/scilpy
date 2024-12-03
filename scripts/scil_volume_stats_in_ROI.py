@@ -97,19 +97,19 @@ def main():
         # Discussion about the way the normalization is done.
         # https://github.com/scilus/scilpy/pull/202#discussion_r411355609
         # Summary:
-        # 1) We don't want to normalize with data = (data-min) / (max-min) because
-        # it zeroes out the minimal values of the array. This is not a large error
-        # source, but not preferable.
-        # 2) data = data / max(data) or data = data / sum(data): in practice, when
-        # we use them in numpy using their weights argument, leads to the same
-        # result.
+        # 1) We don't want to normalize with data = (data-min) / (max-min)
+        # because it zeroes out the minimal values of the array. This is
+        # not a large error source, but not preferable.
+        # 2) data = data / max(data) or data = data / sum(data): in practice,
+        # when we use them in numpy using their weights argument, leads to the
+        # same result.
         if args.normalize_weights:
             roi_data /= np.max(roi_data)
         elif args.bin:
             roi_data[np.where(roi_data > 0.0)] = 1.0
         elif np.min(roi_data) < 0.0 or np.max(roi_data) > 1.0:
-            parser.error('ROI {} data should only contain values between 0 and 1. '
-                         'Try --normalize_weights.'
+            parser.error('ROI {} data should only contain values between 0 '
+                         'and 1. Try --normalize_weights.'
                          .format(roi_filename))
 
         # Load and process all metrics files.
