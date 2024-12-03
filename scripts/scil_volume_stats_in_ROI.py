@@ -33,7 +33,7 @@ def _build_arg_parser():
     p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawTextHelpFormatter)
 
-    p.add_argument('in_masks', nargs='+',
+    p.add_argument('in_rois', nargs='+',
                    help='Mask volume filenames.\nCan be binary masks or '
                         'weighted masks.')
 
@@ -74,24 +74,24 @@ def main():
         if not os.path.exists(args.metrics_dir):
             parser.error("Metrics directory does not exist: {}"
                          .format(args.metrics_dir))
-        assert_inputs_exist(parser, args.in_masks)
+        assert_inputs_exist(parser, args.in_rois)
 
         tmp_file_list = glob.glob(os.path.join(args.metrics_dir, '*nii.gz'))
         args.metrics_file_list = [os.path.join(args.metrics_dir, f)
                                   for f in tmp_file_list]
     else:
-        assert_inputs_exist(parser, args.in_masks + args.metrics_file_list)
-    assert_headers_compatible(parser, args.in_masks + args.metrics_file_list)
+        assert_inputs_exist(parser, args.in_rois + args.metrics_file_list)
+    assert_headers_compatible(parser, args.in_rois + args.metrics_file_list)
 
     # Computing stats for all masks and metrics files
     json_stats = {}
-    for mask_filename in args.in_masks:
-        mask_data = nib.load(mask_filename).get_fdata(dtype=np.float32)
-        if len(mask_data.shape) > 3:
+    for roi_filename in args.in_rois:
+        roi_data = nib.load(roi_filename).get_fdata(dtype=np.float32)
+        if len(roi_data.shape) > 3:
             parser.error('Mask should be a 3D image.')
-        if np.min(mask_data) < 0:
+        if np.min(roi_data) < 0:
             parser.error('Mask should not contain negative values.')
-        roi_name = split_name_with_nii(os.path.basename(mask_filename))[0]
+        roi_name = split_name_with_nii(os.path.basename(roi_filename))[0]
 
         # Discussion about the way the normalization is done.
         # https://github.com/scilus/scilpy/pull/202#discussion_r411355609
@@ -103,10 +103,10 @@ def main():
         # we use them in numpy using their weights argument, leads to the same
         # result.
         if args.normalize_weights:
-            mask_data /= np.max(mask_data)
+            roi_data /= np.max(roi_data)
         elif args.bin:
-            mask_data[np.where(mask_data > 0.0)] = 1.0
-        elif np.min(mask_data) < 0.0 or np.max(mask_data) > 1.0:
+            roi_data[np.where(roi_data > 0.0)] = 1.0
+        elif np.min(roi_data) < 0.0 or np.max(roi_data) > 1.0:
             parser.error('Mask data should only contain values between 0 and 1. '
                         'Try --normalize_weights.')
 
@@ -121,7 +121,7 @@ def main():
                     logging.warning("Metric '{}' contains some NaN. Ignoring "
                                     "voxels with NaN."
                                     .format(os.path.basename(f)))
-                mean, std = weighted_mean_std(mask_data, data)
+                mean, std = weighted_mean_std(roi_data, data)
                 json_stats[roi_name][metric_name] = {'mean': mean,
                                                     'std': std}
             else:
@@ -130,7 +130,7 @@ def main():
                     .format(f, len(metric_img.shape)))
 
 
-    if len(args.in_masks) == 1:
+    if len(args.in_rois) == 1:
         json_stats = json_stats[roi_name]
     # Print results
     print(json.dumps(json_stats, indent=args.indent, sort_keys=args.sort_keys))
