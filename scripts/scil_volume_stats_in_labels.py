@@ -11,8 +11,10 @@ Formerly: scil_compute_seed_by_labels.py
 """
 
 import argparse
+import glob
 import json
 import logging
+import os
 
 import nibabel as nib
 import numpy as np
@@ -20,6 +22,7 @@ import numpy as np
 from scilpy.image.labels import get_data_as_labels, get_stats_in_label
 from scilpy.io.utils import (add_overwrite_arg, add_verbose_arg,
                              assert_inputs_exist, assert_headers_compatible)
+from scilpy.utils.filenames import split_name_with_nii
 
 
 def _build_arg_parser():
@@ -30,8 +33,16 @@ def _build_arg_parser():
     p.add_argument('in_labels_lut',
                    help='Path of the LUT file corresponding to labels,'
                         'used to name the regions of interest.')
-    p.add_argument('in_map',
-                   help='Path of the input map file. Expecting a 3D file.')
+
+    g = p.add_argument_group('Metrics input options')
+    gg = g.add_mutually_exclusive_group(required=True)
+    gg.add_argument('--metrics_dir', metavar='dir',
+                    help='Name of the directory containing metrics files: '
+                         'we will \nload all nifti files.')
+    gg.add_argument('--metrics', dest='metrics_file_list', nargs='+',
+                    metavar='file',
+                    help='Metrics nifti filename. List of the names of the '
+                         'metrics file, \nin nifti format.')
 
     add_verbose_arg(p)
     add_overwrite_arg(p)
@@ -45,21 +56,42 @@ def main():
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     # Verifications
-    assert_inputs_exist(parser,
-                        [args.in_labels, args.in_map, args.in_labels_lut])
-    assert_headers_compatible(parser, [args.in_labels, args.in_map])
+
+    # Get input list. Either all files in dir or given list.
+    if args.metrics_dir:
+        if not os.path.exists(args.metrics_dir):
+            parser.error("Metrics directory does not exist: {}"
+                         .format(args.metrics_dir))
+        assert_inputs_exist(parser, [args.in_labels, args.in_labels_lut])
+
+        tmp_file_list = glob.glob(os.path.join(args.metrics_dir, '*nii.gz'))
+        args.metrics_file_list = [os.path.join(args.metrics_dir, f)
+                                  for f in tmp_file_list]
+    else:
+        assert_inputs_exist(parser, [args.in_labels] + args.metrics_file_list)
+    assert_headers_compatible(parser, [args.in_labels] + args.metrics_file_list)
+
 
     # Loading
     label_data = get_data_as_labels(nib.load(args.in_labels))
     with open(args.in_labels_lut) as f:
         label_dict = json.load(f)
-    map_data = nib.load(args.in_map).get_fdata(dtype=np.float32)
-    if len(map_data.shape) > 3:
-        parser.error('Mask should be a 3D image.')
 
-    # Process
-    out_dict = get_stats_in_label(map_data, label_data, label_dict)
-    print(json.dumps(out_dict))
+    # Computing stats for all metrics files
+    json_stats = {}
+    for metric_filename in args.metrics_file_list:
+        metric_data = nib.load(metric_filename).get_fdata(dtype=np.float32)
+        metric_name = split_name_with_nii(os.path.basename(metric_filename))[0]
+        if len(metric_data.shape) > 3:
+            parser.error('Mask should be a 3D image.')
+
+        # Process
+        out_dict = get_stats_in_label(metric_data, label_data, label_dict)
+        json_stats[metric_name] = out_dict
+    
+    if len(args.metrics_file_list) == 1:
+        json_stats = json_stats[metric_name]
+    print(json.dumps(json_stats))
 
 
 if __name__ == "__main__":
