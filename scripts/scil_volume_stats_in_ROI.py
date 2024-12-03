@@ -3,11 +3,11 @@
 
 """
 Compute the statistics (mean, std) of scalar maps, which can represent
-diffusion metrics, in a ROI. Prints the results.
+diffusion metrics, in ROIs. Prints the results.
 
-The mask can either be a binary mask, or a weighting mask. If the mask is
-a weighting mask it should either contain floats between 0 and 1 or should be
-normalized with --normalize_weights. IMPORTANT: if the mask contains weights
+The ROIs can either be a binary masks, or a weighting masks. If the ROIs are
+ weighting masks it should either contain floats between 0 and 1 or should be
+normalized with --normalize_weights. IMPORTANT: if the ROIs contain weights
 (and not 0 and 1 exclusively), the standard deviation will also be weighted.
 """
 
@@ -34,7 +34,7 @@ def _build_arg_parser():
                                 formatter_class=argparse.RawTextHelpFormatter)
 
     p.add_argument('in_rois', nargs='+',
-                   help='Mask volume filenames.\nCan be binary masks or '
+                   help='ROIs volume filenames.\nCan be binary masks or '
                         'weighted masks.')
 
     g = p.add_argument_group('Metrics input options')
@@ -83,14 +83,15 @@ def main():
         assert_inputs_exist(parser, args.in_rois + args.metrics_file_list)
     assert_headers_compatible(parser, args.in_rois + args.metrics_file_list)
 
-    # Computing stats for all masks and metrics files
+    # Computing stats for all ROIs and metrics files
     json_stats = {}
     for roi_filename in args.in_rois:
         roi_data = nib.load(roi_filename).get_fdata(dtype=np.float32)
         if len(roi_data.shape) > 3:
-            parser.error('Mask should be a 3D image.')
+            parser.error('ROI {} should be a 3D image.'.format(roi_filename))
         if np.min(roi_data) < 0:
-            parser.error('Mask should not contain negative values.')
+            parser.error('ROI {} should not contain negative values.'
+                         .format(roi_filename))
         roi_name = split_name_with_nii(os.path.basename(roi_filename))[0]
 
         # Discussion about the way the normalization is done.
@@ -107,8 +108,9 @@ def main():
         elif args.bin:
             roi_data[np.where(roi_data > 0.0)] = 1.0
         elif np.min(roi_data) < 0.0 or np.max(roi_data) > 1.0:
-            parser.error('Mask data should only contain values between 0 and 1. '
-                        'Try --normalize_weights.')
+            parser.error('ROI {} data should only contain values between 0 and 1. '
+                         'Try --normalize_weights.'
+                         .format(roi_filename))
 
         # Load and process all metrics files.
         json_stats[roi_name] = {}
@@ -129,9 +131,9 @@ def main():
                     'Metric {} is not a 3D image ({}D shape).'
                     .format(f, len(metric_img.shape)))
 
-
     if len(args.in_rois) == 1:
         json_stats = json_stats[roi_name]
+
     # Print results
     print(json.dumps(json_stats, indent=args.indent, sort_keys=args.sort_keys))
 
