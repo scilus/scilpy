@@ -126,17 +126,31 @@ def _build_arg_parser():
              'Note that points obtained after an invalid direction \n'
              '(based on the propagator\'s definition of invalid) \n'
              'are never added.')
-    add_sphere_arg(track_g, symmetric_only=False)
-    add_sh_basis_args(track_g)
-    track_g.add_argument('--sub_sphere',
+    
+    ftod_g = p.add_argument_group(
+        'ftOD Options',
+        'Options required if you want to perform fibertube tracking using\n'
+        'fibertube orientation distribution (ftOD).\n'
+        'If you\'re not familiar with these options, please ignore them.')
+    
+    ftod_g.add_argument('--use_ftOD', action='store_true',
+                        help='If set, will build a fibertube orientation\n'
+                        'distribution function at each tracking step. This\n'
+                        'is primarily to study the effect of spherical\n'
+                        'harmonics approximation towards the micron scale.\n'
+                        'It also allows the use of the scilpy ODFPropagator\n'
+                        'instead of FibertubePropagator.')
+    add_sphere_arg(ftod_g, symmetric_only=False)
+    add_sh_basis_args(ftod_g)
+    ftod_g.add_argument('--sub_sphere',
                          type=int, default=0,
                          help='Subdivides each face of the sphere into 4^s new'
                               ' faces. [%(default)s]')
-    track_g.add_argument('--sfthres', dest='sf_threshold', metavar='sf_th',
+    ftod_g.add_argument('--sfthres', dest='sf_threshold', metavar='sf_th',
                          type=float, default=0.1,
                          help='Spherical function relative threshold. '
                               '[%(default)s]')
-    track_g.add_argument('--sfthres_init', metavar='sf_th', type=float,
+    ftod_g.add_argument('--sfthres_init', metavar='sf_th', type=float,
                          default=0.5, dest='sf_threshold_init',
                          help="Spherical function relative threshold value "
                               "for the \ninitial direction. [%(default)s]")
@@ -224,7 +238,6 @@ def main():
     diameters = np.reshape(in_sft.data_per_streamline['diameters'],
                            len(centerlines))
 
-    logging.debug("Instantiating datavolumes")
     # The scilpy Tracker requires a mask for tracking, but fibertube tracking
     # aims to eliminate grids (or masks) in tractography. Instead, the tracking
     # stops when no more fibertubes are detected by the Tracker.
@@ -233,27 +246,35 @@ def main():
     # never interfere.
     fake_mask_data = np.ones(in_sft.dimensions)
     fake_mask = DataVolume(fake_mask_data, in_sft.voxel_sizes, 'nearest')
-    datavolume = FTODDataVolume(centerlines, diameters, in_sft,
-                                args.blur_radius,
-                                np.random.default_rng(args.rng_seed))
-    datavolume.init_sphere_and_sh(sh_basis, 8)
+
+    if args.use_ftOD:
+        logging.debug("Instantiating FTOD datavolume")
+        datavolume = FTODDataVolume(centerlines, diameters, in_sft,
+                                    args.blur_radius,
+                                    np.random.default_rng(args.rng_seed))
+        datavolume.init_sphere_and_sh(sh_basis, 8)
+    else:
+        logging.debug("Instantiating fibertube datavolume")
+        datavolume = FibertubeDataVolume(centerlines, diameters, in_sft,
+                                         args.blur_radius,
+                                         np.random.default_rng(args.rng_seed))
 
     logging.debug("Instantiating seed generator")
     seed_generator = FibertubeSeedGenerator(centerlines, diameters,
                                             args.nb_seeds_per_fibertube)
 
-    logging.debug("Instantiating propagator")
-    vox_step_size = args.step_size / in_sft.voxel_sizes[0]
-    propagator = ODFPropagator(
-        datavolume, vox_step_size, args.rk_order, 'prob', sh_basis,
-        args.sf_threshold, args.sf_threshold_init, theta, args.sphere,
-        sub_sphere=args.sub_sphere,
-        space=our_space, origin=our_origin, is_legacy=is_legacy)
-    """
-    propagator = FibertubePropagator(datavolume, args.step_size,
-                                     args.rk_order, theta, our_space,
-                                     our_origin)
-    """
+    if args.use_ftOD:
+        logging.debug("Instantiating ODF propagator")
+        propagator = ODFPropagator(
+            datavolume, args.step_size, args.rk_order, 'prob', sh_basis,
+            args.sf_threshold, args.sf_threshold_init, theta, args.sphere,
+            sub_sphere=args.sub_sphere,
+            space=our_space, origin=our_origin, is_legacy=is_legacy)
+    else:
+        logging.debug("Instantiating fibertube propagator")
+        propagator = FibertubePropagator(datavolume, args.step_size,
+                                         args.rk_order, theta, our_space,
+                                         our_origin)
 
     logging.debug("Instantiating tracker")
     max_nbr_seeds = args.nb_seeds_per_fibertube * len(centerlines)
