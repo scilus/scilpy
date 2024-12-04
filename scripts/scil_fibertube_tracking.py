@@ -37,7 +37,8 @@ import dipy.core.geometry as gm
 
 from scilpy.tracking.seed import FibertubeSeedGenerator
 from scilpy.tracking.propagator import FibertubePropagator, ODFPropagator
-from scilpy.image.volume_space_management import FibertubeDataVolume, FTODDataVolume
+from scilpy.image.volume_space_management import (FibertubeDataVolume,
+                                                  FTODDataVolume)
 from dipy.io.stateful_tractogram import StatefulTractogram, Space, Origin
 from dipy.io.streamline import load_tractogram, save_tractogram
 from scilpy.tracking.tracker import Tracker
@@ -126,13 +127,13 @@ def _build_arg_parser():
              'Note that points obtained after an invalid direction \n'
              '(based on the propagator\'s definition of invalid) \n'
              'are never added.')
-    
+
     ftod_g = p.add_argument_group(
         'ftOD Options',
         'Options required if you want to perform fibertube tracking using\n'
         'fibertube orientation distribution (ftOD).\n'
         'If you\'re not familiar with these options, please ignore them.')
-    
+
     ftod_g.add_argument('--use_ftOD', action='store_true',
                         help='If set, will build a fibertube orientation\n'
                         'distribution function at each tracking step. This\n'
@@ -143,17 +144,17 @@ def _build_arg_parser():
     add_sphere_arg(ftod_g, symmetric_only=False)
     add_sh_basis_args(ftod_g)
     ftod_g.add_argument('--sub_sphere',
-                         type=int, default=0,
-                         help='Subdivides each face of the sphere into 4^s new'
-                              ' faces. [%(default)s]')
+                        type=int, default=0,
+                        help='Subdivides each face of the sphere into 4^s new'
+                             ' faces. [%(default)s]')
     ftod_g.add_argument('--sfthres', dest='sf_threshold', metavar='sf_th',
-                         type=float, default=0.1,
-                         help='Spherical function relative threshold. '
-                              '[%(default)s]')
+                        type=float, default=0.1,
+                        help='Spherical function relative threshold. '
+                             '[%(default)s]')
     ftod_g.add_argument('--sfthres_init', metavar='sf_th', type=float,
-                         default=0.5, dest='sf_threshold_init',
-                         help="Spherical function relative threshold value "
-                              "for the \ninitial direction. [%(default)s]")
+                        default=0.5, dest='sf_threshold_init',
+                        help="Spherical function relative threshold value "
+                             "for the \ninitial direction. [%(default)s]")
 
     seed_group = p.add_argument_group(
         'Seeding options',

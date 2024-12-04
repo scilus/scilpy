@@ -415,7 +415,7 @@ class FibertubeDataVolume(DataVolume):
         self.max_seg_length = max_seg_length
         self.dim = reference.dimensions[:3]
         self.data, _ = get_streamlines_as_fixed_array(centerlines)
-        self.nb_coeffs = 0 # No SH
+        self.nb_coeffs = 0  # No SH
         self.diameters = diameters
         self.max_diameter = max(diameters)
 
@@ -566,6 +566,7 @@ class FibertubeDataVolume(DataVolume):
 
         return (directions, volumes)
 
+
 class FTODDataVolume(FibertubeDataVolume):
     """
     Fibertube DataVolume that maps local fibertube orientations on a sphere,
@@ -586,7 +587,7 @@ class FTODDataVolume(FibertubeDataVolume):
     def init_sphere_and_sh(self, sh_basis, sh_order, smooth=0.006,
                            full_basis=False, is_legacy=True,
                            sphere_type='repulsion724'):
-        """  
+        """
         Initializes the sphere and spherical harmonics parameters. This
         function should be called immediately after the constructor.
 
@@ -599,7 +600,8 @@ class FTODDataVolume(FibertubeDataVolume):
             (``None`` defaults to ``descoteaux07``).
         sh_order : int
             Maximum SH order in the SH fit.  For `sh_order`, there will be
-            ``(sh_order + 1) * (sh_order + 2) / 2`` SH coefficients (default 4).
+            ``(sh_order + 1) * (sh_order + 2) / 2`` SH coefficients
+            (default 4).
         smooth : float, optional
             Smoothing factor for the conversion,
             Lambda-regularization in the SH fit (default 0.006).
@@ -609,11 +611,12 @@ class FTODDataVolume(FibertubeDataVolume):
             Whether or not the SH basis is in its legacy form.
         sphere_type : str
             Sphere on which to discretize the distribution of orientations
-            before the conversion to spherical harmonics (default 'repulsion724').
+            before the conversion to spherical harmonics
+            (default 'repulsion724').
         """
         # Saving parameters
         self.sh_basis = sh_basis
-        self.sh_order = sh_order    
+        self.sh_order = sh_order
         self.smooth = smooth
         self.full_basis = full_basis
         self.is_legacy = is_legacy

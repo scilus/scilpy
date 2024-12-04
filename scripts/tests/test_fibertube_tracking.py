@@ -49,13 +49,11 @@ def test_execution(script_runner, monkeypatch):
     assert ret.success
 
 
-def test_execution_tracking_rk(script_runner, monkeypatch):
+def test_execution_rk(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     init_data()
     ret = script_runner.run('scil_fibertube_tracking.py',
                             'tractogram.trk', 'tracking.trk',
-                            '--blur_radius', '0.3',
-                            '--step_size', '0.1',
                             '--rk_order', '2', '--min_length', '0', '-f')
     assert ret.success
 
@@ -77,9 +75,62 @@ def test_execution_seeding(script_runner, monkeypatch):
     init_data()
     ret = script_runner.run('scil_fibertube_tracking.py',
                             'tractogram.trk', 'tracking.trk',
-                            '--blur_radius', '0.3',
-                            '--step_size', '0.1',
                             '--nb_fibertubes', '1',
                             '--nb_seeds_per_fibertube', '3', '--skip', '3',
+                            '--min_length', '0', '-f')
+    assert ret.success
+
+
+def test_execution_FTOD(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
+    init_data()
+    ret = script_runner.run('scil_fibertube_tracking.py',
+                            'tractogram.trk', 'tracking.trk', '--use_ftOD',
+                            '--min_length', '0', '-f')
+    assert ret.success
+
+
+def test_execution_FTOD_rk(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
+    init_data()
+    ret = script_runner.run('scil_fibertube_tracking.py',
+                            'tractogram.trk', 'tracking.trk', '--use_ftOD',
+                            '--rk_order', '2', '--min_length', '0', '-f')
+    assert ret.success
+
+
+def test_execution_FTOD_config(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
+    init_data()
+    ret = script_runner.run('scil_fibertube_tracking.py',
+                            'tractogram.trk', 'tracking.trk', '--use_ftOD',
+                            '--blur_radius', '0.3',
+                            '--step_size', '0.1',
+                            '--out_config', 'config.json',
+                            '--min_length', '0', '-f')
+    assert ret.success
+
+
+def test_execution_FTOD_seeding(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
+    init_data()
+    ret = script_runner.run('scil_fibertube_tracking.py',
+                            'tractogram.trk', 'tracking.trk', '--use_ftOD',
+                            '--nb_fibertubes', '1',
+                            '--nb_seeds_per_fibertube', '3', '--skip', '3',
+                            '--min_length', '0', '-f')
+    assert ret.success
+
+
+def test_execution_FTOD_sphere(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
+    init_data()
+    ret = script_runner.run('scil_fibertube_tracking.py',
+                            'tractogram.trk', 'tracking.trk', '--use_ftOD',
+                            '--sphere', 'symmetric362',
+                            '--sh_basis', 'tournier07',
+                            '--sub_sphere', '0',
+                            '--sfthres', '0.05',
+                            '--sfthres_init', '0.4',
                             '--min_length', '0', '-f')
     assert ret.success
