@@ -36,14 +36,17 @@ import nibabel as nib
 import dipy.core.geometry as gm
 
 from scilpy.tracking.seed import FibertubeSeedGenerator
-from scilpy.tracking.propagator import FibertubePropagator
-from scilpy.image.volume_space_management import FibertubeDataVolume
+from scilpy.tracking.propagator import FibertubePropagator, ODFPropagator
+from scilpy.image.volume_space_management import FibertubeDataVolume, FTODDataVolume
 from dipy.io.stateful_tractogram import StatefulTractogram, Space, Origin
 from dipy.io.streamline import load_tractogram, save_tractogram
 from scilpy.tracking.tracker import Tracker
 from scilpy.image.volume_space_management import DataVolume
-from scilpy.io.utils import (assert_inputs_exist,
+from scilpy.io.utils import (parse_sh_basis_arg,
+                             assert_inputs_exist,
                              assert_outputs_exist,
+                             add_sh_basis_args,
+                             add_sphere_arg,
                              add_processes_arg,
                              add_verbose_arg,
                              add_json_args,
@@ -123,6 +126,20 @@ def _build_arg_parser():
              'Note that points obtained after an invalid direction \n'
              '(based on the propagator\'s definition of invalid) \n'
              'are never added.')
+    add_sphere_arg(track_g, symmetric_only=False)
+    add_sh_basis_args(track_g)
+    track_g.add_argument('--sub_sphere',
+                         type=int, default=0,
+                         help='Subdivides each face of the sphere into 4^s new'
+                              ' faces. [%(default)s]')
+    track_g.add_argument('--sfthres', dest='sf_threshold', metavar='sf_th',
+                         type=float, default=0.1,
+                         help='Spherical function relative threshold. '
+                              '[%(default)s]')
+    track_g.add_argument('--sfthres_init', metavar='sf_th', type=float,
+                         default=0.5, dest='sf_threshold_init',
+                         help="Spherical function relative threshold value "
+                              "for the \ninitial direction. [%(default)s]")
 
     seed_group = p.add_argument_group(
         'Seeding options',
@@ -193,12 +210,13 @@ def main():
                          [args.out_config])
 
     theta = gm.math.radians(args.theta)
-
     max_nbr_pts = int(args.max_length / args.step_size)
     min_nbr_pts = max(int(args.min_length / args.step_size), 1)
-
+    # Using space and origin in the propagator: vox and center, like
+    # in dipy.
     our_space = Space.VOXMM
     our_origin = Origin('center')
+    sh_basis, is_legacy = parse_sh_basis_arg(args)
 
     logging.debug('Loading tractogram & diameters')
     in_sft = load_tractogram(args.in_fibertubes, 'same', our_space, our_origin)
@@ -215,18 +233,27 @@ def main():
     # never interfere.
     fake_mask_data = np.ones(in_sft.dimensions)
     fake_mask = DataVolume(fake_mask_data, in_sft.voxel_sizes, 'nearest')
-    datavolume = FibertubeDataVolume(centerlines, diameters, in_sft,
-                                     args.blur_radius,
-                                     np.random.default_rng(args.rng_seed))
+    datavolume = FTODDataVolume(centerlines, diameters, in_sft,
+                                args.blur_radius,
+                                np.random.default_rng(args.rng_seed))
+    datavolume.init_sphere_and_sh(sh_basis, 8)
 
     logging.debug("Instantiating seed generator")
     seed_generator = FibertubeSeedGenerator(centerlines, diameters,
                                             args.nb_seeds_per_fibertube)
 
     logging.debug("Instantiating propagator")
+    vox_step_size = args.step_size / in_sft.voxel_sizes[0]
+    propagator = ODFPropagator(
+        datavolume, vox_step_size, args.rk_order, 'prob', sh_basis,
+        args.sf_threshold, args.sf_threshold_init, theta, args.sphere,
+        sub_sphere=args.sub_sphere,
+        space=our_space, origin=our_origin, is_legacy=is_legacy)
+    """
     propagator = FibertubePropagator(datavolume, args.step_size,
                                      args.rk_order, theta, our_space,
                                      our_origin)
+    """
 
     logging.debug("Instantiating tracker")
     max_nbr_seeds = args.nb_seeds_per_fibertube * len(centerlines)

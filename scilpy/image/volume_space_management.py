@@ -11,6 +11,9 @@ from scilpy.tractograms.streamline_operations import \
 from dipy.core.interpolation import trilinear_interpolate4d, \
     nearestneighbor_interpolate
 from dipy.io.stateful_tractogram import Origin, Space
+from dipy.data import get_sphere
+from scilpy.tractanalysis.todi_util import get_dir_to_sphere_id
+from dipy.reconst.shm import sf_to_sh
 
 
 class DataVolume(object):
@@ -398,7 +401,7 @@ class FibertubeDataVolume(DataVolume):
         """
         # Prepare data
         if centerlines is None:
-            self.data = []
+            self.fibertube_data = []
             self.tree = None
             self.segments_indices = None
             self.max_seg_length = None
@@ -410,7 +413,7 @@ class FibertubeDataVolume(DataVolume):
         self.segments_indices = segments_indices
         self.max_seg_length = max_seg_length
         self.dim = reference.dimensions[:3]
-        self.data, _ = get_streamlines_as_fixed_array(centerlines)
+        self.fibertube_data, _ = get_streamlines_as_fixed_array(centerlines)
         self.diameters = diameters
         self.max_diameter = max(diameters)
 
@@ -418,6 +421,16 @@ class FibertubeDataVolume(DataVolume):
         self.voxres = reference.voxel_sizes
         self.blur_radius = blur_radius
         self.random_generator = random_generator
+
+    # The property 'data' becomes an interface to interact with
+    # fibertube_data.
+    @property
+    def data(self):
+        return self.fibertube_data
+
+    @data.setter
+    def data(self, value):
+        self.fibertube_data = value
 
     @staticmethod
     def _validate_origin(origin):
@@ -498,8 +511,9 @@ class FibertubeDataVolume(DataVolume):
             self.blur_radius + self.max_seg_length / 2 + self.max_diameter)[0]
 
         return self.extract_directions(pos, neighbors, self.blur_radius,
-                                       self.segments_indices, self.data,
-                                       self.diameters, self.random_generator)
+                                       self.segments_indices,
+                                       self.fibertube_data, self.diameters,
+                                       self.random_generator)
 
     def get_absolute_direction(self, x, y, z):
         pos = np.array([x, y, z], np.float64)
@@ -510,7 +524,7 @@ class FibertubeDataVolume(DataVolume):
 
         for segi in neighbors:
             fi, pi = self.segments_indices[segi]
-            fiber = self.data[fi]
+            fiber = self.fibertube_data[fi]
             radius = self.diameters[fi] / 2
 
             if point_in_cylinder(fiber[pi], fiber[pi+1], radius, pos):
@@ -559,3 +573,103 @@ class FibertubeDataVolume(DataVolume):
                 vol /= max_vol
 
         return (directions, volumes)
+
+class FTODDataVolume(FibertubeDataVolume):
+    """
+    Fibertube DataVolume that maps local fibertube orientations on a sphere,
+    giving us a Fibertube Orientation Distribution (ftOD).
+
+    IMPORTANT: This DataVolume has the same constructor as FibertubeDataVolume,
+    but the init_sphere_and_sh() function has to be called prior to use.
+
+    This DataVolume returns the same information as the FibertubeDataVolume
+    class, but it compresses the information into spherical harmonics to be
+    used by a traditional ODF tracking algorithm. The distribution on the
+    sphere is weighted by the volume of each fibertube, which conveys the
+    information previously provided by the diameters.
+
+    The reason for this use of ftOD is to study, across scales, the effect of
+    approximating fODFs with spherical representations; especially harmonics.
+    """
+
+    def init_sphere_and_sh(self, sh_basis, sh_order, smooth=0.006,
+                           full_basis=False, is_legacy=True,
+                           sphere_type='repulsion724'):
+        """
+        Initializes the various paramters required for         
+
+        Parameters
+        ----------
+        sh_basis : {None, 'tournier07', 'descoteaux07'}
+            ``None`` for the default DIPY basis,
+            ``tournier07`` for the Tournier 2007 [2]_ basis, and
+            ``descoteaux07`` for the Descoteaux 2007 [1]_ basis
+            (``None`` defaults to ``descoteaux07``).
+        sh_order : int
+            Maximum SH order in the SH fit.  For `sh_order`, there will be
+            ``(sh_order + 1) * (sh_order + 2) / 2`` SH coefficients (default 4).
+        smooth : float, optional
+            Smoothing factor for the conversion,
+            Lambda-regularization in the SH fit (default 0.006).
+        full_basis : bool, optional
+            Whether or not the full SH basis is used.
+        is_legacy : bool, optional
+            Whether or not the SH basis is in its legacy form.
+        sphere_type : str
+            Sphere on which to discretize the distribution of orientations
+            before the conversion to spherical harmonics (default 'repulsion724').
+        """
+        # Saving parameters
+        self.sh_basis = sh_basis
+        self.sh_order = sh_order    
+        self.smooth = smooth
+        self.full_basis = full_basis
+        self.is_legacy = is_legacy
+        self.sphere = get_sphere(sphere_type)
+
+        self.sh_data = None
+        self.data = self.fibertube_data # See 'data' property
+
+    # The property 'data' becomes an interface to take in new fibertube_data
+    # and output a fake spherical harmonics volume.
+    @property
+    def data(self):
+        return self.sh_data
+
+    @data.setter
+    def data(self, value):
+        # Store original data
+        self.fibertube_data = value
+        if value is not None:
+            # Create an empty volume with shape [x, y, z, SH Coefficients].
+            # This is necessary for the scilpy ODFPropagator.
+            self.sh_data = np.ndarray(
+                (*value.shape[:3],
+                int((self.sh_order + 1) * (self.sh_order + 2) / 2)))
+
+    def _voxmm_to_value(self, x, y, z, origin):
+        x, y, z = self._clip_voxmm_to_bound(x, y, z, origin)
+
+        pos = np.array([x, y, z], dtype=np.float64)
+
+        neighbors = self.tree.query_radius(
+            pos,
+            self.blur_radius + self.max_seg_length / 2 + self.max_diameter)[0]
+
+        directions, diameters = self.extract_directions(
+            pos, neighbors, self.blur_radius, self.segments_indices,
+            self.fibertube_data, self.diameters, self.random_generator)
+
+        sf = np.zeros(len(self.sphere.vertices))
+
+        if len(directions) != 0:
+            sph_ids = get_dir_to_sphere_id(directions, self.sphere.vertices)
+
+            if np.max(diameters) != 0:
+                # Normalize diameters between 0 and 1
+                diameters = diameters / np.max(diameters)
+            sf[sph_ids] = diameters
+
+        return sf_to_sh(sf, self.sphere, sh_order_max=self.sh_order,
+                        basis_type=self.sh_basis, full_basis=self.full_basis,
+                        smooth=self.smooth, legacy=self.is_legacy)
