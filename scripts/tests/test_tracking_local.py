@@ -3,6 +3,7 @@
 
 import os
 import tempfile
+import numpy as np
 
 from scilpy import SCILPY_HOME
 from scilpy.io.fetcher import fetch_data, get_testing_files_dict
@@ -182,4 +183,21 @@ def test_execution_tracking_ptt(script_runner, monkeypatch):
                             '--min_length', '20', '--max_length', '200',
                             '--sh_to_pmf', '-v', '--probe_length', '2',
                             '--probe_quality', '5', '--algo', 'ptt')
+    assert ret.success
+
+
+def test_execution_tracking_fodf_custom_seeds(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
+    in_fodf = os.path.join(SCILPY_HOME, 'tracking', 'fodf.nii.gz')
+    in_mask = os.path.join(SCILPY_HOME, 'tracking', 'seeding_mask.nii.gz')
+    in_custom_seeds = 'custom_seeds.npy'
+
+    custom_seeds = [[1., 1., 1.], [2., 2., 2.], [3., 3., 3.]]
+    np.save(in_custom_seeds, custom_seeds)
+
+    ret = script_runner.run('scil_tracking_local.py', in_fodf,
+                            in_mask, in_mask, 'local_prob.trk',
+                            '--in_custom_seeds', in_custom_seeds,
+                            '--compress', '0.1', '--sh_basis', 'descoteaux07',
+                            '--min_length', '20', '--max_length', '200')
     assert ret.success
