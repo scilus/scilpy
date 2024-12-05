@@ -60,6 +60,7 @@ def uniformize_bundle_sft(sft, axis=None, ref_bundle=None, swap=False):
     old_origin = sft.origin
     sft.to_vox()
     sft.to_corner()
+
     density = get_endpoints_density_map(sft, point_to_select=3)
     indices = np.argwhere(density > 0)
     kmeans = KMeans(n_clusters=2, random_state=0, copy_x=True,
@@ -89,9 +90,9 @@ def uniformize_bundle_sft(sft, axis=None, ref_bundle=None, swap=False):
 
             if main_dir_displacement != main_dir_ends \
                     or main_dir_displacement != main_dir_barycenter:
-                logging.info('Ambiguity in orientation, you should use --axis')
+                logging.debug('Ambiguity in orientation, you should use --axis')
             axis = axis_name[main_dir_displacement]
-        logging.info('Orienting endpoints in the {} axis'.format(axis))
+        logging.debug('Orienting endpoints in the {} axis'.format(axis))
         axis_pos = axis_name.index(axis)
 
         if bool(k_means_centers[0][axis_pos] >
@@ -117,8 +118,7 @@ def uniformize_bundle_sft(sft, axis=None, ref_bundle=None, swap=False):
             else:
                 # Bitwise XOR
                 if (bool(labels[tuple(sft.streamlines[i][0].astype(int))] >
-                         labels[tuple(sft.streamlines[i][-1].astype(int))])
-                        ^ bool(swap)):
+                         labels[tuple(sft.streamlines[i][-1].astype(int))])):
                     sft.streamlines[i] = sft.streamlines[i][::-1]
                     for key in sft.data_per_point[i]:
                         sft.data_per_point[key][i] = \
@@ -342,4 +342,3 @@ def remove_outliers_qb(streamlines, threshold, nb_points=12, nb_samplings=30,
     outliers_ids, inliers_ids = prune(streamlines, threshold, summary)
 
     return outliers_ids, inliers_ids
-
