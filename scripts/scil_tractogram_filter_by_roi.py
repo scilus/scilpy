@@ -446,17 +446,21 @@ def main():
                 radius += distance * sft.space_attributes[2]
 
             if geometry == 'Ellipsoid':
-                filtered_sft, kept_ids = filter_ellipsoid(
+                kept_ids, filtered_sft = filter_ellipsoid(
                     sft, radius, center, mode, is_exclude)
             else:  # geometry == 'Cuboid':
-                filtered_sft, kept_ids = filter_cuboid(
+                kept_ids, filtered_sft = filter_cuboid(
                     sft, radius, center, mode, is_exclude)
 
         logging.info('The filtering options {} resulted in {} included '
                      'streamlines'.format(roi_opt, len(filtered_sft)))
 
         sft = filtered_sft
-        total_kept_ids = total_kept_ids[kept_ids]
+        if kept_ids.size == 0:
+            total_kept_ids = 0
+        else:
+            total_kept_ids = total_kept_ids[kept_ids]
+
         o_dict['streamline_count_after_criteria{}'.format(i)] = \
             len(sft.streamlines)
 
