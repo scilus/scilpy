@@ -113,10 +113,6 @@ def _build_arg_parser():
              'Default: 0, i.e. do not add points following '
              'an invalid direction.')
     track_g.add_argument(
-        '--forward_only', action='store_true',
-        help='If set, tracks in one direction only (forward) \n'
-             'given the \ninitial seed.')
-    track_g.add_argument(
         '--keep_last_out_point', action='store_true',
         help='If set, keep the last point (once out of the \n'
              'tracking mask) of the streamline. Default: discard \n'
@@ -249,7 +245,7 @@ def main():
                       args.max_invalid_nb_points, 0,
                       args.nbr_processes, True, 'r+',
                       rng_seed=args.rng_seed,
-                      track_forward_only=args.forward_only,
+                      track_forward_only=True,
                       skip=args.skip,
                       verbose=args.verbose,
                       append_last_point=args.keep_last_out_point)

@@ -6,6 +6,12 @@ Given ground-truth fibertubes and a tractogram obtained through fibertube
 tracking, computes metrics about the quality of individual fiber
 reconstruction.
 
+IMPORTANT: Streamlines given as input to be scored should be forward-only,
+which means they are saved so that [0] is the seeding position and [-1] is
+the end.
+TODO: Add the seed's segment index as dps, to allow different seeding methods
+and forward_only=False.
+
 Each streamline is associated with an "Arrival fibertube segment", which is
 the closest fibertube segment to its before-last coordinate. We then define
 the following terms:
@@ -187,7 +193,6 @@ def main():
     logging.debug("Loading config")
     with open(args.in_config, 'r') as f:
         config = json.load(f)
-    step_size = float(config['step_size'])
     blur_radius = float(config['blur_radius'])
 
     if len(seeds_fiber) != len(streamlines):
