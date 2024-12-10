@@ -383,6 +383,10 @@ def endpoint_connectivity(blur_radius, centerlines, centerlines_length,
     segment", which is the closest fibertube segment to its before-last
     coordinate.
 
+    IMPORTANT: Streamlines given as input to be scored should be forward-only,
+    which means they are saved so that [0] is the seeding position and [-1] is
+    the end.
+
     VC: "Valid Connection": A streamline whose arrival fibertube segment is
     the final segment of the fibertube in which is was originally seeded.
 
@@ -410,7 +414,7 @@ def endpoint_connectivity(blur_radius, centerlines, centerlines_length,
         Fixed array containing the number of coordinates of each streamline
     seeds_fiber: list
         Array of the same length as there are streamlines. For every
-        streamline, contains the index of the fiber in which it has been
+        streamline, contains the index of the fibertube in which it has been
         seeded.
 
     Return
@@ -440,43 +444,44 @@ def endpoint_connectivity(blur_radius, centerlines, centerlines_length,
     ic = set()
     nc = set()
 
-    # streamline[1] is the last point with a valid direction
+    # streamline[-2] is the last point with a valid direction
     all_neighbors = tree.query_radius(
-        streamlines[:, 1], blur_radius + max_seg_length / 2 + max_diameter)
+        streamlines[:, -2], blur_radius + max_seg_length / 2 + max_diameter)
 
-    for si, streamline in enumerate(streamlines):
-        seed_fi = seeds_fiber[si]
-        neighbors = all_neighbors[si]
+    for streamline_index, streamline in enumerate(streamlines):
+        seed_fi = seeds_fiber[streamline_index]
+        neighbors = all_neighbors[streamline_index]
 
-        min_dist = np.inf
-        min_seg = 0
+        closest_dist = np.inf
+        closest_seg = 0
 
         # Finding closest segment
         # There will always be a neighbor to override np.inf
-        for neighbor_segi in neighbors:
-            fi = indices[neighbor_segi][0]
-            pi = indices[neighbor_segi][1]
+        for segment_index in neighbors:
+            fibertube_index = indices[segment_index][0]
+            point_index = indices[segment_index][1]
 
-            dist, _, _ = dist_point_segment(centerlines[fi][pi],
-                                            centerlines[fi][pi+1],
-                                            streamline[1])
+            dist, _, _ = dist_point_segment(
+                centerlines[fibertube_index][point_index],
+                centerlines[fibertube_index][point_index+1],
+                streamline[-2])
 
-            if dist < min_dist:
-                min_dist = dist
-                min_seg = neighbor_segi
+            if dist < closest_dist:
+                closest_dist = dist
+                closest_seg = segment_index
 
-        fi = indices[min_seg][0]
-        pi = indices[min_seg][1]
+        fibertube_index = indices[closest_seg][0]
+        point_index = indices[closest_seg][1]
 
         # If the closest segment is the last of its centerlines
-        if pi == centerlines_length[fi]-1:
-            if fi == seed_fi:
-                vc.add(si)
+        if point_index == centerlines_length[fibertube_index]-1:
+            if fibertube_index == seed_fi:
+                vc.add(streamline_index)
             else:
-                ic.add(si)
-        elif pi == 0:
-            ic.add(si)
+                ic.add(streamline_index)
+        elif point_index == 0:
+            ic.add(streamline_index)
         else:
-            nc.add(si)
+            nc.add(streamline_index)
 
     return list(vc), list(ic), list(nc)
