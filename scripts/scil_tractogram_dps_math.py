@@ -2,15 +2,20 @@
 # -*- coding: utf-8 -*-
 
 """
-Add, extract or delete information to each streamline from a tractogram
+Add, extract or delete dps (data_per_streamline) information to a tractogram
 file. Can be for example SIFT2 weights, processing information, bundle IDs,
 tracking seeds, etc.
 
-Input and output tractograms must always be .trk to simplify filetype checks
-for each operation.
+Input and output tractograms must always be .trk. If you wish to add dps to
+a .tck file, please convert it to .trk first using scil_tractogram_convert.py.
+
+Usage examples:
+    > scil_tractogram_dps_math.py tractogram.trk add "bundle_ids"
+        --add_dps_file my_bundle_ids.txt
+    > scil_tractogram_dps_math.py tractogram.trk export "seeds"
+        --export_dps_file seeds.npy
 """
 
-import os
 import argparse
 import logging
 
