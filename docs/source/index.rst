@@ -17,4 +17,5 @@ Welcome to the scilpy documentation!
     documentation/construct_participants_tsv_file
     documentation/create_overlapping_slice_mosaics
     documentation/devcontainer
+    documentation/fibertube_tracking
     documentation/tractogram_registration
