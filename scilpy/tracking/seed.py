@@ -366,7 +366,7 @@ class FibertubeSeedGenerator(SeedGenerator):
         return seeds
 
 
-class CustomSeedsGenerator(SeedGenerator):
+class CustomSeedsDispenser(SeedGenerator):
     """
     Adaptation of the scilpy.tracking.seed.SeedGenerator interface for
     using already generated, custom seeds.

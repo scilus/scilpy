@@ -29,9 +29,9 @@ def test_execution_dps_math_add(script_runner, monkeypatch):
     filename = 'vals.npy'
     outname = 'out.trk'
     np.save(filename, np.arange(len(sft)))
-    ret = script_runner.run('scil_tractogram_dps_math.py', in_bundle, 'add',
+    ret = script_runner.run('scil_tractogram_dps_math.py',
+                            in_bundle, 'add', 'key',
                             '--add_dps_file', filename,
-                            '--add_dps_key', 'key',
                             '--out_tractogram', outname,
                             '-f')
     assert ret.success
@@ -45,9 +45,9 @@ def test_execution_dps_math_add_with_missing_vals(script_runner, monkeypatch):
     filename = 'vals.npy'
     outname = 'out.trk'
     np.save(filename, np.arange(len(sft) - 10))
-    ret = script_runner.run('scil_tractogram_dps_math.py', in_bundle, 'add',
+    ret = script_runner.run('scil_tractogram_dps_math.py',
+                            in_bundle, 'add', 'key',
                             '--add_dps_file', filename,
-                            '--add_dps_key', 'key',
                             '--out_tractogram', outname,
                             '-f')
     assert ret.stderr
@@ -62,15 +62,15 @@ def test_execution_dps_math_add_with_existing_key(script_runner, monkeypatch):
     outname = 'out.trk'
     outname2 = 'out_2.trk'
     np.save(filename, np.arange(len(sft)))
-    ret = script_runner.run('scil_tractogram_dps_math.py', in_bundle, 'add',
+    ret = script_runner.run('scil_tractogram_dps_math.py',
+                            in_bundle, 'add', 'key',
                             '--add_dps_file', filename,
-                            '--add_dps_key', 'key',
                             '--out_tractogram', outname,
                             '-f')
     assert ret.success
-    ret = script_runner.run('scil_tractogram_dps_math.py', outname, 'add',
+    ret = script_runner.run('scil_tractogram_dps_math.py',
+                            outname, 'add', 'key',
                             '--add_dps_file', filename,
-                            '--add_dps_key', 'key',
                             '--out_tractogram', outname2,)
     assert not ret.success
 
@@ -83,9 +83,9 @@ def test_execution_dps_math_tck(script_runner, monkeypatch):
     filename = 'vals.npy'
     outname = 'out.tck'
     np.save(filename, np.arange(len(sft)))
-    ret = script_runner.run('scil_tractogram_dps_math.py', in_bundle, 'add',
+    ret = script_runner.run('scil_tractogram_dps_math.py',
+                            in_bundle, 'add', 'key',
                             '--add_dps_file', filename,
-                            '--add_dps_key', 'key',
                             '--out_tractogram', outname,
                             '-f')
     assert not ret.success
@@ -102,8 +102,8 @@ def test_execution_dps_math_delete(script_runner, monkeypatch):
     }
     save_tractogram(sft, in_bundle)
     outname = 'out.trk'
-    ret = script_runner.run('scil_tractogram_dps_math.py', in_bundle, 'delete',
-                            '--delete_dps_key', 'key',
+    ret = script_runner.run('scil_tractogram_dps_math.py',
+                            in_bundle, 'delete', 'key',
                             '--out_tractogram', outname,
                             '-f')
     assert ret.success
@@ -114,8 +114,8 @@ def test_execution_dps_math_delete_no_key(script_runner, monkeypatch):
     in_bundle = os.path.join(SCILPY_HOME, 'filtering',
                              'bundle_4.trk')
     outname = 'out.trk'
-    ret = script_runner.run('scil_tractogram_dps_math.py', in_bundle, 'delete',
-                            '--delete_dps_key', 'key',
+    ret = script_runner.run('scil_tractogram_dps_math.py',
+                            in_bundle, 'delete', 'key',
                             '--out_tractogram', outname,
                             '-f')
     assert not ret.success
@@ -132,8 +132,8 @@ def test_execution_dps_math_export(script_runner, monkeypatch):
     }
     save_tractogram(sft, in_bundle)
     filename = 'out.txt'
-    ret = script_runner.run('scil_tractogram_dps_math.py', in_bundle, 'export',
-                            '--export_dps_key', 'key',
+    ret = script_runner.run('scil_tractogram_dps_math.py',
+                            in_bundle, 'export', 'key',
                             '--export_dps_file', filename,
                             '-f')
     assert ret.success
@@ -144,8 +144,8 @@ def test_execution_dps_math_export_no_key(script_runner, monkeypatch):
     in_bundle = os.path.join(SCILPY_HOME, 'filtering',
                              'bundle_4.trk')
     filename = 'out.txt'
-    ret = script_runner.run('scil_tractogram_dps_math.py', in_bundle, 'export',
-                            '--export_dps_key', 'key',
+    ret = script_runner.run('scil_tractogram_dps_math.py',
+                            in_bundle, 'export', 'key',
                             '--export_dps_file', filename,
                             '-f')
     assert not ret.success

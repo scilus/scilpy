@@ -65,7 +65,7 @@ from scilpy.io.utils import (add_processes_arg, add_sphere_arg,
                              load_matrix_in_any_format)
 from scilpy.image.volume_space_management import DataVolume
 from scilpy.tracking.propagator import ODFPropagator
-from scilpy.tracking.seed import SeedGenerator, CustomSeedsGenerator
+from scilpy.tracking.seed import SeedGenerator, CustomSeedsDispenser
 from scilpy.tracking.tracker import Tracker
 from scilpy.tracking.utils import (add_mandatory_options_tracking,
                                    add_out_options, add_seeding_options,
@@ -84,10 +84,6 @@ def _build_arg_parser():
     add_mandatory_options_tracking(p)
     track_g = add_tracking_options(p)
     add_seeding_options(p)
-
-    p.add_argument('--in_custom_seeds', type=str,
-                   help='Path to a file containing a list of custom seeding \n'
-                        'coordinates. (.txt, .mat or .npy)')
 
     # Options only for here.
     track_g.add_argument('--algo', default='prob', choices=['det', 'prob'],
@@ -210,7 +206,7 @@ def main():
     seed_res = seed_img.header.get_zooms()[:3]
     if args.in_custom_seeds:
         seeds = np.squeeze(load_matrix_in_any_format(args.in_custom_seeds))
-        seed_generator = CustomSeedsGenerator(seeds, seed_res, space=our_space,
+        seed_generator = CustomSeedsDispenser(seeds, seed_res, space=our_space,
                                               origin=our_origin)
         nbr_seeds = len(seeds)
     else:
