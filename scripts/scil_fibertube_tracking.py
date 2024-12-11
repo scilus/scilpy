@@ -35,7 +35,7 @@ import numpy as np
 import nibabel as nib
 import dipy.core.geometry as gm
 
-from scilpy.tracking.seed import FibertubeSeedGenerator
+from scilpy.tracking.seed import FibertubeSeedGenerator, CustomSeedsDispenser
 from scilpy.tracking.propagator import FibertubePropagator, ODFPropagator
 from scilpy.image.volume_space_management import (FibertubeDataVolume,
                                                   FTODDataVolume)
@@ -44,6 +44,7 @@ from dipy.io.streamline import load_tractogram, save_tractogram
 from scilpy.tracking.tracker import Tracker
 from scilpy.image.volume_space_management import DataVolume
 from scilpy.io.utils import (parse_sh_basis_arg,
+                             load_matrix_in_any_format,
                              assert_inputs_exist,
                              assert_outputs_exist,
                              add_sh_basis_args,
@@ -170,6 +171,12 @@ def _build_arg_parser():
              'amount of fibers. Otherwise, the entire tractogram \n'
              'will be tracked. The total amount of streamlines \n'
              'will be [nb_seeds_per_fibertube] * [nb_fibertubes].')
+    seed_group.add_argument(
+        '--in_custom_seeds', type=str,
+        help='Path to a file containing a list of custom seeding \n'
+             'coordinates (.txt, .mat or .npy). They should be in \n'
+             'VOXMM space. Setting this parameter will ignore all other \n'
+             'seeding parameters.')
 
     rand_g = p.add_argument_group('Random options')
     rand_g.add_argument(
@@ -261,8 +268,25 @@ def main():
                                          np.random.default_rng(args.rng_seed))
 
     logging.debug("Instantiating seed generator")
-    seed_generator = FibertubeSeedGenerator(centerlines, diameters,
-                                            args.nb_seeds_per_fibertube)
+    if args.in_custom_seeds:
+        seed_res = in_sft.voxel_sizes
+        seeds = np.squeeze(load_matrix_in_any_format(args.in_custom_seeds))
+        seed_generator = CustomSeedsDispenser(seeds, seed_res, space=our_space,
+                                              origin=our_origin)
+        nbr_seeds = len(seeds)
+    else:
+        seed_generator = FibertubeSeedGenerator(centerlines, diameters,
+                                                args.nb_seeds_per_fibertube)
+
+        max_nbr_seeds = args.nb_seeds_per_fibertube * len(centerlines)
+        if args.nb_fibertubes:
+            if args.nb_fibertubes > len(centerlines):
+                raise ValueError("The provided number of seeded fibers" +
+                                 "exceeds the number of available fibertubes.")
+            else:
+                nbr_seeds = args.nb_seeds_per_fibertube * args.nb_fibertubes
+        else:
+            nbr_seeds = max_nbr_seeds
 
     if args.use_ftOD:
         logging.debug("Instantiating ODF propagator")
@@ -278,16 +302,6 @@ def main():
                                          our_origin)
 
     logging.debug("Instantiating tracker")
-    max_nbr_seeds = args.nb_seeds_per_fibertube * len(centerlines)
-    if args.nb_fibertubes:
-        if args.nb_fibertubes > len(centerlines):
-            raise ValueError("The provided number of seeded fibers exceeds" +
-                             "the number of available fibertubes.")
-        else:
-            nbr_seeds = args.nb_seeds_per_fibertube * args.nb_fibertubes
-    else:
-        nbr_seeds = max_nbr_seeds
-
     if args.skip and nbr_seeds + args.skip > max_nbr_seeds:
         raise ValueError("The number of seeds plus the number of skipped " +
                          "seeds requires more fibertubes than there are " +

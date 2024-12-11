@@ -377,7 +377,7 @@ class CustomSeedsDispenser(SeedGenerator):
         Parameters
         ----------
         custom_seeds: list
-            Custom seeding coordinates.
+            Custom seeding coordinates in voxel space.
         voxres: np.ndarray(3,)
             The pixel resolution, ex, using img.header.get_zooms()[:3].
         """
