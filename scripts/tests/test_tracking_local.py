@@ -196,7 +196,7 @@ def test_execution_tracking_fodf_custom_seeds(script_runner, monkeypatch):
     np.save(in_custom_seeds, custom_seeds)
 
     ret = script_runner.run('scil_tracking_local.py', in_fodf,
-                            in_mask, in_mask, 'local_prob.trk',
+                            in_mask, in_mask, 'local_prob4.trk',
                             '--in_custom_seeds', in_custom_seeds,
                             '--compress', '0.1', '--sh_basis', 'descoteaux07',
                             '--min_length', '20', '--max_length', '200')
