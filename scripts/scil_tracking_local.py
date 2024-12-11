@@ -100,10 +100,6 @@ def _build_arg_parser():
     track_g = add_tracking_options(p)
     add_seeding_options(p)
 
-    p.add_argument('--in_custom_seeds', type=str,
-                   help='Path to a file containing a list of custom seeding \n'
-                        'coordinates. (.txt, .mat or .npy)')
-
     # Other options, only available in this script:
     track_g.add_argument('--sh_to_pmf', action='store_true',
                          help='If set, map sherical harmonics to spherical '
