@@ -155,6 +155,10 @@ def _build_arg_parser():
 
     peaks.add_argument('--peaks_width', default=1.0, type=float,
                        help='Width of peaks segments. [%(default)s]')
+    
+    peaks.add_argument('--peaks_opacity', type=float, default=1.0,
+                       help='Peaks opacity. 1 is opaque, 0 is transparent '
+                            '[%(default)s].')
 
     peaks_scale = p.add_argument_group('Peaks scaling arguments', 'Choose '
                                        'between peaks values and arbitrary '
@@ -329,6 +333,7 @@ def main():
                                           mask,
                                           args.peaks_color,
                                           args.peaks_width,
+                                          args.peaks_opacity,
                                           not full_basis)
 
         actors.append(peaks_actor)
