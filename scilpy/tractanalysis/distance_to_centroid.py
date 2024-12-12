@@ -1,23 +1,22 @@
 # -*- coding: utf-8 -*-
-from scilpy.tractograms.streamline_operations import \
-    resample_streamlines_num_points, resample_streamlines_step_size
-import time
-import logging
-from scilpy.tractograms.streamline_and_mask_operations import get_head_tail_density_maps
+
 import heapq
+import logging
+import time
 
 from dipy.tracking.metrics import length
 from nibabel.streamlines.array_sequence import ArraySequence
 import numpy as np
+
+from sklearn.preprocessing import MinMaxScaler
 import scipy.ndimage as ndi
 from scipy.spatial import KDTree
 from scipy.spatial.distance import pdist, squareform
+from sklearn.svm import SVC
 
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
-from sklearn.preprocessing import MinMaxScaler
-from sklearn.linear_model import SGDClassifier
-from sklearn.svm import SVC
-from sklearn.kernel_approximation import RBFSampler, Nystroem
+from scilpy.tractograms.streamline_operations import \
+    resample_streamlines_num_points, resample_streamlines_step_size
 
 
 def min_dist_to_centroid(bundle_pts, centroid_pts, nb_pts):
@@ -215,8 +214,8 @@ def compute_distance_map(labels_map, binary_mask, nb_pts, use_manhattan=False):
             continue
 
         barycenter_bin_intersect = barycenter_bin * mask
-        barycenter_intersect_coords = np.array(np.nonzero(barycenter_bin_intersect),
-                                               dtype=int).T
+        barycenter_intersect_coords = np.array(
+            np.nonzero(barycenter_bin_intersect), dtype=int).T
 
         if barycenter_intersect_coords.size == 0:
             continue
@@ -312,7 +311,8 @@ def correct_labels_jump(labels_map, streamlines, nb_pts):
         else:
             unique, counts = np.unique(label_values, return_counts=True)
             max_count = np.argmax(counts)
-            labels_map[tuple(ind)] = unique[max_count] if counts[max_count] / sum(counts) > 0.25 else 0
+            labels_map[tuple(ind)] = unique[max_count] \
+                if counts[max_count] / sum(counts) > 0.25 else 0
 
     return labels_map * modified_binary_mask
 
@@ -353,8 +353,8 @@ def subdivide_bundles(sft, sft_centroid, binary_mask, nb_pts,
         # Select 2000 elements from the SFTs to train the classifier
         streamlines_length = [length(streamline) for streamline in sft.streamlines]
         random_indices = np.random.choice(len(sft.streamlines), 2000)
-        tmp_sft = resample_streamlines_step_size(sft[random_indices],
-                                                 np.min(streamlines_length) / nb_pts)
+        tmp_sft = resample_streamlines_step_size(
+            sft[random_indices], np.min(streamlines_length) / nb_pts)
 
         # Associate the labels to the streamlines using the centroids as
         # reference (to handle shorter bundles due to missing data)
@@ -404,7 +404,8 @@ def subdivide_bundles(sft, sft_centroid, binary_mask, nb_pts,
 
         kd_tree = KDTree(valid_indices)
         nn_indices = kd_tree.query(missing_indices, k=1)[1]
-        labels_map[tuple(missing_indices.T)] = labels_map[tuple(valid_indices[nn_indices].T)]
+        labels_map[tuple(missing_indices.T)] = \
+            labels_map[tuple(valid_indices[nn_indices].T)]
 
     # Correct the labels jump to prevent discontinuities
     if fix_jumps:
