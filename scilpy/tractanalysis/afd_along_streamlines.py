@@ -95,7 +95,8 @@ def afd_and_rd_sums_along_streamlines(sft, fodf, fodf_basis,
     weight_map = np.zeros(shape=fodf_data.shape[:-1])
 
     p_matrix = np.eye(fodf_data.shape[3]) * legendre0_at_n
-    all_split_streamlines = subdivide_streamlines_at_voxel_faces(sft.streamlines)
+    all_split_streamlines =\
+        subdivide_streamlines_at_voxel_faces(sft.streamlines)
     for split_streamlines in all_split_streamlines:
         segments = split_streamlines[1:] - split_streamlines[:-1]
         seg_lengths = np.linalg.norm(segments, axis=1)
