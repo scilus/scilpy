@@ -103,7 +103,7 @@ def compute_all_measures(args):
     voxel_size = np.product(voxel_size)
     logging.info(f"Comparing {filename_1} and {filename_2}")
     dict_measures = compare_volume_wrapper(data_1, data_2, voxel_size,
-                                           adjency_no_overlap, ratio)
+                                           ratio, adjency_no_overlap)
     return dict_measures
 
 

@@ -7,11 +7,12 @@ from scilpy.tractanalysis.grid_intersections import grid_intersections
 
 
 def _fixel_density_parallel(args):
-    peaks = args[0]
-    max_theta = args[1]
-    dps_key = args[2]
-    bundle = args[3]
+    (peaks, max_theta, dps_key, bundle) = args
 
+    return _fixel_density_single_bundle(bundle, peaks, max_theta, dps_key)
+
+
+def _fixel_density_single_bundle(bundle, peaks, max_theta, dps_key):
     sft = load_tractogram(bundle, 'same')
     sft.to_vox()
     sft.to_corner()
@@ -83,14 +84,22 @@ def fixel_density(peaks, bundles, dps_key=None, max_theta=45,
         if nbr_processes is None or nbr_processes <= 0 \
         else nbr_processes
 
-    pool = multiprocessing.Pool(nbr_processes)
-    results = pool.map(_fixel_density_parallel,
-                       zip(itertools.repeat(peaks),
-                           itertools.repeat(max_theta),
-                           itertools.repeat(dps_key),
-                           bundles))
-    pool.close()
-    pool.join()
+    # Separating the case nbr_processes=1 to help get good coverage metrics
+    # (codecov does not deal well with multiprocessing)
+    if nbr_processes == 1:
+        results = []
+        for b in bundles:
+            results.append(
+                _fixel_density_single_bundle(b, peaks, max_theta, dps_key))
+    else:
+        pool = multiprocessing.Pool(nbr_processes)
+        results = pool.map(_fixel_density_parallel,
+                           zip(itertools.repeat(peaks),
+                               itertools.repeat(max_theta),
+                               itertools.repeat(dps_key),
+                               bundles))
+        pool.close()
+        pool.join()
 
     fixel_density = np.moveaxis(np.asarray(results), 0, -1)
 
@@ -110,9 +119,10 @@ def maps_to_masks(maps, abs_thr, rel_thr, norm, nb_bundles):
     rel_thr : float
         Value of density maps threshold to obtain density masks, as a ratio of
         the normalized density. Must be between 0 and 1.
-    norm : string, ["fixel", "voxel"]
+    norm : string, ["fixel", "voxel", "none"]
         Way of normalizing the density maps. If fixel, will normalize the maps
         per fixel, in each voxel. If voxel, will normalize the maps per voxel.
+        If none, will not normalize the maps.
     nb_bundles : int (N)
         Number of bundles (N).
 
@@ -140,7 +150,10 @@ def maps_to_masks(maps, abs_thr, rel_thr, norm, nb_bundles):
             maps[..., i] /= fixel_sum
 
     # Apply a threshold on the normalized density
-    masks_rel = maps > rel_thr
+    if norm == "voxel" or norm == "fixel":
+        masks_rel = maps > rel_thr
+    else:
+        masks_rel = maps > 0
     # Compute the fixel density masks from the rel and abs versions
     masks = masks_rel * masks_abs
 

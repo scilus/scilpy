@@ -17,6 +17,7 @@ import logging
 import numpy as np
 
 from scilpy.io.utils import (add_overwrite_arg,
+                             add_precision_arg,
                              assert_inputs_exist,
                              add_verbose_arg,
                              assert_outputs_exist)
@@ -43,6 +44,7 @@ def _build_arg_parser():
                         'evaluated without the x 10**-4 factor. [%(default)s].'
                    )
 
+    add_precision_arg(p)
     add_verbose_arg(p)
     add_overwrite_arg(p)
 
@@ -59,7 +61,7 @@ def main():
 
     frf_file = np.loadtxt(args.frf_file)
     response = replace_frf(frf_file, args.new_frf, args.no_factor)
-    np.savetxt(args.output_frf_file, response)
+    np.savetxt(args.output_frf_file, response, fmt=f"%.{args.precision}f")
 
 
 if __name__ == "__main__":

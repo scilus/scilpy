@@ -21,7 +21,15 @@ def test_help_option(script_runner):
 def test_execution_given_size(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     ret = script_runner.run('scil_volume_resample.py', in_img,
-                            'fa_resample.nii.gz', '--voxel_size', '2')
+                            'fa_resample_2.nii.gz', '--voxel_size', '2')
+    assert ret.success
+
+
+def test_execution_force_voxel(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
+    ret = script_runner.run('scil_volume_resample.py', in_img,
+                            'fa_resample_4.nii.gz', '--voxel_size', '4',
+                            '--enforce_voxel_size')
     assert ret.success
 
 
@@ -30,4 +38,13 @@ def test_execution_ref(script_runner, monkeypatch):
     ref = os.path.join(SCILPY_HOME, 'others', 'fa_resample.nii.gz')
     ret = script_runner.run('scil_volume_resample.py', in_img,
                             'fa_resample2.nii.gz', '--ref', ref)
+    assert ret.success
+
+
+def test_execution_ref_force(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
+    ref = os.path.join(SCILPY_HOME, 'others', 'fa_resample.nii.gz')
+    ret = script_runner.run('scil_volume_resample.py', in_img,
+                            'fa_resample_ref.nii.gz', '--ref', ref,
+                            '--enforce_dimensions')
     assert ret.success
