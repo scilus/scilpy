@@ -375,24 +375,29 @@ def mean_reconstruction_error(centerlines, centerlines_length, diameters,
 
 
 @njit
-def endpoint_connectivity(step_size, blur_radius, centerlines,
-                          centerlines_length, diameters, streamlines,
-                          seeds_fiber):
+def endpoint_connectivity(blur_radius, centerlines, centerlines_length,
+                          diameters, streamlines, seeds_fiber):
     """
     For every streamline, find whether or not it has reached the end segment
-    of its fiber.
+    of its fibertube. Each streamline is associated with an "Arrival fibertube
+    segment", which is the closest fibertube segment to its before-last
+    coordinate.
 
-    VC: "Valid Connection": Contains streamlines that ended in the final
-        segment of the fiber in which they have been seeded.
-    IC: "Invalid Connection": Contains streamlines that ended in the final
-        segment of another fiber.
-    NC: "No Connection": Contains streamlines that have not ended in the final
-        segment of any fiber.
+    IMPORTANT: Streamlines given as input to be scored should be forward-only,
+    which means they are saved so that [0] is the seeding position and [-1] is
+    the end.
+
+    VC: "Valid Connection": A streamline whose arrival fibertube segment is
+    the final segment of the fibertube in which is was originally seeded.
+
+    IC: "Invalid Connection": A streamline whose arrival fibertube segment is
+    the start or final segment of a fibertube in which is was not seeded.
+
+    NC: "No Connection": A streamline whose arrival fibertube segment is
+    not the start or final segment of any fibertube.
 
     Parameters
     ----------
-    step_size: float
-        Step_size used during fibertube tracking.
     blur_radius: float
         Blur radius used during fibertube tracking.
     centerlines: ndarray
@@ -409,25 +414,21 @@ def endpoint_connectivity(step_size, blur_radius, centerlines,
         Fixed array containing the number of coordinates of each streamline
     seeds_fiber: list
         Array of the same length as there are streamlines. For every
-        streamline, contains the index of the fiber in which it has been
+        streamline, contains the index of the fibertube in which it has been
         seeded.
 
     Return
     ------
-    truth_vc: list
-        Connections that are valid at ground-truth resolution.
-    truth_ic: list
-        Connections that are invalid at ground-truth resolution.
-    truth_nc: list
-        No-connections at ground-truth resolution.
-    resolution_vc: list
-        Connections that are valid at simulated resolution.
-    resolution_ic: list
-        Connections that are invalid at simulated resolution.
-    resolution_nc: list
-        No-connections at simulated resolution.
+    vc: list
+        List containing the indices of all streamlines that are valid
+        connections.
+    ic: list
+        List containing the indices of all streamlines that are invalid
+        connections.
+    nc: list
+        List containing the indices of all streamlines that are no
+        connections.
     """
-    ratio = blur_radius / step_size
     max_diameter = np.max(diameters)
 
     # objmode allows the execution of non numba-compatible code within a numba
@@ -437,105 +438,50 @@ def endpoint_connectivity(step_size, blur_radius, centerlines,
         centers, indices, max_seg_length = streamlines_to_segments(
             centerlines, False)
 
-    centerline_fixed_length = len(centerlines[0])-1
+    tree = nbKDTree(centers)
 
-    # Building KDTree with centerline segments
-    kdtree_centers = np.zeros((0, 3))
-    for fi, fiber in enumerate(centerlines):
-        kdtree_centers = np.concatenate(
-            (kdtree_centers, centers[centerline_fixed_length * fi:
-             (centerline_fixed_length * fi + centerlines_length[fi] - 1)]))
-    tree = nbKDTree(kdtree_centers)
+    vc = set()
+    ic = set()
+    nc = set()
 
-    truth_vc = set()
-    truth_ic = set()
-    truth_nc = set()
-    res_vc = set()
-    res_ic = set()
-    res_nc = set()
+    # streamline[-2] is the last point with a valid direction
+    all_neighbors = tree.query_radius(
+        streamlines[:, -2], blur_radius + max_seg_length / 2 + max_diameter)
 
-    for si, streamline in enumerate(streamlines):
-        truth_connected = False
-        res_connected = False
+    for streamline_index, streamline in enumerate(streamlines):
+        seed_fi = seeds_fiber[streamline_index]
+        neighbors = all_neighbors[streamline_index]
 
-        seed_fi = seeds_fiber[si]
+        closest_dist = np.inf
+        closest_seg = 0
 
-        neighbors = tree.query_radius(
-            streamline[1], blur_radius + max_seg_length / 2 + max_diameter)[0]
+        # Finding closest segment
+        # There will always be a neighbor to override np.inf
+        for segment_index in neighbors:
+            fibertube_index = indices[segment_index][0]
+            point_index = indices[segment_index][1]
 
-        # Checking VC and Res_VC first
-        for neighbor_segi in neighbors:
-            fi = indices[neighbor_segi][0]
-            if fi != seed_fi:
-                continue
+            dist, _, _ = dist_point_segment(
+                centerlines[fibertube_index][point_index],
+                centerlines[fibertube_index][point_index+1],
+                streamline[-2])
 
-            fiber = centerlines[fi]
-            fib_end_pt1 = fiber[centerlines_length[fi] - 2]
-            fib_end_pt2 = fiber[centerlines_length[fi] - 1]
-            radius = diameters[fi] / 2
+            if dist < closest_dist:
+                closest_dist = dist
+                closest_seg = segment_index
 
-            # Connectivity
-            # Is in end segment of our fibertube
-            dist, _, _, _ = dist_segment_segment(
-                fib_end_pt1, fib_end_pt2, streamline[int(np.floor(ratio))],
-                streamline[int(np.ceil(ratio))+1])
-            if dist < radius:
-                truth_connected = True
-                truth_vc.add(si)
+        fibertube_index = indices[closest_seg][0]
+        point_index = indices[closest_seg][1]
 
-            # Resolution-wise connectivity
-            # Passes by end segment of our fibertube
-            dist, _, _, _ = dist_segment_segment(fib_end_pt1, fib_end_pt2,
-                                                 streamline[1], streamline[0])
-            if dist < radius + blur_radius:
-                res_connected = True
-                res_vc.add(si)
+        # If the closest segment is the last of its centerlines
+        if point_index == centerlines_length[fibertube_index]-1:
+            if fibertube_index == seed_fi:
+                vc.add(streamline_index)
+            else:
+                ic.add(streamline_index)
+        elif point_index == 0:
+            ic.add(streamline_index)
+        else:
+            nc.add(streamline_index)
 
-        # If not VC we check IC/NC and if not Res_VC, we check Res_IC/Res_NC
-        for neighbor_segi in neighbors:
-            fi = indices[neighbor_segi][0]
-            if fi == seed_fi:
-                continue
-
-            fiber = centerlines[fi]
-            fib_end_pt1 = fiber[centerlines_length[fi] - 2]
-            fib_end_pt2 = fiber[centerlines_length[fi] - 1]
-            radius = diameters[fi] / 2
-
-            is_vc = len(truth_vc.intersection({si})) != 0
-            is_res_vc = len(res_vc.intersection({si})) != 0
-
-            # Connectivity
-            # Is in start or end segment of a fibertube which is not ours
-            start_dist, _, _, _ = dist_segment_segment(
-                fiber[0], fiber[1], streamline[int(np.floor(ratio))],
-                streamline[int(np.ceil(ratio))+1])
-
-            end_dist, _, _, _ = dist_segment_segment(
-                fib_end_pt1, fib_end_pt2, streamline[int(np.floor(ratio))],
-                streamline[int(np.ceil(ratio))+1])
-
-            if not is_vc and (start_dist < radius or end_dist < radius):
-                truth_connected = True
-                truth_ic.add(si)
-
-            # Resolution-wise connectivity
-            # Passes by start or end segment of a fibertube which is not ours
-            start_dist, _, _, _ = dist_segment_segment(
-                fiber[0], fiber[1], streamline[1], streamline[0])
-
-            end_dist, _, _, _ = dist_segment_segment(
-                fib_end_pt1, fib_end_pt2, streamline[1], streamline[0])
-
-            if not is_res_vc and (start_dist < radius + blur_radius or
-                                  end_dist < radius + blur_radius):
-                res_connected = True
-                res_ic.add(si)
-
-        if not truth_connected:
-            truth_nc.add(si)
-        if not res_connected:
-            res_nc.add(si)
-
-    return (list(truth_vc), list(truth_ic), list(truth_nc), list(res_vc),
-            list(res_ic), list(res_nc))
+    return list(vc), list(ic), list(nc)

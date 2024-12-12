@@ -41,6 +41,9 @@ def _build_arg_parser():
     p.add_argument('--keep_dtype', action='store_true',
                    help='If True, keeps the data_type of the input image '
                         '(in_file) when saving the output image (out_name).')
+    p.add_argument('--interpolation', default='linear',
+                   choices=['linear', 'nearest'],
+                   help='Interpolation: "linear" or "nearest". [%(default)s]')
 
     add_verbose_arg(p)
     add_overwrite_arg(p)
@@ -75,7 +78,8 @@ def main():
 
     # Processing, saving
     warped_img = apply_transform(
-        transfo, reference, moving, keep_dtype=args.keep_dtype)
+        transfo, reference, moving, keep_dtype=args.keep_dtype,
+        interp=args.interpolation)
 
     nib.save(warped_img, args.out_name)
 
