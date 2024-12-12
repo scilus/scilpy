@@ -48,8 +48,8 @@ def _build_arg_parser():
                    help='Do not write file if there is no streamline.')
     p.add_argument('--display_counts', action='store_true',
                    help='Print streamline count before and after filtering')
-    p.add_argument('--save_rejected', action='store_true',
-                   help='Save rejected streamlines to output tractogram.')
+    p.add_argument('--out_rejected',
+                   help='If specified, save rejected streamlines to this file.')
     add_json_args(p)
     add_reference_arg(p)
     add_verbose_arg(p)
@@ -75,8 +75,17 @@ def main():
     sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
 
     # Processing
-    new_sft, _, outliers_sft = filter_streamlines_by_length(
-        sft, args.minL, args.maxL, return_rejected=True)
+    return_rejected = args.out_rejected is not None
+
+    # Returns (new_sft, _, [rejected_sft]) in filtered_result
+    filtered_result = filter_streamlines_by_length(
+        sft, args.minL, args.maxL, return_rejected=return_rejected)
+
+    new_sft = filtered_result[0]
+    
+    if return_rejected:
+        rejected_sft = filtered_result[2]
+        save_tractogram(rejected_sft, args.out_rejected, args.no_empty)
 
     if args.display_counts:
         sc_bf = len(sft.streamlines)
