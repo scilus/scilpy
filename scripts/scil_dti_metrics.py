@@ -149,7 +149,9 @@ def _build_arg_parser():
     return p
 
 
-def _plot_residuals(args, data_diff, mask, R_k, q1, q3, iqr, residual_basename):
+def _plot_residuals(
+    args, data_diff, mask, R_k, q1, q3, iqr, residual_basename
+):
     # Showing results in graph
     # Note that stats will be computed manually and plotted using bxp
     # but could be computed using stats = cbook.boxplot_stats
@@ -178,7 +180,7 @@ def _plot_residuals(args, data_diff, mask, R_k, q1, q3, iqr, residual_basename):
         # Outliers are observations that fall below Q1 - 1.5(IQR) or
         # above Q3 + 1.5(IQR) We check if a voxel is an outlier only if
         # we have a mask, else we are biased.
-        if args.mask is not None:
+        if args.mask is not None and nb_voxels > 0:
             x = data_diff[..., k]
             outliers = (x < stats[k]['whislo']) | (x > stats[k]['whishi'])
             percent_outliers[k] = np.sum(outliers) / nb_voxels * 100
@@ -406,6 +408,7 @@ def main():
     if args.residual:
         # Mean residual image
         S0 = np.mean(data[..., gtab.b0s_mask], axis=-1)
+
         tenfit2_predict = np.zeros(data.shape, dtype=np.float32)
 
         for i in range(data.shape[0]):
@@ -414,7 +417,8 @@ def main():
             else:
                 tenfit2 = tenmodel.fit(data[i, :, :, :])
 
-            tenfit2_predict[i, :, :, :] = tenfit2.predict(gtab, S0[i, :, :])
+            S0_i = np.maximum(S0[i, :, :], tenfit2.model.min_signal)
+            tenfit2_predict[i, :, :, :] = tenfit2.predict(gtab, S0_i)
 
         R, data_diff = compute_residuals(
             predicted_data=tenfit2_predict.astype(np.float32),
