@@ -12,6 +12,7 @@ import numpy as np
 import os
 
 from dipy.data import get_sphere
+from dipy.io.gradients import read_bvals_bvecs
 
 from scilpy.gradients.bvec_bval_tools import identify_shells
 from scilpy.io.utils import (add_overwrite_arg,
@@ -120,11 +121,8 @@ def main():
         if len(args.in_gradient_scheme) == 2:
             in_gradient_schemes = args.in_gradient_scheme
             in_gradient_schemes.sort()  # [bval, bvec]
-            # bvecs/bvals (FSL) format, X Y Z AND b (or transpose)
-            points = np.genfromtxt(in_gradient_schemes[1])
-            if points.shape[0] == 3:
-                points = points.T
-            bvals = np.genfromtxt(in_gradient_schemes[0])
+            bvals, points = read_bvals_bvecs(in_gradient_schemes[0],
+                                             in_gradient_schemes[1])
             centroids, shell_idx = identify_shells(bvals)
         else:
             # MRtrix format X, Y, Z, b
