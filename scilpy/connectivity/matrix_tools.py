@@ -7,6 +7,7 @@ import bct
 from dipy.utils.optpkg import optional_package
 import numpy as np
 from scipy.cluster import hierarchy
+from scipy.spatial.distance import squareform
 
 from scilpy.image.labels import get_data_as_labels
 from scilpy.stats.matrix_stats import omega_sigma
@@ -36,9 +37,11 @@ def compute_olo(array):
     if array.ndim != 2:
         raise ValueError('RCM can only be applied to 2D array.')
 
-    Z = hierarchy.ward(array)
+    condensed_array = squareform(array)
+
+    Z = hierarchy.ward(condensed_array)
     perm = hierarchy.leaves_list(
-        hierarchy.optimal_leaf_ordering(Z, array))
+        hierarchy.optimal_leaf_ordering(Z, condensed_array))
 
     return perm
 
