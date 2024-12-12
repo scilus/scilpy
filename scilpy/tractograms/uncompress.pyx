@@ -1,6 +1,5 @@
 # encoding: utf-8
-#cython: profile=False
-#cython: language_level=3
+# cython: profile=False, language_level=3
 
 from libc.math cimport ceil, fabs, floor, sqrt
 from libc.math cimport fmin as cfmin
