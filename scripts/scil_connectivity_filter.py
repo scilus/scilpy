@@ -102,8 +102,9 @@ def _filter(input_list, condition):
 
     filter_mask = population_score > population_threshold
     logging.info('Condition {}_than resulted in {} filtered '
-                 'elements out of {}.'.format(
-        condition, np.count_nonzero(~filter_mask), np.prod(shape)))
+                 'elements out of {}.'
+                 .format(condition, np.count_nonzero(~filter_mask),
+                         np.prod(shape)))
 
     return filter_mask
 
