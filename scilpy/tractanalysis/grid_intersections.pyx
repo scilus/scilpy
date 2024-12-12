@@ -30,6 +30,22 @@ cdef struct Pointers:
 @cython.wraparound(False)
 @cython.cdivision(True)
 def grid_intersections(streamlines):
+    """
+    Cut streamlines segments into smaller segments such that a segment covering
+    more than one voxel is split into smaller segments that either end or start
+    at voxel boundaries.
+
+    Parameters
+    ----------
+    streamlines: list of ndarray
+        Streamlines coordinates in voxel space, corner origin.
+
+    Returns
+    -------
+    all_crossed_indices: list of ndarray
+        Updated streamline coordinates with added coordinate points
+        at voxel boundaries.
+    """
     cdef:
         cnp.npy_intp nb_streamlines = len(streamlines._lengths)
         cnp.npy_intp at_point = 0
