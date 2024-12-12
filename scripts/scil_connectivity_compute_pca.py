@@ -237,12 +237,12 @@ def main():
         nb_subjects = len(matrices_per_metric[0])
 
         # Using the first metric
-        subj_masks = [m !=0 for m in matrices_per_metric[0]]  # Binary per subj
+        subj_masks = [m != 0 for m in matrices_per_metric[0]]  # Mask per subj
         common_edges_mask = np.sum(subj_masks, axis=0) == nb_subjects
 
         # Verifying that other metrics have the same common edges
         for i, matrices in enumerate(matrices_per_metric[1:]):
-            tmp_subj_masks = [m !=0 for m in matrices] # Binary per subj
+            tmp_subj_masks = [m != 0 for m in matrices]  # Binary per subj
             tmp_common = np.sum(tmp_subj_masks, axis=0) == nb_subjects
             if not np.array_equal(common_edges_mask, tmp_common):
                 parser.error("Different binary masks (common edge) have been "
