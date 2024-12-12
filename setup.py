@@ -20,11 +20,13 @@ def get_extensions():
     uncompress = Extension('scilpy.tractograms.uncompress',
                            ['scilpy/tractograms/uncompress.pyx'],
                            define_macros=define_macros)
-    voxel_boundary_intersection = Extension('scilpy.tractanalysis.voxel_boundary_intersection',
-                                            ['scilpy/tractanalysis/voxel_boundary_intersection.pyx'],
+    voxel_boundary_intersection =\
+        Extension('scilpy.tractanalysis.voxel_boundary_intersection',
+                  ['scilpy/tractanalysis/voxel_boundary_intersection.pyx'],
                                             define_macros=define_macros)
-    streamlines_metrics = Extension('scilpy.tractanalysis.streamlines_metrics',
-                                    ['scilpy/tractanalysis/streamlines_metrics.pyx'],
+    streamlines_metrics =\
+        Extension('scilpy.tractanalysis.streamlines_metrics',
+                  ['scilpy/tractanalysis/streamlines_metrics.pyx'],
                                     define_macros=define_macros)
     return [uncompress, voxel_boundary_intersection, streamlines_metrics]
 
