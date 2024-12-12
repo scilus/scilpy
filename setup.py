@@ -18,13 +18,11 @@ with open('requirements.txt') as f:
 def get_extensions():
     uncompress = Extension('scilpy.tractograms.uncompress',
                            ['scilpy/tractograms/uncompress.pyx'])
-    quick_tools = Extension('scilpy.tractanalysis.quick_tools',
-                            ['scilpy/tractanalysis/quick_tools.pyx'])
     voxel_boundary_intersection = Extension('scilpy.tractanalysis.voxel_boundary_intersection',
                                             ['scilpy/tractanalysis/voxel_boundary_intersection.pyx'])
     streamlines_metrics = Extension('scilpy.tractanalysis.streamlines_metrics',
                                     ['scilpy/tractanalysis/streamlines_metrics.pyx'])
-    return [uncompress, quick_tools, voxel_boundary_intersection, streamlines_metrics]
+    return [uncompress, voxel_boundary_intersection, streamlines_metrics]
 
 
 class CustomBuildExtCommand(build_ext):
