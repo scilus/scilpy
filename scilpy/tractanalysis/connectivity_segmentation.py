@@ -96,7 +96,8 @@ def compute_connectivity(indices, atlas_data, real_labels, segmenting_func):
     ----------
     indices: ArraySequence
         The list of 3D indices [i, j, k] of all voxels traversed by all
-        streamlines. This is the output of our uncompress function.
+        streamlines. This is the output of the
+        streamlines_to_voxel_coordinates function.
     atlas_data: np.ndarray
         The loaded image containing the labels.
     real_labels: np.ndarray
@@ -155,9 +156,9 @@ def construct_hdf5_from_connectivity(
     sft: StatefulTractogram
         The tractogram.
     indices: ArraySequence
-        Results from uncompress.
+        Results from streamlines_to_voxel_coordinates.
     points_to_idx: ArraySequence
-        Results from uncompress.
+        Results from streamlines_to_voxel_coordinates.
     real_labels: np.ndarray
         The labels.
     con_info: dict
