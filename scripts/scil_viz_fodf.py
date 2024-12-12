@@ -155,7 +155,7 @@ def _build_arg_parser():
 
     peaks.add_argument('--peaks_width', default=1.0, type=float,
                        help='Width of peaks segments. [%(default)s]')
-    
+
     peaks.add_argument('--peaks_opacity', type=float, default=1.0,
                        help='Peaks opacity. 1 is opaque, 0 is transparent '
                             '[%(default)s].')
