@@ -104,6 +104,9 @@ def _build_arg_parser():
     p.add_argument('--input_connectoflow', action='store_true',
                    help='If true, script will assume the input folder is a '
                         'Connectoflow output.')
+    p.add_argument('--show', action='store_true',
+                   help="If set, show matplotlib figures. Else, they are "
+                        "only saved in the output folder.")
 
     add_verbose_arg(p)
     add_overwrite_arg(p)
@@ -116,8 +119,6 @@ def plot_eigenvalues(pca, principaldf, nb_metrics, out_file):
     logging.info('Plotting results...')
     eigenvalues = pca.explained_variance_
     pos = list(range(1, nb_metrics + 1))
-    plt.clf()
-    plt.cla()
 
     fig = plt.figure()
     ax = fig.add_subplot(1, 1, 1)
@@ -136,8 +137,7 @@ def plot_explained_variance(pca, principaldf, nb_metrics, out_file):
     # Plot the explained variance.
     explained_var = pca.explained_variance_ratio_
     pos = list(range(1, nb_metrics + 1))
-    plt.clf()
-    plt.cla()
+
     fig = plt.figure()
     ax = fig.add_subplot(1, 1, 1)
     bar_var = ax.bar(pos, explained_var, align='center',
@@ -157,8 +157,7 @@ def plot_contribution(pca, principaldf, metrics, out_excel, out_image):
     output_component = pd.DataFrame(component, index=principaldf.columns,
                                     columns=metrics)
     output_component.to_excel(out_excel, index=True, header=True)
-    plt.clf()
-    plt.cla()
+
     fig, axs = plt.subplots(2)
     fig.suptitle('Graph of the contribution of each measures to the first '
                  'and second principal component.', fontsize=10)
@@ -209,8 +208,8 @@ def main():
     with open(args.list_ids) as f:
         subjects = f.read().split()
 
+    # Loading all matrices.
     if args.input_connectoflow:
-        # Loading all matrix.
         logging.info('Loading all matrices from a Connectoflow output...')
         files_per_metric = [[os.path.join(
             args.in_folder, a, 'Compute_Connectivity', '{}.npy'.format(m))
@@ -230,22 +229,30 @@ def main():
     # Setting individual matrix shape.
     mat_shape = matrices_per_metric[0][0].shape
 
+    # Creating input structure
     if args.all_edges:
-        # Creating input structure using all edges from all subjects.
         logging.info('Creating PCA input structure with all edges...')
     else:
         logging.info('Creating PCA input structure with common edges...')
+        nb_subjects = len(matrices_per_metric[0])
 
-        common_edges_mask = np.sum(matrices_per_metric[0]) != 0
+        # Using the first metric
+        subj_masks = [m !=0 for m in matrices_per_metric[0]]  # Binary per subj
+        common_edges_mask = np.sum(subj_masks, axis=0) == nb_subjects
 
         # Verifying that other metrics have the same common edges
         for i, matrices in enumerate(matrices_per_metric[1:]):
-            tmp_mask = np.sum(matrices) != 0
-            if not np.array_equal(common_edges_mask, tmp_mask):
+            tmp_subj_masks = [m !=0 for m in matrices] # Binary per subj
+            tmp_common = np.sum(tmp_subj_masks, axis=0) == nb_subjects
+            if not np.array_equal(common_edges_mask, tmp_common):
                 parser.error("Different binary masks (common edge) have been "
                              "generated from metric {} than other metrics. "
                              "Please validate your input data."
                              .format(args.metrics[i]))
+
+        plt.figure()
+        plt.imshow(common_edges_mask)
+        plt.title(common_edges_mask)
 
         logging.info('Data shows {} common connections across the population.'
                      .format(np.sum(common_edges_mask)))
@@ -303,6 +310,9 @@ def main():
             filename = os.path.join(args.out_folder,
                                     f'{subjects[s]}_PC{i+1}.npy')
             save_matrix_in_any_format(filename, out[i, s, :, :])
+
+    if args.show:
+        plt.show()
 
 
 if __name__ == "__main__":
