@@ -29,7 +29,7 @@ cdef struct Pointers:
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-def grid_intersections(streamlines):
+def subdivide_streamlines_at_voxel_faces(streamlines):
     """
     Cut streamlines segments into smaller segments such that a segment covering
     more than one voxel is split into smaller segments that either end or start
@@ -42,7 +42,7 @@ def grid_intersections(streamlines):
 
     Returns
     -------
-    all_crossed_indices: list of ndarray
+    split_coordinates: list of ndarray
         Updated streamline coordinates with added coordinate points
         at voxel boundaries.
     """

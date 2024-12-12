@@ -3,7 +3,8 @@ import multiprocessing
 import numpy as np
 
 from dipy.io.streamline import load_tractogram
-from scilpy.tractanalysis.grid_intersections import grid_intersections
+from scilpy.tractanalysis.voxel_boundary_intersection import\
+    subdivide_streamlines_at_voxel_faces
 
 
 def _fixel_density_parallel(args):
@@ -21,9 +22,9 @@ def _fixel_density_single_bundle(bundle, peaks, max_theta, dps_key):
 
     min_cos_theta = np.cos(np.radians(max_theta))
 
-    all_crossed_indices = grid_intersections(sft.streamlines)
-    for i, crossed_indices in enumerate(all_crossed_indices):
-        segments = crossed_indices[1:] - crossed_indices[:-1]
+    all_split_streamlines = subdivide_streamlines_at_voxel_faces(sft.streamlines)
+    for i, split_streamlines in enumerate(all_split_streamlines):
+        segments = split_streamlines[1:] - split_streamlines[:-1]
         seg_lengths = np.linalg.norm(segments, axis=1)
 
         # Remove points where the segment is zero.
@@ -33,7 +34,7 @@ def _fixel_density_single_bundle(bundle, peaks, max_theta, dps_key):
         seg_lengths = seg_lengths[non_zero_lengths]
 
         # Those starting points are used for the segment vox_idx computations
-        seg_start = crossed_indices[non_zero_lengths]
+        seg_start = split_streamlines[non_zero_lengths]
         vox_indices = (seg_start + (0.5 * segments)).astype(int)
 
         normalized_seg = np.reshape(segments / seg_lengths[..., None], (-1, 3))

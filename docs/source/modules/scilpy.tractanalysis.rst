@@ -34,10 +34,10 @@ scilpy.tractanalysis.features module
    :show-inheritance:
 
 
-scilpy.tractanalysis.grid\_intersections module
+scilpy.tractanalysis.voxel\_boundary\_intersection module
 ------------------------------------------------------
 
-.. automodule:: scilpy.tractanalysis.grid_intersections
+.. automodule:: scilpy.tractanalysis.voxel_boundary_intersection
    :members:
    :undoc-members:
    :show-inheritance:
