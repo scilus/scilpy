@@ -31,7 +31,6 @@ cdef struct Pointers:
 
 
 @cython.boundscheck(False)
-@cython.wraparound(False)
 @cython.cdivision(True)
 def uncompress(streamlines, return_mapping=False):
     """
@@ -147,7 +146,6 @@ cdef inline void c_get_closest_edge(double *p,
 
 
 @cython.boundscheck(False)
-@cython.wraparound(False)
 @cython.cdivision(True)
 cdef cnp.npy_intp _uncompress(
         Pointers* pointers,

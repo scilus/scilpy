@@ -27,7 +27,6 @@ cdef struct Pointers:
 
 
 @cython.boundscheck(False)
-@cython.wraparound(False)
 @cython.cdivision(True)
 def subdivide_streamlines_at_voxel_faces(streamlines):
     """
@@ -140,7 +139,6 @@ cdef inline void copypoint_d2f(double * a, float * b) nogil:
 
 
 @cython.boundscheck(False)
-@cython.wraparound(False)
 @cython.cdivision(True)
 cdef cnp.npy_intp _grid_intersections(
         Pointers* pointers,
