@@ -16,12 +16,16 @@ with open('requirements.txt') as f:
 
 
 def get_extensions():
+    define_macros = [('NPY_NO_DEPRECATED_API', 'NPY_1_7_API_VERSION')]
     uncompress = Extension('scilpy.tractograms.uncompress',
-                           ['scilpy/tractograms/uncompress.pyx'])
+                           ['scilpy/tractograms/uncompress.pyx'],
+                           define_macros=define_macros)
     voxel_boundary_intersection = Extension('scilpy.tractanalysis.voxel_boundary_intersection',
-                                            ['scilpy/tractanalysis/voxel_boundary_intersection.pyx'])
+                                            ['scilpy/tractanalysis/voxel_boundary_intersection.pyx'],
+                                            define_macros=define_macros)
     streamlines_metrics = Extension('scilpy.tractanalysis.streamlines_metrics',
-                                    ['scilpy/tractanalysis/streamlines_metrics.pyx'])
+                                    ['scilpy/tractanalysis/streamlines_metrics.pyx'],
+                                    define_macros=define_macros)
     return [uncompress, voxel_boundary_intersection, streamlines_metrics]
 
 
