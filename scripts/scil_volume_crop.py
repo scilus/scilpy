@@ -32,6 +32,7 @@ from scilpy.io.utils import (add_overwrite_arg,
                              add_verbose_arg,
                              assert_inputs_exist,
                              assert_outputs_exist)
+from scilpy.utils.spatial import WorldBoundingBox
 from scilpy.image.utils import compute_nifti_bounding_box
 from scilpy.image.volume_operations import crop_volume
 from scilpy.version import version_string
@@ -57,11 +58,12 @@ def _build_arg_parser():
 
     g1 = p.add_mutually_exclusive_group()
     g1.add_argument('--input_bbox',
-                    help='Path of the pickle file from which to take '
+                    help='Path of the json file from which to take '
                          'the bounding box to crop input file.')
     g1.add_argument('--output_bbox',
-                    help='Path of the pickle file where to write the '
-                         'computed bounding box. (.pickle extension)')
+                    help='Path of the json file where to write the '
+                         'computed bounding box.')
+
     return p
 
 
@@ -75,8 +77,7 @@ def main():
 
     img = nib.load(args.in_image)
     if args.input_bbox:
-        with open(args.input_bbox, 'rb') as bbox_file:
-            wbbox = pickle.load(bbox_file)
+        wbbox = WorldBoundingBox.load(args.input_bbox)
         if not args.ignore_voxel_size:
             voxel_size = img.header.get_zooms()[0:3]
             if not np.allclose(voxel_size, wbbox.voxel_size[0:3], atol=1e-03):
@@ -86,8 +87,7 @@ def main():
     else:
         wbbox = compute_nifti_bounding_box(img)
         if args.output_bbox:
-            with open(args.output_bbox, 'wb') as bbox_file:
-                pickle.dump(wbbox, bbox_file)
+            wbbox.dump(args.output_bbox)
 
     out_nifti_file = crop_volume(img, wbbox)
     nib.save(out_nifti_file, args.out_image)
