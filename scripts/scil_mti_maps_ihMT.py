@@ -82,7 +82,7 @@ By default, the script uses all the echoes available in the input folder.
 If you want to use a single echo, replace the * with the specific number of
 the echo.
 
---------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------
 References:
 [1] Varma G, Girard OM, Prevost VH, Grant AK, Duhamel G, Alsop DC.
     Interpretation of magnetization transfer from inhomogeneously broadened lines
@@ -97,7 +97,7 @@ References:
     magnetization transfer with inherent correction for RF inhomogeneity
     and T1 relaxation obtained from 3D FLASH MRI. Magnetic Resonance in Medicine.
     2008;60(6):1396-407.
---------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
 """
 
 import argparse
