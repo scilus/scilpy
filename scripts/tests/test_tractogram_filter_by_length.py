@@ -29,11 +29,12 @@ def test_execution_filtering(script_runner, monkeypatch):
     ret = script_runner.run('scil_tractogram_filter_by_length.py',
                             in_bundle,  'bundle_4_filtered.trk',
                             '--minL', '125', '--maxL', '130')
-    
+
     sft = load_tractogram('bundle_4_filtered.trk', 'same')
     assert len(sft) == 52
 
     assert ret.success
+
 
 def test_rejected_filtering(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
@@ -49,9 +50,10 @@ def test_rejected_filtering(script_runner, monkeypatch):
 
     sft = load_tractogram('bundle_all_1mm_filtered.trk', 'same')
     rejected_sft = load_tractogram('bundle_all_1mm_rejected.trk', 'same')
-    
+
     assert len(sft) == 266
     assert len(rejected_sft) == 2824
+
 
 def test_rejected_filtering_no_rejection(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
@@ -62,12 +64,12 @@ def test_rejected_filtering_no_rejection(script_runner, monkeypatch):
                             '--minL', '125', '--maxL', '130',
                             '--out_rejected', 'bundle_4_rejected.trk')
     assert ret.success
-    
+
     # File should be created even though there are no rejected streamlines
     assert os.path.exists('bundle_4_rejected.trk')
 
     sft = load_tractogram('bundle_4_filtered.trk', 'same')
     rejected_sft = load_tractogram('bundle_4_rejected.trk', 'same')
-    
+
     assert len(sft) == 52
     assert len(rejected_sft) == 0
