@@ -7,6 +7,13 @@ Script to remove specific labels from an atlas volume.
     >>> scil_labels_remove.py DKT_labels.nii out_labels.nii.gz -i 5001 5002
 
 Formerly: scil_remove_labels.py
+
+----------------------------------------------------------------------------
+References:
+[1] Al-Sharif N.B., St-Onge E., Vogel J.W., Theaud G.,
+    Evans A.C. and Descoteaux M. OHBM 2019.
+    Surface integration for connectome analysis in age prediction.
+----------------------------------------------------------------------------
 """
 
 
@@ -24,11 +31,13 @@ EPILOG = """
             Evans A.C. and Descoteaux M. OHBM 2019.
             Surface integration for connectome analysis in age prediction.
     """
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(description=__doc__, epilog=EPILOG,
-                                formatter_class=argparse.RawTextHelpFormatter)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
 
     p.add_argument('in_labels',
                    help='Input labels volume.')

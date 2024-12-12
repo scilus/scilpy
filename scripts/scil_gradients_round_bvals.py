@@ -25,12 +25,13 @@ import numpy as np
 from scilpy.io.utils import (add_overwrite_arg, add_verbose_arg,
                              assert_inputs_exist, assert_outputs_exist)
 from scilpy.gradients.bvec_bval_tools import round_bvals_to_shell
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
-    parser = argparse.ArgumentParser(
-        description=__doc__,
-        formatter_class=argparse.RawTextHelpFormatter)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
 
     parser.add_argument('in_bval',
                         help='The b-values in FSL format.')

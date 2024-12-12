@@ -6,6 +6,14 @@ Compute the axial (para_diff), radial (perp_diff), and mean (iso_diff)
 diffusivity priors for NODDI.
 
 Formerly: scil_compute_NODDI_priors.py
+
+---------------------------------------------------------------
+Reference:
+[1] Zhang H, Schneider T, Wheeler-Kingshott CA, Alexander DC.
+    NODDI: practical in vivo neurite orientation dispersion
+    and density imaging of the human brain.
+    NeuroImage. 2012 Jul 16;61:1000-16.
+---------------------------------------------------------------
 """
 
 import argparse
@@ -19,19 +27,14 @@ from scilpy.io.utils import (assert_inputs_exist,
                              assert_outputs_exist,
                              add_overwrite_arg,
                              add_verbose_arg)
-
-EPILOG = """
-Reference:
-    [1] Zhang H, Schneider T, Wheeler-Kingshott CA, Alexander DC.
-        NODDI: practical in vivo neurite orientation dispersion and density
-        imaging of the human brain. NeuroImage. 2012 Jul 16;61:1000-16.
-"""
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(
-        description=__doc__, epilog=EPILOG,
-        formatter_class=argparse.RawTextHelpFormatter)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
+
     p.add_argument('in_FA',
                    help='Path to the FA volume.')
     p.add_argument('in_AD',

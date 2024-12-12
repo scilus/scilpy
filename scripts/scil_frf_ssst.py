@@ -8,6 +8,10 @@ A DTI fit is made, and voxels containing a single fiber population are
 found using a threshold on the FA.
 
 Formerly: scil_compute_ssst_frf.py
+----------------------------------------------------------------------
+References: 
+[1] Tournier et al. NeuroImage 2007
+----------------------------------------------------------------------
 """
 
 import argparse
@@ -26,13 +30,13 @@ from scilpy.io.utils import (add_b0_thresh_arg, add_overwrite_arg,
                              assert_roi_radii_format,
                              assert_headers_compatible)
 from scilpy.reconst.frf import compute_ssst_frf
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(
-        description=__doc__,
-        formatter_class=argparse.RawTextHelpFormatter,
-        epilog="References: [1] Tournier et al. NeuroImage 2007")
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
 
     p.add_argument('in_dwi',
                    help='Path of the input diffusion volume.')
