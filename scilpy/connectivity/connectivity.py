@@ -36,7 +36,7 @@ def compute_triu_connectivity_from_labels(tractogram, data_labels,
     tractogram: StatefulTractogram, or list[np.ndarray]
         Streamlines. A StatefulTractogram input is recommanded.
         When using directly with a list of streamlines, streamlines must be in
-        vox space, corner origin.
+        vox space, center origin.
     data_labels: np.ndarray
         The loaded nifti image.
     keep_background: Bool
@@ -59,9 +59,7 @@ def compute_triu_connectivity_from_labels(tractogram, data_labels,
         For each streamline, the label at ending point.
     """
     if isinstance(tractogram, StatefulTractogram):
-        #  Vox space, corner origin
-        # = we can get the nearest neighbor easily.
-        # Coord 0 = voxel 0. Coord 0.9 = voxel 0. Coord 1 = voxel 1.
+        # vox space, center origin: compatible with map_coordinates
         sfs_2_pts = resample_streamlines_num_points(tractogram, 2)
         sfs_2_pts.to_vox()
         sfs_2_pts.to_center()
@@ -78,8 +76,7 @@ def compute_triu_connectivity_from_labels(tractogram, data_labels,
 
     matrix = np.zeros((nb_labels, nb_labels), dtype=int)
 
-    labels = map_coordinates(data_labels, streamlines._data.T,
-                             order=0, mode='nearest')
+    labels = map_coordinates(data_labels, streamlines._data.T, order=0)
     start_labels = labels[0::2]
     end_labels = labels[1::2]
 
