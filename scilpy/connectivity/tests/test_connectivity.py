@@ -23,8 +23,8 @@ def test_compute_triu_connectivity_from_labels():
         tractogram, labels)
     assert np.array_equal(output.shape, [8, 8])
     expected_out = np.zeros((8, 8))
-    expected_out[1, 3] = 1
-    expected_out[4, 6] = 2
+    expected_out[1, 3] = 1  # This is labels (4, 6)
+    expected_out[4, 6] = 2  # This is labels (7, 9)
     assert np.array_equal(output, expected_out)
 
 
