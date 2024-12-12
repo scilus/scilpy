@@ -60,6 +60,18 @@ def test_roi_radii_shape_parameter(script_runner, monkeypatch):
     assert (not ret.success)
 
 
+def test_outputs_precision(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
+    ret = script_runner.run('scil_frf_ssst.py', in_dwi,
+                            in_bval, in_bvec, 'frf.txt',
+                            '--precision', '4', '-f')
+    assert ret.success
+
+    with open("frf.txt", "r") as f:
+        for item in f.readline().strip("\n").split(" "):
+            assert len(item.split(".")[1]) == 4
+
+
 def test_execution_processing(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     ret = script_runner.run('scil_frf_ssst.py', in_dwi,
