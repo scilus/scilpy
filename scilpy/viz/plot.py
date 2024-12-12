@@ -3,6 +3,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 
+
 def plot_metrics_stats(means, stds, title=None, xlabel=None,
                        ylabel=None, figlabel=None, fill_color=None,
                        display_means=False):
@@ -111,9 +112,8 @@ def plot_residuals(data_diff, mask, R_k, q1, q3, iqr, residual_basename):
     # Note that stats will be computed manually and plotted using bxp
     # but could be computed using stats = cbook.boxplot_stats
     # or pyplot.boxplot(x)
-    
 
-     # Initializing stats as a List[dict]
+    # Initializing stats as a List[dict]
     stats = [dict.fromkeys(['label', 'mean', 'iqr', 'cilo', 'cihi',
                             'whishi', 'whislo', 'fliers', 'q1',
                             'med', 'q3'], [])
