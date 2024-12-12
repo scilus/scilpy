@@ -249,7 +249,7 @@ class WorldBoundingBox(object):
         """
         with open(filename) as bbox_file:
             values = json.load(bbox_file)
-            
+
             return WorldBoundingBox(np.array(values['minimums']),
                                     np.array(values['maximums']),
                                     np.array(values['voxel_size']))
