@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
+
 from dipy.io.utils import get_reference_info
+import json
 import nibabel.orientations as ornt
 import numpy as np
-
 from numpy.lib.index_tricks import r_ as row
 
 
@@ -212,9 +213,46 @@ class WorldBoundingBox(object):
     """
 
     def __init__(self, minimums, maximums, voxel_size):
-        self.minimums = minimums
-        self.maximums = maximums
-        self.voxel_size = voxel_size
+        self.minimums = np.asarray(minimums)
+        self.maximums = np.asarray(maximums)
+        self.voxel_size = np.asarray(voxel_size)
+
+    def dump(self, filename):
+        """
+        Save the bounding box to a json file.
+
+        Parameters
+        ----------
+        filename: str
+            Path to the json file.
+        """
+        with open(filename, 'w+') as bbox_file:
+            json.dump({
+                "minimums": self.minimums.tolist(),
+                "maximums": self.maximums.tolist(),
+                "voxel_size": self.voxel_size.tolist()}, bbox_file)
+
+    @classmethod
+    def load(cls, filename):
+        """
+        Load a bounding box from a json file.
+
+        Parameters
+        ----------
+        filename: str
+            Path to the json file.
+
+        Returns
+        -------
+        WorldBoundingBox
+            The bounding box object.
+        """
+        with open(filename) as bbox_file:
+            values = json.load(bbox_file)
+            
+            return WorldBoundingBox(np.array(values['minimums']),
+                                    np.array(values['maximums']),
+                                    np.array(values['voxel_size']))
 
 
 def world_to_voxel(coord, affine):
