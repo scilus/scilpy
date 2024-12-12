@@ -6,6 +6,10 @@ Import, extract or delete dps (data_per_streamline) information to a tractogram
 file. Can be for example SIFT2 weights, processing information, bundle IDs,
 tracking seeds, etc.
 
+This script is not the same as the dps mode of scil_tractogram_dpp_math.py,
+which performs operations on dpp (data_per_point) and saves the result as dps.
+Instead this script performs operations directly on dps values.
+
 Input and output tractograms must be .trk, unless you are using the 'import'
 operation, in which case a .tck input tractogram is accepted.
 
