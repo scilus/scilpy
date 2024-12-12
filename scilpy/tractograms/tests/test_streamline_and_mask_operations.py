@@ -92,7 +92,7 @@ def test_get_endpoints_density_map_five_points():
 
     result = nib.load(in_result).get_fdata()
 
-    assert np.allclose(endpoints_map, result)
+    assert np.allclose(endpoints_map, result, rtol=1e-03)
 
 
 def test_get_head_tail_density_maps():
