@@ -105,7 +105,8 @@ def evaluate_graph_measures(conn_matrix, len_matrix, avg_node_wise,
 
     Parameters
     ----------
-    conn_matrix: np.ndarray of shape ??
+    conn_matrix: np.ndarray
+        2D matrix of connectivity weights.
     len_matrix: np.ndarray of shape ??
     avg_node_wise: bool
         If true, return a single value for node-wise measures.
