@@ -60,7 +60,7 @@ def test_rejected_filtering_no_rejection(script_runner, monkeypatch):
     in_bundle = os.path.join(SCILPY_HOME, 'filtering',
                              'bundle_4.trk')
     ret = script_runner.run('scil_tractogram_filter_by_length.py',
-                            in_bundle,  'bundle_4_filtered.trk',
+                            in_bundle,  'bundle_4_filtered_no_rejection.trk',
                             '--minL', '125', '--maxL', '130',
                             '--out_rejected', 'bundle_4_rejected.trk')
     assert ret.success
@@ -68,7 +68,7 @@ def test_rejected_filtering_no_rejection(script_runner, monkeypatch):
     # File should be created even though there are no rejected streamlines
     assert os.path.exists('bundle_4_rejected.trk')
 
-    sft = load_tractogram('bundle_4_filtered.trk', 'same')
+    sft = load_tractogram('bundle_4_filtered_no_rejection.trk', 'same')
     rejected_sft = load_tractogram('bundle_4_rejected.trk', 'same')
 
     assert len(sft) == 52
