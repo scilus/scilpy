@@ -75,8 +75,8 @@ def load_tractogram_with_reference(parser, args, filepath, arg_name=None):
     filepath: str
         Path of the tractogram file.
     arg_name: str, optional
-        Name of the reference argument. By default the args.ref is used. If
-        arg_name is given, then args.arg_name_ref will be used instead.
+        Name of the reference argument. By default the args.reference is used.
+        If arg_name is given, then args.arg_name_ref will be used instead.
     """
     if is_argument_set(args, 'bbox_check'):
         bbox_check = args.bbox_check
