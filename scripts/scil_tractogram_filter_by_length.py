@@ -49,7 +49,8 @@ def _build_arg_parser():
     p.add_argument('--display_counts', action='store_true',
                    help='Print streamline count before and after filtering')
     p.add_argument('--out_rejected',
-                   help='If specified, save rejected streamlines to this file.')
+                   help='If specified, save rejected streamlines to this '
+                   'file.')
     add_json_args(p)
     add_reference_arg(p)
     add_verbose_arg(p)
@@ -82,7 +83,7 @@ def main():
         sft, args.minL, args.maxL, return_rejected=return_rejected)
 
     new_sft = filtered_result[0]
-    
+
     if return_rejected:
         rejected_sft = filtered_result[2]
         save_tractogram(rejected_sft, args.out_rejected, args.no_empty)
