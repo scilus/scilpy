@@ -24,8 +24,8 @@ Formerly: scil_validate_and_correct_bvecs.py
 ------------------------------------------------------------------------------
 Reference:
 [1] Schilling KG, Yeh FC, Nath V, Hansen C, Williams O, Resnick S, Anderson AW,
-    Landman BA. A fiber coherence index for quality control of B-table orientation
-    in diffusion MRI scans. Magn Reson Imaging. 2019 May;58:82-89.
+    Landman BA. A fiber coherence index for quality control of B-table
+    orientation in diffusion MRI scans. Magn Reson Imaging. 2019 May;58:82-89.
     doi: 10.1016/j.mri.2019.01.018.
 ------------------------------------------------------------------------------
 """

@@ -79,8 +79,8 @@ the echo.
 Reference:
 [1] Helms G, Dathe H, Kallenberg K, Dechent P. High-resolution maps of
     magnetization transfer with inherent correction for RF inhomogeneity
-    and T1 relaxation obtained from 3D FLASH MRI. Magnetic Resonance in Medicine.
-    2008;60(6):1396-407.
+    and T1 relaxation obtained from 3D FLASH MRI.
+    Magnetic Resonance in Medicine. 2008;60(6):1396-407.
 ---------------------------------------------------------------------------------
 """
 

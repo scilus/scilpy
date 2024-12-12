@@ -85,9 +85,9 @@ the echo.
 ----------------------------------------------------------------------------------
 References:
 [1] Varma G, Girard OM, Prevost VH, Grant AK, Duhamel G, Alsop DC.
-    Interpretation of magnetization transfer from inhomogeneously broadened lines
-    (ihMT) in tissues as a dipolar order effect within motion restricted molecules.
-    Journal of Magnetic Resonance. 1 nov 2015;260:67-76.
+    Interpretation of magnetization transfer from inhomogeneously broadened
+    lines (ihMT) in tissues as a dipolar order effect within motion
+    restricted molecules. Journal of Magnetic Resonance. 1 nov 2015;260:67-76.
 
 [2] Manning AP, Chang KL, MacKay AL, Michal CA. The physical mechanism of
     "inhomogeneous" magnetization transfer MRI. Journal of Magnetic Resonance.
@@ -95,8 +95,8 @@ References:
 
 [3] Helms G, Dathe H, Kallenberg K, Dechent P. High-resolution maps of
     magnetization transfer with inherent correction for RF inhomogeneity
-    and T1 relaxation obtained from 3D FLASH MRI. Magnetic Resonance in Medicine.
-    2008;60(6):1396-407.
+    and T1 relaxation obtained from 3D FLASH MRI.
+    Magnetic Resonance in Medicine. 2008;60(6):1396-407.
 ---------------------------------------------------------------------------------
 """
 
