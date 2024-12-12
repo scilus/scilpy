@@ -44,7 +44,7 @@ def update_scene():
     Renders the streamlines for the current index and threshold based on the
     filtering.
     """
-    global current_index, config, sft, stream_actor, scene, filter_slider, \
+    global current_index, mapping, sft, stream_actor, scene, filter_slider, \
         bundle_name_textbox
     try:
         # Remove previous streamline actor if it exists
@@ -52,9 +52,9 @@ def update_scene():
     except NameError:
         pass
 
-    key = list(config.keys())[current_index]
-    indices = np.array(config[key]['indices'], dtype=int)
-    scores = np.array(config[key]['scores'], dtype=float)
+    key = list(mapping.keys())[current_index]
+    indices = np.array(mapping[key]['indices'], dtype=int)
+    scores = np.array(mapping[key]['scores'], dtype=float)
 
     # Filter the streamlines based on the threshold value from the slider
     thr = np.round(filter_slider.value, 2)
@@ -91,7 +91,7 @@ def build_label(text):
     return label
 
 
-def setup(sft, ref_img, config, mask):
+def setup(sft, ref_img, mapping, mask):
     """
     Set up the visualization scene, including UI elements and event handlers.
     This function adds slicers, filters, and other UI components to interact
@@ -100,7 +100,7 @@ def setup(sft, ref_img, config, mask):
     Parameters:
     - sft: StatefulTractogram, containing the streamlines to be visualized.
     - ref_img: NIfTI reference image to serve as background.
-    - config: Dictionary containing bundle information.
+    - mapping: Dictionary containing bundle information.
     - mask: Optional mask image to highlight regions of interest.
     """
     global current_index, filter_slider, scene, size, dropdown, \
@@ -182,10 +182,10 @@ def setup(sft, ref_img, config, mask):
     # ------------------- Filtering UI START -------------------
     # Create filter slider for streamline filtering based on scores
     all_scores = []
-    for key in list(config.keys()):
+    for key in list(mapping.keys()):
         basename = os.path.basename(key)
-        all_scores.extend(config[key]['scores'])
-        config[basename] = config.pop(key)
+        all_scores.extend(mapping[key]['scores'])
+        mapping[basename] = mapping.pop(key)
     max_score_value = np.max(all_scores)
     median_score_value = np.median(all_scores)
 
@@ -221,7 +221,7 @@ def setup(sft, ref_img, config, mask):
 
     # ------------------- Selection UI START -------------------
     # UI elements for selecting different bundles
-    name_list = list(config.keys())
+    name_list = list(mapping.keys())
     current_index = 0
 
     def next_callback(i_ren, _obj, _button):
@@ -266,9 +266,9 @@ def setup(sft, ref_img, config, mask):
     # UI elements for saving filtered results
     def apply_all_callback(i_ren, _obj, _button):
         """Apply the filtering to all bundles and save the results."""
-        for key in list(config.keys()):
-            indices = np.array(config[key]['indices'], dtype=int)
-            scores = np.array(config[key]['scores'], dtype=float)
+        for key in list(mapping.keys()):
+            indices = np.array(mapping[key]['indices'], dtype=int)
+            scores = np.array(mapping[key]['scores'], dtype=float)
 
             thr = np.round(filter_slider.value, 2)
             indices = indices[np.where(scores < thr)]
@@ -280,9 +280,9 @@ def setup(sft, ref_img, config, mask):
 
     def save_current_callback(i_ren, _obj, _button):
         """Save the currently selected bundle with the applied filtering."""
-        key = list(config.keys())[current_index]
-        indices = np.array(config[key]['indices'], dtype=int)
-        scores = np.array(config[key]['scores'], dtype=float)
+        key = list(mapping.keys())[current_index]
+        indices = np.array(mapping[key]['indices'], dtype=int)
+        scores = np.array(mapping[key]['scores'], dtype=float)
 
         thr = np.round(filter_slider.value, 2)
         indices = indices[np.where(scores < thr)]
@@ -411,6 +411,9 @@ def _build_arg_parser():
     p.add_argument('--mask',
                    help='Binary mask used to render surfaces (VOI).')
 
+    p.add_argument('--apply_config', metavar='JSON',
+                   help='Apply a configuration file to automatically filter.')
+
     add_overwrite_arg(p)
     add_verbose_arg(p)
 
@@ -427,22 +430,22 @@ def main():
 
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
-    global sft, ref_img, config, mask, out_dir
+    global sft, ref_img, mapping, mask, out_dir
     # Ensure output directories exist and inputs are available
     assert_output_dirs_exist_and_empty(parser, args, [args.out_dir])
     assert_inputs_exist(parser, args.in_ref_img)
     out_dir = args.out_dir
 
-    # Load reference image and configuration
+    # Load reference image and mappinguration
     ref_img = nib.load(args.in_ref_img)
     with open(os.path.join(args.in_folder, 'results.json')) as f:
-        config = json.load(f)
+        mapping = json.load(f)
 
     # Load and merge streamline data from all bundles
     streamlines = []
     offset = 0
     count = 0
-    for bundle, indices in config.items():
+    for bundle in mapping.keys():
         filename = glob.glob(f'{os.path.join(args.in_folder, bundle)}.t?k')[0]
 
         if not os.path.exists(filename):
@@ -451,8 +454,8 @@ def main():
         count += 1
 
         tmp_sft = load_tractogram(filename, ref_img)
-        config[bundle]['indices'] = np.arange(offset,
-                                              offset + len(tmp_sft.streamlines))
+        mapping[bundle]['indices'] = np.arange(offset,
+                                               offset + len(tmp_sft.streamlines))
         offset += len(tmp_sft.streamlines)
         streamlines.extend(tmp_sft.streamlines)
 
@@ -470,8 +473,24 @@ def main():
     else:
         mask = None
 
+    if args.apply_config:
+        with open(args.apply_config) as f:
+            config = json.load(f)
+        for key in config.keys():
+            key_ext = os.path.splitext(key)[0]
+            indices = np.array(mapping[key_ext]['indices'], dtype=int)
+            scores = np.array(mapping[key_ext]['scores'], dtype=float)
+            thr = config[key]
+            indices = indices[np.where(scores < thr)]
+            new_sft = sft[indices]
+            new_filename = os.path.join(out_dir, f'{key}_filtered.trk')
+            save_tractogram(new_sft, new_filename)
+        logging.info(
+            f'Saved all filtered bundles at threshold {thr} to {out_dir}')
+        return
+
     # Set up and start the visualization
-    setup(sft, ref_img, config, mask)
+    setup(sft, ref_img, mapping, mask)
 
 
 if __name__ == "__main__":

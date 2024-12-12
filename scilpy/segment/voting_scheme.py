@@ -165,13 +165,17 @@ class VotingScheme(object):
 
             # All models of the same bundle have the same basename
             basename = os.path.splitext(bundle_names[bundle_id])[0]
-            steamlines = reconstruct_streamlines_from_memmap(
+            streamlines = reconstruct_streamlines_from_memmap(
                 memmap_filenames, streamlines_id,
                 strs_dtype=np.float16)
-            new_sft = StatefulTractogram(steamlines, reference, Space.RASMM)
-            new_sft.remove_invalid_streamlines()
+            if len(streamlines) != len(streamlines_id):
+                raise ValueError('Number of streamlines is not equal to the '
+                                 'number of streamlines indices')
+            new_sft = StatefulTractogram(streamlines, reference, Space.RASMM)
+            _, indices_to_keep = new_sft.remove_invalid_streamlines()
             save_tractogram(new_sft, os.path.join(self.output_directory,
                                                   basename + extension))
+            streamlines_id = streamlines_id[indices_to_keep]
 
             curr_results_dict = {}
             curr_results_dict['indices'] = streamlines_id.tolist()
