@@ -50,7 +50,6 @@ import argparse
 import logging
 
 from dipy.io.streamline import save_tractogram
-from fury import colormap
 import nibabel as nib
 import numpy as np
 import matplotlib.pyplot as plt
@@ -63,11 +62,13 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist,
                              assert_outputs_exist,
                              load_matrix_in_any_format)
-from scilpy.tractograms.dps_and_dpp_management import add_data_as_color_dpp
+from scilpy.tractograms.dps_and_dpp_management import (
+    add_data_as_color_dpp, get_data_as_arraysequence)
 from scilpy.tractograms.streamline_operations import (
     get_streamlines_as_linspaces, get_angles)
 from scilpy.viz.color import (
-    get_lookup_table, prepare_colorbar_figure, ambiant_occlusion,
+    clip_and_normalize_data_for_cmap,
+    get_lookup_table, prepare_colorbar_figure, ambient_occlusion,
     generate_local_coloring)
 
 
@@ -117,7 +118,7 @@ def _build_arg_parser():
                          "last points are set to 0.")
 
     g2 = p.add_argument_group(title='Coloring options')
-    g2.add_argument('--ambiant_occlusion', nargs='?', const=4, type=int,
+    g2.add_argument('--ambient_occlusion', nargs='?', const=4, type=int,
                     help='Impact factor of the ambiant occlusion '
                     'approximation. [%(default)s]')
     g2.add_argument('--colormap', default='jet',
@@ -204,6 +205,7 @@ def main():
     elif args.load_dpp or args.from_anatomy:
         sft.to_vox()
         concat_points = np.vstack(sft.streamlines).T
+
         expected_shape = len(concat_points)
         sft.to_rasmm()
         if args.load_dpp:
@@ -220,23 +222,30 @@ def main():
     elif args.local_orientation:
         data = generate_local_coloring(sft)
     else:  # args.local_angle:
-        data = get_angles(sft, add_zeros=True)
+        data = get_angles(sft, add_zeros=True, degrees=False)
         data = np.hstack(data)
 
-    # Processing
-    if not args.local_orientation:
-        sft, lbound, ubound = add_data_as_color_dpp(
-            sft, cmap, data, args.clip_outliers, args.min_range, args.max_range,
-            args.min_cmap, args.max_cmap, args.log, LUT)
-    else:
-        sft.data_per_point['color'] = sft.streamlines.copy()
-        data *= 255
-        sft.data_per_point['color']._data = data.astype(np.uint8)
+    # Clip and normalize the data according to the colormap
+    values, lbound, ubound = clip_and_normalize_data_for_cmap(
+        data, args.clip_outliers, args.min_range, args.max_range,
+        args.min_cmap, args.max_cmap, args.log, LUT)
 
-    # Saving
-    if args.ambiant_occlusion:
-        sft.data_per_point['color']._data = ambiant_occlusion(
-            sft, sft.data_per_point['color']._data, args.ambiant_occlusion)
+    # Transform the values to RGB in [0, 255]
+    if not args.local_orientation:
+        color = (np.asarray(cmap(values)[:, 0:3]) * 255).astype(np.uint8)
+    else:
+        color = (values * 255).astype(np.uint8)
+
+    # Add ambient occlusion to the coloring
+    if args.ambient_occlusion:
+        color = ambient_occlusion(
+            sft, color, args.ambient_occlusion)
+
+    # Set the color data in the tractogram
+    data = get_data_as_arraysequence(color, sft)
+    sft = add_data_as_color_dpp(
+        sft, data)
+
     save_tractogram(sft, args.out_tractogram)
 
     if args.out_colorbar:

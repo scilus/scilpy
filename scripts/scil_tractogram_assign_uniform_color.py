@@ -30,7 +30,9 @@ from scilpy.io.utils import (assert_inputs_exist,
                              add_overwrite_arg,
                              add_verbose_arg,
                              add_reference_arg, assert_headers_compatible)
-from scilpy.viz.color import format_hexadecimal_color_to_rgb, ambiant_occlusion
+from scilpy.tractograms.dps_and_dpp_management import (
+    add_data_as_color_dpp, get_data_as_arraysequence)
+from scilpy.viz.color import format_hexadecimal_color_to_rgb, ambient_occlusion
 
 
 def _build_arg_parser():
@@ -41,8 +43,8 @@ def _build_arg_parser():
     p.add_argument('in_tractograms', nargs='+',
                    help='Input tractograms (.trk or .tck).')
 
-    p.add_argument('--ambiant_occlusion', nargs='?', const=4, type=int,
-                   help='Impact factor of the ambiant occlusion '
+    p.add_argument('--ambient_occlusion', nargs='?', const=4, type=int,
+                   help='Impact factor of the ambient occlusion '
                    'approximation.\n Use factor or 2. Decrease for '
                    'lighter and increase for darker [%(default)s].')
 
@@ -121,9 +123,7 @@ def main():
 
         sft = load_tractogram_with_reference(parser, args, filename)
 
-        sft.data_per_point['color'] = sft.streamlines.copy()
-        sft.data_per_point['color']._data = np.zeros(
-            (len(sft.streamlines._data), 3), dtype=np.uint8)
+        colors = np.zeros((sft._get_point_count(), 3), dtype=np.uint8)
 
         if args.dict_colors:
             base, ext = os.path.splitext(filename)
@@ -141,11 +141,16 @@ def main():
 
         red, green, blue = format_hexadecimal_color_to_rgb(color)
 
-        colors = np.tile([red, green, blue], (len(sft.streamlines._data), 1))
-        if args.ambiant_occlusion:
-            colors = ambiant_occlusion(sft, colors,
-                                       factor=args.ambiant_occlusion)
-        sft.data_per_point['color']._data = colors
+        colors = np.tile([red, green, blue], (sft._get_point_count(), 1))
+        if args.ambient_occlusion:
+            colors = ambient_occlusion(sft, colors,
+                                       factor=args.ambient_occlusion)
+
+        # Set the color data in the tractogram
+        data = get_data_as_arraysequence(colors, sft)
+        sft = add_data_as_color_dpp(
+            sft, data)
+
         save_tractogram(sft, out_filenames[i])
 
 
