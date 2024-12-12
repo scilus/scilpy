@@ -120,12 +120,13 @@ def main():
     shells_centroids, indices_shells = identify_shells(bvals, args.tolerance,
                                                        round_centroids=True)
 
-    nb_shells = len(shells_centroids)
+    non_b0_shells = shells_centroids[shells_centroids > args.tolerance]
+    nb_shells = len(non_b0_shells)
     if nb_shells <= 1:
         raise ValueError("Amico's NODDI works with data with more than one "
                          "shell, but you seem to have single-shell data (we "
-                         "found shells {}). Change tolerance if necessary."
-                         .format(np.sort(shells_centroids)))
+                         "found shell {}). Change tolerance if necessary."
+                         .format(non_b0_shells[0]))
 
     logging.info('Will compute NODDI with AMICO on {} shells at found at {}.'
                  .format(len(shells_centroids), np.sort(shells_centroids)))
