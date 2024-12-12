@@ -4,6 +4,9 @@ import logging
 from enum import Enum
 
 from dipy.core.gradients import get_bval_indices
+from dipy.core.sphere import Sphere
+from dipy.data import get_sphere
+from scipy.spatial import KDTree
 import numpy as np
 
 DEFAULT_B0_THRESHOLD = 20
@@ -313,3 +316,36 @@ def round_bvals_to_shell(bvals, shells_to_extract, tol=20):
                          '''.format(bvals[modified.astype(bool)]))
 
     return new_bvals
+
+
+def compare_bvecs_to_sphere(bvecs):
+    """
+    Finds the maximum angle between any sphere vertice and its nearest bvec.
+    """
+    tree = KDTree(normalize_bvecs(bvecs))
+
+    sphere = get_sphere()
+
+    print(bvecs[:10])
+    print(sphere.vertices[:10])
+
+    distances, ids = tree.query(sphere.vertices,
+                              workers=-1)
+    print(np.ones((len(sphere.vertices))))
+    print(distances, ids)
+
+    most_lonely_vertice_id = np.argmax(distances)
+    most_lonely_vertice = sphere.vertices[most_lonely_vertice_id]
+    max_nearest_bvec_id = ids[most_lonely_vertice_id]
+    max_nearest_bvec = bvecs[max_nearest_bvec_id]
+
+    print(most_lonely_vertice)
+    print(np.max(distances))
+    max_angle = np.arccos(
+        np.clip([np.dot(max_nearest_bvec, most_lonely_vertice)], [-1], [1]))
+
+    print(max_angle)
+
+    # TODO: Add energy score
+
+    return np.rad2deg(max_angle)
