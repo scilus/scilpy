@@ -117,7 +117,7 @@ def compute_triu_connectivity_from_labels(tractogram, data_labels,
     return matrix, ordered_labels, start_labels, end_labels
 
 
-def load_node_nifti(directory, in_label, out_label, ref_img):
+def _load_node_nifti(directory, in_label, out_label, ref_img):
     in_filename = os.path.join(directory,
                                '{}_{}.nii.gz'.format(in_label, out_label))
 
@@ -252,8 +252,8 @@ def compute_connectivity_matrices_from_hdf5(
         measures_to_return['streamline_count'] = len(streamlines)
 
     if similarity_directory is not None:
-        density_sim = load_node_nifti(similarity_directory,
-                                      in_label, out_label, labels_img)
+        density_sim = _load_node_nifti(similarity_directory,
+                                       in_label, out_label, labels_img)
         if density_sim is None:
             ba_vox = 0
         else:
