@@ -19,7 +19,8 @@ NaN.
 
 If endpoints_only and dps mode is set operation will be calculated across the
 data at the endpoints and stored as a single value (or array in the 4D case)
-per streamline.
+per streamline. If you wish to perform operations on dps values, please use
+scil_tractogram_dps_math.py.
 
 Endpoint only operation:
 correlation: correlation calculated between arrays extracted from streamline
