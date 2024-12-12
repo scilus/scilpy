@@ -105,7 +105,8 @@ class VotingScheme(object):
 
         return model_bundles_dict, bundle_names, bundle_counts
 
-    def _find_max_in_sparse_matrix(self, bundle_id, min_vote, bundles_wise_vote):
+    def _find_max_in_sparse_matrix(self, bundle_id, min_vote,
+                                   bundles_wise_vote):
         """
         Will find the maximum values of a specific row (bundle_id), make
         sure they are the maximum values across bundles (argmax) and above the
@@ -172,10 +173,13 @@ class VotingScheme(object):
                 raise ValueError('Number of streamlines is not equal to the '
                                  'number of streamlines indices')
             new_sft = StatefulTractogram(streamlines, reference, Space.RASMM)
-            _, indices_to_keep = new_sft.remove_invalid_streamlines()
+            
+            if len(new_sft):
+                _, indices_to_keep = new_sft.remove_invalid_streamlines()
+                new_sft = new_sft[indices_to_keep]
+                streamlines_id = streamlines_id[indices_to_keep]
             save_tractogram(new_sft, os.path.join(self.output_directory,
                                                   basename + extension))
-            streamlines_id = streamlines_id[indices_to_keep]
 
             curr_results_dict = {}
             curr_results_dict['indices'] = streamlines_id.tolist()
@@ -316,19 +320,31 @@ class VotingScheme(object):
                     f'{get_duration(save_timer)} sec.')
 
 
+def single_recognize_parallel(args):
+    """Wrapper function to multiprocess recobundles execution."""
+    rbx = args[0]
+    model_filepath = args[1]
+    bundle_pruning_thr, model_bundle = args[2]
+    bundle_names = args[3]
+    seed = args[4]
+    return single_recognize(rbx, model_filepath, model_bundle,
+                            bundle_pruning_thr, bundle_names, seed)
+
+
 def single_recognize(args):
     """
-    Wrapper function to multiprocess recobundles execution.
+    Recobundle for a single bundle.
 
     Parameters
     ----------
     bsg : Object
         Initialize bsg object with QBx ClusterMap as values
     model_filepath : str
-        Filepath of the model to recognize.
-    model_dict : dict
-        Dictionary containing the model filepaths as keys and the
-        corresponding parameters and streamlines as values.
+        Path to the model bundle file
+    model_bundle: ArraySequence
+        Model bundle.
+    bundle_pruning_thr : float
+        Threshold for pruning the model bundle
     bundle_names : list
         List of string with bundle names for models (to get bundle_id)
     seed : int
