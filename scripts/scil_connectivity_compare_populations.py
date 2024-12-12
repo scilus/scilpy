@@ -18,6 +18,14 @@ matrices before performing the statistical comparison. Reduces the number of
 statistical tests, useful when using --fdr or --bonferroni.
 
 Formerly: scil_compare_connectivity.py
+----------------------------------------------------------------------------
+[1] Rubinov, Mikail, and Olaf Sporns. "Complex network measures of brain
+    connectivity: uses and interpretations." Neuroimage 52.3 (2010):
+    1059-1069.
+[2] Zalesky, Andrew, Alex Fornito, and Edward T. Bullmore. "Network-based
+    statistic: identifying differences in brain networks." Neuroimage 53.4
+    (2010): 1197-1207.
+----------------------------------------------------------------------------
 """
 
 import argparse
@@ -32,22 +40,13 @@ from scilpy.io.utils import (add_overwrite_arg,
                              load_matrix_in_any_format,
                              save_matrix_in_any_format)
 from scilpy.stats.matrix_stats import ttest_two_matrices
-
-EPILOG = """
-[1] Rubinov, Mikail, and Olaf Sporns. "Complex network measures of brain
-    connectivity: uses and interpretations." Neuroimage 52.3 (2010):
-    1059-1069.
-[2] Zalesky, Andrew, Alex Fornito, and Edward T. Bullmore. "Network-based
-    statistic: identifying differences in brain networks." Neuroimage 53.4
-    (2010): 1197-1207.
-"""
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(
-        description=__doc__,
-        formatter_class=argparse.RawTextHelpFormatter,
-        epilog=EPILOG)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
 
     p.add_argument('out_pval_matrix',
                    help='Output matrix (.npy) containing the edges p-value.')

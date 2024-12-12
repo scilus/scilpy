@@ -15,19 +15,23 @@ import logging
 import os
 import subprocess
 
-from dipy.io.gradients import read_bvals_bvecs
 import numpy as np
+
+from dipy.io.gradients import read_bvals_bvecs
+
 from scilpy.io.utils import (add_overwrite_arg, add_verbose_arg,
                              assert_fsl_options_exist,
                              assert_inputs_exist)
 from scilpy.preprocessing.distortion_correction import \
     (create_acqparams, create_index, create_multi_topup_index,
      create_non_zero_norm_bvecs)
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(description=__doc__,
-                                formatter_class=argparse.RawTextHelpFormatter)
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
 
     p.add_argument('in_dwi',
                    help='Input DWI Nifti image. If using multiple '

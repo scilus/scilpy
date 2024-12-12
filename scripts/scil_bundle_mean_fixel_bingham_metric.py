@@ -37,11 +37,14 @@ from scilpy.io.utils import (add_overwrite_arg, add_reference_arg,
                              assert_outputs_exist, assert_headers_compatible)
 from scilpy.tractanalysis.bingham_metric_along_streamlines \
     import bingham_metric_map_along_streamlines
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(description=__doc__,
-                                formatter_class=argparse.RawTextHelpFormatter)
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
+
     p.add_argument('in_bundle',
                    help='Path of the bundle file.')
     p.add_argument('in_bingham',
