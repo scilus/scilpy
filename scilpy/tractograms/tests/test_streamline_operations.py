@@ -176,11 +176,11 @@ def test_filter_streamlines_by_length():
     assert np.all(lengths >= min_length) and np.all(lengths <= max_length)
 
     # === 4. Return rejected streamlines with empty sft ===
-    empty_sft = short_sft[[]] # Empty sft from short_sft (chosen arbitrarily)
-    filtered_sft, _, rejected = filter_streamlines_by_length(empty_sft,
-                                  min_length=min_length,
-                                  max_length=max_length,
-                                  return_rejected=True)
+    empty_sft = short_sft[[]]  # Empty sft from short_sft (chosen arbitrarily)
+    filtered_sft, _, rejected = \
+        filter_streamlines_by_length(empty_sft, min_length=min_length,
+                                     max_length=max_length,
+                                     return_rejected=True)
     assert isinstance(filtered_sft, StatefulTractogram)
     assert isinstance(rejected, StatefulTractogram)
     assert len(filtered_sft) == 0
