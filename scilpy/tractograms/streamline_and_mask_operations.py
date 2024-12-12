@@ -9,7 +9,7 @@ from nibabel.streamlines import ArraySequence
 
 from scipy.ndimage import map_coordinates
 
-from scilpy.tractograms.uncompress import uncompress
+from scilpy.tractograms.uncompress import streamlines_to_voxel_coordinates
 from scilpy.tractograms.streamline_operations import \
     resample_streamlines_step_size
 
@@ -87,8 +87,8 @@ def get_head_tail_density_maps(sft, point_to_select=1, to_millimeters=False):
         streamlines = sft.streamlines
 
     dimensions = sft.dimensions
-    # Uncompress the streamlines to get the indices of the voxels intersected
-    list_indices, points_to_indices = uncompress(
+    # Get the indices of the voxels intersected
+    list_indices, points_to_indices = streamlines_to_voxel_coordinates(
         streamlines, return_mapping=True)
 
     # Initialize the endpoints maps
@@ -292,13 +292,16 @@ def cut_streamlines_with_mask(
     sft.to_vox()
     sft.to_corner()
 
-    # Uncompress the streamlines to get the indices of the voxels
+    # Get the indices of the voxels
     # intersected by the streamlines and the mapping from points to indices
-    indices, points_to_idx = uncompress(sft.streamlines,
-                                        return_mapping=True)
+    indices, points_to_idx = streamlines_to_voxel_coordinates(
+        sft.streamlines,
+        return_mapping=True
+    )
 
     if len(sft.streamlines[0]) != len(points_to_idx[0]):
-        raise ValueError("Error in the uncompress function. Try running the "
+        raise ValueError("Error in the streamlines_to_voxel_coordinates "
+                         "function. Try running the "
                          "scil_tractogram_remove_invalid.py script with the \n"
                          "--remove_single_point and "
                          "--remove_overlapping_points options.")
@@ -383,10 +386,14 @@ def cut_streamlines_between_labels(
     mask = label_data_2 != unique_vals[1]
     label_data_2[mask] = 0
 
-    (indices, points_to_idx) = uncompress(sft.streamlines, return_mapping=True)
+    (indices, points_to_idx) = streamlines_to_voxel_coordinates(
+        sft.streamlines,
+        return_mapping=True
+    )
 
     if len(sft.streamlines[0]) != len(points_to_idx[0]):
-        raise ValueError("Error in the uncompress function. Try running the "
+        raise ValueError("Error in the streamlines_to_voxel_coordinates "
+                         "function. Try running the "
                          "scil_tractogram_remove_invalid.py script with the \n"
                          "--remove_single_point and "
                          "--remove_overlapping_points options.")
@@ -624,15 +631,8 @@ def compute_streamline_segment(orig_strl, inter_vox, in_vox_idx, out_vox_idx,
     nb_points = nb_points_orig_strl + nb_add_points
     orig_segment_len = len(orig_strl[in_strl_point:out_strl_point + 1])
 
-    # TODO: Fix the bug in `uncompress` and remove this
-    # There is a bug with `uncompress` where the number of `points_to_indices`
-    # is not the same as the number of points in the streamline. This is
-    # a temporary fix.
-    segment_len = min(
-        nb_points,
-        orig_segment_len + nb_add_points)
     # Initialize the new streamline segment
-    segment = np.zeros((segment_len, 3))
+    segment = np.zeros((nb_points, 3))
     # offset for indexing in case there are new points
     offset = 0
 
