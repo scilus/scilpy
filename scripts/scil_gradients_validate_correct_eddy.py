@@ -33,10 +33,10 @@ def _build_arg_parser():
                    help='Out bvec file.')
     p.add_argument('out_bval',
                    help='Out bval file.')
-    
+
     add_verbose_arg(p)
     add_overwrite_arg(p)
-    
+
     return p
 
 

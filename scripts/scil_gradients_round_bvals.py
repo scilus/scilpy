@@ -29,7 +29,7 @@ from scilpy.version import version_string
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(description=__doc__,
+    parser = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawTextHelpFormatter,
                                 epilog=version_string)
 

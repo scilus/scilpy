@@ -48,10 +48,10 @@ def _build_arg_parser():
                    help='List of labels indices to remove.')
     p.add_argument('--background', type=int, default=0,
                    help='Integer used for removed labels [%(default)s].')
-    
+
     add_verbose_arg(p)
     add_overwrite_arg(p)
-    
+ 
     return p
 
 
