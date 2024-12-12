@@ -105,7 +105,7 @@ def reconstruct_sft_from_hdf5(hdf5_handle, group_keys, space=Space.VOX,
             for sub_key in hdf5_handle[group_key].keys():
                 if sub_key not in ['data', 'offsets', 'lengths']:
                     data = hdf5_handle[group_key][sub_key]
-                    if data.shape == hdf5_handle[group_key]['offsets']:
+                    if data.shape == hdf5_handle[group_key]['offsets'].shape:
                         # Discovered dps
                         if load_dps:
                             if i == 0 or not merge_groups:
