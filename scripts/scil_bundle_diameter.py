@@ -262,7 +262,7 @@ def main():
         counter = 0
         labels_dict = {label: ([], []) for label in unique_labels}
         pts_labels = map_coordinates(data_labels,
-                                     sft.streamlines._data.T-0.5,
+                                     sft.streamlines.get_data().T-0.5,
                                      order=0)
         # For each label, all positions and directions are needed to get
         # a tube estimation per label.
