@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import itertools
 import logging
 
 import bct
@@ -6,6 +7,8 @@ import bct
 import numpy as np
 from scipy.stats import t as stats_t
 from statsmodels.stats.multitest import multipletests
+
+from scilpy.tractanalysis.reproducibility_measures import compute_dice_voxel
 
 
 def _ttest_stat_only(x, y, tail):
@@ -180,3 +183,59 @@ def omega_sigma(matrix):
         (path_length / path_length_rand)
 
     return float(omega), float(sigma)
+
+
+def pairwise_agreement(matrices, ref_matrix=None, normalize=False):
+    """
+    The similarity measures will be computed for each pair. Alternatively, you
+    can compare all matrices to a single reference, ref_matrix.
+
+    Parameters
+    ----------
+    matrices: list[np.ndarray]
+        Input matrices
+    ref_matrix: Optional[np.ndarray]
+        Optional reference matrix.
+    normalize: bool
+        If true, will normalize all matrices from zero to one.
+
+    Returns
+    -------
+    output_measures_dict: dict
+        A dict with list of values for each pair of matrices:
+        {
+           'RMSE': root-mean-square error
+           'correlation': correlation
+           'w_dice_voxels': weighted dice, agreement of the values.
+           'dice_voxels': agreement of the binarized matrices
+        }
+    """
+    def _prepare_matrix(tmp_mat):
+        # Removing the min now simplifies computations
+        tmp_mat -= np.min(tmp_mat)
+        if normalize:
+            return tmp_mat / np.max(tmp_mat)
+        return tmp_mat
+
+    matrices = [_prepare_matrix(m) for m in matrices]
+    if ref_matrix is not None:
+        ref_matrix = _prepare_matrix(ref_matrix)
+
+    output_measures_dict = {'RMSE': [], 'correlation': [],
+                            'w_dice_voxels': [], 'dice_voxels': []}
+
+    if ref_matrix is not None:
+        pairs = list(itertools.product(matrices, [ref_matrix]))
+    else:
+        pairs = list(itertools.combinations(matrices, r=2))
+
+    for i in pairs:
+        rmse = np.sqrt(np.mean((i[0] - i[1]) ** 2))
+        output_measures_dict['RMSE'].append(rmse)
+        corrcoef = np.corrcoef(i[0].ravel(), i[1].ravel())
+        output_measures_dict['correlation'].append(corrcoef[0][1])
+        dice, w_dice = compute_dice_voxel(i[0], i[1])
+        output_measures_dict['dice_voxels'].append(dice)
+        output_measures_dict['w_dice_voxels'].append(w_dice)
+
+    return output_measures_dict
