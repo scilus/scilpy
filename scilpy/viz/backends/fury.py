@@ -162,7 +162,7 @@ def set_viewport(scene, orientation, slice_index, volume_shape, aspect_ratio):
 
 
 def create_scene(actors, orientation, slice_index, volume_shape, aspect_ratio,
-                 bg_color=(0, 0, 0)):
+                 *, bg_color=(0, 0, 0)):
     """
     Create a 3D scene containing actors fitting inside a grid. The camera is
     placed based on the orientation supplied by the user. The projection mode
@@ -201,7 +201,7 @@ def create_scene(actors, orientation, slice_index, volume_shape, aspect_ratio,
     return scene
 
 
-def create_interactive_window(scene, window_size, interactor,
+def create_interactive_window(scene, window_size, interactor, *,
                               title="Viewer", open_window=True):
     """
     Create a 3D window with the content of scene, equiped with an interactor.

@@ -329,12 +329,12 @@ def main():
         peaks_actor = create_peaks_slicer(data['peaks'],
                                           args.axis_name,
                                           args.slice_index,
-                                          peaks_values,
-                                          mask,
-                                          args.peaks_color,
-                                          args.peaks_width,
-                                          args.peaks_opacity,
-                                          not full_basis)
+                                          peak_values=peaks_values,
+                                          mask=mask,
+                                          color=args.peaks_color,
+                                          peaks_width=args.peaks_width,
+                                          opacity=args.peaks_opacity,
+                                          symmetric=not full_basis)
 
         actors.append(peaks_actor)
 
