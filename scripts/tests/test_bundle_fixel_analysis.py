@@ -21,9 +21,10 @@ def test_default_parameters(script_runner, monkeypatch):
     in_peaks = os.path.join(SCILPY_HOME, 'commit_amico', 'peaks.nii.gz')
     in_bundle = os.path.join(SCILPY_HOME, 'commit_amico', 'tracking.trk')
 
+    # Using multiprocessing in this test, single in following tests.
     ret = script_runner.run('scil_bundle_fixel_analysis.py', in_peaks,
                             '--in_bundles', in_bundle,
-                            '--processes', '1', '-f')
+                            '--processes', '4', '-f')
     assert ret.success
 
 
