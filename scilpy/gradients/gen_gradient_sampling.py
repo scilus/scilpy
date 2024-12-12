@@ -298,3 +298,52 @@ def _grad_electrostatic_repulsion_energy(bvecs, weight_matrix, alpha=1.0):
                     (bvecs[i] + bvecs[indices]).T / sums).sum(1)
     grad = grad.reshape(nb_bvecs * 3)
     return grad
+
+
+def compute_electrostatic_repulsion_energy(bvecs, nb_shells=1, alpha=1.0):
+    """
+    Electrostatic-repulsion objective function. The alpha parameter controls
+    the power repulsion (energy varies as $1 / ralpha$).
+
+    Parameters
+    ---------
+    bvecs : array-like shape (N * 3,)
+        Vectors, flattened.
+    nb_shells : int
+        Number of shells.
+    alpha : float
+        Controls the power of the repulsion. Default is 1.0
+
+    Returns
+    -------
+    energy : float
+        sum of all interactions between any two vectors.
+    """
+    # Groups of shells and relative coupling weights
+    nb_dir = bvecs.shape[0]
+    shell_groups = ()
+    for i in range(nb_shells):
+        shell_groups += ([i],)
+
+    shell_groups += (list(range(nb_shells)),)
+    alphas = list(len(shell_groups) * (1.0,))
+    weights = _compute_weights(nb_shells, [nb_dir],
+                               shell_groups, alphas)
+    nb_points_total = nb_dir
+    indices = np.cumsum(nb_dir).tolist()
+    indices.insert(0, 0)
+    weight_matrix = np.zeros((nb_points_total, nb_points_total))
+    for s1 in range(nb_shells):
+        for s2 in range(nb_shells):
+            weight_matrix[indices[s1]:indices[s1 + 1],
+                          indices[s2]:indices[s2 + 1]] = weights[s1, s2]
+
+    epsilon = 1e-9
+    energy = 0.0
+    for i in range(nb_dir):
+        indices = (np.arange(nb_dir) > i)
+        diffs = ((bvecs[indices] - bvecs[i]) ** 2).sum(1) ** alpha
+        sums = ((bvecs[indices] + bvecs[i]) ** 2).sum(1) ** alpha
+        energy += (weight_matrix[i, indices] *
+                   (1.0 / (diffs + epsilon) + 1.0 / (sums + epsilon))).sum()
+    return energy
