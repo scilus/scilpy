@@ -19,7 +19,7 @@ from scilpy.gradients.bvec_bval_tools import (check_b0_threshold,
                                               is_normalized_bvecs,
                                               normalize_bvecs)
 from scilpy.gradients.gen_gradient_sampling import (generate_gradient_sampling,
-                                                    compute_electrostatic_repulsion_energy)
+                                                    energy_comparison)
 from scilpy.viz.gradients import plot_proj_shell
 
 
@@ -84,12 +84,8 @@ def main():
     # plot_proj_shell([ubvecs], use_sym=True)
     # plot_proj_shell([opt_bvecs], use_sym=True)
 
-    energy = compute_electrostatic_repulsion_energy(ubvecs,
-                                                    nb_shells=nb_shells,
-                                                    nb_points_per_shell=nb_dir_per_shell)
-    opt_energy = compute_electrostatic_repulsion_energy(opt_bvecs,
-                                                        nb_shells=nb_shells,
-                                                        nb_points_per_shell=nb_dir_per_shell)
+    energy, opt_energy = energy_comparison(ubvecs, opt_bvecs, nb_shells,
+                                           nb_dir_per_shell)
 
     print("Input bvecs energy: ", np.round(energy, decimals=2))
     print("Optimal bvecs energy: ", np.round(opt_energy, decimals=2))

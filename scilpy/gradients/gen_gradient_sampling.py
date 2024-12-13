@@ -300,8 +300,8 @@ def _grad_electrostatic_repulsion_energy(bvecs, weight_matrix, alpha=1.0):
     return grad
 
 
-def compute_electrostatic_repulsion_energy(bvecs, nb_shells,
-                                           nb_points_per_shell, alpha=1.0):
+def energy_comparison(bvecs, opt_bvecs, nb_shells, nb_points_per_shell,
+                      alpha=1.0):
     """
     Electrostatic-repulsion objective function. The alpha parameter controls
     the power repulsion (energy varies as $1 / ralpha$).
@@ -309,7 +309,9 @@ def compute_electrostatic_repulsion_energy(bvecs, nb_shells,
     Parameters
     ---------
     bvecs : array-like shape (N, 3,)
-        Vectors, flattened.
+        Inputed b-vectors.
+    opt_bvecs : array-like shape (N, 3,)
+        Optimal b-vectors.
     nb_shells : int
         Number of shells
     nb_points_per_shell : list of ints
@@ -343,10 +345,16 @@ def compute_electrostatic_repulsion_energy(bvecs, nb_shells,
 
     epsilon = 1e-9
     energy = 0.0
+    opt_energy = 0.0
     for i in range(nb_dir):
         indices = (np.arange(nb_dir) > i)
         diffs = ((bvecs[indices] - bvecs[i]) ** 2).sum(1) ** alpha
         sums = ((bvecs[indices] + bvecs[i]) ** 2).sum(1) ** alpha
         energy += (weight_matrix[i, indices] *
                    (1.0 / (diffs + epsilon) + 1.0 / (sums + epsilon))).sum()
-    return energy
+        diffs = ((opt_bvecs[indices] - opt_bvecs[i]) ** 2).sum(1) ** alpha
+        sums = ((opt_bvecs[indices] + opt_bvecs[i]) ** 2).sum(1) ** alpha
+        opt_energy += (weight_matrix[i, indices] *
+                       (1.0 / (diffs + epsilon) + 1.0 /
+                        (sums + epsilon))).sum()
+    return energy, opt_energy
