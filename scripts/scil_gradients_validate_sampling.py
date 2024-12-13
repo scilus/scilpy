@@ -8,7 +8,6 @@
 import argparse
 import logging
 import numpy as np
-import os
 
 from dipy.io.gradients import read_bvals_bvecs
 
