@@ -384,7 +384,7 @@ class CustomSeedsDispenser(SeedGenerator):
         self.origin = origin
         self.space = space
         self.seeds = custom_seeds
-        self.count = 0
+        self.i = 0
 
     def init_generator(self, rng_seed, numbers_to_skip):
         """
