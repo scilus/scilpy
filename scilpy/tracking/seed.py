@@ -371,7 +371,7 @@ class CustomSeedsDispenser(SeedGenerator):
     Adaptation of the scilpy.tracking.seed.SeedGenerator interface for
     using already generated, custom seeds.
     """
-    def __init__(self, custom_seeds, voxres, space=Space('vox'),
+    def __init__(self, custom_seeds, space=Space('vox'),
                  origin=Origin('center')):
         """
         Parameters
@@ -381,7 +381,6 @@ class CustomSeedsDispenser(SeedGenerator):
         voxres: np.ndarray(3,)
             The pixel resolution, ex, using img.header.get_zooms()[:3].
         """
-        self.voxres = voxres
         self.origin = origin
         self.space = space
         self.seeds = custom_seeds
