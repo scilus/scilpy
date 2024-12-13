@@ -119,8 +119,11 @@ def main():
     energy, opt_energy = energy_comparison(ubvecs, opt_bvecs, nb_shells,
                                            nb_dir_per_shell)
 
-    print("Input bvecs energy: ", np.round(energy, decimals=2))
-    print("Optimal bvecs energy: ", np.round(opt_energy, decimals=2))
+    perc_comp = np.round(opt_energy / energy * 100)
+    print('Compared to our reference optimal set of b-vectors, the inputed '
+          'b-vectors are {}% less well distributed.'.format(perc_comp))
+
+    # TODO: Find a better sentence, and add a warning if the bvecs are too shit
 
 
 if __name__ == "__main__":
