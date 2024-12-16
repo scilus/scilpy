@@ -15,8 +15,7 @@ from scilpy.io.utils import (add_overwrite_arg, add_verbose_arg,
                              add_b0_thresh_arg,
                              add_tolerance_arg, assert_inputs_exist,
                              assert_gradients_filenames_valid)
-from scilpy.gradients.bvec_bval_tools import (check_b0_threshold,
-                                              is_normalized_bvecs,
+from scilpy.gradients.bvec_bval_tools import (is_normalized_bvecs,
                                               normalize_bvecs,
                                               identify_shells)
 from scilpy.gradients.gen_gradient_sampling import (generate_gradient_sampling,
@@ -28,10 +27,15 @@ def _build_arg_parser():
     p = argparse.ArgumentParser(
         formatter_class=argparse.RawTextHelpFormatter,
         description=__doc__)
+    p.add_argument('in_gradients', nargs='+',
+                   help='Path(s) to the gradient file(s). Either FSL '
+                        '(.bval, .bvec) or MRtrix (.b).')
+
     p.add_argument(
-        'in_gradients', nargs='+',
-        help='Path(s) to the gradient file(s). Either FSL '
-             '(.bval, .bvec) or MRtrix (.b).')
+        '--max_ratio', default=1.1, type=float,
+        help='Maximum value for the ratio between the inputed b-vectors\' '
+             'energy \nand the optimal b-vectors\' energy. '
+             '(input_energy/optimal_energy)[%(default)s]')
 
     p.add_argument(
         '--visualize', action='store_true',
@@ -68,6 +72,7 @@ def main():
                      'two files for FSL format and one file for MRtrix')
 
     # Check and remove b0s
+    # Note: this part will become check_b0_threshold once it is fixed
     if args.b0_threshold > 20:
         logging.warning(
             'Your defined b0 threshold is {}. This is suspicious. We '
@@ -109,9 +114,8 @@ def main():
                          .format(len(bvecs) - nb_ubvecs))
 
     # Compute optimally distributed directions
-    scipy_verbose = int(3 - logging.getLogger().getEffectiveLevel()//10)
     opt_bvecs, _ = generate_gradient_sampling(nb_dir_per_shell,
-                                              verbose=scipy_verbose)
+                                              verbose=0)
 
     # Visualize the gradient schemes
     if args.visualize:
@@ -124,17 +128,20 @@ def main():
     # Compute the energy for both the input bvecs and optimal bvecs.
     energy, opt_energy = energy_comparison(bvecs, opt_bvecs, nb_shells,
                                            nb_dir_per_shell)
-
-    perc_comp = np.round(opt_energy / energy * 100)
-    print('Compared to our reference optimal set of b-vectors, the inputed '
-          'b-vectors are {}% less optimally distributed.'.format(perc_comp))
     
-    logging.info('The calculated electrostatic-like repulsion energy for the '
-                 'optimal b-vectors is: {}'.format(opt_energy))
-    logging.info('The calculated electrostatic-like repulsion energy for the '
-                 'inputed b-vectors is: {}'.format(energy))
-
-    # TODO: Find a better sentence, and add a warning if the bvecs are too shit
+    logging.info('\nThe quality of inputed b-vectors is assessed by computing '
+                 'their electrostatic-like repulsion \nenergy and comparing '
+                 'it with the energy of a reference optimal set of b-vectors.')
+    logging.info('\nEnergy for the optimal b-vectors: {}'
+                 '\nEnergy for the inputed b-vectors: {}'
+                 .format(np.round(opt_energy, decimals=3),
+                         np.round(energy, decimals=3)))
+    e_ratio = energy / opt_energy
+    if e_ratio > args.max_ratio:
+        logging.warning('\nThe inputed b-vectors seem to be ill-distributed '
+                        'on the sphere. \nTheir energy is {} times higher '
+                        'than the optimal energy.'
+                        .format(np.round(e_ratio, decimals=3)))
 
 
 if __name__ == "__main__":
