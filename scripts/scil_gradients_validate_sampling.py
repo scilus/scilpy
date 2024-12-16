@@ -12,7 +12,7 @@ import numpy as np
 from dipy.io.gradients import read_bvals_bvecs
 
 from scilpy.io.utils import (add_overwrite_arg, add_verbose_arg,
-                             add_b0_thresh_arg, add_skip_b0_check_arg,
+                             add_b0_thresh_arg,
                              add_tolerance_arg, assert_inputs_exist,
                              assert_gradients_filenames_valid)
 from scilpy.gradients.bvec_bval_tools import (check_b0_threshold,
@@ -40,7 +40,6 @@ def _build_arg_parser():
 
     add_b0_thresh_arg(p)
     add_overwrite_arg(p)
-    add_skip_b0_check_arg(p, will_overwrite_with_min=True)
     add_tolerance_arg(p)
     add_verbose_arg(p)
 
@@ -69,9 +68,25 @@ def main():
                      'two files for FSL format and one file for MRtrix')
 
     # Check and remove b0s
-    args.b0_threshold = check_b0_threshold(bvals.min(),
-                                           b0_thr=args.b0_threshold,
-                                           skip_b0_check=args.skip_b0_check)
+    if args.b0_threshold > 20:
+        logging.warning(
+            'Your defined b0 threshold is {}. This is suspicious. We '
+            'recommend using volumes with bvalues no higher than {} as b0s'
+            .format(args.b0_threshold, 20))
+
+    if bvals.min() < 0:
+        logging.warning(
+            'Warning: Your dataset contains negative b-values (minimal bvalue '
+            'of {}). This is suspicious. We recommend you check your data.'
+            .format(bvals.min()))
+
+    if bvals.min() > args.b0_threshold:
+            logging.warning(
+                'Your minimal bvalue ({}) is above the threshold ({}). Please '
+                'check your data to ensure everything is correct.\n'
+                'You may also increase the threshold with --b0_threshold. '
+                'The script will continue without b0s.'
+                .format(bvals.min(), args.b0_threshold))
     bvecs = bvecs[bvals > args.b0_threshold]
     bvals = bvals[bvals > args.b0_threshold]
 
@@ -83,23 +98,15 @@ def main():
     # Find shells and duplicate b-vectors
     ubvals, shell_idx = identify_shells(bvals, tol=args.tolerance, sort=True)
     nb_shells = len(ubvals)
-    nb_dir_per_shell = []
-    ubvecs = []
-    ushell_idx = []
-    for i in range(nb_shells):
-        indices = shell_idx == i
-        shell_ubvecs = np.unique(bvecs[indices], axis=0)
-        nb_ubvecs = len(shell_ubvecs)
-        if np.sum(indices) != nb_ubvecs:
-            logging.warning('Some b-vectors have the same direction, which is '
-                            'suboptimal. There is most likely a problem with '
-                            'the gradient table. Proceeding to validation '
-                            'while keeping only unique b-vectors.')
-        ubvecs.extend(shell_ubvecs)
-        ushell_idx.extend(np.repeat([i], nb_ubvecs))
-        nb_dir_per_shell.append(nb_ubvecs)
-    ubvecs = np.array(ubvecs)
-    ushell_idx = np.array(ushell_idx)
+    nb_dir_per_shell = [np.sum(shell_idx == idx) for idx in range(nb_shells)]
+
+    ubvecs = np.unique(bvecs, axis=0)
+    nb_ubvecs = len(ubvecs)
+    if len(bvecs) != nb_ubvecs:
+        raise ValueError('{} b-vectors have the same direction as others, '
+                         'which is suboptimal. There is most likely a problem '
+                         'with the gradient table.'
+                         .format(len(bvecs) - nb_ubvecs))
 
     # Compute optimally distributed directions
     scipy_verbose = int(3 - logging.getLogger().getEffectiveLevel()//10)
@@ -108,19 +115,24 @@ def main():
 
     # Visualize the gradient schemes
     if args.visualize:
-        viz_bvecs = build_ms_from_shell_idx(ubvecs, ushell_idx)
-        viz_opt_bvecs = build_ms_from_shell_idx(opt_bvecs, ushell_idx)
+        viz_bvecs = build_ms_from_shell_idx(bvecs, shell_idx)
+        viz_opt_bvecs = build_ms_from_shell_idx(opt_bvecs, shell_idx)
         plot_proj_shell(viz_bvecs, use_sym=True, title="Inputed b-vectors")
         plot_proj_shell(viz_opt_bvecs, use_sym=True,
                         title="Optimized b-vectors")
 
     # Compute the energy for both the input bvecs and optimal bvecs.
-    energy, opt_energy = energy_comparison(ubvecs, opt_bvecs, nb_shells,
+    energy, opt_energy = energy_comparison(bvecs, opt_bvecs, nb_shells,
                                            nb_dir_per_shell)
 
     perc_comp = np.round(opt_energy / energy * 100)
     print('Compared to our reference optimal set of b-vectors, the inputed '
-          'b-vectors are {}% less well distributed.'.format(perc_comp))
+          'b-vectors are {}% less optimally distributed.'.format(perc_comp))
+    
+    logging.info('The calculated electrostatic-like repulsion energy for the '
+                 'optimal b-vectors is: {}'.format(opt_energy))
+    logging.info('The calculated electrostatic-like repulsion energy for the '
+                 'inputed b-vectors is: {}'.format(energy))
 
     # TODO: Find a better sentence, and add a warning if the bvecs are too shit
 

@@ -60,7 +60,7 @@ def plot_each_shell(ms, centroids, plot_sym_vecs=True, use_sphere=True,
         scene = window.Scene()
         scene.SetBackground(1, 1, 1)
         if use_sphere:
-            sphere_actor = actor.odf_slicer(odfs, affine, sphere=sphere,
+            sphere_actor = actor.odf_slicer(odfs, affine=affine, sphere=sphere,
                                             colormap='winter', scale=1.0,
                                             opacity=opacity)
             scene.add(sphere_actor)
@@ -132,7 +132,7 @@ def plot_proj_shell(ms, use_sym=True, use_sphere=True, same_color=False,
         odfs[:] = 1
         odfs[..., 0] = 1
         affine = np.eye(4)
-        sphere_actor = actor.odf_slicer(odfs, affine, sphere=sphere,
+        sphere_actor = actor.odf_slicer(odfs, affine=affine, sphere=sphere,
                                         colormap='winter', scale=1.0,
                                         opacity=opacity)
 
