@@ -59,10 +59,10 @@ def _build_arg_parser():
                         '(.bval, .bvec) or MRtrix (.b).')
 
     p.add_argument(
-        '--max_ratio', default=1.1, type=float,
+        '--max_ratio', default=1.25, type=float,
         help='Maximum value for the ratio between the inputed b-vectors\' '
              'energy \nand the optimal b-vectors\' energy '
-             '(input_energy/optimal_energy).[%(default)s]')
+             '(input_energy/optimal_energy). [%(default)s]')
 
     p.add_argument(
         '--visualize', action='store_true',

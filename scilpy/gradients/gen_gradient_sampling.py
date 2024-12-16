@@ -300,18 +300,18 @@ def _grad_electrostatic_repulsion_energy(bvecs, weight_matrix, alpha=1.0):
     return grad
 
 
-def energy_comparison(bvecs, opt_bvecs, nb_shells, nb_points_per_shell,
+def energy_comparison(bvecs1, bvecs2, nb_shells, nb_points_per_shell,
                       alpha=1.0):
     """
-    Electrostatic-repulsion objective function. The alpha parameter controls
-    the power repulsion (energy varies as $1 / ralpha$).
+    Compute the electrostatic-repulsion energy of two sets of b-vectors with
+    the same number of directions per shell.
 
     Parameters
     ---------
-    bvecs : array-like shape (N, 3,)
-        Inputed b-vectors.
-    opt_bvecs : array-like shape (N, 3,)
-        Optimal b-vectors.
+    bvecs1 : array-like shape (N, 3,)
+        First set of b-vectors.
+    bvecs2 : array-like shape (N, 3,)
+        Second set of b-vectors.
     nb_shells : int
         Number of shells
     nb_points_per_shell : list of ints
@@ -321,11 +321,12 @@ def energy_comparison(bvecs, opt_bvecs, nb_shells, nb_points_per_shell,
 
     Returns
     -------
-    energy : float
-        sum of all interactions between any two vectors.
+    energy1 : float
+        Electrostatic-repulsion energy of set bvecs1.
+    energy2 : float
+        Electrostatic-repulsion energy of set bvecs2.
     """
-    # Groups of shells and relative coupling weights
-    nb_dir = bvecs.shape[0]
+    nb_dir = bvecs1.shape[0]
     shell_groups = ()
     for i in range(nb_shells):
         shell_groups += ([i],)
@@ -344,17 +345,17 @@ def energy_comparison(bvecs, opt_bvecs, nb_shells, nb_points_per_shell,
                           indices[s2]:indices[s2 + 1]] = weights[s1, s2]
 
     epsilon = 1e-9
-    energy = 0.0
-    opt_energy = 0.0
+    energy1 = 0.0
+    energy2 = 0.0
     for i in range(nb_dir):
         indices = (np.arange(nb_dir) > i)
-        diffs = ((bvecs[indices] - bvecs[i]) ** 2).sum(1) ** alpha
-        sums = ((bvecs[indices] + bvecs[i]) ** 2).sum(1) ** alpha
-        energy += (weight_matrix[i, indices] *
+        diffs = ((bvecs1[indices] - bvecs1[i]) ** 2).sum(1) ** alpha
+        sums = ((bvecs1[indices] + bvecs1[i]) ** 2).sum(1) ** alpha
+        energy1 += (weight_matrix[i, indices] *
                    (1.0 / (diffs + epsilon) + 1.0 / (sums + epsilon))).sum()
-        diffs = ((opt_bvecs[indices] - opt_bvecs[i]) ** 2).sum(1) ** alpha
-        sums = ((opt_bvecs[indices] + opt_bvecs[i]) ** 2).sum(1) ** alpha
-        opt_energy += (weight_matrix[i, indices] *
+        diffs = ((bvecs2[indices] - bvecs2[i]) ** 2).sum(1) ** alpha
+        sums = ((bvecs2[indices] + bvecs2[i]) ** 2).sum(1) ** alpha
+        energy2 += (weight_matrix[i, indices] *
                        (1.0 / (diffs + epsilon) + 1.0 /
                         (sums + epsilon))).sum()
-    return energy, opt_energy
+    return energy1, energy2
