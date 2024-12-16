@@ -113,12 +113,12 @@ def main():
             .format(bvals.min()))
 
     if bvals.min() > args.b0_threshold:
-            logging.warning(
-                'Your minimal bvalue ({}) is above the threshold ({}). Please '
-                'check your data to ensure everything is correct.\n'
-                'You may also increase the threshold with --b0_threshold. '
-                'The script will continue without b0s.'
-                .format(bvals.min(), args.b0_threshold))
+        logging.warning(
+            'Your minimal bvalue ({}) is above the threshold ({}). Please '
+            'check your data to ensure everything is correct.\n'
+            'You may also increase the threshold with --b0_threshold. '
+            'The script will continue without b0s.'
+            .format(bvals.min(), args.b0_threshold))
     bvecs = bvecs[bvals > args.b0_threshold]
     bvals = bvals[bvals > args.b0_threshold]
 
@@ -155,7 +155,7 @@ def main():
     # Compute the energy for both the input bvecs and optimal bvecs.
     energy, opt_energy = energy_comparison(bvecs, opt_bvecs, nb_shells,
                                            nb_dir_per_shell)
-    
+
     logging.info('\nThe quality of inputed b-vectors is assessed by computing '
                  'their electrostatic-like repulsion \nenergy and comparing '
                  'it with the energy of a reference optimal set of b-vectors.')

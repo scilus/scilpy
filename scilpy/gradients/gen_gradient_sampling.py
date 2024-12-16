@@ -352,10 +352,10 @@ def energy_comparison(bvecs1, bvecs2, nb_shells, nb_points_per_shell,
         diffs = ((bvecs1[indices] - bvecs1[i]) ** 2).sum(1) ** alpha
         sums = ((bvecs1[indices] + bvecs1[i]) ** 2).sum(1) ** alpha
         energy1 += (weight_matrix[i, indices] *
-                   (1.0 / (diffs + epsilon) + 1.0 / (sums + epsilon))).sum()
+                    (1.0 / (diffs + epsilon) + 1.0 / (sums + epsilon))).sum()
         diffs = ((bvecs2[indices] - bvecs2[i]) ** 2).sum(1) ** alpha
         sums = ((bvecs2[indices] + bvecs2[i]) ** 2).sum(1) ** alpha
         energy2 += (weight_matrix[i, indices] *
-                       (1.0 / (diffs + epsilon) + 1.0 /
+                    (1.0 / (diffs + epsilon) + 1.0 /
                         (sums + epsilon))).sum()
     return energy1, energy2
