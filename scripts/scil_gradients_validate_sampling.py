@@ -2,7 +2,25 @@
 # -*- coding: utf-8 -*-
 
 """
+Validate the sampling of a gradient table, in terms of how well distributed on
+the sphere the b-vectors are.
 
+To do so, the script compares the electrostatic-like repulsion energy [1] of
+the inputed b-vectors with the energy of optimally distributed b-vectors. The
+same number of directions per shell (the script supports multi-shell) as the
+input b-vectors are used to generate the optimal b-vectors as in [1]. It is
+possible that the inputed b-vectors are better distributed than the optimal
+ones.
+
+The script starts by looking for b0s, to remove them from the analysis. Then,
+it looks for duplicate b-vectors. Finally, both energies are computed and
+compared as the ratio between the inputed b-vectors' energy and the optimal
+b-vectors' energy (input_energy/optimal_energy). Above a given maximum ratio
+value, the script raises a warning.
+
+The user might want to use the -v verbose option to see the computed energies.
+The --visualize option displays both the inputed and optimal b-vectors on a
+single shell.
 """
 
 import argparse
@@ -23,10 +41,19 @@ from scilpy.gradients.gen_gradient_sampling import (generate_gradient_sampling,
 from scilpy.viz.gradients import (plot_proj_shell, build_ms_from_shell_idx)
 
 
+EPILOG = """
+References: [1] Emmanuel Caruyer, Christophe Lenglet, Guillermo Sapiro,
+Rachid Deriche. Design of multishell gradient sampling with uniform coverage
+in diffusion MRI. Magnetic Resonance in Medicine, Wiley, 2013, 69 (6),
+pp. 1534-1540. <http://dx.doi.org/10.1002/mrm.24736>
+    """
+
+
 def _build_arg_parser():
     p = argparse.ArgumentParser(
         formatter_class=argparse.RawTextHelpFormatter,
-        description=__doc__)
+        description=__doc__,
+        epilog=EPILOG)
     p.add_argument('in_gradients', nargs='+',
                    help='Path(s) to the gradient file(s). Either FSL '
                         '(.bval, .bvec) or MRtrix (.b).')
@@ -34,8 +61,8 @@ def _build_arg_parser():
     p.add_argument(
         '--max_ratio', default=1.1, type=float,
         help='Maximum value for the ratio between the inputed b-vectors\' '
-             'energy \nand the optimal b-vectors\' energy. '
-             '(input_energy/optimal_energy)[%(default)s]')
+             'energy \nand the optimal b-vectors\' energy '
+             '(input_energy/optimal_energy).[%(default)s]')
 
     p.add_argument(
         '--visualize', action='store_true',
@@ -43,9 +70,9 @@ def _build_arg_parser():
              'optimal one.')
 
     add_b0_thresh_arg(p)
-    add_overwrite_arg(p)
     add_tolerance_arg(p)
     add_verbose_arg(p)
+    add_overwrite_arg(p)
 
     return p
 
