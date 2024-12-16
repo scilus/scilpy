@@ -89,7 +89,7 @@ def main():
 
         if len(args.in_gradient_scheme) == 2:
             assert_gradients_filenames_valid(parser, args.in_gradient_scheme,
-                                             'fsl')
+                                             True)
         elif len(args.in_gradient_scheme) == 1:
             basename, ext = os.path.splitext(args.in_gradient_scheme[0])
             if ext in ['.bvec', '.bvecs', '.bvals', '.bval']:
@@ -98,7 +98,7 @@ def main():
             else:
                 assert_gradients_filenames_valid(parser,
                                                  args.in_gradient_scheme,
-                                                 'mrtrix')
+                                                 False)
         else:
             parser.error('Depending on the gradient format you should have '
                          'two files for FSL format and one file for MRtrix')
