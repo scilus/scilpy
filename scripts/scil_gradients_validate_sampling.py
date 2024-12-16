@@ -135,10 +135,10 @@ def main():
     ubvecs = np.unique(bvecs, axis=0)
     nb_ubvecs = len(ubvecs)
     if len(bvecs) != nb_ubvecs:
-        raise ValueError('{} b-vectors have the same direction as others, '
-                         'which is suboptimal. There is most likely a problem '
-                         'with the gradient table.'
-                         .format(len(bvecs) - nb_ubvecs))
+        logging.error('{} b-vectors have the same direction as others, '
+                      'which is suboptimal. There is most likely a problem '
+                      'with the gradient table.'
+                      .format(len(bvecs) - nb_ubvecs))
 
     # Compute optimally distributed directions
     opt_bvecs, _ = generate_gradient_sampling(nb_dir_per_shell,
