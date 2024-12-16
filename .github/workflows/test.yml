@@ -71,7 +71,7 @@ jobs:
             .test_reports/
 
   coverage:
-    runs-on: scilus-runners
+    runs-on: ubuntu-latest
     if: github.repository == 'scilus/scilpy'
     needs: test
 
