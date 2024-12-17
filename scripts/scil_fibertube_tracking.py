@@ -265,9 +265,8 @@ def main():
 
     logging.debug("Instantiating seed generator")
     if args.in_custom_seeds:
-        seed_res = in_sft.voxel_sizes
         seeds = np.squeeze(load_matrix_in_any_format(args.in_custom_seeds))
-        seed_generator = CustomSeedsDispenser(seeds, seed_res, space=our_space,
+        seed_generator = CustomSeedsDispenser(seeds, space=our_space,
                                               origin=our_origin)
         nbr_seeds = len(seeds)
     else:
