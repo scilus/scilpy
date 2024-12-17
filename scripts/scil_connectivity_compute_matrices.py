@@ -81,12 +81,14 @@ from scilpy.io.utils import (add_overwrite_arg, add_processes_arg,
                              validate_nbr_processes, assert_inputs_dirs_exist,
                              assert_headers_compatible,
                              assert_output_dirs_exist_and_empty)
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(
-        description=__doc__,
-        formatter_class=argparse.RawTextHelpFormatter)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
+
     p.add_argument('in_hdf5',
                    help='Input filename for the hdf5 container (.h5).')
     p.add_argument('in_labels',

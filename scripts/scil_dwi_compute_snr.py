@@ -44,11 +44,13 @@ from scilpy.io.utils import (add_json_args, add_overwrite_arg,
                              assert_inputs_exist)
 from scilpy.utils.filenames import split_name_with_nii
 from scilpy.image.volume_operations import compute_snr
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
-                                description=__doc__)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
 
     p.add_argument('in_dwi',
                    help='Path of the input diffusion volume.')

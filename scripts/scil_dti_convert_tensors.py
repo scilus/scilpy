@@ -17,11 +17,13 @@ from scilpy.io.utils import (add_overwrite_arg, add_verbose_arg,
 from scilpy.io.tensor import (supported_tensor_formats,
                               tensor_format_description,
                               convert_tensor_format)
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(description=__doc__ + tensor_format_description,
-                                formatter_class=argparse.RawTextHelpFormatter)
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
 
     p.add_argument('in_file',
                    help='Input tensors filename.')

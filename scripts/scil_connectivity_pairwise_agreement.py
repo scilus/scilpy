@@ -24,12 +24,13 @@ from scilpy.io.utils import (add_json_args,
                              assert_outputs_exist,
                              load_matrix_in_any_format)
 from scilpy.tractanalysis.reproducibility_measures import compute_dice_voxel
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(
-        description=__doc__,
-        formatter_class=argparse.RawTextHelpFormatter)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
     p.add_argument('in_matrices', nargs='+',
                    help='Path of the input matricies.')
     p.add_argument('out_json',

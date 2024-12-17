@@ -34,11 +34,13 @@ from scilpy.io.utils import (add_bbox_arg,
                              assert_outputs_exist,
                              assert_output_dirs_exist_and_empty,
                              assert_headers_compatible)
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(description=__doc__,
-                                formatter_class=argparse.RawTextHelpFormatter)
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
 
     p.add_argument('in_bundles', nargs='+',
                    help='List of the clusters filename.')

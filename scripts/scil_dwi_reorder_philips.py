@@ -24,13 +24,15 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist,
                              assert_outputs_exist)
 from scilpy.utils.filenames import split_name_with_nii
+from scilpy.version import version_string
 
 SOFTWARE_VERSION_MIN = '5.6'
 
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(description=__doc__,
-                                formatter_class=argparse.RawTextHelpFormatter)
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
 
     p.add_argument('in_dwi',
                    help='Input dwi file.')

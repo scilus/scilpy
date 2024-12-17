@@ -41,11 +41,14 @@ from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import assert_inputs_exist, assert_outputs_exist, \
     add_verbose_arg, add_overwrite_arg, assert_headers_compatible, \
     add_reference_arg
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(
-        description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
+
     p.add_argument('in_tractogram',
                    help='Tractogram (trk or tck).')
     p.add_argument('in_labels',

@@ -52,12 +52,14 @@ from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
 
 from scilpy.tractograms.streamline_and_mask_operations import \
     get_endpoints_density_map
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(
-        description=__doc__,
-        formatter_class=argparse.RawTextHelpFormatter)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
+
     p.add_argument('in_bundles', nargs='+',
                    help='Path of the input bundles.')
     p.add_argument('out_json',

@@ -34,7 +34,7 @@ import coloredlogs
 from scilpy.io.utils import (add_overwrite_arg, add_verbose_arg,
                              assert_inputs_exist,
                              assert_outputs_exist)
-
+from scilpy.version import version_string
 
 conversion = {"i": "x",
               "i-": "x-",
@@ -49,9 +49,9 @@ conversion = {"i": "x",
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        description=__doc__)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
 
     p.add_argument("in_bids",
                    help="Input BIDS folder.")

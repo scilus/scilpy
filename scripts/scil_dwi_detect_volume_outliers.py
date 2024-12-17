@@ -26,12 +26,13 @@ from scilpy.io.utils import (add_b0_thresh_arg, add_skip_b0_check_arg,
                              add_verbose_arg, assert_inputs_exist, )
 from scilpy.gradients.bvec_bval_tools import (check_b0_threshold,
                                               normalize_bvecs)
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(
-        description=__doc__,
-        formatter_class=argparse.RawTextHelpFormatter)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
 
     p.add_argument('in_dwi',
                    help='The DWI file (.nii) to concatenate.')

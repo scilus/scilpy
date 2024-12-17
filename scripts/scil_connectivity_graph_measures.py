@@ -29,6 +29,12 @@ This script is under the GNU GPLv3 license, for more detail please refer to
 https://www.gnu.org/licenses/gpl-3.0.en.html
 
 Formerly: scil_evaluate_connectivity_graph_measures.py
+----------------------------------------------------------------------------
+Reference:
+[1] Rubinov, Mikail, and Olaf Sporns. "Complex network measures of brain
+    connectivity: uses and interpretations." Neuroimage 52.3 (2010):
+    1059-1069.
+----------------------------------------------------------------------------
 """
 
 import argparse
@@ -43,18 +49,14 @@ from scilpy.io.utils import (add_json_args,
                              assert_inputs_exist,
                              assert_outputs_exist,
                              load_matrix_in_any_format)
-
-EPILOG = """
-[1] Rubinov, Mikail, and Olaf Sporns. "Complex network measures of brain
-    connectivity: uses and interpretations." Neuroimage 52.3 (2010):
-    1059-1069.
-"""
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawTextHelpFormatter,
-                                epilog=EPILOG)
+                                epilog=version_string)
+
     p.add_argument('in_conn_matrix',
                    help='Input connectivity matrix (.npy).\n'
                         'Typically a streamline count weighted matrix.')

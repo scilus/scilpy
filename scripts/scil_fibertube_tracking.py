@@ -48,12 +48,13 @@ from scilpy.io.utils import (assert_inputs_exist,
                              add_verbose_arg,
                              add_json_args,
                              add_overwrite_arg)
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(
-        formatter_class=argparse.RawTextHelpFormatter,
-        description=__doc__)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
 
     p.add_argument('in_fibertubes',
                    help='Path to the tractogram (must be .trk) file \n'

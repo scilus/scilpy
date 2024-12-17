@@ -13,6 +13,18 @@ Using 12 threads, the execution takes approximately 30 minutes for a brain with
 1mm isotropic resolution.
 
 Formerly: scil_fit_bingham_to_fodf.py
+-------------------------------------------------------------------------------
+References:
+[1] T. W. Riffert, J. Schreiber, A. Anwander, and T. R. Knösche, “Beyond
+    fractional anisotropy: Extraction of bundle-specific structural metrics
+    from crossing fiber models,” NeuroImage, vol. 100, pp. 176-191, Oct. 2014,
+    doi: 10.1016/j.neuroimage.2014.06.015.
+
+[2] J. Schreiber, T. Riffert, A. Anwander, and T. R. Knösche, “Plausibility
+    Tracking: A method to evaluate anatomical connectivity and microstructural
+    properties along fiber pathways,” NeuroImage, vol. 90, pp. 163-178, Apr.
+    2014, doi: 10.1016/j.neuroimage.2014.01.002.
+-------------------------------------------------------------------------------
 """
 
 import nibabel as nib
@@ -26,25 +38,13 @@ from scilpy.io.utils import (add_overwrite_arg, add_processes_arg,
                              assert_headers_compatible)
 from scilpy.io.image import get_data_as_mask
 from scilpy.reconst.bingham import (bingham_fit_sh)
-
-
-EPILOG = """
-[1] T. W. Riffert, J. Schreiber, A. Anwander, and T. R. Knösche, “Beyond
-    fractional anisotropy: Extraction of bundle-specific structural metrics
-    from crossing fiber models,” NeuroImage, vol. 100, pp. 176-191, Oct. 2014,
-    doi: 10.1016/j.neuroimage.2014.06.015.
-
-[2] J. Schreiber, T. Riffert, A. Anwander, and T. R. Knösche, “Plausibility
-    Tracking: A method to evaluate anatomical connectivity and microstructural
-    properties along fiber pathways,” NeuroImage, vol. 90, pp. 163-178, Apr.
-    2014, doi: 10.1016/j.neuroimage.2014.01.002.
-"""
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawTextHelpFormatter,
-                                epilog=EPILOG)
+                                epilog=version_string)
     p.add_argument('in_sh',
                    help='Input SH image.')
 

@@ -8,6 +8,13 @@ estimated from an MD and FA threshold.
 This allows to clip the noise of fODF using an absolute thresold.
 
 Formerly: scil_compute_fodf_max_in_ventricles.py
+--------------------------------------------------------------------------
+Reference:
+[1] Dell'Acqua, Flavio, et al. "Can spherical deconvolution provide more
+    information than fiber orientations? Hindrance modulated orientational
+    anisotropy, a true-tract specific index to characterize white matter
+    diffusion." Human brain mapping 34.10 (2013): 2464-2483.
+--------------------------------------------------------------------------
 """
 
 import argparse
@@ -21,18 +28,13 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist, assert_outputs_exist,
                              parse_sh_basis_arg)
 from scilpy.reconst.fodf import get_ventricles_max_fodf
-
-EPILOG = """
-[1] Dell'Acqua, Flavio, et al. "Can spherical deconvolution provide more
-    information than fiber orientations? Hindrance modulated orientational
-    anisotropy, a true-tract specific index to characterize white matter
-    diffusion." Human brain mapping 34.10 (2013): 2464-2483.
-"""
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
-                                description=__doc__, epilog=EPILOG)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
 
     p.add_argument('in_fodfs',  metavar='fODFs',
                    help='Path of the fODF volume in spherical harmonics (SH).')

@@ -24,6 +24,7 @@ from scilpy.io.utils import (add_overwrite_arg,
                              load_matrix_in_any_format,
                              save_matrix_in_any_format)
 from scilpy.utils import is_float
+from scilpy.version import version_string
 
 OPERATIONS = get_array_ops()
 
@@ -34,9 +35,9 @@ __doc__ += ADDED_DOC
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(
-        formatter_class=argparse.RawTextHelpFormatter,
-        description=__doc__)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
 
     p.add_argument('operation',
                    choices=OPERATIONS.keys(),

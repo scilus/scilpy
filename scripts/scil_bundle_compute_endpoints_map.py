@@ -32,12 +32,13 @@ from scilpy.io.utils import (add_json_args,
                              assert_outputs_exist)
 from scilpy.tractograms.streamline_and_mask_operations import \
     get_head_tail_density_maps
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(
-        description=__doc__,
-        formatter_class=argparse.RawTextHelpFormatter)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
 
     p.add_argument('in_bundle',
                    help='Fiber bundle filename.')

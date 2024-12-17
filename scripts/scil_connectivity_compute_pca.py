@@ -39,6 +39,21 @@ or ref [3] for an introduction to PCA).
 EXAMPLE USAGE:
 scil_connectivity_compute_pca.py input_folder/ output_folder/
     --metrics ad fa md rd [...] --list_ids list_ids.txt
+
+-------------------------------------------------------------------------------
+References:
+[1] Chamberland M, Raven EP, Genc S, Duffy K, Descoteaux M, Parker GD, Tax CMW,
+ Jones DK. Dimensionality reduction of diffusion MRI measures for improved
+ tractometry of the human brain. Neuroimage. 2019 Oct 15;200:89-100.
+ doi: 10.1016/j.neuroimage.2019.06.020. Epub 2019 Jun 20. PMID: 31228638;
+ PMCID: PMC6711466.
+[2] Gagnon A., Grenier G., Bocti C., Gillet V., Lepage J.-F., Baccarelli A. A.,
+ Posner J., Descoteaux M., Takser L. (2022). White matter microstructural
+ variability linked to differential attentional skills and impulsive behavior
+ in a pediatric population. Cerebral Cortex.
+ https://doi.org/10.1093/cercor/bhac180
+[3] https://towardsdatascience.com/what-are-pca-loadings-and-biplots-9a7897f2e559
+-------------------------------------------------------------------------------
 """
 
 # Import required libraries.
@@ -56,28 +71,13 @@ from scilpy.io.utils import (load_matrix_in_any_format,
                              add_verbose_arg,
                              add_overwrite_arg,
                              assert_output_dirs_exist_and_empty)
+from scilpy.version import version_string
 
 
-EPILOG = """
-[1] Chamberland M, Raven EP, Genc S, Duffy K, Descoteaux M, Parker GD, Tax CMW,
- Jones DK. Dimensionality reduction of diffusion MRI measures for improved
- tractometry of the human brain. Neuroimage. 2019 Oct 15;200:89-100.
- doi: 10.1016/j.neuroimage.2019.06.020. Epub 2019 Jun 20. PMID: 31228638;
- PMCID: PMC6711466.
-[2] Gagnon A., Grenier G., Bocti C., Gillet V., Lepage J.-F., Baccarelli A. A.,
- Posner J., Descoteaux M., Takser L. (2022). White matter microstructural
- variability linked to differential attentional skills and impulsive behavior
- in a pediatric population. Cerebral Cortex.
- https://doi.org/10.1093/cercor/bhac180
-[3] https://towardsdatascience.com/what-are-pca-loadings-and-biplots-9a7897f2e559
-    """
-
-
-# Build argument parser.
 def _build_arg_parser():
-    p = argparse.ArgumentParser(
-        description=__doc__, formatter_class=argparse.RawTextHelpFormatter,
-        epilog=EPILOG)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
 
     p.add_argument('in_folder',
                    help='Path to the input folder. See explanation above for '
