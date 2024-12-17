@@ -252,7 +252,7 @@ def main():
 
         plt.figure()
         plt.imshow(common_edges_mask)
-        plt.title(common_edges_mask)
+        plt.title("Common edges mask")
 
         logging.info('Data shows {} common connections across the population.'
                      .format(np.sum(common_edges_mask)))
