@@ -340,6 +340,7 @@ def main():
                          "mask was provided.")
         # Mean residual image
         S0 = np.mean(data[..., gtab.b0s_mask], axis=-1)
+
         tenfit2_predict = np.zeros(data.shape, dtype=np.float32)
 
         for i in range(data.shape[0]):
@@ -348,7 +349,8 @@ def main():
             else:
                 tenfit2 = tenmodel.fit(data[i, :, :, :])
 
-            tenfit2_predict[i, :, :, :] = tenfit2.predict(gtab, S0[i, :, :])
+            S0_i = np.maximum(S0[i, :, :], tenfit2.model.min_signal)
+            tenfit2_predict[i, :, :, :] = tenfit2.predict(gtab, S0_i)
 
         R, data_diff = compute_residuals(
             predicted_data=tenfit2_predict.astype(np.float32),
@@ -370,7 +372,7 @@ def main():
 
         # Plotting and saving figure
         plot_residuals(data_diff, mask, R_k, q1, q3, iqr,
-                        residual_basename)
+                       residual_basename)
 
 
 if __name__ == "__main__":
