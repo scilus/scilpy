@@ -121,14 +121,14 @@ def main():
         if len(args.in_gradient_scheme) == 2:
             in_gradient_schemes = args.in_gradient_scheme
             in_gradient_schemes.sort()  # [bval, bvec]
-            bvals, points = read_bvals_bvecs(in_gradient_schemes[0],
-                                             in_gradient_schemes[1])
+            bvals, bvecs = read_bvals_bvecs(in_gradient_schemes[0],
+                                            in_gradient_schemes[1])
             centroids, shell_idx = identify_shells(bvals)
         else:
             # MRtrix format X, Y, Z, b
             in_gradient_scheme = args.in_gradient_scheme[0]
             tmp = np.genfromtxt(in_gradient_scheme, delimiter=' ')
-            points = tmp[:, :3]
+            bvecs = tmp[:, :3]
             bvals = tmp[:, 3]
             centroids, shell_idx = identify_shells(bvals)
 
@@ -159,7 +159,7 @@ def main():
             for idx, val in enumerate(shell_idx):
                 if val != 0 and val != -1:
                     shell_idx[idx] -= len(np.where(indexes < val)[0])
-        ms = build_ms_from_shell_idx(points, shell_idx)
+        ms = build_ms_from_shell_idx(bvecs, shell_idx)
 
     else:
         ms = [get_sphere(args.dipy_sphere).vertices]
