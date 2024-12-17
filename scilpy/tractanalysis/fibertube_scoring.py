@@ -20,10 +20,12 @@ def fibertube_density(sft, samples_per_voxel_axis, verbose=False):
     Estimates the per-voxel volumetric density of a set of fibertubes. In other
     words, how much space is occupied by fibertubes and how much is emptiness.
 
-    Works by building a binary mask segmenting voxels that contain at least
-    a single fibertube. Then, valid voxels are finely sampled and we count the
-    number of samples that landed within a fibertube. For each voxel, this
-    number is then divided by its total amount of samples.
+    1. Segments voxels that contain at least a single fibertube.
+    2. Valid voxels are finely sampled and we count the number of samples that
+    landed within a fibertube. For each voxel, this number is then divided by
+    its total amount of samples.
+    3. By doing the same steps for samples that landed within 2 or more
+    fibertubes, we can create a density map of the fibertube collisions.
 
     Parameters
     ----------
