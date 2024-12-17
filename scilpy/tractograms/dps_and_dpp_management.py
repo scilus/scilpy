@@ -217,7 +217,7 @@ def project_dpp_to_map(sft, dpp_key, sum_lines=False, endpoints_only=False):
         for p in points:
             x, y, z = sft.streamlines[s][p, :].astype(int)  # Or floor
             count[x, y, z] += 1
-            the_map[x, y, z] += sft.data_per_point[dpp_key][s][p]
+            the_map[x, y, z] += np.squeeze(sft.data_per_point[dpp_key][s][p])
 
     if not sum_lines:
         count = np.maximum(count, 1e-6)  # Avoid division by 0
