@@ -148,7 +148,7 @@ def set_viewport(scene, orientation, slice_index, volume_shape, aspect_ratio):
         Ratio between viewport's width and height.
     """
 
-    scene.projection('parallel')
+    scene.projection(proj_type='parallel')
     camera = initialize_camera(
         orientation, slice_index, volume_shape, aspect_ratio)
     scene.set_camera(position=camera[CamParams.VIEW_POS],

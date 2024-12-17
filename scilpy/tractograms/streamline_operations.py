@@ -408,11 +408,8 @@ def filter_streamlines_by_length(sft, min_length=0., max_length=np.inf,
         valid_length_ids = np.logical_and(lengths >= min_length,
                                           lengths <= max_length)
         filtered_sft = sft[valid_length_ids]
-
-        if return_rejected:
-            rejected_sft = sft[~valid_length_ids]
     else:
-        valid_length_ids = []
+        valid_length_ids = np.array([], dtype=bool)
         filtered_sft = sft
 
     # Return to original space
@@ -420,7 +417,7 @@ def filter_streamlines_by_length(sft, min_length=0., max_length=np.inf,
     filtered_sft.to_space(orig_space)
 
     if return_rejected:
-        rejected_sft.to_space(orig_space)
+        rejected_sft = sft[~valid_length_ids]
         return filtered_sft, valid_length_ids, rejected_sft
     else:
         return filtered_sft, valid_length_ids
