@@ -21,7 +21,7 @@ import numpy as np
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              assert_output_dirs_exist_and_empty,
                              add_verbose_arg)
-from scilpy.utils.metrics_tools import plot_metrics_stats
+from scilpy.viz.plot import plot_metrics_stats
 
 
 def _build_arg_parser():
