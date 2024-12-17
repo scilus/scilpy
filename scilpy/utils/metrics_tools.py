@@ -3,8 +3,6 @@
 import logging
 import os
 
-import matplotlib
-import matplotlib.pyplot as plt
 import numpy as np
 
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
@@ -302,78 +300,3 @@ def get_bundle_metrics_mean_std_per_point(streamlines, bundle_name,
             label_stats['mean'] = float(label_mean)
             label_stats['std'] = float(label_std)
     return stats
-
-
-def plot_metrics_stats(means, stds, title=None, xlabel=None,
-                       ylabel=None, figlabel=None, fill_color=None,
-                       display_means=False):
-    """
-    Plots the mean of a metric along n points with the standard deviation.
-
-    Parameters
-    ----------
-    means: Numpy 1D (or 2D) array of size n
-        Mean of the metric along n points.
-    stds: Numpy 1D (or 2D) array of size n
-        Standard deviation of the metric along n points.
-    title: string
-        Title of the figure.
-    xlabel: string
-        Label of the X axis.
-    ylabel: string
-        Label of the Y axis (suggestion: the metric name).
-    figlabel: string
-        Label of the figure (only metadata in the figure object returned).
-    fill_color: string
-        Hexadecimal RGB color filling the region between mean ± std. The
-        hexadecimal RGB color should be formatted as #RRGGBB
-    display_means: bool
-        Display the subjects means as semi-transparent line
-    Return
-    ------
-    The figure object.
-    """
-    matplotlib.style.use('ggplot')
-
-    fig, ax = plt.subplots()
-
-    # Set optional information to the figure, if required.
-    if title is not None:
-        ax.set_title(title)
-    if xlabel is not None:
-        ax.set_xlabel(xlabel)
-    if ylabel is not None:
-        ax.set_ylabel(ylabel)
-    if figlabel is not None:
-        fig.set_label(figlabel)
-
-    if means.ndim > 1:
-        mean = np.average(means, axis=1)
-        std = np.average(stds, axis=1)
-        alpha = 0.5
-    else:
-        mean = np.array(means).ravel()
-        std = np.array(stds).ravel()
-        alpha = 0.9
-
-    dim = np.arange(1, len(mean)+1, 1)
-
-    if len(mean) <= 20:
-        ax.xaxis.set_ticks(dim)
-
-    ax.set_xlim(0, len(mean)+1)
-
-    if means.ndim > 1 and display_means:
-        for i in range(means.shape[-1]):
-            ax.plot(dim, means[:, i], color="k", linewidth=1,
-                    solid_capstyle='round', alpha=0.1)
-
-    # Plot the mean line.
-    ax.plot(dim, mean, color="k", linewidth=5, solid_capstyle='round')
-
-    # Plot the std
-    plt.fill_between(dim, mean - std, mean + std,
-                     facecolor=fill_color, alpha=alpha)
-
-    plt.close(fig)
-    return fig
