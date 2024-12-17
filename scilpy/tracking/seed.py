@@ -371,21 +371,27 @@ class CustomSeedsDispenser(SeedGenerator):
     Adaptation of the scilpy.tracking.seed.SeedGenerator interface for
     using already generated, custom seeds.
     """
-    def __init__(self, custom_seeds, voxres, space=Space('vox'),
+    def __init__(self, custom_seeds, space=Space('vox'),
                  origin=Origin('center')):
         """
+        Custom seeds need to be in the same space and origin as the ODFs used
+        for tracking.
+
         Parameters
         ----------
         custom_seeds: list
             Custom seeding coordinates.
-        voxres: np.ndarray(3,)
-            The pixel resolution, ex, using img.header.get_zooms()[:3].
+        space: Space (optional)
+            The Dipy space in which the seeds were saved.
+            Default: Space.Vox or 'vox'
+        origin: Origin (optional)
+            The Dipy origin in which the seeds were saved.
+            Default: Origin.NIFTI or 'center'
         """
-        self.voxres = voxres
         self.origin = origin
         self.space = space
         self.seeds = custom_seeds
-        self.count = 0
+        self.i = 0
 
     def init_generator(self, rng_seed, numbers_to_skip):
         """

@@ -2,19 +2,30 @@
 # -*- coding: utf-8 -*-
 
 """
-Add, extract or delete information to each streamline from a tractogram
+Import, extract or delete dps (data_per_streamline) information to a tractogram
 file. Can be for example SIFT2 weights, processing information, bundle IDs,
 tracking seeds, etc.
 
-Input and output tractograms must always be .trk to simplify filetype checks
-for each operation.
+This script is not the same as the dps mode of scil_tractogram_dpp_math.py,
+which performs operations on dpp (data_per_point) and saves the result as dps.
+Instead this script performs operations directly on dps values.
+
+Input and output tractograms must be .trk, unless you are using the 'import'
+operation, in which case a .tck input tractogram is accepted.
+
+Usage examples:
+    > scil_tractogram_dps_math.py tractogram.trk import "bundle_ids"
+        --in_dps_file my_bundle_ids.txt
+    > scil_tractogram_dps_math.py tractogram.trk export "seeds"
+        --out_dps_file seeds.npy
 """
 
-import os
+import nibabel as nib
 import argparse
 import logging
 
 from dipy.io.streamline import save_tractogram, load_tractogram
+from scilpy.io.streamlines import load_tractogram_with_reference
 import numpy as np
 
 from scilpy.io.utils import (add_overwrite_arg,
@@ -33,32 +44,29 @@ def _build_arg_parser():
         formatter_class=argparse.RawTextHelpFormatter)
 
     p.add_argument('in_tractogram',
-                   help='Input tractogram (.trk).')
+                   help='Input tractogram (.trk for all operations,'
+                        '.tck accepted for import).')
     p.add_argument('operation', metavar='OPERATION',
-                   choices=['add', 'delete', 'export'],
+                   choices=['import', 'delete', 'export'],
                    help='The type of operation to be performed on the\n'
                         'tractogram\'s data_per_streamline at the given\n'
                         'key. Must be one of the following: [%(choices)s].\n'
                         'The additional arguments required for each\n'
                         'operation are specified under each group below.')
     p.add_argument('dps_key', type=str,
-                   help='Where to find the data to be exported,\n'
-                        'in the tractogram.')
+                   help='Key name used for the operation.')
 
     p.add_argument('--out_tractogram',
-                   help='Output tractogram (.trk). Required for any mutation.')
+                   help='Output tractogram (.trk). Required for "import" and\n'
+                        '"delete" operations.')
 
-    add_args = p.add_argument_group('Add operation',
-                                    'Requires the out_tractogram argument.')
-    add_args.add_argument('--add_dps_file',
-                          help='File containing the data to add to\n'
-                               'streamlines (.txt, .npy or .mat).')
+    import_args = p.add_argument_group('Operation "import" mandatory options')
+    import_args.add_argument('--in_dps_file',
+                             help='File containing the data to import to\n'
+                                  'streamlines (.txt, .npy or .mat).')
 
-    _ = p.add_argument_group('Delete operation',
-                             'Requires the out_tractogram argument.')
-
-    export_args = p.add_argument_group('Export operation')
-    export_args.add_argument('--export_dps_file',
+    export_args = p.add_argument_group('Operation "export" mandatory options')
+    export_args.add_argument('--out_dps_file',
                              help='File in which the extracted data will be\n'
                                   'saved (.txt or .npy).')
 
@@ -73,18 +81,31 @@ def main():
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
-    check_tract_trk(parser, args.in_tractogram)
+    if args.operation == 'import':
+        if not nib.streamlines.is_supported(args.in_tractogram):
+            parser.error('Invalid input streamline file format (must be trk ' +
+                         'or tck): {0}'.format(args.in_tractogram))
+    else:
+        check_tract_trk(parser, args.in_tractogram)
+
     if args.out_tractogram:
         check_tract_trk(parser, args.out_tractogram)
 
-    # I/O assertions
-    assert_inputs_exist(parser, args.in_tractogram, args.add_dps_file)
-    assert_outputs_exist(parser, args, [], optional=[args.export_dps_file,
+    assert_inputs_exist(parser, args.in_tractogram, args.in_dps_file)
+    assert_outputs_exist(parser, args, [], optional=[args.out_dps_file,
                                                      args.out_tractogram])
 
-    sft = load_tractogram(args.in_tractogram, 'same')
+    sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
 
-    if args.operation == 'add':
+    if args.operation == 'import':
+        if args.in_dps_file is None:
+            parser.error('The --in_dps_file option is required for ' +
+                         'the "import" operation.')
+
+        if args.out_tractogram is None:
+            parser.error('The --out_tractogram option is required for ' +
+                         'the "import" operation.')
+
         # Make sure the user is not unwillingly overwritting dps
         if (args.dps_key in sft.get_data_per_streamline_keys() and
                 not args.overwrite):
@@ -92,7 +113,7 @@ def main():
                          ' overwriting.'.format(args.dps_key))
 
         # Load data and remove extraneous dimensions
-        data = np.squeeze(load_matrix_in_any_format(args.add_dps_file))
+        data = np.squeeze(load_matrix_in_any_format(args.in_dps_file))
 
         # Quick check as the built-in error from sft is not too explicit
         if len(sft) != data.shape[0]:
@@ -105,11 +126,19 @@ def main():
         save_tractogram(sft, args.out_tractogram)
 
     if args.operation == 'delete':
+        if args.out_tractogram is None:
+            parser.error('The --out_tractogram option is required for ' +
+                         'the "delete" operation.')
+
         del sft.data_per_streamline[args.dps_key]
 
         save_tractogram(sft, args.out_tractogram)
 
     if args.operation == 'export':
+        if args.out_dps_file is None:
+            parser.error('The --out_dps_file option is required for ' +
+                         'the "export" operation.')
+
         # Extract data and reshape
         if args.dps_key not in sft.data_per_streamline.keys():
             raise ValueError('Data does not have any data_per_streamline'
@@ -117,7 +146,7 @@ def main():
                              .format(args.dps_key))
 
         data = np.squeeze(sft.data_per_streamline[args.dps_key])
-        save_matrix_in_any_format(args.export_dps_file, data)
+        save_matrix_in_any_format(args.out_dps_file, data)
 
 
 if __name__ == '__main__':
