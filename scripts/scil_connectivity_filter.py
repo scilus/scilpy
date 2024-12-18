@@ -61,12 +61,12 @@ def _build_arg_parser():
                    help='Output mask (matrix) resulting from the provided '
                         'conditions (.npy).')
 
-    p.add_argument('--lower_than', nargs='*', action='append',
+    p.add_argument('--lower_than', nargs='*', action='append', default=[],
                    metavar='MATRICES_LIST VALUE_THR POPULATION_PERC',
                    help='Lower than condition using the VALUE_THR in '
                         'at least POPULATION_PERC (from MATRICES_LIST).\n'
                         'See description for more details.')
-    p.add_argument('--greater_than', nargs='*', action='append',
+    p.add_argument('--greater_than', nargs='*', action='append', default=[],
                    metavar='MATRICES_LIST VALUE_THR POPULATION_PERC',
                    help='Greater than condition using the VALUE_THR in '
                         'at least POPULATION_PERC (from MATRICES_LIST).\n'
