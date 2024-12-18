@@ -33,6 +33,8 @@ Each connection can be seen as a 'bundle'.
 
   - Streamline count.
   - Length: mean streamline length (mm).
+      Note that this matrix, as well as the volume-weighted, can be used to
+      normalize a streamline count matrix in scil_connectivity_normalize.
   - Volume-weighted: Volume of the bundle.
   - Similarity: mean density.
       Uses pre-computed density maps, which can be obtained with
@@ -53,6 +55,15 @@ Each connection can be seen as a 'bundle'.
       >> scil_lesions_info.py
   - Mean DPS: Mean values in the data_per_streamline of each streamline in the
       bundles.
+
+What next?
+==========
+See our other scripts to help you achieve your goals:
+  - Normalize a streamline-count matrix based on other matrices using
+    scil_connectivity_normalize.
+  - Compute a t-test between two groups of subjects using
+    scil_connectivity_compare_populations.
+  - See all our scripts starting with scil_connectivity_ for more ideas!
 
 Formerly: scil_compute_connectivity.py
 """

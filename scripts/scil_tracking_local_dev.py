@@ -61,10 +61,11 @@ from scilpy.io.image import assert_same_resolution
 from scilpy.io.utils import (add_processes_arg, add_sphere_arg,
                              add_verbose_arg,
                              assert_inputs_exist, assert_outputs_exist,
-                             parse_sh_basis_arg, verify_compression_th)
+                             parse_sh_basis_arg, verify_compression_th,
+                             load_matrix_in_any_format)
 from scilpy.image.volume_space_management import DataVolume
 from scilpy.tracking.propagator import ODFPropagator
-from scilpy.tracking.seed import SeedGenerator
+from scilpy.tracking.seed import SeedGenerator, CustomSeedsDispenser
 from scilpy.tracking.tracker import Tracker
 from scilpy.tracking.utils import (add_mandatory_options_tracking,
                                    add_out_options, add_seeding_options,
@@ -203,21 +204,28 @@ def main():
                       'seeding mask.'.format(args.in_seed))
 
     seed_res = seed_img.header.get_zooms()[:3]
-    seed_generator = SeedGenerator(seed_data, seed_res,
-                                   space=our_space, origin=our_origin,
-                                   n_repeats=args.n_repeats_per_seed)
-    if args.npv:
-        # toDo. This will not really produce n seeds per voxel, only true
-        #  in average.
-        nbr_seeds = len(seed_generator.seeds_vox_corner) * args.npv
-    elif args.nt:
-        nbr_seeds = args.nt
+    if args.in_custom_seeds:
+        seeds = np.squeeze(load_matrix_in_any_format(args.in_custom_seeds))
+        seed_generator = CustomSeedsDispenser(seeds, space=our_space,
+                                              origin=our_origin)
+        nbr_seeds = len(seeds)
     else:
-        # Setting npv = 1.
-        nbr_seeds = len(seed_generator.seeds_vox_corner)
-    if len(seed_generator.seeds_vox_corner) == 0:
-        parser.error('Seed mask "{}" does not have any voxel with value > 0.'
-                     .format(args.in_seed))
+        seed_generator = SeedGenerator(seed_data, seed_res,
+                                       space=our_space, origin=our_origin,
+                                       n_repeats=args.n_repeats_per_seed)
+
+        if args.npv:
+            # toDo. This will not really produce n seeds per voxel, only true
+            #  in average.
+            nbr_seeds = len(seed_generator.seeds_vox_corner) * args.npv
+        elif args.nt:
+            nbr_seeds = args.nt
+        else:
+            # Setting npv = 1.
+            nbr_seeds = len(seed_generator.seeds_vox_corner)
+        if len(seed_generator.seeds_vox_corner) == 0:
+            parser.error('Seed mask "{}" does not have any voxel with'
+                         ' value > 0.'.format(args.in_seed))
 
     logging.info("Loading tracking mask.")
     mask_img = nib.load(args.in_mask)
