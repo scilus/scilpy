@@ -116,12 +116,9 @@ def fibertube_density(sft, samples_per_voxel_axis, verbose=False):
         all_sample_neighbors = tree.query_ball_point(
             voxel_samples, max_seg_length/2+max_diameter/2, workers=-1)
 
-        nb_samples_in_fibertubes = 0
-        # Set containing sets of fibertube indexes
-        # This way, each pair of fibertube is only entered once.
-        # This is unless there is a trio. Then the same colliding fibertubes
-        # may be entered more than once.
-        collisions = set()
+        # Per voxel counters
+        nb_in_fibertube = 0
+        nb_in_many_fibertubes = 0
         for index, sample in enumerate(voxel_samples):
             neigbors = all_sample_neighbors[index]
             fibertubes_touching_sample = set()
@@ -139,14 +136,15 @@ def fibertube_density(sft, samples_per_voxel_axis, verbose=False):
                     fibertubes_touching_sample.add(fi)
 
             if len(fibertubes_touching_sample) > 0:
-                nb_samples_in_fibertubes += 1
+                nb_in_fibertube += 1
             if len(fibertubes_touching_sample) > 1:
-                collisions.add(frozenset(fibertubes_touching_sample))
+                nb_in_many_fibertubes += 1
 
-        density_grid[i][j][k] = nb_samples_in_fibertubes / len(voxel_samples)
+        density_grid[i][j][k] = nb_in_fibertube / len(voxel_samples)
+        collision_grid[i][j][k] = nb_in_many_fibertubes / len(voxel_samples)
         density_flat.append(density_grid[i][j][k])
-        collision_grid[i][j][k] = len(collisions) / len(voxel_samples)
         collision_flat.append(collision_grid[i][j][k])
+
 
     return density_grid, density_flat, collision_grid, collision_flat
 

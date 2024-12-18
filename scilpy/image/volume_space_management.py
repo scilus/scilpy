@@ -633,8 +633,11 @@ class FTODDataVolume(FibertubeDataVolume):
 
             if np.max(volumes) != 0:
                 # Normalize volumes between 0 and 1
-                volumes = volumes / np.max(volumes)
-            sf[sph_ids] = volumes
+                volumes /= np.max(volumes)
+            
+            for dir_id, sph_id in enumerate(sph_ids):
+                if sf[sph_id] < volumes[dir_id]:
+                    sf[sph_id] = volumes[dir_id]
 
         return sf_to_sh(sf, self.sphere, sh_order_max=self.sh_order,
                         basis_type=self.sh_basis, full_basis=self.full_basis,
