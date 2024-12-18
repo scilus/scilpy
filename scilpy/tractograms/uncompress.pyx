@@ -12,7 +12,7 @@ cimport numpy as cnp
 
 cdef struct Pointers:
     # Incremented when we complete a streamline. Saved at the start of each
-    # streamline because we need to start anew if we resize data_out
+    # streamline because we need to start a new if we resize data_out
     cnp.npy_intp *lengths_in
     cnp.npy_intp *lengths_out
     cnp.npy_intp *offsets_in
@@ -34,7 +34,7 @@ cdef struct Pointers:
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-def uncompress(streamlines, return_mapping=False):
+def streamlines_to_voxel_coordinates(streamlines, return_mapping=False):
     """
     Get the indices of the voxels traversed by each streamline; then returns
     an ArraySequence of indices, i.e. [i, j, k] coordinates.
@@ -104,7 +104,9 @@ def uncompress(streamlines, return_mapping=False):
     pointers.points_to_index_out = &points_to_index_view_out[0]
 
     while 1:
-        at_point = _uncompress(&pointers, at_point, max_points - 1)
+        at_point = _streamlines_to_voxel_coordinates(&pointers, 
+                                                     at_point, 
+                                                     max_points - 1)
         if pointers.lengths_in == pointers.lengths_in_end:
             # Job finished, we can return the streamlines
             break
@@ -150,7 +152,7 @@ cdef inline void c_get_closest_edge(double *p,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef cnp.npy_intp _uncompress(
+cdef cnp.npy_intp _streamlines_to_voxel_coordinates(
         Pointers* pointers,
         cnp.npy_intp at_point,
         cnp.npy_intp max_points) nogil:
