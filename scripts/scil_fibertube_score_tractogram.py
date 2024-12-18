@@ -170,7 +170,7 @@ def main():
         centerlines)
 
     if "diameters" not in truth_sft.data_per_streamline:
-        parser.error('No diameters found as data per streamline on ' +
+        parser.error('No diameters found as data per streamline in ' +
                      args.in_fibertubes)
     diameters = np.reshape(truth_sft.data_per_streamline['diameters'],
                            len(centerlines))
@@ -184,7 +184,7 @@ def main():
 
     logging.debug("Loading seeds")
     if "seeds" not in in_sft.data_per_streamline:
-        parser.error('No seeds found as data per streamline on ' +
+        parser.error('No seeds found as data per streamline in ' +
                      args.in_tracking)
 
     seeds = in_sft.data_per_streamline['seeds']

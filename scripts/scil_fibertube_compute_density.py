@@ -47,7 +47,7 @@ def _build_arg_parser():
                         'scil_tractogram_filter_collisions.py.')
 
     p.add_argument('--out_density_map', default=None, type=str,
-                   help='Path of the output volumetric density image file')
+                   help='Path of the density Nifti image.')
 
     p.add_argument('--out_density_measures', default=None, type=str,
                    help='Path of the output file containing central \n'
@@ -55,7 +55,7 @@ def _build_arg_parser():
                         '(Must be .json)')
 
     p.add_argument('--out_collision_map', default=None, type=str,
-                   help='Path of the output collision density image file')
+                   help='Path of the collision Nifti image.')
 
     p.add_argument('--out_collision_measures', default=None, type=str,
                    help='Path of the output file containing central \n'
@@ -105,18 +105,17 @@ def main():
     sft.to_center()
 
     if "diameters" not in sft.data_per_streamline:
-        parser.error('No diameters found as data per streamline on ' +
+        parser.error('No diameters found as data per streamline in ' +
                      args.in_fibertubes)
 
     logging.debug('Computing fibertube density')
     (density_grid,
      density_flat,
      collision_grid,
-     collision_flat) = fibertube_density(sft, 10,
-                                         args.verbose == 'WARNING')
+     collision_flat) = fibertube_density(sft, 10, args.verbose == 'WARNING')
 
     logging.debug('Saving output')
-    header = nib.nifti1.Nifti1Header()
+    header = nib.Nifti1Header()
     extra = {
         'affine': sft.affine,
         'dimensions': sft.dimensions,
@@ -125,8 +124,7 @@ def main():
     }
 
     if args.out_density_map:
-        density_img = nib.nifti1.Nifti1Image(density_grid, sft.affine, header,
-                                             extra)
+        density_img = nib.Nifti1Image(density_grid, sft.affine, header, extra)
         nib.save(density_img, args.out_density_map)
 
     if args.out_density_measures:
@@ -141,8 +139,8 @@ def main():
                       sort_keys=args.sort_keys)
 
     if args.out_collision_map:
-        collision_img = nib.nifti1.Nifti1Image(collision_grid, sft.affine,
-                                               header, extra)
+        collision_img = nib.Nifti1Image(collision_grid, sft.affine, header,
+                                        extra)
         nib.save(collision_img, args.out_collision_map)
 
     if args.out_collision_measures:

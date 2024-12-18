@@ -12,7 +12,7 @@ from scilpy.tracking.fibertube_utils import (streamlines_to_segments,
                                              dist_segment_segment,
                                              dist_point_segment)
 from scilpy.tracking.utils import tqdm_if_verbose
-from scilpy.tractanalysis.todi import TrackOrientationDensityImaging
+from scilpy.tractograms.uncompress import uncompress
 
 
 def fibertube_density(sft, samples_per_voxel_axis, verbose=False):
@@ -61,18 +61,14 @@ def fibertube_density(sft, samples_per_voxel_axis, verbose=False):
                            len(sft.streamlines))
     max_diameter = np.max(diameters)
 
-    # Everything will be in vox for simplicity.
+    # Everything will be in vox and corner for uncompress.
     sft.to_vox()
-    # Building a binary mask using TODI
-    # Because compute_todi expects streamline points (in voxel coordinates)
-    # to be in the range [0, size] rather than [-0.5, size - 0.5], we shift
-    # the voxel origin to corner.
     sft.to_corner()
-    _, data_shape, _, _ = sft.space_attributes
-    todi_obj = TrackOrientationDensityImaging(tuple(data_shape))
-    todi_obj.compute_todi(sft.streamlines, False)
-    mask = todi_obj.get_mask()
-    mask = todi_obj.reshape_to_3d(mask)
+    vox_idx_for_streamline = uncompress(sft.streamlines)
+    mask_idx = np.concatenate(vox_idx_for_streamline)
+    mask = np.zeros((sft.dimensions), dtype=np.uint8)
+    # Numpy array indexing in 3D works like this
+    mask[mask_idx[:, 0], mask_idx[:, 1], mask_idx[:, 2]] = 1
 
     sampling_density = np.array([samples_per_voxel_axis,
                                  samples_per_voxel_axis,

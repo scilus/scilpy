@@ -19,14 +19,14 @@ def init_data():
 
     mask = np.ones((15, 15, 15))
     affine = np.eye(4)
-    header = nib.nifti1.Nifti1Header()
+    header = nib.Nifti1Header()
     extra = {
         'affine': affine,
         'dimensions': (15, 15, 15),
         'voxel_size': 1.,
         'voxel_order': "RAS"
     }
-    mask_img = nib.nifti2.Nifti1Image(mask, affine, header, extra)
+    mask_img = nib.Nifti1Image(mask, affine, header, extra)
 
     sft_fibertubes = StatefulTractogram(streamlines, mask_img, Space.VOX,
                                         Origin.NIFTI)
