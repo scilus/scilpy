@@ -93,10 +93,9 @@ def _build_arg_parser():
         '[%(default)s]')
     track_g.add_argument(
         '--theta', type=float, default=60.,
-        help='Maximum angle between 2 steps. If the angle is '
-             'too big, streamline is \nstopped and the '
-             'following point is NOT included.\n'
-             '[%(default)s]')
+        help='Maximum angle between 2 steps. If the angle is \n'
+             'too big, streamline is stopped and the \n'
+             'following point is NOT included. [%(default)s]')
     track_g.add_argument(
         '--rk_order', metavar="K", type=int, default=1,
         choices=[1, 2, 4],
