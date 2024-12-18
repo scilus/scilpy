@@ -1,6 +1,5 @@
 # encoding: utf-8
-#cython: profile=False
-#cython: language_level=3
+# cython: profile=False, language_level=3
 
 from libc.math cimport ceil, fabs, floor, sqrt
 from libc.math cimport fmin as cfmin
@@ -32,7 +31,6 @@ cdef struct Pointers:
 
 
 @cython.boundscheck(False)
-@cython.wraparound(False)
 @cython.cdivision(True)
 def uncompress(streamlines, return_mapping=False):
     """
@@ -148,7 +146,6 @@ cdef inline void c_get_closest_edge(double *p,
 
 
 @cython.boundscheck(False)
-@cython.wraparound(False)
 @cython.cdivision(True)
 cdef cnp.npy_intp _uncompress(
         Pointers* pointers,

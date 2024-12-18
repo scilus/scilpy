@@ -1,5 +1,5 @@
 # encoding: utf-8
-#cython: profile=False
+# cython: profile=False, language_level=3
 
 # http://www.cse.yorku.ca/~amana/research/grid.pdf
 # http://www.flipcode.com/archives/Raytracing_Topics_Techniques-Part_4_Spatial_Subdivisions.shtml

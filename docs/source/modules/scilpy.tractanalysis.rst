@@ -50,14 +50,6 @@ scilpy.tractanalysis.json\_utils module
    :undoc-members:
    :show-inheritance:
 
-scilpy.tractanalysis.quick\_tools module
-------------------------------------------------------
-
-.. automodule:: scilpy.tractanalysis.quick_tools
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 scilpy.tractanalysis.reproducibility\_measures module
 ------------------------------------------------------
 
