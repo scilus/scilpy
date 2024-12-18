@@ -16,11 +16,13 @@ import nibabel as nib
 
 from scilpy.io.utils import assert_inputs_exist, add_verbose_arg
 from scilpy.utils.filenames import split_name_with_nii
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(description=__doc__,
-                                formatter_class=argparse.RawTextHelpFormatter)
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
 
     p.add_argument('in_file',
                    help='Input file (trk, nii and mgz).')

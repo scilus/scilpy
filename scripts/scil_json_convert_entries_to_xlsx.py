@@ -17,6 +17,7 @@ import pandas as pd
 
 from scilpy.io.utils import (add_overwrite_arg, add_verbose_arg,
                              assert_inputs_exist, assert_outputs_exist)
+from scilpy.version import version_string
 
 dps_dpp = ['data_per_streamline_keys', 'data_per_point_keys']
 
@@ -437,8 +438,9 @@ def _create_xlsx_from_json(json_path, xlsx_path,
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
-                                description=__doc__)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
 
     p.add_argument('in_json',
                    help='File containing the json stats (.json).')

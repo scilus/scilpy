@@ -32,11 +32,13 @@ from scilpy.segment.streamlines import filter_grid_roi
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
 from scilpy.utils.filenames import split_name_with_nii
 from scilpy.utils.metrics_tools import compute_lesion_stats
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(description=__doc__,
-                                formatter_class=argparse.RawTextHelpFormatter)
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
 
     p.add_argument('in_lesion',
                    help='Lesions file as labels (.nii.gz).')

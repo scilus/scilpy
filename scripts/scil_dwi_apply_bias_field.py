@@ -38,10 +38,10 @@ def _build_arg_parser():
                         'If this is not given, the bias field is still only '
                         'applied only in non-background data \n(i.e. where '
                         'the dwi is not 0).')
-    
+
     add_verbose_arg(p)
     add_overwrite_arg(p)
-    
+
     return p
 
 

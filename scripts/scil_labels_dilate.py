@@ -15,6 +15,13 @@ Dilate regions (with or without masking) from a labeled volume:
     --label_not_to_dilate 4 43 10 11 12 49 50 51
 
 Formerly: scil_dilate_labels.py
+
+-----------------------------------------------------------------------
+References:
+    [1] Al-Sharif N.B., St-Onge E., Vogel J.W., Theaud G.,
+        Evans A.C. and Descoteaux M. OHBM 2019.
+        Surface integration for connectome analysis in age prediction.
+-----------------------------------------------------------------------
 """
 
 import argparse
@@ -29,17 +36,13 @@ from scilpy.io.utils import (add_overwrite_arg, add_processes_arg,
                              assert_inputs_exist, add_verbose_arg,
                              assert_outputs_exist, assert_headers_compatible)
 
-EPILOG = """
-    References:
-        [1] Al-Sharif N.B., St-Onge E., Vogel J.W., Theaud G.,
-            Evans A.C. and Descoteaux M. OHBM 2019.
-            Surface integration for connectome analysis in age prediction.
-    """
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(description=__doc__, epilog=EPILOG,
-                                formatter_class=argparse.RawTextHelpFormatter)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
 
     p.add_argument('in_file',
                    help='Path of the volume (nii or nii.gz).')

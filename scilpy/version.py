@@ -17,6 +17,7 @@ if _version_extra:
     _ver.append(_version_extra)
 
 __version__ = '.'.join(map(str, _ver))
+version_string = "\nScilpy version: " + __version__
 
 CLASSIFIERS = ["Development Status :: 3 - Alpha",
                "Environment :: Console",
