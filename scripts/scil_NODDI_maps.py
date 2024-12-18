@@ -116,7 +116,8 @@ def main():
     # Generate a scheme file from the bvals and bvecs files
     bvals, _ = read_bvals_bvecs(args.in_bval, args.in_bvec)
     _ = check_b0_threshold(bvals.min(), b0_thr=args.tolerance,
-                           skip_b0_check=args.skip_b0_check)
+                           skip_b0_check=args.skip_b0_check,
+                           overwrite_with_min=False)
     shells_centroids, indices_shells = identify_shells(bvals, args.tolerance,
                                                        round_centroids=True)
 

@@ -170,7 +170,8 @@ def main():
     # for the b0s. Using the tolerance. To fix this, we would need to change
     # the unique_bvals_tolerance and extract_dwi_shell methods.
     _ = check_b0_threshold(bvals.min(), b0_thr=args.tolerance,
-                           skip_b0_check=args.skip_b0_check)
+                           skip_b0_check=args.skip_b0_check,
+                           overwrite_with_min=False)
     list_bvals = unique_bvals_tolerance(bvals, tol=args.tolerance)
     if not np.all(list_bvals <= dti_lim):
         _, data_dti, bvals_dti, bvecs_dti = extract_dwi_shell(
