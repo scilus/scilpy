@@ -37,6 +37,8 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist,
                              assert_output_dirs_exist_and_empty)
 from scilpy.tractanalysis.bundle_operations import uniformize_bundle_sft
+from scilpy.tractograms.dps_and_dpp_management import (
+    add_data_as_color_dpp, get_data_as_arraysequence)
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
 from scilpy.tractanalysis.distance_to_centroid import min_dist_to_centroid
 from scilpy.tractograms.streamline_and_mask_operations import \
@@ -171,8 +173,8 @@ def main():
         sft_centroid.streamlines = srm.transform(sft_centroid.streamlines)
 
     uniformize_bundle_sft(concat_sft, ref_bundle=sft_centroid[0])
-    labels, dists = min_dist_to_centroid(concat_sft.streamlines._data,
-                                         sft_centroid.streamlines._data,
+    labels, dists = min_dist_to_centroid(concat_sft.streamlines.get_data(),
+                                         sft_centroid.streamlines.get_data(),
                                          args.nb_pts)
     labels += 1  # 0 means no labels
 
@@ -228,7 +230,7 @@ def main():
     final_labels = ArraySequence(final_label)
     final_dists = ArraySequence(final_dists)
 
-    kd_tree = cKDTree(final_streamlines._data)
+    kd_tree = cKDTree(final_streamlines.get_data())
     labels_map = np.zeros(binary_bundle.shape, dtype=np.int16)
     distance_map = np.zeros(binary_bundle.shape, dtype=float)
     indices = np.array(np.nonzero(binary_bundle), dtype=int).T
@@ -239,8 +241,8 @@ def main():
         if not len(neighbor_ids):
             continue
 
-        labels_val = final_labels._data[neighbor_ids]
-        dists_val = final_dists._data[neighbor_ids]
+        labels_val = final_labels.get_data()[neighbor_ids]
+        dists_val = final_dists.get_data()[neighbor_ids]
         sum_dists_vox = np.sum(dists_val)
         weights_vox = np.exp(-dists_val / sum_dists_vox)
 
@@ -274,33 +276,43 @@ def main():
 
         if len(sft):
             tmp_labels = ndi.map_coordinates(labels_map,
-                                             sft.streamlines._data.T-0.5,
+                                             sft.streamlines.get_data().T-0.5,
                                              order=0)
             tmp_dists = ndi.map_coordinates(distance_map,
-                                            sft.streamlines._data.T-0.5,
+                                            sft.streamlines.get_data().T-0.5,
                                             order=0)
             tmp_corr = ndi.map_coordinates(corr_map,
-                                           sft.streamlines._data.T-0.5,
+                                           sft.streamlines.get_data().T-0.5,
                                            order=0)
             cmap = plt.colormaps[args.colormap]
-            new_sft.data_per_point['color'] = ArraySequence(
-                new_sft.streamlines)
 
             # Nicer visualisation for MI-Brain
-            new_sft.data_per_point['color']._data = cmap(
-                tmp_labels / np.max(tmp_labels))[:, 0:3] * 255
+            colors = cmap(tmp_labels / np.max(tmp_labels))[:, 0:3] * 255
+            data = get_data_as_arraysequence(colors, sft)
+            new_sft = add_data_as_color_dpp(
+                new_sft, data)
+
         save_tractogram(new_sft,
                         os.path.join(sub_out_dir, 'labels.trk'))
 
         if len(sft):
-            new_sft.data_per_point['color']._data = cmap(
+            # Nicer visualisation for MI-Brain
+            colors = cmap(
                 tmp_dists / np.max(tmp_dists))[:, 0:3] * 255
+            data = get_data_as_arraysequence(colors, sft)
+            new_sft = add_data_as_color_dpp(
+                new_sft, data)
+
         save_tractogram(new_sft,
                         os.path.join(sub_out_dir, 'distance.trk'))
 
         if len(sft):
-            new_sft.data_per_point['color']._data = cmap(tmp_corr)[
-                :, 0:3] * 255
+            colors = cmap(
+                tmp_dists / np.max(tmp_corr))[:, 0:3] * 255
+            data = get_data_as_arraysequence(colors, sft)
+            new_sft = add_data_as_color_dpp(
+                new_sft, data)
+
         save_tractogram(new_sft,
                         os.path.join(sub_out_dir, 'correlation.trk'))
 
