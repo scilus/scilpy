@@ -1,4 +1,4 @@
-Instructions to write the tsv files "participants.tsv" for the script scil_group_comparison.py
+Instructions to write the tsv files "participants.tsv" for the script scil_stats_group_comparison.py
 ===============================================================================================
 
 The TSV file should follow the BIDS `specification <https://bids-specification.readthedocs.io/en/stable/03-modality-agnostic-files.html#participants-file>`_.
@@ -12,7 +12,7 @@ participant_id categorical_var_1 categorical_var_2 ...
 
 (ex: participant_id sex nb_children)
 
-The categorical variable name are the "group_by" variable that can be called by scil_group_comparison.py
+The categorical variable name are the "group_by" variable that can be called by scil_stats_group_comparison.py
 
 Specific row
 ------------
