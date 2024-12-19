@@ -80,13 +80,9 @@ def _build_arg_parser():
         formatter_class=argparse.RawTextHelpFormatter)
 
     p.add_argument('in_fibertubes',
-                   help='Path to the tractogram file (must be .trk) \n'
-                   'containing ground-truth fibertubes. They must be: \n'
-                   '1- Void of any collision. \n'
-                   '2- With their respective diameter saved \n'
-                   'as data_per_streamline. \n'
-                   'For both of these requirements, see \n'
-                   'scil_tractogram_filter_collisions.')
+                   help='Path to the tractogram (must be .trk) file \n'
+                        'containing fibertubes. They must have their \n'
+                        'respective diameter saved as data_per_streamline.')
 
     p.add_argument('in_tracking',
                    help='Path to the tractogram file (must be .trk) \n'

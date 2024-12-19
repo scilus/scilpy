@@ -12,6 +12,11 @@ its total amount of samples.
 3. By doing the same steps for samples that landed within 2 or more
 fibertubes, we can create a density map of the fibertube collisions.
 
+To form fibertubes from a set of streamlines, you can use the scripts:
+- scil_tractogram_filter_collisions.py to assign a diameter to each streamline
+  and remove all colliding fibertubes.
+- scil_tractogram_dps_math.py to assign a diameter without filtering.
+
 See also:
     - docs/source/documentation/fibertube_tracking.rst
 """
@@ -39,12 +44,8 @@ def _build_arg_parser():
 
     p.add_argument('in_fibertubes',
                    help='Path to the tractogram (must be .trk) file \n'
-                        'containing fibertubes. They must be: \n'
-                        '1- Void of any collision. \n'
-                        '2- With their respective diameter saved \n'
-                        'as data_per_streamline. \n'
-                        'For both of these requirements, see \n'
-                        'scil_tractogram_filter_collisions.py.')
+                        'containing fibertubes. They must have their \n'
+                        'respective diameter saved as data_per_streamline.')
 
     p.add_argument('--out_density_map', default=None, type=str,
                    help='Path of the density Nifti image.')
