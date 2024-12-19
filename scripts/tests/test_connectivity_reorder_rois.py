@@ -6,6 +6,8 @@ import tempfile
 
 from scilpy import SCILPY_HOME
 from scilpy.io.fetcher import fetch_data, get_testing_files_dict
+from scipy.cluster.hierarchy import ClusterWarning
+from warnings import simplefilter
 
 # If they already exist, this only takes 5 seconds (check md5sum)
 fetch_data(get_testing_files_dict(), keys=['connectivity.zip'])
@@ -18,6 +20,7 @@ def test_help_option(script_runner):
 
 
 def test_execution_compute_OLO(script_runner, monkeypatch):
+    simplefilter("ignore", ClusterWarning)
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_sc = os.path.join(SCILPY_HOME, 'connectivity',
                          'sc_norm.npy')
