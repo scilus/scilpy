@@ -37,6 +37,22 @@ def test_execution_dps_math_import(script_runner, monkeypatch):
     assert ret.success
 
 
+def test_execution_dps_math_import_single_value(script_runner,
+                                                monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
+    in_bundle = os.path.join(SCILPY_HOME, 'filtering',
+                             'bundle_4.trk')
+    filename = 'vals.npy'
+    outname = 'out.trk'
+    np.save(filename, [1.1])
+    ret = script_runner.run('scil_tractogram_dps_math.py',
+                            in_bundle, 'import', 'key',
+                            '--in_dps_file_single_value', filename,
+                            '--out_tractogram', outname,
+                            '-f')
+    assert ret.success
+
+
 def test_execution_dps_math_import_with_missing_vals(script_runner,
                                                      monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
