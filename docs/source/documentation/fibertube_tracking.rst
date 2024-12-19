@@ -147,10 +147,6 @@ Fibertube metrics
 Before we get into tracking. Here is an overview of the metrics that we
 saved in ``metrics.json``. (Values expressed in mm):
 
--  ``fibertube_density``:
-   Estimate of the following ratio: volume of fibertubes / total volume
-   where the total volume is the combined volume of all voxels containing
-   at least one fibertube.
 -  ``min_external_distance``: Smallest distance separating two
    fibertubes, outside their diameter.
 -  ``max_voxel_anisotropic``: Diagonal vector of the largest possible
