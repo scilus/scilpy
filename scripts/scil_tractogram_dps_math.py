@@ -61,9 +61,15 @@ def _build_arg_parser():
                         '"delete" operations.')
 
     import_args = p.add_argument_group('Operation "import" mandatory options')
-    import_args.add_argument('--in_dps_file',
+    import_excl = import_args.add_mutually_exclusive_group()
+    import_excl.add_argument('--in_dps_file',
                              help='File containing the data to import to\n'
-                                  'streamlines (.txt, .npy or .mat).')
+                                  'streamlines (.txt, .npy or .mat). There\n'
+                                  'must be the same amount of entries as\n'
+                                  'there are streamlines.')
+    import_excl.add_argument('--in_dps_file_single_value',
+                             help='File containing a single value to import\n'
+                                  'to each streamlines (.txt, .npy or .mat).')
 
     export_args = p.add_argument_group('Operation "export" mandatory options')
     export_args.add_argument('--out_dps_file',
@@ -98,9 +104,15 @@ def main():
     sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
 
     if args.operation == 'import':
-        if args.in_dps_file is None:
-            parser.error('The --in_dps_file option is required for ' +
-                         'the "import" operation.')
+        if args.in_dps_file:
+            dps_file = args.in_dps_file
+        else:
+            dps_file = args.in_dps_file_single_value
+
+        if dps_file is None:
+            parser.error('One of --in_dps_file or ' +
+                         '--in_dps_file_single_value is required for the ' +
+                         '"import" operation.')
 
         if args.out_tractogram is None:
             parser.error('The --out_tractogram option is required for ' +
@@ -113,13 +125,15 @@ def main():
                          ' overwriting.'.format(args.dps_key))
 
         # Load data and remove extraneous dimensions
-        data = np.squeeze(load_matrix_in_any_format(args.in_dps_file))
+        data = np.squeeze(load_matrix_in_any_format(dps_file))
 
-        # Quick check as the built-in error from sft is not too explicit
-        if len(sft) != data.shape[0]:
-            raise ValueError('Data must have as many entries ({}) as there are'
-                             ' streamlines ({}).'.format(data.shape[0],
-                                                         len(sft)))
+        # Validate data shape
+        if args.in_dps_file and len(sft) != data.shape[0]:
+            raise ValueError(
+                'Data must have as many entries ({}) as there are '
+                'streamlines ({}).'.format(data.shape[0], len(sft)))
+        if args.in_dps_file_single_value:
+            data = [data] * len(sft.streamlines)
 
         sft.data_per_streamline[args.dps_key] = data
 
