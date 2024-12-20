@@ -567,10 +567,10 @@ class FibertubeDataVolume(DataVolume):
         return (directions, volumes)
 
 
-class FTODDataVolume(FibertubeDataVolume):
+class FTODFDataVolume(FibertubeDataVolume):
     """
     Fibertube DataVolume that maps local fibertube orientations on a sphere,
-    giving us a Fibertube Orientation Distribution (ftOD).
+    giving us a Fibertube Orientation Distribution Function (ftODF).
 
     IMPORTANT: This DataVolume has the same constructor as FibertubeDataVolume,
     but the init_sphere_and_sh() function has to be called prior to use.
@@ -580,7 +580,7 @@ class FTODDataVolume(FibertubeDataVolume):
     used by a traditional ODF tracking algorithm. The distribution on the
     sphere is weighted by the volume of each fibertube.
 
-    The reason for this use of ftOD is to study, across scales, the effect of
+    The reason for this use of ftODF is to study, across scales, the effect of
     approximating fODFs with spherical representations; especially harmonics.
     """
 
@@ -634,7 +634,7 @@ class FTODDataVolume(FibertubeDataVolume):
             if np.max(volumes) != 0:
                 # Normalize volumes between 0 and 1
                 volumes /= np.max(volumes)
-            
+
             for dir_id, sph_id in enumerate(sph_ids):
                 if sf[sph_id] < volumes[dir_id]:
                     sf[sph_id] = volumes[dir_id]

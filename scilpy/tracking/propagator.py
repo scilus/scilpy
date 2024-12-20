@@ -583,9 +583,9 @@ class FibertubePropagator(AbstractPropagator):
     blurring sphere as a random distribution for picking a segment. This
     segment is then used as the propagation direction.
 
-    This propagator does NOT map the obtained directions on a discretized
-    sphere. If it did, it would be called an ftOD.
-    (see FibertubeFTODPropagator)
+    This propagator expects an array of possible directions and their random
+    distribution. If using an ftODF (the same directions, but expressed as a
+    spherical function), the ODFPropagator should be used.
     """
     def __init__(self, datavolume: FibertubeDataVolume, step_size, rk_order,
                  theta, space, origin):

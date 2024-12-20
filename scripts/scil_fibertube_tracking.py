@@ -38,7 +38,7 @@ import dipy.core.geometry as gm
 from scilpy.tracking.seed import FibertubeSeedGenerator, CustomSeedsDispenser
 from scilpy.tracking.propagator import FibertubePropagator, ODFPropagator
 from scilpy.image.volume_space_management import (FibertubeDataVolume,
-                                                  FTODDataVolume)
+                                                  FTODFDataVolume)
 from dipy.io.stateful_tractogram import StatefulTractogram, Space, Origin
 from dipy.io.streamline import load_tractogram, save_tractogram
 from scilpy.tracking.tracker import Tracker
@@ -124,14 +124,19 @@ def _build_arg_parser():
              'Note that points obtained after an invalid direction \n'
              '(based on the propagator\'s definition of invalid) \n'
              'are never added.')
+    track_g.add_argument(
+        '--forward_only', action='store_true',
+        help='If set, tracks in one direction only (forward) given the \n'
+             'initial seed. This option may interact differently if the \n'
+             '--use_ftODF option is given.')
 
     ftod_g = p.add_argument_group(
-        'ftOD Options',
+        'ftODF Options',
         'Options required if you want to perform fibertube tracking using\n'
-        'fibertube orientation distribution (ftOD).\n'
+        'fibertube orientation distribution (ftODF).\n'
         'If you\'re not familiar with these options, please ignore them.')
 
-    ftod_g.add_argument('--use_ftOD', action='store_true',
+    ftod_g.add_argument('--use_ftODF', action='store_true',
                         help='If set, will build a fibertube orientation\n'
                         'distribution function at each tracking step. This\n'
                         'is primarily to study the effect of spherical\n'
@@ -251,11 +256,11 @@ def main():
     fake_mask_data = np.ones(in_sft.dimensions)
     fake_mask = DataVolume(fake_mask_data, in_sft.voxel_sizes, 'nearest')
 
-    if args.use_ftOD:
-        logging.debug("Instantiating FTOD datavolume")
-        datavolume = FTODDataVolume(centerlines, diameters, in_sft,
-                                    args.blur_radius,
-                                    np.random.default_rng(args.rng_seed))
+    if args.use_ftODF:
+        logging.debug("Instantiating FTODF datavolume")
+        datavolume = FTODFDataVolume(centerlines, diameters, in_sft,
+                                     args.blur_radius,
+                                     np.random.default_rng(args.rng_seed))
         datavolume.init_sphere_and_sh(sh_basis, 8)
     else:
         logging.debug("Instantiating fibertube datavolume")
@@ -283,7 +288,7 @@ def main():
         else:
             nbr_seeds = max_nbr_seeds
 
-    if args.use_ftOD:
+    if args.use_ftODF:
         logging.debug("Instantiating ODF propagator")
         propagator = ODFPropagator(
             datavolume, args.step_size, args.rk_order, 'prob', sh_basis,
@@ -306,7 +311,7 @@ def main():
                       args.max_invalid_nb_points, 0,
                       args.nbr_processes, True, 'r+',
                       rng_seed=args.rng_seed,
-                      track_forward_only=True,
+                      track_forward_only=args.forward_only,
                       skip=args.skip,
                       verbose=args.verbose,
                       append_last_point=args.keep_last_out_point)
