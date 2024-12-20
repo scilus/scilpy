@@ -6,7 +6,7 @@ cvxpy==1.4.*
 cycler==0.11.*
 #Cython==0.29.*, !=0.29.29
 Cython==3.0.*
-dipy==1.9.*
+dipy==1.10.*
 deepdiff==6.3.0
 dmri-amico==2.0.3
 dmri-commit==2.3.0

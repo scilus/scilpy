@@ -7,7 +7,7 @@ import warnings
 with warnings.catch_warnings():
     os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
     warnings.simplefilter("ignore")
-    from dipy.nn.synb0 import Synb0
+    from dipy.nn.tf.synb0 import Synb0
 
 import numpy as np
 from dipy.align.imaffine import AffineMap
