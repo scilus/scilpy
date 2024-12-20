@@ -44,7 +44,7 @@ class DataVolume(object):
                                 "'nearest'")
 
         self.data = data
-        self.nb_coeffs = data[-1]
+        self.nb_coeffs = data.shape[-1]
         self.voxres = voxres
 
         if must_be_3d and self.data.ndim != 3:
