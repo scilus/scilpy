@@ -314,6 +314,7 @@ def main():
                       track_forward_only=args.forward_only,
                       skip=args.skip,
                       verbose=args.verbose,
+                      min_iter=1,
                       append_last_point=args.keep_last_out_point)
 
     start_time = time.time()
