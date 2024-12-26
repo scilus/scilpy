@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 
+from collections.abc import Iterable
 from nibabel.streamlines import ArraySequence
 
 
@@ -23,18 +24,27 @@ def get_data_as_arraysequence(data, ref_sft):
     data_as_arraysequence: ArraySequence
         The data as an ArraySequence.
     """
-
-    if data.shape[0] == len(ref_sft):
+    # Check if data has the right shape, either one value per streamline or one
+    # value per point.
+    if data.shape[0] == ref_sft._get_streamline_count():
+        # Two consective if statements to handle both 1D and 2D arrays
+        # and turn them into lists of lists of lists.
+        # Check if the data is a vector or a scalar.
+        if len(data.shape) == 1:
+            data = data[:, None]
+        # ArraySequence expects a list of lists of lists, so we need to add
+        # an extra dimension.
+        if len(data.shape) == 2:
+            data = data[:, None, :]
         data_as_arraysequence = ArraySequence(data)
+
     elif data.shape[0] == ref_sft._get_point_count():
-        data_as_arraysequence = ArraySequence()
-        # This function was created to avoid messing with _data, _offsets and
-        # _lengths, so this feel kind of bad. However, the other way would be
-        # to create a new ArraySequence and iterate over the streamlines, but
-        # that would be way slower.
-        data_as_arraysequence._data = data
-        data_as_arraysequence._offsets = ref_sft.streamlines._offsets
-        data_as_arraysequence._lengths = ref_sft.streamlines._lengths
+        # Split the data into a list of arrays, one per streamline.
+        # np.split takes the indices at which to split the array, so use 
+        # np.cumsum to get the indices of the end of each streamline.
+        data_split = np.split(data, np.cumsum(ref_sft.streamlines._lengths)[:-1])
+        # Create an ArraySequence from the list of arrays.
+        data_as_arraysequence = ArraySequence(data_split)
     else:
         raise ValueError("Data has the wrong shape. Expecting either one value"
                          " per streamline ({}) or one per point ({}) but got "
@@ -93,19 +103,31 @@ def add_data_as_color_dpp(sft, color):
         The upper bound of the associated colormap.
     """
 
-    if color.total_nb_rows == len(sft):
-        tmp = [np.tile([color[i][0], color[i][1], color[i][2]],
+    if len(color) == sft._get_streamline_count():
+        if color.common_shape != (3,):
+            raise ValueError("Colors do not have the right shape. Expecting "
+                             "RBG values, but got values of shape {}.".format(
+                                 color.common_shape))
+
+        tmp = [np.tile([color[i][0][0], color[i][0][1], color[i][0][2]],
                        (len(sft.streamlines[i]), 1))
                for i in range(len(sft.streamlines))]
         sft.data_per_point['color'] = tmp
-    elif color.total_nb_rows == sft.streamlines.total_nb_rows:
+
+    elif len(color) == sft._get_point_count():
+
+        if color.common_shape != (3,):
+            raise ValueError("Colors do not have the right shape. Expecting "
+                             "RBG values, but got values of shape {}.".format(
+                                 color.common_shape))
+
         sft.data_per_point['color'] = color
     else:
-        raise ValueError("Error in the code... Colors do not have the right "
-                         "shape. Expecting either one color per streamline "
-                         "({}) or one per point ({}) but got {}."
-                         .format(len(sft), len(sft.streamlines._data),
-                                 len(color)))
+        raise ValueError("Colors do not have the right shape. Expecting either"
+                         " one color per streamline ({}) or one per point ({})"
+                         " but got {}.".format(sft._get_streamline_count(),
+                                               sft._get_point_count(),
+                                               color.total_nb_rows))
     return sft
 
 

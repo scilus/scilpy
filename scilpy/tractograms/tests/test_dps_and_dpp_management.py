@@ -1,11 +1,14 @@
 # -*- coding: utf-8 -*-
 import nibabel as nib
 import numpy as np
+import pytest
+
 from dipy.io.stateful_tractogram import StatefulTractogram, Space, Origin
 
 from scilpy.image.volume_space_management import DataVolume
 from scilpy.tests.utils import nan_array_equal
 from scilpy.tractograms.dps_and_dpp_management import (
+    get_data_as_arraysequence,
     add_data_as_color_dpp, convert_dps_to_dpp, project_map_to_streamlines,
     project_dpp_to_map, perform_operation_on_dpp, perform_operation_dpp_to_dps,
     perform_correlation_on_endpoints)
@@ -27,45 +30,82 @@ def _get_small_sft():
     return fake_sft
 
 
-def test_add_data_as_color_dpp():
-    lut = get_lookup_table('viridis')
+def test_get_data_as_arraysequence_dpp():
+    fake_sft = _get_small_sft()
 
-    # Important. cmap(1) != cmap(1.0)
-    lowest_color = np.asarray(lut(0.0)[0:3]) * 255
-    highest_color = np.asarray(lut(1.0)[0:3]) * 255
+    some_data = np.asarray([2, 20, 200, 0.1, 0.3, 22, 5])
+
+    # Test 1: One value per point.
+    array_seq = get_data_as_arraysequence(some_data, fake_sft)
+
+    assert fake_sft._get_point_count() == array_seq.total_nb_rows
+
+
+def test_get_data_as_arraysequence_dps():
+    fake_sft = _get_small_sft()
+
+    some_data = np.asarray([2, 20])
+
+    # Test 1: One value per point.
+    array_seq = get_data_as_arraysequence(some_data, fake_sft)
+    assert fake_sft._get_streamline_count() == array_seq.total_nb_rows
+
+
+def test_get_data_as_arraysequence_dps_2D():
+    fake_sft = _get_small_sft()
+
+    some_data = np.asarray([[2], [20]])
+
+    # Test 1: One value per point.
+    array_seq = get_data_as_arraysequence(some_data, fake_sft)
+    assert fake_sft._get_streamline_count() == array_seq.total_nb_rows
+
+
+def test_get_data_as_arraysequence_error():
+    fake_sft = _get_small_sft()
+
+    some_data = np.asarray([2, 20, 200, 0.1])
+
+    # Test 1: One value per point.
+    with pytest.raises(ValueError):
+        _ = get_data_as_arraysequence(some_data, fake_sft)
+
+
+def test_add_data_as_dpp_1_per_point():
 
     fake_sft = _get_small_sft()
+    cmap = get_lookup_table('jet')
 
     # Not testing the clipping options. Will be tested through viz.utils tests
 
     # Test 1: One value per point.
     # Lowest cmap color should be first point of second streamline.
-    some_data = [[2, 20, 200], [0.1, 0.3, 22, 5]]
-    colored_sft, lbound, ubound = add_data_as_color_dpp(
-        fake_sft, lut, some_data)
+    values = np.asarray([2, 20, 200, 0.1, 0.3, 22, 5])
+    color = (np.asarray(cmap(values)[:, 0:3]) * 255).astype(np.uint8)
+
+    array_seq = get_data_as_arraysequence(color, fake_sft)
+    colored_sft = add_data_as_color_dpp(
+        fake_sft, array_seq)
     assert len(colored_sft.data_per_streamline.keys()) == 0
     assert list(colored_sft.data_per_point.keys()) == ['color']
-    assert lbound == 0.1
-    assert ubound == 200
-    assert np.array_equal(colored_sft.data_per_point['color'][1][0, :],
-                          lowest_color)
-    assert np.array_equal(colored_sft.data_per_point['color'][0][2, :],
-                          highest_color)
+
+
+def test_add_data_as_dpp_1_per_streamline():
+
+    fake_sft = _get_small_sft()
+    cmap = get_lookup_table('jet')
 
     # Test 2: One value per streamline
     # Lowest cmap color should be every point in first streamline
-    some_data = np.asarray([4, 5])
-    colored_sft, lbound, ubound = add_data_as_color_dpp(
-        fake_sft, lut, some_data)
+    values = np.asarray([4, 5])
+    color = (np.asarray(cmap(values)[:, 0:3]) * 255).astype(np.uint8)
+    array_seq = get_data_as_arraysequence(color, fake_sft)
+
+    colored_sft = add_data_as_color_dpp(
+        fake_sft, array_seq)
+
     assert len(colored_sft.data_per_streamline.keys()) == 0
     assert list(colored_sft.data_per_point.keys()) == ['color']
-    assert lbound == 4
-    assert ubound == 5
-    # Lowest cmap color should be first point of second streamline.
-    # Same value for all points.
-    colors_first_line = colored_sft.data_per_point['color'][0]
-    assert np.array_equal(colors_first_line[0, :], lowest_color)
-    assert np.all(colors_first_line[1:, :] == colors_first_line[0, :])
 
 
 def test_convert_dps_to_dpp():
