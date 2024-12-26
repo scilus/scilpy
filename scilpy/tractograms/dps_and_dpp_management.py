@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 
-from collections.abc import Iterable
 from nibabel.streamlines import ArraySequence
 
 
@@ -40,9 +39,10 @@ def get_data_as_arraysequence(data, ref_sft):
 
     elif data.shape[0] == ref_sft._get_point_count():
         # Split the data into a list of arrays, one per streamline.
-        # np.split takes the indices at which to split the array, so use 
+        # np.split takes the indices at which to split the array, so use
         # np.cumsum to get the indices of the end of each streamline.
-        data_split = np.split(data, np.cumsum(ref_sft.streamlines._lengths)[:-1])
+        data_split = np.split(
+            data, np.cumsum(ref_sft.streamlines._lengths)[:-1])
         # Create an ArraySequence from the list of arrays.
         data_as_arraysequence = ArraySequence(data_split)
     else:
