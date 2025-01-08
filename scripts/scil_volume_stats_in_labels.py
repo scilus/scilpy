@@ -64,9 +64,7 @@ def main():
                          .format(args.metrics_dir))
         assert_inputs_exist(parser, [args.in_labels, args.in_labels_lut])
 
-        tmp_file_list = glob.glob(os.path.join(args.metrics_dir, '*nii.gz'))
-        args.metrics_file_list = [os.path.join(args.metrics_dir, f)
-                                  for f in tmp_file_list]
+        args.metrics_file_list = glob.glob(os.path.join(args.metrics_dir, '*nii.gz'))
     else:
         assert_inputs_exist(parser, [args.in_labels] + args.metrics_file_list)
     assert_headers_compatible(parser,
