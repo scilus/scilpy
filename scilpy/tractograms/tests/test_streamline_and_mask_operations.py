@@ -343,7 +343,7 @@ def test_compute_streamline_segment():
 
     # Split head and tail from mask
     roi_data_1, roi_data_2 = split_mask_blobs_kmeans(
-        head_tail_offset_rois, 
+        head_tail_offset_rois,
         nb_clusters=2
     )
 
