@@ -76,10 +76,7 @@ def test_add_data_as_dpp_1_per_point():
     fake_sft = _get_small_sft()
     cmap = get_lookup_table('jet')
 
-    # Not testing the clipping options. Will be tested through viz.utils tests
-
-    # Test 1: One value per point.
-    # Lowest cmap color should be first point of second streamline.
+    # Test: One value per point.
     values = np.asarray([2, 20, 200, 0.1, 0.3, 22, 5])
     color = (np.asarray(cmap(values)[:, 0:3]) * 255).astype(np.uint8)
 
@@ -95,8 +92,7 @@ def test_add_data_as_dpp_1_per_streamline():
     fake_sft = _get_small_sft()
     cmap = get_lookup_table('jet')
 
-    # Test 2: One value per streamline
-    # Lowest cmap color should be every point in first streamline
+    # Test: One value per streamline
     values = np.asarray([4, 5])
     color = (np.asarray(cmap(values)[:, 0:3]) * 255).astype(np.uint8)
     array_seq = get_data_as_arraysequence(color, fake_sft)

@@ -286,7 +286,7 @@ def prepare_colorbar_figure(cmap, lbound, ubound, nb_values=255, nb_ticks=10,
 def ambient_occlusion(sft, colors, factor=4):
     """
     Apply ambiant occlusion to a set of colors based on point density
-    around each points.
+    around each point.
 
     Parameters
     ----------
