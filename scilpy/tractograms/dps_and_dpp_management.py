@@ -56,51 +56,22 @@ def get_data_as_arraysequence(data, ref_sft):
 
 def add_data_as_color_dpp(sft, color):
     """
-    Normalizes data between 0 and 1 for an easier management with colormaps.
-    The real lower bound and upperbound are returned.
-
-    Data can be clipped to (min_range, max_range) before normalization.
-    Alternatively, data can be kept as is, but the colormap be fixed to
-    (min_cmap, max_cmap).
+    Ensures the color data is in the right shape and adds it to the
+    data_per_point of the StatefulTractogram. The color data can be either one
+    color per streamline or one color per point. The function will return the
+    StatefulTractogram with the color data added.
 
     Parameters
     ----------
     sft: StatefulTractogram
         The tractogram
-    cmap: plt colormap
-        The colormap. Ex, see scilpy.viz.utils.get_colormap().
-    data: np.ndarray or list[list] or list[np.ndarray]
-        The data to convert to color. Expecting one value per point to add as
-        dpp. If instead data has one value per streamline, setting the same
-        color to all points of the streamline (as dpp).
-        Either a vector numpy array (all streamlines concatenated), or a list
-        of arrays per streamline.
-    clip_outliers: bool
-        See description of the following parameters in
-        clip_and_normalize_data_for_cmap.
-    min_range: float
-        Data values below min_range will be clipped.
-    max_range: float
-        Data values above max_range will be clipped.
-    min_cmap: float
-        Minimum value of the colormap. Most useful when min_range and max_range
-        are not set; to fix the colormap range without modifying the data.
-    max_cmap: float
-        Maximum value of the colormap. Idem.
-    log: bool
-        If True, apply a logarithmic scale to the data.
-    LUT: np.ndarray
-        If set, replaces the data values by the Look-Up Table values. In order,
-        the first value of the LUT is set everywhere where data==1, etc.
+    color: ArraySequence
+        The color data.
 
     Returns
     -------
     sft: StatefulTractogram
         The tractogram, with dpp 'color' added.
-    lbound: float
-        The lower bound of the associated colormap.
-    ubound: float
-        The upper bound of the associated colormap.
     """
 
     if len(color) == sft._get_streamline_count():

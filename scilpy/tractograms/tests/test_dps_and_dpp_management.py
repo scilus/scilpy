@@ -46,7 +46,7 @@ def test_get_data_as_arraysequence_dps():
 
     some_data = np.asarray([2, 20])
 
-    # Test 1: One value per point.
+    # Test: One value per streamline.
     array_seq = get_data_as_arraysequence(some_data, fake_sft)
     assert fake_sft._get_streamline_count() == array_seq.total_nb_rows
 
@@ -56,7 +56,7 @@ def test_get_data_as_arraysequence_dps_2D():
 
     some_data = np.asarray([[2], [20]])
 
-    # Test 1: One value per point.
+    # Test: One value per streamline.
     array_seq = get_data_as_arraysequence(some_data, fake_sft)
     assert fake_sft._get_streamline_count() == array_seq.total_nb_rows
 
@@ -66,7 +66,7 @@ def test_get_data_as_arraysequence_error():
 
     some_data = np.asarray([2, 20, 200, 0.1])
 
-    # Test 1: One value per point.
+    # Test: Too many values per streamline, not enough per point.
     with pytest.raises(ValueError):
         _ = get_data_as_arraysequence(some_data, fake_sft)
 
@@ -106,6 +106,36 @@ def test_add_data_as_dpp_1_per_streamline():
 
     assert len(colored_sft.data_per_streamline.keys()) == 0
     assert list(colored_sft.data_per_point.keys()) == ['color']
+
+
+def test_add_data_as_color_error_common_shape():
+
+    fake_sft = _get_small_sft()
+
+    # Test: One value per streamline
+    # Should fail because the values aren't RGB values
+    values = np.asarray([4, 5])
+    array_seq = get_data_as_arraysequence(values, fake_sft)
+
+    with pytest.raises(ValueError):
+        _ = add_data_as_color_dpp(
+            fake_sft, array_seq)
+
+
+def test_add_data_as_color_error_number():
+
+    fake_sft = _get_small_sft()
+    cmap = get_lookup_table('jet')
+
+    # Test: One value per streamline
+    # Should fail because the values aren't RGB values
+    values = np.asarray([2, 20, 200, 0.1, 0.3, 22, 5])
+    array_seq = get_data_as_arraysequence(values, fake_sft)
+    color = (np.asarray(cmap(values)[:, 0:3]) * 255).astype(np.uint8)
+    color = color[:-2] # Remove last streamline colors
+    with pytest.raises(ValueError):
+        _ = add_data_as_color_dpp(
+            fake_sft, array_seq)
 
 
 def test_convert_dps_to_dpp():
