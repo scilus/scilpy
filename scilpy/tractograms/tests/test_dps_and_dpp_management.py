@@ -132,7 +132,7 @@ def test_add_data_as_color_error_number():
     values = np.asarray([2, 20, 200, 0.1, 0.3, 22, 5])
     array_seq = get_data_as_arraysequence(values, fake_sft)
     color = (np.asarray(cmap(values)[:, 0:3]) * 255).astype(np.uint8)
-    color = color[:-2] # Remove last streamline colors
+    color = color[:-2]  # Remove last streamline colors
     with pytest.raises(ValueError):
         _ = add_data_as_color_dpp(
             fake_sft, array_seq)
