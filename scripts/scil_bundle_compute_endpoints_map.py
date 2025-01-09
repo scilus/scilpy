@@ -127,7 +127,7 @@ def main():
         }
     }
 
-    logging.info((json.dumps(stats, indent=args.indent)))
+    print(json.dumps(stats, indent=args.indent))
 
 
 if __name__ == '__main__':
