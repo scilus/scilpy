@@ -8,7 +8,8 @@ from scilpy import SCILPY_HOME
 from scilpy.io.fetcher import fetch_data, get_testing_files_dict
 
 # If they already exist, this only takes 5 seconds (check md5sum)
-fetch_data(get_testing_files_dict(), keys=['filtering.zip'])
+fetch_data(get_testing_files_dict(),
+           keys=['filtering.zip', 'tractograms.zip', 'connectivity.zip'])
 tmp_dir = tempfile.TemporaryDirectory()
 
 
