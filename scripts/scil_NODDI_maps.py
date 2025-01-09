@@ -113,7 +113,7 @@ def main():
 
     assert_output_dirs_exist_and_empty(parser, args, args.out_dir,
                                        optional=args.save_kernels)
-    
+
     assert_headers_compatible(parser, args.in_dwi, optional=args.mask)
 
     # Generate a scheme file from the bvals and bvecs files
