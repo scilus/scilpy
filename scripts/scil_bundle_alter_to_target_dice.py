@@ -52,11 +52,14 @@ from scilpy.tractograms.streamline_operations import \
 from scilpy.tractograms.tractogram_operations import transform_streamlines_alter, \
     trim_streamlines_alter, cut_streamlines_alter, subsample_streamlines_alter, \
     replace_streamlines_alter, shuffle_streamlines, shuffle_streamlines_orientation
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(description=__doc__,
-                                formatter_class=argparse.RawTextHelpFormatter)
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
+
     p.add_argument('in_bundle',
                    help='Input bundle filename (.trk, .tck).')
     p.add_argument('out_bundle',

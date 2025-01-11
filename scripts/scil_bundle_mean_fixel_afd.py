@@ -11,6 +11,15 @@ of the bundle provided, averaged at every voxel.
 Please use a bundle file rather than a whole tractogram.
 
 Formerly: scil_compute_fixel_afd_from_bundles.py
+
+-----------------------------------------------------------------------------
+Reference:
+    [1] Raffelt, D., Tournier, JD., Rose, S., Ridgway, GR., Henderson, R.,
+        Crozier, S., Salvado, O., & Connelly, A. (2012).
+        Apparent Fibre Density: a novel measure for the analysis of
+        diffusion-weighted magnetic resonance images. NeuroImage, 59(4),
+        3976--3994.
+-----------------------------------------------------------------------------
 """
 
 import argparse
@@ -26,20 +35,14 @@ from scilpy.io.utils import (add_overwrite_arg, add_sh_basis_args,
                              parse_sh_basis_arg, assert_headers_compatible)
 from scilpy.tractanalysis.afd_along_streamlines \
     import afd_map_along_streamlines
-
-EPILOG = """
-Reference:
-    [1] Raffelt, D., Tournier, JD., Rose, S., Ridgway, GR., Henderson, R.,
-        Crozier, S., Salvado, O., & Connelly, A. (2012).
-        Apparent Fibre Density: a novel measure for the analysis of
-        diffusion-weighted magnetic resonance images. NeuroImage, 59(4),
-        3976--3994.
-"""
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(description=__doc__, epilog=EPILOG,
-                                formatter_class=argparse.RawTextHelpFormatter)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
+ 
     p.add_argument('in_bundle',
                    help='Path of the bundle file.')
     p.add_argument('in_fodf',
