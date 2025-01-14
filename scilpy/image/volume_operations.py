@@ -155,8 +155,10 @@ def apply_transform(transfo, reference, moving,
     if moving_data.ndim == 3:
         orig_type = moving_data.dtype
         affine_map = AffineMap(np.linalg.inv(transfo),
-                               dim, grid2world,
-                               moving_data.shape, moving_affine)
+                               domain_grid_shape=dim,
+                               domain_grid2world=grid2world,
+                               codomain_grid_shape=moving_data.shape,
+                               codomain_grid2world=moving_affine)
         resampled = affine_map.transform(moving_data.astype(np.float64),
                                          interpolation=interp)
     elif moving_data.ndim == 4:
