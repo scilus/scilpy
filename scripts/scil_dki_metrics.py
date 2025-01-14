@@ -198,7 +198,8 @@ def main():
     # b0_threshold option in gradient_table probably unused, except below with
     # option dki_residual.
     _ = check_b0_threshold(bvals.min(), b0_thr=args.tolerance,
-                           skip_b0_check=args.skip_b0_check)
+                           skip_b0_check=args.skip_b0_check,
+                           overwrite_with_min=False)
     gtab = gradient_table(bvals, bvecs, b0_threshold=args.tolerance)
 
     # Processing

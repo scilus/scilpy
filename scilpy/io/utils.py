@@ -272,6 +272,10 @@ def add_skip_b0_check_arg(parser, will_overwrite_with_min,
         msg += ('If no b-value is found below the threshold, the script will '
                 'continue \nwith your minimal b-value as new {}.\n'
                 .format(b0_tol_name))
+    else:
+        msg += ('If no b-value is found below the threshold, the script will '
+                'continue \nwith the original {} and no b0 volumes.\n'
+                .format(b0_tol_name))
     msg += 'Use with care, and only if you understand your data.'
 
     parser.add_argument(

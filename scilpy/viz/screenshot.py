@@ -127,7 +127,7 @@ def screenshot_peaks(img, orientation, slice_ids, size, mask_img=None):
                            img.shape, size)
 
 
-def compose_image(img_scene, img_size, slice_number, corner_position=(0, 0),
+def compose_image(img_scene, img_size, slice_number, *, corner_position=(0, 0),
                   transparency_scene=None, image_alpha=1.0,
                   labelmap_scene=None, labelmap_overlay_alpha=0.7,
                   overlays_scene=None, overlays_alpha=0.7,
