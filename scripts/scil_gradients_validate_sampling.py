@@ -30,10 +30,11 @@ import numpy as np
 from dipy.io.gradients import read_bvals_bvecs
 
 from scilpy.io.utils import (add_overwrite_arg, add_verbose_arg,
-                             add_b0_thresh_arg,
+                             add_b0_thresh_arg, add_skip_b0_check_arg,
                              add_tolerance_arg, assert_inputs_exist,
                              assert_gradients_filenames_valid)
 from scilpy.gradients.bvec_bval_tools import (is_normalized_bvecs,
+                                              check_b0_threshold,
                                               normalize_bvecs,
                                               identify_shells)
 from scilpy.gradients.gen_gradient_sampling import (generate_gradient_sampling,
@@ -70,6 +71,7 @@ def _build_arg_parser():
              'optimal one.')
 
     add_b0_thresh_arg(p)
+    add_skip_b0_check_arg(p, will_overwrite_with_min=False)
     add_tolerance_arg(p)
     add_verbose_arg(p)
     add_overwrite_arg(p)
@@ -99,26 +101,8 @@ def main():
                      'two files for FSL format and one file for MRtrix')
 
     # Check and remove b0s
-    # Note: this part will become check_b0_threshold once it is fixed
-    if args.b0_threshold > 20:
-        logging.warning(
-            'Your defined b0 threshold is {}. This is suspicious. We '
-            'recommend using volumes with bvalues no higher than {} as b0s'
-            .format(args.b0_threshold, 20))
-
-    if bvals.min() < 0:
-        logging.warning(
-            'Warning: Your dataset contains negative b-values (minimal bvalue '
-            'of {}). This is suspicious. We recommend you check your data.'
-            .format(bvals.min()))
-
-    if bvals.min() > args.b0_threshold:
-        logging.warning(
-            'Your minimal bvalue ({}) is above the threshold ({}). Please '
-            'check your data to ensure everything is correct.\n'
-            'You may also increase the threshold with --b0_threshold. '
-            'The script will continue without b0s.'
-            .format(bvals.min(), args.b0_threshold))
+    _ = check_b0_threshold(bvals.min(), args.b0_threshold, args.skip_b0_check,
+                           overwrite_with_min=False)
     bvecs = bvecs[bvals > args.b0_threshold]
     bvals = bvals[bvals > args.b0_threshold]
 
