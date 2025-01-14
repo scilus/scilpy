@@ -10,13 +10,17 @@ from dipy.tracking.vox2track import _streamlines_in_mask
 import h5py
 import nibabel as nib
 import numpy as np
+from scipy.ndimage import map_coordinates
 
 from scilpy.image.labels import get_data_as_labels
 from scilpy.io.hdf5 import reconstruct_streamlines_from_hdf5
 from scilpy.tractanalysis.reproducibility_measures import \
     compute_bundle_adjacency_voxel
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
+from scilpy.tractograms.streamline_operations import \
+    resample_streamlines_num_points
 from scilpy.utils.metrics_tools import compute_lesion_stats
+
 
 d = threading.local()
 
@@ -31,8 +35,8 @@ def compute_triu_connectivity_from_labels(tractogram, data_labels,
     ----------
     tractogram: StatefulTractogram, or list[np.ndarray]
         Streamlines. A StatefulTractogram input is recommanded.
-        When using directly with a list of streamlines, streamlinee must be in
-        vox space, corner origin.
+        When using directly with a list of streamlines, streamlines must be in
+        vox space, center origin.
     data_labels: np.ndarray
         The loaded nifti image.
     keep_background: Bool
@@ -55,12 +59,12 @@ def compute_triu_connectivity_from_labels(tractogram, data_labels,
         For each streamline, the label at ending point.
     """
     if isinstance(tractogram, StatefulTractogram):
-        #  Vox space, corner origin
-        # = we can get the nearest neighbor easily.
-        # Coord 0 = voxel 0. Coord 0.9 = voxel 0. Coord 1 = voxel 1.
-        tractogram.to_vox()
-        tractogram.to_corner()
-        streamlines = tractogram.streamlines
+        # vox space, center origin: compatible with map_coordinates
+        sfs_2_pts = resample_streamlines_num_points(tractogram, 2)
+        sfs_2_pts.to_vox()
+        sfs_2_pts.to_center()
+        streamlines = sfs_2_pts.streamlines
+
     else:
         streamlines = tractogram
 
@@ -71,23 +75,16 @@ def compute_triu_connectivity_from_labels(tractogram, data_labels,
                   .format(nb_labels))
 
     matrix = np.zeros((nb_labels, nb_labels), dtype=int)
-    start_labels = []
-    end_labels = []
 
-    for s in streamlines:
-        start = ordered_labels.index(
-            data_labels[tuple(np.floor(s[0, :]).astype(int))])
-        end = ordered_labels.index(
-            data_labels[tuple(np.floor(s[-1, :]).astype(int))])
+    labels = map_coordinates(data_labels, streamlines._data.T, order=0)
+    start_labels = labels[0::2]
+    end_labels = labels[1::2]
 
-        start_labels.append(start)
-        end_labels.append(end)
+    # sort each pair of labels for start to be smaller than end
+    start_labels, end_labels = zip(*[sorted(pair) for pair in
+                                     zip(start_labels, end_labels)])
 
-        matrix[start, end] += 1
-        if start != end:
-            matrix[end, start] += 1
-
-    matrix = np.triu(matrix)
+    np.add.at(matrix, (start_labels, end_labels), 1)
     assert matrix.sum() == len(streamlines)
 
     # Rejecting background
@@ -249,7 +246,7 @@ def compute_connectivity_matrices_from_hdf5(
 
     if compute_volume:
         measures_to_return['volume_mm3'] = np.count_nonzero(density) * \
-                                           np.prod(voxel_sizes)
+            np.prod(voxel_sizes)
 
     if compute_streamline_count:
         measures_to_return['streamline_count'] = len(streamlines)
