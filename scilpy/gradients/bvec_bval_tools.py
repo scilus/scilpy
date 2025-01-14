@@ -55,7 +55,8 @@ def normalize_bvecs(bvecs):
     return bvecs
 
 
-def check_b0_threshold(min_bval, b0_thr, skip_b0_check):
+def check_b0_threshold(min_bval, b0_thr, skip_b0_check,
+                       overwrite_with_min=True):
     """
     Check if the minimal bvalue is under the threshold. If not, raise an
     error to ask user to update the b0_thr.
@@ -72,6 +73,10 @@ def check_b0_threshold(min_bval, b0_thr, skip_b0_check):
     skip_b0_check: bool
         If True, and no b0 is found, only print a warning, do not raise
         an error.
+    overwrite_with_min: bool, optional
+        If True, no b0 is found, and skip_b0_check is True, the script will
+        proceed with a new b0 threshold equal to the minimal b-value. Else, the
+        script will proceed with the original b0 threshold.
 
     Returns
     -------
@@ -101,18 +106,25 @@ def check_b0_threshold(min_bval, b0_thr, skip_b0_check):
     if min_bval > b0_thr:
         if skip_b0_check:
             logging.warning(
-                'Your minimal bvalue ({}), is above the threshold ({})\n'
-                'Since --skip_b0_check was specified, the script will '
-                'proceed with a b0 threshold of {}.'
-                .format(min_bval, b0_thr, min_bval))
-            return min_bval
+                'The minimal bvalue ({}) is above the b0 threshold ({}).'
+                .format(min_bval, b0_thr))
+            if overwrite_with_min:
+                logging.warning(
+                    'Since --skip_b0_check was specified, the script will '
+                    'proceed with a b0 threshold of {}'.format(min_bval))
+                return min_bval
+            else:
+                logging.warning(
+                    'Since --skip_b0_check was specified, the script will '
+                    'proceed without b0 volumes.')
+                return b0_thr
         else:
             raise ValueError(
-                'The minimal bvalue ({}) is above the threshold ({})\n'
+                'The minimal bvalue ({}) is above the b0 threshold ({}).\n'
                 'No b0 volumes can be found.\n'
                 'Please check your data to ensure everything is correct.\n'
                 'You may also increase the threshold or use '
-                '--skip_b0_check'
+                '--skip_b0_check.'
                 .format(min_bval, b0_thr))
     return b0_thr
 
