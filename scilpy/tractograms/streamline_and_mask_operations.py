@@ -511,7 +511,7 @@ def _get_longest_streamline_segment_in_roi(all_strl_indices):
 
 
 def _intersects_two_rois(roi_data_1, roi_data_2, strl_indices,
-                         one_point_in_roi=True, no_point_in_roi=True):
+                         one_point_in_roi=False, no_point_in_roi=False):
     """ Find the first and last "voxels" of the streamline that are in the
     ROIs.
 
