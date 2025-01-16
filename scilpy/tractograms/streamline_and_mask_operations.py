@@ -337,7 +337,7 @@ def cut_streamlines_with_mask(
 
 def cut_streamlines_between_labels(
     sft, label_data, label_ids=None, min_len=0,
-    keep_in_roi=True, keep_one_point_in_roi=True, processes=1
+    one_point_in_roi=False, no_point_in_roi=False, processes=1
 ):
     """
     Cut streamlines so their segment are going from blob #1 to blob #2 in a
@@ -357,14 +357,10 @@ def cut_streamlines_between_labels(
         in the label map will be used.
     min_len: float
         Minimum length from the resulting streamlines.
-    keep_in_roi: bool
-        If True, the first and last points of the streamline that are in the
-        ROIs will be returned. If False, the var keep_one_point_in_roi will
-        decide which first/last points will be returned.
-    keep_one_point_in_roi: bool
-        If True, the first and last points of the streamline that are in the
-        ROIs will be returned. If False, the first and last points outside of
-        the ROI will be returned.
+    one_point_in_roi: bool
+        If True, one point in each ROI will be kept.
+    no_point_in_roi: bool
+        If True, no point in the ROIs will be kept.
 
     Returns
     -------
@@ -404,7 +400,7 @@ def cut_streamlines_between_labels(
     pool = Pool(processes)
     lists_of_new_strmls = pool.starmap(
         _cut_streamline_with_labels, [(i, s, pt, label_data_1, label_data_2,
-                                       keep_in_roi, keep_one_point_in_roi)
+                                       one_point_in_roi, no_point_in_roi)
                                       for (i, s, pt) in zip(
                                           indices, sft.streamlines,
                                           points_to_idx)])
@@ -427,7 +423,7 @@ def cut_streamlines_between_labels(
 
 def _cut_streamline_with_labels(
     idx, streamline, pts_to_idx, roi_data_1, roi_data_2,
-    keep_in_roi=True, keep_one_point=True
+    one_point_in_roi=False, no_point_in_roi=False
 ):
     """
     Cut streamlines so their segment are going from label mask #1 to label
@@ -446,14 +442,10 @@ def _cut_streamline_with_labels(
         Boolean array representing the region #1.
     roi_data_2: np.ndarray
         Boolean array representing the region #2.
-    keep_in_roi: bool
-        If True, the first and last points of the streamline that are in the
-        ROIs will be returned. If False, the var keep_one_point_in_roi will
-        decide which points will be returned.
-    keep_one_point_in_roi: bool
-        If True, the first and last points of the streamline that are in the
-        ROIs will be returned. If False, the first and last points outside the
-        ROI will.
+    one_point_in_roi: bool
+        If True, one point in each ROI will be kept.
+    no_point_in_roi: bool
+        If True, no point in the ROIs will be kept.
 
     Returns
     -------
@@ -465,8 +457,8 @@ def _cut_streamline_with_labels(
     in_strl_idx, out_strl_idx = _intersects_two_rois(roi_data_1,
                                                      roi_data_2,
                                                      idx,
-                                                     keep_in_roi=keep_in_roi,
-                                                     keep_one_point_in_roi=keep_one_point)
+                                                     one_point_in_roi=one_point_in_roi,
+                                                     no_point_in_roi=no_point_in_roi)
 
     cut_strl = None
     # If the streamline intersects both ROIs
@@ -519,7 +511,7 @@ def _get_longest_streamline_segment_in_roi(all_strl_indices):
 
 
 def _intersects_two_rois(roi_data_1, roi_data_2, strl_indices,
-                         keep_in_roi=True, keep_one_point_in_roi=True):
+                         one_point_in_roi=True, no_point_in_roi=True):
     """ Find the first and last "voxels" of the streamline that are in the
     ROIs.
 
@@ -531,14 +523,10 @@ def _intersects_two_rois(roi_data_1, roi_data_2, strl_indices,
         Boolean array representing the region #2
     strl_indices: list of tuple (N, 3)
         3D indices of the voxels intersected by the streamline
-    keep_in_roi: bool
-        If True, the first and last points of the streamline that are in the
-        ROIs will be returned. If False, the var keep_one_point_in_roi will
-        decide which points will be returned.
-    keep_one_point_in_roi: bool
-        If True, the first and last points of the streamline that are in the
-        ROIs will be returned. If False, the first and last points outside the
-        ROI will.
+    one_point_in_roi: bool
+        If True, one point in each ROI will be kept.
+    no_point_in_roi: bool
+        If True, no point in the ROIs will be kept.
 
     Returns
     -------
@@ -579,13 +567,13 @@ def _intersects_two_rois(roi_data_1, roi_data_2, strl_indices,
 
     # Get the index of the first and last "voxels" of the streamline that are
     # in the ROIs
-    if keep_in_roi:
+    if not one_point_in_roi and not no_point_in_roi:
         in_strl_idx = in_strl_indices[0]
         out_strl_idx = out_strl_indices[-1]
     else:
-        if keep_one_point_in_roi:
+        if one_point_in_roi:
             add_indice = 0
-        else:
+        elif no_point_in_roi:
             add_indice = 1
 
         if in_strl_indices[-1] is not None:

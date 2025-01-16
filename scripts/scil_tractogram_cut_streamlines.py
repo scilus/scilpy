@@ -21,6 +21,17 @@ are available:
 --label: Label containing 2 blobs. Streamlines will be cut so they go from the
 first label region to the second label region. The two blobs must be disjoint.
 
+    Default: Will cut the streamlines according to the mask. New streamlines
+    may be generated if the mask is disjoint.
+
+    --keep_longest: Will keep the longest segment of the streamline that is
+    within the mask. No new streamlines will be generated.
+
+    --trim_endpoints: Will only remove the endpoints of the streamlines that
+    are outside the mask. The middle part of the streamline may go
+    outside the mask, to compensate for hole in the mask for example. No new
+    streamlines will be generated.
+
 Both scenarios will erase data_per_point and data_per_streamline. Streamlines
 will be extended so they reach the boundary of the mask or the two labels,
 therefore won't be equal to the input streamlines.
@@ -96,12 +107,11 @@ def _build_arg_parser():
 
     g1 = p.add_argument_group('Cutting options', 'Options for cutting '
                               'streamlines with --labels.')
-    g1.add_argument('--keep_in_roi', action='store_false',
-                    help='If set, will var keep_one_point will choose whether '
-                    'we keep one point in each label or the point before '
-                    'entering each label.')
-    g1.add_argument('--keep_one_point_in_roi', action='store_true',
+    g3 = g1.add_mutually_exclusive_group()
+    g3.add_argument('--one_point_in_roi', action='store_true',
                     help='If set, will keep one point in each label.')
+    g3.add_argument('--no_point_in_roi', action='store_true',
+                    help='If set, will not keep any point in the labels.')
 
     add_compression_arg(p)
     add_overwrite_arg(p)
@@ -162,8 +172,8 @@ def main():
 
         new_sft = cut_streamlines_between_labels(
             sft, label_data, args.label_ids, min_len=args.min_length,
-            keep_in_roi=args.keep_in_roi,
-            keep_one_point_in_roi=args.keep_one_point_in_roi,
+            one_point_in_roi=args.one_point_in_roi,
+            no_point_in_roi=args.no_point_in_roi,
             processes=args.nbr_processes)
 
     # Saving
