@@ -94,6 +94,15 @@ def _build_arg_parser():
                     help='If set, will only remove the endpoints of the '
                          'streamlines that are outside the mask.')
 
+    g1 = p.add_argument_group('Cutting options', 'Options for cutting '
+                              'streamlines with --labels.')
+    g1.add_argument('--keep_in_roi', action='store_false',
+                    help='If set, will var keep_one_point will choose whether '
+                    'we keep one point in each label or the point before '
+                    'entering each label.')
+    g1.add_argument('--keep_one_point_in_roi', action='store_true',
+                    help='If set, will keep one point in each label.')
+
     add_compression_arg(p)
     add_overwrite_arg(p)
     add_processes_arg(p)
@@ -153,6 +162,8 @@ def main():
 
         new_sft = cut_streamlines_between_labels(
             sft, label_data, args.label_ids, min_len=args.min_length,
+            keep_in_roi=args.keep_in_roi,
+            keep_one_point_in_roi=args.keep_one_point_in_roi,
             processes=args.nbr_processes)
 
     # Saving
