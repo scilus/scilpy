@@ -113,6 +113,7 @@ def test_execution_labels_error_trim(script_runner, monkeypatch):
                             '--trim_endpoints')
     assert not ret.success
 
+
 def test_execution_labels_one_points(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_tractogram = os.path.join(SCILPY_HOME, 'connectivity',
@@ -124,6 +125,7 @@ def test_execution_labels_one_points(script_runner, monkeypatch):
                             'out_tractogram_cut.trk', '-f',
                             '--no_point_in_roi', '--label_ids', '1', '10',)
     assert ret.success
+
 
 def test_execution_labels_one_point(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
