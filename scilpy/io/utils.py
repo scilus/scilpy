@@ -1050,7 +1050,7 @@ def save_matrix_in_any_format(filepath, output_data):
         raise ValueError('Extension {} is not supported'.format(ext))
 
 
-def assert_fsl_options_exist(parser, options_args, command):
+def assert_fsl_options_exist(parser, options_args, command, overwrite=False):
     """
     Assert that all options for topup or eddy exist.
     If not, print parser's usage and exit.
@@ -1063,6 +1063,8 @@ def assert_fsl_options_exist(parser, options_args, command):
         Options for fsl command
     command: string
         Command used (eddy or topup).
+    overwrite: bool
+        If true, will only print a warning if an option is not valid.
     """
     if command == 'eddy':
         fsl_options = eddy_options
@@ -1078,8 +1080,13 @@ def assert_fsl_options_exist(parser, options_args, command):
 
     for nOption in res:
         if nOption not in fsl_options:
-            parser.error('--{} is not a valid option for '
-                         '{} command.'.format(nOption, command))
+            if overwrite:
+                logging.warning('--{} may not be a valid option for '
+                                '{} command depending '
+                                'of its version.'.format(nOption, command))
+            else:
+                parser.error('--{} is not a valid option for '
+                             '{} command.'.format(nOption, command))
 
 
 def parser_color_type(arg):
