@@ -21,16 +21,18 @@ are available:
 --label: Label containing 2 blobs. Streamlines will be cut so they go from the
 first label region to the second label region. The two blobs must be disjoint.
 
-    Default: Will cut the streamlines according to the mask. New streamlines
-    may be generated if the mask is disjoint.
+    Default: The streamline will start with the first point of the last segment
+    of the streamline in the first label and end with the last point of the
+    first segment of the streamline in the second label.
 
-    --keep_longest: Will keep the longest segment of the streamline that is
-    within the mask. No new streamlines will be generated.
+    --one_point_in_roi:
+        The streamline will start with the last point of the last segment of
+        the streamline in the first label and end with the first point in the
+        second label. The streamline will be cut at the boundary of the labels.
 
-    --trim_endpoints: Will only remove the endpoints of the streamlines that
-    are outside the mask. The middle part of the streamline may go
-    outside the mask, to compensate for hole in the mask for example. No new
-    streamlines will be generated.
+    --no_point_in_roi:
+        The streamline will be cut at the boundary of the labels. No point will
+        be kept in the labels.
 
 Both scenarios will erase data_per_point and data_per_streamline. Streamlines
 will be extended so they reach the boundary of the mask or the two labels,
@@ -83,6 +85,7 @@ def _build_arg_parser():
                     help='Binary mask.')
     g1.add_argument('--labels',
                     help='Label containing 2 blobs.')
+
     p.add_argument('out_tractogram',
                    help='Output tractogram file. Note: data_per_point and '
                         'data_per_streamline will be discarded.')
@@ -95,6 +98,7 @@ def _build_arg_parser():
     p.add_argument('--min_length', type=float, default=0,
                    help='Minimum length of streamlines to keep (in mm) '
                         '[%(default)s].')
+
     g = p.add_argument_group('Cutting options', 'Options for cutting '
                              'streamlines with --mask.')
     g2 = g.add_mutually_exclusive_group()
@@ -139,6 +143,9 @@ def main():
     if args.labels and (args.keep_longest or args.trim_endpoints):
         parser.error('Cannot use --keep_longest or --trim_endpoints with '
                      'labels.')
+    elif args.mask and (args.one_point_in_roi or args.no_point_in_roi):
+        parser.error('Cannot use --one_point_in_roi or --no_point_in_roi with '
+                     'mask.')
 
     # Loading
     sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
