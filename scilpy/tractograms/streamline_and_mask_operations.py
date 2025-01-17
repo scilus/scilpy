@@ -613,7 +613,7 @@ def _intersects_two_rois(roi_data_1, roi_data_2, strl_indices,
             out_strl_indices)
 
     if in_strl_indices[0] is None and out_strl_indices[0] is None:
-        return in_strl_indices, out_strl_indices
+        return None, None
     else:
         in_strl_idx, out_strl_idx = _get_in_and_out_strl_indices(
                                         in_strl_indices,
