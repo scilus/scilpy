@@ -26,6 +26,7 @@ from scilpy.io.utils import (add_overwrite_arg,
                              add_verbose_arg,
                              assert_inputs_exist,
                              assert_output_dirs_exist_and_empty,
+                             assert_headers_compatible,
                              redirect_stdout_c, add_tolerance_arg,
                              add_skip_b0_check_arg)
 from scilpy.gradients.bvec_bval_tools import (check_b0_threshold,
@@ -112,6 +113,8 @@ def main():
 
     assert_output_dirs_exist_and_empty(parser, args, args.out_dir,
                                        optional=args.save_kernels)
+
+    assert_headers_compatible(parser, args.in_dwi, optional=args.mask)
 
     # Generate a scheme file from the bvals and bvecs files
     bvals, _ = read_bvals_bvecs(args.in_bval, args.in_bvec)
