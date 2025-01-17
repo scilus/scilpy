@@ -67,9 +67,11 @@ def _build_arg_parser():
                                   'streamlines (.txt, .npy or .mat). There\n'
                                   'must be the same amount of entries as\n'
                                   'there are streamlines.')
-    import_excl.add_argument('--in_dps_file_single_value',
-                             help='File containing a single value to import\n'
-                                  'to each streamlines (.txt, .npy or .mat).')
+    import_excl.add_argument('--in_dps_single_value', nargs='+', type=float,
+                             help='Single value to import to each\n'
+                                  'streamline. If the value is an array,\n'
+                                  'enter each component with a space in\n'
+                                  'between.')
 
     export_args = p.add_argument_group('Operation "export" mandatory options')
     export_args.add_argument('--out_dps_file',
@@ -104,14 +106,9 @@ def main():
     sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
 
     if args.operation == 'import':
-        if args.in_dps_file:
-            dps_file = args.in_dps_file
-        else:
-            dps_file = args.in_dps_file_single_value
-
-        if dps_file is None:
+        if args.in_dps_file is None and args.in_dps_single_value is None:
             parser.error('One of --in_dps_file or ' +
-                         '--in_dps_file_single_value is required for the ' +
+                         '--in_dps_single_value is required for the ' +
                          '"import" operation.')
 
         if args.out_tractogram is None:
@@ -124,15 +121,25 @@ def main():
             parser.error('"{}" already in data per streamline. Use -f to force'
                          ' overwriting.'.format(args.dps_key))
 
-        # Load data and remove extraneous dimensions
-        data = np.squeeze(load_matrix_in_any_format(dps_file))
+        if args.in_dps_file:
+            # Load data and remove extraneous dimensions
+            data = np.squeeze(load_matrix_in_any_format(args.in_dps_file))
 
-        # Validate data shape
-        if args.in_dps_file and len(sft) != data.shape[0]:
-            raise ValueError(
-                'Data must have as many entries ({}) as there are '
-                'streamlines ({}).'.format(data.shape[0], len(sft)))
-        if args.in_dps_file_single_value:
+            # Validate data shape
+            if len(sft) != data.shape[0]:
+                raise ValueError(
+                    'Data must have as many entries ({}) as there are '
+                    'streamlines ({}).'.format(data.shape[0], len(sft)))
+        elif args.in_dps_single_value:
+            data = np.array(args.in_dps_single_value)
+            if (np.mod(data, 1) == 0).all():
+                data = data.astype(int)
+
+            # Squeeze may remove axes of length 0, but still returns an
+            # ndarray. We would like a proper scalar type.
+            if len(data) == 1:
+                data = data[0]
+
             data = [data] * len(sft.streamlines)
 
         sft.data_per_streamline[args.dps_key] = data
