@@ -330,8 +330,9 @@ def get_external_vector_from_centerline_vector(vector, r1, r2):
 @njit
 def resolve_origin_seeding(seeds, centerlines, diameters):
     """
-    Associates given seeds to segment 0 of the fibertube in which they have
-    been generated. This pairing only works with fiber origin seeding.
+    Given seeds generated in the first segment of fibertubes (origin seeding)
+    and a set of fibertubes, associates each seed with their corresponding
+    fibertube.
 
     Parameters
     ----------
@@ -344,8 +345,8 @@ def resolve_origin_seeding(seeds, centerlines, diameters):
     Return
     ------
     seeds_fiber: ndarray
-        Array containing the fiber index of each seed. If the seed is not in a
-        fiber, its value will be -1.
+        Array containing the fibertube index of each seed. If the seed is
+        not in a fibertube, its value in the array will be -1.
     """
     seeds_fiber = [-1] * len(seeds)
 
