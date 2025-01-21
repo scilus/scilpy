@@ -51,7 +51,8 @@ def get_endpoints_density_map(sft, point_to_select=1, to_millimeters=False):
     return endpoints_map_head + endpoints_map_tail
 
 
-def get_head_tail_density_maps(sft, point_to_select=1, to_millimeters=False):
+def get_head_tail_density_maps(sft, point_to_select=1, to_millimeters=False,
+                               binary=False, swap=False):
     """
     Compute two separate endpoints density maps for the head and tail of
     a list of streamlines.
@@ -67,14 +68,17 @@ def get_head_tail_density_maps(sft, point_to_select=1, to_millimeters=False):
         Resample the streamlines to have a step size of 1 mm. This
         allows the user to compute endpoints with mms instead of points.
         Especially useful with compressed streamlines.
+    binary: bool
+        Return binary maps
+    swap: bool
+        Swap head and tail conventions
 
     Returns
     -------
-    A tuple containing:
-    - np.ndarray: A np.ndarray where voxel values represent the density of
-        head endpoints.
-    - np.ndarray: A np.ndarray where voxel values represent the density of
-        tail endpoints.
+    endpoints_map_head: np.ndarray
+        A volume where voxel values represent the density of head endpoints.
+    endpoints_map_tail:np.ndarray
+        A volume where voxel values represent the density of tail endpoints.
     """
     sft.to_vox()
     sft.to_corner()
@@ -108,6 +112,15 @@ def get_head_tail_density_maps(sft, point_to_select=1, to_millimeters=False):
         # Note: np.add.at is used to support duplicate points
         np.add.at(endpoints_map_head, tuple(head_indices.T), 1)
         np.add.at(endpoints_map_tail, tuple(tail_indices.T), 1)
+
+    if binary:
+        endpoints_map_head = (endpoints_map_head > 0).astype(np.int16)
+        endpoints_map_tail = (endpoints_map_tail > 0).astype(np.int16)
+
+    if swap:
+        tmp = endpoints_map_head
+        endpoints_map_head = endpoints_map_tail
+        endpoints_map_tail = tmp
 
     return endpoints_map_head, endpoints_map_tail
 
