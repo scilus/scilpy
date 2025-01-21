@@ -12,7 +12,7 @@ from scipy.spatial import cKDTree
 from sklearn.cluster import KMeans
 
 from scilpy.tractograms.streamline_and_mask_operations import \
-    get_endpoints_density_map
+    get_endpoints_density_map, get_head_tail_density_maps
 from scilpy.tractograms.streamline_operations import \
     resample_streamlines_num_points, get_streamlines_bounding_box
 
