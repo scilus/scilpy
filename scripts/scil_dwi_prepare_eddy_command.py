@@ -135,7 +135,7 @@ def main():
     required_args = [args.in_dwi, args.in_bvals, args.in_bvecs, args.in_mask]
 
     assert_inputs_exist(parser, required_args)
-    assert_fsl_options_exist(parser, args.eddy_options, 'eddy')
+    assert_fsl_options_exist(parser, args.eddy_options, 'eddy', args.overwrite)
 
     if os.path.splitext(args.out_prefix)[1] != '':
         parser.error('The prefix must not contain any extension.')

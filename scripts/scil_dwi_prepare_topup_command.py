@@ -96,7 +96,8 @@ def main():
 
     assert_inputs_exist(parser, required_args)
     assert_outputs_exist(parser, args, [], args.out_b0s)
-    assert_fsl_options_exist(parser, args.topup_options, 'topup')
+    assert_fsl_options_exist(parser, args.topup_options, 'topup',
+                             overwrite=args.overwrite)
 
     if os.path.splitext(args.out_prefix)[1] != '':
         parser.error('The prefix must not contain any extension.')
