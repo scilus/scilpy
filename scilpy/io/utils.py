@@ -720,9 +720,9 @@ def assert_inputs_exist(parser, required, optional=None):
     ----------
     parser: argparse.ArgumentParser object
         Parser.
-    required: string or list of paths
+    required: string or list of paths or list of lists of paths
         Required paths to be checked.
-    optional: string or list of paths
+    optional: string or list of paths or list of lists of paths
         Optional paths to be checked.
     """
 
@@ -737,10 +737,18 @@ def assert_inputs_exist(parser, required, optional=None):
         optional = [optional]
 
     for required_file in required:
-        check(required_file)
+        if isinstance(required_file, str):
+            check(required_file)
+        else:
+            for file in required_file:
+                check(file)
     for optional_file in optional or []:
         if optional_file is not None:
-            check(optional_file)
+            if isinstance(optional_file, str):
+                check(optional_file)
+            else:
+                for file in optional_file:
+                    check(file)
 
 
 def assert_inputs_dirs_exist(parser, required, optional=None):
