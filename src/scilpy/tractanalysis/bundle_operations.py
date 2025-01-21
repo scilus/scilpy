@@ -11,6 +11,7 @@ from dipy.tracking.streamlinespeed import set_number_of_points
 from scipy.spatial import cKDTree
 from sklearn.cluster import KMeans
 
+from scilpy.maths.utils import _fit_circle_planar
 from scilpy.tractograms.streamline_and_mask_operations import \
     get_endpoints_density_map, get_head_tail_density_maps
 from scilpy.tractograms.streamline_operations import \
@@ -342,3 +343,36 @@ def remove_outliers_qb(streamlines, threshold, nb_points=12, nb_samplings=30,
     outliers_ids, inliers_ids = prune(streamlines, threshold, summary)
 
     return outliers_ids, inliers_ids
+
+
+def project_to_cross_section(positions, directions, dist_w=None):
+    """
+    Project all points to a plane perpendicular to the centroid.
+
+    Parameters
+    ----------
+    positions: list[np.ndarray]
+        The streamlines.
+    directions: list[np.ndarray]
+        The directions between each segment, for each streamline.
+    dist_w: str
+        One of ['lin_up', 'lin_down', 'exp', 'inv', 'log'].
+
+    """
+    u_directions = np.average(directions, axis=0)
+    u_directions /= np.linalg.norm(u_directions)
+    barycenter = np.average(positions, axis=0)
+    vector = positions - barycenter
+
+    dist = np.zeros((len(vector)))
+    proj_positions = np.zeros((len(vector), 3))
+    for i in range(len(vector)):
+        dist[i] = np.dot(vector[i], u_directions)
+        proj_positions[i] = positions[i] - dist[i]*u_directions
+
+    # With all points on a fixed plane, estimate a circle
+    center, radius = _fit_circle_planar(proj_positions, dist_w)
+    dist = np.linalg.norm(proj_positions - center, axis=1)
+    error = np.average(np.sqrt((dist - radius)**2))
+
+    return center, radius, error
