@@ -5,8 +5,8 @@
 Compute the statistics (mean, std) of scalar maps, which can represent
 diffusion metrics, in ROIs. Prints the results.
 
-The ROIs can either be a binary masks, or a weighting masks. If the ROIs are
- weighting masks it should either contain floats between 0 and 1 or should be
+The ROIs can either be binary masks, or weighting masks. If the ROIs are
+ weighting masks, they should either contain floats between 0 and 1 or should be
 normalized with --normalize_weights. IMPORTANT: if the ROIs contain weights
 (and not 0 and 1 exclusively), the standard deviation will also be weighted.
 """

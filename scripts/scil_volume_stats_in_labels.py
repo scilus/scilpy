@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Computes the information from the input map for each cortical region
-(corresponding to an atlas).
+Computes the information from the input metrics for each cortical region
+(corresponding to an atlas). If more than one metric are provided, statistics are 
+computed separately for each.
 
 Hint: For instance, this script could be useful if you have a seed map from a
 specific bundle, to know from which regions it originated.
@@ -81,7 +82,7 @@ def main():
         metric_data = nib.load(metric_filename).get_fdata(dtype=np.float32)
         metric_name = split_name_with_nii(os.path.basename(metric_filename))[0]
         if len(metric_data.shape) > 3:
-            parser.error('Mask should be a 3D image.')
+            parser.error('Input metrics should be 3D images.')
 
         # Process
         out_dict = get_stats_in_label(metric_data, label_data, label_dict)
