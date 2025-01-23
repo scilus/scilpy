@@ -116,13 +116,17 @@ def main():
     nb_shells = len(ubvals)
     nb_dir_per_shell = [np.sum(shell_idx == idx) for idx in range(nb_shells)]
 
-    ubvecs = np.unique(bvecs, axis=0)
-    nb_ubvecs = len(ubvecs)
-    if len(bvecs) != nb_ubvecs:
-        logging.error('{} b-vectors have the same direction as others, '
+    # Count colinear vectors (either same or rotated by 180 degrees)
+    colinear_vectors = 0
+    for bvec in bvecs:
+        cross_matrix = np.cross(bvec, bvecs)
+        if len(np.argwhere(np.sum(cross_matrix, axis=-1) == 0)) > 1:
+            colinear_vectors += 1
+    if colinear_vectors != 0:
+        logging.error('{} b-vectors are colinear, '
                       'which is suboptimal. There is most likely a problem '
                       'with the gradient table.'
-                      .format(len(bvecs) - nb_ubvecs))
+                      .format(colinear_vectors))
 
     # Compute optimally distributed directions
     opt_bvecs, _ = generate_gradient_sampling(nb_dir_per_shell,
