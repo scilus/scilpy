@@ -15,12 +15,11 @@ Dilate regions (with or without masking) from a labeled volume:
     --label_not_to_dilate 4 43 10 11 12 49 50 51
 
 Formerly: scil_dilate_labels.py
-
 -----------------------------------------------------------------------
-References:
-    [1] Al-Sharif N.B., St-Onge E., Vogel J.W., Theaud G.,
-        Evans A.C. and Descoteaux M. OHBM 2019.
-        Surface integration for connectome analysis in age prediction.
+Reference:
+[1] Al-Sharif N.B., St-Onge E., Vogel J.W., Theaud G.,
+    Evans A.C. and Descoteaux M. OHBM 2019.
+    Surface integration for connectome analysis in age prediction.
 -----------------------------------------------------------------------
 """
 

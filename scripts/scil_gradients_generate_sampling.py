@@ -11,7 +11,6 @@ equal spacing and the non-b0 samples are finally shuffled to minimize the total
 diffusion gradient amplitude over a few TR.
 
 Formerly: scil_generate_gradient_sampling.py
-
 -------------------------------------------------------------------------------
 References:
 [1] Emmanuel Caruyer, Christophe Lenglet, Guillermo Sapiro,

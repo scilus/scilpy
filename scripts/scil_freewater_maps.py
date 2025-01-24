@@ -6,15 +6,14 @@ Compute Free Water maps [1] using the AMICO framework [2].
 This script supports both single and multi-shell data.
 
 Formerly: scil_compute_freewater.py
-
 ----------------------------------------------------------
 References:
-    [1] Pasternak 0, Sochen N, Gur Y, Intrator N, Assaf Y.
-        Free water elimination and mapping from diffusion mri.
-        Magn Reson Med. 62 (3) (2009) 717-730.
-    [2] Daducci A, et al. Accelerated microstructure imaging
-        via convex optimization (AMICO) from diffusion MRI data.
-        Neuroimage 105 (2015) 32-44.
+[1] Pasternak 0, Sochen N, Gur Y, Intrator N, Assaf Y.
+    Free water elimination and mapping from diffusion mri.
+    Magn Reson Med. 62 (3) (2009) 717-730.
+[2] Daducci A, et al. Accelerated microstructure imaging
+    via convex optimization (AMICO) from diffusion MRI data.
+    Neuroimage 105 (2015) 32-44.
 ----------------------------------------------------------
 """
 

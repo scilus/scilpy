@@ -9,7 +9,7 @@ found using a threshold on the FA.
 
 Formerly: scil_compute_ssst_frf.py
 ----------------------------------------------------------------------
-References:
+Reference:
 [1] Tournier et al. NeuroImage 2007
 ----------------------------------------------------------------------
 """

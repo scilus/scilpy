@@ -7,9 +7,8 @@ Script to remove specific labels from an atlas volume.
     >>> scil_labels_remove.py DKT_labels.nii out_labels.nii.gz -i 5001 5002
 
 Formerly: scil_remove_labels.py
-
 ----------------------------------------------------------------------------
-References:
+Reference:
 [1] Al-Sharif N.B., St-Onge E., Vogel J.W., Theaud G.,
     Evans A.C. and Descoteaux M. OHBM 2019.
     Surface integration for connectome analysis in age prediction.
