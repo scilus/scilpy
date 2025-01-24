@@ -9,7 +9,7 @@ scil_connectivity_math.py.
 Can be used with any connectivity matrix from
 scil_connectivity_compute_matrices.py.
 
-For example, a simple filtering (Jasmeen style) would be:
+For example, a filtering as performed in [1] would be:
 scil_connectivity_filter.py out_mask.npy
     --greater_than */sc.npy 1 0.90
     --lower_than */sim.npy 2 0.90
@@ -17,10 +17,10 @@ scil_connectivity_filter.py out_mask.npy
 
 This will result in a binary mask where each node with a value of 1 represents
 a node with at least 90% of the population having at least 1 streamline,
-90% of the population is similar to the average (2mm) and 90% of the
+90% of the population being similar to the average (2mm) and 90% of the
 population having at least 40mm of average streamlines length.
 
-All operation are stricly > or <, there is no >= or <=.
+All operations are stricly > or <, there is no >= or <=.
 
 --greater_than or --lower_than expect the same convention:
     MATRICES_LIST VALUE_THR POPULATION_PERC
@@ -28,9 +28,14 @@ It is strongly recommended (but not enforced) that the same number of
 connectivity matrices is used for each condition.
 
 This script performs an intersection of all conditions, meaning that all
-conditions must be met in order not to be filtered.
+conditions must be met in order to not be filtered.
+
 If the user wants to manually handle the requirements, --keep_condition_count
 can be used and manually binarized using scil_connectivity_math.py
+
+[1] Sidhu, J. (2022). Inter-lobar Connectivity of the Frontal Lobe Association
+Tracts Consistently Observed in 105 Healthy Adults
+(Doctoral dissertation, Université de Sherbrooke).
 
 Formerly: scil_filter_connectivity.py
 """
@@ -44,8 +49,7 @@ from scilpy.image.volume_math import invert
 from scilpy.io.utils import (add_overwrite_arg, add_verbose_arg,
                              assert_outputs_exist,
                              load_matrix_in_any_format,
-                             save_matrix_in_any_format)
-from scilpy.version import version_string
+                             save_matrix_in_any_format, assert_inputs_exist)
 
 
 def _build_arg_parser():
@@ -57,11 +61,13 @@ def _build_arg_parser():
                    help='Output mask (matrix) resulting from the provided '
                         'conditions (.npy).')
 
-    p.add_argument('--lower_than', nargs='*', action='append',
+    p.add_argument('--lower_than', nargs='*', action='append', default=[],
+                   metavar='MATRICES_LIST VALUE_THR POPULATION_PERC',
                    help='Lower than condition using the VALUE_THR in '
                         'at least POPULATION_PERC (from MATRICES_LIST).\n'
                         'See description for more details.')
-    p.add_argument('--greater_than', nargs='*', action='append',
+    p.add_argument('--greater_than', nargs='*', action='append', default=[],
+                   metavar='MATRICES_LIST VALUE_THR POPULATION_PERC',
                    help='Greater than condition using the VALUE_THR in '
                         'at least POPULATION_PERC (from MATRICES_LIST).\n'
                         'See description for more details.')
@@ -79,11 +85,38 @@ def _build_arg_parser():
     return p
 
 
+def _filter(input_list, condition):
+    matrices = [load_matrix_in_any_format(i) for i in input_list[:-2]]
+    shape = matrices[0].shape
+    matrices = np.rollaxis(np.array(matrices), axis=0, start=3)
+    value_threshold = float(input_list[-2])
+    population_threshold = int(float(input_list[-1]) * matrices.shape[-1])
+
+    empty_matrices = np.zeros(matrices.shape)
+    # Only difference between both condition, the rest is identical
+    if condition == 'lower':
+        empty_matrices[matrices < value_threshold] = 1
+    else:
+        empty_matrices[matrices > value_threshold] = 1
+    population_score = np.sum(empty_matrices, axis=2)
+
+    filter_mask = population_score > population_threshold
+    logging.info('Condition {}_than resulted in {} filtered '
+                 'elements out of {}.'
+                 .format(condition, np.count_nonzero(~filter_mask),
+                         np.prod(shape)))
+
+    return filter_mask
+
+
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
+    inputs = [m for cond in args.lower_than for m in cond[:-2]]
+    inputs.extend([m for cond in args.greater_than for m in cond[:-2]])
+    assert_inputs_exist(parser, inputs)
     assert_outputs_exist(parser, args, args.out_matrix_mask)
 
     if not args.lower_than and not args.greater_than:
@@ -100,34 +133,16 @@ def main():
     condition_counter = 0
     shape = load_matrix_in_any_format(conditions_list[0][1][0]).shape
     output_mask = np.zeros(shape)
-    for input_tuple_list in conditions_list:
-        condition = input_tuple_list[0]
-        input_list = input_tuple_list[1]
 
+    for input_list in args.lower_than:
         condition_counter += 1
-        matrices = [load_matrix_in_any_format(i) for i in input_list[:-2]]
-        matrices = np.rollaxis(np.array(matrices), axis=0, start=3)
-        value_threshold = float(input_list[-2])
-        population_threshold = int(float(input_list[-1]) * matrices.shape[-1])
+        filter_mask = _filter(input_list, 'lower')
+        output_mask[filter_mask] += 1
 
-        empty_matrices = np.zeros(matrices.shape)
-        # Only difference between both condition, the rest is identical
-        if condition == 'lower':
-            empty_matrices[matrices < value_threshold] = 1
-        else:
-            empty_matrices[matrices > value_threshold] = 1
-
-        population_score = np.sum(empty_matrices, axis=2)
-
-        logging.info('Condition {}_than (#{}) resulted in {} filtered '
-                     'elements out of {}.'.format(
-                          condition,
-                          condition_counter,
-                          len(np.where(population_score <
-                                       population_threshold)[0]),
-                          np.prod(shape)))
-
-        output_mask[population_score > population_threshold] += 1
+    for input_list in args.lower_than:
+        condition_counter += 1
+        filter_mask = _filter(input_list, 'gteater')
+        output_mask[filter_mask] += 1
 
     if not args.keep_condition_count:
         output_mask[output_mask < condition_counter] = 0
@@ -137,7 +152,7 @@ def main():
         if args.keep_condition_count:
             output_mask = np.abs(output_mask - np.max(output_mask))
         else:
-            output_mask = invert([output_mask])
+            output_mask = invert([output_mask], ref_img=None)
 
     filtered_elem = np.prod(shape) - np.count_nonzero(output_mask)
 

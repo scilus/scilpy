@@ -3,7 +3,7 @@
 
 """
 Evaluate graph theory measures from connectivity matrices.
-A length weighted and a streamline count weighted matrix are required since
+A length-weighted and a streamline count-weighted matrix are required since
 some measures require one or the other.
 
 This script evaluates the measures one subject at the time. To generate a
@@ -13,8 +13,7 @@ the --append_json option as well as using the same output filename.
     ${i}/len_prob.npy hcp_prob.json --append_json --avg_node_wise; done
 
 Some measures output one value per node, the default behavior is to list
-them all into a list. To obtain only the average use the
---avg_node_wise option.
+them all. To obtain only the average use the --avg_node_wise option.
 
 The computed connectivity measures are:
 centrality, modularity, assortativity, participation, clustering,
@@ -61,7 +60,7 @@ def _build_arg_parser():
                    help='Input connectivity matrix (.npy).\n'
                         'Typically a streamline count weighted matrix.')
     p.add_argument('in_length_matrix',
-                   help='Input length weighted matrix (.npy).')
+                   help='Input length-weighted matrix (.npy).')
     p.add_argument('out_json',
                    help='Path of the output json.')
 
@@ -108,7 +107,8 @@ def main():
     len_matrix = load_matrix_in_any_format(args.in_length_matrix)
 
     if args.filtering_mask:
-        mask_matrix = load_matrix_in_any_format(args.filtering_mask)
+        mask_matrix = load_matrix_in_any_format(
+            args.filtering_mask).astype(bool)
         conn_matrix *= mask_matrix
         len_matrix *= mask_matrix
 

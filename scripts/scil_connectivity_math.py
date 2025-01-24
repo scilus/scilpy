@@ -95,14 +95,15 @@ def main():
 
     if args.operation not in OPERATIONS.keys():
         parser.error('Operation {} not implemented.'.format(args.operation))
+    if args.operation == 'convert' and not args.data_type:
+        parser.error('Convert operation must be used with --data_type.')
 
     # Find at least one matrix for reference
+    found_ref = False
     for input_arg in args.in_matrices:
-        found_ref = False
         if not is_float(input_arg):
-            ref_data = load_matrix_in_any_format(input_arg)
-            ref_matrix = nib.Nifti1Image(ref_data, np.eye(4))
-            mask = np.zeros(ref_data.shape)
+            ref_matrix = load_matrix(input_arg)
+            mask = np.zeros(ref_matrix.shape)
             found_ref = True
             break
 
@@ -132,10 +133,7 @@ def main():
             mask[data > 0] = 1
         input_matrices.append(matrix)
 
-    if args.operation == 'convert' and not args.data_type:
-        parser.error('Convert operation must be used with --data_type.')
-
-    # Perform the request operation
+    # Perform the requested operation
     try:
         output_data = OPERATIONS[args.operation](input_matrices, ref_matrix)
     except ValueError:
