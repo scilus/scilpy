@@ -12,7 +12,6 @@ Please use a hdf5 (.h5) file containing decomposed connections
 
 Formerly: scil_compute_fixel_afd_from_hdf5.py
 ----------------------------------------------------------------------------
-
 Reference:
 [1] Raffelt, D., Tournier, JD., Rose, S., Ridgway, GR., Henderson, R.,Crozier,
     S., Salvado, O., & Connelly, A. (2012). Apparent Fibre Density: a novel

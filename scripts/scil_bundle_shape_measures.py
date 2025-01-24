@@ -34,7 +34,7 @@ If data comparison is performed, the bundles MUST be in same resolution.
 Formerly: scil_compute_bundle_volume.py or
 scil_evaluate_bundles_individual_measures.py
 ------------------------------------------------------------------------------
-References:
+Reference:
 [1] Fang-Cheng Yeh. 2020.
     Shape analysis of the human association pathways. NeuroImage.
 ------------------------------------------------------------------------------

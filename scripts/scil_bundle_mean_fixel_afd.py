@@ -13,11 +13,11 @@ Please use a bundle file rather than a whole tractogram.
 Formerly: scil_compute_fixel_afd_from_bundles.py
 -----------------------------------------------------------------------------
 Reference:
-    [1] Raffelt, D., Tournier, JD., Rose, S., Ridgway, GR., Henderson, R.,
-        Crozier, S., Salvado, O., & Connelly, A. (2012).
-        Apparent Fibre Density: a novel measure for the analysis of
-        diffusion-weighted magnetic resonance images. NeuroImage, 59(4),
-        3976--3994.
+[1] Raffelt, D., Tournier, JD., Rose, S., Ridgway, GR., Henderson, R.,
+    Crozier, S., Salvado, O., & Connelly, A. (2012).
+    Apparent Fibre Density: a novel measure for the analysis of
+    diffusion-weighted magnetic resonance images. NeuroImage, 59(4),
+    3976--3994.
 -----------------------------------------------------------------------------
 """
 

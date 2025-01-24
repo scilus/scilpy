@@ -29,6 +29,7 @@ and --g2.
 
 Formerly: scil_compare_connectivity.py
 ----------------------------------------------------------------------------
+References:
 [1] Rubinov, Mikail, and Olaf Sporns. "Complex network measures of brain
     connectivity: uses and interpretations." Neuroimage 52.3 (2010):
     1059-1069.

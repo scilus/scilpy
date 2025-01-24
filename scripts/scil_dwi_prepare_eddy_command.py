@@ -16,7 +16,6 @@ import os
 import subprocess
 
 import numpy as np
-
 from dipy.io.gradients import read_bvals_bvecs
 
 from scilpy.io.utils import (add_overwrite_arg, add_verbose_arg,

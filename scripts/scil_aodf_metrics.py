@@ -23,10 +23,8 @@ perfectly symmetric signal and 1 to a perfectly anti-symmetric signal. It is
 given as the ratio of the L2-norm of odd SH coefficients on the L2-norm of all
 SH coefficients.
 
-
 Formerly: scil_compute_asym_odf_metrics.py
 ------------------------------------------------------------------------
-
 References:
 [1] C. Poirier and M. Descoteaux, "Filtering Methods for Asymmetric ODFs:
 Where and How Asymmetry Occurs in the White Matter." bioRxiv. 2022 Jan 1;

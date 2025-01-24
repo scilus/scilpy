@@ -49,15 +49,15 @@ scil_connectivity_compute_pca.py input_folder/ output_folder/
 -------------------------------------------------------------------------------
 References:
 [1] Chamberland M, Raven EP, Genc S, Duffy K, Descoteaux M, Parker GD, Tax CMW,
- Jones DK. Dimensionality reduction of diffusion MRI measures for improved
- tractometry of the human brain. Neuroimage. 2019 Oct 15;200:89-100.
- doi: 10.1016/j.neuroimage.2019.06.020. Epub 2019 Jun 20. PMID: 31228638;
- PMCID: PMC6711466.
+    Jones DK. Dimensionality reduction of diffusion MRI measures for improved
+    tractometry of the human brain. Neuroimage. 2019 Oct 15;200:89-100.
+    doi: 10.1016/j.neuroimage.2019.06.020. Epub 2019 Jun 20. PMID: 31228638;
+    PMCID: PMC6711466.
 [2] Gagnon A., Grenier G., Bocti C., Gillet V., Lepage J.-F., Baccarelli A. A.,
- Posner J., Descoteaux M., Takser L. (2022). White matter microstructural
- variability linked to differential attentional skills and impulsive behavior
- in a pediatric population. Cerebral Cortex.
- https://doi.org/10.1093/cercor/bhac180
+    Posner J., Descoteaux M., Takser L. (2022). White matter microstructural
+    variability linked to differential attentional skills and impulsive behavior
+    in a pediatric population. Cerebral Cortex.
+    https://doi.org/10.1093/cercor/bhac180
 [3] https://towardsdatascience.com/what-are-pca-loadings-and-biplots-9a7897f2e559
 -------------------------------------------------------------------------------
 """
