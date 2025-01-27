@@ -198,7 +198,9 @@ def main():
     our_origin = Origin('center')
 
     logging.debug('Loading tractogram & diameters')
-    in_sft = load_tractogram(args.in_fibertubes, 'same', our_space, our_origin)
+    in_sft = load_tractogram(args.in_fibertubes, 'same',
+                             to_space=our_space,
+                             to_origin=our_origin)
     centerlines = list(in_sft.get_streamlines_copy())
     diameters = np.reshape(in_sft.data_per_streamline['diameters'],
                            len(centerlines))

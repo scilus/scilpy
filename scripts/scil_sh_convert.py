@@ -50,7 +50,7 @@ def main():
     assert_inputs_exist(parser, args.in_sh)
     assert_outputs_exist(parser, args, args.out_sh)
 
-    sphere = get_sphere('repulsion724').subdivide(1)
+    sphere = get_sphere(name='repulsion724').subdivide(n=1)
     img = nib.load(args.in_sh)
     data = img.get_fdata(dtype=np.float32)
 

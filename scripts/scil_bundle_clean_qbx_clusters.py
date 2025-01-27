@@ -280,7 +280,7 @@ def save_clusters(cluster_lists, indexes_list, directory, basenames_list,
         if directory:
             tmp_sft = StatefulTractogram(streamlines,
                                          cluster_lists[0],
-                                         Space.RASMM)
+                                         space=Space.RASMM)
             tmp_filename = os.path.join(directory,
                                         basenames_list[idx])
             save_tractogram(tmp_sft, tmp_filename,

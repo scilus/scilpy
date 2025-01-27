@@ -78,7 +78,7 @@ def unified_filtering(sh_data, sh_order, sh_basis, is_legacy, full_basis,
         raise ValueError('Option use_opencl must be enabled '
                          'to use device \'gpu\'.')
 
-    sphere = get_sphere(sphere_str)
+    sphere = get_sphere(name=sphere_str)
 
     if sigma_spatial is not None:
         if sigma_spatial <= 0.0:

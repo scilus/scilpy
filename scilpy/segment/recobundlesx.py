@@ -180,9 +180,9 @@ class RecobundlesX(object):
         possible_slr_transform_type = {'translation': 0, 'rigid': 1,
                                        'similarity': 2, 'scaling': 3}
         static = select_random_set_of_streamlines(self.model_centroids,
-                                                  select_model, self.rng)
+                                                  select_model, rng=self.rng)
         moving = select_random_set_of_streamlines(self.neighb_centroids,
-                                                  select_target, self.rng)
+                                                  select_target, rng=self.rng)
 
         # Tuple 0,1,2 are the min & max bound in x,y,z for translation
         # Tuple 3,4,5 are the min & max bound in x,y,z for rotation

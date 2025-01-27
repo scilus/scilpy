@@ -656,7 +656,7 @@ def transform_warp_sft(sft, linear_transfo, target, inverse=False,
         streamlines = transform_streamlines(streamlines, linear_transfo)
 
     streamlines._data = streamlines._data.astype(dtype)
-    new_sft = StatefulTractogram(streamlines, target, Space.RASMM,
+    new_sft = StatefulTractogram(streamlines, target, space=Space.RASMM,
                                  data_per_point=sft.data_per_point,
                                  data_per_streamline=sft.data_per_streamline)
     if cut_invalid:

@@ -212,9 +212,9 @@ def _peaks_from_sh_loop(shm_coeff, B, sphere, relative_peak_threshold,
             odf[odf < absolute_threshold] = 0.
 
             dirs, peaks, ind = peak_directions(odf, sphere,
-                                               relative_peak_threshold,
-                                               min_separation_angle,
-                                               is_symmetric)
+                                               relative_peak_threshold=relative_peak_threshold,
+                                               min_separation_angle=min_separation_angle,
+                                               is_symmetric=is_symmetric)
 
             if peaks.shape[0] != 0:
                 n = min(npeaks, peaks.shape[0])
@@ -287,7 +287,8 @@ def peaks_from_sh(shm_coeff, sphere, mask=None, relative_peak_threshold=0.5,
     tuple of np.ndarray
         peak_dirs, peak_values, peak_indices
     """
-    sh_order = order_from_ncoef(shm_coeff.shape[-1], full_basis)
+    sh_order = order_from_ncoef(shm_coeff.shape[-1],
+                                full_basis=full_basis)
     B, _ = sh_to_sf_matrix(sphere, sh_order, sh_basis_type,
                            full_basis, legacy=is_legacy)
 

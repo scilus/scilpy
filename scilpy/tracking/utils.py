@@ -322,7 +322,7 @@ def get_direction_getter(in_img, algo, sphere, sub_sphere, theta, sh_basis,
     img_data = nib.load(in_img).get_fdata(dtype=np.float32)
 
     sphere = HemiSphere.from_sphere(
-        get_sphere(sphere)).subdivide(sub_sphere)
+        get_sphere(sphere)).subdivide(n=sub_sphere)
 
     # Theta depends on user choice and algorithm
     theta = get_theta(theta, algo)
