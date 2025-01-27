@@ -129,9 +129,10 @@ class RecobundlesX(object):
         len_centroids = len(self.model_centroids)
         if len_centroids > 1000:
             logging.warning('Model {0} simplified at threshold '
-                            '{1}mm with {2} centroids'.format(identifier,
-                                                              str(model_clust_thr),
-                                                              str(len_centroids)))
+                            '{1}mm with '
+                            '{2} centroids'.format(identifier,
+                                                   str(model_clust_thr),
+                                                   str(len_centroids)))
 
     def _reduce_search_space(self, neighbors_reduction_thr=18):
         """
@@ -195,7 +196,8 @@ class RecobundlesX(object):
         slr_transform_type_id = possible_slr_transform_type[slr_transform_type]
         if slr_transform_type_id >= 0:
             init_transfo_dof = np.zeros(3)
-            slr = StreamlineLinearRegistration(metric=metric, method="L-BFGS-B",
+            slr = StreamlineLinearRegistration(metric=metric,
+                                               method="L-BFGS-B",
                                                x0=init_transfo_dof,
                                                bounds=bounds_dof[:3],
                                                num_threads=1)

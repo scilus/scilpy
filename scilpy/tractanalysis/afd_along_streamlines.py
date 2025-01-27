@@ -52,8 +52,8 @@ def afd_map_along_streamlines(sft, fodf, fodf_basis, length_weighting,
 def afd_and_rd_sums_along_streamlines(sft, fodf, fodf_basis,
                                       length_weighting, is_legacy=True):
     """
-    Compute the mean Apparent Fiber Density (AFD) and mean Radial fODF (radfODF)
-    maps along a bundle.
+    Compute the mean Apparent Fiber Density (AFD) and
+    mean Radial fODF (radfODF) maps along a bundle.
 
     Parameters
     ----------

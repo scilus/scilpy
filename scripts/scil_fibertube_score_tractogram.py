@@ -55,7 +55,6 @@ See also:
 
 import os
 import json
-import numba
 import argparse
 import logging
 import numpy as np

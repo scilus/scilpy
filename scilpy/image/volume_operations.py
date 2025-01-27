@@ -272,7 +272,8 @@ def register_image(static, static_grid2world, moving, moving_grid2world,
 
     sigmas = [8.0, 4.0, 2.0, 1.0] if fine else [8.0, 4.0, 2.0]
     factors = [8, 4, 2, 1.0] if fine else [8, 4, 2]
-    metric = MutualInformationMetric(nbins=nbins, sampling_proportion=sampling_prop)
+    metric = MutualInformationMetric(nbins=nbins,
+                                     sampling_proportion=sampling_prop)
     reg_obj = AffineRegistration(metric=metric, level_iters=level_iters,
                                  sigmas=sigmas, factors=factors, verbosity=0)
 

@@ -160,7 +160,8 @@ def compute_rish(sh, mask=None, full_basis=False):
     n_indices_per_order = np.bincount(order_ids)[::step]
 
     # Get start index of each order (e.g. for order 6 : [0,1,6,15])
-    order_positions = np.concatenate([[0], np.cumsum(n_indices_per_order)])[:-1]
+    order_positions = np.concatenate([[0],
+                                      np.cumsum(n_indices_per_order)])[:-1]
 
     # Get paired indices for np.add.reduceat, specifying where to reduce.
     # The last index is omitted, it is automatically replaced by len(array)-1

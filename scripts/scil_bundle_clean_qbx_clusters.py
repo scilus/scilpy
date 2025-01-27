@@ -177,9 +177,6 @@ def main():
     sft_rejected_on_size, filename_rejected_on_size = [], []
     concat_streamlines = []
 
-    ref_bundle = load_tractogram_with_reference(
-        parser, args, args.in_bundles[0])
-
     for filename in args.in_bundles:
         basename = os.path.basename(filename)
         sft = load_tractogram_with_reference(parser, args, filename)

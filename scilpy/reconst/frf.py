@@ -10,8 +10,7 @@ from dipy.reconst.mcsd import mask_for_response_msmt, response_from_mask_msmt
 from dipy.segment.mask import applymask
 import numpy as np
 
-from scilpy.gradients.bvec_bval_tools import (check_b0_threshold,
-                                              is_normalized_bvecs,
+from scilpy.gradients.bvec_bval_tools import (is_normalized_bvecs,
                                               normalize_bvecs,
                                               DEFAULT_B0_THRESHOLD)
 
