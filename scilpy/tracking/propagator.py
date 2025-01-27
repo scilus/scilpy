@@ -4,7 +4,7 @@ import logging
 
 import numpy as np
 
-import dipy
+from dipy.data import get_sphere
 from dipy.io.stateful_tractogram import Space, Origin
 from dipy.reconst.shm import sh_to_sf_matrix
 
@@ -278,7 +278,7 @@ class PropagatorOnSphere(AbstractPropagator):
         """
         super().__init__(datavolume, step_size, rk_order, space, origin)
 
-        self.sphere = dipy.data.get_sphere(dipy_sphere).subdivide(n=sub_sphere)
+        self.sphere = get_sphere(name=dipy_sphere).subdivide(n=sub_sphere)
         self.dirs = np.zeros(len(self.sphere.vertices), dtype=np.ndarray)
         for i in range(len(self.sphere.vertices)):
             self.dirs[i] = TrackingDirection(self.sphere.vertices[i], i)
