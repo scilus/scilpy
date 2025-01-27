@@ -29,7 +29,7 @@ scil_viz_gradients_screenshot.py.
 import argparse
 import logging
 import numpy as np
-from pathlib import Path
+import os
 
 from dipy.io.gradients import read_bvals_bvecs
 
@@ -111,11 +111,14 @@ def main():
     # Check output files
     out_files = [None, None]
     if args.viz_and_save:
-        out_path = Path(args.viz_and_save)
-        out_files = [str(out_path / "inputed_gradient_scheme"),
-                     str(out_path / "optimized_gradient_scheme")]
-        assert_outputs_exist(parser, args, out_files)
-        print(out_files)
+        out_path = args.viz_and_save
+        out_files = [os.path.join(out_path, "inputed_gradient_scheme"),
+                     os.path.join(out_path, "optimized_gradient_scheme")]
+        real_out_files = [os.path.join(out_path,
+                                       "inputed_gradient_scheme.png"),
+                          os.path.join(out_path,
+                                       "optimized_gradient_scheme.png")]
+        assert_outputs_exist(parser, args, [], optional=real_out_files)
 
     # Check and remove b0s
     _ = check_b0_threshold(bvals.min(), args.b0_threshold, args.skip_b0_check,
