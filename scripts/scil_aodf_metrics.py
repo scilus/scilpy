@@ -24,22 +24,22 @@ given as the ratio of the L2-norm of odd SH coefficients on the L2-norm of all
 SH coefficients.
 
 Formerly: scil_compute_asym_odf_metrics.py
-------------------------------------------------------------------------
+--------------------------------------------------------------------------------
 References:
 [1] C. Poirier and M. Descoteaux, "Filtering Methods for Asymmetric ODFs:
-Where and How Asymmetry Occurs in the White Matter." bioRxiv. 2022 Jan 1;
-2022.12.18.520881. doi: https://doi.org/10.1101/2022.12.18.520881
+    Where and How Asymmetry Occurs in the White Matter." bioRxiv. 2022 Jan 1;
+    2022.12.18.520881. doi: https://doi.org/10.1101/2022.12.18.520881
 
-[2] S. Cetin Karayumak, E. Özarslan, and G. Unal,
-"Asymmetric Orientation Distribution Functions (AODFs) revealing intravoxel
-geometry in diffusion MRI," Magnetic Resonance Imaging, vol. 49, pp. 145-158,
-Jun. 2018, doi: https://doi.org/10.1016/j.mri.2018.03.006.
+[2] S. Cetin Karayumak, E. Özarslan, and G. Unal,"Asymmetric Orientation 
+    Distribution Functions (AODFs) revealing intravoxel geometry in diffusion MRI"
+    Magnetic Resonance Imaging, vol. 49, pp. 145-158, Jun. 2018,
+    doi: https://doi.org/10.1016/j.mri.2018.03.006.
 
 [3] C. Poirier, E. St-Onge, and M. Descoteaux, "Investigating the Occurence of
-Asymmetric Patterns in White Matter Fiber Orientation Distribution Functions"
-[Abstract], In: Proc. Intl. Soc. Mag. Reson. Med. 29 (2021), 2021 May 15-20,
-Vancouver, BC, Abstract number 0865.
-------------------------------------------------------------------------
+    Asymmetric Patterns in White Matter Fiber Orientation Distribution Functions"
+    [Abstract], In: Proc. Intl. Soc. Mag. Reson. Med. 29 (2021), 2021 May 15-20,
+    Vancouver, BC, Abstract number 0865.
+---------------------------------------------------------------------------------
 """
 
 
@@ -67,7 +67,7 @@ def _build_arg_parser():
     p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawTextHelpFormatter,
                                 epilog=version_string)
-    
+
     p.add_argument('in_sh', help='Input SH image.')
 
     p.add_argument('--mask',
