@@ -115,7 +115,7 @@ def main():
         out_files = [os.path.join(out_path, "inputed_gradient_scheme"),
                      os.path.join(out_path, "optimized_gradient_scheme")]
         assert_outputs_exist(parser, args, [],
-                             optional=[file + '.png' for file in out_files])
+                             optional=[f + '.png' for f in out_files])
 
     # Check and remove b0s
     _ = check_b0_threshold(bvals.min(), args.b0_threshold, args.skip_b0_check,
