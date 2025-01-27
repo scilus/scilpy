@@ -307,6 +307,28 @@ def add_bbox_arg(parser):
                              'streamlines).')
 
 
+def add_surface_spatial_arg(parser):
+    SPACES = ['VOX', 'VOXMM', 'RASMM', 'LPSMM']
+    ORIGINS = ['TRACKVIS', 'NIFTI']
+    parser.add_argument('--source_space',
+                        default='RASMM', choices=SPACES,
+                        help='Source space of the input surface [%(default)s].')
+    parser.add_argument('--destination_space',
+                        default='RASMM', choices=SPACES,
+                        help='Destination space of the output surface [%(default)s].')
+    parser.add_argument('--source_origin',
+                        default='TRACKVIS', choices=ORIGINS,
+                        help='Source origin of the input surface [%(default)s].')
+    parser.add_argument('--destination_origin',
+                        default='TRACKVIS', choices=ORIGINS,
+                        help='Destination origin of the output surface [%(default)s].')
+
+
+def add_vtk_legacy_arg(parser):
+    parser.add_argument('--legacy_vtk_format', action='store_true',
+                        help='Save the VTK file in the legacy format.')
+
+
 def add_sh_basis_args(parser, mandatory=False, input_output=False):
     """
     Add spherical harmonics (SH) bases argument. For more information about
@@ -525,14 +547,14 @@ def add_volume_screenshot_args(parser, input_name, mandatory=True,
     cmap_parsing_group.add_argument(f"--{input_name}_cmap_name",
                                     default=default_cmap,
                                     help=f"Colormap name for the {descriptor} "
-                                         f"image data. [%(default)s]")
+                                    f"image data. [%(default)s]")
 
     opacity_parsing_group.add_argument(f"--{input_name}_opacity",
                                        type=ranged_type(float, 0., 1.),
                                        default=default_alpha,
                                        help=f"Opacity value for the "
-                                            f"{descriptor} image data. "
-                                            f"[%(default)s]")
+                                       f"{descriptor} image data. "
+                                       f"[%(default)s]")
 
 
 def add_default_screenshot_args(parser, slice_ids_mandatory=True,
