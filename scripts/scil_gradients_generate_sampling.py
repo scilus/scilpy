@@ -12,7 +12,7 @@ diffusion gradient amplitude over a few TR.
 
 Formerly: scil_generate_gradient_sampling.py
 -------------------------------------------------------------------------------
-References:
+Reference:
 [1] Emmanuel Caruyer, Christophe Lenglet, Guillermo Sapiro,
     Rachid Deriche. Design of multishell gradient sampling with uniform
     coverage in diffusion MRI. Magnetic Resonance in Medicine, Wiley, 2013,
