@@ -19,20 +19,25 @@ b-vectors' energy (input_energy/optimal_energy). Above a given maximum ratio
 value, the script raises a warning.
 
 The user might want to use the -v verbose option to see the computed energies.
-The --visualize option displays both the inputed and optimal b-vectors on a
-single shell.
+The --viz option displays both the inputed and optimal b-vectors on a
+single shell. The --viz_and_save option first displays both the inputed and
+optimal b-vectors on a single shell and then saves them as png. Use one or the
+other, not both. For more options on visualization, please use
+scil_viz_gradients_screenshot.py.
 """
 
 import argparse
 import logging
 import numpy as np
+from pathlib import Path
 
 from dipy.io.gradients import read_bvals_bvecs
 
 from scilpy.io.utils import (add_overwrite_arg, add_verbose_arg,
                              add_b0_thresh_arg, add_skip_b0_check_arg,
                              add_tolerance_arg, assert_inputs_exist,
-                             assert_gradients_filenames_valid)
+                             assert_gradients_filenames_valid,
+                             assert_outputs_exist)
 from scilpy.gradients.bvec_bval_tools import (is_normalized_bvecs,
                                               check_b0_threshold,
                                               normalize_bvecs,
@@ -65,10 +70,13 @@ def _build_arg_parser():
              'energy \nand the optimal b-vectors\' energy '
              '(input_energy/optimal_energy). [%(default)s]')
 
-    p.add_argument(
-        '--visualize', action='store_true',
-        help='If set, the inputed gradient scheme is displayed, and then the '
-             'optimal one.')
+    p2 = p.add_mutually_exclusive_group()
+    p2.add_argument('--viz', action='store_true',
+                    help='Visualize the inputed gradient scheme, then the '
+                         'optimal one.')
+    p2.add_argument('--viz_and_save', metavar='OUT_FOLDER',
+                    help='Save the inputed and optimal gradient schemes in '
+                         'the specified folder.')
 
     add_b0_thresh_arg(p)
     add_skip_b0_check_arg(p, will_overwrite_with_min=False)
@@ -99,6 +107,15 @@ def main():
     else:
         parser.error('Depending on the gradient format, you should have '
                      'two files for FSL format and one file for MRtrix')
+
+    # Check output files
+    out_files = [None, None]
+    if args.viz_and_save:
+        out_path = Path(args.viz_and_save)
+        out_files = [str(out_path / "inputed_gradient_scheme"),
+                     str(out_path / "optimized_gradient_scheme")]
+        assert_outputs_exist(parser, args, out_files)
+        print(out_files)
 
     # Check and remove b0s
     _ = check_b0_threshold(bvals.min(), args.b0_threshold, args.skip_b0_check,
@@ -133,12 +150,13 @@ def main():
                                               verbose=0)
 
     # Visualize the gradient schemes
-    if args.visualize:
+    if args.viz or args.viz_and_save:
         viz_bvecs = build_ms_from_shell_idx(bvecs, shell_idx)
         viz_opt_bvecs = build_ms_from_shell_idx(opt_bvecs, shell_idx)
-        plot_proj_shell(viz_bvecs, use_sym=True, title="Inputed b-vectors")
+        plot_proj_shell(viz_bvecs, use_sym=True, title="Inputed b-vectors",
+                        ofile=out_files[0])
         plot_proj_shell(viz_opt_bvecs, use_sym=True,
-                        title="Optimized b-vectors")
+                        title="Optimized b-vectors", ofile=out_files[1])
 
     # Compute the energy for both the input bvecs and optimal bvecs.
     energy, opt_energy = energy_comparison(bvecs, opt_bvecs, nb_shells,
@@ -157,6 +175,9 @@ def main():
                         'on the sphere. \nTheir energy is {} times higher '
                         'than the optimal energy.'
                         .format(np.round(e_ratio, decimals=3)))
+    else:
+        logging.warning('Everything looks fine with the inputed gradient '
+                        'scheme.')
 
 
 if __name__ == "__main__":

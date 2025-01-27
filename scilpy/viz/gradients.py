@@ -125,7 +125,7 @@ def plot_proj_shell(ms, use_sym=True, use_sphere=True, same_color=False,
     scene = window.Scene()
     scene.SetBackground(1, 1, 1)
     if use_sphere:
-        sphere = get_sphere('symmetric724')
+        sphere = get_sphere(name='symmetric724')
         shape = (1, 1, 1, sphere.vertices.shape[0])
         _, fname = mkstemp(suffix='_odf_slicer.mmap')
         odfs = np.memmap(fname, dtype=np.float64, mode='w+', shape=shape)
