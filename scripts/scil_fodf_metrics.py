@@ -144,7 +144,7 @@ def main():
     mask = get_data_as_mask(nib.load(args.mask),
                             dtype=bool) if args.mask else None
 
-    sphere = get_sphere(args.sphere)
+    sphere = get_sphere(name=args.sphere)
     sh_basis, is_legacy = parse_sh_basis_arg(args)
 
     # Computing peaks

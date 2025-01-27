@@ -523,7 +523,7 @@ def cosine_filtering(in_sh, sh_order=8, sh_basis='descoteaux07',
         Filtered signal as SH coefficients in full SH basis.
     """
     # Load the sphere used for projection of SH
-    sphere = get_sphere(sphere_str)
+    sphere = get_sphere(name=sphere_str)
 
     # Normalized filter for each sf direction
     weights = _get_cosine_weights(sphere, dot_sharpness, sigma)
