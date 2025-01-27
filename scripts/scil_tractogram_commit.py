@@ -350,9 +350,6 @@ def main():
         assert_headers_compatible(parser, [args.in_tractogram, args.in_dwi],
                                   reference=args.reference)
 
-        if ext == '.tck':
-            logging.warning("Commit only works with .trk format")
-
     if args.commit2:
         if os.path.splitext(args.in_tractogram)[1] != '.h5':
             parser.error('COMMIT2 requires .h5 file for connectomics.')
