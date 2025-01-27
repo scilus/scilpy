@@ -103,7 +103,8 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist,
                              assert_output_dirs_exist_and_empty,
                              redirect_stdout_c, add_tolerance_arg,
-                             add_skip_b0_check_arg, assert_headers_compatible)
+                             add_skip_b0_check_arg, assert_headers_compatible,
+                             add_reference_arg)
 from scilpy.gradients.bvec_bval_tools import identify_shells, \
     check_b0_threshold
 
@@ -190,6 +191,7 @@ def _build_arg_parser():
     g2.add_argument('--compute_only', action='store_true',
                     help='Compute kernels only, --save_kernels must be used.')
 
+    add_reference_arg(p)
     add_tolerance_arg(p)
     add_skip_b0_check_arg(p, will_overwrite_with_min=True)
     add_processes_arg(p)
@@ -236,7 +238,9 @@ def _save_results(args, tmp_dir, ext, in_hdf5_file, offsets_list, sub_dir,
     # Loading the tractogram (we never did yet! Only sent the filename to
     # commit). Reminder. If input was a hdf5, we have changed
     # args.in_tractogram to our tmp_tractogram saved in tmp_dir.
-    sft = load_tractogram(args.in_tractogram, 'same')
+    if ext == '.trk':
+        args.reference = 'same'
+    sft = load_tractogram(args.in_tractogram, args.reference)
     length_list = length(sft.streamlines)
     np.savetxt(os.path.join(commit_results_dir, 'streamlines_length.txt'),
                length_list)
@@ -337,12 +341,14 @@ def main():
     # === Verifications ===
     assert_inputs_exist(parser, [args.in_tractogram, args.in_dwi,
                                  args.in_bval, args.in_bvec],
-                        [args.in_peaks, args.in_tracking_mask])
+                        [args.in_peaks, args.in_tracking_mask,
+                         args.reference])
     assert_output_dirs_exist_and_empty(parser, args, args.out_dir,
                                        optional=args.save_kernels)
     _, ext = os.path.splitext(args.in_tractogram)
-    if ext == '.trk':
-        assert_headers_compatible(parser, [args.in_tractogram, args.in_dwi])
+    if ext in ['.trk', '.tck']:
+        assert_headers_compatible(parser, [args.in_tractogram, args.in_dwi],
+                                  reference=args.reference)
 
     if args.commit2:
         if os.path.splitext(args.in_tractogram)[1] != '.h5':
@@ -414,13 +420,17 @@ def main():
         shells_centroids))
     with redirected_stdout:
         # Setting up the tractogram and nifti files
+        if ext == '.tck':
+            other_args = {'TCK_ref_image': args.reference}
+        else:
+            other_args = {}
         trk2dictionary.run(filename_tractogram=args.in_tractogram,
                            filename_peaks=args.in_peaks,
                            peaks_use_affine=False,
                            filename_mask=args.in_tracking_mask,
                            ndirs=args.nbr_dir,
                            path_out=tmp_dir.name,
-                           n_threads=args.nbr_processes)
+                           n_threads=args.nbr_processes, **other_args)
 
         # Preparation for fitting
         commit.core.setup()
