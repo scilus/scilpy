@@ -170,8 +170,10 @@ def apply_transform(transfo, reference, moving,
                             'bvecs with scil_gradients_apply_transform.py')
 
         affine_map = AffineMap(np.linalg.inv(transfo),
-                               dim[0:3], grid2world,
-                               moving_data.shape[0:3], moving_affine)
+                               domain_grid_shape=dim[0:3],
+                               domain_grid2world=grid2world,
+                               codomain_grid_shape=moving_data.shape[0:3],
+                               codomain_grid2world=moving_affine)
 
         orig_type = moving_data.dtype
         resampled = transform_dwi(affine_map, static_data, moving_data,
@@ -270,7 +272,8 @@ def register_image(static, static_grid2world, moving, moving_grid2world,
 
     sigmas = [8.0, 4.0, 2.0, 1.0] if fine else [8.0, 4.0, 2.0]
     factors = [8, 4, 2, 1.0] if fine else [8, 4, 2]
-    metric = MutualInformationMetric(nbins, sampling_prop)
+    metric = MutualInformationMetric(nbins=nbins,
+                                     sampling_proportion=sampling_prop)
     reg_obj = AffineRegistration(metric=metric, level_iters=level_iters,
                                  sigmas=sigmas, factors=factors, verbosity=0)
 

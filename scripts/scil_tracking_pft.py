@@ -190,7 +190,7 @@ def main():
         parser.error(
             'SH file is not isotropic. Tracking cannot be ran robustly.')
 
-    tracking_sphere = HemiSphere.from_sphere(get_sphere('repulsion724'))
+    tracking_sphere = HemiSphere.from_sphere(get_sphere(name='repulsion724'))
 
     # Check if sphere is unit, since we couldn't find such check in Dipy.
     if not np.allclose(np.linalg.norm(tracking_sphere.vertices, axis=1), 1.):

@@ -78,7 +78,7 @@ def unified_filtering(sh_data, sh_order, sh_basis, is_legacy, full_basis,
         raise ValueError('Option use_opencl must be enabled '
                          'to use device \'gpu\'.')
 
-    sphere = get_sphere(sphere_str)
+    sphere = get_sphere(name=sphere_str)
 
     if sigma_spatial is not None:
         if sigma_spatial <= 0.0:
@@ -536,7 +536,8 @@ def cosine_filtering(in_sh, sh_order=8, sh_basis='descoteaux07',
 
     # We want a B matrix to project on an inverse sphere to have the sf on
     # the opposite hemisphere for a given vertice
-    neg_B = sh_to_sf_matrix(Sphere(xyz=-sphere.vertices), sh_order_max=sh_order,
+    neg_B = sh_to_sf_matrix(Sphere(xyz=-sphere.vertices),
+                            sh_order_max=sh_order,
                             basis_type=sh_basis, return_inv=False,
                             full_basis=in_full_basis, legacy=is_legacy)
 

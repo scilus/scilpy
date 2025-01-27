@@ -278,7 +278,7 @@ class PropagatorOnSphere(AbstractPropagator):
         """
         super().__init__(datavolume, step_size, rk_order, space, origin)
 
-        self.sphere = dipy.data.get_sphere(dipy_sphere).subdivide(sub_sphere)
+        self.sphere = dipy.data.get_sphere(dipy_sphere).subdivide(n=sub_sphere)
         self.dirs = np.zeros(len(self.sphere.vertices), dtype=np.ndarray)
         for i in range(len(self.sphere.vertices)):
             self.dirs[i] = TrackingDirection(self.sphere.vertices[i], i)
