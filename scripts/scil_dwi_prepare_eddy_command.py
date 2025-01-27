@@ -15,8 +15,8 @@ import logging
 import os
 import subprocess
 
-import numpy as np
 from dipy.io.gradients import read_bvals_bvecs
+import numpy as np
 
 from scilpy.io.utils import (add_overwrite_arg, add_verbose_arg,
                              assert_fsl_options_exist,
