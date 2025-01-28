@@ -272,6 +272,10 @@ def add_skip_b0_check_arg(parser, will_overwrite_with_min,
         msg += ('If no b-value is found below the threshold, the script will '
                 'continue \nwith your minimal b-value as new {}.\n'
                 .format(b0_tol_name))
+    else:
+        msg += ('If no b-value is found below the threshold, the script will '
+                'continue \nwith the original {} and no b0 volumes.\n'
+                .format(b0_tol_name))
     msg += 'Use with care, and only if you understand your data.'
 
     parser.add_argument(
@@ -716,9 +720,9 @@ def assert_inputs_exist(parser, required, optional=None):
     ----------
     parser: argparse.ArgumentParser object
         Parser.
-    required: string or list of paths
+    required: string or list of paths or list of lists of paths
         Required paths to be checked.
-    optional: string or list of paths
+    optional: string or list of paths or list of lists of paths
         Optional paths to be checked.
     """
 
@@ -733,10 +737,18 @@ def assert_inputs_exist(parser, required, optional=None):
         optional = [optional]
 
     for required_file in required:
-        check(required_file)
+        if isinstance(required_file, str):
+            check(required_file)
+        else:
+            for file in required_file:
+                check(file)
     for optional_file in optional or []:
         if optional_file is not None:
-            check(optional_file)
+            if isinstance(optional_file, str):
+                check(optional_file)
+            else:
+                for file in optional_file:
+                    check(file)
 
 
 def assert_inputs_dirs_exist(parser, required, optional=None):
@@ -1046,7 +1058,7 @@ def save_matrix_in_any_format(filepath, output_data):
         raise ValueError('Extension {} is not supported'.format(ext))
 
 
-def assert_fsl_options_exist(parser, options_args, command):
+def assert_fsl_options_exist(parser, options_args, command, overwrite=False):
     """
     Assert that all options for topup or eddy exist.
     If not, print parser's usage and exit.
@@ -1059,6 +1071,8 @@ def assert_fsl_options_exist(parser, options_args, command):
         Options for fsl command
     command: string
         Command used (eddy or topup).
+    overwrite: bool
+        If true, will only print a warning if an option is not valid.
     """
     if command == 'eddy':
         fsl_options = eddy_options
@@ -1074,8 +1088,13 @@ def assert_fsl_options_exist(parser, options_args, command):
 
     for nOption in res:
         if nOption not in fsl_options:
-            parser.error('--{} is not a valid option for '
-                         '{} command.'.format(nOption, command))
+            if overwrite:
+                logging.warning('--{} may not be a valid option for '
+                                '{} command depending '
+                                'of its version.'.format(nOption, command))
+            else:
+                parser.error('--{} is not a valid option for '
+                             '{} command.'.format(nOption, command))
 
 
 def parser_color_type(arg):

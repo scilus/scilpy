@@ -17,7 +17,7 @@ def test_help_option(script_runner):
     assert ret.success
 
 
-def test_execution_processing(script_runner, monkeypatch):
+def test_execution_processing_diff_metrics(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_dwi = os.path.join(SCILPY_HOME, 'processing', 'dwi_crop_1000.nii.gz')
     in_bval = os.path.join(SCILPY_HOME, 'processing', '1000.bval')
@@ -39,10 +39,36 @@ def test_execution_processing(script_runner, monkeypatch):
                             '--mask', mask_uint8)
     assert ret.success
 
+
+def test_execution_processing_b0_threshold(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
+    in_dwi = os.path.join(SCILPY_HOME, 'processing', 'dwi_crop_1000.nii.gz')
+    in_bval = os.path.join(SCILPY_HOME, 'processing', '1000.bval')
+    in_bvec = os.path.join(SCILPY_HOME, 'processing', '1000.bvec')
+
+    # No mask fitting with this data? Creating our own.
+    mask = os.path.join(SCILPY_HOME, 'processing', 'ad.nii.gz')
+    mask_uint8 = os.path.join('mask_uint8.nii.gz')
+    script_runner.run('scil_volume_math.py', 'convert',
+                      mask, mask_uint8, '--data_type', 'uint8')
+
     ret = script_runner.run('scil_dti_metrics.py', in_dwi,
                             in_bval, in_bvec, '--not_all',
                             '--fa', 'fa.nii.gz', '--b0_threshold', '1', '-f')
     assert not ret.success
+
+
+def test_execution_processing_rgb(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
+    in_dwi = os.path.join(SCILPY_HOME, 'processing', 'dwi_crop_1000.nii.gz')
+    in_bval = os.path.join(SCILPY_HOME, 'processing', '1000.bval')
+    in_bvec = os.path.join(SCILPY_HOME, 'processing', '1000.bvec')
+
+    # No mask fitting with this data? Creating our own.
+    mask = os.path.join(SCILPY_HOME, 'processing', 'ad.nii.gz')
+    mask_uint8 = os.path.join('mask_uint8.nii.gz')
+    script_runner.run('scil_volume_math.py', 'convert',
+                      mask, mask_uint8, '--data_type', 'uint8')
 
     ret = script_runner.run('scil_dti_metrics.py', in_dwi,
                             in_bval, in_bvec, '--not_all',
