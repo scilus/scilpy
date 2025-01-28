@@ -23,11 +23,14 @@ from scilpy.io.utils import (add_json_args,
                              assert_outputs_exist,
                              check_tracts_same_format)
 from scilpy.tractanalysis.bundle_operations import remove_outliers_qb
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(description=__doc__,
-                                formatter_class=argparse.RawTextHelpFormatter)
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
+
     p.add_argument('in_bundle',
                    help='Fiber bundle file to remove outliers from.')
     p.add_argument('out_bundle',

@@ -65,11 +65,13 @@ from scilpy.io.utils import (add_processes_arg,
                              assert_inputs_exist,
                              assert_outputs_exist,
                              assert_headers_compatible, ranged_type)
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(
-        description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
 
     p.add_argument('in_image',
                    help='Path of the image file to denoise (3D or 4D data)')
