@@ -173,7 +173,7 @@ class VotingScheme(object):
                 raise ValueError('Number of streamlines is not equal to the '
                                  'number of streamlines indices')
             new_sft = StatefulTractogram(streamlines, reference, Space.RASMM)
-            
+
             if len(new_sft):
                 _, indices_to_keep = new_sft.remove_invalid_streamlines()
                 new_sft = new_sft[indices_to_keep]
