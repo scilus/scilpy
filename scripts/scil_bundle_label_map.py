@@ -76,7 +76,6 @@ from scilpy.tractanalysis.distance_to_centroid import (subdivide_bundles,
 from scilpy.tractograms.streamline_and_mask_operations import \
     cut_streamlines_with_mask, CuttingStyle
 from scilpy.viz.color import get_lookup_table
-from scilpy.version import version_string
 
 
 EPILOG = """
@@ -242,9 +241,9 @@ def main():
     concat_sft.to_corner()
     for i in range(len(sft_list)):
         if args.streamlines_thr is not None:
-            sft_list[i] = cut_streamlines_with_mask(sft_list[i],
-                                                    binary_mask,
-                                                    cutting_style=CuttingStyle.KEEP_LONGEST)
+            sft_list[i] = cut_streamlines_with_mask(
+                sft_list[i], binary_mask,
+                cutting_style=CuttingStyle.KEEP_LONGEST)
         else:
             sft_list[i].data_per_streamline = {}
             sft_list[i].data_per_point = {}
