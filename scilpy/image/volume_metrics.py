@@ -8,10 +8,13 @@ import numpy as np
 def estimate_piesno_sigma(data, number_coils=0):
     """
     Here are Dipy's note on this method:
-     > It is expected that
-     >   1. The data has a noisy, non-masked background and
-     >   2. The data is a repetition of the same measurements along the last
-     >      axis, i.e. dMRI or fMRI data, not structural data like T1/T2."
+    > It is expected that
+    >   1. The data has a noisy, non-masked background and
+    >   2. The data is a repetition of the same measurements along the last
+    >      axis, i.e. dMRI or fMRI data, not structural data like T1/T2.
+    > This function processes the data slice by slice, as originally designed
+    > inthe paper. Use it to get a slice by slice estimation of the noise, as
+    > in spinal cord imaging for example.
 
     Parameters
     ----------
@@ -19,17 +22,17 @@ def estimate_piesno_sigma(data, number_coils=0):
         The 4D volume.
     number_coils: int
         The number of coils in the scanner.
+
+    Returns
+    -------
+    sigma: np.ndarray
+        The piesno sigma estimation, one per slice.
+    mask_noise: np.ndarray
+        The mask of pure noise voxels inferred from the data.
     """
     assert len(data.shape) == 4
 
-    sigma = np.zeros(data.shape[:3], dtype=np.float32)
-    mask_noise = np.zeros(data.shape[:3], dtype=np.int16)
-
-    for idx in range(data.shape[-2]):
-        logging.info('Now processing slice {} / {}'
-                     .format(idx + 1, data.shape[-2]))
-        sigma[..., idx], mask_noise[..., idx] = \
-            piesno(data[..., idx, :], N=number_coils, return_mask=True)
+    sigma, mask_noise = piesno(data, N=number_coils, return_mask=True)
 
     # If the noise mask has few voxels, the detected noise standard
     # deviation can be very low and maybe something went wrong. We
