@@ -73,7 +73,7 @@ from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_sphere_arg, add_verbose_arg,
                              assert_headers_compatible, assert_inputs_exist,
                              assert_outputs_exist, parse_sh_basis_arg,
-                             verify_compression_th)
+                             verify_compression_th, load_matrix_in_any_format)
 from scilpy.tracking.tracker import GPUTacker
 from scilpy.tracking.utils import (add_mandatory_options_tracking,
                                    add_out_options, add_seeding_options,
@@ -222,12 +222,15 @@ def main():
     # Note. Seeds are in voxel world, center origin.
     # (See the examples in random_seeds_from_mask).
     logging.info("Preparing seeds.")
-    seeds = track_utils.random_seeds_from_mask(
-        seed_img.get_fdata(dtype=np.float32),
-        np.eye(4),
-        seeds_count=nb_seeds,
-        seed_count_per_voxel=seed_per_vox,
-        random_seed=args.seed)
+    if args.in_custom_seeds:
+        seeds = np.squeeze(load_matrix_in_any_format(args.in_custom_seeds))
+    else:
+        seeds = track_utils.random_seeds_from_mask(
+            seed_img.get_fdata(dtype=np.float32),
+            np.eye(4),
+            seeds_count=nb_seeds,
+            seed_count_per_voxel=seed_per_vox,
+            random_seed=args.seed)
     total_nb_seeds = len(seeds)
 
     if not args.use_gpu:

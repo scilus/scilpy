@@ -26,13 +26,15 @@ from scilpy.io.utils import (add_b0_thresh_arg, add_overwrite_arg,
 from scilpy.gradients.bvec_bval_tools import (check_b0_threshold,
                                               B0ExtractionStrategy)
 from scilpy.utils.filenames import split_name_with_nii
+from scilpy.version import version_string
 
 logger = logging.getLogger(__file__)
 
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(description=__doc__,
-                                formatter_class=argparse.RawTextHelpFormatter)
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
     p.add_argument('in_dwi',
                    help='DWI Nifti image.')
     p.add_argument('in_bval',

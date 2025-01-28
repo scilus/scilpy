@@ -5,9 +5,8 @@ import inspect
 import logging
 import os
 import pathlib
-import zipfile
-
 import requests
+import zipfile
 
 from scilpy import SCILPY_HOME
 
