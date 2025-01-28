@@ -62,7 +62,7 @@ def _build_arg_parser():
                              "Default if you add no option is to have a b0 "
                              "at the start.")
     gg = g.add_mutually_exclusive_group()
-    gg.add_argument('--no_b0_start',
+    gg.add_argument('--no_b0_start', action='store_true',
                     help="If set, do not add a b0 at the beginning. ")
     gg.add_argument('--b0_every', type=int,
                     help='Interleave a b0 every n=b0_every values. Starts '

@@ -7,6 +7,7 @@ from numpy.testing import assert_array_almost_equal
 import pytest
 from dipy.io.streamline import load_tractogram
 from dipy.tracking.streamlinespeed import length
+from dipy.io.stateful_tractogram import StatefulTractogram
 
 from scilpy import SCILPY_HOME
 from scilpy.io.fetcher import fetch_data, get_testing_files_dict
@@ -173,6 +174,17 @@ def test_filter_streamlines_by_length():
     assert len(filtered_sft) < len(sft)
     # Test that streamlines shorter than 100 and longer than 120 were removed.
     assert np.all(lengths >= min_length) and np.all(lengths <= max_length)
+
+    # === 4. Return rejected streamlines with empty sft ===
+    empty_sft = short_sft[[]]  # Empty sft from short_sft (chosen arbitrarily)
+    filtered_sft, _, rejected = \
+        filter_streamlines_by_length(empty_sft, min_length=min_length,
+                                     max_length=max_length,
+                                     return_rejected=True)
+    assert isinstance(filtered_sft, StatefulTractogram)
+    assert isinstance(rejected, StatefulTractogram)
+    assert len(filtered_sft) == 0
+    assert len(rejected) == 0
 
 
 def test_filter_streamlines_by_total_length_per_dim():

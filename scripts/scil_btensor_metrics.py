@@ -54,11 +54,13 @@ from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              add_verbose_arg, add_skip_b0_check_arg,
                              add_tolerance_arg, assert_headers_compatible)
 from scilpy.reconst.divide import fit_gamma, gamma_fit2metrics
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(description=__doc__,
-                                formatter_class=argparse.RawTextHelpFormatter)
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
 
     p.add_argument('--in_dwis', nargs='+', required=True,
                    help='Path to the input diffusion volume for each '

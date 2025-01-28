@@ -13,8 +13,6 @@ from scilpy.tractograms.uncompress import uncompress
 from scilpy.tractograms.streamline_operations import \
     resample_streamlines_step_size
 
-from scilpy.tractanalysis.quick_tools import (get_next_real_point,
-                                              get_previous_real_point)
 from scilpy.tractograms.streamline_operations import \
     filter_streamlines_by_length, _get_point_on_line, _get_streamline_pt_index
 
@@ -598,7 +596,7 @@ def compute_streamline_segment(orig_strl, inter_vox, in_vox_idx, out_vox_idx,
     # If not, find the next real streamline point
     if in_strl_point is None:
         # Find the index of the next real streamline point
-        in_strl_point = get_next_real_point(points_to_indices, in_vox_idx)
+        in_strl_point = np.searchsorted(points_to_indices, in_vox_idx)
         # Generate an artificial point on the line between the previous
         # real point and the next real point
         additional_start_pt = _get_point_on_line(orig_strl[in_strl_point - 1],
@@ -614,8 +612,7 @@ def compute_streamline_segment(orig_strl, inter_vox, in_vox_idx, out_vox_idx,
     # If not, find the previous real streamline point
     if out_strl_point is None:
         # Find the index of the previous real streamline point
-        out_strl_point = get_previous_real_point(points_to_indices,
-                                                 out_vox_idx)
+        out_strl_point = np.searchsorted(points_to_indices, out_vox_idx) - 1
         # Generate an artificial point on the line between the previous
         # real point and the next real point
         additional_exit_pt = _get_point_on_line(orig_strl[out_strl_point],
