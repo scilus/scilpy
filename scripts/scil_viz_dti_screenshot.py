@@ -81,7 +81,8 @@ def prepare_data_for_actors(dwi_filename, bvals_filename, bvecs_filename,
                                     x_slice, y_slice, z_slice)
 
     # Extract B0
-    gtab = gradient_table(bvals, normalize_bvecs(bvecs), b0_threshold=10)
+    gtab = gradient_table(bvals, bvecs=normalize_bvecs(bvecs),
+                          b0_threshold=10)
     b0_idx = np.where(gtab.b0s_mask)[0]
     mean_b0 = np.mean(dwi_data[..., b0_idx], axis=3, dtype=dwi_data.dtype)
 
@@ -115,7 +116,8 @@ def prepare_data_for_actors(dwi_filename, bvals_filename, bvecs_filename,
     rotated_bvecs = np.dot(shell_bvecs, transformation[0:3, 0:3])
 
     rotated_bvecs = normalize_bvecs(rotated_bvecs)
-    rotated_gtab = gradient_table(shell_bvals, rotated_bvecs, b0_threshold=10)
+    rotated_gtab = gradient_table(shell_bvals, bvecs=rotated_bvecs,
+                                  b0_threshold=10)
 
     # Get tensors
     tensor_model = TensorModel(rotated_gtab, fit_method='LS')

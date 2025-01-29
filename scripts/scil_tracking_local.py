@@ -264,7 +264,7 @@ def main():
         odf_sh = odf_sh_img.get_fdata(dtype=np.float32)
 
         # GPU tracking needs the full sphere
-        sphere = get_sphere(args.sphere).subdivide(args.sub_sphere)
+        sphere = get_sphere(name=args.sphere).subdivide(n=args.sub_sphere)
 
         logging.info("Starting GPU local tracking.")
         streamlines_generator = GPUTacker(

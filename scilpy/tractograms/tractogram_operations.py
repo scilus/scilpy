@@ -656,7 +656,7 @@ def transform_warp_sft(sft, linear_transfo, target, inverse=False,
         streamlines = transform_streamlines(streamlines, linear_transfo)
 
     streamlines._data = streamlines._data.astype(dtype)
-    new_sft = StatefulTractogram(streamlines, target, Space.RASMM,
+    new_sft = StatefulTractogram(streamlines, target, space=Space.RASMM,
                                  data_per_point=sft.data_per_point,
                                  data_per_streamline=sft.data_per_streamline)
     if cut_invalid:
@@ -1047,7 +1047,8 @@ def cut_streamlines_alter(sft, min_dice=0.90, epsilon=0.01, from_end=False):
     """
     Cut streamlines based on a dice similarity metric.
     The function will keep removing points from the streamlines until the dice
-    similarity between the original and the cut tractogram is close to min_dice.
+    similarity between the original and the cut tractogram is close
+    to min_dice.
 
     Parameters
     ----------
@@ -1059,8 +1060,8 @@ def cut_streamlines_alter(sft, min_dice=0.90, epsilon=0.01, from_end=False):
         Stopping criteria for convergence. The maximum difference between the
         dice similarity and min_dice.
     from_end: bool
-        If True, the streamlines will be cut from the end. Else, the streamlines
-        will be cut from the start.
+        If True, the streamlines will be cut from the end. Else,
+        the streamlines will be cut from the start.
 
     Returns
     -------
@@ -1321,8 +1322,8 @@ def transform_streamlines_alter(sft, min_dice=0.90, epsilon=0.01):
         curr_density_map = compute_tract_counts_map(curr_sft.streamlines,
                                                     sft.dimensions)
         dice, _ = compute_dice_voxel(original_density_map, curr_density_map)
-        logging.debug(f'Transformed {np.round(to_pick * 360, 6)} degree on axis '
-                      f'{axis}, dice: {dice}')
+        logging.debug(f'Transformed {np.round(to_pick * 360, 6)} degree '
+                      f'on axis {axis}, dice: {dice}')
         last_pick[axis] = to_pick
 
         if dice < min_dice:

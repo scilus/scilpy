@@ -73,16 +73,20 @@ def compute_b0_synthesis(t1_data, t1_bet_data, b0_data, b0_bet_data,
     t1_bet_to_b0, t1_bet_to_b0_transform = register_image(
         b0_bet_data, b0_affine, t1_bet_data, t1_affine, fine=True)
     affine_map = AffineMap(t1_bet_to_b0_transform,
-                           b0_data.shape, b0_affine,
-                           t1_data.shape, t1_affine)
+                           domain_grid_shape=b0_data.shape,
+                           domain_grid2world=b0_affine,
+                           codomain_grid_shape=t1_data.shape,
+                           codomain_grid2world=t1_affine)
     t1_skull_to_b0 = affine_map.transform(t1_data.astype(np.float64))
 
     # Then register to MNI (using the BET again)
     _, t1_bet_to_b0_to_mni_transform = register_image(
         template_data, template_affine, t1_bet_to_b0, b0_affine, fine=True)
     affine_map = AffineMap(t1_bet_to_b0_to_mni_transform,
-                           template_data.shape, template_affine,
-                           b0_data.shape, b0_affine)
+                           domain_grid_shape=template_data.shape,
+                           domain_grid2world=template_affine,
+                           codomain_grid_shape=b0_data.shape,
+                           codomain_grid2world=b0_affine)
 
     # But for prediction, we want the skull
     b0_skull_to_mni = affine_map.transform(b0_data.astype(np.float64))
