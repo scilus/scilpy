@@ -45,10 +45,6 @@ bias, streamlines are shuffled first unless --disable_shuffling is set.
 
 If the --out_metrics parameter is given, several metrics about the data will
 be computed (all expressed in mm):
-    - fibertube_density
-        Estimate of the following ratio: volume of fibertubes / total volume
-        where the total volume is the combined volume of all voxels containing
-        at least one fibertube.
     - min_external_distance
         Smallest distance separating two streamlines, outside their diameter.
     - max_voxel_anisotropic
@@ -86,8 +82,7 @@ from scilpy.tractograms.intersection_finder import IntersectionFinder
 from dipy.io.stateful_tractogram import StatefulTractogram
 from dipy.io.streamline import save_tractogram
 from scilpy.io.streamlines import load_tractogram_with_reference
-from scilpy.tractanalysis.fibertube_scoring import (mean_fibertube_density,
-                                                    min_external_distance,
+from scilpy.tractanalysis.fibertube_scoring import (min_external_distance,
                                                     max_voxels,
                                                     max_voxel_rotated)
 from scilpy.io.utils import (assert_inputs_exist,
@@ -277,12 +272,8 @@ def main():
         max_voxel_ani, max_voxel_iso = max_voxels(min_ext_dist_vect)
         mvr_rot, mvr_edge = max_voxel_rotated(min_ext_dist_vect)
 
-        # Fibertube density comes last, because it changes space and origin.
-        mean_density = mean_fibertube_density(out_sft)
-
         if args.out_metrics:
             metrics = {
-                'mean_density': mean_density,
                 'min_external_distance': min_ext_dist.tolist(),
                 'max_voxel_anisotropic': max_voxel_ani.tolist(),
                 'max_voxel_isotropic': max_voxel_iso.tolist(),

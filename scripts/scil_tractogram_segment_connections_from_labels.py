@@ -113,6 +113,7 @@ def _get_saving_options(args):
 def _create_required_output_dirs(args, out_paths):
     if not args.out_dir:
         return
+
     os.mkdir(out_paths['final'])
 
     if args.save_raw_connections:
@@ -196,7 +197,10 @@ def _build_arg_parser():
                         'Includes loops, outliers and qb_loops.')
     s.add_argument('--save_final', action='store_true',
                    help='If set, will save the final bundles (connections) '
-                        'on disk (.trk) as well as in the hdf5.')
+                        'on disk (.trk) as well as in the hdf5.\n'
+                        'If this is not set, you can also get the final '
+                        'bundles later, using:\n'
+                        'scil_tractogram_convert_hdf5_to_trk.py.')
 
     p.add_argument('--out_labels_list', metavar='OUT_FILE',
                    help='Save the labels list as text file.\n'
@@ -237,13 +241,17 @@ def main():
             parser.error('To save outputs in the streamlines form, provide '
                          'the output directory using --out_dir.')
         out_paths = _get_output_paths(args)
-        _create_required_output_dirs(args, out_paths)
+    elif args.out_dir:
+        logging.info("--out_dir will not be created, as there is nothing to "
+                     "be saved.")
+        args.out_dir = None
 
     if args.out_dir:
         if os.path.abspath(args.out_dir) == os.getcwd():
             parser.error('Do not use the current path as output directory.')
         assert_output_dirs_exist_and_empty(parser, args, args.out_dir,
                                            create_dir=True)
+        _create_required_output_dirs(args, out_paths)
 
     # Load everything
     img_labels = nib.load(args.in_labels)

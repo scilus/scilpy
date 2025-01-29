@@ -15,15 +15,18 @@ import subprocess
 
 import nibabel as nib
 import numpy as np
+
 from scilpy.io.utils import (add_overwrite_arg, add_verbose_arg,
                              assert_inputs_exist, assert_outputs_exist,
                              assert_fsl_options_exist)
 from scilpy.preprocessing.distortion_correction import create_acqparams
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(description=__doc__,
-                                formatter_class=argparse.RawTextHelpFormatter)
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
 
     p.add_argument('in_forward_b0',
                    help='Input b0 Nifti image with forward phase encoding.')

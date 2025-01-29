@@ -298,3 +298,64 @@ def _grad_electrostatic_repulsion_energy(bvecs, weight_matrix, alpha=1.0):
                     (bvecs[i] + bvecs[indices]).T / sums).sum(1)
     grad = grad.reshape(nb_bvecs * 3)
     return grad
+
+
+def energy_comparison(bvecs1, bvecs2, nb_shells, nb_points_per_shell,
+                      alpha=1.0):
+    """
+    Compute the electrostatic-repulsion energy of two sets of b-vectors with
+    the same number of directions per shell.
+
+    Parameters
+    ---------
+    bvecs1 : array-like shape (N, 3,)
+        First set of b-vectors.
+    bvecs2 : array-like shape (N, 3,)
+        Second set of b-vectors.
+    nb_shells : int
+        Number of shells
+    nb_points_per_shell : list of ints
+        Number of points per shell.
+    alpha : float
+        Controls the power of the repulsion. Default is 1.0
+
+    Returns
+    -------
+    energy1 : float
+        Electrostatic-repulsion energy of set bvecs1.
+    energy2 : float
+        Electrostatic-repulsion energy of set bvecs2.
+    """
+    nb_dir = bvecs1.shape[0]
+    shell_groups = ()
+    for i in range(nb_shells):
+        shell_groups += ([i],)
+
+    shell_groups += (list(range(nb_shells)),)
+    alphas = list(len(shell_groups) * (1.0,))
+    weights = _compute_weights(nb_shells, nb_points_per_shell,
+                               shell_groups, alphas)
+    nb_points_total = np.sum(nb_points_per_shell)
+    indices = np.cumsum(nb_points_per_shell).tolist()
+    indices.insert(0, 0)
+    weight_matrix = np.zeros((nb_points_total, nb_points_total))
+    for s1 in range(nb_shells):
+        for s2 in range(nb_shells):
+            weight_matrix[indices[s1]:indices[s1 + 1],
+                          indices[s2]:indices[s2 + 1]] = weights[s1, s2]
+
+    epsilon = 1e-9
+    energy1 = 0.0
+    energy2 = 0.0
+    for i in range(nb_dir):
+        indices = (np.arange(nb_dir) > i)
+        diffs = ((bvecs1[indices] - bvecs1[i]) ** 2).sum(1) ** alpha
+        sums = ((bvecs1[indices] + bvecs1[i]) ** 2).sum(1) ** alpha
+        energy1 += (weight_matrix[i, indices] *
+                    (1.0 / (diffs + epsilon) + 1.0 / (sums + epsilon))).sum()
+        diffs = ((bvecs2[indices] - bvecs2[i]) ** 2).sum(1) ** alpha
+        sums = ((bvecs2[indices] + bvecs2[i]) ** 2).sum(1) ** alpha
+        energy2 += (weight_matrix[i, indices] *
+                    (1.0 / (diffs + epsilon) + 1.0 /
+                        (sums + epsilon))).sum()
+    return energy1, energy2

@@ -54,15 +54,16 @@ from scilpy.gradients.bvec_bval_tools import (check_b0_threshold,
                                               normalize_bvecs)
 from scilpy.utils.filenames import add_filename_suffix, split_name_with_nii
 from scilpy.viz.plot import plot_residuals
+from scilpy.version import version_string
 
 logger = logging.getLogger("DTI_Metrics")
 logger.setLevel(logging.INFO)
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(
-        description=__doc__,
-        formatter_class=argparse.RawTextHelpFormatter)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
     p.add_argument('in_dwi',
                    help='Path of the input diffusion volume.')
     p.add_argument('in_bval',

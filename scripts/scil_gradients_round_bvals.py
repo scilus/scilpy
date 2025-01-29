@@ -25,33 +25,33 @@ import numpy as np
 from scilpy.io.utils import (add_overwrite_arg, add_verbose_arg,
                              assert_inputs_exist, assert_outputs_exist)
 from scilpy.gradients.bvec_bval_tools import round_bvals_to_shell
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
-    parser = argparse.ArgumentParser(
-        description=__doc__,
-        formatter_class=argparse.RawTextHelpFormatter)
-
-    parser.add_argument('in_bval',
-                        help='The b-values in FSL format.')
-    parser.add_argument(
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
+    p.add_argument('in_bval',
+                   help='The b-values in FSL format.')
+    p.add_argument(
         'shells', nargs='+', type=int,
         help='The list of expected shells. For example 0 1000 2000.\n'
              'All b-values in the b_val file should correspond to one given '
              'shell (up to the tolerance).')
-    parser.add_argument('out_bval',
-                        help='The name of the output b-values.')
-    parser.add_argument(
+    p.add_argument('out_bval',
+                   help='The name of the output b-values.')
+    p.add_argument(
         'tolerance', type=int,
         help='The tolerated gap between the b-values to extract and the \n'
              'actual b-values. Expecting an integer value. Comparison is \n'
              'strict: a b-value of 1010 with a tolerance of 10 is NOT \n'
              'included in shell 1000. Suggestion: 20.')
 
-    add_verbose_arg(parser)
-    add_overwrite_arg(parser)
+    add_verbose_arg(p)
+    add_overwrite_arg(p)
 
-    return parser
+    return p
 
 
 def main():

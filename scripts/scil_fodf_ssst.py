@@ -30,11 +30,13 @@ from scilpy.io.utils import (add_b0_thresh_arg, add_overwrite_arg,
                              parse_sh_basis_arg, assert_headers_compatible)
 from scilpy.reconst.fodf import fit_from_model
 from scilpy.reconst.sh import convert_sh_basis
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(
-        description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
 
     p.add_argument('in_dwi',
                    help='Path of the input diffusion volume.')
