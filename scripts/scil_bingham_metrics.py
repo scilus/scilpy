@@ -17,6 +17,18 @@ Using 12 threads, the execution takes 10 minutes for FD estimation for a brain
 with 1mm isotropic resolution. Other metrics take less than a second.
 
 Formerly: scil_compute_lobe_specific_fodf_metrics.py
+------------------------------------------------------------------------------
+References:
+[1] T. W. Riffert, J. Schreiber, A. Anwander, and T. R. Knösche, “Beyond
+    fractional anisotropy: Extraction of bundle-specific structural metrics
+    from crossing fiber models,” NeuroImage, vol. 100, pp. 176-191, Oct. 2014,
+    doi: 10.1016/j.neuroimage.2014.06.015.
+
+[2] J. Schreiber, T. Riffert, A. Anwander, and T. R. Knösche, “Plausibility
+    Tracking: A method to evaluate anatomical connectivity and microstructural
+    properties along fiber pathways,” NeuroImage, vol. 90, pp. 163-178, Apr.
+    2014, doi: 10.1016/j.neuroimage.2014.01.002.
+------------------------------------------------------------------------------
 """
 
 import nibabel as nib
@@ -33,24 +45,14 @@ from scilpy.reconst.bingham import (compute_fiber_density,
                                     compute_fiber_spread,
                                     compute_fiber_fraction)
 
-
-EPILOG = """
-[1] T. W. Riffert, J. Schreiber, A. Anwander, and T. R. Knösche, “Beyond
-    fractional anisotropy: Extraction of bundle-specific structural metrics
-    from crossing fiber models,” NeuroImage, vol. 100, pp. 176-191, Oct. 2014,
-    doi: 10.1016/j.neuroimage.2014.06.015.
-
-[2] J. Schreiber, T. Riffert, A. Anwander, and T. R. Knösche, “Plausibility
-    Tracking: A method to evaluate anatomical connectivity and microstructural
-    properties along fiber pathways,” NeuroImage, vol. 90, pp. 163-178, Apr.
-    2014, doi: 10.1016/j.neuroimage.2014.01.002.
-"""
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawTextHelpFormatter,
-                                epilog=EPILOG)
+                                epilog=version_string)
+
     p.add_argument('in_bingham',
                    help='Input Bingham nifti image.')
 

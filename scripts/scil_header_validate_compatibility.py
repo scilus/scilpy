@@ -18,11 +18,13 @@ from scilpy.io.utils import (
     add_verbose_arg,
     assert_inputs_exist,
     assert_headers_compatible)
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(description=__doc__,
-                                formatter_class=argparse.RawTextHelpFormatter)
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
 
     p.add_argument('in_files', nargs='+',
                    help='List of file to compare (trk, tck and nii/nii.gz).')

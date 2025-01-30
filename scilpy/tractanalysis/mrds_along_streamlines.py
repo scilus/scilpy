@@ -2,7 +2,8 @@
 
 import numpy as np
 
-from scilpy.tractanalysis.grid_intersections import grid_intersections
+from scilpy.tractanalysis.voxel_boundary_intersection import\
+    subdivide_streamlines_at_voxel_faces
 
 
 def mrds_metrics_along_streamlines(sft, mrds_pdds,
@@ -79,9 +80,10 @@ def mrds_metric_sums_along_streamlines(sft, mrds_pdds, metrics,
     weight_map = np.zeros(metrics[0].shape[:-1])
     min_cos_theta = np.cos(np.radians(max_theta))
 
-    all_crossed_indices = grid_intersections(sft.streamlines)
-    for crossed_indices in all_crossed_indices:
-        segments = crossed_indices[1:] - crossed_indices[:-1]
+    all_split_streamlines =\
+        subdivide_streamlines_at_voxel_faces(sft.streamlines)
+    for split_streamlines in all_split_streamlines:
+        segments = split_streamlines[1:] - split_streamlines[:-1]
         seg_lengths = np.linalg.norm(segments, axis=1)
 
         # Remove points where the segment is zero.
@@ -91,7 +93,7 @@ def mrds_metric_sums_along_streamlines(sft, mrds_pdds, metrics,
         seg_lengths = seg_lengths[non_zero_lengths]
 
         # Those starting points are used for the segment vox_idx computations
-        seg_start = crossed_indices[non_zero_lengths]
+        seg_start = split_streamlines[non_zero_lengths]
         vox_indices = (seg_start + (0.5 * segments)).astype(int)
 
         normalization_weights = np.ones_like(seg_lengths)

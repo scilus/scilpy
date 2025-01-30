@@ -6,7 +6,8 @@ import numpy as np
 from scipy.special import lpn
 
 from scilpy.reconst.utils import find_order_from_nb_coeff
-from scilpy.tractanalysis.grid_intersections import grid_intersections
+from scilpy.tractanalysis.voxel_boundary_intersection import\
+    subdivide_streamlines_at_voxel_faces
 
 
 def afd_map_along_streamlines(sft, fodf, fodf_basis, length_weighting,
@@ -94,9 +95,10 @@ def afd_and_rd_sums_along_streamlines(sft, fodf, fodf_basis,
     weight_map = np.zeros(shape=fodf_data.shape[:-1])
 
     p_matrix = np.eye(fodf_data.shape[3]) * legendre0_at_n
-    all_crossed_indices = grid_intersections(sft.streamlines)
-    for crossed_indices in all_crossed_indices:
-        segments = crossed_indices[1:] - crossed_indices[:-1]
+    all_split_streamlines =\
+        subdivide_streamlines_at_voxel_faces(sft.streamlines)
+    for split_streamlines in all_split_streamlines:
+        segments = split_streamlines[1:] - split_streamlines[:-1]
         seg_lengths = np.linalg.norm(segments, axis=1)
 
         # Remove points where the segment is zero.
@@ -112,7 +114,7 @@ def afd_and_rd_sums_along_streamlines(sft, fodf, fodf_basis,
         closest_vertex_indices = sorted_angles[:, 0]
 
         # Those starting points are used for the segment vox_idx computations
-        strl_start = crossed_indices[non_zero_lengths]
+        strl_start = split_streamlines[non_zero_lengths]
         vox_indices = (strl_start + (0.5 * segments)).astype(int)
 
         normalization_weights = np.ones_like(seg_lengths)

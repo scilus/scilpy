@@ -126,6 +126,12 @@ def add_seeding_options(p):
                                     help='Number of seeds per voxel.')
     seed_sub_exclusive.add_argument('--nt', type=int,
                                     help='Total number of seeds to use.')
+    seed_sub_exclusive.add_argument(
+        '--in_custom_seeds', type=str,
+        help='Path to a file containing a list of custom seeding \n'
+             'coordinates (.txt, .mat or .npy). They should be in \n'
+             'voxel space. In the case of a text file, each line should \n'
+             'contain a single seed, written in the format: [x, y, z].')
 
 
 def add_out_options(p):

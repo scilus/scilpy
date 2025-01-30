@@ -17,17 +17,20 @@ import subprocess
 
 from dipy.io.gradients import read_bvals_bvecs
 import numpy as np
+
 from scilpy.io.utils import (add_overwrite_arg, add_verbose_arg,
                              assert_fsl_options_exist,
                              assert_inputs_exist)
 from scilpy.preprocessing.distortion_correction import \
     (create_acqparams, create_index, create_multi_topup_index,
      create_non_zero_norm_bvecs)
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(description=__doc__,
-                                formatter_class=argparse.RawTextHelpFormatter)
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
 
     p.add_argument('in_dwi',
                    help='Input DWI Nifti image. If using multiple '
@@ -131,7 +134,7 @@ def main():
     required_args = [args.in_dwi, args.in_bvals, args.in_bvecs, args.in_mask]
 
     assert_inputs_exist(parser, required_args)
-    assert_fsl_options_exist(parser, args.eddy_options, 'eddy')
+    assert_fsl_options_exist(parser, args.eddy_options, 'eddy', args.overwrite)
 
     if os.path.splitext(args.out_prefix)[1] != '':
         parser.error('The prefix must not contain any extension.')
