@@ -11,6 +11,11 @@ Supported formats:
 > scil_surface_convert.py surf.vtk converted_surf.ply
 
 Formerly: scil_convert_surface.py
+-----------------------------------------------------------------
+Reference:
+[1] St-Onge, E., Daducci, A., Girard, G. and Descoteaux, M. 2018.
+    Surface-enhanced tractography (SET). NeuroImage.
+-----------------------------------------------------------------
 """
 import argparse
 import logging
@@ -26,17 +31,13 @@ from scilpy.io.utils import (add_overwrite_arg,
                              add_verbose_arg,
                              assert_inputs_exist,
                              assert_outputs_exist)
-
-EPILOG = """
-References:
-[1] St-Onge, E., Daducci, A., Girard, G. and Descoteaux, M. 2018.
-    Surface-enhanced tractography (SET). NeuroImage.
-"""
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(description=__doc__, epilog=EPILOG,
-                                formatter_class=argparse.RawTextHelpFormatter)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
 
     p.add_argument('in_surface',
                    help='Input a surface (FreeSurfer or supported by VTK).')

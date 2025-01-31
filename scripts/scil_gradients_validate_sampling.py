@@ -24,6 +24,13 @@ single shell. The --viz_and_save option first displays both the inputed and
 optimal b-vectors on a single shell and then saves them as png. Use one or the
 other, not both. For more options on visualization, please use
 scil_viz_gradients_screenshot.py.
+------------------------------------------------------------------------------
+Reference:
+[1] Emmanuel Caruyer, Christophe Lenglet, Guillermo Sapiro,
+    Rachid Deriche. Design of multishell gradient sampling with uniform coverage
+    in diffusion MRI. Magnetic Resonance in Medicine, Wiley, 2013, 69 (6),
+    pp. 1534-1540. <http://dx.doi.org/10.1002/mrm.24736>
+------------------------------------------------------------------------------
 """
 
 import argparse
@@ -45,21 +52,14 @@ from scilpy.gradients.bvec_bval_tools import (is_normalized_bvecs,
 from scilpy.gradients.gen_gradient_sampling import (generate_gradient_sampling,
                                                     energy_comparison)
 from scilpy.viz.gradients import (plot_proj_shell, build_ms_from_shell_idx)
-
-
-EPILOG = """
-References: [1] Emmanuel Caruyer, Christophe Lenglet, Guillermo Sapiro,
-Rachid Deriche. Design of multishell gradient sampling with uniform coverage
-in diffusion MRI. Magnetic Resonance in Medicine, Wiley, 2013, 69 (6),
-pp. 1534-1540. <http://dx.doi.org/10.1002/mrm.24736>
-    """
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(
-        formatter_class=argparse.RawTextHelpFormatter,
-        description=__doc__,
-        epilog=EPILOG)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
+
     p.add_argument('in_gradients', nargs='+',
                    help='Path(s) to the gradient file(s). Either FSL '
                         '(.bval, .bvec) or MRtrix (.b).')

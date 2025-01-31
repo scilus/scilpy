@@ -85,7 +85,7 @@ from scilpy.tractanalysis.connectivity_segmentation import (
     construct_hdf5_from_connectivity,
     extract_longest_segments_from_profile)
 from scilpy.tractograms.uncompress import uncompress
-
+from scilpy.version import version_string
 
 def _get_output_paths(args):
     paths = {'raw': os.path.join(args.out_dir, 'raw_connections'),
@@ -132,9 +132,9 @@ def _create_required_output_dirs(args, out_paths):
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(
-        formatter_class=argparse.RawTextHelpFormatter,
-        description=__doc__)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
     p.add_argument('in_tractograms', nargs='+',
                    help='Tractogram filename (s). Format must be one of \n'
                         'trk, tck, vtk, fib, dpy.\n'

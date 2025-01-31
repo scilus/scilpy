@@ -11,6 +11,12 @@ References: Girard, G., Whittingstall K., Deriche, R., and Descoteaux, M.
 biases. Neuroimage.
 
 Formerly: scil_compute_maps_for_particle_filter_tracking.py
+-----------------------------------------------------------------------------
+Reference:
+[1]Girard, G., Whittingstall K., Deriche, R., and Descoteaux, M. (2014). 
+Towards quantitative connectivity analysis: reducing tractographybiases. 
+Neuroimage.
+-----------------------------------------------------------------------------
 """
 
 import argparse
@@ -23,11 +29,14 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist,
                              assert_outputs_exist,
                              add_verbose_arg)
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(
-        description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
+
     p.add_argument('in_wm',
                    help='White matter PVE map (nifti). From normal FAST '
                         'output, has a PVE_2 name suffix.')

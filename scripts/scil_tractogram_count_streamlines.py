@@ -18,11 +18,13 @@ from scilpy.io.utils import (add_json_args,
                              assert_inputs_exist)
 from scilpy.tractograms.lazy_tractogram_operations import \
     lazy_streamlines_count
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(description=__doc__,
-                                formatter_class=argparse.RawTextHelpFormatter)
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
     p.add_argument('in_tractogram',
                    help='Path of the input tractogram file.')
     p.add_argument('--print_count_alone', action='store_true',

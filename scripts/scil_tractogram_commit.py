@@ -71,6 +71,15 @@ When tunning parameters, such as --iso_diff, --para_diff, --perp_diff or
     - Compare the density map before and after (essential tractogram)
 
 Formerly: scil_run_commit.py
+--------------------------------------------------------------------------------
+References:
+[1] Daducci, Alessandro, et al. "COMMIT: convex optimization modeling for
+    microstructure informed tractography." IEEE transactions on medical
+    imaging 34.1 (2014): 246-257.
+[2] Schiavi, Simona, et al. "A new method for accurate in vivo mapping of
+    human brain connections using microstructural and anatomical information."
+    Science advances 6.31 (2020): eaba8245.
+--------------------------------------------------------------------------------
 """
 
 import argparse
@@ -107,21 +116,13 @@ from scilpy.io.utils import (add_overwrite_arg,
                              add_reference_arg)
 from scilpy.gradients.bvec_bval_tools import identify_shells, \
     check_b0_threshold
-
-EPILOG = """
-References:
-[1] Daducci, Alessandro, et al. "COMMIT: convex optimization modeling for
-    microstructure informed tractography." IEEE transactions on medical
-    imaging 34.1 (2014): 246-257.
-[2] Schiavi, Simona, et al. "A new method for accurate in vivo mapping of
-    human brain connections using microstructural and anatomical information."
-    Science advances 6.31 (2020): eaba8245.
-"""
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(description=__doc__, epilog=EPILOG,
-                                formatter_class=argparse.RawTextHelpFormatter)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
 
     p.add_argument('in_tractogram',
                    help='Input tractogram (.trk or .tck or .h5).')

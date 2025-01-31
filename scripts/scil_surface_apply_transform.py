@@ -18,6 +18,10 @@ The resulting surface will be in *b0 world LPS* coordinates
 (aligned over the b0 in MI-Brain).
 
 Formerly: scil_apply_transform_to_surface.py.
+-------------------------------------------------------------------------------------------
+Reference:
+[1] St-Onge, E., Daducci, A., Girard, G. and Descoteaux, M. 2018.
+    Surface-enhanced tractography (SET). NeuroImage.
 """
 
 import argparse
@@ -33,18 +37,13 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_outputs_exist,
                              load_matrix_in_any_format)
 from scilpy.surfaces.surface_operations import apply_transform
-
-
-EPILOG = """
-References:
-[1] St-Onge, E., Daducci, A., Girard, G. and Descoteaux, M. 2018.
-    Surface-enhanced tractography (SET). NeuroImage.
-"""
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(description=__doc__, epilog=EPILOG,
-                                formatter_class=argparse.RawTextHelpFormatter)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
 
     p.add_argument('in_moving_surface',
                    help='Input surface (.vtk).')

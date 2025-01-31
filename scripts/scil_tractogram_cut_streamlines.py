@@ -52,6 +52,8 @@ from scilpy.tractograms.streamline_and_mask_operations import \
     CuttingStyle
 from scilpy.tractograms.streamline_operations import \
     resample_streamlines_step_size
+from scilpy.version import version_string
+
 
 # Mapping the arguments to the cutting style
 # (keep_longest, trim_endpoints) -> CuttingStyle
@@ -61,9 +63,9 @@ args_to_style = {(False, False): CuttingStyle.DEFAULT,
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(
-        description=__doc__,
-        formatter_class=argparse.RawTextHelpFormatter)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
     p.add_argument('in_tractogram',
                    help='Input tractogram file.')
 
