@@ -18,10 +18,11 @@ The resulting surface will be in *b0 world LPS* coordinates
 (aligned over the b0 in MI-Brain).
 
 Formerly: scil_apply_transform_to_surface.py.
--------------------------------------------------------------------------------------------
+-------------------------------------------------------------------
 Reference:
 [1] St-Onge, E., Daducci, A., Girard, G. and Descoteaux, M. 2018.
     Surface-enhanced tractography (SET). NeuroImage.
+-------------------------------------------------------------------
 """
 
 import argparse

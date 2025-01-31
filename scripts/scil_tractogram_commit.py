@@ -76,6 +76,7 @@ References:
 [1] Daducci, Alessandro, et al. "COMMIT: convex optimization modeling for
     microstructure informed tractography." IEEE transactions on medical
     imaging 34.1 (2014): 246-257.
+
 [2] Schiavi, Simona, et al. "A new method for accurate in vivo mapping of
     human brain connections using microstructural and anatomical information."
     Science advances 6.31 (2020): eaba8245.

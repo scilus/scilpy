@@ -17,10 +17,9 @@ See also:
 
 Formerly: scil_detect_streamlines_loops.py
 ------------------------------------------------------------------------------
-References:
-    QuickBundles, based on [Garyfallidis12] Frontiers in Neuroscience, 2012.
+Reference:
+[1] QuickBundles, based on [Garyfallidis12] Frontiers in Neuroscience, 2012.
 ------------------------------------------------------------------------------
-
 """
 
 import argparse

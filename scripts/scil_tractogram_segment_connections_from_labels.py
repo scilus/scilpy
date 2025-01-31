@@ -87,6 +87,7 @@ from scilpy.tractanalysis.connectivity_segmentation import (
 from scilpy.tractograms.uncompress import uncompress
 from scilpy.version import version_string
 
+
 def _get_output_paths(args):
     paths = {'raw': os.path.join(args.out_dir, 'raw_connections'),
              'final': os.path.join(args.out_dir, 'final_connections'),

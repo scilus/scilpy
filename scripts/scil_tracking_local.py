@@ -47,7 +47,7 @@ All the input nifti files must be in isotropic resolution.
 
 Formerly: scil_compute_local_tracking.py
 --------------------------------------------------------------------------------
-References
+References:
 [1] Garyfallidis, E. (2012). Towards an accurate brain tractography
     [PhD thesis]. University of Cambridge. United Kingdom.
 

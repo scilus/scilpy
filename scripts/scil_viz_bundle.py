@@ -35,6 +35,7 @@ from fury import window, actor
 from scilpy.io.utils import (assert_inputs_exist,
                              add_verbose_arg,
                              parser_color_type)
+from scilpy.version import version_string
 from scilpy.viz.color import generate_local_coloring
 
 
@@ -43,8 +44,10 @@ streamline_actor = {'tube': actor.streamtube,
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(
-        description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
+
     p.add_argument('in_bundles', nargs='+',
                    help='List of tractography files supported by nibabel.')
     p2 = p.add_argument_group(title='Colouring options')

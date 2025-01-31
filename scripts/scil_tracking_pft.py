@@ -28,9 +28,9 @@ All the input nifti files must be in isotropic resolution.
 Formerly: scil_compute_pft.py
 -----------------------------------------------------------------------------
 Reference:
-[1]Girard, G., Whittingstall K., Deriche, R., and Descoteaux, M. (2014). 
-Towards quantitative connectivity analysis: reducing tractographybiases. 
-Neuroimage.
+[1] Girard, G., Whittingstall K., Deriche, R., and Descoteaux, M. (2014). 
+    Towards quantitative connectivity analysis: reducing tractographybiases. 
+    Neuroimage.
 -----------------------------------------------------------------------------
 """
 
@@ -65,6 +65,7 @@ def _build_arg_parser():
     p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawTextHelpFormatter,
                                 epilog=version_string)
+
     p._optionals.title = 'Generic options'
 
     p.add_argument('in_sh',

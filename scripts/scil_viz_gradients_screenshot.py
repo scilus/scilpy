@@ -23,15 +23,17 @@ from scilpy.io.utils import (add_overwrite_arg,
 from scilpy.viz.gradients import (build_ms_from_shell_idx,
                                   plot_each_shell,
                                   plot_proj_shell)
+from scilpy.version import version_string
+
 
 sphere_choices = ['symmetric362', 'symmetric642', 'symmetric724',
                   'repulsion724', 'repulsion100', 'repulsion200']
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        description=__doc__)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
 
     g = p.add_mutually_exclusive_group(required=True)
     g.add_argument(
