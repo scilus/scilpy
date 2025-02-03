@@ -19,7 +19,9 @@ def test_help_option(script_runner):
 def test_silent_without_output(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_fodf = os.path.join(SCILPY_HOME, 'tracking', 'fodf.nii.gz')
+    in_mask = os.path.join(SCILPY_HOME, 'tracking', 'seeding_mask.nii.gz')
 
-    ret = script_runner.run('scil_viz_fodf.py', in_fodf, '--silent')
+    ret = script_runner.run('scil_viz_fodf.py', in_fodf, '--silent',
+                            '--in_transparency_mask', in_mask)
 
     assert (not ret.success)
