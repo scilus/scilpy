@@ -21,17 +21,26 @@ from scilpy.tractograms.streamline_operations import \
 
 def min_dist_to_centroid(bundle_pts, centroid_pts, nb_pts):
     """
-    Compute minimal distance to centroids
+    Compute minimal distance between two sets of 3D points.
+    The 3D points are expected to be in the same space.
+
+    Typically the bundle_pts will be voxel indices (from argwhere) and the
+    centroid_pts will be the 3D positions of a single streamline.
 
     Parameters
     ----------
     bundles_pts: np.array
+        Coordinates of the points to be labeled.
     centroid_pts: np.array
+        Coordinates of the centroid.
     nb_pts: int
+        Number of points to use for labeling.
+        Will force the labels to be between 1 and nb_pts.
 
     Returns
     -------
-    Array:
+    Array: np.uint16
+        Labels for each point in bundle_pts.
     """
     tree = KDTree(centroid_pts, copy_data=True)
     _, labels = tree.query(bundle_pts, k=1)
@@ -41,7 +50,27 @@ def min_dist_to_centroid(bundle_pts, centroid_pts, nb_pts):
 
 
 def associate_labels(target_sft, min_label=1, max_label=20):
-    # DOCSTRING
+    """
+    Associate labels to the streamlines in a target SFT using their lengths.
+    Even if unequal distance between points, the labels are interpolated
+    linearly so all the points are labeled according to their position.
+
+    min and max labels are used in case there is a cut in the bundle.
+
+    Parameters:
+    ----------
+    target_sft: StatefulTractogram
+        The target SFT to label, streamlines can be in any space.
+    min_label: int
+        Minimum label to use.
+    max_label: int
+        Maximum label to use.
+
+    Returns:
+    -------
+    Array: np.uint16
+        Labels for each point along the streamlines.
+    """
 
     curr_ind = 0
     target_labels = np.zeros(target_sft.streamlines._data.shape[0],
@@ -60,13 +89,22 @@ def associate_labels(target_sft, min_label=1, max_label=20):
 
 def find_medoid(points, max_points=10000):
     """
-    Find the medoid among a set of points.
+    Find the medoid among a set of points. A medoid is a point that minimizes
+    the sum of the distances to all other points. Unlike a barycenter, the
+    medoid is guaranteed to be one of the points in the set.
 
     Parameters:
-        points (ndarray): Points in N-dimensional space.
+    ----------
+    points: ndarray
+        An array of 3D coordinates.
+    max_points: int
+        Maximum number of points to use for the computation (will randomly
+        select points if the number of points is greater than max_points).
 
     Returns:
-        ndarray: Coordinates of the medoid.
+    -------
+        np.array:
+            The 3D coordinates of the medoid.
     """
     if len(points) > max_points:
         selected_indices = np.random.choice(len(points), max_points,
@@ -78,17 +116,26 @@ def find_medoid(points, max_points=10000):
     return points[medoid_idx]
 
 
-def compute_labels_map_barycenters(labels_map, is_euclidian=False, nb_pts=False):
+def compute_labels_map_barycenters(labels_map, is_euclidian=False,
+                                   nb_pts=False):
     """
     Compute the barycenter for each label in a 3D NumPy array by maximizing
     the distance to the boundary.
 
     Parameters:
-        labels_map (ndarray): The 3D array containing labels from 1-nb_pts.
+    ----------
+    labels_map: (ndarray)
+        The 3D array containing labels from 1-nb_pts.
         euclidian (bool): If True, the barycenter is the mean of the points
+        in the mask. If False, the barycenter is the medoid of the points in
+        the mask.
+    nb_pts: int
+        Number of points to use for computing barycenters.
 
     Returns:
-        ndarray: An array of size (nb_pts, 3) containing the barycenter
+    -------
+    ndarray:
+        An array of size (nb_pts, 3) containing the barycenter
         for each label.
     """
     labels = np.arange(1, nb_pts+1) if nb_pts else np.unique(labels_map)[1:]
@@ -235,6 +282,27 @@ def compute_distance_map(labels_map, binary_mask, nb_pts, use_manhattan=False):
 
 
 def correct_labels_jump(labels_map, streamlines, nb_pts):
+    """
+    Correct the labels jump in the labels map by cutting the streamlines
+    where the jump is detected and keeping the longest chunk.
+
+    This avoid loops in the labels map and ensure that the labels are
+    consistent along the streamlines.
+
+    Parameters:
+    ----------
+    labels_map (ndarray):
+        A 3D array representing the labels map.
+    streamlines (ArraySequence):
+        The streamlines used to compute the labels map.
+    nb_pts (int):
+        Number of points to use for computing barycenters.
+
+    Returns:
+    -------
+    ndarray: A 3D array representing the corrected labels map.
+    """
+
     labels_data = ndi.map_coordinates(labels_map, streamlines._data.T - 0.5,
                                       order=0)
     binary_mask = np.zeros(labels_map.shape, dtype=np.uint8)

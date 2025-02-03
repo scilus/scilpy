@@ -16,18 +16,23 @@ unless specified otherwise.
 
 # Multiple bundle case
   When providing multiple (co-registered) bundles, the script will compute a
-  correlation map, which shows the spatial correlation between density maps
-  It will also compute the labels maps for all bundles at once, ensuring
-  that the labels are spatial consistent between bundles.
+  patch-wise correlation map between density maps as a proxy for confidence in
+  the bundle's reconstruction.
+
+  The correlation map can be thresholded to remove low confidence regions.
+  It will also compute the labels maps for after concatenating bundles,
+  ensuring that the labels are spatially consistent between bundles.
 
 # Hyperplane method
   The default is to use the euclidian/centerline method, which is fast and
   works well for most cases.
+
   The hyperplane method allows for more complex shapes and to split the bundles
-  into subsection that follow the geometry of each kind of bundle.
+  into subsections that follow the geometry of each kind of bundle.
   However, this method is slower and requires extra quality control to ensure
   that the labels are correct. This method requires a centroid file that
   contains multiple streamlines.
+
   This method is based on the following paper [1], but was heavily modified
   and adapted to work more robustly across datasets.
 
@@ -148,6 +153,12 @@ def main():
                         optional=args.reference)
     assert_output_dirs_exist_and_empty(parser, args, args.out_dir)
 
+    if args.streamlines_thr < 0:
+        parser.error('streamlines_thr must be greater than 0.')
+
+    if args.correlation_thr < 1:
+        parser.error('correlation_thr must be greater than 1.')
+
     sft_centroid = load_tractogram_with_reference(parser, args,
                                                   args.in_centroid)
     if args.transformation is not None:
@@ -159,9 +170,6 @@ def main():
             streamlines, transfo, in_place=False)
         sft_centroid = StatefulTractogram(streamlines, args.in_bundles[0],
                                           space=Space.RASMM)
-
-    # TODO check if correlation thr is positive
-    # TODO check if streamlines thr is positive (above 1)
 
     # When doing longitudinal data, the split in subsection can be done
     # on all the bundles at once. Needs to be co-registered.
@@ -272,6 +280,8 @@ def main():
     unique, count = np.unique(labelized, return_counts=True)
     ratio = count[1] / np.sum(count[1:])
 
+    # 0.9 is arbitrary, but we want a vast majority of the voxels to be
+    # contiguous, otherwise it is a weird bundle
     if len(unique) > 2 and ratio < 0.9:
         binary_mask = np.max(binary_list, axis=0)
         labels_map = subdivide_bundles(concat_sft, sft_centroid, binary_mask,
@@ -279,6 +289,9 @@ def main():
                                        fix_jumps=False)
         logging.warning('Warning: Some labels were not contiguous. '
                         'Recomputing labels to centerline method.')
+    else:
+        raise ValueError('Labels are not contiguous after subdivision. '
+                         'Please check the input data.')
 
     timer = time.time()
     distance_map = compute_distance_map(labels_map, binary_mask, args.nb_pts,
@@ -295,9 +308,9 @@ def main():
             sub_out_dir = args.out_dir
         timer = time.time()
         new_sft = StatefulTractogram.from_sft(sft.streamlines, sft_list[0])
-        cut_sft = cut_streamlines_with_mask(new_sft, binary_mask,
-                                            min_len=min_len,
-                                            cutting_style=CuttingStyle.KEEP_LONGEST)
+        cut_sft = cut_streamlines_with_mask(
+            new_sft, binary_mask, min_len=min_len,
+            cutting_style=CuttingStyle.KEEP_LONGEST)
         logging.debug(
             f'Cut streamlines in {round(time.time() - timer, 3)} seconds')
         cut_sft.data_per_point['color'] = ArraySequence(cut_sft.streamlines)
