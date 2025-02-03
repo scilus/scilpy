@@ -202,7 +202,9 @@ def create_scene(actors, orientation, slice_index, volume_shape, aspect_ratio,
 
 
 def create_interactive_window(scene, window_size, interactor, *,
-                              title="Viewer", open_window=True):
+                              title="Viewer", open_window=True
+                              ): # pragma: no cover
+    # (Function ignored from coverage statistics)
     """
     Create a 3D window with the content of scene, equiped with an interactor.
 
@@ -294,7 +296,8 @@ def snapshot_scenes(scenes, window_size):
 
 
 def create_contours_actor(contours, opacity=1., linewidth=3.,
-                          color=[255, 0, 0]):
+                          color=[255, 0, 0]): # pragma: no cover
+    # (Function ignored from coverage statistics)
     """
     Create an actor from a vtkPolyData of contours
 
