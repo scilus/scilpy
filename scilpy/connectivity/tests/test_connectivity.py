@@ -29,6 +29,7 @@ def test_compute_triu_connectivity_from_labels():
 
 
 def test_compute_connectivity_matrices_from_hdf5():
+    # ToDo. We will have to create a test hdf5.
     pass
 
 
