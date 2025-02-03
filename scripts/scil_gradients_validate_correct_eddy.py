@@ -16,12 +16,13 @@ import numpy as np
 
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              assert_outputs_exist, add_verbose_arg)
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(
-        description=__doc__,
-        formatter_class=argparse.RawTextHelpFormatter)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
     p.add_argument('in_bvec',
                    help='In bvec file.')
     p.add_argument('in_bval',
@@ -32,10 +33,10 @@ def _build_arg_parser():
                    help='Out bvec file.')
     p.add_argument('out_bval',
                    help='Out bval file.')
-    
+
     add_verbose_arg(p)
     add_overwrite_arg(p)
-    
+
     return p
 
 

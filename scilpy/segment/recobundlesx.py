@@ -129,9 +129,10 @@ class RecobundlesX(object):
         len_centroids = len(self.model_centroids)
         if len_centroids > 1000:
             logging.warning('Model {0} simplified at threshold '
-                            '{1}mm with {2} centroids'.format(identifier,
-                                                              str(model_clust_thr),
-                                                              str(len_centroids)))
+                            '{1}mm with '
+                            '{2} centroids'.format(identifier,
+                                                   str(model_clust_thr),
+                                                   str(len_centroids)))
 
     def _reduce_search_space(self, neighbors_reduction_thr=18):
         """
@@ -180,9 +181,9 @@ class RecobundlesX(object):
         possible_slr_transform_type = {'translation': 0, 'rigid': 1,
                                        'similarity': 2, 'scaling': 3}
         static = select_random_set_of_streamlines(self.model_centroids,
-                                                  select_model, self.rng)
+                                                  select_model, rng=self.rng)
         moving = select_random_set_of_streamlines(self.neighb_centroids,
-                                                  select_target, self.rng)
+                                                  select_target, rng=self.rng)
 
         # Tuple 0,1,2 are the min & max bound in x,y,z for translation
         # Tuple 3,4,5 are the min & max bound in x,y,z for rotation
@@ -195,7 +196,8 @@ class RecobundlesX(object):
         slr_transform_type_id = possible_slr_transform_type[slr_transform_type]
         if slr_transform_type_id >= 0:
             init_transfo_dof = np.zeros(3)
-            slr = StreamlineLinearRegistration(metric=metric, method="L-BFGS-B",
+            slr = StreamlineLinearRegistration(metric=metric,
+                                               method="L-BFGS-B",
                                                x0=init_transfo_dof,
                                                bounds=bounds_dof[:3],
                                                num_threads=1)

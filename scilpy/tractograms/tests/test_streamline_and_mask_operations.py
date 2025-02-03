@@ -21,7 +21,7 @@ from scilpy.tractograms.streamline_and_mask_operations import (
     get_head_tail_density_maps,
     CuttingStyle)
 from scilpy.image.labels import get_labels_from_mask
-from scilpy.tractograms.uncompress import uncompress
+from scilpy.tractograms.uncompress import streamlines_to_voxel_coordinates
 
 
 fetch_data(get_testing_files_dict(), keys=['tractograms.zip'])
@@ -147,12 +147,15 @@ def test_trim_streamline_in_mask():
     sft.to_vox()
     sft.to_corner()
 
-    idices, points_to_idx = uncompress(sft.streamlines, return_mapping=True)
-    strl_indices = idices[0]
-    points_to_idices = points_to_idx[0]
+    indices, points_to_idx = streamlines_to_voxel_coordinates(
+        sft.streamlines,
+        return_mapping=True
+    )
+    strl_indices = indices[0]
+    points_to_indices = points_to_idx[0]
 
     cut = _trim_streamline_in_mask(
-        strl_indices, sft.streamlines[0], points_to_idices, center_roi)
+        strl_indices, sft.streamlines[0], points_to_indices, center_roi)
 
     in_result = os.path.join(SCILPY_HOME, 'tractograms',
                              'streamline_and_mask_operations',
@@ -200,12 +203,15 @@ def test_trim_streamline_in_mask_keep_longest():
     sft.to_vox()
     sft.to_corner()
 
-    idices, points_to_idx = uncompress(sft.streamlines, return_mapping=True)
-    strl_indices = idices[0]
-    points_to_idices = points_to_idx[0]
+    indices, points_to_idx = streamlines_to_voxel_coordinates(
+        sft.streamlines,
+        return_mapping=True
+    )
+    strl_indices = indices[0]
+    points_to_indices = points_to_idx[0]
 
     cut = _trim_streamline_in_mask_keep_longest(
-        strl_indices, sft.streamlines[0], points_to_idices, center_roi)
+        strl_indices, sft.streamlines[0], points_to_indices, center_roi)
 
     in_result = os.path.join(SCILPY_HOME, 'tractograms',
                              'streamline_and_mask_operations',
@@ -250,12 +256,15 @@ def test_trim_streamline_endpoints_in_mask():
     sft.to_vox()
     sft.to_corner()
 
-    idices, points_to_idx = uncompress(sft.streamlines, return_mapping=True)
-    strl_indices = idices[0]
-    points_to_idices = points_to_idx[0]
+    indices, points_to_idx = streamlines_to_voxel_coordinates(
+        sft.streamlines,
+        return_mapping=True
+    )
+    strl_indices = indices[0]
+    points_to_indices = points_to_idx[0]
 
     cut = _trim_streamline_endpoints_in_mask(
-        strl_indices, sft.streamlines[0], points_to_idices,
+        strl_indices, sft.streamlines[0], points_to_indices,
         head_tail_offset_rois)
 
     in_result = os.path.join(SCILPY_HOME, 'tractograms',
@@ -334,10 +343,14 @@ def test_compute_streamline_segment():
 
     # Split head and tail from mask
     roi_data_1, roi_data_2 = split_mask_blobs_kmeans(
-        head_tail_offset_rois, nb_clusters=2)
+        head_tail_offset_rois,
+        nb_clusters=2
+    )
 
-    (indices, points_to_idx) = uncompress(one_sft.streamlines,
-                                          return_mapping=True)
+    (indices, points_to_idx) = streamlines_to_voxel_coordinates(
+        one_sft.streamlines,
+        return_mapping=True
+    )
 
     strl_indices = indices[0]
     # Find the first and last "voxels" of the streamline that are in the

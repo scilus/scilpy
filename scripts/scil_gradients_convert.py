@@ -15,11 +15,13 @@ from scilpy.io.utils import (assert_gradients_filenames_valid,
                              assert_inputs_exist, assert_outputs_exist,
                              add_overwrite_arg, add_verbose_arg)
 from scilpy.io.gradients import fsl2mrtrix, mrtrix2fsl
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
-                                description=__doc__)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
 
     p.add_argument('gradients', nargs='+', metavar='GRADIENT_FILE(S)',
                    help='Path(s) to the gradient file(s). Either FSL '

@@ -246,7 +246,7 @@ def create_odf_slicer(sh_fodf, orientation, slice_index, sphere, sh_order,
 
     # Subdivide the spheres if nb_subdivide is provided
     if nb_subdivide is not None:
-        sphere = sphere.subdivide(nb_subdivide)
+        sphere = sphere.subdivide(n=nb_subdivide)
 
     fodf = sh_to_sf(sh_fodf, sphere, sh_order, sh_basis,
                     full_basis=full_basis, legacy=is_legacy)

@@ -129,7 +129,7 @@ def main():
 
     # Memory friendly saving, as soon as possible saving then delete
     priors_3d = np.zeros(sh_shape)
-    sphere = get_sphere('repulsion724')
+    sphere = get_sphere(name='repulsion724')
     priors_3d[sub_mask_3d] = sf_to_sh(todi_sf, sphere,
                                       sh_order_max=sh_order,
                                       basis_type=sh_basis,

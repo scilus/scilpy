@@ -162,7 +162,7 @@ def main():
         ms = build_ms_from_shell_idx(bvecs, shell_idx)
 
     else:
-        ms = [get_sphere(args.dipy_sphere).vertices]
+        ms = [get_sphere(name=args.dipy_sphere).vertices]
         centroids = None  # plot_each_shell not used.
 
     sym = args.enable_sym

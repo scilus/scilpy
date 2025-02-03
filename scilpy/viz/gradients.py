@@ -45,7 +45,7 @@ def plot_each_shell(ms, centroids, plot_sym_vecs=True, use_sphere=True,
     _colors = generate_n_colors(len(ms))
 
     if use_sphere:
-        sphere = get_sphere('symmetric724')
+        sphere = get_sphere(name='symmetric724')
         shape = (1, 1, 1, sphere.vertices.shape[0])
         _, fname = mkstemp(suffix='_odf_slicer.mmap')
         odfs = np.memmap(fname, dtype=np.float64, mode='w+', shape=shape)
