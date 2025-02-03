@@ -5,10 +5,7 @@ from scilpy.connectivity.matrix_tools import apply_reordering
 
 
 def test_compute_olo():
-    pass
-
-
-def test_apply_olo():
+    # Simple and basically only using hierarchy's function. Not testing.
     pass
 
 
