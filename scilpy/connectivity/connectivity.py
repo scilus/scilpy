@@ -66,7 +66,7 @@ def compute_triu_connectivity_from_labels(tractogram, data_labels,
         streamlines = sfs_2_pts.streamlines
 
     else:
-        streamlines = tractogram
+        streamlines = nib.streamlines.ArraySequence(tractogram)
 
     ordered_labels = list(np.sort(np.unique(data_labels)))
     assert ordered_labels[0] >= 0, "Only accepting positive labels."
