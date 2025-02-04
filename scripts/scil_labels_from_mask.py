@@ -20,11 +20,14 @@ from scilpy.image.labels import get_labels_from_mask
 from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              add_verbose_arg, assert_outputs_exist)
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(description=__doc__,
-                                formatter_class=argparse.RawTextHelpFormatter)
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
+
     p.add_argument('in_mask', type=str, help='Input mask file.')
     p.add_argument('out_labels', type=str, help='Output label file.')
 

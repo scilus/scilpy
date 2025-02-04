@@ -107,7 +107,7 @@ def main():
     args.b0_threshold = check_b0_threshold(bvals.min(),
                                            b0_thr=args.b0_threshold,
                                            skip_b0_check=args.skip_b0_check)
-    gtab = gradient_table(bvals, bvecs, b0_threshold=args.b0_threshold)
+    gtab = gradient_table(bvals, bvecs=bvecs, b0_threshold=args.b0_threshold)
 
     # Checking full_frf and separating it
     if not full_frf.shape[0] == 4:
@@ -117,7 +117,7 @@ def main():
     mean_b0_val = full_frf[3]
 
     # Loading the sphere
-    reg_sphere = get_sphere('symmetric362')
+    reg_sphere = get_sphere(name='symmetric362')
 
     # Computing CSD
     csd_model = ConstrainedSphericalDeconvModel(gtab, (frf, mean_b0_val),

@@ -268,7 +268,7 @@ def main():
     parser = _build_arg_parser()
     args = _parse_args(parser)
     data = _get_data_from_inputs(args)
-    sph = get_sphere(args.sphere)
+    sph = get_sphere(name=args.sphere)
     sh_order, full_basis = get_sh_order_and_fullness(data['fodf'].shape[-1])
     sh_basis, is_legacy = parse_sh_basis_arg(args)
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
