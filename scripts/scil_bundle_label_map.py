@@ -153,11 +153,11 @@ def main():
                         optional=args.reference)
     assert_output_dirs_exist_and_empty(parser, args, args.out_dir)
 
-    if args.streamlines_thr < 0:
-        parser.error('streamlines_thr must be greater than 0.')
+    if args.streamlines_thr is not None and args.streamlines_thr < 1:
+        parser.error('streamlines_thr must be greater than 1.')
 
-    if args.correlation_thr < 1:
-        parser.error('correlation_thr must be greater than 1.')
+    if args.correlation_thr < 0:
+        parser.error('correlation_thr must be greater than 0')
 
     sft_centroid = load_tractogram_with_reference(parser, args,
                                                   args.in_centroid)
@@ -264,7 +264,6 @@ def main():
     logging.debug(
         f'Chop bundle(s) in {round(time.time() - timer, 3)} seconds.')
 
-    # Here
     method = 'hyperplane' if args.hyperplane else 'centerline'
     args.nb_pts = len(sft_centroid.streamlines[0]) if args.nb_pts is None \
         else args.nb_pts
@@ -281,7 +280,9 @@ def main():
     ratio = count[1] / np.sum(count[1:])
 
     # 0.9 is arbitrary, but we want a vast majority of the voxels to be
-    # contiguous, otherwise it is a weird bundle
+    # contiguous, otherwise it is a weird bundle so we recompute the labels
+    # using the centerline method.
+    print(len(unique), ratio)
     if len(unique) > 2 and ratio < 0.9:
         binary_mask = np.max(binary_list, axis=0)
         labels_map = subdivide_bundles(concat_sft, sft_centroid, binary_mask,
@@ -289,9 +290,6 @@ def main():
                                        fix_jumps=False)
         logging.warning('Warning: Some labels were not contiguous. '
                         'Recomputing labels to centerline method.')
-    else:
-        raise ValueError('Labels are not contiguous after subdivision. '
-                         'Please check the input data.')
 
     timer = time.time()
     distance_map = compute_distance_map(labels_map, binary_mask, args.nb_pts,
