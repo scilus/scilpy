@@ -20,12 +20,13 @@ from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_overwrite_arg, add_verbose_arg,
                              assert_inputs_exist, assert_outputs_exist,
                              assert_headers_compatible)
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(
-        description=__doc__,
-        formatter_class=argparse.RawTextHelpFormatter)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
     p.add_argument('in_dwi',
                    help='DWI Nifti image.')
     p.add_argument('in_bias_field',
@@ -38,10 +39,10 @@ def _build_arg_parser():
                         'If this is not given, the bias field is still only '
                         'applied only in non-background data \n(i.e. where '
                         'the dwi is not 0).')
-    
+
     add_verbose_arg(p)
     add_overwrite_arg(p)
-    
+
     return p
 
 

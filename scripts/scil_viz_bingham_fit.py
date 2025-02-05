@@ -121,7 +121,7 @@ def main():
     parser = _build_arg_parser()
     args = _parse_args(parser)
     data = _get_data_from_inputs(args)
-    sph = get_sphere(args.sphere)
+    sph = get_sphere(name=args.sphere)
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     actors = create_bingham_slicer(data, args.axis_name,

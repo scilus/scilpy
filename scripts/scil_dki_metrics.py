@@ -65,12 +65,14 @@ from scilpy.gradients.bvec_bval_tools import (check_b0_threshold,
                                               is_normalized_bvecs,
                                               identify_shells,
                                               normalize_bvecs)
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(
-        description=__doc__,
-        formatter_class=argparse.RawTextHelpFormatter)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
+
     p.add_argument('in_dwi',
                    help='Path of the input multi-shell DWI dataset.')
     p.add_argument('in_bval',
@@ -198,8 +200,9 @@ def main():
     # b0_threshold option in gradient_table probably unused, except below with
     # option dki_residual.
     _ = check_b0_threshold(bvals.min(), b0_thr=args.tolerance,
-                           skip_b0_check=args.skip_b0_check)
-    gtab = gradient_table(bvals, bvecs, b0_threshold=args.tolerance)
+                           skip_b0_check=args.skip_b0_check,
+                           overwrite_with_min=False)
+    gtab = gradient_table(bvals, bvecs=bvecs, b0_threshold=args.tolerance)
 
     # Processing
 

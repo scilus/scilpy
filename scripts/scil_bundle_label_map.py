@@ -44,12 +44,13 @@ from scilpy.tractograms.streamline_and_mask_operations import \
 from scilpy.tractograms.streamline_operations import \
     resample_streamlines_num_points
 from scilpy.viz.color import get_lookup_table
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(
-        description=__doc__,
-        formatter_class=argparse.RawTextHelpFormatter)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
 
     p.add_argument('in_bundles', nargs='+',
                    help='Fiber bundle file.')

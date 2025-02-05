@@ -26,13 +26,15 @@ from scilpy.io.utils import (add_b0_thresh_arg, add_overwrite_arg,
 from scilpy.gradients.bvec_bval_tools import (check_b0_threshold,
                                               B0ExtractionStrategy)
 from scilpy.utils.filenames import split_name_with_nii
+from scilpy.version import version_string
 
 logger = logging.getLogger(__file__)
 
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(description=__doc__,
-                                formatter_class=argparse.RawTextHelpFormatter)
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
     p.add_argument('in_dwi',
                    help='DWI Nifti image.')
     p.add_argument('in_bval',
@@ -98,7 +100,7 @@ def main():
     args.b0_threshold = check_b0_threshold(bvals.min(),
                                            b0_thr=args.b0_threshold,
                                            skip_b0_check=args.skip_b0_check)
-    gtab = gradient_table(bvals, bvecs, b0_threshold=args.b0_threshold)
+    gtab = gradient_table(bvals, bvecs=bvecs, b0_threshold=args.b0_threshold)
     b0_idx = np.where(gtab.b0s_mask)[0]
 
     logger.info('Number of b0 images in the data: {}'.format(len(b0_idx)))

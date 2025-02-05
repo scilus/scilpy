@@ -21,6 +21,13 @@ Only 4D data is supported, so the directions must be stored in a single
 dimension. For example, peaks.nii.gz from scil_fodf_metrics.py could be used.
 
 Formerly: scil_validate_and_correct_bvecs.py
+------------------------------------------------------------------------------
+Reference:
+[1] Schilling KG, Yeh FC, Nath V, Hansen C, Williams O, Resnick S, Anderson AW,
+    Landman BA. A fiber coherence index for quality control of B-table
+    orientation in diffusion MRI scans. Magn Reson Imaging. 2019 May;58:82-89.
+    doi: 10.1016/j.mri.2019.01.018.
+------------------------------------------------------------------------------
 """
 
 import argparse
@@ -35,19 +42,13 @@ from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              assert_headers_compatible)
 from scilpy.io.image import get_data_as_mask
 from scilpy.reconst.fiber_coherence import compute_coherence_table_for_transforms
-
-
-EPILOG = """
-[1] Schilling KG, Yeh FC, Nath V, Hansen C, Williams O, Resnick S, Anderson AW,
-Landman BA. A fiber coherence index for quality control of B-table orientation
-in diffusion MRI scans. Magn Reson Imaging. 2019 May;58:82-89.
-doi: 10.1016/j.mri.2019.01.018.
-"""
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
-                                description=__doc__, epilog=EPILOG)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
 
     p.add_argument('in_bvec',
                    help='Path to bvec file.')

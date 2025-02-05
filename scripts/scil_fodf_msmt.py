@@ -42,12 +42,13 @@ from scilpy.reconst.fodf import (fit_from_model,
                                  verify_failed_voxels_shm_coeff,
                                  verify_frf_files)
 from scilpy.reconst.sh import convert_sh_basis, verify_data_vs_sh_order
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
-
     p = argparse.ArgumentParser(description=__doc__,
-                                formatter_class=argparse.RawTextHelpFormatter)
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
 
     p.add_argument('in_dwi',
                    help='Path of the input diffusion volume.')
@@ -158,11 +159,12 @@ def main():
     #  https://github.com/dipy/dipy/issues/3015
     # b0_threshold option in gradient_table probably unused.
     _ = check_b0_threshold(bvals.min(), b0_thr=args.tolerance,
-                           skip_b0_check=args.skip_b0_check)
-    gtab = gradient_table(bvals, bvecs, b0_threshold=args.tolerance)
+                           skip_b0_check=args.skip_b0_check,
+                           overwrite_with_min=False)
+    gtab = gradient_table(bvals, bvecs=bvecs, b0_threshold=args.tolerance)
 
     # Loading spheres
-    reg_sphere = get_sphere('symmetric362')
+    reg_sphere = get_sphere(name='symmetric362')
 
     # Starting main process!
 

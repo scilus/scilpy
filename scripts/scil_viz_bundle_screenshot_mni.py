@@ -115,12 +115,12 @@ def prepare_data_for_actors(bundle_filename, reference_filename,
                                             in_place=True)
 
         new_sft = StatefulTractogram(streamlines, target_template_filename,
-                                     Space.RASMM)
+                                     space=Space.RASMM)
         affine_map = AffineMap(transformation,
-                               target_template_data.shape,
-                               target_template_affine,
-                               reference_data.shape,
-                               reference_affine)
+                               domain_grid_shape=target_template_data.shape,
+                               domain_grid2world=target_template_affine,
+                               codomain_grid_shape=reference_data.shape,
+                               codomain_grid2world=reference_affine)
         for i, roi in enumerate(rois):
             roi_data = nib.load(roi[0]).get_fdata()
             resampled = affine_map.transform(roi_data.astype(np.float64),
