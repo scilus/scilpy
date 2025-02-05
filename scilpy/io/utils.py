@@ -13,7 +13,7 @@ import xml.etree.ElementTree as ET
 import nibabel as nib
 import numpy as np
 from dipy.data import SPHERE_FILES
-from dipy.io.utils import is_header_compatible
+from dipy.io.utils import is_header_compatible, Space, Origin
 from scipy.io import loadmat
 import six
 
@@ -308,20 +308,21 @@ def add_bbox_arg(parser):
 
 
 def add_surface_spatial_arg(parser):
-    SPACES = ['VOX', 'VOXMM', 'RASMM', 'LPSMM']
-    ORIGINS = ['TRACKVIS', 'NIFTI']
-    parser.add_argument('--source_space',
-                        default='RASMM', choices=SPACES,
-                        help='Source space of the input surface [%(default)s].')
-    parser.add_argument('--destination_space',
-                        default='RASMM', choices=SPACES,
-                        help='Destination space of the output surface [%(default)s].')
-    parser.add_argument('--source_origin',
-                        default='TRACKVIS', choices=ORIGINS,
-                        help='Source origin of the input surface [%(default)s].')
-    parser.add_argument('--destination_origin',
-                        default='TRACKVIS', choices=ORIGINS,
-                        help='Destination origin of the output surface [%(default)s].')
+    SPACES = ['vox', 'voxmm', 'rasmm', 'lpsmm']
+    ORIGINS = ['corner', 'center']
+    surf = parser.add_argument_group(title='Surface spatial options')
+    surf.add_argument('--source_space',
+                      default='rasmm', choices=SPACES,
+                      help='Source space of the input surface [%(default)s].')
+    surf.add_argument('--destination_space',
+                      default='rasmm', choices=SPACES,
+                      help='Destination space of the output surface [%(default)s].')
+    surf.add_argument('--source_origin',
+                      default='center', choices=ORIGINS,
+                      help='Source origin of the input surface [%(default)s].')
+    surf.add_argument('--destination_origin',
+                      default='center', choices=ORIGINS,
+                      help='Destination origin of the output surface [%(default)s].')
 
 
 def add_vtk_legacy_arg(parser):
@@ -1271,3 +1272,17 @@ def get_default_screenshotting_data(args, peaks=True):
             ovl_imgs,
             ovl_colors,
             peaks_imgs)
+
+
+def convert_stateful_str_to_enum(args):
+    """
+    Convert spatial arguments from string to enum for stateful operations.
+    """
+
+    for space in ['source_space', 'destination_space']:
+        if hasattr(args, space):
+            setattr(args, space, Space(args.__getattribute__(space)))
+
+    for origin in ['source_origin', 'destination_origin']:
+        if hasattr(args, origin):
+            setattr(args, origin, Origin(args.__getattribute__(origin)))

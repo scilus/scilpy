@@ -23,7 +23,8 @@ from scilpy.io.utils import (add_vtk_legacy_arg,
                              add_surface_spatial_arg,
                              add_verbose_arg,
                              assert_inputs_exist,
-                             assert_outputs_exist)
+                             assert_outputs_exist,
+                             convert_stateful_str_to_enum)
 
 EPILOG = """
 References:
@@ -69,6 +70,7 @@ def main():
     assert_inputs_exist(parser, args.in_surface,
                         optional=[args.reference, args.ref_pial, args.ref_gii])
     assert_outputs_exist(parser, args, args.out_surface)
+    convert_stateful_str_to_enum(args)
 
     _, ext = os.path.splitext(args.in_surface)
     # FreeSurfer surfaces have no extension, verify if the input has one of the
@@ -79,8 +81,8 @@ def main():
                          'surfaces.')
 
         if args.source_space or args.source_origin:
-            parser.error('The source space and source origin can not be '
-                         'changed for FreeSurfer surfaces')
+            print('The source space and source origin can not be changed for '
+                  'FreeSurfer surfaces. Will be ignored.')
 
     _, ext = os.path.splitext(args.out_surface)
     if ext not in ['.vtk', '.vtp', '.fib', '.ply', '.stl', '.xml', '.obj']:
@@ -96,7 +98,7 @@ def main():
     # The ref will be either None or a valid path or both None
     save_surface(sfs, args.out_surface, to_space=args.destination_space,
                  to_origin=args.destination_origin,
-                 legacy_vtk_format=args.legendary_vtk_format,
+                 legacy_vtk_format=args.legacy_vtk_format,
                  ref_pial=args.ref_pial, ref_gii=args.ref_gii)
 
 
