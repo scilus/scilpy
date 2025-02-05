@@ -69,7 +69,6 @@ def main():
     im = nib.load(args.in_image).get_fdata(dtype=np.float32)
 
     nb_voxels = count_non_zero_voxels(im)
-    unique = np.unique(im)[1:]
 
     if args.out_filename is not None:
         open_mode = 'w'
@@ -86,9 +85,9 @@ def main():
                 out_file.write('\n')
             if args.value_id:
                 out_file.write(args.value_id + ' ')
-            out_file.write(str(len(unique)))
+            out_file.write(str(nb_voxels))
     else:
-        print(len(unique))
+        print(nb_voxels)
 
 
 if __name__ == "__main__":
