@@ -4,7 +4,7 @@ from dipy.utils.optpkg import optional_package
 
 IMPORT_ERROR_MSG = "PyTorch is required to run this script. Please install" + \
                    " it first. See the official website for more info: " + \
-                   "https://pytorch.org/get-started/locally/" # noqa
+                   "https://pytorch.org/get-started/locally/"  # noqa
 torch, have_torch, _ = optional_package('torch', trip_msg=IMPORT_ERROR_MSG)
 
 
@@ -23,9 +23,14 @@ def get_model(checkpoint_file, device):
 
     state_dict = checkpoint['state_dict']
     hyperparameters = checkpoint['hyperparameters']
-    print(hyperparameters)
 
-    model = LabelSegNet(hyperparameters['in_chans'], hyperparameters['volume_size'], hyperparameters['prompt_strategy'], hyperparameters['embed_dim'], hyperparameters['bottleneck_dim'], n_bundles=hyperparameters['n_bundles'])
+    model = LabelSegNet(
+        hyperparameters['in_chans'],
+        hyperparameters['volume_size'],
+        hyperparameters['prompt_strategy'],
+        hyperparameters['embed_dim'],
+        hyperparameters['bottleneck_dim'],
+        n_bundles=hyperparameters['n_bundles'])
 
     model.load_state_dict(state_dict)
     model.to(device)

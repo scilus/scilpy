@@ -294,7 +294,7 @@ def download(url: str, fname: str, chunk_size=1024):
 
 
 def _download_weights(path=DEFAULT_CKPT):
-    url = 'https://zenodo.org/records/14779787/files/labelseg.ckpt'
+    url = 'https://zenodo.org/records/14813477/files/labelsegnet.ckpt'
     os.makedirs(os.path.dirname(path))
     print('Downloading weights ...')
     download(url, path)
