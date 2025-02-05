@@ -748,7 +748,11 @@ def compare_volume_wrapper(data_1, data_2, voxel_size=1, ratio=False,
         for measure_name, measure in curr_dict.items():
             if measure_name not in dict_measures:
                 dict_measures[measure_name] = {}
-            dict_measures[measure_name].update({int(val): float(measure)})
+            dict_measures[measure_name].update({int(val): np.nan_to_num(float(measure))})
+
+    ssd = np.sum((data_1 - data_2) ** 2)
+    dict_measures['ssd'] = {}
+    dict_measures['ssd'].update({'all': [float(ssd)]})
 
     return dict_measures
 

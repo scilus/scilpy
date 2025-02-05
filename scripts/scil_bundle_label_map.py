@@ -93,7 +93,6 @@ def main():
 
     sft_centroid = load_tractogram_with_reference(parser, args,
                                                   args.in_centroid)
-
     sft_centroid.to_vox()
     sft_centroid.to_corner()
 

@@ -25,9 +25,10 @@ def get_model(checkpoint_file, device):
     hyperparameters = checkpoint['hyperparameters']
     print(hyperparameters)
 
-    model = LabelSegNet(hyperparameters['in_chans'], hyperparameters['volume_size'], hyperparameters['prompt_strategy'], hyperparameters['embed_dim'])
+    model = LabelSegNet(hyperparameters['in_chans'], hyperparameters['volume_size'], hyperparameters['prompt_strategy'], hyperparameters['embed_dim'], hyperparameters['bottleneck_dim'], n_bundles=hyperparameters['n_bundles'])
 
-    model = model.load_state_dict(state_dict).to(device)
+    model.load_state_dict(state_dict)
+    model.to(device)
 
     # Put the model in eval mode to fix dropout and other stuff
     model.eval()
