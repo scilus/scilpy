@@ -21,9 +21,13 @@ def get_model(checkpoint_file, device):
             checkpoint_file, map_location=torch.device('cpu'),
             weights_only=False)
 
-    state_dict = checkpoint["state_dict"]
+    state_dict = checkpoint['state_dict']
+    hyperparameters = checkpoint['hyperparameters']
+    print(hyperparameters)
 
-    model = LabelSegNet.load_state_dict(state_dict).to(device)
+    model = LabelSegNet(hyperparameters['in_chans'], hyperparameters['volume_size'], hyperparameters['prompt_strategy'], hyperparameters['embed_dim'])
+
+    model = model.load_state_dict(state_dict).to(device)
 
     # Put the model in eval mode to fix dropout and other stuff
     model.eval()
