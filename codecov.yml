@@ -32,3 +32,6 @@ component_management:
 
 comment:
   layout: "condensed_header, diff, components"
+
+ignore:
+  - scilpy/viz
