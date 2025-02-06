@@ -130,6 +130,8 @@ class LabelSeg():
     def predict(self, model, fodf, wm):
         """
         """
+        device = get_device()
+
         nb_bundles = len(self.bundles)
         fodf_data = fodf.get_fdata().transpose(
             (3, 0, 1, 2))[:self.n_coefs, ...]  # TODO: get from model
@@ -140,7 +142,6 @@ class LabelSeg():
         std = np.std(fodf_data)
         fodf_data = (fodf_data - mean) / std
 
-        # with torch.amp.autocast('cuda', enabled=False):
         # Predict the scores of the streamlines
         pbar = tqdm(range(nb_bundles))
 
@@ -148,14 +149,14 @@ class LabelSeg():
         data = torch.tensor(
             fodf_data,
             dtype=torch.float
-        ).to('cuda:0')
+        ).to(device)
 
         wm_prompt = torch.tensor(
             wm_data,
             dtype=torch.float
-        ).to('cuda:0')
+        ).to(device)
 
-        prompts = torch.eye(len(self.bundles), device=get_device())
+        prompts = torch.eye(len(self.bundles), device=device)
 
         with torch.no_grad():
 
