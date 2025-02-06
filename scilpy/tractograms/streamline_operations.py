@@ -586,6 +586,8 @@ def resample_streamlines_step_size(sft, step_size):
 
     # Return to original space
     resampled_sft.to_space(orig_space)
+    resampled_sft.streamlines._data = resampled_sft.streamlines._data.astype(
+        np.float32)
 
     return resampled_sft
 

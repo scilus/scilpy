@@ -55,7 +55,8 @@ def shuffle_streamlines(sft, rng_seed=None):
         The shuffled tractogram.
     """
     indices = np.arange(len(sft.streamlines))
-    random.shuffle(indices, random=rng_seed)
+    random.seed(rng_seed)
+    random.shuffle(indices)
 
     streamlines = sft.streamlines[indices]
     data_per_streamline = sft.data_per_streamline[indices]
