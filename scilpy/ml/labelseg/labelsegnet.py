@@ -9,7 +9,7 @@ IMPORT_ERROR_MSG = "PyTorch is required to run this script. Please install" + \
 torch, have_torch, _ = optional_package('torch', trip_msg=IMPORT_ERROR_MSG)
 
 
-# TODO: Cite MedSAM3D
+# From https://github.com/uni-medical/SAM-Med3D
 
 class MLPBlock3D(torch.nn.Module):
     def __init__(
