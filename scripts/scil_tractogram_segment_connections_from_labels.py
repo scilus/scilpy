@@ -86,10 +86,7 @@ from scilpy.tractanalysis.connectivity_segmentation import (
     extract_longest_segments_from_profile)
 from scilpy.tractograms.uncompress import streamlines_to_voxel_coordinates
 from scilpy.version import version_string
-<<<<<<< HEAD
-=======
 
->>>>>>> 119ed3a099643a5c39c142d18de899de2611a7f0
 
 def _get_output_paths(args):
     paths = {'raw': os.path.join(args.out_dir, 'raw_connections'),
