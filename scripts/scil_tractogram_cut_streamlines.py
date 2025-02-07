@@ -54,7 +54,6 @@ from scilpy.tractograms.streamline_operations import \
     resample_streamlines_step_size
 from scilpy.version import version_string
 
-
 # Mapping the arguments to the cutting style
 # (keep_longest, trim_endpoints) -> CuttingStyle
 args_to_style = {(False, False): CuttingStyle.DEFAULT,

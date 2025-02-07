@@ -104,7 +104,6 @@ from scilpy.segment.streamlines import (filter_cuboid, filter_ellipsoid,
                                         filter_grid_roi)
 from scilpy.version import version_string
 
-
 MODES = ['any', 'all', 'either_end', 'both_ends']
 CRITERIA = ['include', 'exclude']
 

@@ -38,7 +38,6 @@ from scilpy.io.utils import (assert_inputs_exist,
 from scilpy.version import version_string
 from scilpy.viz.color import generate_local_coloring
 
-
 streamline_actor = {'tube': actor.streamtube,
                     'line': actor.line}
 

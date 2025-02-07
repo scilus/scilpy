@@ -30,9 +30,7 @@ from scilpy.io.utils import (add_overwrite_arg,
 from scilpy.utils import is_float
 from scilpy.version import version_string
 
-
 OPERATIONS = get_image_ops()
-
 __doc__ += get_operations_doc(OPERATIONS)
 
 

@@ -20,11 +20,10 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_gradients_filenames_valid,
                              assert_inputs_exist,
                              assert_outputs_exist)
+from scilpy.version import version_string
 from scilpy.viz.gradients import (build_ms_from_shell_idx,
                                   plot_each_shell,
                                   plot_proj_shell)
-from scilpy.version import version_string
-
 
 sphere_choices = ['symmetric362', 'symmetric642', 'symmetric724',
                   'repulsion724', 'repulsion100', 'repulsion200']
