@@ -84,9 +84,8 @@ from scilpy.tractanalysis.connectivity_segmentation import (
     compute_connectivity,
     construct_hdf5_from_connectivity,
     extract_longest_segments_from_profile)
-from scilpy.tractograms.uncompress import uncompress
+from scilpy.tractograms.uncompress import streamlines_to_voxel_coordinates
 from scilpy.version import version_string
-
 
 def _get_output_paths(args):
     paths = {'raw': os.path.join(args.out_dir, 'raw_connections'),
@@ -286,7 +285,10 @@ def main():
     # Get the indices of the voxels traversed by each streamline
     logging.info('*** Computing voxels traversed by each streamline ***')
     time1 = time.time()
-    indices, points_to_idx = uncompress(sft.streamlines, return_mapping=True)
+    indices, points_to_idx = streamlines_to_voxel_coordinates(
+        sft.streamlines,
+        return_mapping=True
+    )
     time2 = time.time()
     logging.info('    Streamlines intersection took {} sec.'.format(
         round(time2 - time1, 2)))

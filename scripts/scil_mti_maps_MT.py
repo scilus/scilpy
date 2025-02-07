@@ -182,8 +182,7 @@ def main():
     contrast_names_og = contrast_names
 
     # check data
-    input_maps_flat_list = [m for _list in input_maps_lists for m in _list]
-    assert_inputs_exist(parser, args.in_mtoff_pd + input_maps_flat_list,
+    assert_inputs_exist(parser, args.in_mtoff_pd + input_maps_lists,
                         optional=args.in_mtoff_t1 or [] + [args.mask])
 
     # Define reference image for saving maps

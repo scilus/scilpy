@@ -12,7 +12,7 @@ from scilpy.tracking.fibertube_utils import (streamlines_to_segments,
                                              dist_segment_segment,
                                              dist_point_segment)
 from scilpy.tracking.utils import tqdm_if_verbose
-from scilpy.tractograms.uncompress import uncompress
+from scilpy.tractograms.uncompress import streamlines_to_voxel_coordinates
 
 
 def fibertube_density(sft, samples_per_voxel_axis, verbose=False):
@@ -61,10 +61,10 @@ def fibertube_density(sft, samples_per_voxel_axis, verbose=False):
                            len(sft.streamlines))
     max_diameter = np.max(diameters)
 
-    # Everything will be in vox and corner for uncompress.
+    # Everything will be in vox and corner for streamlines_to_voxel_coordinates.
     sft.to_vox()
     sft.to_corner()
-    vox_idx_for_streamline = uncompress(sft.streamlines)
+    vox_idx_for_streamline = streamlines_to_voxel_coordinates(sft.streamlines)
     mask_idx = np.concatenate(vox_idx_for_streamline)
     mask = np.zeros((sft.dimensions), dtype=np.uint8)
     # Numpy array indexing in 3D works like this
@@ -222,7 +222,7 @@ def min_external_distance(sft, verbose):
                 min_external_distance = external_distance
                 min_external_distance_vec = (
                     get_external_vector_from_centerline_vector(vector, rp, rq)
-                    )
+                )
 
     return min_external_distance, min_external_distance_vec
 

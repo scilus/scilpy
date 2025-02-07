@@ -154,7 +154,7 @@ def get_data(layout, nSub, dwis, t1s, fs, default_readout, clean):
         Default readout time
 
     clean: Boolean
-        If set, if some critical files are missing it will
+        If True, if some critical files are missing it will
         remove this specific subject/session/run
 
     Returns
