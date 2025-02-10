@@ -43,27 +43,6 @@ def compute_olo(array):
     return perm
 
 
-def apply_olo(array, perm):
-    """
-    Apply the permutation from compute_RCM.
-
-    Parameters
-    ----------
-    array: ndarray (NxN)
-        Sparse connectivity matrix.
-    perm: ndarray (N,)
-        Permutations for rows and columns to be applied.
-
-    Returns
-    -------
-    ndarray (N,N)
-        Reordered array.
-    """
-    if array.ndim != 2:
-        raise ValueError('RCM can only be applied to 2D array.')
-    return array[perm].T[perm]
-
-
 def apply_reordering(array, ordering):
     """
     Apply a non-symmetric array ordering that support non-square output.
@@ -101,12 +80,12 @@ def apply_reordering(array, ordering):
 def evaluate_graph_measures(conn_matrix, len_matrix, avg_node_wise,
                             small_world):
     """
-    toDo Finish docstring
-
     Parameters
     ----------
-    conn_matrix: np.ndarray of shape ??
-    len_matrix: np.ndarray of shape ??
+    conn_matrix: np.ndarray
+        2D matrix of connectivity weights. Typicaly a streamline count matrix.
+    len_matrix: np.ndarray
+        2D matrix of bundle lengths.
     avg_node_wise: bool
         If true, return a single value for node-wise measures.
     small_world: bool
