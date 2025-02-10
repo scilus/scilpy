@@ -14,7 +14,7 @@ from scilpy.viz.color import generate_n_colors, lut_from_matplotlib_name
 from scilpy.viz.utils import affine_from_offset
 
 
-def create_texture_slicer(texture, orientation, slice_index, mask=None,
+def create_texture_slicer(texture, orientation, slice_index, *, mask=None,
                           value_range=None, opacity=1.0, offset=0.5,
                           lut=None, interpolation='nearest'):
     """
@@ -126,7 +126,7 @@ def create_contours_slicer(data, contour_values, orientation, slice_index,
     return contours_slicer
 
 
-def create_peaks_slicer(data, orientation, slice_index, peak_values=None,
+def create_peaks_slicer(data, orientation, slice_index, *, peak_values=None,
                         mask=None, color=None, peaks_width=1.0,
                         opacity=1.0, symmetric=False):
     """
@@ -246,7 +246,7 @@ def create_odf_slicer(sh_fodf, orientation, slice_index, sphere, sh_order,
 
     # Subdivide the spheres if nb_subdivide is provided
     if nb_subdivide is not None:
-        sphere = sphere.subdivide(nb_subdivide)
+        sphere = sphere.subdivide(n=nb_subdivide)
 
     fodf = sh_to_sf(sh_fodf, sphere, sh_order, sh_basis,
                     full_basis=full_basis, legacy=is_legacy)

@@ -140,9 +140,9 @@ def main():
     args.b0_threshold = check_b0_threshold(bvals.min(),
                                            b0_thr=args.b0_threshold,
                                            skip_b0_check=args.skip_b0_check)
-    gtab = gradient_table(bvals, bvecs, b0_threshold=args.b0_threshold)
+    gtab = gradient_table(bvals, bvecs=bvecs, b0_threshold=args.b0_threshold)
 
-    sphere = get_sphere('symmetric724')
+    sphere = get_sphere(name='symmetric724')
     sh_basis, is_legacy = parse_sh_basis_arg(args)
 
     mask = get_data_as_mask(nib.load(args.mask)) if args.mask else None

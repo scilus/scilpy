@@ -12,6 +12,7 @@ import numpy as np
 import os
 
 from dipy.data import get_sphere
+from dipy.io.gradients import read_bvals_bvecs
 
 from scilpy.gradients.bvec_bval_tools import identify_shells
 from scilpy.io.utils import (add_overwrite_arg,
@@ -88,7 +89,7 @@ def main():
 
         if len(args.in_gradient_scheme) == 2:
             assert_gradients_filenames_valid(parser, args.in_gradient_scheme,
-                                             'fsl')
+                                             True)
         elif len(args.in_gradient_scheme) == 1:
             basename, ext = os.path.splitext(args.in_gradient_scheme[0])
             if ext in ['.bvec', '.bvecs', '.bvals', '.bval']:
@@ -97,7 +98,7 @@ def main():
             else:
                 assert_gradients_filenames_valid(parser,
                                                  args.in_gradient_scheme,
-                                                 'mrtrix')
+                                                 False)
         else:
             parser.error('Depending on the gradient format you should have '
                          'two files for FSL format and one file for MRtrix')
@@ -120,17 +121,14 @@ def main():
         if len(args.in_gradient_scheme) == 2:
             in_gradient_schemes = args.in_gradient_scheme
             in_gradient_schemes.sort()  # [bval, bvec]
-            # bvecs/bvals (FSL) format, X Y Z AND b (or transpose)
-            points = np.genfromtxt(in_gradient_schemes[1])
-            if points.shape[0] == 3:
-                points = points.T
-            bvals = np.genfromtxt(in_gradient_schemes[0])
+            bvals, bvecs = read_bvals_bvecs(in_gradient_schemes[0],
+                                            in_gradient_schemes[1])
             centroids, shell_idx = identify_shells(bvals)
         else:
             # MRtrix format X, Y, Z, b
             in_gradient_scheme = args.in_gradient_scheme[0]
             tmp = np.genfromtxt(in_gradient_scheme, delimiter=' ')
-            points = tmp[:, :3]
+            bvecs = tmp[:, :3]
             bvals = tmp[:, 3]
             centroids, shell_idx = identify_shells(bvals)
 
@@ -161,10 +159,10 @@ def main():
             for idx, val in enumerate(shell_idx):
                 if val != 0 and val != -1:
                     shell_idx[idx] -= len(np.where(indexes < val)[0])
-        ms = build_ms_from_shell_idx(points, shell_idx)
+        ms = build_ms_from_shell_idx(bvecs, shell_idx)
 
     else:
-        ms = [get_sphere(args.dipy_sphere).vertices]
+        ms = [get_sphere(name=args.dipy_sphere).vertices]
         centroids = None  # plot_each_shell not used.
 
     sym = args.enable_sym

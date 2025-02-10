@@ -13,7 +13,13 @@ overwrite them based on the input order.
             --volume_ids a2009s_aseg.nii.gz all
             --volume_ids clean/s1__DKT.nii.gz 1028 2028
 
-Formerly: scil_combine_labels.py.
+Formerly: scil_combine_labels.py
+------------------------------------------------------------------------------
+Reference:
+[1] Al-Sharif N.B., St-Onge E., Vogel J.W., Theaud G.,
+    Evans A.C. and Descoteaux M. OHBM 2019.
+    Surface integration for connectome analysis in age prediction.
+------------------------------------------------------------------------------
 """
 
 
@@ -27,19 +33,13 @@ import numpy as np
 from scilpy.image.labels import get_data_as_labels, combine_labels
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              add_verbose_arg, assert_outputs_exist)
-
-
-EPILOG = """
-    References:
-        [1] Al-Sharif N.B., St-Onge E., Vogel J.W., Theaud G.,
-            Evans A.C. and Descoteaux M. OHBM 2019.
-            Surface integration for connectome analysis in age prediction.
-    """
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(description=__doc__, epilog=EPILOG,
-                                formatter_class=argparse.RawTextHelpFormatter)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
 
     p.add_argument('output',
                    help='Combined labels volume output.')

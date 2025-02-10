@@ -14,7 +14,7 @@ from scilpy.viz.screenshot import compose_image
 
 def plot_each_shell(ms, centroids, plot_sym_vecs=True, use_sphere=True,
                     same_color=False, rad=0.025, opacity=1.0, ofile=None,
-                    ores=(300, 300)):
+                    ores=(300, 300), titles=None):
     """
     Plot each shell
 
@@ -38,12 +38,14 @@ def plot_each_shell(ms, centroids, plot_sym_vecs=True, use_sphere=True,
         output filename
     ores: tuple
         resolution of the output png
+    titles: list of str
+        titles for the windows, one per shell
     """
 
     _colors = generate_n_colors(len(ms))
 
     if use_sphere:
-        sphere = get_sphere('symmetric724')
+        sphere = get_sphere(name='symmetric724')
         shape = (1, 1, 1, sphere.vertices.shape[0])
         _, fname = mkstemp(suffix='_odf_slicer.mmap')
         odfs = np.memmap(fname, dtype=np.float64, mode='w+', shape=shape)
@@ -58,7 +60,7 @@ def plot_each_shell(ms, centroids, plot_sym_vecs=True, use_sphere=True,
         scene = window.Scene()
         scene.SetBackground(1, 1, 1)
         if use_sphere:
-            sphere_actor = actor.odf_slicer(odfs, affine, sphere=sphere,
+            sphere_actor = actor.odf_slicer(odfs, affine=affine, sphere=sphere,
                                             colormap='winter', scale=1.0,
                                             opacity=opacity)
             scene.add(sphere_actor)
@@ -67,7 +69,19 @@ def plot_each_shell(ms, centroids, plot_sym_vecs=True, use_sphere=True,
         if plot_sym_vecs:
             pts_actor = actor.point(-shell, _colors[i], point_radius=rad)
             scene.add(pts_actor)
-        window.show(scene)
+        if titles is not None:
+            if len(titles) == len(ms):
+                window.show(scene, title=titles[i])
+            elif isinstance(titles, str):
+                window.show(scene, title=titles)
+            elif len(titles) == 1:
+                window.show(scene, title=titles[0])
+            else:
+                logging.warning('No title could be added to the windows since '
+                                'the given format is incorrect.')
+                window.show(scene)
+        else:
+            window.show(scene)
 
         if ofile:
             filename = ofile + '_shell_' + str(int(centroids[i])) + '.png'
@@ -79,7 +93,8 @@ def plot_each_shell(ms, centroids, plot_sym_vecs=True, use_sphere=True,
 
 
 def plot_proj_shell(ms, use_sym=True, use_sphere=True, same_color=False,
-                    rad=0.025, opacity=1.0, ofile=None, ores=(300, 300)):
+                    rad=0.025, opacity=1.0, ofile=None, ores=(300, 300),
+                    title=None):
     """
     Plot each shell
 
@@ -101,6 +116,8 @@ def plot_proj_shell(ms, use_sym=True, use_sphere=True, same_color=False,
         output filename
     ores: tuple
         resolution of the output png
+    title: str
+        title for the window
     """
 
     _colors = generate_n_colors(len(ms))
@@ -108,14 +125,14 @@ def plot_proj_shell(ms, use_sym=True, use_sphere=True, same_color=False,
     scene = window.Scene()
     scene.SetBackground(1, 1, 1)
     if use_sphere:
-        sphere = get_sphere('symmetric724')
+        sphere = get_sphere(name='symmetric724')
         shape = (1, 1, 1, sphere.vertices.shape[0])
         _, fname = mkstemp(suffix='_odf_slicer.mmap')
         odfs = np.memmap(fname, dtype=np.float64, mode='w+', shape=shape)
         odfs[:] = 1
         odfs[..., 0] = 1
         affine = np.eye(4)
-        sphere_actor = actor.odf_slicer(odfs, affine, sphere=sphere,
+        sphere_actor = actor.odf_slicer(odfs, affine=affine, sphere=sphere,
                                         colormap='winter', scale=1.0,
                                         opacity=opacity)
 
@@ -129,7 +146,10 @@ def plot_proj_shell(ms, use_sym=True, use_sphere=True, same_color=False,
         if use_sym:
             pts_actor = actor.point(-shell, _colors[i], point_radius=rad)
             scene.add(pts_actor)
-    window.show(scene)
+    if title is not None:
+        window.show(scene, title=title)
+    else:
+        window.show(scene)
     if ofile:
         filename = ofile + '.png'
         # Legacy. When this snapshotting gets updated to align with the

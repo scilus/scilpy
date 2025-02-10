@@ -27,7 +27,6 @@ Formerly: scil_compute_dti_metrics.py
 import argparse
 import logging
 
-import matplotlib.pyplot as plt
 import nibabel as nib
 import numpy as np
 
@@ -54,15 +53,17 @@ from scilpy.gradients.bvec_bval_tools import (check_b0_threshold,
                                               is_normalized_bvecs,
                                               normalize_bvecs)
 from scilpy.utils.filenames import add_filename_suffix, split_name_with_nii
+from scilpy.viz.plot import plot_residuals
+from scilpy.version import version_string
 
 logger = logging.getLogger("DTI_Metrics")
 logger.setLevel(logging.INFO)
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(
-        description=__doc__,
-        formatter_class=argparse.RawTextHelpFormatter)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
     p.add_argument('in_dwi',
                    help='Path of the input diffusion volume.')
     p.add_argument('in_bval',
@@ -149,75 +150,6 @@ def _build_arg_parser():
     return p
 
 
-def _plot_residuals(args, data_diff, mask, R_k, q1, q3, iqr, residual_basename):
-    # Showing results in graph
-    # Note that stats will be computed manually and plotted using bxp
-    # but could be computed using stats = cbook.boxplot_stats
-    # or pyplot.boxplot(x)
-    if mask is None:
-        logging.info("Outlier detection will not be performed, since no "
-                     "mask was provided.")
-
-    # Initializing stats as a List[dict]
-    stats = [dict.fromkeys(['label', 'mean', 'iqr', 'cilo', 'cihi',
-                            'whishi', 'whislo', 'fliers', 'q1',
-                            'med', 'q3'], [])
-             for _ in range(data_diff.shape[-1])]
-
-    nb_voxels = np.count_nonzero(mask)
-    percent_outliers = np.zeros(data_diff.shape[-1], dtype=np.float32)
-    for k in range(data_diff.shape[-1]):
-        stats[k]['med'] = (q1[k] + q3[k]) / 2
-        stats[k]['mean'] = R_k[k]
-        stats[k]['q1'] = q1[k]
-        stats[k]['q3'] = q3[k]
-        stats[k]['whislo'] = q1[k] - 1.5 * iqr[k]
-        stats[k]['whishi'] = q3[k] + 1.5 * iqr[k]
-        stats[k]['label'] = k
-
-        # Outliers are observations that fall below Q1 - 1.5(IQR) or
-        # above Q3 + 1.5(IQR) We check if a voxel is an outlier only if
-        # we have a mask, else we are biased.
-        if args.mask is not None:
-            x = data_diff[..., k]
-            outliers = (x < stats[k]['whislo']) | (x > stats[k]['whishi'])
-            percent_outliers[k] = np.sum(outliers) / nb_voxels * 100
-            # What would be our definition of too many outliers?
-            # Maybe mean(all_means)+-3SD?
-            # Or we let people choose based on the figure.
-            # if percent_outliers[k] > ???? :
-            #    logger.warning('   Careful! Diffusion-Weighted Image'
-            #                   ' i=%s has %s %% outlier voxels',
-            #                   k, percent_outliers[k])
-
-    if args.mask is None:
-        fig, axe = plt.subplots(nrows=1, ncols=1, squeeze=False)
-    else:
-        fig, axe = plt.subplots(nrows=1, ncols=2, squeeze=False,
-                                figsize=[10, 4.8])
-        # Default is [6.4, 4.8]. Increasing width to see better.
-
-    medianprops = dict(linestyle='-', linewidth=2.5, color='firebrick')
-    meanprops = dict(linestyle='-', linewidth=2.5, color='green')
-    axe[0, 0].bxp(stats, showmeans=True, meanline=True, showfliers=False,
-                  medianprops=medianprops, meanprops=meanprops)
-    axe[0, 0].set_xlabel('DW image')
-    axe[0, 0].set_ylabel('Residuals per DWI volume. Red is median,\n'
-                         'green is mean. Whiskers are 1.5*interquartile')
-    axe[0, 0].set_title('Residuals')
-    axe[0, 0].set_xticks(range(0, q1.shape[0], 5))
-    axe[0, 0].set_xticklabels(range(0, q1.shape[0], 5))
-
-    if args.mask is not None:
-        axe[0, 1].plot(range(data_diff.shape[-1]), percent_outliers)
-        axe[0, 1].set_xticks(range(0, q1.shape[0], 5))
-        axe[0, 1].set_xticklabels(range(0, q1.shape[0], 5))
-        axe[0, 1].set_xlabel('DW image')
-        axe[0, 1].set_ylabel('Percentage of outlier voxels')
-        axe[0, 1].set_title('Outliers')
-    plt.savefig(residual_basename + '_residuals_stats.png')
-
-
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
@@ -276,7 +208,7 @@ def main():
     args.b0_threshold = check_b0_threshold(bvals.min(),
                                            b0_thr=args.b0_threshold,
                                            skip_b0_check=args.skip_b0_check)
-    gtab = gradient_table(bvals, bvecs, b0_threshold=args.b0_threshold)
+    gtab = gradient_table(bvals, bvecs=bvecs, b0_threshold=args.b0_threshold)
 
     # Processing
 
@@ -289,7 +221,7 @@ def main():
         tenmodel = TensorModel(gtab, fit_method=args.method,
                                min_signal=np.min(data[data > 0]))
 
-    tenfit = tenmodel.fit(data, mask)
+    tenfit = tenmodel.fit(data, mask=mask)
 
     # Save all metrics.
     if args.tensor:
@@ -404,17 +336,22 @@ def main():
                      add_filename_suffix(args.pulsation, '_std_b0'))
 
     if args.residual:
+        if mask is None:
+            logging.info("Outlier detection will not be performed, since no "
+                         "mask was provided.")
         # Mean residual image
         S0 = np.mean(data[..., gtab.b0s_mask], axis=-1)
+
         tenfit2_predict = np.zeros(data.shape, dtype=np.float32)
 
         for i in range(data.shape[0]):
             if args.mask is not None:
-                tenfit2 = tenmodel.fit(data[i, :, :, :], mask[i, :, :])
+                tenfit2 = tenmodel.fit(data[i, :, :, :], mask=mask[i, :, :])
             else:
                 tenfit2 = tenmodel.fit(data[i, :, :, :])
 
-            tenfit2_predict[i, :, :, :] = tenfit2.predict(gtab, S0[i, :, :])
+            S0_i = np.maximum(S0[i, :, :], tenfit2.model.min_signal)
+            tenfit2_predict[i, :, :, :] = tenfit2.predict(gtab, S0=S0_i)
 
         R, data_diff = compute_residuals(
             predicted_data=tenfit2_predict.astype(np.float32),
@@ -435,8 +372,8 @@ def main():
         np.save(add_filename_suffix(res_stats_basename, "_std_residuals"), std)
 
         # Plotting and saving figure
-        _plot_residuals(args, data_diff, mask, R_k, q1, q3, iqr,
-                        residual_basename)
+        plot_residuals(data_diff, mask, R_k, q1, q3, iqr,
+                       residual_basename)
 
 
 if __name__ == "__main__":

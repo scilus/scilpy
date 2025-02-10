@@ -30,11 +30,13 @@ from scilpy.io.utils import (add_b0_thresh_arg, add_overwrite_arg,
                              parse_sh_basis_arg, assert_headers_compatible)
 from scilpy.reconst.fodf import fit_from_model
 from scilpy.reconst.sh import convert_sh_basis
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(
-        description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
 
     p.add_argument('in_dwi',
                    help='Path of the input diffusion volume.')
@@ -105,7 +107,7 @@ def main():
     args.b0_threshold = check_b0_threshold(bvals.min(),
                                            b0_thr=args.b0_threshold,
                                            skip_b0_check=args.skip_b0_check)
-    gtab = gradient_table(bvals, bvecs, b0_threshold=args.b0_threshold)
+    gtab = gradient_table(bvals, bvecs=bvecs, b0_threshold=args.b0_threshold)
 
     # Checking full_frf and separating it
     if not full_frf.shape[0] == 4:
@@ -115,7 +117,7 @@ def main():
     mean_b0_val = full_frf[3]
 
     # Loading the sphere
-    reg_sphere = get_sphere('symmetric362')
+    reg_sphere = get_sphere(name='symmetric362')
 
     # Computing CSD
     csd_model = ConstrainedSphericalDeconvModel(gtab, (frf, mean_b0_val),

@@ -11,6 +11,13 @@ equal spacing and the non-b0 samples are finally shuffled to minimize the total
 diffusion gradient amplitude over a few TR.
 
 Formerly: scil_generate_gradient_sampling.py
+-------------------------------------------------------------------------------
+Reference:
+[1] Emmanuel Caruyer, Christophe Lenglet, Guillermo Sapiro,
+    Rachid Deriche. Design of multishell gradient sampling with uniform
+    coverage in diffusion MRI. Magnetic Resonance in Medicine, Wiley, 2013,
+    69 (6), pp. 1534-1540. <http://dx.doi.org/10.1002/mrm.24736>
+-------------------------------------------------------------------------------
 """
 
 import argparse
@@ -27,21 +34,14 @@ from scilpy.gradients.optimize_gradient_sampling import (
     compute_min_duty_cycle_bruteforce, correct_b0s_philips, swap_sampling_eddy)
 from scilpy.io.gradients import (
     save_gradient_sampling_fsl, save_gradient_sampling_mrtrix)
-
-
-EPILOG = """
-References: [1] Emmanuel Caruyer, Christophe Lenglet, Guillermo Sapiro,
-Rachid Deriche. Design of multishell gradient sampling with uniform coverage
-in diffusion MRI. Magnetic Resonance in Medicine, Wiley, 2013, 69 (6),
-pp. 1534-1540. <http://dx.doi.org/10.1002/mrm.24736>
-    """
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(
-        formatter_class=argparse.RawTextHelpFormatter,
-        description=__doc__,
-        epilog=EPILOG)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
+
     p.add_argument('nb_samples_per_shell', type=int, nargs='+',
                    help='Number of samples on each non b0 shell. \n'
                         'If multishell, provide a number per shell.')
@@ -62,7 +62,7 @@ def _build_arg_parser():
                              "Default if you add no option is to have a b0 "
                              "at the start.")
     gg = g.add_mutually_exclusive_group()
-    gg.add_argument('--no_b0_start',
+    gg.add_argument('--no_b0_start', action='store_true',
                     help="If set, do not add a b0 at the beginning. ")
     gg.add_argument('--b0_every', type=int,
                     help='Interleave a b0 every n=b0_every values. Starts '
