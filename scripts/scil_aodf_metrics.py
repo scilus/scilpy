@@ -142,7 +142,7 @@ def main():
     sh_img = nib.load(args.in_sh)
     sh = sh_img.get_fdata()
 
-    sphere = get_sphere(args.sphere)
+    sphere = get_sphere(name=args.sphere)
 
     sh_basis, is_legacy = parse_sh_basis_arg(args)
     sh_order, full_basis = get_sh_order_and_fullness(sh.shape[-1])

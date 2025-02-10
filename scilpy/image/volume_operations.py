@@ -284,14 +284,16 @@ def register_image(static, static_grid2world, moving, moving_grid2world,
     # Then, rigid transformation (translation + rotation)
     transform = RigidTransform3D()
     rigid = reg_obj.optimize(static, moving, transform, params0,
-                             static_grid2world, moving_grid2world,
+                             static_grid2world=static_grid2world,
+                             moving_grid2world=moving_grid2world,
                              starting_affine=c_of_mass.affine)
 
     if transformation_type == 'affine':
         # Finally, affine transformation (translation + rotation + scaling)
         transform = AffineTransform3D()
         affine = reg_obj.optimize(static, moving, transform, params0,
-                                  static_grid2world, moving_grid2world,
+                                  static_grid2world=static_grid2world,
+                                  moving_grid2world=moving_grid2world,
                                   starting_affine=rigid.affine)
 
         mapper = affine

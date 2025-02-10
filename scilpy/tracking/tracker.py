@@ -3,18 +3,15 @@ from contextlib import nullcontext
 import itertools
 import logging
 import multiprocessing
-from operator import mod
 import os
 import sys
 from tempfile import TemporaryDirectory
-from time import perf_counter
 import traceback
 from typing import Union
 from tqdm import tqdm
 
 import numpy as np
 from dipy.data import get_sphere
-from dipy.core.sphere import HemiSphere
 from dipy.io.stateful_tractogram import Space
 from dipy.reconst.shm import sh_to_sf_matrix
 from dipy.tracking.streamlinespeed import compress_streamlines
@@ -535,7 +532,7 @@ class GPUTacker():
             np.array_split(seeds + 0.5, np.ceil(len(seeds)/batch_size))
 
         if sphere is None:
-            self.sphere = get_sphere("repulsion724")
+            self.sphere = get_sphere(name="repulsion724")
         else:
             self.sphere = sphere
 

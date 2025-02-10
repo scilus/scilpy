@@ -150,7 +150,7 @@ def main():
 
     # Sample SF from SH
     if args.sphere:
-        sphere = get_sphere(args.sphere)
+        sphere = get_sphere(name=args.sphere)
     else:  # args.in_bvec is set.
         gtab = gradient_table(bvals, bvecs=bvecs,
                               b0_threshold=args.b0_threshold)
