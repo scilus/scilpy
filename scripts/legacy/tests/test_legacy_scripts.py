@@ -102,7 +102,6 @@ legacy_scripts_list_tag_1_6_0 = [
     "scil_filter_tractogram_anatomically.py",
     "scil_filter_tractogram.py",
     "scil_fit_bingham_to_fodf.py",
-    "scil_fix_dsi_studio_trk.py",
     "scil_flip_gradients.py",
     "scil_flip_streamlines.py",
     "scil_flip_surface.py",
