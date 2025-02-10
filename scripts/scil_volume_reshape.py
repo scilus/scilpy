@@ -24,11 +24,13 @@ import nibabel as nib
 from scilpy.io.utils import (add_verbose_arg, add_overwrite_arg,
                              assert_inputs_exist, assert_outputs_exist)
 from scilpy.image.volume_operations import reshape_volume
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(
-        description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
 
     p.add_argument('in_image',
                    help='Path of the input volume.')

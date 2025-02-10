@@ -19,11 +19,14 @@ from scilpy.io.utils import (add_overwrite_arg, add_reference_arg,
                              assert_inputs_exist, add_verbose_arg, 
                              assert_outputs_exist)
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(
-        description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
+
     p.add_argument('in_bundle',
                    help='Tractogram filename.')
     p.add_argument('out_img',

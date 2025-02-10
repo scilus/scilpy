@@ -38,11 +38,13 @@ A few notes on Runge-Kutta integration.
     2. As a rule of thumb, doubling the rk_order will double the computation
        time in the worst case.
 
-References: [1] Girard, G., Whittingstall K., Deriche, R., and
-            Descoteaux, M. (2014). Towards quantitative connectivity analysis:
-            reducing tractography biases. Neuroimage, 98, 266-278.
-
 Formerly: scil_compute_local_tracking_dev.py
+-------------------------------------------------------------------------------
+Reference: 
+[1] Girard, G., Whittingstall K., Deriche, R., and Descoteaux, M. (2014). 
+    Towards quantitative connectivity analysis:reducing tractography biases. 
+    Neuroimage, 98, 266-278.
+-------------------------------------------------------------------------------
 """
 import argparse
 import logging
@@ -73,12 +75,13 @@ from scilpy.tracking.utils import (add_mandatory_options_tracking,
                                    get_theta,
                                    verify_streamline_length_options,
                                    verify_seed_options)
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(
-        formatter_class=argparse.RawTextHelpFormatter,
-        description=__doc__)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
 
     # Options common to both scripts
     add_mandatory_options_tracking(p)

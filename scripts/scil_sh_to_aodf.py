@@ -13,6 +13,16 @@ Unified filtering can be accelerated using OpenCL with the option --use_opencl.
 Make sure you have pyopencl installed before using this option. By default, the
 OpenCL program will run on the cpu. To use a gpu instead, also specify the
 option --device gpu.
+----------------------------------------------------------------------------------
+References:
+[1] Poirier and Descoteaux, 2024, "A Unified Filtering Method for Estimating
+    Asymmetric Orientation Distribution Functions", Neuroimage, vol. 287,
+    https://doi.org/10.1016/j.neuroimage.2024.120516
+
+[2] Poirier et al, 2021, "Investigating the Occurrence of Asymmetric Patterns
+    in White Matter Fiber Orientation Distribution Functions", ISMRM 2021
+    (abstract 0865)
+---------------------------------------------------------------------------------
 """
 
 import argparse
@@ -28,22 +38,14 @@ from scilpy.io.utils import (add_overwrite_arg, add_verbose_arg,
                              assert_inputs_exist, add_sh_basis_args,
                              assert_outputs_exist, parse_sh_basis_arg)
 from scilpy.denoise.asym_filtering import (cosine_filtering, unified_filtering)
-
-
-EPILOG = """
-[1] Poirier and Descoteaux, 2024, "A Unified Filtering Method for Estimating
-    Asymmetric Orientation Distribution Functions", Neuroimage, vol. 287,
-    https://doi.org/10.1016/j.neuroimage.2024.120516
-
-[2] Poirier et al, 2021, "Investigating the Occurrence of Asymmetric Patterns
-    in White Matter Fiber Orientation Distribution Functions", ISMRM 2021
-    (abstract 0865)
-"""
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(description=__doc__, epilog=EPILOG,
-                                formatter_class=argparse.RawTextHelpFormatter)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
+
     p.add_argument('in_sh',
                    help='Path to the input file.')
 
