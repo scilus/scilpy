@@ -216,6 +216,8 @@ def compress_sft(sft, tol_error=0.01):
     return compressed_sft
 
 
+
+
 def cut_invalid_streamlines(sft, epsilon=0.001):
     """ Cut streamlines so their longest segment are within the bounding box.
     This function keeps the data_per_point and data_per_streamline.
@@ -256,41 +258,28 @@ def cut_invalid_streamlines(sft, epsilon=0.001):
         new_data_per_streamline[key] = []
 
     cutting_counter = 0
-    counter = 0
     for ind in range(len(sft.streamlines)):
-        # print(counter, "/", len(sft.streamlines))
-        counter += 1
         if ind in indices_to_cut:
             # This streamline was detected as invalid
 
             best_pos = [0, 0]  # First and last valid points of longest segment
             cur_pos = [0, 0]   # First and last valid points of current segment
-            pts = sft.streamlines[ind]
-            condition = np.logical_and(
-                pts >= 0 + epsilon, pts < sft.dimensions - epsilon)
-            condition = np.all(condition, axis=1).astype(int)
+            for pos, point in enumerate(sft.streamlines[ind]):
+                if (point < epsilon).any() or \
+                        (point >= sft.dimensions - epsilon).any():
+                    # The coordinate is < 0 or > box. Starting new segment
+                    cur_pos = [pos+1, pos+1]
+                elif cur_pos[1] - cur_pos[0] > best_pos[1] - best_pos[0]:
+                    # We found a longer good segment.
+                    best_pos = cur_pos
 
-            if np.all(condition):
-                break
-
-            dA = np.diff(condition)
-
-            start = np.where(dA > 0)
-            end = np.where(dA < 0)
-
-            argmax_run = np.argmax(end[1]-start[1])
-
-            row = start[0][argmax_run]
-            col_start = start[1][argmax_run]
-            col_end = end[1][argmax_run]-1
-
-            max_len = col_end - col_start + 1
-            print()
+                # Ready to check next point.
+                cur_pos[1] += 1
 
             # Appending the longest segment to the list of streamlines
             if not best_pos == [0, 0]:
                 new_streamlines.append(
-                    sft.streamlines[ind][best_pos[0]:best_pos[1]-1])
+                    sft.streamlines[ind][best_pos[0]:best_pos[1]])
                 cutting_counter += 1
                 for key in sft.data_per_streamline.keys():
                     new_data_per_streamline[key].append(
@@ -298,7 +287,7 @@ def cut_invalid_streamlines(sft, epsilon=0.001):
                 for key in sft.data_per_point.keys():
                     new_data_per_point[key].append(
                         sft.data_per_point[key][ind][
-                            best_pos[0]:best_pos[1]-1])
+                            best_pos[0]:best_pos[1]])
             else:
                 logging.warning('Streamline entirely out of the volume.')
         else:
