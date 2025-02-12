@@ -22,6 +22,7 @@ from scilpy.io.utils import (add_overwrite_arg,
 from scilpy.utils.spatial import RAS_AXES_NAMES
 from scilpy.utils.spatial import get_axis_index
 
+from scilpy.version import version_string
 from scilpy.viz.backends.fury import (create_interactive_window,
                                       create_scene,
                                       snapshot_scenes)
@@ -31,7 +32,8 @@ from scilpy.viz.slice import create_bingham_slicer
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(description=__doc__,
-                                formatter_class=argparse.RawTextHelpFormatter)
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
 
     # Positional arguments
     p.add_argument('in_bingham', help='Input SH image file.')

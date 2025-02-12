@@ -39,14 +39,17 @@ from scilpy.io.utils import (add_b0_thresh_arg, add_overwrite_arg,
                              assert_inputs_exist, assert_outputs_exist,
                              parse_sh_basis_arg, validate_nbr_processes,
                              assert_headers_compatible)
+from scilpy.version import version_string
 
 
 DEFAULT_SMOOTH = 0.006
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(
-        description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
+
     p.add_argument('in_dwi',
                    help='Path of the input diffusion volume.')
     p.add_argument('in_bval',

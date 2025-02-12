@@ -39,11 +39,13 @@ from scilpy.io.utils import (add_overwrite_arg, add_reference_arg,
                              assert_outputs_exist, add_compression_arg)
 from scilpy.tractograms.streamline_operations import smooth_line_gaussian, \
     smooth_line_spline
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
-                                description=__doc__)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
 
     p.add_argument('in_tractogram',
                    help='Input tractography file.')

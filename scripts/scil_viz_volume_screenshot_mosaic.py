@@ -56,6 +56,7 @@ from scilpy.io.utils import (add_default_screenshot_args,
                              get_default_screenshotting_data,
                              ranged_type)
 from scilpy.image.utils import check_slice_indices
+from scilpy.version import version_string
 from scilpy.viz.screenshot import (compose_mosaic,
                                    screenshot_contour,
                                    screenshot_volume)
@@ -63,9 +64,9 @@ from scilpy.viz.utils import check_mosaic_layout
 
 
 def _build_arg_parser():
-
     p = argparse.ArgumentParser(description=__doc__,
-                                formatter_class=argparse.RawTextHelpFormatter)
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
 
     xg = p.add_argument_group(title="Input overlays")
     vg = p.add_argument_group(title="Volume rendering")

@@ -40,12 +40,13 @@ from scilpy.io.utils import (add_overwrite_arg,
 from scilpy.image.volume_space_management import DataVolume
 from scilpy.tractograms.dps_and_dpp_management import (
     project_map_to_streamlines)
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(
-        description=__doc__,
-        formatter_class=argparse.RawTextHelpFormatter)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
 
     # Mandatory arguments input and output tractogram must be in trk format
     p.add_argument('in_tractogram',
