@@ -100,7 +100,7 @@ def main():
     args.b0_threshold = check_b0_threshold(bvals.min(),
                                            b0_thr=args.b0_threshold,
                                            skip_b0_check=args.skip_b0_check)
-    gtab = gradient_table(bvals, bvecs, b0_threshold=args.b0_threshold)
+    gtab = gradient_table(bvals, bvecs=bvecs, b0_threshold=args.b0_threshold)
     b0_idx = np.where(gtab.b0s_mask)[0]
 
     logger.info('Number of b0 images in the data: {}'.format(len(b0_idx)))

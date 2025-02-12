@@ -27,7 +27,8 @@ def init_data():
     }
     mask_img = nib.nifti2.Nifti2Image(mask, affine, header, extra)
 
-    sft = StatefulTractogram(streamlines, mask_img, Space.VOX, Origin.NIFTI)
+    sft = StatefulTractogram(streamlines, mask_img,
+                             space=Space.VOX, origin=Origin.NIFTI)
     save_tractogram(sft, 'tractogram.trk', True)
 
 

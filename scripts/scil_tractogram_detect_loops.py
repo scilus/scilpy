@@ -16,6 +16,10 @@ See also:
     scil_tractogram_filter_by_anatomy.py
 
 Formerly: scil_detect_streamlines_loops.py
+------------------------------------------------------------------------------
+Reference:
+[1] QuickBundles, based on [Garyfallidis12] Frontiers in Neuroscience, 2012.
+------------------------------------------------------------------------------
 """
 
 import argparse
@@ -37,17 +41,14 @@ from scilpy.io.utils import (add_json_args,
                              validate_nbr_processes, ranged_type)
 from scilpy.tractograms.streamline_operations import \
     remove_loops_and_sharp_turns
-
-
-EPILOG = """
-References:
-    QuickBundles, based on [Garyfallidis12] Frontiers in Neuroscience, 2012.
-"""
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
-                                description=__doc__, epilog=EPILOG)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
+
     p.add_argument('in_tractogram',
                    help='Tractogram input file name.')
     p.add_argument('out_tractogram',

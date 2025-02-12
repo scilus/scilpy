@@ -33,6 +33,12 @@ This is important because many instances of data structures are initialized
 in parallel and can lead to a RAM overflow.
 
 Formerly: scil_recognize_multi_bundles.py
+------------------------------------------------------------------------------------------
+Reference:
+[1] St-Onge, Etienne, Kurt G. Schilling, and Francois Rheault."BundleSeg: A versatile,
+    reliable and reproducible approach to white matter bundle segmentation." International 
+    Workshop on Computational Diffusion MRI. Cham: Springer Nature Switzerland (2023)
+------------------------------------------------------------------------------------------
 """
 
 import argparse
@@ -49,6 +55,7 @@ from scilpy.io.utils import (add_overwrite_arg, add_processes_arg,
                              assert_output_dirs_exist_and_empty,
                              load_matrix_in_any_format, ranged_type)
 from scilpy.segment.voting_scheme import VotingScheme
+from scilpy.version import version_string
 
 logger = logging.getLogger('BundleSeg')
 
@@ -61,10 +68,9 @@ Diffusion MRI. Cham: Springer Nature Switzerland (2023)
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(
-        formatter_class=argparse.RawTextHelpFormatter,
-        description=__doc__,
-        epilog=EPILOG)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
 
     p.add_argument('in_tractograms', nargs='+',
                    help='Input tractogram filename (.trk or .tck).')

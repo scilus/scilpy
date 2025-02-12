@@ -90,12 +90,13 @@ from scilpy.io.utils import (assert_inputs_exist,
                              add_overwrite_arg,
                              add_verbose_arg,
                              add_json_args)
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(
-        formatter_class=argparse.RawTextHelpFormatter,
-        description=__doc__)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
 
     p.add_argument('in_tractogram',
                    help='Path to the tractogram file containing the \n'

@@ -161,10 +161,10 @@ def main():
     _ = check_b0_threshold(bvals.min(), b0_thr=args.tolerance,
                            skip_b0_check=args.skip_b0_check,
                            overwrite_with_min=False)
-    gtab = gradient_table(bvals, bvecs, b0_threshold=args.tolerance)
+    gtab = gradient_table(bvals, bvecs=bvecs, b0_threshold=args.tolerance)
 
     # Loading spheres
-    reg_sphere = get_sphere('symmetric362')
+    reg_sphere = get_sphere(name='symmetric362')
 
     # Starting main process!
 

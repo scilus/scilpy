@@ -21,11 +21,13 @@ from scilpy.io.utils import (add_bbox_arg, add_overwrite_arg,
                              add_reference_arg, assert_inputs_exist,
                              assert_outputs_exist, add_verbose_arg)
 from trimeshpy.vtk_util import lines_to_vtk_polydata, save_polydata
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(description=__doc__,
-                                formatter_class=argparse.RawTextHelpFormatter)
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
 
     p.add_argument('in_tractogram',
                    help='Tractogram filename. Format must be one of \n'

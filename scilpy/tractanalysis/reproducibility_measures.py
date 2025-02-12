@@ -663,7 +663,7 @@ def tractogram_pairwise_comparison(sft_one, sft_two, mask, nbr_cpu=1,
     sft_2.to_center()
 
     global B
-    B, _ = sh_to_sf_matrix(get_sphere('repulsion724'), 8, 'descoteaux07')
+    B, _ = sh_to_sf_matrix(get_sphere(name='repulsion724'), 8, 'descoteaux07')
 
     diff_data, acc_data = _compare_tractogram_wrapper(
         mask, nbr_cpu, skip_streamlines_distance)
