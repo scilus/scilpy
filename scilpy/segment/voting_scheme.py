@@ -176,7 +176,6 @@ class VotingScheme(object):
 
             if len(new_sft):
                 _, indices_to_keep = new_sft.remove_invalid_streamlines()
-                new_sft = new_sft[indices_to_keep]
                 streamlines_id = streamlines_id[indices_to_keep]
             save_tractogram(new_sft, os.path.join(self.output_directory,
                                                   basename + extension))
