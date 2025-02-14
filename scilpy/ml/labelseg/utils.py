@@ -2,10 +2,11 @@ import logging
 import numpy as np
 import os
 import requests
-import tqdm
 
 from dipy.utils.optpkg import optional_package
+from tqdm import tqdm
 
+from scilpy.io.image import get_data_as_mask
 from scilpy.ml.labelseg.labelsegnet import LabelSegNet
 
 IMPORT_ERROR_MSG = "PyTorch is required to run this script. Please install" + \
@@ -45,10 +46,10 @@ def get_data(fodf, wm, img_size, n_coefs):
     # fODF data of order 8 truncated to 28 coefficients so I'm not worried
     # about doing it here.
     fodf_data = fodf.get_fdata().transpose(
-        (3, 0, 1, 2))[:n_coefs, ...].to(dtype=np.float32)
+        (3, 0, 1, 2))[:n_coefs, ...].astype(dtype=np.float32)
 
     # Add a channel dimension to the whole-brain white matter mask
-    wm_data = wm.get_fdata()[None, ...]
+    wm_data = get_data_as_mask(wm)[None, ...].astype(np.float32)
 
     # z-score norm
     mean = np.mean(fodf_data)
@@ -117,7 +118,8 @@ def download_weights(path, chunk_size=1024, verbose=True):
 
     # Adapted from
     # https://gist.github.com/yanqd0/c13ed29e29432e3cf3e7c38467f42f51
-    os.makedirs(os.path.dirname(path))
+    if not os.path.exists(os.path.dirname(path)):
+        os.makedirs(os.path.dirname(path))
     url = 'https://zenodo.org/records/14813477/files/labelsegnet.ckpt'
     resp = requests.get(url, stream=True)
     total = int(resp.headers.get('content-length', 0))
@@ -128,7 +130,7 @@ def download_weights(path, chunk_size=1024, verbose=True):
         unit='iB',
         unit_scale=True,
         unit_divisor=1024,
-        verbose=verbose
+        disable=not verbose
     ) as bar:
         for data in resp.iter_content(chunk_size=chunk_size):
             size = file.write(data)

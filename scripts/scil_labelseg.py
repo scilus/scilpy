@@ -97,7 +97,7 @@ def main():
 
     # If the checkpoint does not exist, download it
     if not os.path.exists(args.checkpoint):
-        download_weights(args.checkpoint, args.verbose)
+        download_weights(args.checkpoint, verbose=args.verbose)
 
     fodf_in = nib.load(args.in_fodf)
     wm_in = nib.load(args.in_wm)
@@ -128,6 +128,8 @@ def main():
                                    voxel_res=None,
                                    interp='nn',
                                    enforce_dimensions=False)
+    # Hack so that get_data_as_mask works
+    resampled_wm.set_filename(wm_in.get_filename())
 
     # shape = fodf_in.get_fdata().shape[:3]
     fodf_data, wm_data = get_data(
