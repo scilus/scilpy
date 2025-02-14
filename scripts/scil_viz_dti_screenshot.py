@@ -28,13 +28,15 @@ from scilpy.gradients.bvec_bval_tools import normalize_bvecs
 from scilpy.image.volume_operations import register_image
 from scilpy.utils.spatial import RAS_AXES_NAMES
 from scilpy.utils.spatial import get_axis_name
+from scilpy.version import version_string
 from scilpy.viz.legacy import display_slices
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(
-        description=__doc__,
-        formatter_class=argparse.RawTextHelpFormatter)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
+    
     p.add_argument('in_dwi',
                    help='Path of the input diffusion volume.')
     p.add_argument('in_bval',

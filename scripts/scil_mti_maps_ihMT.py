@@ -196,8 +196,7 @@ def main():
     if args.in_mtoff_t1:
         input_maps_lists.append(args.in_mtoff_t1)
 
-    input_maps_flat_list = [m for _list in input_maps_lists for m in _list]
-    assert_inputs_exist(parser, input_maps_flat_list,
+    assert_inputs_exist(parser, input_maps_lists,
                         optional=args.in_mtoff_t1 or [] + [args.mask])
 
     # Define affine. Uses the first in_mtoff_pd (required).

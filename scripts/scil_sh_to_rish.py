@@ -13,11 +13,13 @@ any SH order.
 
 Each RISH feature will be saved as a separate file.
 
-[1] Mirzaalian, Hengameh, et al. "Harmonizing diffusion MRI data across
-multiple sites and scanners." MICCAI 2015.
-https://scholar.harvard.edu/files/hengameh/files/miccai2015.pdf
-
 Formerly: scil_compute_rish_from_sh.py
+-----------------------------------------------------------------------
+Reference:
+[1] Mirzaalian, Hengameh, et al. "Harmonizing diffusion MRI data across
+    multiple sites and scanners." MICCAI 2015.
+    https://scholar.harvard.edu/files/hengameh/files/miccai2015.pdf
+-----------------------------------------------------------------------
 """
 import argparse
 import logging
@@ -31,11 +33,14 @@ from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              assert_outputs_exist, add_verbose_arg,
                              assert_headers_compatible)
 from scilpy.reconst.sh import compute_rish
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(
-        description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
+
     p.add_argument('in_sh',
                    help='Path of the sh image. They can be formatted in any '
                         'sh basis, but we \nexpect it to be a symmetrical '

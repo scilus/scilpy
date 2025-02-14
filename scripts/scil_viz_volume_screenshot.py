@@ -65,6 +65,7 @@ from scilpy.io.utils import (add_default_screenshot_args,
                              get_default_screenshotting_data)
 from scilpy.image.utils import check_slice_indices
 from scilpy.utils.spatial import get_axis_index
+from scilpy.version import version_string
 from scilpy.viz.screenshot import (compose_image,
                                    screenshot_contour,
                                    screenshot_peaks,
@@ -72,9 +73,9 @@ from scilpy.viz.screenshot import (compose_image,
 
 
 def _build_arg_parser():
-
     p = argparse.ArgumentParser(description=__doc__,
-                                formatter_class=argparse.RawTextHelpFormatter)
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
 
     sg = p.add_argument_group(title="Slicing")
     xg = p.add_argument_group(title="Input overlays")

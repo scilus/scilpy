@@ -10,6 +10,11 @@ Example : use wmparc.a2009s.nii.gz with some aseg.stats indices
 scil_surface_create.py out_surface.vtk \\
     --in_labels s1a1/mask/S1-A1_wmparc.a2009s.nii.gz\\
     --list_indices 16:32 --opening 2 --smooth 2 -v
+-----------------------------------------------------------------
+Reference:
+[1] St-Onge, E., Daducci, A., Girard, G. and Descoteaux, M. 2018.
+    Surface-enhanced tractography (SET). NeuroImage.
+-----------------------------------------------------------------
 """
 
 import argparse
@@ -35,17 +40,13 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist,
                              assert_outputs_exist,
                              ranged_type)
-
-EPILOG = """
-References:
-[1] St-Onge, E., Daducci, A., Girard, G. and Descoteaux, M. 2018.
-    Surface-enhanced tractography (SET). NeuroImage.
-"""
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(description=__doc__, epilog=EPILOG,
-                                formatter_class=argparse.RawTextHelpFormatter)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
 
     g1 = p.add_argument_group("Input (Labels or Mask)")
     mxg = g1.add_mutually_exclusive_group(required=True)

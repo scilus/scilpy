@@ -34,6 +34,7 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_headers_compatible)
 from scilpy.io.image import assert_same_resolution, get_data_as_mask
 from scilpy.utils.spatial import RAS_AXES_NAMES
+from scilpy.version import version_string
 from scilpy.viz.backends.fury import (create_interactive_window,
                                       create_scene,
                                       snapshot_scenes)
@@ -46,7 +47,8 @@ from scilpy.viz.slice import (create_odf_slicer,
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(description=__doc__,
-                                formatter_class=argparse.RawTextHelpFormatter)
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
 
     # Positional arguments
     p.add_argument('in_fodf', default=None, help='Input SH image file.')

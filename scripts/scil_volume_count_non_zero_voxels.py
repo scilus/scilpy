@@ -22,11 +22,14 @@ import numpy as np
 from scilpy.image.volume_operations import count_non_zero_voxels
 from scilpy.io.utils import assert_inputs_exist, add_verbose_arg, \
     assert_outputs_exist, add_overwrite_arg
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(
-        description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
+
     p.add_argument('in_image', metavar='IN_FILE',
                    help='Input file name, in nifti format.')
 
