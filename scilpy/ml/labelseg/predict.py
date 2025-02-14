@@ -92,7 +92,8 @@ def post_process_labels(
 
 @torch.no_grad()
 def predict(
-    model, fodf_data, wm_data, nb_labels, bundles, verbose=True
+    model, fodf_data, wm_data, nb_labels, bundles, half_precision=False,
+    verbose=True
 ):
     """ Predict the  bundle labels. This function is a generator that yields
     the predicted labels for each bundle.
@@ -109,6 +110,9 @@ def predict(
         Number of labels to predict.
     bundles : list of str
         List of bundle names.
+    half_precision : bool, optional
+        Whether to use half precision. Will reduce GPU memory usage but may
+        reduce the accuracy of the label maps. Default is False.
     verbose : bool, optional
         Whether to display a progress bar. Default is True.
 
@@ -124,21 +128,21 @@ def predict(
     # Predict the scores of the streamlines
     pbar = tqdm(range(len(bundles)), disable=not verbose)
 
-    # Convert the data to tensors and move them to the device.
-    data = torch.tensor(
-        fodf_data,
-        dtype=torch.float
-    ).to(device)
+    with torch.amp.autocast(str(device), enabled=half_precision):
 
-    wm_prompt = torch.tensor(
-        wm_data,
-        dtype=torch.float
-    ).to(device)
+        # Convert the data to tensors and move them to the device.
+        data = torch.tensor(
+            fodf_data,
+            dtype=torch.float
+        ).to(device)
 
-    # Create a one-hot encoding of the bundle prompts.
-    prompts = torch.eye(len(bundles), device=device)
+        wm_prompt = torch.tensor(
+            wm_data,
+            dtype=torch.float
+        ).to(device)
 
-    with torch.no_grad():
+        # Create a one-hot encoding of the bundle prompts.
+        prompts = torch.eye(len(bundles), device=device)
 
         # Encode the data once, reuse the features.
         z, encoder_features, mask_features = model.encode(

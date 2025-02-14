@@ -11,10 +11,13 @@ Example usage:
 Example output:
     sub-001__AF_left.nii.gz, sub-001__AF_right.nii.gz, ..., sub-001__UF_right.nii.gz
 
-
 The output can be further processed with scil_bundle_mean_std.py to compute statistics for each bundle.
 
 This script requires PyTorch to be installed. To install it, see the official website: https://pytorch.org/get-started/locally/
+
+This script requires a GPU with ~6GB of available memory. If you use
+half-precision (float16) inference, you may be able to run it with ~3GB of
+GPU memory available. Otherwise, install the CPU version of PyTorch.
 
 Parts of the implementation are based on or lifted from:
     SAM-Med3D: https://github.com/uni-medical/SAM-Med3D
@@ -73,6 +76,10 @@ def _build_arg_parser():
     parser.add_argument('--nb_pts', type=int, default=50,
                         help='Number of divisions per bundle. '
                              'Default is [%(default)s].')
+    parser.add_argument('--half_precision', action='store_true',
+                        help='Use half precision (float16) for inference. '
+                             'This reduces memory usage but may lead to '
+                             'reduced accuracy.')
     parser.add_argument('--checkpoint', type=str,
                         default=DEFAULT_CKPT,
                         help='Checkpoint (.ckpt) containing hyperparameters '
@@ -142,7 +149,8 @@ def main():
     # yielding one label map per bundle (and a binary mask)
     for y_hat_label, b_name in predict(
         model, fodf_data, wm_data, args.nb_pts,
-        DEFAULT_BUNDLES, args.verbose
+        DEFAULT_BUNDLES, half_precision=args.half_precision,
+        verbose=args.verbose
     ):
         # Format the output as a nifti image
         label_img = nib.Nifti1Image(y_hat_label,
