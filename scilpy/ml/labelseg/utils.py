@@ -45,7 +45,7 @@ def get_data(fodf, wm, img_size, n_coefs):
     # fODF data of order 8 truncated to 28 coefficients so I'm not worried
     # about doing it here.
     fodf_data = fodf.get_fdata().transpose(
-        (3, 0, 1, 2))[:n_coefs, ...]
+        (3, 0, 1, 2))[:n_coefs, ...].to(dtype=np.float32)
 
     # Add a channel dimension to the whole-brain white matter mask
     wm_data = wm.get_fdata()[None, ...]
