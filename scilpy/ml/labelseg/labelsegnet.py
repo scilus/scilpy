@@ -1,151 +1,25 @@
-from typing import Tuple, Type
+from dipy.utils.optpkg import optional_package
 
 from scilpy.ml.labelseg.encodings import PositionalEncodingPermute3D
+from scilpy.ml.labelseg.attention import TwoWayAttentionBlock3D
 
-from dipy.utils.optpkg import optional_package
 IMPORT_ERROR_MSG = "PyTorch is required to run this script. Please install" + \
                    " it first. See the official website for more info: " + \
                    "https://pytorch.org/get-started/locally/"  # noqa
 torch, have_torch, _ = optional_package('torch', trip_msg=IMPORT_ERROR_MSG)
 
 
-# From https://github.com/uni-medical/SAM-Med3D
+def init_block(block):
+    """ Initialise the weights of convolutional layers using Xavier
+    initialisation. """
 
-class MLPBlock3D(torch.nn.Module):
-    def __init__(
-        self,
-        embedding_dim: int,
-        mlp_dim: int,
-        act: Type[torch.nn.Module] = torch.nn.GELU,
-    ) -> None:
-        super().__init__()
-        self.lin1 = torch.nn.Linear(embedding_dim, mlp_dim)
-        self.lin2 = torch.nn.Linear(mlp_dim, embedding_dim)
-        self.act = act()
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return self.lin2(self.act(self.lin1(x)))
-
-
-class Attention(torch.nn.Module):
-    """
-    An attention layer that allows for downscaling the size of the embedding
-    after projection to queries, keys, and values.
-    """
-
-    def __init__(
-        self,
-        embedding_dim: int,
-        num_heads: int,
-        downsample_rate: int = 1,
-    ) -> None:
-        super().__init__()
-        self.embedding_dim = embedding_dim
-        self.internal_dim = embedding_dim // downsample_rate
-        self.num_heads = num_heads
-
-        self.q_proj = torch.nn.Linear(embedding_dim, self.internal_dim)
-        self.k_proj = torch.nn.Linear(embedding_dim, self.internal_dim)
-        self.v_proj = torch.nn.Linear(embedding_dim, self.internal_dim)
-        self.out_proj = torch.nn.Linear(self.internal_dim, embedding_dim)
-
-    def _separate_heads(self, x: torch.Tensor, num_heads: int) -> torch.Tensor:
-        b, n, c = x.shape
-        x = x.reshape(b, n, num_heads, c // num_heads)
-        return x.transpose(1, 2)  # B x N_heads x N_tokens x C_per_head
-
-    def _recombine_heads(self, x: torch.Tensor) -> torch.Tensor:
-        b, n_heads, n_tokens, c_per_head = x.shape
-        x = x.transpose(1, 2)
-        return x.reshape(b, n_tokens, n_heads * c_per_head)  # B x N_tokens x C
-
-    def forward(
-        self, q: torch.Tensor, k: torch.Tensor, v: torch.Tensor
-    ) -> torch.Tensor:
-
-        # Input projections
-        q = self.q_proj(q)
-        k = self.k_proj(k)
-        v = self.v_proj(v)
-
-        # Separate into heads
-        q = self._separate_heads(q, self.num_heads)
-        k = self._separate_heads(k, self.num_heads)
-        v = self._separate_heads(v, self.num_heads)
-
-        # # Get output
-        # out = attn @ v
-        out = torch.nn.functional.scaled_dot_product_attention(q, k, v)
-
-        out = self._recombine_heads(out)
-        out = self.out_proj(out)
-
-        return out
-
-
-class TwoWayAttentionBlock3D(torch.nn.Module):
-    def __init__(
-        self,
-        embedding_dim: int,
-        num_heads: int,
-        mlp_dim: int = 2048,
-        activation: Type[torch.nn.Module] = torch.nn.ReLU,
-        attention_downsample_rate: int = 2,
-    ) -> None:
-        """
-        A transformer block with four layers: (1) self-attention of sparse
-        inputs, (2) cross attention of sparse inputs to dense inputs, (3) mlp
-        block on sparse inputs, and (4) cross attention of dense inputs to
-        sparse inputs.
-
-        From: TODO
-
-        Arguments:
-          embedding_dim (int): the channel dimension of the embeddings
-          num_heads (int): the number of heads in the attention layers
-          mlp_dim (int): the hidden dimension of the mlp block
-          activation (torch.nn.Module): the activation of the mlp block
-          skip_first_layer_pe (bool): skip the PE on the first layer
-        """
-        super().__init__()
-
-        self.cross_attn_token_to_image = Attention(
-            embedding_dim, num_heads)
-        self.norm2 = torch.nn.LayerNorm(embedding_dim)
-
-        self.mlp = MLPBlock3D(embedding_dim, mlp_dim, activation)
-        self.norm3 = torch.nn.LayerNorm(embedding_dim)
-
-        self.norm4 = torch.nn.LayerNorm(embedding_dim)
-        self.cross_attn_image_to_token = Attention(
-            embedding_dim, num_heads)
-
-    def forward(
-        self, queries: torch.Tensor, keys: torch.Tensor, query_pe: torch.Tensor
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
-        # Cross attention block, tokens attending to image embedding
-        q = queries + query_pe
-        k = keys
-
-        attn_out = self.cross_attn_token_to_image(
-            q=q, k=k, v=keys)
-        queries = queries + attn_out
-        queries = self.norm2(queries)
-
-        # MLP block
-        mlp_out = self.mlp(queries)
-        queries = queries + mlp_out
-        queries = self.norm3(queries)
-
-        # Cross attention block, image embedding attending to tokens
-        q = queries + query_pe
-        k = keys
-        attn_out = self.cross_attn_image_to_token(
-            q=k, k=q, v=queries)
-        keys = keys + attn_out
-        keys = self.norm4(keys)
-
-        return queries, keys
+    for m in block.modules():
+        if isinstance(
+            m, torch.nn.Conv3d) or \
+            isinstance(
+                m, torch.nn.ConvTranspose3d
+        ):
+            torch.nn.init.xavier_uniform_(m.weight)
 
 
 class ConvNextBlock(torch.nn.Module):
@@ -169,11 +43,7 @@ class ConvNextBlock(torch.nn.Module):
             in_chans * ratio, in_chans, kernel_size=1, stride=1)
 
         # Use Xavier initialisation for weights
-        for m in self.modules():
-            if isinstance(
-                m, torch.nn.Conv3d) or isinstance(
-                    m, torch.nn.ConvTranspose3d):
-                torch.nn.init.xavier_uniform_(m.weight)
+        init_block(self)
 
     def forward(self, x):
         res = x
@@ -210,11 +80,7 @@ class DownsampleNextBlock(torch.nn.Module):
             in_chans, out_chans, kernel_size=1, stride=2)
 
         # Use Xavier initialisation for weights
-        for m in self.modules():
-            if isinstance(
-                m, torch.nn.Conv3d) or isinstance(
-                    m, torch.nn.ConvTranspose3d):
-                torch.nn.init.xavier_uniform_(m.weight)
+        init_block(self)
 
     def forward(self, x):
         res = self.resconv(x)
@@ -286,11 +152,7 @@ class UpsampleNextBlock(torch.nn.Module):
             in_chans, out_chans, kernel_size=2, stride=2)
 
         # Use Xavier initialisation for weights
-        for m in self.modules():
-            if isinstance(
-                m, torch.nn.Conv3d) or isinstance(
-                    m, torch.nn.ConvTranspose3d):
-                torch.nn.init.xavier_uniform_(m.weight)
+        init_block(self)
 
     def forward(self, x):
         res = self.resconv(x)
@@ -323,6 +185,7 @@ class DecoderNextLayer(torch.nn.Module):
         self.conv2 = ConvNextBlock(out_chans, ratio)
 
         # TODO: Split the prompting strategy into a separate class
+        # TODO: Or remove the "add" strategy
         self.prompt_encoding = torch.nn.Sequential(
             torch.nn.Linear(in_chans, out_chans), torch.nn.GELU())
 
@@ -338,13 +201,45 @@ class DecoderNextLayer(torch.nn.Module):
         self.ds_head = Head(out_chans)
 
     def _decode(self, z, encoder_feature):
-        """ TODO """
+        """ Decode the input feature map.
+
+        Parameters
+        ----------
+        z : torch.Tensor
+            Input feature map.
+        encoder_feature : torch.Tensor
+            Feature map from the encoder.
+
+        Returns
+        -------
+        z : torch.Tensor
+            Decoded feature map.
+        """
+
         z = self.upsample(z)
         z = z + encoder_feature
         z = self.conv1(z)
         return z
 
     def _prompt_add(self, z, prompt_encoding, dense_encoding):
+        """ Mix the prompt and dense encodings. using addition.
+
+        Parameters
+        ----------
+        z : torch.Tensor
+            Input feature map.
+        prompt_encoding : torch.Tensor
+            Prompt encoding.
+        dense_encoding : torch.Tensor
+            Dense encoding.
+
+        Returns
+        -------
+        z : torch.Tensor
+            Feature map with the prompt and dense encodings added.
+        prompt_encoding : torch.Tensor
+            Updated prompt encoding.
+        """
 
         z += dense_encoding
         z = self.prompt_conv(z)
@@ -425,11 +320,7 @@ class Stem(torch.nn.Module):
             in_chans, out_chans, kernel_size=1, stride=1)
 
         # Use Xavier initialisation for weights
-        for m in self.modules():
-            if isinstance(
-                m, torch.nn.Conv3d) or isinstance(
-                    m, torch.nn.ConvTranspose3d):
-                torch.nn.init.xavier_uniform_(m.weight)
+        init_block(self)
 
     def forward(self, x):
         x = self.conv2(x)
@@ -445,11 +336,7 @@ class Head(torch.nn.Module):
             in_chans, 2, kernel_size=1, stride=1)
 
         # Use Xavier initialisation for weights
-        for m in self.modules():
-            if isinstance(
-                m, torch.nn.Conv3d) or isinstance(
-                    m, torch.nn.ConvTranspose3d):
-                torch.nn.init.xavier_uniform_(m.weight)
+        init_block(self)
 
     def forward(self, x):
         x = self.conv(x)
@@ -485,7 +372,29 @@ class LabelSegNet(torch.nn.Module):
         self.no_mask_embed = torch.nn.Embedding(1, embed_dim)
 
     def forward(self, fodf, bundle_prompt, wm_prompt=None):
-        """ Forward pass of the model. """
+        """ Forward pass of the model. Input emdeding refers to the
+        embedding of the input fodf. Prompt embedding refers to the
+        embedding of the bundle prompt (ie the one-hot vector representing
+        the bundle to predict). "Dense" embedding refers to the embedding
+        of the mask. This nomenclature stems from Segment Anything: bundle
+        prompts can be seen as "sparse" whereas mask prompt can be seen as
+        "dense".
+
+        Parameters
+        ----------
+        fodf : torch.Tensor
+            Input fodf.
+        bundle_prompt : torch.Tensor
+            Bundle prompt.
+        wm_prompt : torch.Tensor, optional
+            Mask prompt. Default is None.
+
+        Returns
+        -------
+        ds_outs : list of torch.Tensor
+            List of deep supervision heads. The last element is the final
+            (non-deep) output of the model.
+        """
 
         B, C, X, Y, Z = fodf.shape
 
@@ -495,9 +404,10 @@ class LabelSegNet(torch.nn.Module):
         # Embed the bundle prompt to the same dimension as the input fodf
         prompt_embed = self.prompt_embedding(bundle_prompt)
 
-        # Embded the "dense" mask if it is provided
+        # Embded the "dense" prompt if it is provided
         # Else, use the learned embedding
         # TODO: Is it actually necessary to support the no mask case?
+        # TODO: Consider removing the mask input altogether
         if torch.sum(wm_prompt) == 0:
             dense_embeddings = self.no_mask_embed.weight.reshape(
                 1, -1, 1, 1, 1).expand(
