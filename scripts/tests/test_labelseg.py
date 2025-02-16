@@ -1,4 +1,5 @@
 import os
+import pytest
 import tempfile
 
 from scilpy import SCILPY_HOME
@@ -15,6 +16,7 @@ def test_help_option(script_runner, monkeypatch):
     assert not ret.success
 
 
+@pytest.mark.ml
 def test_execution(script_runner, monkeypatch):
     in_fodf = os.path.join(SCILPY_HOME, 'tracking', 'fodf.nii.gz')
     in_mask = os.path.join(SCILPY_HOME, 'tracking', 'seeding_mask.nii.gz')
@@ -23,9 +25,11 @@ def test_execution(script_runner, monkeypatch):
     assert ret.success
 
 
+@pytest.mark.ml
 def test_execution_100_labels(script_runner, monkeypatch):
     in_fodf = os.path.join(SCILPY_HOME, 'tracking', 'fodf.nii.gz')
     in_mask = os.path.join(SCILPY_HOME, 'tracking', 'seeding_mask.nii.gz')
 
-    ret = script_runner.run('scil_labelseg.py', in_fodf, in_mask, '--nb_pts', 100)
+    ret = script_runner.run('scil_labelseg.py', in_fodf, in_mask,
+                            '--nb_pts', 100)
     assert ret.success
