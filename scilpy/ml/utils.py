@@ -10,8 +10,6 @@ torch, have_torch, _ = optional_package('torch', trip_msg=IMPORT_ERROR_MSG)
 def get_device():
     if torch.cuda.is_available():
         return torch.device("cuda")
-    elif torch.backends.mps.is_available():
-        return torch.device("mps")
     else:
         return torch.device("cpu")
 

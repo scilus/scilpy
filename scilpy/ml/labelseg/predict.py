@@ -29,20 +29,7 @@ def post_process_mask(mask, bundle_name):
 
     # TODO: investigate blobs. TractSeg performs some post-processing
     # to fix broken commissures or fornices. Would be nice to do the same.
-
-    # blobs, nb = ndi.label(bundle_mask)
-
-    # # No need to process, return the mask
-    # if nb <= 1:
-    #     return bundle_mask.astype(np.uint8)
-
-    # # Calculate the size of each blob
-    # blob_sizes = np.bincount(blobs.ravel())
-    # new_mask = np.zeros_like(bundle_mask)
-    # # Remove blobs under a certain size (100)
-    # for i in range(1, len(blob_sizes[1:])):
-    #     if blob_sizes[i] > 1:
-    #         new_mask[blobs == i] = 1
+    # For future ref: use ndi.label to get the blobs
 
     return bundle_mask.astype(np.uint8)
 

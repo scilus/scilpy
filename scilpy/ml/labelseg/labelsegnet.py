@@ -59,7 +59,9 @@ class Attention(torch.nn.Module):
         x = x.transpose(1, 2)
         return x.reshape(b, n_tokens, n_heads * c_per_head)  # B x N_tokens x C
 
-    def forward(self, q: torch.Tensor, k: torch.Tensor, v: torch.Tensor) -> torch.Tensor:
+    def forward(
+        self, q: torch.Tensor, k: torch.Tensor, v: torch.Tensor
+    ) -> torch.Tensor:
 
         # Input projections
         q = self.q_proj(q)
@@ -70,12 +72,6 @@ class Attention(torch.nn.Module):
         q = self._separate_heads(q, self.num_heads)
         k = self._separate_heads(k, self.num_heads)
         v = self._separate_heads(v, self.num_heads)
-
-        # Attention
-        # _, _, _, c_per_head = q.shape
-        # attn = q @ k.permute(0, 1, 3, 2)  # B x N_heads x N_tokens x N_tokens
-        # attn = attn / math.sqrt(c_per_head)
-        # attn = torch.softmax(attn, dim=-1)
 
         # # Get output
         # out = attn @ v
@@ -174,7 +170,9 @@ class ConvNextBlock(torch.nn.Module):
 
         # Use Xavier initialisation for weights
         for m in self.modules():
-            if isinstance(m, torch.nn.Conv3d) or isinstance(m, torch.nn.ConvTranspose3d):
+            if isinstance(
+                m, torch.nn.Conv3d) or isinstance(
+                    m, torch.nn.ConvTranspose3d):
                 torch.nn.init.xavier_uniform_(m.weight)
 
     def forward(self, x):
@@ -213,7 +211,9 @@ class DownsampleNextBlock(torch.nn.Module):
 
         # Use Xavier initialisation for weights
         for m in self.modules():
-            if isinstance(m, torch.nn.Conv3d) or isinstance(m, torch.nn.ConvTranspose3d):
+            if isinstance(
+                m, torch.nn.Conv3d) or isinstance(
+                    m, torch.nn.ConvTranspose3d):
                 torch.nn.init.xavier_uniform_(m.weight)
 
     def forward(self, x):
@@ -287,7 +287,9 @@ class UpsampleNextBlock(torch.nn.Module):
 
         # Use Xavier initialisation for weights
         for m in self.modules():
-            if isinstance(m, torch.nn.Conv3d) or isinstance(m, torch.nn.ConvTranspose3d):
+            if isinstance(
+                m, torch.nn.Conv3d) or isinstance(
+                    m, torch.nn.ConvTranspose3d):
                 torch.nn.init.xavier_uniform_(m.weight)
 
     def forward(self, x):
@@ -424,7 +426,9 @@ class Stem(torch.nn.Module):
 
         # Use Xavier initialisation for weights
         for m in self.modules():
-            if isinstance(m, torch.nn.Conv3d) or isinstance(m, torch.nn.ConvTranspose3d):
+            if isinstance(
+                m, torch.nn.Conv3d) or isinstance(
+                    m, torch.nn.ConvTranspose3d):
                 torch.nn.init.xavier_uniform_(m.weight)
 
     def forward(self, x):
@@ -439,16 +443,16 @@ class Head(torch.nn.Module):
 
         self.conv = torch.nn.Conv3d(
             in_chans, 2, kernel_size=1, stride=1)
-        # self.act = torch.nn.Sigmoid()
 
         # Use Xavier initialisation for weights
         for m in self.modules():
-            if isinstance(m, torch.nn.Conv3d) or isinstance(m, torch.nn.ConvTranspose3d):
+            if isinstance(
+                m, torch.nn.Conv3d) or isinstance(
+                    m, torch.nn.ConvTranspose3d):
                 torch.nn.init.xavier_uniform_(m.weight)
 
     def forward(self, x):
         x = self.conv(x)
-        # x = self.act(x)
         return x
 
 
@@ -474,7 +478,6 @@ class LabelSegNet(torch.nn.Module):
         self.bottleneck = ConvNextBlock(bottleneck_dim, ratio=4)
         self.decoder = LabelSegNetDecoder(prompt_strategy,
                                           channels=self.channels[::-1])
-        # self.head = Head(embed_dim)
 
         self.prompt_embedding = torch.nn.Sequential(
             torch.nn.Linear(n_bundles, bottleneck_dim), torch.nn.GELU())
