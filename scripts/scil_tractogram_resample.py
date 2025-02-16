@@ -53,11 +53,13 @@ from scilpy.tractograms.tractogram_operations import (
     split_sft_randomly,
     split_sft_randomly_per_cluster,
     upsample_tractogram)
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
-                                description=__doc__)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
 
     p.add_argument('in_tractogram',
                    help='Input tractography file.')

@@ -34,6 +34,7 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_headers_compatible)
 from scilpy.io.image import assert_same_resolution, get_data_as_mask
 from scilpy.utils.spatial import RAS_AXES_NAMES
+from scilpy.version import version_string
 from scilpy.viz.backends.fury import (create_interactive_window,
                                       create_scene,
                                       snapshot_scenes)
@@ -46,7 +47,8 @@ from scilpy.viz.slice import (create_odf_slicer,
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(description=__doc__,
-                                formatter_class=argparse.RawTextHelpFormatter)
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
 
     # Positional arguments
     p.add_argument('in_fodf', default=None, help='Input SH image file.')
@@ -156,6 +158,10 @@ def _build_arg_parser():
     peaks.add_argument('--peaks_width', default=1.0, type=float,
                        help='Width of peaks segments. [%(default)s]')
 
+    peaks.add_argument('--peaks_opacity', type=float, default=1.0,
+                       help='Peaks opacity. 1 is opaque, 0 is transparent '
+                            '[%(default)s].')
+
     peaks_scale = p.add_argument_group('Peaks scaling arguments', 'Choose '
                                        'between peaks values and arbitrary '
                                        'length.')
@@ -264,7 +270,7 @@ def main():
     parser = _build_arg_parser()
     args = _parse_args(parser)
     data = _get_data_from_inputs(args)
-    sph = get_sphere(args.sphere)
+    sph = get_sphere(name=args.sphere)
     sh_order, full_basis = get_sh_order_and_fullness(data['fodf'].shape[-1])
     sh_basis, is_legacy = parse_sh_basis_arg(args)
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
@@ -325,11 +331,12 @@ def main():
         peaks_actor = create_peaks_slicer(data['peaks'],
                                           args.axis_name,
                                           args.slice_index,
-                                          peaks_values,
-                                          mask,
-                                          args.peaks_color,
-                                          args.peaks_width,
-                                          not full_basis)
+                                          peak_values=peaks_values,
+                                          mask=mask,
+                                          color=args.peaks_color,
+                                          peaks_width=args.peaks_width,
+                                          opacity=args.peaks_opacity,
+                                          symmetric=not full_basis)
 
         actors.append(peaks_actor)
 

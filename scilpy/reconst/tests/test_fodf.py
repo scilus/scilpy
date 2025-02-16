@@ -29,7 +29,7 @@ def test_get_ventricles_max_fodf():
 
     # Reconstruct SF values same as in method.
     order = find_order_from_nb_coeff(fodf_3x3_order8_descoteaux07)
-    sphere = get_sphere('repulsion100')
+    sphere = get_sphere(name='repulsion100')
     b_matrix, _ = sh_to_sf_matrix(sphere, order, sh_basis, legacy=True)
 
     sf1 = np.dot(fodf_3x3_order8_descoteaux07[1, 0, 0], b_matrix)

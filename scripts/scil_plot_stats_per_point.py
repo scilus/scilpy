@@ -21,12 +21,15 @@ import numpy as np
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              assert_output_dirs_exist_and_empty,
                              add_verbose_arg)
-from scilpy.utils.metrics_tools import plot_metrics_stats
+from scilpy.viz.plot import plot_metrics_stats
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(description=__doc__,
-                                formatter_class=argparse.RawTextHelpFormatter)
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
+
     p.add_argument('in_json',
                    help='JSON file containing the mean/std per point. For '
                         'example, can be created using '

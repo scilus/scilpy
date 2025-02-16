@@ -79,6 +79,15 @@ Example config file:
     "endpoints": "PATH/file1.nii.gz"
   }
 }
+---------------------------------------------------------------------------------
+References:
+[1] Côté, M.-A., et al. (2013). Tractometer: Towards Validation of Tractography
+    Pipelines, Medical Image Analysis, 17(7), 844-857.
+
+[2] Renauld, E., et al. (2023) Validate your white matter tractography
+    algorithms with a reappraised ISMRM 2015 Tractography Challenge scoring system,
+    Scientific Reports, 13:2347 (2023). Online Enhanced PDF, or Download PDF.
+---------------------------------------------------------------------------------
 """
 import argparse
 import json
@@ -105,22 +114,15 @@ from scilpy.segment.tractogram_from_roi import (compute_masks_from_bundles,
                                                 segment_tractogram_from_roi)
 from scilpy.tractanalysis.scoring import compute_tractometry
 from scilpy.tractanalysis.scoring import __doc__ as tractometry_description
+from scilpy.version import version_string
 
-EPILOG = """
-[1] Côté, M.-A., et al. (2013). Tractometer: Towards Validation of Tractography
-Pipelines, Medical Image Analysis, 17(7), 844-857.
-[2] Renauld, E., et al. (2023) Validate your white matter tractography
-algorithms with a reappraised ISMRM 2015 Tractography Challenge scoring system,
-Scientific Reports, 13:2347 (2023). Online Enhanced PDF, or Download PDF.
-"""
 def_len = [0, np.inf]
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(
-        description=__doc__ + tractometry_description,
-        formatter_class=argparse.RawTextHelpFormatter,
-        epilog=EPILOG)
+    p = argparse.ArgumentParser(description=__doc__ + tractometry_description,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
 
     p.add_argument("in_tractogram",
                    help="Input tractogram to score")

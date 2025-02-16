@@ -22,6 +22,11 @@ by the previous tracking direction and the angular constraint.
 
 Seeding is done within the first segment of each fibertube.
 
+To form fibertubes from a set of streamlines, you can use the scripts:
+- scil_tractogram_filter_collisions.py to assign a diameter to each streamline
+  and remove all colliding fibertubes.
+- scil_tractogram_dps_math.py to assign a diameter without filtering.
+
 For a better understanding of Fibertube Tracking please see:
     - docs/source/documentation/fibertube_tracking.rst
 """
@@ -48,21 +53,18 @@ from scilpy.io.utils import (assert_inputs_exist,
                              add_verbose_arg,
                              add_json_args,
                              add_overwrite_arg)
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(
-        formatter_class=argparse.RawTextHelpFormatter,
-        description=__doc__)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
 
     p.add_argument('in_fibertubes',
                    help='Path to the tractogram (must be .trk) file \n'
-                        'containing fibertubes. They must be: \n'
-                        '1- Void of any collision. \n'
-                        '2- With their respective diameter saved \n'
-                        'as data_per_streamline. \n'
-                        'For both of these requirements, see \n'
-                        'scil_tractogram_filter_collisions.py.')
+                        'containing fibertubes. They must have their \n'
+                        'respective diameter saved as data_per_streamline.')
 
     p.add_argument('out_tractogram',
                    help='Tractogram output file (must be .trk or .tck).')
@@ -93,10 +95,9 @@ def _build_arg_parser():
         '[%(default)s]')
     track_g.add_argument(
         '--theta', type=float, default=60.,
-        help='Maximum angle between 2 steps. If the angle is '
-             'too big, streamline is \nstopped and the '
-             'following point is NOT included.\n'
-             '[%(default)s]')
+        help='Maximum angle between 2 steps. If the angle is \n'
+             'too big, streamline is stopped and the \n'
+             'following point is NOT included. [%(default)s]')
     track_g.add_argument(
         '--rk_order', metavar="K", type=int, default=1,
         choices=[1, 2, 4],
@@ -198,7 +199,9 @@ def main():
     our_origin = Origin('center')
 
     logging.debug('Loading tractogram & diameters')
-    in_sft = load_tractogram(args.in_fibertubes, 'same', our_space, our_origin)
+    in_sft = load_tractogram(args.in_fibertubes, 'same',
+                             to_space=our_space,
+                             to_origin=our_origin)
     centerlines = list(in_sft.get_streamlines_copy())
     diameters = np.reshape(in_sft.data_per_streamline['diameters'],
                            len(centerlines))

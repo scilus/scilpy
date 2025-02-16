@@ -57,12 +57,13 @@ from scilpy.io.utils import (add_overwrite_arg, add_precision_arg,
                              add_tolerance_arg,
                              assert_headers_compatible)
 from scilpy.reconst.frf import compute_msmt_frf
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
-
     p = argparse.ArgumentParser(description=__doc__,
-                                formatter_class=argparse.RawTextHelpFormatter)
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
 
     p.add_argument('out_wm_frf',
                    help='Path to the output WM frf file, in .txt format.')

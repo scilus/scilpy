@@ -48,12 +48,14 @@ from scilpy.io.utils import (add_json_args,
                              validate_nbr_processes)
 from scilpy.image.labels import get_data_as_labels
 from scilpy.tractanalysis.reproducibility_measures import compare_volume_wrapper
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(
-        description=__doc__,
-        formatter_class=argparse.RawTextHelpFormatter)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
+
     p.add_argument('in_volumes', nargs='*',
                    help='Path of the input volumes.')
     p.add_argument('out_json',

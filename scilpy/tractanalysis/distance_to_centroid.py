@@ -25,13 +25,17 @@ def min_dist_to_centroid(bundle_pts, centroid_pts, nb_pts):
 
     Parameters
     ----------
-    bundles_pts: np.array
+    bundle_pts: np.array
+        Coordinates of all streamlines (N x nb_pts x 3)
     centroid_pts: np.array
+        Coordinates of all streamlines (nb_pts x 3)
     nb_pts: int
+        Number of point for the association to centroids
 
     Returns
     -------
     Array:
+        Labels (between 1 and nb_pts) for all bundle points
     """
     tree = KDTree(centroid_pts, copy_data=True)
     _, labels = tree.query(bundle_pts, k=1)
@@ -235,6 +239,20 @@ def compute_distance_map(labels_map, binary_mask, nb_pts, use_manhattan=False):
 
 
 def correct_labels_jump(labels_map, streamlines, nb_pts):
+    """
+    Computes the distance map for each label in the labels_map.
+
+    Parameters:
+    labels_map (numpy.ndarray):
+        A 3D array representing the labels map.
+    streamlines:
+    nb_pts (int):
+        Number of points to use for computing barycenters.
+
+    Returns:
+        numpy.ndarray: A 3D array representing the distance map.
+    """
+
     labels_data = ndi.map_coordinates(labels_map, streamlines._data.T - 0.5,
                                       order=0)
     binary_mask = np.zeros(labels_map.shape, dtype=np.uint8)
@@ -319,11 +337,14 @@ def correct_labels_jump(labels_map, streamlines, nb_pts):
 
 def subdivide_bundles(sft, sft_centroid, binary_mask, nb_pts,
                       method='centerline', fix_jumps=True):
+    """
+    
+    """
     sft.to_vox()
     sft_centroid.to_vox()
     sft.to_corner()
     sft_centroid.to_corner()
-    # TODO DOCSTRING !
+
     # This allows to have a more uniform (in size) first and last labels
     endpoints_extended = False
     if method == 'hyperplane' and nb_pts >= 5:

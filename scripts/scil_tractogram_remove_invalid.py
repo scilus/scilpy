@@ -24,11 +24,13 @@ from scilpy.tractograms.streamline_operations import (
     cut_invalid_streamlines,
     remove_overlapping_points_streamlines,
     remove_single_point_streamlines)
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(description=__doc__,
-                                formatter_class=argparse.RawTextHelpFormatter)
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
 
     p.add_argument('in_tractogram',
                    help='Tractogram filename. Format must be one of \n'

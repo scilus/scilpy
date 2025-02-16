@@ -40,10 +40,19 @@ Colormap selection affects tractograms coloring for visualization only.
 For detailed information on usage and parameters, please refer to the script's
 documentation.
 
+Formerly: scil_compute_bundle_voxel_label_map.py
+
 Author:
 -------
 Francois Rheault
 francois.m.rheault@usherbrooke.ca
+
+------------------------------------------------------------------------------------------
+Reference:
+[1] Neher, Peter, Dusan Hirjak, and Klaus Maier-Hein. "Radiomic tractometry: a
+    rich and tract-specific class of imaging biomarkers for neuroscience and
+    medical applications." Research Square (2023).
+------------------------------------------------------------------------------------------
 """
 
 import argparse
@@ -76,20 +85,14 @@ from scilpy.tractanalysis.distance_to_centroid import (subdivide_bundles,
 from scilpy.tractograms.streamline_and_mask_operations import \
     cut_streamlines_with_mask, CuttingStyle
 from scilpy.viz.color import get_lookup_table
-
-
-EPILOG = """
-[1] Neher, Peter, Dusan Hirjak, and Klaus Maier-Hein. "Radiomic tractometry: a
-    rich and tract-specific class of imaging biomarkers for neuroscience and
-    medical applications." Research Square (2023).
-"""
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(
-        description=__doc__,
-        epilog=EPILOG,
-        formatter_class=argparse.RawTextHelpFormatter)
+    p = argparse.ArgumentParser(description=__doc__,
+                                epilog=EPILOG,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
 
     p.add_argument('in_bundles', nargs='+',
                    help='Fiber bundle file.')

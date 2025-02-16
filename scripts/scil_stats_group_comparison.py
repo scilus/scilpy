@@ -56,12 +56,13 @@ from scilpy.stats.utils import (data_for_stat,
                                 get_group_data_sample,
                                 visualise_distribution,
                                 write_current_dictionnary)
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
-
-    p = argparse.ArgumentParser(
-        description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
 
     p.add_argument('in_json', metavar='IN_JSON',
                    help='Input JSON file from tractometry nextflow pipeline'

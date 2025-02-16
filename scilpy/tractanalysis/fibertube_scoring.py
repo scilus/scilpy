@@ -1,4 +1,5 @@
 import numpy as np
+import nibabel as nib
 from numba import objmode
 
 from math import sqrt, acos
@@ -11,62 +12,141 @@ from scilpy.tracking.fibertube_utils import (streamlines_to_segments,
                                              dist_segment_segment,
                                              dist_point_segment)
 from scilpy.tracking.utils import tqdm_if_verbose
-from scilpy.tractanalysis.todi import TrackOrientationDensityImaging
+from scilpy.tractograms.uncompress import streamlines_to_voxel_coordinates
 
 
-def mean_fibertube_density(sft):
+def fibertube_density(sft, samples_per_voxel_axis, verbose=False):
     """
-    Estimates the average per-voxel spatial density of a set of fibertubes.
-    This is obtained by dividing the volume of fibertube segments present
-    each voxel by the the total volume of the voxel.
+    Estimates the per-voxel volumetric density of a set of fibertubes. In other
+    words, how much space is occupied by fibertubes and how much is emptiness.
+
+    1. Segments voxels that contain at least a single fibertube.
+    2. Valid voxels are finely sampled and we count the number of samples that
+    landed within a fibertube. For each voxel, this number is then divided by
+    its total amount of samples.
+    3. By doing the same steps for samples that landed within 2 or more
+    fibertubes, we can create a density map of the fibertube collisions.
 
     Parameters
     ----------
     sft: StatefulTractogram
         Stateful Tractogram object containing the fibertubes.
+    samples_per_voxel_axis: int
+        Number of samples to be created along a single axis of a voxel. The
+        total number of samples in the voxel will be this number cubed.
+    verbose: bool
+        Whether the function and sub-functions should be verbose.
 
     Returns
     -------
-    mean_density: float
-        Per-voxel spatial density, averaged for the whole tractogram.
+    density_grid: ndarray
+        Per-voxel volumetric density of fibertubes as a 3D image.
+    density_flat: list
+        Per-voxel volumetric density of fibertubes as a list, containing only
+        the voxels that were valid in the binary mask (i.e. that contained
+        fibertubes). This is useful for calculating measurements on the
+        various density values, like mean, median, etc.
+    collision_grid: ndarray
+        Per-voxel density of fibertube collisions.
+    collision_flat: list
+        Per-voxel density of fibertubes collisions as a list, containing only
+        the voxels that were valid in the binary mask (i.e. that contained
+        fibertubes). This is useful for calculating measurements on the
+        various density values, like mean, median, etc.
     """
+    if "diameters" not in sft.data_per_streamline:
+        raise ValueError('No diameter found as data_per_streamline '
+                         'in the provided tractogram')
     diameters = np.reshape(sft.data_per_streamline['diameters'],
                            len(sft.streamlines))
-    mean_diameter = np.mean(diameters)
+    max_diameter = np.max(diameters)
 
-    mean_segment_lengths = []
-    for streamline in sft.streamlines:
-        mean_segment_lengths.append(
-            np.mean(np.linalg.norm(streamline[1:] - streamline[:-1], axis=-1)))
-    mean_segment_length = np.mean(mean_segment_lengths)
-    # Computing mean tube density per voxel.
+    # Everything will be in vox and corner for streamlines_to_voxel_coordinates.
     sft.to_vox()
-    # Because compute_todi expects streamline points (in voxel coordinates)
-    # to be in the range [0, size] rather than [-0.5, size - 0.5], we shift
-    # the voxel origin to corner.
     sft.to_corner()
+    vox_idx_for_streamline = streamlines_to_voxel_coordinates(sft.streamlines)
+    mask_idx = np.concatenate(vox_idx_for_streamline)
+    mask = np.zeros((sft.dimensions), dtype=np.uint8)
+    # Numpy array indexing in 3D works like this
+    mask[mask_idx[:, 0], mask_idx[:, 1], mask_idx[:, 2]] = 1
 
-    # Computing TDI
-    _, data_shape, _, _ = sft.space_attributes
-    todi_obj = TrackOrientationDensityImaging(tuple(data_shape))
-    todi_obj.compute_todi(sft.streamlines)
-    img = todi_obj.get_tdi()
-    img = todi_obj.reshape_to_3d(img)
+    sampling_density = np.array([samples_per_voxel_axis,
+                                 samples_per_voxel_axis,
+                                 samples_per_voxel_axis])
 
-    nb_voxels_nonzero = np.count_nonzero(img)
-    sum = np.sum(img, axis=-1)
-    sum = np.sum(sum, axis=-1)
-    sum = np.sum(sum, axis=-1)
+    # Source: dipy.tracking.seeds_from_mask
+    # Grid of points between -.5 and .5, centered at 0, with given density
+    grid = np.mgrid[0: sampling_density[0], 0: sampling_density[1],
+                    0: sampling_density[2]]
+    grid = grid.T.reshape((-1, 3))
+    grid = grid / sampling_density
+    grid += 0.5 / sampling_density - 0.5
+    grid = grid.reshape(*sampling_density, 3)
 
-    mean_seg_volume = np.pi * ((mean_diameter/2) ** 2) * mean_segment_length
+    # Back to corner origin
+    grid += 0.5
 
-    mean_seg_count = sum / nb_voxels_nonzero
-    mean_volume = mean_seg_count * mean_seg_volume
-    mean_density = mean_volume / (sft.voxel_sizes[0] *
-                                  sft.voxel_sizes[1] *
-                                  sft.voxel_sizes[2])
+    # Add samples to each voxel in mask
+    samples = np.empty(mask.shape, dtype=object)
+    for i, j, k in np.ndindex(mask.shape):
+        if mask[i][j][k]:
+            samples[i][j][k] = [i, j, k] + grid
 
-    return mean_density
+    # Building KDTree from fibertube segments
+    centers, indices, max_seg_length = streamlines_to_segments(
+        sft.streamlines, verbose)
+    tree = KDTree(centers)
+
+    density_grid = np.zeros(mask.shape)
+    density_flat = []
+    collision_grid = np.zeros(mask.shape)
+    collision_flat = []
+    # For each voxel, get density
+    for i, j, k in tqdm_if_verbose(np.ndindex(mask.shape), verbose,
+                                   total=len(np.ravel(mask))):
+        if not mask[i][j][k]:
+            continue
+
+        voxel_samples = np.reshape(samples[i][j][k], (-1, 3))
+
+        # Returns an list of lists of neighbor indexes for each sample
+        # Ex: [[265, 45, 0, 1231], [12, 67]]
+        all_sample_neighbors = tree.query_ball_point(
+            voxel_samples, max_seg_length/2+max_diameter/2, workers=-1)
+
+        nb_samples_in_fibertubes = 0
+        # Set containing sets of fibertube indexes
+        # This way, each pair of fibertube is only entered once.
+        # This is unless there is a trio. Then the same colliding fibertubes
+        # may be entered more than once.
+        collisions = set()
+        for index, sample in enumerate(voxel_samples):
+            neigbors = all_sample_neighbors[index]
+            fibertubes_touching_sample = set()
+            for segi in neigbors:
+                fi = indices[segi][0]
+                pi = indices[segi][1]
+                centerline = sft.streamlines[fi]
+                radius = diameters[fi] / 2
+
+                dist, _, _ = dist_point_segment(centerline[pi],
+                                                centerline[pi+1],
+                                                np.float32(sample))
+
+                if dist < radius:
+                    fibertubes_touching_sample.add(fi)
+
+            if len(fibertubes_touching_sample) > 0:
+                nb_samples_in_fibertubes += 1
+            if len(fibertubes_touching_sample) > 1:
+                collisions.add(frozenset(fibertubes_touching_sample))
+
+        density_grid[i][j][k] = nb_samples_in_fibertubes / len(voxel_samples)
+        density_flat.append(density_grid[i][j][k])
+        collision_grid[i][j][k] = len(collisions) / len(voxel_samples)
+        collision_flat.append(collision_grid[i][j][k])
+
+    return density_grid, density_flat, collision_grid, collision_flat
 
 
 def min_external_distance(sft, verbose):
@@ -142,7 +222,7 @@ def min_external_distance(sft, verbose):
                 min_external_distance = external_distance
                 min_external_distance_vec = (
                     get_external_vector_from_centerline_vector(vector, rp, rq)
-                    )
+                )
 
     return min_external_distance, min_external_distance_vec
 
@@ -250,8 +330,9 @@ def get_external_vector_from_centerline_vector(vector, r1, r2):
 @njit
 def resolve_origin_seeding(seeds, centerlines, diameters):
     """
-    Associates given seeds to segment 0 of the fibertube in which they have
-    been generated. This pairing only works with fiber origin seeding.
+    Given seeds generated in the first segment of fibertubes (origin seeding)
+    and a set of fibertubes, associates each seed with their corresponding
+    fibertube.
 
     Parameters
     ----------
@@ -264,8 +345,8 @@ def resolve_origin_seeding(seeds, centerlines, diameters):
     Return
     ------
     seeds_fiber: ndarray
-        Array containing the fiber index of each seed. If the seed is not in a
-        fiber, its value will be -1.
+        Array containing the fibertube index of each seed. If the seed is
+        not in a fibertube, its value in the array will be -1.
     """
     seeds_fiber = [-1] * len(seeds)
 
