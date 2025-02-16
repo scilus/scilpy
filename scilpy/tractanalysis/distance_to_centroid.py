@@ -21,7 +21,11 @@ from scilpy.tractograms.streamline_operations import \
 
 def min_dist_to_centroid(bundle_pts, centroid_pts, nb_pts):
     """
-    Compute minimal distance to centroids
+    Compute minimal distance between two sets of 3D points.
+    The 3D points are expected to be in the same space.
+
+    Typically the bundle_pts will be voxel indices (from argwhere) and the
+    centroid_pts will be the 3D positions of a single streamline.
 
     Parameters
     ----------
@@ -45,7 +49,27 @@ def min_dist_to_centroid(bundle_pts, centroid_pts, nb_pts):
 
 
 def associate_labels(target_sft, min_label=1, max_label=20):
-    # DOCSTRING
+    """
+    Associate labels to the streamlines in a target SFT using their lengths.
+    Even if unequal distance between points, the labels are interpolated
+    linearly so all the points are labeled according to their position.
+
+    min and max labels are used in case there is a cut in the bundle.
+
+    Parameters:
+    ----------
+    target_sft: StatefulTractogram
+        The target SFT to label, streamlines can be in any space.
+    min_label: int
+        Minimum label to use.
+    max_label: int
+        Maximum label to use.
+
+    Returns:
+    -------
+    Array: np.uint16
+        Labels for each point along the streamlines.
+    """
 
     curr_ind = 0
     target_labels = np.zeros(target_sft.streamlines._data.shape[0],
@@ -58,19 +82,28 @@ def associate_labels(target_sft, min_label=1, max_label=20):
         curr_labels = np.round(curr_labels)
         target_labels[curr_ind:curr_ind+len(streamline)] = curr_labels
         curr_ind += len(streamline)
-    
+
     return target_labels, target_sft.streamlines._data
 
 
 def find_medoid(points, max_points=10000):
     """
-    Find the medoid among a set of points.
+    Find the medoid among a set of points. A medoid is a point that minimizes
+    the sum of the distances to all other points. Unlike a barycenter, the
+    medoid is guaranteed to be one of the points in the set.
 
     Parameters:
-        points (ndarray): Points in N-dimensional space.
+    ----------
+    points: ndarray
+        An array of 3D coordinates.
+    max_points: int
+        Maximum number of points to use for the computation (will randomly
+        select points if the number of points is greater than max_points).
 
     Returns:
-        ndarray: Coordinates of the medoid.
+    -------
+        np.array:
+            The 3D coordinates of the medoid.
     """
     if len(points) > max_points:
         selected_indices = np.random.choice(len(points), max_points,
@@ -82,17 +115,26 @@ def find_medoid(points, max_points=10000):
     return points[medoid_idx]
 
 
-def compute_labels_map_barycenters(labels_map, is_euclidian=False, nb_pts=False):
+def compute_labels_map_barycenters(labels_map, is_euclidian=False,
+                                   nb_pts=False):
     """
     Compute the barycenter for each label in a 3D NumPy array by maximizing
     the distance to the boundary.
 
     Parameters:
-        labels_map (ndarray): The 3D array containing labels from 1-nb_pts.
+    ----------
+    labels_map: (ndarray)
+        The 3D array containing labels from 1-nb_pts.
         euclidian (bool): If True, the barycenter is the mean of the points
+        in the mask. If False, the barycenter is the medoid of the points in
+        the mask.
+    nb_pts: int
+        Number of points to use for computing barycenters.
 
     Returns:
-        ndarray: An array of size (nb_pts, 3) containing the barycenter
+    -------
+    ndarray:
+        An array of size (nb_pts, 3) containing the barycenter
         for each label.
     """
     labels = np.arange(1, nb_pts+1) if nb_pts else np.unique(labels_map)[1:]
@@ -127,11 +169,15 @@ def masked_manhattan_distance(mask, target_positions):
     positions, without stepping out of the mask.
 
     Parameters:
-        mask (ndarray): A binary 3D array representing the mask.
+    ----------
+    mask (ndarray):
+        A binary 3D array representing the mask.
         target_positions (list): A list of target positions within the mask.
 
     Returns:
-        ndarray: A 3D array of the same shape as the mask, containing the
+    -------
+    ndarray:
+        A 3D array of the same shape as the mask, containing the
         Manhattan distances.
     """
     # Initialize distance array with infinite values
@@ -172,6 +218,7 @@ def compute_distance_map(labels_map, binary_mask, nb_pts, use_manhattan=False):
     Computes the distance map for each label in the labels_map.
 
     Parameters:
+    ----------
     labels_map (numpy.ndarray):
         A 3D array representing the labels map.
     binary_mask (numpy.ndarray):
@@ -182,6 +229,7 @@ def compute_distance_map(labels_map, binary_mask, nb_pts, use_manhattan=False):
         If True, use the Manhattan distance instead of the Euclidian distance.
 
     Returns:
+    -------
         numpy.ndarray: A 3D array representing the distance map.
     """
     barycenters = compute_labels_map_barycenters(labels_map,
@@ -240,17 +288,24 @@ def compute_distance_map(labels_map, binary_mask, nb_pts, use_manhattan=False):
 
 def correct_labels_jump(labels_map, streamlines, nb_pts):
     """
-    Computes the distance map for each label in the labels_map.
+    Correct the labels jump in the labels map by cutting the streamlines
+    where the jump is detected and keeping the longest chunk.
+
+    This avoid loops in the labels map and ensure that the labels are
+    consistent along the streamlines.
 
     Parameters:
-    labels_map (numpy.ndarray):
+    ----------
+    labels_map (ndarray):
         A 3D array representing the labels map.
-    streamlines:
+    streamlines (ArraySequence):
+        The streamlines used to compute the labels map.
     nb_pts (int):
         Number of points to use for computing barycenters.
 
     Returns:
-        numpy.ndarray: A 3D array representing the distance map.
+    -------
+    ndarray: A 3D array representing the corrected labels map.
     """
 
     labels_data = ndi.map_coordinates(labels_map, streamlines._data.T - 0.5,
@@ -280,7 +335,7 @@ def correct_labels_jump(labels_map, streamlines, nb_pts):
             is_flip = True
 
         # Find jumps, cut them and find the longest
-        max_jump = max(nb_pts // 4 , 1)
+        max_jump = max(nb_pts // 4, 1)
         if len(np.argwhere(np.abs(gradient) > max_jump)) > 0:
             pos_jump = np.where(np.abs(gradient) > max_jump)[0] + 1
             split_chunk = np.split(curr_labels,
@@ -307,7 +362,7 @@ def correct_labels_jump(labels_map, streamlines, nb_pts):
     modified_binary_mask = compute_tract_counts_map(final_streamlines,
                                                     binary_mask.shape)
     modified_binary_mask[modified_binary_mask > 0] = 1
-    
+
     # Compute the KDTree for the new streamlines to find the closest
     # labels for each voxel
     kd_tree = KDTree(final_streamlines._data - 0.5)
@@ -315,7 +370,7 @@ def correct_labels_jump(labels_map, streamlines, nb_pts):
     indices = np.array(np.nonzero(modified_binary_mask), dtype=int).T
     labels_map = np.zeros(labels_map.shape, dtype=np.uint16)
     neighbor_ids = kd_tree.query_ball_point(indices, r=1.0)
- 
+
     for ind, neighbor_id in zip(indices, neighbor_ids):
         if len(neighbor_id) == 0:
             continue
@@ -338,7 +393,40 @@ def correct_labels_jump(labels_map, streamlines, nb_pts):
 def subdivide_bundles(sft, sft_centroid, binary_mask, nb_pts,
                       method='centerline', fix_jumps=True):
     """
-    
+    Function to divide a bundle into multiple section along its length.
+    The resulting labels map is based on the binary_mask, but the streamlines
+    are required for a few internal corrections (for consistency).
+
+    The default is to use the euclidian/centerline method, which is fast and
+    works well for most cases.
+
+    The hyperplane method allows for more complex shapes and to split the bundles
+    into subsections that follow the geometry of each kind of bundle.
+    However, this method is slower and requires extra quality control to ensure
+    that the labels are correct. This method requires a centroid file that
+    contains multiple streamlines.
+
+    Parameters:
+    ----------
+    sft (StatefulTractogram):
+        Represent the streamlines to be subdivided, streamlines representation
+        is useful fro the fix_jump parameter.
+    sft_centroid (StatefulTractogram):
+        Centroids used as a reference for subdivision.
+    binary_mask (ndarray):
+        Mask to be converted to a label mask
+    nb_pts (int):
+        Number of subdivision along streamlines' length
+    method (str):
+        Choice between centerline or hyperplane for subdivision
+    fix_jumps (bool):
+        Run the correction for streamlines to reduce big transition along
+        its length.
+
+    Returns:
+    -------
+    ndarray:
+        A 3D array representing the labels map.
     """
     sft.to_vox()
     sft_centroid.to_vox()
@@ -357,10 +445,10 @@ def subdivide_bundles(sft, sft_centroid, binary_mask, nb_pts,
 
     indices = np.array(np.nonzero(binary_mask), dtype=int).T
     labels = min_dist_to_centroid(indices,
-                                    sft_centroid[0].streamlines._data,
-                                    nb_pts=nb_pts)
+                                  sft_centroid[0].streamlines._data,
+                                  nb_pts=nb_pts)
     logging.debug('Computed labels using the euclidian method '
-                    f'in {round(time.time() - timer, 3)} seconds')
+                  f'in {round(time.time() - timer, 3)} seconds')
     min_label, max_label = labels.min(), labels.max()
 
     if method == 'centerline':
@@ -370,9 +458,10 @@ def subdivide_bundles(sft, sft_centroid, binary_mask, nb_pts,
         min_label, max_label = labels.min(), labels.max()
         del labels, indices
         logging.debug('Computing Labels using the hyperplane method.\n'
-                     '\tThis can take a while...')
+                      '\tThis can take a while...')
         # Select 2000 elements from the SFTs to train the classifier
-        streamlines_length = [length(streamline) for streamline in sft.streamlines]
+        streamlines_length = [length(streamline)
+                              for streamline in sft.streamlines]
         random_indices = np.random.choice(len(sft.streamlines), 2000)
         tmp_sft = resample_streamlines_step_size(
             sft[random_indices], np.min(streamlines_length) / nb_pts)
@@ -389,7 +478,7 @@ def subdivide_bundles(sft, sft_centroid, binary_mask, nb_pts,
         labels, points = labels[nn_indices], points[nn_indices]
 
         logging.debug('\tAssociated labels to centroids in '
-                     f'{round(time.time() - mini_timer, 3)} seconds')
+                      f'{round(time.time() - mini_timer, 3)} seconds')
 
         # Initialize the scaler
         mini_timer = time.time()
@@ -401,7 +490,7 @@ def subdivide_bundles(sft, sft_centroid, binary_mask, nb_pts,
 
         svc.fit(X=scaled_streamline_data, y=labels)
         logging.debug('\tSVC fit of training data in '
-                     f'{round(time.time() - mini_timer, 3)} seconds')
+                      f'{round(time.time() - mini_timer, 3)} seconds')
 
         # Scale the coordinates of the voxels
         mini_timer = time.time()
@@ -413,10 +502,10 @@ def subdivide_bundles(sft, sft_centroid, binary_mask, nb_pts,
         # Predict the labels for the voxels
         labels = svc.predict(X=scaled_voxel_coords)
         logging.debug('\tSVC prediction of labels in '
-                     f'{round(time.time() - mini_timer, 3)} seconds')
+                      f'{round(time.time() - mini_timer, 3)} seconds')
 
         logging.debug('Computed labels using the hyperplane method '
-                     f'in {round(time.time() - timer, 3)} seconds')
+                      f'in {round(time.time() - timer, 3)} seconds')
         labels_map = np.zeros(binary_mask.shape, dtype=np.uint16)
         labels_map[np.where(masked_binary_mask)] = labels
 
@@ -434,16 +523,14 @@ def subdivide_bundles(sft, sft_centroid, binary_mask, nb_pts,
         timer = time.time()
         tmp_sft = resample_streamlines_step_size(sft, 1.0)
         labels_map = correct_labels_jump(labels_map, tmp_sft.streamlines,
-                                        nb_pts - 2)
+                                         nb_pts - 2)
         logging.debug('Corrected labels jump in '
-                    f'{round(time.time() - timer, 3)} seconds')
-    
+                      f'{round(time.time() - timer, 3)} seconds')
 
     if endpoints_extended:
         labels_map[labels_map == nb_pts] = nb_pts - 1
         labels_map[labels_map == 1] = 2
         labels_map[labels_map > 0] -= 1
         nb_pts -= 2
-
 
     return labels_map
