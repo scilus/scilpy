@@ -17,6 +17,16 @@ def test_help_option(script_runner):
     assert ret.success
 
 
+def test_execution_user_sigma(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
+    in_img = os.path.join(SCILPY_HOME, 'others', 't1_resample.nii.gz')
+    ret = script_runner.run('scil_denoising_nlmeans.py', in_img,
+                            'denoised.nii.gz', '--processes', '1',
+                            '--sigma', '8', '--number_coils', 0,
+                            '--gaussian')
+    assert ret.success
+
+
 def test_execution_basic_3d(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_img = os.path.join(SCILPY_HOME, 'others', 't1_resample.nii.gz')
