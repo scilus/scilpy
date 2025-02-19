@@ -12,7 +12,7 @@ from scilpy.tracking.fibertube_utils import (streamlines_to_segments,
                                              dist_segment_segment,
                                              dist_point_segment)
 from scilpy.tracking.utils import tqdm_if_verbose
-from scilpy.tractanalysis.todi import TrackOrientationDensityImaging
+from scilpy.tractograms.uncompress import streamlines_to_voxel_coordinates
 
 
 def fibertube_density(sft, samples_per_voxel_axis, verbose=False):
@@ -20,10 +20,12 @@ def fibertube_density(sft, samples_per_voxel_axis, verbose=False):
     Estimates the per-voxel volumetric density of a set of fibertubes. In other
     words, how much space is occupied by fibertubes and how much is emptiness.
 
-    Works by building a binary mask segmenting voxels that contain at least
-    a single fibertube. Then, valid voxels are finely sampled and we count the
-    number of samples that landed within a fibertube. For each voxel, this
-    number is then divided by its total amount of samples.
+    1. Segments voxels that contain at least a single fibertube.
+    2. Valid voxels are finely sampled and we count the number of samples that
+    landed within a fibertube. For each voxel, this number is then divided by
+    its total amount of samples.
+    3. By doing the same steps for samples that landed within 2 or more
+    fibertubes, we can create a density map of the fibertube collisions.
 
     Parameters
     ----------
@@ -59,18 +61,14 @@ def fibertube_density(sft, samples_per_voxel_axis, verbose=False):
                            len(sft.streamlines))
     max_diameter = np.max(diameters)
 
-    # Everything will be in vox for simplicity.
+    # Everything will be in vox and corner for streamlines_to_voxel_coordinates.
     sft.to_vox()
-    # Building a binary mask using TODI
-    # Because compute_todi expects streamline points (in voxel coordinates)
-    # to be in the range [0, size] rather than [-0.5, size - 0.5], we shift
-    # the voxel origin to corner.
     sft.to_corner()
-    _, data_shape, _, _ = sft.space_attributes
-    todi_obj = TrackOrientationDensityImaging(tuple(data_shape))
-    todi_obj.compute_todi(sft.streamlines, False)
-    mask = todi_obj.get_mask()
-    mask = todi_obj.reshape_to_3d(mask)
+    vox_idx_for_streamline = streamlines_to_voxel_coordinates(sft.streamlines)
+    mask_idx = np.concatenate(vox_idx_for_streamline)
+    mask = np.zeros((sft.dimensions), dtype=np.uint8)
+    # Numpy array indexing in 3D works like this
+    mask[mask_idx[:, 0], mask_idx[:, 1], mask_idx[:, 2]] = 1
 
     sampling_density = np.array([samples_per_voxel_axis,
                                  samples_per_voxel_axis,
@@ -222,7 +220,7 @@ def min_external_distance(sft, verbose):
                 min_external_distance = external_distance
                 min_external_distance_vec = (
                     get_external_vector_from_centerline_vector(vector, rp, rq)
-                    )
+                )
 
     return min_external_distance, min_external_distance_vec
 
@@ -330,8 +328,9 @@ def get_external_vector_from_centerline_vector(vector, r1, r2):
 @njit
 def resolve_origin_seeding(seeds, centerlines, diameters):
     """
-    Associates given seeds to segment 0 of the fibertube in which they have
-    been generated. This pairing only works with fiber origin seeding.
+    Given seeds generated in the first segment of fibertubes (origin seeding)
+    and a set of fibertubes, associates each seed with their corresponding
+    fibertube.
 
     Parameters
     ----------
@@ -344,8 +343,8 @@ def resolve_origin_seeding(seeds, centerlines, diameters):
     Return
     ------
     seeds_fiber: ndarray
-        Array containing the fiber index of each seed. If the seed is not in a
-        fiber, its value will be -1.
+        Array containing the fibertube index of each seed. If the seed is
+        not in a fibertube, its value in the array will be -1.
     """
     seeds_fiber = [-1] * len(seeds)
 

@@ -13,11 +13,13 @@ import numpy as np
 from scilpy.io.utils import (assert_inputs_exist, assert_outputs_exist,
                              add_overwrite_arg, add_verbose_arg)
 from scilpy.gradients.bvec_bval_tools import normalize_bvecs
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
-                                description=__doc__)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
 
     p.add_argument('in_bvec',
                    help='Path to the gradient file (.bvec).')

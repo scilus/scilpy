@@ -5,10 +5,17 @@
 Estimates the per-voxel volumetric density of a set of fibertubes. In other
 words, how much space is occupied by fibertubes and how much is emptiness.
 
-Works by building a binary mask segmenting voxels that contain at least
-a single fibertube. Then, valid voxels are finely sampled and we count the
-number of samples that landed within a fibertube. For each voxel, this
-number is then divided by its total amount of samples.
+1. Segments voxels that contain at least a single fibertube.
+2. Valid voxels are finely sampled and we count the number of samples that
+landed within a fibertube. For each voxel, this number is then divided by
+its total amount of samples.
+3. By doing the same steps for samples that landed within 2 or more
+fibertubes, we can create a density map of the fibertube collisions.
+
+To form fibertubes from a set of streamlines, you can use the scripts:
+- scil_tractogram_filter_collisions.py to assign a diameter to each streamline
+  and remove all colliding fibertubes.
+- scil_tractogram_dps_math.py to assign a diameter without filtering.
 
 See also:
     - docs/source/documentation/fibertube_tracking.rst
@@ -37,15 +44,11 @@ def _build_arg_parser():
 
     p.add_argument('in_fibertubes',
                    help='Path to the tractogram (must be .trk) file \n'
-                        'containing fibertubes. They must be: \n'
-                        '1- Void of any collision. \n'
-                        '2- With their respective diameter saved \n'
-                        'as data_per_streamline. \n'
-                        'For both of these requirements, see \n'
-                        'scil_tractogram_filter_collisions.py.')
+                        'containing fibertubes. They must have their \n'
+                        'respective diameter saved as data_per_streamline.')
 
     p.add_argument('--out_density_map', default=None, type=str,
-                   help='Path of the output volumetric density image file')
+                   help='Path of the density Nifti image.')
 
     p.add_argument('--out_density_measures', default=None, type=str,
                    help='Path of the output file containing central \n'
@@ -53,7 +56,7 @@ def _build_arg_parser():
                         '(Must be .json)')
 
     p.add_argument('--out_collision_map', default=None, type=str,
-                   help='Path of the output collision density image file')
+                   help='Path of the collision Nifti image.')
 
     p.add_argument('--out_collision_measures', default=None, type=str,
                    help='Path of the output file containing central \n'
@@ -103,18 +106,17 @@ def main():
     sft.to_center()
 
     if "diameters" not in sft.data_per_streamline:
-        parser.error('No diameters found as data per streamline on ' +
+        parser.error('No diameters found as data per streamline in ' +
                      args.in_fibertubes)
 
     logging.debug('Computing fibertube density')
     (density_grid,
      density_flat,
      collision_grid,
-     collision_flat) = fibertube_density(sft, 10,
-                                         args.verbose == 'WARNING')
+     collision_flat) = fibertube_density(sft, 10, args.verbose == 'WARNING')
 
     logging.debug('Saving output')
-    header = nib.nifti1.Nifti1Header()
+    header = nib.Nifti1Header()
     extra = {
         'affine': sft.affine,
         'dimensions': sft.dimensions,
@@ -123,8 +125,7 @@ def main():
     }
 
     if args.out_density_map:
-        density_img = nib.nifti1.Nifti1Image(density_grid, sft.affine, header,
-                                             extra)
+        density_img = nib.Nifti1Image(density_grid, sft.affine, header, extra)
         nib.save(density_img, args.out_density_map)
 
     if args.out_density_measures:
@@ -139,8 +140,8 @@ def main():
                       sort_keys=args.sort_keys)
 
     if args.out_collision_map:
-        collision_img = nib.nifti1.Nifti1Image(collision_grid, sft.affine,
-                                               header, extra)
+        collision_img = nib.Nifti1Image(collision_grid, sft.affine, header,
+                                        extra)
         nib.save(collision_img, args.out_collision_map)
 
     if args.out_collision_measures:

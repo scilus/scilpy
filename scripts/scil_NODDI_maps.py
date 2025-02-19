@@ -6,6 +6,13 @@ Compute NODDI [1] maps using AMICO.
 Multi-shell DWI necessary.
 
 Formerly: scil_compute_NODDI.py
+---------------------------------------------------------------
+Reference:
+[1] Zhang H, Schneider T, Wheeler-Kingshott CA, Alexander DC.
+    NODDI: practical in vivo neurite orientation dispersion
+    and density imaging of the human brain.
+    NeuroImage. 2012 Jul 16;61:1000-16.
+---------------------------------------------------------------
 """
 
 import argparse
@@ -26,25 +33,18 @@ from scilpy.io.utils import (add_overwrite_arg,
                              add_verbose_arg,
                              assert_inputs_exist,
                              assert_output_dirs_exist_and_empty,
+                             assert_headers_compatible,
                              redirect_stdout_c, add_tolerance_arg,
                              add_skip_b0_check_arg)
 from scilpy.gradients.bvec_bval_tools import (check_b0_threshold,
                                               identify_shells)
-
-
-EPILOG = """
-Reference:
-    [1] Zhang H, Schneider T, Wheeler-Kingshott CA, Alexander DC.
-        NODDI: practical in vivo neurite orientation dispersion
-        and density imaging of the human brain.
-        NeuroImage. 2012 Jul 16;61:1000-16.
-"""
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(
-        description=__doc__, epilog=EPILOG,
-        formatter_class=argparse.RawTextHelpFormatter)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
 
     p.add_argument('in_dwi',
                    help='DWI file acquired with a NODDI compatible protocol '
@@ -112,6 +112,8 @@ def main():
 
     assert_output_dirs_exist_and_empty(parser, args, args.out_dir,
                                        optional=args.save_kernels)
+
+    assert_headers_compatible(parser, args.in_dwi, optional=args.mask)
 
     # Generate a scheme file from the bvals and bvecs files
     bvals, _ = read_bvals_bvecs(args.in_bval, args.in_bvec)

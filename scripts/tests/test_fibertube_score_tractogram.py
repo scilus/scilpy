@@ -35,13 +35,15 @@ def init_data():
         'nb_seeds_per_fibertube': 1,
     }
 
-    sft_fibertubes = StatefulTractogram(streamlines, mask_img, Space.VOX,
-                                        Origin.NIFTI)
+    sft_fibertubes = StatefulTractogram(streamlines, mask_img,
+                                        space=Space.VOX,
+                                        origin=Origin.NIFTI)
     sft_fibertubes.data_per_streamline = {
         "diameters": [0.002, 0.001]
     }
-    sft_tracking = StatefulTractogram(streamlines, mask_img, Space.VOX,
-                                      Origin.NIFTI)
+    sft_tracking = StatefulTractogram(streamlines, mask_img,
+                                      space=Space.VOX,
+                                      origin=Origin.NIFTI)
     sft_tracking.data_per_streamline = {
         "seeds": [streamlines[0][0], streamlines[1][0]]
     }

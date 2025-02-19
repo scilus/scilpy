@@ -24,6 +24,12 @@ file can then be re-used with --in_ordering. Only one input can be used with
 this option, we recommand an average streamline count or volume matrix.
 
 Formerly: scil_reorder_connectivity.py
+-----------------------------------------------------------------------------
+Reference:
+[1] Rubinov, Mikail, and Olaf Sporns. "Complex network measures of brain
+    connectivity: uses and interpretations." Neuroimage 52.3 (2010):
+    1059-1069.
+-----------------------------------------------------------------------------
 """
 
 import argparse
@@ -41,18 +47,13 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_outputs_exist,
                              add_verbose_arg,
                              assert_output_dirs_exist_and_empty)
-
-
-EPILOG = """
-[1] Rubinov, Mikail, and Olaf Sporns. "Complex network measures of brain
-    connectivity: uses and interpretations." Neuroimage 52.3 (2010):
-    1059-1069.
-"""
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
-                                description=__doc__, epilog=EPILOG)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
 
     p.add_argument('in_matrices', nargs='+',
                    help='Connectivity matrices in .npy or .txt format.')

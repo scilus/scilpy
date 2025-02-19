@@ -29,11 +29,14 @@ from scilpy.io.utils import (add_json_args,
                              assert_outputs_exist,
                              check_tracts_same_format, ranged_type)
 from scilpy.tractanalysis.bundle_operations import detect_ushape
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
-                                description=__doc__)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
+
     p.add_argument('in_tractogram',
                    help='Tractogram input file name.')
     p.add_argument('out_tractogram',

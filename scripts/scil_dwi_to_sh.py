@@ -23,11 +23,13 @@ from scilpy.io.utils import (add_b0_thresh_arg, add_overwrite_arg,
                              assert_outputs_exist, parse_sh_basis_arg,
                              assert_headers_compatible)
 from scilpy.reconst.sh import compute_sh_coefficients
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(
-        description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
     p.add_argument('in_dwi',
                    help='Path of the dwi volume.')
     p.add_argument('in_bval',
@@ -77,7 +79,7 @@ def main():
     args.b0_threshold = check_b0_threshold(bvals.min(),
                                            b0_thr=args.b0_threshold,
                                            skip_b0_check=args.skip_b0_check)
-    gtab = gradient_table(bvals, bvecs, b0_threshold=args.b0_threshold)
+    gtab = gradient_table(bvals, bvecs=bvecs, b0_threshold=args.b0_threshold)
 
     sh_basis, is_legacy = parse_sh_basis_arg(args)
 

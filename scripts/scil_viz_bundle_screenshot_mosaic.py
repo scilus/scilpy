@@ -27,12 +27,15 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_output_dirs_exist_and_empty,
                              assert_headers_compatible)
 from scilpy.utils.filenames import split_name_with_nii
+from scilpy.version import version_string
 from scilpy.viz.backends.pil import fetch_truetype_font
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(
-        description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
+
     p.add_argument('in_volume',
                    help='Volume used as background (e.g. T1, FA, b0).')
     p.add_argument('in_bundles', nargs='+',

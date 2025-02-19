@@ -35,12 +35,13 @@ from scilpy.io.utils import (add_json_args,
                              assert_inputs_exist, assert_outputs_exist)
 from scilpy.utils.metrics_tools import get_bundle_metrics_mean_std, \
     get_bundle_metrics_mean_std_per_point
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(
-        description=__doc__,
-        formatter_class=argparse.RawTextHelpFormatter)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
 
     p.add_argument('in_bundle',
                    help='Fiber bundle file to compute statistics on.')
@@ -71,7 +72,7 @@ def _build_arg_parser():
     p.add_argument('--out_json',
                    help='Path of the output file. If not given, the output '
                         'is simply printed on screen.')
-    
+
     add_reference_arg(p)
     add_json_args(p)
     add_verbose_arg(p)
