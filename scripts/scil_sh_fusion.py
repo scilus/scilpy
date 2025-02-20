@@ -12,6 +12,18 @@ conserving the most relevant information.
 Based on [1] and [2].
 
 Formerly: scil_merge_sh.py
+---------------------------------------------------------------------------------
+References:
+[1] Garyfallidis, E., Zucchelli, M., Houde, J-C., Descoteaux, M.
+    How to perform best ODF reconstruction from the Human Connectome
+    Project sampling scheme?
+    ISMRM 2014.
+
+[2] Khachaturian, M. H., Wisco, J. J., & Tuch, D. S. (2007). Boosting the
+    sampling efficiency of q‐ball imaging using multiple wavevector fusion.
+    Magnetic Resonance in Medicine: An Official Journal of the International
+    Society for Magnetic Resonance in Medicine, 57(2), 289-296.
+---------------------------------------------------------------------------------
 """
 
 import argparse
@@ -23,25 +35,13 @@ import numpy as np
 from scilpy.io.image import assert_same_resolution
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              assert_outputs_exist, add_verbose_arg)
-
-
-EPILOG = """
-Reference:
-[1] Garyfallidis, E., Zucchelli, M., Houde, J-C., Descoteaux, M.
-    How to perform best ODF reconstruction from the Human Connectome
-    Project sampling scheme?
-    ISMRM 2014.
-
-[2] Khachaturian, M. H., Wisco, J. J., & Tuch, D. S. (2007). Boosting the
-    sampling efficiency of q‐ball imaging using multiple wavevector fusion.
-    Magnetic Resonance in Medicine: An Official Journal of the International
-    Society for Magnetic Resonance in Medicine, 57(2), 289-296.
-"""
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
-                                description=__doc__, epilog=EPILOG)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
 
     p.add_argument('in_shs', nargs="+",
                    help='List of SH files.')

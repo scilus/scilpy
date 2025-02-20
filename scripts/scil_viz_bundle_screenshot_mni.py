@@ -38,14 +38,16 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_outputs_exist)
 from scilpy.image.volume_operations import register_image
 from scilpy.utils.spatial import get_axis_name, RAS_AXES_NAMES
+from scilpy.version import version_string
 from scilpy.viz.legacy import display_slices
 from scilpy.viz.color import get_lookup_table
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(
-        description=__doc__,
-        formatter_class=argparse.RawTextHelpFormatter)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
+
     p.add_argument('in_bundle',
                    help='Path of the input bundle.')
     p.add_argument('in_anat',

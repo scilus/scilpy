@@ -31,12 +31,13 @@ from scilpy.io.utils import (assert_inputs_exist,
                              add_verbose_arg,
                              add_reference_arg, assert_headers_compatible)
 from scilpy.viz.color import format_hexadecimal_color_to_rgb, ambiant_occlusion
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(
-        description=__doc__,
-        formatter_class=argparse.RawTextHelpFormatter)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
 
     p.add_argument('in_tractograms', nargs='+',
                    help='Input tractograms (.trk or .tck).')

@@ -38,11 +38,14 @@ from scilpy.io.hdf5 import reconstruct_sft_from_hdf5
 from scilpy.io.utils import (add_overwrite_arg, add_verbose_arg,
                              assert_inputs_exist,
                              assert_output_dirs_exist_and_empty)
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(
-        description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
+
     p.add_argument('in_hdf5',
                    help='HDF5 filename (.h5) containing decomposed '
                         'connections.')

@@ -64,11 +64,13 @@ from scilpy.utils.scilpy_bot import (
 )
 from scilpy.utils.scilpy_bot import SPACING_LEN, VOCAB_FILE_PATH
 from scilpy.io.utils import add_verbose_arg
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(description=__doc__,
-                                formatter_class=argparse.RawTextHelpFormatter)
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
 
     p.add_argument('expressions', nargs='+',
                    help='Search the provided list of expressions.\n'

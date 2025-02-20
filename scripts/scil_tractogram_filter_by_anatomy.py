@@ -59,6 +59,17 @@ Formerly: scil_filter_streamlines_anatomically.py
 NOTE: As of version 2.0.0, the dilation of the cortical mask has changed; from
 an in-house process to scipy's dilation. Results may differ from previous
 versions.
+----------------------------------------------------------------------------
+References:
+[1] Jörgens, D., Descoteaux, M., Moreno, R., 2021. Challenges for
+    tractogram ﬁltering. In: Özarslan, E., Schultz, T., Zhang, E., Fuster,
+    A. (Eds.), Anisotropy Across Fields and Scales. Springer. Mathematics
+    and Visualization.
+
+[2] Legarreta, J., Petit, L., Rheault, F., Theaud, G., Lemaire, C.,
+    Descoteaux, M., Jodoin, P.M. Filtering in tractography using
+    autoencoders (FINTA). Medical Image Analysis. 2021
+----------------------------------------------------------------------------
 """
 
 import argparse
@@ -85,23 +96,13 @@ from scilpy.image.labels import (get_data_as_labels, load_wmparc_labels,
 from scilpy.segment.streamlines import filter_grid_roi
 from scilpy.tractograms.streamline_operations import \
     filter_streamlines_by_length, remove_loops_and_sharp_turns
-
-
-EPILOG = """
-    References:
-        [1] Jörgens, D., Descoteaux, M., Moreno, R., 2021. Challenges for
-        tractogram ﬁltering. In: Özarslan, E., Schultz, T., Zhang, E., Fuster,
-        A. (Eds.), Anisotropy Across Fields and Scales. Springer. Mathematics
-        and Visualization.
-        [2] Legarreta, J., Petit, L., Rheault, F., Theaud, G., Lemaire, C.,
-        Descoteaux, M., Jodoin, P.M. Filtering in tractography using
-        autoencoders (FINTA). Medical Image Analysis. 2021
-    """
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
-                                epilog=EPILOG, description=__doc__)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
 
     p.add_argument('in_tractogram',
                    help='Path of the input tractogram file.')

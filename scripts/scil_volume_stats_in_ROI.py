@@ -27,11 +27,13 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_headers_compatible)
 from scilpy.utils.filenames import split_name_with_nii
 from scilpy.utils.metrics_tools import weighted_mean_std
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(description=__doc__,
-                                formatter_class=argparse.RawTextHelpFormatter)
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
 
     p.add_argument('in_rois', nargs='+',
                    help='ROIs volume filenames.\nCan be binary masks or '
