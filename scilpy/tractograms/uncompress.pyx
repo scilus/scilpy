@@ -102,8 +102,8 @@ def streamlines_to_voxel_coordinates(streamlines, return_mapping=False):
     pointers.points_to_index_out = &points_to_index_view_out[0]
 
     while 1:
-        at_point = _streamlines_to_voxel_coordinates(&pointers, 
-                                                     at_point, 
+        at_point = _streamlines_to_voxel_coordinates(&pointers,
+                                                     at_point,
                                                      max_points - 1)
         if pointers.lengths_in == pointers.lengths_in_end:
             # Job finished, we can return the streamlines
@@ -238,16 +238,34 @@ cdef cnp.npy_intp _streamlines_to_voxel_coordinates(
 
             direction_norm = norm(direction[0], direction[1], direction[2])
 
-            # Shift coordiates if the are too close to the voxel boundaries
-            for i in range(3):
-                if fabs(next_pt[i] - floor(next_pt[i])) < 1e-8:
-                    if next_pt[i] > 0.000001:
-                        next_pt[i] = next_pt[i] - 0.000001
-                    else:
-                        next_pt[i] = next_pt[i] + 0.000001
-                    jittered_point[i] = next_pt[i]
-                    direction[i] = next_pt[i] - current_pt[i]
-                    direction_norm = norm(direction[0], direction[1], direction[2])
+            # Make sure that the next point is not exactly on a voxel
+            # intersection or on the face of the voxel, since the behavior
+            # is not easy to define in this case.
+            if fabs(next_pt[0] - floor(next_pt[0])) < 1e-8 or\
+                fabs(next_pt[1] - floor(next_pt[1])) < 1e-8 or\
+                fabs(next_pt[2] - floor(next_pt[2])) < 1e-8:
+
+                next_pt[0] = next_pt[0] - 0.000001
+                next_pt[1] = next_pt[1] - 0.000001
+                next_pt[2] = next_pt[2] - 0.000001
+
+                # Make sure we don't "underflow" the grid
+                if next_pt[0] < 0.0 or next_pt[1] < 0.0 or next_pt[2] < 0.0:
+                    next_pt[0] = next_pt[0] + 0.000002
+                    next_pt[1] = next_pt[1] + 0.000002
+                    next_pt[2] = next_pt[2] + 0.000002
+
+                # Keep it in mind to correctly set when going back in the loop
+                jittered_point[0] = next_pt[0]
+                jittered_point[1] = next_pt[1]
+                jittered_point[2] = next_pt[2]
+
+                # Update those
+                direction[0] = next_pt[0] - current_pt[0]
+                direction[1] = next_pt[1] - current_pt[1]
+                direction[2] = next_pt[2] - current_pt[2]
+
+                direction_norm = norm(direction[0], direction[1], direction[2])
 
             # Set the "remaining_distance" var to compute remaining length of
             # vector to process
