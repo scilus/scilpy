@@ -269,10 +269,11 @@ def cut_invalid_streamlines(sft, epsilon=0.001):
                     cur_pos = [pos+1, pos+1]
                 elif cur_pos[1] - cur_pos[0] > best_pos[1] - best_pos[0]:
                     # We found a longer good segment.
-                    best_pos = cur_pos
+                    best_pos = cur_pos.copy()
 
-                # Ready to check next point.
-                cur_pos[1] += 1
+                # Ready to check next point, without overflows
+                if cur_pos[1] + 1 < len(sft.streamlines[ind]):
+                    cur_pos[1] += 1
 
             # Appending the longest segment to the list of streamlines
             if not best_pos == [0, 0]:
@@ -285,7 +286,7 @@ def cut_invalid_streamlines(sft, epsilon=0.001):
                 for key in sft.data_per_point.keys():
                     new_data_per_point[key].append(
                         sft.data_per_point[key][ind][
-                            best_pos[0]:best_pos[1]-1])
+                            best_pos[0]:best_pos[1]])
             else:
                 logging.warning('Streamline entirely out of the volume.')
         else:
@@ -296,6 +297,7 @@ def cut_invalid_streamlines(sft, epsilon=0.001):
                     sft.data_per_streamline[key][ind])
             for key in sft.data_per_point.keys():
                 new_data_per_point[key].append(sft.data_per_point[key][ind])
+
     new_sft = StatefulTractogram.from_sft(
         new_streamlines, sft, data_per_streamline=new_data_per_streamline,
         data_per_point=new_data_per_point)
@@ -306,7 +308,6 @@ def cut_invalid_streamlines(sft, epsilon=0.001):
 
     new_sft.to_space(space)
     new_sft.to_origin(origin)
-
     return new_sft, cutting_counter
 
 
