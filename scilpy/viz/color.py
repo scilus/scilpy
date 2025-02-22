@@ -353,5 +353,4 @@ def generate_local_coloring(sft):
     orientations = np.asarray([o for d in diff for o in d])
     # Turn the segments into colors
     color = colormap.orient2rgb(orientations)
-
     return color

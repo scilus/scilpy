@@ -57,9 +57,9 @@ def get_data_as_arraysequence(data, ref_sft):
 def add_data_as_color_dpp(sft, color):
     """
     Ensures the color data is in the right shape and adds it to the
-    data_per_point of the StatefulTractogram. The color data can be either one
-    color per streamline or one color per point. The function will return the
-    StatefulTractogram with the color data added.
+    data_per_point of the StatefulTractogram. The color data must have one
+    color per point. The function will return the StatefulTractogram with the
+    color data added.
 
     Parameters
     ----------
@@ -73,32 +73,13 @@ def add_data_as_color_dpp(sft, color):
     sft: StatefulTractogram
         The tractogram, with dpp 'color' added.
     """
-
-    if len(color) == sft._get_streamline_count():
-        if color.common_shape != (3,):
-            raise ValueError("Colors do not have the right shape. Expecting "
-                             "RBG values, but got values of shape {}.".format(
-                                 color.common_shape))
-
-        tmp = [np.tile([color[i][0][0], color[i][0][1], color[i][0][2]],
-                       (len(sft.streamlines[i]), 1))
-               for i in range(len(sft.streamlines))]
-        sft.data_per_point['color'] = tmp
-
-    elif len(color) == sft._get_point_count():
-
-        if color.common_shape != (3,):
-            raise ValueError("Colors do not have the right shape. Expecting "
-                             "RBG values, but got values of shape {}.".format(
-                                 color.common_shape))
-
-        sft.data_per_point['color'] = color
-    else:
-        raise ValueError("Colors do not have the right shape. Expecting either"
-                         " one color per streamline ({}) or one per point ({})"
-                         " but got {}.".format(sft._get_streamline_count(),
+    if color.total_nb_rows != sft._get_point_count():
+        raise ValueError("Colors do not have the right shape. Expecting one "
+                         "color per point ({}) but got {}.".format(
                                                sft._get_point_count(),
                                                color.total_nb_rows))
+
+    sft.data_per_point['color'] = color
     return sft
 
 
