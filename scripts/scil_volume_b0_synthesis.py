@@ -16,6 +16,11 @@ default in Scilpy):
 - tensorflow-addons
 - tensorrt
 - tensorflow
+-------------------------------------------------------------------------------
+Reference:
+[1] Schilling, Kurt G., et al. "Synthesized b0 for diffusion distortion
+    correction (Synb0-DisCo)." Magnetic resonance imaging 64 (2019): 62-70.
+-------------------------------------------------------------------------------
 """
 
 import argparse
@@ -29,18 +34,14 @@ from scilpy.io.fetcher import get_synb0_template_path
 from scilpy.io.utils import (add_overwrite_arg, add_verbose_arg,
                              assert_inputs_exist, assert_outputs_exist,
                              assert_headers_compatible)
-
-EPILOG = """
-[1] Schilling, Kurt G., et al. "Synthesized b0 for diffusion distortion
-  correction (Synb0-DisCo)." Magnetic resonance imaging 64 (2019): 62-70.
-"""
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(
-        description=__doc__,
-        formatter_class=argparse.RawTextHelpFormatter,
-        epilog=EPILOG)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
+
     p.add_argument('in_b0',
                    help='Input b0 image.')
     p.add_argument('in_b0_mask',

@@ -70,12 +70,13 @@ from scilpy.viz.color import (
     clip_and_normalize_data_for_cmap,
     get_lookup_table, prepare_colorbar_figure, ambient_occlusion,
     generate_local_coloring)
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(
-        description=__doc__,
-        formatter_class=argparse.RawTextHelpFormatter)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
 
     p.add_argument('in_tractogram',
                    help='Input tractogram (.trk or .tck).')

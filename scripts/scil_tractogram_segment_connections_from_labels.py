@@ -84,7 +84,8 @@ from scilpy.tractanalysis.connectivity_segmentation import (
     compute_connectivity,
     construct_hdf5_from_connectivity,
     extract_longest_segments_from_profile)
-from scilpy.tractograms.uncompress import uncompress
+from scilpy.tractograms.uncompress import streamlines_to_voxel_coordinates
+from scilpy.version import version_string
 
 
 def _get_output_paths(args):
@@ -113,6 +114,7 @@ def _get_saving_options(args):
 def _create_required_output_dirs(args, out_paths):
     if not args.out_dir:
         return
+
     os.mkdir(out_paths['final'])
 
     if args.save_raw_connections:
@@ -131,9 +133,9 @@ def _create_required_output_dirs(args, out_paths):
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(
-        formatter_class=argparse.RawTextHelpFormatter,
-        description=__doc__)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
     p.add_argument('in_tractograms', nargs='+',
                    help='Tractogram filename (s). Format must be one of \n'
                         'trk, tck, vtk, fib, dpy.\n'
@@ -196,7 +198,10 @@ def _build_arg_parser():
                         'Includes loops, outliers and qb_loops.')
     s.add_argument('--save_final', action='store_true',
                    help='If set, will save the final bundles (connections) '
-                        'on disk (.trk) as well as in the hdf5.')
+                        'on disk (.trk) as well as in the hdf5.\n'
+                        'If this is not set, you can also get the final '
+                        'bundles later, using:\n'
+                        'scil_tractogram_convert_hdf5_to_trk.py.')
 
     p.add_argument('--out_labels_list', metavar='OUT_FILE',
                    help='Save the labels list as text file.\n'
@@ -237,13 +242,17 @@ def main():
             parser.error('To save outputs in the streamlines form, provide '
                          'the output directory using --out_dir.')
         out_paths = _get_output_paths(args)
-        _create_required_output_dirs(args, out_paths)
+    elif args.out_dir:
+        logging.info("--out_dir will not be created, as there is nothing to "
+                     "be saved.")
+        args.out_dir = None
 
     if args.out_dir:
         if os.path.abspath(args.out_dir) == os.getcwd():
             parser.error('Do not use the current path as output directory.')
         assert_output_dirs_exist_and_empty(parser, args, args.out_dir,
                                            create_dir=True)
+        _create_required_output_dirs(args, out_paths)
 
     # Load everything
     img_labels = nib.load(args.in_labels)
@@ -277,7 +286,10 @@ def main():
     # Get the indices of the voxels traversed by each streamline
     logging.info('*** Computing voxels traversed by each streamline ***')
     time1 = time.time()
-    indices, points_to_idx = uncompress(sft.streamlines, return_mapping=True)
+    indices, points_to_idx = streamlines_to_voxel_coordinates(
+        sft.streamlines,
+        return_mapping=True
+    )
     time2 = time.time()
     logging.info('    Streamlines intersection took {} sec.'.format(
         round(time2 - time1, 2)))

@@ -33,12 +33,13 @@ from scilpy.io.utils import (assert_inputs_exist,
 from scilpy.tractograms.dps_and_dpp_management import (
     add_data_as_color_dpp, get_data_as_arraysequence)
 from scilpy.viz.color import format_hexadecimal_color_to_rgb, ambient_occlusion
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(
-        description=__doc__,
-        formatter_class=argparse.RawTextHelpFormatter)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
 
     p.add_argument('in_tractograms', nargs='+',
                    help='Input tractograms (.trk or .tck).')

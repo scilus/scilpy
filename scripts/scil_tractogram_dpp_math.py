@@ -43,12 +43,13 @@ from scilpy.tractograms.dps_and_dpp_management import (
     perform_correlation_on_endpoints,
     perform_operation_on_dpp,
     perform_operation_dpp_to_dps)
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(
-        formatter_class=argparse.RawTextHelpFormatter,
-        description=__doc__)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
 
     p.add_argument('operation', metavar='OPERATION',
                    choices=['mean', 'sum', 'min', 'max', 'correlation'],

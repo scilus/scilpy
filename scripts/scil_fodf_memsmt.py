@@ -60,11 +60,13 @@ from scilpy.reconst.fodf import (fit_from_model,
                                  verify_failed_voxels_shm_coeff,
                                  verify_frf_files)
 from scilpy.reconst.sh import convert_sh_basis, verify_data_vs_sh_order
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(description=__doc__,
-                                formatter_class=argparse.RawTextHelpFormatter)
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
 
     p.add_argument('in_wm_frf',
                    help='Text file of WM response function.')
@@ -187,7 +189,7 @@ def main():
     wm_frf, gm_frf, csf_frf = verify_frf_files(wm_frf, gm_frf, csf_frf)
 
     # Loading spheres
-    reg_sphere = get_sphere('symmetric362')
+    reg_sphere = get_sphere(name='symmetric362')
 
     # Starting main process!
 

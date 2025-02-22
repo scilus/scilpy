@@ -55,7 +55,6 @@ See also:
 
 import os
 import json
-import numba
 import argparse
 import logging
 import numpy as np
@@ -72,21 +71,18 @@ from scilpy.io.utils import (assert_inputs_exist,
                              add_overwrite_arg,
                              add_verbose_arg,
                              add_json_args)
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(
-        description=__doc__,
-        formatter_class=argparse.RawTextHelpFormatter)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
 
     p.add_argument('in_fibertubes',
-                   help='Path to the tractogram file (must be .trk) \n'
-                   'containing ground-truth fibertubes. They must be: \n'
-                   '1- Void of any collision. \n'
-                   '2- With their respective diameter saved \n'
-                   'as data_per_streamline. \n'
-                   'For both of these requirements, see \n'
-                   'scil_tractogram_filter_collisions.')
+                   help='Path to the tractogram (must be .trk) file \n'
+                        'containing fibertubes. They must have their \n'
+                        'respective diameter saved as data_per_streamline.')
 
     p.add_argument('in_tracking',
                    help='Path to the tractogram file (must be .trk) \n'
@@ -163,28 +159,30 @@ def main():
     our_origin = Origin('center')
 
     logging.debug('Loading centerline tractogram & diameters')
-    truth_sft = load_tractogram(args.in_fibertubes, 'same', our_space,
-                                our_origin)
+    truth_sft = load_tractogram(args.in_fibertubes, 'same',
+                                to_space=our_space,
+                                to_origin=our_origin)
     centerlines = truth_sft.get_streamlines_copy()
     centerlines, centerlines_length = get_streamlines_as_fixed_array(
         centerlines)
 
     if "diameters" not in truth_sft.data_per_streamline:
-        parser.error('No diameters found as data per streamline on ' +
+        parser.error('No diameters found as data per streamline in ' +
                      args.in_fibertubes)
     diameters = np.reshape(truth_sft.data_per_streamline['diameters'],
                            len(centerlines))
 
     logging.debug('Loading reconstructed tractogram')
-    in_sft = load_tractogram(args.in_tracking, 'same', our_space,
-                             our_origin)
+    in_sft = load_tractogram(args.in_tracking, 'same',
+                             to_space=our_space,
+                             to_origin=our_origin)
     streamlines = in_sft.get_streamlines_copy()
     streamlines, streamlines_length = get_streamlines_as_fixed_array(
         streamlines)
 
     logging.debug("Loading seeds")
     if "seeds" not in in_sft.data_per_streamline:
-        parser.error('No seeds found as data per streamline on ' +
+        parser.error('No seeds found as data per streamline in ' +
                      args.in_tracking)
 
     seeds = in_sft.data_per_streamline['seeds']

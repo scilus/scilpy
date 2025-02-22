@@ -81,6 +81,23 @@ For both methods, the nominal value of the B1 map can be set with
 By default, the script uses all the echoes available in the input folder.
 If you want to use a single echo, replace the * with the specific number of
 the echo.
+
+----------------------------------------------------------------------------------
+References:
+[1] Varma G, Girard OM, Prevost VH, Grant AK, Duhamel G, Alsop DC.
+    Interpretation of magnetization transfer from inhomogeneously broadened
+    lines (ihMT) in tissues as a dipolar order effect within motion
+    restricted molecules. Journal of Magnetic Resonance. 1 nov 2015;260:67-76.
+
+[2] Manning AP, Chang KL, MacKay AL, Michal CA. The physical mechanism of
+    "inhomogeneous" magnetization transfer MRI. Journal of Magnetic Resonance.
+    1 janv 2017;274:125-36.
+
+[3] Helms G, Dathe H, Kallenberg K, Dechent P. High-resolution maps of
+    magnetization transfer with inherent correction for RF inhomogeneity
+    and T1 relaxation obtained from 3D FLASH MRI.
+    Magnetic Resonance in Medicine. 2008;60(6):1396-407.
+---------------------------------------------------------------------------------
 """
 
 import argparse
@@ -99,27 +116,14 @@ from scilpy.reconst.mti import (apply_B1_corr_empiric,
                                 compute_ratio_map,
                                 compute_saturation_map,
                                 threshold_map)
-
-EPILOG = """
-Varma G, Girard OM, Prevost VH, Grant AK, Duhamel G, Alsop DC.
-Interpretation of magnetization transfer from inhomogeneously broadened lines
-(ihMT) in tissues as a dipolar order effect within motion restricted molecules.
-Journal of Magnetic Resonance. 1 nov 2015;260:67-76.
-
-Manning AP, Chang KL, MacKay AL, Michal CA. The physical mechanism of
-"inhomogeneous" magnetization transfer MRI. Journal of Magnetic Resonance.
-1 janv 2017;274:125-36.
-
-Helms G, Dathe H, Kallenberg K, Dechent P. High-resolution maps of
-magnetization transfer with inherent correction for RF inhomogeneity
-and T1 relaxation obtained from 3D FLASH MRI. Magnetic Resonance in Medicine.
-2008;60(6):1396-407.
-"""
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(description=__doc__,
-                                formatter_class=argparse.RawTextHelpFormatter)
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
+
     p.add_argument('out_dir',
                    help='Path to output folder.')
     p.add_argument('--out_prefix',
@@ -192,8 +196,7 @@ def main():
     if args.in_mtoff_t1:
         input_maps_lists.append(args.in_mtoff_t1)
 
-    input_maps_flat_list = [m for _list in input_maps_lists for m in _list]
-    assert_inputs_exist(parser, input_maps_flat_list,
+    assert_inputs_exist(parser, input_maps_lists,
                         optional=args.in_mtoff_t1 or [] + [args.mask])
 
     # Define affine. Uses the first in_mtoff_pd (required).

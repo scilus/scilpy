@@ -54,11 +54,14 @@ from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
 from scilpy.tractanalysis.reproducibility_measures import binary_classification
 from scilpy.tractograms.tractogram_operations import intersection_robust
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(description=__doc__,
-                                formatter_class=argparse.RawTextHelpFormatter)
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
+    
     p.add_argument('in_bundles', nargs='+',
                    help='Path of the input bundles.')
     p.add_argument('out_json',

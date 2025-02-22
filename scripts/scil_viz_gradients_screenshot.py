@@ -20,6 +20,7 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_gradients_filenames_valid,
                              assert_inputs_exist,
                              assert_outputs_exist)
+from scilpy.version import version_string
 from scilpy.viz.gradients import (build_ms_from_shell_idx,
                                   plot_each_shell,
                                   plot_proj_shell)
@@ -29,9 +30,9 @@ sphere_choices = ['symmetric362', 'symmetric642', 'symmetric724',
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        description=__doc__)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
 
     g = p.add_mutually_exclusive_group(required=True)
     g.add_argument(
@@ -162,7 +163,7 @@ def main():
         ms = build_ms_from_shell_idx(bvecs, shell_idx)
 
     else:
-        ms = [get_sphere(args.dipy_sphere).vertices]
+        ms = [get_sphere(name=args.dipy_sphere).vertices]
         centroids = None  # plot_each_shell not used.
 
     sym = args.enable_sym

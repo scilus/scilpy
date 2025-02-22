@@ -57,12 +57,13 @@ from scilpy.io.utils import (add_bbox_arg,
 from scilpy.segment.tractogram_from_roi import compute_masks_from_bundles
 from scilpy.tractanalysis.scoring import compute_tractometry
 from scilpy.tractanalysis.scoring import __doc__ as tractometry_description
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(
-        description=__doc__ + tractometry_description,
-        formatter_class=argparse.RawTextHelpFormatter)
+    p = argparse.ArgumentParser(description=__doc__ + tractometry_description,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
 
     p.add_argument("gt_config",
                    help=".json dict configured as specified above.")

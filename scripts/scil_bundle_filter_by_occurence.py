@@ -31,11 +31,13 @@ from scilpy.io.utils import (add_overwrite_arg, add_reference_arg,
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
 from scilpy.tractograms.tractogram_operations import (
     intersection_robust, union_robust)
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
-                                description=__doc__)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
 
     p.add_argument('in_bundles', nargs='+',
                    help='Input bundles filename(s). All tractograms must have '

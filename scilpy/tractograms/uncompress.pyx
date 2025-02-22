@@ -32,7 +32,7 @@ cdef struct Pointers:
 
 @cython.boundscheck(False)
 @cython.cdivision(True)
-def uncompress(streamlines, return_mapping=False):
+def streamlines_to_voxel_coordinates(streamlines, return_mapping=False):
     """
     Get the indices of the voxels traversed by each streamline; then returns
     an ArraySequence of indices, i.e. [i, j, k] coordinates.
@@ -102,7 +102,9 @@ def uncompress(streamlines, return_mapping=False):
     pointers.points_to_index_out = &points_to_index_view_out[0]
 
     while 1:
-        at_point = _uncompress(&pointers, at_point, max_points - 1)
+        at_point = _streamlines_to_voxel_coordinates(&pointers,
+                                                     at_point,
+                                                     max_points - 1)
         if pointers.lengths_in == pointers.lengths_in_end:
             # Job finished, we can return the streamlines
             break
@@ -147,7 +149,7 @@ cdef inline void c_get_closest_edge(double *p,
 
 @cython.boundscheck(False)
 @cython.cdivision(True)
-cdef cnp.npy_intp _uncompress(
+cdef cnp.npy_intp _streamlines_to_voxel_coordinates(
         Pointers* pointers,
         cnp.npy_intp at_point,
         cnp.npy_intp max_points) nogil:
@@ -242,18 +244,16 @@ cdef cnp.npy_intp _uncompress(
             if fabs(next_pt[0] - floor(next_pt[0])) < 1e-8 or\
                 fabs(next_pt[1] - floor(next_pt[1])) < 1e-8 or\
                 fabs(next_pt[2] - floor(next_pt[2])) < 1e-8:
-                # TODO in future, jitter edge or add thickness to deal with
-                # case where on an edge / face and the corresponding
-                # component of the direction is 0
-                next_pt[0] = next_pt[0] - 0.000001 * direction[0]
-                next_pt[1] = next_pt[1] - 0.000001 * direction[1]
-                next_pt[2] = next_pt[2] - 0.000001 * direction[2]
+
+                next_pt[0] = next_pt[0] - 0.000001
+                next_pt[1] = next_pt[1] - 0.000001
+                next_pt[2] = next_pt[2] - 0.000001
 
                 # Make sure we don't "underflow" the grid
                 if next_pt[0] < 0.0 or next_pt[1] < 0.0 or next_pt[2] < 0.0:
-                    next_pt[0] = next_pt[0] + 0.000002 * direction[0]
-                    next_pt[1] = next_pt[1] + 0.000002 * direction[1]
-                    next_pt[2] = next_pt[2] + 0.000002 * direction[2]
+                    next_pt[0] = next_pt[0] + 0.000002
+                    next_pt[1] = next_pt[1] + 0.000002
+                    next_pt[2] = next_pt[2] + 0.000002
 
                 # Keep it in mind to correctly set when going back in the loop
                 jittered_point[0] = next_pt[0]
@@ -292,7 +292,7 @@ cdef cnp.npy_intp _uncompress(
                 # Check if last point is already on an edge
                 remaining_distance -= length_ratio * direction_norm
 
-                if remaining_distance < 0.:
+                if remaining_distance <= 0.:
                     pointers.points_to_index_out[0] = nb_points_out - 1
                     pointers.points_to_index_out += 1
                     nb_points_out_pti += 1
