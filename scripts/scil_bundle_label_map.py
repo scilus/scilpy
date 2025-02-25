@@ -238,12 +238,11 @@ def main():
 
     for ind in indices:
         _, neighbor_ids = kd_tree.query(ind, k=5)
-
         if not len(neighbor_ids):
             continue
-
-        labels_val = final_labels.get_data()[neighbor_ids]
-        dists_val = final_dists.get_data()[neighbor_ids]
+        # TODO: These are going to be removed by PR 1034 anyways
+        labels_val = final_labels._data[neighbor_ids]
+        dists_val = final_dists._data[neighbor_ids]
         sum_dists_vox = np.sum(dists_val)
         weights_vox = np.exp(-dists_val / sum_dists_vox)
 
@@ -275,15 +274,16 @@ def main():
                                  sft_list[0].affine),
                  os.path.join(sub_out_dir, 'correlation_map.nii.gz'))
 
+        coords = sft.streamlines.get_data().T - 0.5
         if len(sft):
             tmp_labels = ndi.map_coordinates(labels_map,
-                                             sft.streamlines.get_data().T-0.5,
+                                             coords,
                                              order=0)
             tmp_dists = ndi.map_coordinates(distance_map,
-                                            sft.streamlines.get_data().T-0.5,
+                                            coords,
                                             order=0)
             tmp_corr = ndi.map_coordinates(corr_map,
-                                           sft.streamlines.get_data().T-0.5,
+                                           coords,
                                            order=0)
             cmap = plt.colormaps[args.colormap]
 

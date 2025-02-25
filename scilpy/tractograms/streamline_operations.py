@@ -258,35 +258,34 @@ def cut_invalid_streamlines(sft, epsilon=0.001):
     cutting_counter = 0
     for ind in range(len(sft.streamlines)):
         if ind in indices_to_cut:
-            # This streamline was detected as invalid
 
-            best_pos = [0, 0]  # First and last valid points of longest segment
-            cur_pos = [0, 0]   # First and last valid points of current segment
-            for pos, point in enumerate(sft.streamlines[ind]):
-                if (point < epsilon).any() or \
-                        (point >= sft.dimensions - epsilon).any():
-                    # The coordinate is < 0 or > box. Starting new segment
-                    cur_pos = [pos+1, pos+1]
-                elif cur_pos[1] - cur_pos[0] > best_pos[1] - best_pos[0]:
-                    # We found a longer good segment.
-                    best_pos = cur_pos.copy()
+            in_vol = np.logical_and(
+                sft.streamlines[ind] >= epsilon,
+                sft.streamlines[ind] < sft.dimensions - epsilon).all(axis=1)
 
-                # Ready to check next point, without overflows
-                if cur_pos[1] + 1 < len(sft.streamlines[ind]):
-                    cur_pos[1] += 1
+            # Get segments in the streamline that are within the volume using
+            # ndi.label
+            blobs, _ = ndi.label(in_vol)
 
-            # Appending the longest segment to the list of streamlines
-            if not best_pos == [0, 0]:
-                new_streamlines.append(
-                    sft.streamlines[ind][best_pos[0]:best_pos[1]])
-                cutting_counter += 1
+            # Get the largest blob
+            largest_blob = np.argmax(np.bincount(blobs.ravel())[1:]) + 1
+
+            # Get the indices of the points in the largest blob
+            ind_in_vol = np.where(blobs == largest_blob)[0]
+            # If there are points in the volume
+            if len(ind_in_vol):
+                # Get the streamline segment that is within the volume
+                new_streamline = sft.streamlines[ind][ind_in_vol]
+                new_streamlines.append(new_streamline)
+
                 for key in sft.data_per_streamline.keys():
                     new_data_per_streamline[key].append(
                         sft.data_per_streamline[key][ind])
                 for key in sft.data_per_point.keys():
                     new_data_per_point[key].append(
                         sft.data_per_point[key][ind][
-                            best_pos[0]:best_pos[1]])
+                            ind_in_vol])
+                cutting_counter += 1
             else:
                 logging.warning('Streamline entirely out of the volume.')
         else:
