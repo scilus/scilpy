@@ -95,7 +95,8 @@ def test_add_data_as_dpp_1_per_streamline():
     # Test: One value per streamline
     values = np.asarray([4, 5])
     color = (np.asarray(cmap(values)[:, 0:3]) * 255).astype(np.uint8)
-    array_seq = get_data_as_arraysequence(color, fake_sft)
+
+    array_seq = get_data_as_arraysequence(color, fake_sft, per_point=True)
 
     colored_sft = add_data_as_color_dpp(
         fake_sft, array_seq)

@@ -4,7 +4,7 @@ import numpy as np
 from nibabel.streamlines import ArraySequence
 
 
-def get_data_as_arraysequence(data, ref_sft):
+def get_data_as_arraysequence(data, ref_sft, per_point=False):
     """ Get data in the same shape as a reference StatefulTractogram's
     streamlines, so it can be used to set data_per_point or
     data_per_streamline. The data may represent one value per streamline or one
@@ -17,6 +17,8 @@ def get_data_as_arraysequence(data, ref_sft):
         The data to convert to ArraySequence.
     ref_sft: StatefulTractogram
         The reference StatefulTractogram containing the streamlines.
+    per_point: bool, optional
+        Return one value per point if True, one value per streamline otherwise.
 
     Returns
     -------
@@ -35,6 +37,12 @@ def get_data_as_arraysequence(data, ref_sft):
         # an extra dimension.
         if len(data.shape) == 2:
             data = data[:, None, :]
+
+        # Repeat the data for each point in the streamline.
+        if per_point:
+            data = [
+                [data[i]]*len(s) for i, s in enumerate(ref_sft.streamlines)]
+
         data_as_arraysequence = ArraySequence(data)
 
     elif data.shape[0] == ref_sft._get_point_count():
@@ -76,8 +84,15 @@ def add_data_as_color_dpp(sft, color):
     if color.total_nb_rows != sft._get_point_count():
         raise ValueError("Colors do not have the right shape. Expecting one "
                          "color per point ({}) but got {}.".format(
-                                               sft._get_point_count(),
-                                               color.total_nb_rows))
+                             sft._get_point_count(),
+                             color.total_nb_rows))
+
+    # Check if the color data is in the right shape (tuple of 3 values).
+    if (type(color.common_shape) is not tuple or
+        len(color.common_shape) < 1 or
+            color.common_shape[-1] != 3):
+        raise ValueError("Colors do not have the right shape. Expecting RGB "
+                         "colors but got shape {}.".format(color.common_shape))
 
     sft.data_per_point['color'] = color
     return sft
