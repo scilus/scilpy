@@ -522,8 +522,7 @@ class FibertubeDataVolume(DataVolume):
     @njit
     def extract_directions(pos, neighbors, blur_radius, segments_indices,
                            centerlines, diameters, random_generator,
-                           volume_nb_samples=1000,
-                           volume_nb_samples_backup=10000):
+                           volume_nb_samples=1000):
         directions = []
         volumes = []
 
@@ -535,21 +534,19 @@ class FibertubeDataVolume(DataVolume):
             dir = fib_pt2 - fib_pt1
             radius = diameters[fi] / 2
 
-            volume, is_estimated = sphere_cylinder_intersection(
+            if blur_radius < np.mean(diameters) / 2:
+                shape_to_sample = "sphere"
+            else:
+                shape_to_sample = "cylinder"
+
+            volume, _ = sphere_cylinder_intersection(
                     pos, blur_radius, fib_pt1,
                     fib_pt2, radius,
                     volume_nb_samples,
+                    shape_to_sample,
                     random_generator)
 
-            # Catch estimation error when using very small blur_radius.
-            if volume == 0 and is_estimated:
-                volume, _ = sphere_cylinder_intersection(
-                    pos, blur_radius, fib_pt1,
-                    fib_pt2, radius,
-                    volume_nb_samples_backup,
-                    random_generator)
-
-            if volume > 0:
+            if volume != 0:
                 directions.append(dir / np.linalg.norm(dir))
                 volumes.append(volume)
 

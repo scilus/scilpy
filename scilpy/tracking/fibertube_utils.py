@@ -2,6 +2,7 @@ import numpy as np
 
 from math import sqrt
 from numba import njit
+from typing import Literal
 from scilpy.tracking.utils import tqdm_if_verbose
 
 
@@ -184,6 +185,8 @@ def point_in_cylinder(pt1, pt2, r, q):
 @njit
 def sphere_cylinder_intersection(sph_p, sph_r: float, cyl_p1, cyl_p2,
                                  cyl_r: float, sample_count: int,
+                                 shape_to_sample: Literal["sphere",
+                                                          "cylinder"],
                                  random_generator: np.random.Generator):
     """
     Estimates the volume of intersection between a cylinder and a sphere by
@@ -204,14 +207,18 @@ def sphere_cylinder_intersection(sph_p, sph_r: float, cyl_p1, cyl_p2,
         Radius of the cylinder.
     sample_count: int
         Amount of samples to use for the estimation.
+    shape_to_sample: 'sphere' | 'cylinder'
+        Shape to sample. For best accuracy, this should be the smallest shape.
+    random_generator: numpy random generator
+        Numpy random generator used for producing sample coordinates.
 
     Returns
     -------
     inter_volume: float
         Approximate volume of the sphere-cylinder intersection.
     is_estimated: boolean
-        Indicates whether or not the resulting volume has been estimated.
-        If true, inter_volume has a probability of error due to sample count.
+        Indicates whether or not the resulting volume has been estimated using
+        samples instead of an analytical solution.
     """
     cyl_axis = cyl_p2 - cyl_p1
     cyl_length = np.linalg.norm(cyl_axis)
@@ -227,18 +234,30 @@ def sphere_cylinder_intersection(sph_p, sph_r: float, cyl_p1, cyl_p2,
     if np.linalg.norm(vector) >= sph_r + cyl_r:
         return 0, False
 
-    # High probability of intersection.
-    samples = sample_cylinder(cyl_p1, cyl_p2, cyl_r, sample_count,
-                              random_generator)
+    if shape_to_sample == "cylinder":
+        samples = sample_cylinder(cyl_p1, cyl_p2, cyl_r, sample_count,
+                                  random_generator)
 
-    inter_samples = 0
-    for sample in samples:
-        if np.linalg.norm(sph_p - sample) < sph_r:
-            inter_samples += 1
+        inter_samples = 0
+        # Count the cylinder samples that also land in the sphere.
+        for sample in samples:
+            if np.linalg.norm(sph_p - sample) < sph_r:
+                inter_samples += 1
 
-    # Proportion of cylinder samples common to both shapes * cylinder volume.
-    cyl_volume = np.pi * (cyl_r ** 2) * cyl_length
-    inter_volume = (inter_samples / sample_count) * cyl_volume
+        cyl_volume = np.pi * (cyl_r ** 2) * cyl_length
+        inter_volume = (inter_samples / sample_count) * cyl_volume
+    else:
+        samples = sample_sphere(sph_p, sph_r, sample_count,
+                                random_generator)
+
+        inter_samples = 0
+        # Count the sphere samples that also land in the cylinder.
+        for sample in samples:
+            if dist_point_segment(cyl_p1, cyl_p2, sample)[0] < cyl_r:
+                inter_samples += 1
+
+        sph_volume = 4 * np.pi * (sph_r ** 3) / 3
+        inter_volume = (inter_samples / sample_count) * sph_volume
 
     return inter_volume, True
 
