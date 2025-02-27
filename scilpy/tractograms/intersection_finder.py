@@ -1,5 +1,4 @@
 import time
-import math
 import logging
 import numpy as np
 
@@ -19,7 +18,7 @@ class IntersectionFinder:
     FLOAT_EPSILON = 1e-7
 
     def __init__(self, in_sft: StatefulTractogram, diameters: list,
-                 verbose=False):
+                 shuffle_segments=True, rng_seed=0, verbose=False):
         """
         Builds a KDTree from all the tractogram's segments
         and stores data required later for filtering.
@@ -30,16 +29,32 @@ class IntersectionFinder:
             Stateful Tractogram object containing streamlines to filter.
         diameters : list
             Diameters of each streamline of the tractogram.
+        shuffle_segments: bool
+            Should pick streamline segments randomly. If set to false, they
+            will be picked in order from the first segment of the first
+            streamline to the last segment of the last streamline.
+        rng_seed : int
+            Seed to be used for random number generation.
         verbose : bool
             Should produce verbose output.
         """
         self.diameters = diameters
         self.max_diameter = np.max(diameters)
+        self.rng_seed = rng_seed
         self.verbose = verbose
         self.in_sft = in_sft
         self.streamlines = in_sft.streamlines
         self.seg_centers, self.seg_indices, self.max_seg_length = (
             streamlines_to_segments(self.streamlines, verbose))
+        if shuffle_segments:
+            logging.debug("Shuffling streamline segments")
+            indexes = list(range(len(self.seg_centers)))
+            gen = np.random.default_rng(rng_seed)
+            gen.shuffle(indexes)
+
+            self.seg_centers = self.seg_centers[indexes]
+            self.seg_indices = self.seg_indices[indexes]
+
         self.tree = KDTree(self.seg_centers)
 
         self._invalid = []
@@ -160,7 +175,7 @@ class IntersectionFinder:
 
                 if external_distance < 0:
                     invalid[si] = True
-                    # Rough estimate of collision point
+                    # Estimate of collision point
                     collisions[si] = (p_coll + q_coll) / 2
                     obstacle[neighbor_si] = True
                     break
