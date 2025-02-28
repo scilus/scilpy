@@ -631,7 +631,6 @@ def compute_streamline_segment(orig_strl, inter_vox, in_vox_idx, out_vox_idx,
     # add the number of artificial points
     nb_points_orig_strl = out_strl_point - in_strl_point + 1
     nb_points = nb_points_orig_strl + nb_add_points
-    orig_segment_len = len(orig_strl[in_strl_point:out_strl_point + 1])
 
     # Initialize the new streamline segment
     segment = np.zeros((nb_points, 3))

@@ -41,9 +41,14 @@ def min_dist_to_centroid(bundle_pts, centroid_pts, nb_pts):
     Array:
         Labels (between 1 and nb_pts) for all bundle points
     """
+    # A kdtree is used to find the nearest euclidian neighbors between
+    # all voxels (bundle) and the streamline (centroid)
     tree = KDTree(centroid_pts, copy_data=True)
     _, labels = tree.query(bundle_pts, k=1)
-    labels = np.mod(labels, nb_pts) + 1
+
+    # No matter how many points are in the centroids, labels will be between
+    # 1 and nb_pts
+    labels = (labels / np.max(labels) * (nb_pts - 1)) + 1
 
     return labels.astype(np.uint16)
 
@@ -128,6 +133,10 @@ def compute_labels_map_barycenters(labels_map, is_euclidian=False,
         euclidian (bool): If True, the barycenter is the mean of the points
         in the mask. If False, the barycenter is the medoid of the points in
         the mask.
+    is_euclidian: bool
+        If True, the barycenter is the mean of the points in the mask.
+        If False, the barycenter is the medoid of the points in the mask.
+        This is useful for the hyperplane method.
     nb_pts: int
         Number of points to use for computing barycenters.
 
@@ -172,7 +181,8 @@ def masked_manhattan_distance(mask, target_positions):
     ----------
     mask (ndarray):
         A binary 3D array representing the mask.
-        target_positions (list): A list of target positions within the mask.
+    target_positions (list):
+        A list of target positions within the mask.
 
     Returns:
     -------
@@ -272,16 +282,16 @@ def compute_distance_map(labels_map, binary_mask, nb_pts, use_manhattan=False):
         if barycenter_intersect_coords.size == 0:
             continue
 
-        if not use_manhattan:
-            distances = np.linalg.norm(
-                barycenter_intersect_coords[:, np.newaxis] - labels_coords,
-                axis=-1)
-            distance_map[labels_map == label] = np.min(distances, axis=0)
-        else:
+        if use_manhattan:
             coords = [tuple(coord) for coord in barycenter_intersect_coords]
             curr_dists = masked_manhattan_distance(binary_mask, coords)
             distance_map[labels_map == label] = \
                 curr_dists[labels_map == label]
+        else:
+            distances = np.linalg.norm(
+                barycenter_intersect_coords[:, np.newaxis] - labels_coords,
+                axis=-1)
+            distance_map[labels_map == label] = np.min(distances, axis=0)
 
     return distance_map
 
@@ -335,7 +345,7 @@ def correct_labels_jump(labels_map, streamlines, nb_pts):
             is_flip = True
 
         # Find jumps, cut them and find the longest
-        max_jump = max(nb_pts // 4, 1)
+        max_jump = max(nb_pts // 5, 1)
         if len(np.argwhere(np.abs(gradient) > max_jump)) > 0:
             pos_jump = np.where(np.abs(gradient) > max_jump)[0] + 1
             split_chunk = np.split(curr_labels,
@@ -369,8 +379,17 @@ def correct_labels_jump(labels_map, streamlines, nb_pts):
 
     indices = np.array(np.nonzero(modified_binary_mask), dtype=int).T
     labels_map = np.zeros(labels_map.shape, dtype=np.uint16)
+
+    # This correspond to 1 voxel distance (cross)
     neighbor_ids = kd_tree.query_ball_point(indices, r=1.0)
 
+    # For each voxel, look at the labels of the neighbors and
+    # assign the appropriate label
+    # If the most frequent label is not > 25% of the neighbors, assign 0
+    # If the max jump is too big, assign 0
+    # If the neighbor is empty, assign 0
+    # If the neighbor is 1, assign the label
+    # If the neighbor is > 1, assign the most frequent label
     for ind, neighbor_id in zip(indices, neighbor_ids):
         if len(neighbor_id) == 0:
             continue
@@ -493,6 +512,7 @@ def subdivide_bundles(sft, sft_centroid, binary_mask, nb_pts,
                       f'{round(time.time() - mini_timer, 3)} seconds')
 
         # Scale the coordinates of the voxels
+        # Skip every other voxel to speed up the process
         mini_timer = time.time()
         masked_binary_mask = np.zeros(binary_mask.shape, dtype=np.uint8)
         masked_binary_mask[::2, ::2, ::2] = binary_mask[::2, ::2, ::2]
@@ -517,20 +537,20 @@ def subdivide_bundles(sft, sft_centroid, binary_mask, nb_pts,
         labels_map[tuple(missing_indices.T)] = \
             labels_map[tuple(valid_indices[nn_indices].T)]
 
-    # Correct the labels jump to prevent discontinuities
-    if fix_jumps:
-        print('Correcting labels jump...')
-        timer = time.time()
-        tmp_sft = resample_streamlines_step_size(sft, 1.0)
-        labels_map = correct_labels_jump(labels_map, tmp_sft.streamlines,
-                                         nb_pts - 2)
-        logging.debug('Corrected labels jump in '
-                      f'{round(time.time() - timer, 3)} seconds')
-
     if endpoints_extended:
         labels_map[labels_map == nb_pts] = nb_pts - 1
         labels_map[labels_map == 1] = 2
         labels_map[labels_map > 0] -= 1
         nb_pts -= 2
+
+    # Correct the labels jump to prevent discontinuities
+    if fix_jumps:
+        logging.debug('Correcting labels jump...')
+        timer = time.time()
+        tmp_sft = resample_streamlines_step_size(sft, 1.0)
+        labels_map = correct_labels_jump(labels_map, tmp_sft.streamlines,
+                                         nb_pts)
+        logging.debug('Corrected labels jump in '
+                      f'{round(time.time() - timer, 3)} seconds')
 
     return labels_map

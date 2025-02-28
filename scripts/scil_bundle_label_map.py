@@ -245,6 +245,8 @@ def main():
     nib.save(nib.Nifti1Image(corr_map * binary_mask, sft_list[0].affine),
              os.path.join(args.out_dir, 'correlation_map.nii.gz'))
 
+    # Trim the bundle(s), remove voxels with poor correlation or
+    # isolated components.
     timer = time.time()
     concat_sft = StatefulTractogram.from_sft([], sft_list[0])
     concat_sft.to_vox()
@@ -261,10 +263,11 @@ def main():
         if len(sft_list[i]):
             concat_sft += sft_list[i]
 
+    logging.debug(
+        f'Trim bundle(s) in {round(time.time() - timer, 3)} seconds.')
+
     # Use later to trim the streamlines without assignement
     min_len = np.min(length(concat_sft.streamlines))
-    logging.debug(
-        f'Chop bundle(s) in {round(time.time() - timer, 3)} seconds.')
 
     method = 'hyperplane' if args.hyperplane else 'centerline'
     args.nb_pts = len(sft_centroid.streamlines[0]) if args.nb_pts is None \
@@ -284,7 +287,6 @@ def main():
     # 0.9 is arbitrary, but we want a vast majority of the voxels to be
     # contiguous, otherwise it is a weird bundle so we recompute the labels
     # using the centerline method.
-    print(len(unique), ratio)
     if len(unique) > 2 and ratio < 0.9:
         binary_mask = np.max(binary_list, axis=0)
         labels_map = subdivide_bundles(concat_sft, sft_centroid, binary_mask,
