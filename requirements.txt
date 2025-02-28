@@ -12,7 +12,7 @@ dmri-commit==2.3.*
 docopt==0.6.*
 dvc==3.59.*
 formulaic==0.5.*
-fury==0.13.*
+fury==0.9.*
 future==1.0.*
 GitPython==3.1.*
 h5py==3.12.*
