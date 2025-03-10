@@ -61,7 +61,8 @@ def fibertube_density(sft, samples_per_voxel_axis, verbose=False):
                            len(sft.streamlines))
     max_diameter = np.max(diameters)
 
-    # Everything will be in vox and corner for streamlines_to_voxel_coordinates.
+    # Everything will be in vox and corner for
+    # streamlines_to_voxel_coordinates.
     sft.to_vox()
     sft.to_corner()
     vox_idx_for_streamline = streamlines_to_voxel_coordinates(sft.streamlines)
@@ -142,7 +143,6 @@ def fibertube_density(sft, samples_per_voxel_axis, verbose=False):
         collision_grid[i][j][k] = nb_in_many_fibertubes / len(voxel_samples)
         density_flat.append(density_grid[i][j][k])
         collision_flat.append(collision_grid[i][j][k])
-
 
     return density_grid, density_flat, collision_grid, collision_flat
 
