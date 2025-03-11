@@ -45,7 +45,7 @@ class IntersectionFinder:
         self.in_sft = in_sft
         self.streamlines = in_sft.streamlines
         self.seg_centers, self.seg_indices, self.max_seg_length = (
-            streamlines_to_segments(self.streamlines, verbose))
+            streamlines_to_segments(self.streamlines, verbose=verbose))
         if shuffle_segments:
             logging.debug("Shuffling streamline segments")
             indexes = list(range(len(self.seg_centers)))

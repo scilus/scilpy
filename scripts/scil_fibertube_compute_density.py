@@ -63,6 +63,11 @@ def _build_arg_parser():
                         'tendency measures about collision density. \n'
                         '(Must be .json)')
 
+    p.add_argument('--samples_per_voxel_axis', default=10, type=int,
+                   help='Number of samples to be created along a single \n'
+                   'axis of a voxel. The total number of samples in the \n'
+                   'voxel will be this number cubed. [%(default)s]')
+
     add_overwrite_arg(p)
     add_verbose_arg(p)
     add_json_args(p)
@@ -113,7 +118,8 @@ def main():
     (density_grid,
      density_flat,
      collision_grid,
-     collision_flat) = fibertube_density(sft, 10, args.verbose == 'WARNING')
+     collision_flat) = fibertube_density(sft, args.samples_per_voxel_axis,
+                                         args.verbose == 'WARNING')
 
     logging.debug('Saving output')
     header = nib.Nifti1Header()

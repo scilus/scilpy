@@ -405,7 +405,7 @@ class FibertubeDataVolume(DataVolume):
             return
 
         segments_centers, segments_indices, max_seg_length = (
-            streamlines_to_segments(centerlines, False))
+            streamlines_to_segments(centerlines, verbose=False))
         self.tree = KDTree(segments_centers)
         self.segments_indices = segments_indices
         self.max_seg_length = max_seg_length

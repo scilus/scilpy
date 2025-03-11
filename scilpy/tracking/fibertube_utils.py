@@ -6,7 +6,7 @@ from typing import Literal
 from scilpy.tracking.utils import tqdm_if_verbose
 
 
-def streamlines_to_segments(streamlines, verbose=False):
+def streamlines_to_segments(streamlines, streamlines_length = None, verbose=False):
     """
     Separates all streamlines of a tractogram into segments that connect
     each position. Then, flattens the resulting 2D array and returns it
@@ -15,8 +15,14 @@ def streamlines_to_segments(streamlines, verbose=False):
     ----------
     streamlines : list
         Streamlines to segment. This function is compatible with streamlines
-        as a fixed array, as long as the padding value is a number. Padding
-        will also be present in the result value.
+        as a fixed array, as long as the padding value is a number and the
+        [streamlines_length] parameter is given. Padding will be kept in the
+        result value.
+    streamlines_length: list
+        Length of each streamline. Only necessary if streamlines are given
+        as a fixed array.
+    verbose: bool
+        Wether the function should be verbose.
 
     Returns
     -------
@@ -29,21 +35,28 @@ def streamlines_to_segments(streamlines, verbose=False):
     """
     centers = []
     indices = []
-    max_length = 0.
+    max_seg_length = 0.
+
     for si, s in tqdm_if_verbose(enumerate(streamlines), verbose,
                                  total=len(streamlines)):
         centers.append((s[1:] + s[:-1]) / 2)
         indices.append([(si, pi) for pi in range(len(s)-1)])
 
-        max_length_candidate = np.amax(np.linalg.norm(s[1:] - s[:-1], axis=-1))
+        if streamlines_length is None:
+            max_seg_length_candidate = np.amax(
+                np.linalg.norm(s[1:] - s[:-1], axis=-1))
+        else:
+            length = streamlines_length[si]
+            max_seg_length_candidate = np.amax(
+                np.linalg.norm(s[1:length] - s[:length-1], axis=-1))
 
-        if max_length_candidate > max_length:
-            max_length = float(max_length_candidate)
+        if max_seg_length_candidate > max_seg_length:
+            max_seg_length = float(max_seg_length_candidate)
 
     centers = np.vstack(centers)
     indices = np.vstack(indices)
 
-    return (centers, indices, max_length)
+    return (centers, indices, max_seg_length)
 
 
 @njit
