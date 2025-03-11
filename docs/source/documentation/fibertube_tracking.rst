@@ -199,21 +199,35 @@ Tracking
 
 When the tracking algorithm is about to select a new direction to
 propagate the current streamline, it will build a sphere of radius
-``blur_radius`` and pick randomly from all the fibertube segments
-intersecting with it. The larger the intersection volume, the more
-likely a fibertube segment is to be picked and used as a tracking
+``blur_radius`` and examine all the fibertube segments intersecting
+with it. We get a list of segment directions with each a probability
+of getting picked. This propability is based on the segment's volume of
+intersection with the sphere. So the more a fibertube segment intersects
+the sphere, the more likely it is to be picked and used as a tracking
 direction.
-
 
 .. image:: https://github.com/user-attachments/assets/0308c206-c396-41c5-a0e1-bb69b692c101
    :alt: Visualization of the blurring sphere intersecting with segments
 
+This is similar to computing the Track Orientation Distribution (TOD)
+but it is not yet represented as a spherical function. It is merely
+an array of directions. Unfortunately, this process is a little too good
+when compared to normal tracking. This is because each potential direction
+is an actual fibertube orientation. It is not possible to step in between
+them and get lost.
+
+To align as best as possible the performances of fibertube tracking with
+traditional tractography given the same resolution, the fibertube
+directions near each tracking position should be mapped on a sphere
+and then approximated with spherical harmonics. This gives us a
+fibertube ODF or ftODF. An ftODF is nothing short of TODI performed locally
+at each tracking step!
 
 For more information and better visualization, watch the following
 presentation: https://docs.google.com/presentation/d/1nRV2j_A8bHOcjGSHtNmD8MsA9n5pHvR8/edit#slide=id.p19
 
 
-This makes fibertube tracking inherently probabilistic.
+All of this makes fibertube tracking inherently probabilistic.
 Theoretically, with a ``blur_radius`` of 0, any given set of coordinates
 has either a single tracking direction because it is within a fibertube,
 or no direction at all from being out of one. In fact, this behavior
