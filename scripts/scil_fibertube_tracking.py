@@ -126,11 +126,6 @@ def _build_arg_parser():
              'Note that points obtained after an invalid direction \n'
              '(based on the propagator\'s definition of invalid) \n'
              'are never added.')
-    track_g.add_argument(
-        '--forward_only', action='store_true',
-        help='If set, tracks in one direction only (forward) given the \n'
-             'initial seed. This option may interact differently if the \n'
-             '--use_ftODF option is given.')
 
     ftod_g = p.add_argument_group(
         'ftODF Options',
@@ -140,11 +135,12 @@ def _build_arg_parser():
 
     ftod_g.add_argument('--use_ftODF', action='store_true',
                         help='If set, will build a fibertube orientation\n'
-                        'distribution function at each tracking step. This\n'
-                        'is primarily to study the effect of spherical\n'
-                        'harmonics approximation towards the micron scale.\n'
-                        'It also allows the use of the scilpy ODFPropagator\n'
-                        'instead of FibertubePropagator.')
+                        'distribution function at each tracking step. It \n'
+                        'also allows the use of the scilpy ODFPropagator \n'
+                        'instead of FibertubePropagator. Because this \n'
+                        'option saves each streamline in a random order, \n'
+                        'the resulting tractogram cannot be scored using \n'
+                        'scil_fibertube_score_tractogram.py.')
     add_sphere_arg(ftod_g, symmetric_only=False)
     add_sh_basis_args(ftod_g)
     ftod_g.add_argument('--sub_sphere',
@@ -315,7 +311,7 @@ def main():
                       args.max_invalid_nb_points, 0,
                       args.nbr_processes, True, 'r+',
                       rng_seed=args.rng_seed,
-                      track_forward_only=args.forward_only,
+                      track_forward_only=not args.use_ftODF,
                       skip=args.skip,
                       verbose=args.verbose,
                       min_iter=1,
