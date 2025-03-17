@@ -13,7 +13,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-20.04]
+        os: [ubuntu-22.04]
 
     steps:
       - name: Save workspaces path
@@ -48,7 +48,7 @@ jobs:
           CIBW_SKIP: "*-musllinux* pp* *-win* *-win32* *aarch64"
 
       - name: Upload wheels and source to artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           path: |
             ${{ steps.workspace.outputs.path }}/sdist/*.whl
