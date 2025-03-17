@@ -260,8 +260,8 @@ def main():
         logging.debug("Instantiating FTODF datavolume")
         datavolume = FTODFDataVolume(centerlines, diameters, in_sft,
                                      args.blur_radius,
-                                     np.random.default_rng(args.rng_seed))
-        datavolume.init_sphere_and_sh(sh_basis, 8)
+                                     np.random.default_rng(args.rng_seed),
+                                     sh_basis, 8)
     else:
         logging.debug("Instantiating fibertube datavolume")
         datavolume = FibertubeDataVolume(centerlines, diameters, in_sft,

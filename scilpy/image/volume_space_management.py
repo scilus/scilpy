@@ -572,27 +572,28 @@ class FTODFDataVolume(FibertubeDataVolume):
     Fibertube DataVolume that maps local fibertube orientations on a sphere,
     giving us a Fibertube Orientation Distribution Function (ftODF).
 
-    IMPORTANT: This DataVolume has the same constructor as FibertubeDataVolume,
-    but the init_sphere_and_sh() function has to be called prior to use.
-
     This DataVolume returns the same information as the FibertubeDataVolume
-    class, but it compresses the information into spherical harmonics to be
-    used by a traditional ODF tracking algorithm. The distribution on the
-    sphere is weighted by the volume of each fibertube.
-
-    The reason for this use of ftODF is to study, across scales, the effect of
-    approximating fODFs with spherical representations; especially harmonics.
+    class, but compressed into spherical harmonics to be used by a traditional
+    ODF tracking algorithm.
     """
 
-    def init_sphere_and_sh(self, sh_basis, sh_order, smooth=0.006,
-                           full_basis=False, is_legacy=True,
-                           sphere_type='repulsion724'):
+    def __init__(self, centerlines, diameters, reference, blur_radius,
+                 random_generator, sh_basis, sh_order, smooth=0.006,
+                 full_basis=False, is_legacy=True,
+                 sphere_type='repulsion724'):
         """
-        Initializes the sphere and spherical harmonics parameters. This
-        function should be called immediately after the constructor.
-
         Parameters
         ----------
+        centerlines: list
+            Tractogram containing the fibertube centerlines
+        diameters: list
+            Diameters of each fibertube
+        reference: StatefulTractogram
+            Spatial reference used to obtain the dimensions and pixel
+            resolution of the data. Should be a stateful tractogram.
+        blur_radius: float
+            Radius of the blurring sphere to be used for degrading resolution.
+        random_generator: numpy random generator
         sh_basis : {None, 'tournier07', 'descoteaux07'}
             ``None`` for the default DIPY basis,
             ``tournier07`` for the Tournier 2007 [2]_ basis, and
@@ -614,13 +615,16 @@ class FTODFDataVolume(FibertubeDataVolume):
             before the conversion to spherical harmonics
             (default 'repulsion724').
         """
+        super().__init__(centerlines, diameters, reference, blur_radius,
+                         random_generator)
+
         # Saving parameters
         self.sh_basis = sh_basis
         self.sh_order = sh_order
         self.smooth = smooth
         self.full_basis = full_basis
         self.is_legacy = is_legacy
-        self.sphere = get_sphere(sphere_type)
+        self.sphere = get_sphere(name=sphere_type)
         self.nb_coeffs = int((self.sh_order + 1) * (self.sh_order + 2) / 2)
 
     def _voxmm_to_value(self, x, y, z, origin):
