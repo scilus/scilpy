@@ -138,6 +138,7 @@ def set_img_in_cell(mosaic, ren, view_number, width, height, i):
     # fury-gl flips image
     image = Image.fromarray(out[::-1])
     image.thumbnail((width, height))
+    image = image.rotate(180)
     mosaic.paste(image, (i, j))
 
 
