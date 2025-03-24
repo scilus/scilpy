@@ -220,7 +220,7 @@ To align as best as possible the performances of fibertube tracking with
 traditional tractography given the same resolution, the fibertube
 directions near each tracking position should be mapped on a sphere
 and then approximated with spherical harmonics. This gives us a
-fibertube ODF or ftODF. An ftODF is nothing short of a local, volume-weighted TODI!
+fibertube ODF or ftODF. A ftODF is nothing short of a local, volume-weighted TODI!
 
 For more information and better visualization, watch the following
 presentation: https://docs.google.com/presentation/d/1nRV2j_A8bHOcjGSHtNmD8MsA9n5pHvR8/edit#slide=id.p19
