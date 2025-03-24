@@ -119,7 +119,7 @@ def main():
      density_flat,
      collision_grid,
      collision_flat) = fibertube_density(sft, args.samples_per_voxel_axis,
-                                         args.verbose == 'WARNING')
+                                         args.verbose != 'INFO')
 
     logging.debug('Saving output')
     header = nib.Nifti1Header()
