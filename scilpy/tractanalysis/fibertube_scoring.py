@@ -56,7 +56,8 @@ def fibertube_density(sft, samples_per_voxel_axis, verbose=False):
     if "diameters" not in sft.data_per_streamline:
         raise ValueError('No diameter found as data_per_streamline '
                          'in the provided tractogram')
-    # Everything will be in vox and corner for streamlines_to_voxel_coordinates.
+    # Everything will be in vox and corner for
+    # streamlines_to_voxel_coordinates.
     sft.to_vox()
     sft.to_corner()
     diameters = np.reshape(sft.data_per_streamline['diameters'],
@@ -329,12 +330,43 @@ def get_external_vector_from_centerline_vector(vector, r1, r2):
     return external_vector
 
 
+def make_streamlines_forward_only(streamlines, seed_ids):
+    """
+    Ensures that the given streamlines are forward only and saved in the right
+    order. Assumes that streamlines are seeded at the origin segment of each
+    fibertube.
+
+    Parameters
+    ----------
+    seeds: ndarray
+        Array of seed points.
+    streamlines: ndarray
+        Array of streamlines tracked from seeds.
+
+    Returns
+    -------
+    forward_only_streamlines: list
+        List of streamlines oriented forward from the seed point.
+    """
+    forward_only_streamlines = []
+
+    for seed_id, streamline in zip(seed_ids, streamlines):
+        # Flip if required and then cut the "backward" tracking.
+        if seed_id > len(streamline) / 2:
+            streamline = streamline[::-1]
+        streamline = streamline[seed_id:]
+
+        forward_only_streamlines.append(streamline)
+
+    return forward_only_streamlines
+
+
 @njit
-def resolve_origin_seeding(seeds, centerlines, diameters):
+def associate_seeds_to_fibertubes(seeds, centerlines, diameters):
     """
     Given seeds generated in the first segment of fibertubes (origin seeding)
-    and a set of fibertubes, associates each seed with their corresponding
-    fibertube.
+    and a set of fibertubes, associates each seed/streamline to their
+    corresponding fibertube.
 
     Parameters
     ----------
@@ -346,19 +378,19 @@ def resolve_origin_seeding(seeds, centerlines, diameters):
 
     Return
     ------
-    seeds_fiber: ndarray
+    fibertube_of_seeds: ndarray
         Array containing the fibertube index of each seed. If the seed is
         not in a fibertube, its value in the array will be -1.
     """
-    seeds_fiber = [-1] * len(seeds)
+    fibertube_of_seeds = [-1] * len(seeds)
 
     for si, seed in enumerate(seeds):
         for fi, fiber in enumerate(centerlines):
             if point_in_cylinder(fiber[0], fiber[1], diameters[fi]/2, seed):
-                seeds_fiber[si] = fi
+                fibertube_of_seeds[si] = fi
                 break
 
-    return np.array(seeds_fiber)
+    return np.array(fibertube_of_seeds)
 
 
 @njit
@@ -404,7 +436,8 @@ def mean_reconstruction_error(centerlines, centerlines_length, diameters,
     # objmode allows the execution of non numba-compatible code within a numba
     # function
     with objmode(centers='float64[:, :]', indices='int64[:, :]'):
-        centers, indices, _ = streamlines_to_segments(centerlines, centerlines_length, False)
+        centers, indices, _ = streamlines_to_segments(
+            centerlines, centerlines_length, False)
     fixed_length = len(centerlines[0])-1
 
     # Building a tree with the first fibertube only.
@@ -452,15 +485,14 @@ def mean_reconstruction_error(centerlines, centerlines_length, diameters,
                         vector / np.linalg.norm(vector)) * radius
                     error_tractogram.append([fiber_collision_point, point])
 
-
         mean_errors.append(np.array(errors).mean())
-
     return mean_errors, error_tractogram
 
 
 @njit
 def endpoint_connectivity(blur_radius, centerlines, centerlines_length,
-                          diameters, streamlines, streamlines_length, seeds_fiber):
+                          diameters, streamlines, streamlines_length,
+                          seeds_fiber):
     """
     For every streamline, find whether or not it has reached the end segment
     of its fibertube. Each streamline is associated with an "Arrival fibertube

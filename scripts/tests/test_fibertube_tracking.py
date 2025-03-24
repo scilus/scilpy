@@ -79,6 +79,7 @@ def test_execution_seeding(script_runner, monkeypatch):
                             'tractogram.trk', 'tracking.trk',
                             '--nb_fibertubes', '1',
                             '--nb_seeds_per_fibertube', '3', '--skip', '3',
+                            '--local_seeding', 'center',
                             '--min_length', '0', '-f')
     assert ret.success
 
@@ -120,6 +121,7 @@ def test_execution_FTODF_seeding(script_runner, monkeypatch):
                             'tractogram.trk', 'tracking.trk', '--use_ftODF',
                             '--nb_fibertubes', '1',
                             '--nb_seeds_per_fibertube', '3', '--skip', '3',
+                            '--local_seeding', 'center',
                             '--min_length', '0', '-f')
     assert ret.success
 

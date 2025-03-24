@@ -48,6 +48,8 @@ from dipy.io.stateful_tractogram import StatefulTractogram, Space, Origin
 from dipy.io.streamline import load_tractogram, save_tractogram
 from scilpy.tracking.tracker import Tracker
 from scilpy.image.volume_space_management import DataVolume
+from scilpy.tractograms.streamline_operations import \
+    find_seed_indexes_on_streamlines
 from scilpy.io.utils import (parse_sh_basis_arg,
                              load_matrix_in_any_format,
                              assert_inputs_exist,
@@ -157,11 +159,10 @@ def _build_arg_parser():
                              "for the \ninitial direction. [%(default)s]")
 
     seed_group = p.add_argument_group(
-        'Seeding options',
-        'When no option is provided, uses --nb_seeds_per_fibertube 5.')
+        'Seeding options')
     seed_group.add_argument(
         '--nb_seeds_per_fibertube', type=int, default=5,
-        help='The number of seeds planted in the first segment \n'
+        help='The number of seeds generated randomly in the first segment \n'
              'of each fibertube. The total amount of streamlines will \n'
              'be [nb_seeds_per_fibertube] * [nb_fibertubes]. [%(default)s]')
     seed_group.add_argument(
@@ -170,6 +171,10 @@ def _build_arg_parser():
              'amount of fibers. Otherwise, the entire tractogram \n'
              'will be tracked. The total amount of streamlines \n'
              'will be [nb_seeds_per_fibertube] * [nb_fibertubes].')
+    seed_group.add_argument(
+        '--local_seeding', default='random', choices=['center', 'random'],
+        help='Defines where/how seeds will be placed within a fibertube \n'
+             'origin segment. [%(default)s]')
     seed_group.add_argument(
         '--in_custom_seeds', type=str,
         help='Path to a file containing a list of custom seeding \n'
@@ -276,7 +281,8 @@ def main():
         nbr_seeds = len(seeds)
     else:
         seed_generator = FibertubeSeedGenerator(centerlines, diameters,
-                                                args.nb_seeds_per_fibertube)
+                                                args.nb_seeds_per_fibertube,
+                                                args.local_seeding)
 
         max_nbr_seeds = args.nb_seeds_per_fibertube * len(centerlines)
         if args.nb_fibertubes:
@@ -323,8 +329,11 @@ def main():
     str_time = "%.2f" % (time.time() - start_time)
     logging.debug('Finished tracking in: ' + str_time + ' seconds')
 
+    seed_indexes = find_seed_indexes_on_streamlines(seeds, streamlines)
+
     out_sft = StatefulTractogram.from_sft(streamlines, in_sft)
     out_sft.data_per_streamline['seeds'] = seeds
+    out_sft.data_per_streamline['seed_ids'] = seed_indexes
     save_tractogram(out_sft, args.out_tractogram)
 
     config = {

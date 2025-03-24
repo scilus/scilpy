@@ -980,6 +980,7 @@ def get_streamlines_as_fixed_array(streamlines):
     Parameters
     ----------
     streamlines: list
+        The list of streamlines to convert into a fixed length array
 
     Return
     ------
@@ -995,3 +996,39 @@ def get_streamlines_as_fixed_array(streamlines):
             f[j] = c
 
     return streamlines_fixed, np.array(lengths)
+
+
+def find_seed_indexes_on_streamlines(seeds, streamlines, atol=1.e-8):
+    """
+    Given a list of seeds and a corresponding list of streamlines, finds
+    the index of each seed on its respective streamline.
+
+    Parameters
+    ----------
+    seeds: list
+        List of seeds to locate on streamlines
+    streamlines: list
+        List of streamlines produced from seeds
+    atol: float
+        Absolute tolerance of the comparison between a seed and each of the
+        streamline coordinates.
+
+    Return
+    ------
+    seed_indexes: list
+        A list containing the index of each seed on its streamline.
+    """
+    seed_indexes = []
+    for seed, streamline in zip(seeds, streamlines):
+        seed_index = -1
+
+        for i, point in enumerate(streamline):
+            if np.allclose(point, seed, rtol=0, atol=atol):
+                seed_index = i
+                break
+
+        if seed_index == -1:
+            raise ValueError('A seed coordinate was not found on streamline.')
+
+        seed_indexes.append(seed_index)
+    return seed_indexes

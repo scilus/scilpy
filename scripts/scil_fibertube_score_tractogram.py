@@ -63,7 +63,10 @@ import nibabel as nib
 from dipy.io.stateful_tractogram import StatefulTractogram, Space, Origin
 from dipy.io.streamline import save_tractogram, load_tractogram
 from scilpy.tractanalysis.fibertube_scoring import \
-    resolve_origin_seeding, endpoint_connectivity, mean_reconstruction_error
+    (make_streamlines_forward_only,
+     associate_seeds_to_fibertubes,
+     endpoint_connectivity,
+     mean_reconstruction_error)
 from scilpy.tractograms.streamline_operations import \
     get_streamlines_as_fixed_array
 from scilpy.io.utils import (assert_inputs_exist,
@@ -175,8 +178,11 @@ def main():
     logging.debug('Loading reconstructed tractogram')
     in_sft = load_tractogram(args.in_tracking, 'same',
                              to_space=our_space,
-                             to_origin=our_origin)
+                             to_origin=our_origin, bbox_valid_check=False)
+    seeds = in_sft.data_per_streamline['seeds']
+    seed_ids = in_sft.data_per_streamline['seed_ids']
     streamlines = in_sft.get_streamlines_copy()
+    streamlines = make_streamlines_forward_only(streamlines, seed_ids)
     streamlines, streamlines_length = get_streamlines_as_fixed_array(
         streamlines)
 
@@ -185,23 +191,23 @@ def main():
         parser.error('No seeds found as data per streamline in ' +
                      args.in_tracking)
 
-    seeds = in_sft.data_per_streamline['seeds']
-    seeds_fiber = resolve_origin_seeding(seeds, centerlines, diameters)
+    fibertube_of_seeds = associate_seeds_to_fibertubes(seeds, centerlines,
+                                                       diameters)
 
     logging.debug("Loading config")
     with open(args.in_config, 'r') as f:
         config = json.load(f)
     blur_radius = float(config['blur_radius'])
 
-    if len(seeds_fiber) != len(streamlines):
+    if len(fibertube_of_seeds) != len(streamlines):
         raise ValueError('Could not resolve origin seeding regions')
-    for num in seeds_fiber:
+    for num in fibertube_of_seeds:
         if num == -1:
             raise ValueError('Could not resolve origin seeding regions')
 
     if args.out_tracked_fibertubes:
         # Set for removing doubles
-        tracked_fibertubes_indices = set(seeds_fiber)
+        tracked_fibertubes_indices = set(fibertube_of_seeds)
         tracked_fibertubes = []
 
         for fi in tracked_fibertubes_indices:
@@ -215,12 +221,12 @@ def main():
     logging.debug("Computing endpoint connectivity")
     vc, ic, nc = endpoint_connectivity(blur_radius, centerlines,
                                        centerlines_length, diameters,
-                                       streamlines, seeds_fiber)
+                                       streamlines, fibertube_of_seeds)
 
     logging.debug("Computing reconstruction error")
     (mean_errors, error_tractogram) = mean_reconstruction_error(
         centerlines, centerlines_length, diameters, streamlines,
-        streamlines_length, seeds_fiber, args.save_error_tractogram)
+        streamlines_length, fibertube_of_seeds, args.save_error_tractogram)
 
     metrics = {
         'vc_ratio': len(vc)/len(streamlines),
