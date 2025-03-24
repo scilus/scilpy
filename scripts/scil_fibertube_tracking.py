@@ -138,10 +138,7 @@ def _build_arg_parser():
                         help='If set, will build a fibertube orientation\n'
                         'distribution function at each tracking step. It \n'
                         'also allows the use of the scilpy ODFPropagator \n'
-                        'instead of FibertubePropagator. Because this \n'
-                        'option saves each streamline in a random order, \n'
-                        'the resulting tractogram cannot be scored using \n'
-                        'scil_fibertube_score_tractogram.py.')
+                        'instead of FibertubePropagator.')
     ftod_g.add_argument('--algo', default='prob', choices=['det', 'prob'],
                         help='Algorithm to use with ftODF. If ftODF is \n'
                              'NOT used, this argument is not considered. \n'

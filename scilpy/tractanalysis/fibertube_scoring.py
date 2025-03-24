@@ -436,8 +436,6 @@ def mean_reconstruction_error(centerlines, centerlines_length, diameters,
     mean_errors = []
     error_tractogram = []
 
-    print("TEST", streamlines)
-
     # objmode allows the execution of non numba-compatible code within a numba
     # function
     with objmode(centers='float64[:, :]', indices='int64[:, :]'):
