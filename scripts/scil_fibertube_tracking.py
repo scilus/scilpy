@@ -134,7 +134,6 @@ def _build_arg_parser():
         'Options required if you want to perform fibertube tracking using\n'
         'fibertube orientation distribution (ftODF).\n'
         'If you\'re not familiar with these options, please ignore them.')
-
     ftod_g.add_argument('--use_ftODF', action='store_true',
                         help='If set, will build a fibertube orientation\n'
                         'distribution function at each tracking step. It \n'
@@ -143,6 +142,10 @@ def _build_arg_parser():
                         'option saves each streamline in a random order, \n'
                         'the resulting tractogram cannot be scored using \n'
                         'scil_fibertube_score_tractogram.py.')
+    ftod_g.add_argument('--algo', default='prob', choices=['det', 'prob'],
+                        help='Algorithm to use with ftODF. If ftODF is \n'
+                             'NOT used, this argument is not considered. \n'
+                             '[%(default)s]')
     add_sphere_arg(ftod_g, symmetric_only=False)
     add_sh_basis_args(ftod_g)
     ftod_g.add_argument('--sub_sphere',
@@ -297,7 +300,7 @@ def main():
     if args.use_ftODF:
         logging.debug("Instantiating ODF propagator")
         propagator = ODFPropagator(
-            datavolume, args.step_size, args.rk_order, 'prob', sh_basis,
+            datavolume, args.step_size, args.rk_order, args.algo, sh_basis,
             args.sf_threshold, args.sf_threshold_init, theta, args.sphere,
             sub_sphere=args.sub_sphere,
             space=our_space, origin=our_origin, is_legacy=is_legacy)

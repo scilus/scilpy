@@ -332,16 +332,16 @@ def get_external_vector_from_centerline_vector(vector, r1, r2):
 
 def make_streamlines_forward_only(streamlines, seed_ids):
     """
-    Ensures that the given streamlines are forward only and saved in the right
-    order. Assumes that streamlines are seeded at the origin segment of each
-    fibertube.
+    Truncates the streamlines and orients them so that they begin with their
+    seed. In case the seed is near the middle of the streamline, the longest
+    side will be kept.
 
     Parameters
     ----------
-    seeds: ndarray
-        Array of seed points.
     streamlines: ndarray
         Array of streamlines tracked from seeds.
+    seed_ids: ndarray
+        Indexe of each seed within the streamline.
 
     Returns
     -------
@@ -351,10 +351,11 @@ def make_streamlines_forward_only(streamlines, seed_ids):
     forward_only_streamlines = []
 
     for seed_id, streamline in zip(seed_ids, streamlines):
-        # Flip if required and then cut the "backward" tracking.
-        if seed_id > len(streamline) / 2:
+        if seed_id+1 > len(streamline) / 2:
+            streamline = streamline[:seed_id+1]
             streamline = streamline[::-1]
-        streamline = streamline[seed_id:]
+        else:
+            streamline = streamline[seed_id:]
 
         forward_only_streamlines.append(streamline)
 
@@ -385,8 +386,9 @@ def associate_seeds_to_fibertubes(seeds, centerlines, diameters):
     fibertube_of_seeds = [-1] * len(seeds)
 
     for si, seed in enumerate(seeds):
-        for fi, fiber in enumerate(centerlines):
-            if point_in_cylinder(fiber[0], fiber[1], diameters[fi]/2, seed):
+        for fi, fibertube in enumerate(centerlines):
+            if point_in_cylinder(fibertube[0], fibertube[1], diameters[fi]/2,
+                                 seed):
                 fibertube_of_seeds[si] = fi
                 break
 
@@ -395,7 +397,8 @@ def associate_seeds_to_fibertubes(seeds, centerlines, diameters):
 
 @njit
 def mean_reconstruction_error(centerlines, centerlines_length, diameters,
-                              streamlines, streamlines_length, seeds_fiber,
+                              streamlines, streamlines_length,
+                              fibertube_of_seeds,
                               return_error_tractogram=False):
     """
     For each provided streamline, finds the mean distance between its
@@ -415,9 +418,9 @@ def mean_reconstruction_error(centerlines, centerlines_length, diameters,
         process.
     streamlines_length: ndarray,
         Fixed array containing the number of coordinates of each streamline
-    seeds_fiber: list
+    fibertube_of_seeds: list
         Array of the same length as there are streamlines. For every
-        streamline, contains the index of the fiber in which it has been
+        streamline, contains the index of the fibertube in which it has been
         seeded.
     return_error_tractogram: bool = False
 
@@ -428,10 +431,12 @@ def mean_reconstruction_error(centerlines, centerlines_length, diameters,
     error_tractogram: list
         Empty when return_error_tractogram is set to False. Otherwise,
         contains a visual representation of the error between every streamline
-        and the fiber in which it has been seeded.
+        and the fibertube in which it has been seeded.
     """
     mean_errors = []
     error_tractogram = []
+
+    print("TEST", streamlines)
 
     # objmode allows the execution of non numba-compatible code within a numba
     # function
@@ -448,8 +453,8 @@ def mean_reconstruction_error(centerlines, centerlines_length, diameters,
         streamline = streamline_fixed[:streamlines_length[si]-1]
         errors = []
 
-        seeded_fi = seeds_fiber[si]
-        fiber = centerlines[seeded_fi]
+        seeded_fi = fibertube_of_seeds[si]
+        fibertube = centerlines[seeded_fi]
         radius = diameters[seeded_fi] / 2
 
         # Rebuild tree for current fibertube.
@@ -467,10 +472,10 @@ def mean_reconstruction_error(centerlines, centerlines_length, diameters,
 
             # Retrieving the closest cylinder segment.
             _, pi = indices[nearest_index]
-            pt1 = fiber[pi]
-            pt2 = fiber[pi + 1]
+            pt1 = fibertube[pi]
+            pt2 = fibertube[pi + 1]
 
-            # If we're within the fiber, error = 0
+            # If we're within the fibertube, error = 0
             if (np.linalg.norm(point - pt1) < radius or
                 np.linalg.norm(point - pt2) < radius or
                     point_in_cylinder(pt1, pt2, radius, point)):
@@ -492,7 +497,7 @@ def mean_reconstruction_error(centerlines, centerlines_length, diameters,
 @njit
 def endpoint_connectivity(blur_radius, centerlines, centerlines_length,
                           diameters, streamlines, streamlines_length,
-                          seeds_fiber):
+                          fibertube_of_seeds):
     """
     For every streamline, find whether or not it has reached the end segment
     of its fibertube. Each streamline is associated with an "Arrival fibertube
@@ -528,7 +533,7 @@ def endpoint_connectivity(blur_radius, centerlines, centerlines_length,
         process.
     streamlines_length: ndarray,
         Fixed array containing the number of coordinates of each streamline
-    seeds_fiber: list
+    fibertube_of_seeds: list
         Array of the same length as there are streamlines. For every
         streamline, contains the index of the fibertube in which it has been
         seeded.
@@ -570,7 +575,7 @@ def endpoint_connectivity(blur_radius, centerlines, centerlines_length,
     nc = set()
 
     for index, coord in enumerate(final_coordinates):
-        seed_fibertube_index = seeds_fiber[index]
+        seed_fibertube_index = fibertube_of_seeds[index]
         neighbors = all_neighbors[index]
 
         closest_dist = np.inf

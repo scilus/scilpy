@@ -138,3 +138,13 @@ def test_execution_FTODF_sphere(script_runner, monkeypatch):
                             '--sfthres_init', '0.4',
                             '--min_length', '0', '-f')
     assert ret.success
+
+
+def test_execution_FTODF_det(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
+    init_data()
+    ret = script_runner.run('scil_fibertube_tracking.py',
+                            'tractogram.trk', 'tracking.trk', '--use_ftODF',
+                            '--algo', 'det',
+                            '--min_length', '0', '-f')
+    assert ret.success

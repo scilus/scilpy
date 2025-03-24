@@ -164,7 +164,7 @@ def main():
     logging.debug('Loading centerline tractogram & diameters')
     truth_sft = load_tractogram(args.in_fibertubes, 'same',
                                 to_space=our_space,
-                                to_origin=our_origin)
+                                to_origin=our_origin, bbox_valid_check=False)
     centerlines = truth_sft.get_streamlines_copy()
     centerlines, centerlines_length = get_streamlines_as_fixed_array(
         centerlines)
@@ -180,7 +180,7 @@ def main():
                              to_space=our_space,
                              to_origin=our_origin, bbox_valid_check=False)
     seeds = in_sft.data_per_streamline['seeds']
-    seed_ids = in_sft.data_per_streamline['seed_ids']
+    seed_ids = np.ravel(in_sft.data_per_streamline['seed_ids']).astype(int)
     streamlines = in_sft.get_streamlines_copy()
     streamlines = make_streamlines_forward_only(streamlines, seed_ids)
     streamlines, streamlines_length = get_streamlines_as_fixed_array(
@@ -219,19 +219,19 @@ def main():
                         bbox_valid_check=False)
 
     logging.debug("Computing endpoint connectivity")
-    vc, ic, nc = endpoint_connectivity(blur_radius, centerlines,
-                                       centerlines_length, diameters,
-                                       streamlines, fibertube_of_seeds)
+    vc, ic, nc = endpoint_connectivity(
+        blur_radius, centerlines, centerlines_length, diameters, streamlines,
+        streamlines_length, fibertube_of_seeds)
 
     logging.debug("Computing reconstruction error")
-    (mean_errors, error_tractogram) = mean_reconstruction_error(
+    mean_errors, error_tractogram = mean_reconstruction_error(
         centerlines, centerlines_length, diameters, streamlines,
         streamlines_length, fibertube_of_seeds, args.save_error_tractogram)
 
     metrics = {
-        'vc_ratio': len(vc)/len(streamlines),
-        'ic_ratio': len(ic)/len(streamlines),
-        'nc_ratio': len(nc)/len(streamlines),
+        'vc_ratio': len(vc)/len(seeds),
+        'ic_ratio': len(ic)/len(seeds),
+        'nc_ratio': len(nc)/len(seeds),
         'mae_min': np.min(mean_errors),
         'mae_max': np.max(mean_errors),
         'mae_mean': np.mean(mean_errors),
