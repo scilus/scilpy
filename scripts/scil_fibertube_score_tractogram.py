@@ -213,7 +213,7 @@ def main():
                         bbox_valid_check=False)
 
     logging.debug("Computing endpoint connectivity")
-    vc, ic, nc = endpoint_connectivity(
+    vc, ic, nc, endpoint_distances = endpoint_connectivity(
         blur_radius, centerlines, centerlines_length, diameters, streamlines,
         streamlines_length, fibertube_of_seeds)
 
@@ -230,6 +230,10 @@ def main():
         'mae_max': np.max(mean_errors),
         'mae_mean': np.mean(mean_errors),
         'mae_med': np.median(mean_errors),
+        'endpoint_dist_min': np.min(endpoint_distances),
+        'endpoint_dist_max': np.max(endpoint_distances),
+        'endpoint_dist_mean': np.mean(endpoint_distances),
+        'endpoint_dist_med': np.median(endpoint_distances)
     }
     with open(args.out_metrics, 'w') as outfile:
         json.dump(metrics, outfile,

@@ -571,9 +571,18 @@ def endpoint_connectivity(blur_radius, centerlines, centerlines_length,
     vc = set()
     ic = set()
     nc = set()
+    endpoint_distances = []
 
     for index, coord in enumerate(final_coordinates):
-        seed_fibertube_index = fibertube_of_seeds[index]
+        tracked_fibertube_index = fibertube_of_seeds[index]
+
+        # 1. Compute endpoint_distance.
+        tracked_fibertube = centerlines[tracked_fibertube_index]
+        fibertube_end = tracked_fibertube[
+            centerlines_length[tracked_fibertube_index]-1]
+        endpoint_distances.append(np.linalg.norm(coord - fibertube_end))
+
+        # 2. Find final segment of current streamline and deep VC, IC or NC.
         neighbors = all_neighbors[index]
 
         closest_dist = np.inf
@@ -604,7 +613,7 @@ def endpoint_connectivity(blur_radius, centerlines, centerlines_length,
         # If the closest segment is the last of its centerlines
         # (centerline[-2] is the coordinates of the last segment)
         if point_index == centerlines_length[fibertube_index]-2:
-            if fibertube_index == seed_fibertube_index:
+            if fibertube_index == tracked_fibertube_index:
                 vc.add(index)
             else:
                 ic.add(index)
@@ -613,4 +622,4 @@ def endpoint_connectivity(blur_radius, centerlines, centerlines_length,
         else:
             nc.add(index)
 
-    return list(vc), list(ic), list(nc)
+    return list(vc), list(ic), list(nc), endpoint_distances
