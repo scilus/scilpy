@@ -36,7 +36,7 @@ Fibertube Tracking:
    grid of fODFs or peaks. It directly tracks and reconstructs
    fibertubes, i.e. streamlines that have an associated diameter.
 
-.. image:: https://github.com/user-attachments/assets/0286ec53-5bca-4133-93dd-22f360dfcb45
+.. image:: https://github.com/user-attachments/assets/9a1974cc-452c-4bac-93e1-aaa02a7ea169
    :alt: Fibertube visualized in 3D
 
 Methodology
@@ -206,7 +206,7 @@ intersection with the sphere. So the more a fibertube segment intersects
 the sphere, the more likely it is to be picked and used as a tracking
 direction.
 
-.. image:: https://github.com/user-attachments/assets/0308c206-c396-41c5-a0e1-bb69b692c101
+.. image:: https://github.com/user-attachments/assets/782bb6d2-0e5c-48a5-8606-1d95d6675e0d
    :alt: Visualization of the blurring sphere intersecting with segments
 
 This is similar to computing the Track Orientation Distribution (TOD)
@@ -268,9 +268,6 @@ the start or final segment of a fibertube in which is was not seeded.
 NC: "No Connection": A streamline whose arrival fibertube segment is
 not the start or final segment of any fibertube.
 
-.. image:: https://github.com/user-attachments/assets/ac36d847-2363-4b23-a69b-43c9d4d40b9a
-   :alt: Visualization of VC, IC and NC
-
 The "absolute error" of a coordinate is the distance in mm between that
 coordinate and the closest point on its corresponding fibertube. The
 average of all coordinate absolute errors of a streamline is called the
@@ -280,11 +277,20 @@ its fibertube. Typically, an IC is expected to have a high impact on MAE
 and a medium impact on the endpoint distance. A NC might have a low impact
 on MAE but a high impact on the endpoint distance.
 
-Here is a visual representation of streamlines (Green) tracked along a fibertube
-(Only the centerline is shown in blue) with their coordinate absolute error (Red).
+In this image, green is a VC, yellow is an IC and red is a NC. The
+coordinate error is represented by black lines, and the thicker one is the
+endpoint distance. The white and black circles are the seeding and arrival
+locations respectively.
+
+.. image:: https://github.com/user-attachments/assets/dbbeea60-54e5-4269-a387-2ea3e6b06bcc
+   :alt: Visualization of all metrics
+
+The next image features actual streamlines from this demo (Green) tracked
+along a fibertube (Only the centerline is shown in blue) with their coordinate
+error (Red).
 
 .. image:: https://github.com/user-attachments/assets/62324b66-f66b-43ae-a772-086560ef713a
-   :alt: Visualization of the coordinate absolute error
+   :alt: Visualization of the coordinate absolute error through a real tracking
 
 Computed metrics:
 
