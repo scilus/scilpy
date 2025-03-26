@@ -133,7 +133,8 @@ def _build_arg_parser():
         'ftODF Options',
         'Options required if you want to perform fibertube tracking using\n'
         'fibertube orientation distribution (ftODF).\n'
-        'If you\'re not familiar with these options, please ignore them.')
+        'If you\'re not familiar with these options, please refer to the\n'
+        'fibertube tracking demo.')
     ftod_g.add_argument('--use_ftODF', action='store_true',
                         help='If set, will build a fibertube orientation\n'
                         'distribution function at each tracking step. It \n'
@@ -145,6 +146,10 @@ def _build_arg_parser():
                              '[%(default)s]')
     add_sphere_arg(ftod_g, symmetric_only=False)
     add_sh_basis_args(ftod_g)
+    ftod_g.add_argument('--sh_order',
+                        type=int, default=8, choices=[4, 8, 16],
+                        help='Spherical harmonics order at which to build'
+                             ' ftODF. [%(default)s]')
     ftod_g.add_argument('--sub_sphere',
                         type=int, default=0,
                         help='Subdivides each face of the sphere into 4^s new'
@@ -266,7 +271,7 @@ def main():
         datavolume = FTODFDataVolume(centerlines, diameters, in_sft,
                                      args.blur_radius,
                                      np.random.default_rng(args.rng_seed),
-                                     sh_basis, 8)
+                                     sh_basis, args.sh_order)
     else:
         logging.debug("Instantiating fibertube datavolume")
         datavolume = FibertubeDataVolume(centerlines, diameters, in_sft,

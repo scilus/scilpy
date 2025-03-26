@@ -131,6 +131,7 @@ def test_execution_FTODF_sphere(script_runner, monkeypatch):
     init_data()
     ret = script_runner.run('scil_fibertube_tracking.py',
                             'tractogram.trk', 'tracking.trk', '--use_ftODF',
+                            '--sh_order', '4',
                             '--sphere', 'symmetric362',
                             '--sh_basis', 'tournier07',
                             '--sub_sphere', '0',
