@@ -1,5 +1,5 @@
 Introduction to the Fibertube Tracking environment through an interactive demo.
-====
+===============================================================================
 
 In this demo, you will be introduced to the main scripts of this project
 as you apply them on simple data. Our main objective is to better
@@ -221,12 +221,13 @@ traditional tractography given the same resolution, the fibertube
 directions near each tracking position should be mapped on a sphere
 and then approximated with spherical harmonics. This gives us a
 fibertube ODF or ftODF. A ftODF is nothing short of a local, volume-weighted TODI!
+It can be used to track probabilistically or deterministically through peak
+extraction.
 
 For more information and better visualization, watch the following
 presentation: https://docs.google.com/presentation/d/1nRV2j_A8bHOcjGSHtNmD8MsA9n5pHvR8/edit#slide=id.p19
 
 
-All of this makes fibertube tracking inherently probabilistic.
 Theoretically, with a ``blur_radius`` of 0, any given set of coordinates
 has either a single tracking direction because it is within a fibertube,
 or no direction at all from being out of one. In fact, this behavior
@@ -243,9 +244,7 @@ option. Let us do:
 
    scil_fibertube_tracking.py fibertubes.trk tracking.trk --blur_radius 0.1 --step_size 0.1 --nb_fibertubes 3 --out_config tracking_config.json --processes 4 -v -f
 
-This should take a minute or two and will produce 15 streamlines. The loading
-bar of each thread will only update every 100 streamlines. It may look
-like it's frozen, but rest assured. it's still going!
+This should take a minute or two and will produce 15 streamlines.
 
 Reconstruction analysis
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -254,9 +253,11 @@ By using the ``scil_fibertube_score_tractogram.py`` script, you are able
 to obtain measures on the quality of the fibertube tracking that was
 performed.
 
-Each streamline is associated with an "Arrival fibertube segment", which is
-the closest fibertube segment to its before-last coordinate. We then define
-the following terms:
+First, streamlines are truncated to remove their last coordinate. It
+was not in range or aligned with any fibertube, and thus represents
+an invalid step that should be removed. Each streamline is then
+associated with an "Arrival fibertube segment", which is the closest
+fibertube segment to its last coordinate. We define the following terms:
 
 VC: "Valid Connection": A streamline whose arrival fibertube segment is
 the final segment of the fibertube in which is was originally seeded.
@@ -273,11 +274,14 @@ not the start or final segment of any fibertube.
 The "absolute error" of a coordinate is the distance in mm between that
 coordinate and the closest point on its corresponding fibertube. The
 average of all coordinate absolute errors of a streamline is called the
-"Mean absolute error" or "mae".
+"Mean absolute error" (MAE). The "endpoint distance" is the distance
+between the final coordinate of a streamline and the final coordinate of
+its fibertube. Typically, an IC is expected to have a high impact on MAE
+and a medium impact on the endpoint distance. A NC might have a low impact
+on MAE but a high impact on the endpoint distance.
 
 Here is a visual representation of streamlines (Green) tracked along a fibertube
 (Only the centerline is shown in blue) with their coordinate absolute error (Red).
-
 
 .. image:: https://github.com/user-attachments/assets/62324b66-f66b-43ae-a772-086560ef713a
    :alt: Visualization of the coordinate absolute error
@@ -291,6 +295,10 @@ Computed metrics:
 -  mae_max: Maximum MAE for the tractogram.
 -  mae_mean: Average MAE for the tractogram.
 -  mae_med: Median MAE for the tractogram.
+-  endpoint_dist_min: Minimum endpoint distance for the tractogram.
+-  endpoint_dist_max: Maximum endpoint distance for the tractogram.
+-  endpoint_dist_mean: Average endpoint distance for the tractogram.
+-  endpoint_dist_med: Median endpoint distance for the tractogram.
 
 To score the produced tractogram, we run:
 
@@ -303,24 +311,34 @@ giving us the following output in ``reconstruction_metrics.json``:
 ::
 
    {
-     "vc_ratio": 0.3333333333333333,
+     "vc_ratio": 0.4,
      "ic_ratio": 0.4,
-     "nc_ratio": 0.26666666666666666,
-     "mae_min": 0.004093314514974615,
-     "mae_max": 10.028780087103556,
-     "mae_mean": 3.055598084631571,
-     "mae_med": 0.9429987731800447
+     "nc_ratio": 0.2,
+     "mae_min": 0.010148868692306913,
+     "mae_max": 9.507027053725844,
+     "mae_mean": 2.974526457370884,
+     "mae_med": 1.0589793885582628,
+     "endpoint_dist_min": 0.03928468596245134,
+     "endpoint_dist_max": 73.03314003616677,
+     "endpoint_dist_mean": 25.675430285869695,
+     "endpoint_dist_med": 34.45811150476051
    }
 
-This data tells us that 1/3 of streamlines had the end of their own fibertube as
-their arrival fibertube segment (``"vc_ratio": 0.3333333333333333``).
-For 40% of streamlines, their arrival fibertube segment was the start or end of
-another fibertube (``"ic_ratio": 0.4``). 26% of streamlines had an arrival fibertube
-segment that was not a start or end segment (``"nc_ratio": 0.26666666666666666``).
-Lastly, we notice that the streamline with the "worst" trajectory was on average
-~10.03mm away from its fibertube (``"mae_max": 10.028780087103556``).
+This data tells us that:
 
-This is not very good, but it's to be expected with a --blur_radius and
+- 40% of streamlines had the end of their own fibertube as
+  their arrival fibertube segment. (``"vc_ratio": 0.3``)
+- 40% of streamlines did connect their own fibertube, but instead another fibertube.
+  (``"ic_ratio": 0.4``)
+- 26% of streamlines had an arrival fibertube segment that
+  was not a start nor end segment. (``"nc_ratio": 0.2``)
+- Lastly, we notice that the streamline with the "worst" trajectory was on average
+  ~9.5mm away from its fibertube. (``"mae_max": 9.507027053725844``)
+- Streamlines terminated on average 25.68mm away from the ending of their own
+  fibertube. (``endpoint_dist_mean": 25.675430285869695``)
+
+
+This is not very good, but it is to be expected with a --blur_radius and
 --step_size of 0.1. If you have a few minutes, try again with 0.01!
 
 End of Demo
