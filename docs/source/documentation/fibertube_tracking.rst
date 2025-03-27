@@ -351,7 +351,8 @@ Red: streamlines
 Yellow: coordinate absolute error (AE)
 Pink: Maximum endpoint distance
 
-
+.. image:: https://github.com/user-attachments/assets/552f0d64-c8f3-4859-879b-531599515ba5
+   :alt: Visualization tracking and scoring
 
 As you can see, the maximum AE is not equal to the maximum endpoint distance.
 This is because AE connects each streamline coordinate with the closest fibertube
