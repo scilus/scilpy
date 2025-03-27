@@ -211,10 +211,10 @@ direction.
 
 This is similar to computing the Track Orientation Distribution (TOD)
 but it is not yet represented as a spherical function. It is merely
-an array of directions. Unfortunately, this process is a little too good
-when compared to normal tracking. This is because each potential direction
-is an actual fibertube orientation. It is not possible to step in between
-them and get lost.
+an array of directions. This process is very power and provides much
+better reconstructions than traditional tractography. This is because
+each potential direction is an actual fibertube orientation. It is not
+possible to step in between them and get lost.
 
 To align as best as possible the performances of fibertube tracking with
 traditional tractography given the same resolution, the fibertube
@@ -337,9 +337,23 @@ This data tells us that:
 - Streamlines terminated on average 25.68mm away from the ending of their own
   fibertube. (``endpoint_dist_mean": 25.675430285869695``)
 
+To make sense of these numbers, here is a visual representation of the
+tracking and scoring you just performed:
 
-This is not very good, but it is to be expected with a --blur_radius and
---step_size of 0.1. If you have a few minutes, try again with 0.01!
+Blue: fibertubes that were seeded
+Red: streamlines
+Yellow: coordinate absolute error (AE)
+Pink: Maximum endpoint distance
+
+
+
+As you can see, the maximum AE is not equal to the maximum endpoint distance.
+This is because AE connects each streamline coordinate with the closest fibertube
+coordinate.
+
+This reconstruction is not very good, but it is to be expected with
+a --blur_radius and --step_size of 0.1. If you have a few minutes,
+try again with 0.01!
 
 End of Demo
 -----------
