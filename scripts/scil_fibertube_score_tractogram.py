@@ -185,23 +185,23 @@ def main():
         parser.error('No seeds found as data per streamline in ' +
                      args.in_tracking)
 
-    fibertube_of_seeds = associate_seeds_to_fibertubes(seeds, centerlines,
-                                                       diameters)
+    seeded_fibertube_indices = associate_seeds_to_fibertubes(
+        seeds, centerlines, diameters)
 
     logging.debug("Loading config")
     with open(args.in_config, 'r') as f:
         config = json.load(f)
     blur_radius = float(config['blur_radius'])
 
-    if len(fibertube_of_seeds) != len(streamlines):
+    if len(seeded_fibertube_indices) != len(streamlines):
         raise ValueError('Could not resolve origin seeding regions')
-    for num in fibertube_of_seeds:
+    for num in seeded_fibertube_indices:
         if num == -1:
             raise ValueError('Could not resolve origin seeding regions')
 
     if args.out_tracked_fibertubes:
         # Set for removing doubles
-        tracked_fibertubes_indices = set(fibertube_of_seeds)
+        tracked_fibertubes_indices = set(seeded_fibertube_indices)
         tracked_fibertubes = []
 
         for fi in tracked_fibertubes_indices:
@@ -215,12 +215,13 @@ def main():
     logging.debug("Computing endpoint connectivity")
     vc, ic, nc, endpoint_distances = endpoint_connectivity(
         blur_radius, centerlines, centerlines_length, diameters, streamlines,
-        streamlines_length, fibertube_of_seeds)
+        streamlines_length, seeded_fibertube_indices)
 
     logging.debug("Computing reconstruction error")
     mean_errors, error_tractogram = mean_reconstruction_error(
         centerlines, centerlines_length, diameters, streamlines,
-        streamlines_length, fibertube_of_seeds, args.save_error_tractogram)
+        streamlines_length, seeded_fibertube_indices,
+        args.save_error_tractogram)
 
     metrics = {
         'vc_ratio': len(vc)/len(seeds),

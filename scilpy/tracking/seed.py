@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import numpy as np
+from typing import Literal
 
 from dipy.io.stateful_tractogram import Space, Origin
 from scilpy.tracking.fibertube_utils import sample_cylinder
@@ -274,7 +275,7 @@ class FibertubeSeedGenerator(SeedGenerator):
     segment of a given number of fibertubes.
     """
     def __init__(self, centerlines, diameters, nb_seeds_per_fibertube,
-                 local_seeding):
+                    local_seeding: Literal['center', 'random']):
         """
         Parameters
         ----------
@@ -287,6 +288,10 @@ class FibertubeSeedGenerator(SeedGenerator):
         local_seeding: 'center' | 'random'
             Seeding method within a fibertube origin segment
         """
+        if local_seeding not in ['center', 'random']:
+            raise ValueError("The provided local_seeding parameter is not "
+                             "one of the expected choices: " + local_seeding)
+
         self.space = Space.VOXMM
         self.origin = Origin.NIFTI
 

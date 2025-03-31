@@ -62,8 +62,9 @@ def fibertube_density(sft, samples_per_voxel_axis, verbose=False):
     sft.to_corner()
     diameters = np.reshape(sft.data_per_streamline['diameters'],
                            len(sft.streamlines))
+
     # Bringing diameters to voxel space. Assuming isotropic voxels dimensions.
-    diameters /= np.asarray(sft.space_attributes[2][0])
+    diameters /= sft.space_attributes[2][0]
     max_diameter = np.max(diameters)
 
     vox_idx_for_streamline = streamlines_to_voxel_coordinates(sft.streamlines)
@@ -103,8 +104,6 @@ def fibertube_density(sft, samples_per_voxel_axis, verbose=False):
     density_flat = []
     # Set containing sets of fibertube indexes
     # This way, each pair of fibertube is only entered once.
-    # This is unless there is a trio. Then the same colliding fibertubes
-    # may be entered more than once.
     collisions = set()
     collision_grid = np.zeros(mask.shape)
     collision_flat = []
@@ -372,33 +371,35 @@ def associate_seeds_to_fibertubes(seeds, centerlines, diameters):
     Parameters
     ----------
     seeds: ndarray
+        Seeds to associate to each fibertube.
     centerlines: ndarray
         Fibertube centerlines given as a fixed array
         (see streamlines_as_fixed_array).
-    diameters: ndarray
+    diameters: ndarray,
+        Diameters of the fibertubes.
 
     Return
     ------
-    fibertube_of_seeds: ndarray
+    seeded_fibertube_indices: ndarray
         Array containing the fibertube index of each seed. If the seed is
         not in a fibertube, its value in the array will be -1.
     """
-    fibertube_of_seeds = [-1] * len(seeds)
+    seeded_fibertube_indices = [-1] * len(seeds)
 
     for si, seed in enumerate(seeds):
         for fi, fibertube in enumerate(centerlines):
             if point_in_cylinder(fibertube[0], fibertube[1], diameters[fi]/2,
                                  seed):
-                fibertube_of_seeds[si] = fi
+                seeded_fibertube_indices[si] = fi
                 break
 
-    return np.array(fibertube_of_seeds)
+    return np.array(seeded_fibertube_indices)
 
 
 @njit
 def mean_reconstruction_error(centerlines, centerlines_length, diameters,
                               streamlines, streamlines_length,
-                              fibertube_of_seeds,
+                              seeded_fibertube_indices,
                               return_error_tractogram=False):
     """
     For each provided streamline, finds the mean distance between its
@@ -418,7 +419,7 @@ def mean_reconstruction_error(centerlines, centerlines_length, diameters,
         process.
     streamlines_length: ndarray,
         Fixed array containing the number of coordinates of each streamline
-    fibertube_of_seeds: list
+    seeded_fibertube_indices: list
         Array of the same length as there are streamlines. For every
         streamline, contains the index of the fibertube in which it has been
         seeded.
@@ -451,7 +452,7 @@ def mean_reconstruction_error(centerlines, centerlines_length, diameters,
         streamline = streamline_fixed[:streamlines_length[si]-1]
         errors = []
 
-        seeded_fi = fibertube_of_seeds[si]
+        seeded_fi = seeded_fibertube_indices[si]
         fibertube = centerlines[seeded_fi]
         radius = diameters[seeded_fi] / 2
 
@@ -495,7 +496,7 @@ def mean_reconstruction_error(centerlines, centerlines_length, diameters,
 @njit
 def endpoint_connectivity(blur_radius, centerlines, centerlines_length,
                           diameters, streamlines, streamlines_length,
-                          fibertube_of_seeds):
+                          seeded_fibertube_indices):
     """
     For every streamline, find whether or not it has reached the end segment
     of its fibertube. Each streamline is associated with an "Arrival fibertube
@@ -531,7 +532,7 @@ def endpoint_connectivity(blur_radius, centerlines, centerlines_length,
         process.
     streamlines_length: ndarray,
         Fixed array containing the number of coordinates of each streamline
-    fibertube_of_seeds: list
+    seeded_fibertube_indices: list
         Array of the same length as there are streamlines. For every
         streamline, contains the index of the fibertube in which it has been
         seeded.
@@ -574,7 +575,7 @@ def endpoint_connectivity(blur_radius, centerlines, centerlines_length,
     endpoint_distances = []
 
     for index, coord in enumerate(final_coordinates):
-        tracked_fibertube_index = fibertube_of_seeds[index]
+        tracked_fibertube_index = seeded_fibertube_indices[index]
 
         # 1. Compute endpoint_distance.
         tracked_fibertube = centerlines[tracked_fibertube_index]

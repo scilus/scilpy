@@ -6,7 +6,7 @@ from typing import Literal
 from scilpy.tracking.utils import tqdm_if_verbose
 
 
-def streamlines_to_segments(streamlines, streamlines_length = None, verbose=False):
+def streamlines_to_segments(streamlines, streamlines_length=None, verbose=False):
     """
     Separates all streamlines of a tractogram into segments that connect
     each position. Then, flattens the resulting 2D array and returns it
@@ -15,7 +15,7 @@ def streamlines_to_segments(streamlines, streamlines_length = None, verbose=Fals
     ----------
     streamlines : list
         Streamlines to segment. This function is compatible with streamlines
-        as a fixed array, as long as the padding value is a number and the
+        as a fixed array with a padding value, as long as the
         [streamlines_length] parameter is given. Padding will be kept in the
         result value.
     streamlines_length: list
@@ -259,7 +259,7 @@ def sphere_cylinder_intersection(sph_p, sph_r: float, cyl_p1, cyl_p2,
 
         cyl_volume = np.pi * (cyl_r ** 2) * cyl_length
         inter_volume = (inter_samples / sample_count) * cyl_volume
-    else:
+    elif shape_to_sample == "sphere":
         samples = sample_sphere(sph_p, sph_r, sample_count,
                                 random_generator)
 
@@ -271,6 +271,9 @@ def sphere_cylinder_intersection(sph_p, sph_r: float, cyl_p1, cyl_p2,
 
         sph_volume = 4 * np.pi * (sph_r ** 3) / 3
         inter_volume = (inter_samples / sample_count) * sph_volume
+    else:
+        raise ValueError("The provided shape_to_sample parameter is not "
+                         "one of the expected choices.")
 
     return inter_volume, True
 

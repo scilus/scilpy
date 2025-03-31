@@ -147,7 +147,7 @@ def _build_arg_parser():
     add_sphere_arg(ftod_g, symmetric_only=False)
     add_sh_basis_args(ftod_g)
     ftod_g.add_argument('--sh_order',
-                        type=int, default=8, choices=[4, 8, 16],
+                        type=int, default=8,
                         help='Spherical harmonics order at which to build'
                              ' ftODF. [%(default)s]')
     ftod_g.add_argument('--sub_sphere',
