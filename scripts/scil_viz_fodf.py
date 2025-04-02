@@ -195,10 +195,9 @@ def _parse_args(parser):
     output = []
     if args.output:
         output.append(args.output)
-    else:
-        if args.silent:
-            parser.error('Silent mode is enabled but no output is specified.'
-                         'Specify an output with --output to use silent mode.')
+    elif args.silent:
+        parser.error('Silent mode is enabled but no output is specified.'
+                     'Specify an output with --output to use silent mode.')
 
     if args.peaks_values and not args.peaks:
         parser.error('Peaks values image supplied without peaks. Specify '
@@ -227,8 +226,7 @@ def _get_data_from_inputs(args):
         data['bg'] = bg
     if args.in_transparency_mask:
         transparency_mask = get_data_as_mask(
-            nib.load(args.in_transparency_mask), dtype=bool
-        )
+            nib.load(args.in_transparency_mask), dtype=bool)
         data['transparency_mask'] = transparency_mask
     if args.mask:
         assert_same_resolution([args.mask, args.in_fodf])
