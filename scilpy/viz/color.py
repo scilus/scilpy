@@ -104,7 +104,7 @@ def get_lookup_table(name):
         name_list = name.split('-')
         colors_list = [mcolors.to_rgba(color)[0:3] for color in name_list]
         cmap = mcolors.LinearSegmentedColormap.from_list('CustomCmap',
-                                                        colors_list)
+                                                         colors_list)
         return cmap
 
     return plt.colormaps.get_cmap(name)
