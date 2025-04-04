@@ -48,3 +48,12 @@ def test_execution_from_angle(script_runner, monkeypatch):
     ret = script_runner.run(['scil_tractogram_assign_custom_color.py',
                             in_bundle, 'colored3.trk', '--local_angle'])
     assert ret.success
+
+
+def test_execution_ambiant_occlusion(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
+
+    ret = script_runner.run('scil_tractogram_assign_custom_color.py',
+                            in_bundle, 'colored4.trk', '--local_orientation',
+                            '--ambiant_occlusion')
+    assert ret.success
