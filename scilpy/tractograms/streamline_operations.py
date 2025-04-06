@@ -216,6 +216,8 @@ def compress_sft(sft, tol_error=0.01):
     return compressed_sft
 
 
+
+
 def cut_invalid_streamlines(sft, epsilon=0.001):
     """ Cut streamlines so their longest segment are within the bounding box.
     This function keeps the data_per_point and data_per_streamline.
@@ -285,7 +287,7 @@ def cut_invalid_streamlines(sft, epsilon=0.001):
                 for key in sft.data_per_point.keys():
                     new_data_per_point[key].append(
                         sft.data_per_point[key][ind][
-                            best_pos[0]:best_pos[1]-1])
+                            best_pos[0]:best_pos[1]])
             else:
                 logging.warning('Streamline entirely out of the volume.')
         else:
