@@ -109,7 +109,7 @@ def draw_column_with_names(draw, output_names, cell_width, cell_height,
         if not no_bundle_name:
             text.append('Bundle')
         if not no_streamline_count:
-            text.append('Streamline count')
+            text.append('# streamlines')
 
         j = cell_height * row_count
         padding = np.clip(cell_width // 10, 1, font.size)
