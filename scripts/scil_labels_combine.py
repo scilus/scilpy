@@ -137,12 +137,11 @@ def main():
 
     if args.not_save_empty and not resulting_labels.any():
         logging.info("Output: {} is empty. Not saving.".format(args.output))
-        return
-
-    # Save final combined volume
-    nib.save(nib.Nifti1Image(resulting_labels, first_img.affine,
-                             header=first_img.header),
-             args.output)
+    else:
+        # Save final combined volume
+        nib.save(nib.Nifti1Image(resulting_labels, first_img.affine,
+                                 header=first_img.header),
+                 args.output)
 
 
 if __name__ == "__main__":
