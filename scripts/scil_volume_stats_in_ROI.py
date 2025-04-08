@@ -123,7 +123,16 @@ def main():
                     logging.warning("Metric '{}' contains some NaN. Ignoring "
                                     "voxels with NaN."
                                     .format(os.path.basename(f)))
-                mean, std = weighted_mean_std(roi_data, data)
+                    
+                if not(roi_data.any()):
+                    logging.warning("ROI '{}' is empty. "
+                                    "Put NaN as mean and std."
+                                    .format(roi_name))
+                    mean = np.nan
+                    std = np.nan
+                else:
+                    mean, std = weighted_mean_std(roi_data, data)
+
                 json_stats[roi_name][metric_name] = {'mean': mean,
                                                      'std': std}
             else:
