@@ -71,7 +71,6 @@ def _build_arg_parser():
                    help='If set, the output will not be saved if it is empty.')
     add_verbose_arg(p)
     add_overwrite_arg(p)
-    
     return p
 
 
@@ -136,7 +135,7 @@ def main():
                                       background_id=args.background,
                                       merge_groups=args.merge_groups)
 
-    if args.not_save_empty and not(resulting_labels.any()):
+    if args.not_save_empty and not resulting_labels.any():
         print("Output: {} is empty. Not saving.".format(args.output))
         return
 

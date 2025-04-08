@@ -123,8 +123,8 @@ def main():
                     logging.warning("Metric '{}' contains some NaN. Ignoring "
                                     "voxels with NaN."
                                     .format(os.path.basename(f)))
-                    
-                if not(roi_data.any()):
+
+                if not roi_data.any():
                     logging.warning("ROI '{}' is empty. "
                                     "Put NaN as mean and std."
                                     .format(roi_name))
