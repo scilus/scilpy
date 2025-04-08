@@ -45,7 +45,8 @@ jobs:
             git \
             libblas-dev \
             liblapack-dev \
-            libfreetype6-dev
+            libfreetype6-dev \
+            libdrm-dev
 
       - name: Install Scilpy
         run: |
