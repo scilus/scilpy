@@ -88,7 +88,7 @@ def _build_arg_parser():
 
 
 def draw_column_with_names(draw, output_names, cell_width, cell_height,
-                           font, row_count, no_bundle_name, no_elements_count):
+                           font, row_count, no_bundle_name, no_streamline_count):
     """
     Draw the first column with row's description
     (views and bundle information to display).
@@ -104,12 +104,12 @@ def draw_column_with_names(draw, output_names, cell_width, cell_height,
                             anchor='mm', align='center')
 
     # First column, last row: description of the information to show
-    if not (no_bundle_name and no_elements_count):
+    if not (no_bundle_name and no_streamline_count):
         text = []
         if not no_bundle_name:
             text.append('Bundle')
-        if not no_elements_count:
-            text.append('Elements')
+        if not no_streamline_count:
+            text.append('Streamline count')
 
         j = cell_height * row_count
         padding = np.clip(cell_width // 10, 1, font.size)
