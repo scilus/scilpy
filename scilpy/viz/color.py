@@ -256,7 +256,7 @@ def prepare_colorbar_figure(cmap, lbound, ubound, nb_values=255, nb_ticks=10,
     fig: plt figure
         The plt figure.
     """
-    gradient = cmap(np.linspace(0, 1, ))[:, 0:3]
+    gradient = cmap(np.linspace(0, 1, nb_values))[:, 0:3]
     width = int(nb_values * 0.1)
     gradient = np.tile(gradient, (width, 1, 1))
     if not horizontal:

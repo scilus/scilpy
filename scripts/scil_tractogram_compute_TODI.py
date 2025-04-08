@@ -10,6 +10,12 @@ This script can afterwards output a Track Density Image (TDI) or a TODI with SF
 or SH representation, based on streamlines' segments.
 
 Formerly: scil_compute_todi.py
+------------------------------------------------------------------------------------
+Reference:
+[1] Dhollander T, Emsell L, Van Hecke W, Maes F, Sunaert S, Suetens P. 
+    Track orientation density imaging (TODI) and track orientation distribution (TOD) 
+    based tractography. NeuroImage. 2014 Jul 1;94:312-36.
+------------------------------------------------------------------------------------
 """
 
 import argparse
@@ -25,20 +31,13 @@ from scilpy.io.utils import (add_overwrite_arg, add_reference_arg,
                              assert_inputs_exist, assert_outputs_exist,
                              parse_sh_basis_arg, assert_headers_compatible)
 from scilpy.tractanalysis.todi import TrackOrientationDensityImaging
-
-
-EPILOG = """
-References:
-    [1] Dhollander T, Emsell L, Van Hecke W, Maes F, Sunaert S, Suetens P.
-        Track orientation density imaging (TODI) and
-        track orientation distribution (TOD) based tractography.
-        NeuroImage. 2014 Jul 1;94:312-36.
-"""
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(description=__doc__, epilog=EPILOG,
-                                formatter_class=argparse.RawTextHelpFormatter)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
 
     p.add_argument('in_tractogram',
                    help='Input streamlines file.')

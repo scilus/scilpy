@@ -40,13 +40,13 @@ from scilpy.io.utils import (add_overwrite_arg, add_reference_arg,
                              validate_nbr_processes)
 from scilpy.tractanalysis.reproducibility_measures import \
     tractogram_pairwise_comparison
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
-
-    p = argparse.ArgumentParser(
-        description=__doc__,
-        formatter_class=argparse.RawTextHelpFormatter)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
 
     p.add_argument('in_tractogram_1',
                    help='Input tractogram 1.')

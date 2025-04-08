@@ -26,6 +26,12 @@ deterministic algorithm and 0.2mm for probabilitic algorithm.
 All the input nifti files must be in isotropic resolution.
 
 Formerly: scil_compute_pft.py
+-----------------------------------------------------------------------------
+Reference:
+[1] Girard, G., Whittingstall K., Deriche, R., and Descoteaux, M. (2014). 
+    Towards quantitative connectivity analysis: reducing tractographybiases. 
+    Neuroimage.
+-----------------------------------------------------------------------------
 """
 
 import argparse
@@ -52,15 +58,14 @@ from scilpy.io.utils import (add_overwrite_arg, add_sh_basis_args,
                              assert_headers_compatible, add_compression_arg,
                              verify_compression_th)
 from scilpy.tracking.utils import get_theta
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(
-        description=__doc__, formatter_class=argparse.RawTextHelpFormatter,
-        epilog='References: [1] Girard, G., Whittingstall K., Deriche, R., '
-               'and Descoteaux, M. (2014). Towards quantitative connectivity '
-               'analysis: reducing tractography biases. Neuroimage, 98, '
-               '266-278.')
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
+
     p._optionals.title = 'Generic options'
 
     p.add_argument('in_sh',
@@ -190,7 +195,7 @@ def main():
         parser.error(
             'SH file is not isotropic. Tracking cannot be ran robustly.')
 
-    tracking_sphere = HemiSphere.from_sphere(get_sphere('repulsion724'))
+    tracking_sphere = HemiSphere.from_sphere(get_sphere(name='repulsion724'))
 
     # Check if sphere is unit, since we couldn't find such check in Dipy.
     if not np.allclose(np.linalg.norm(tracking_sphere.vertices, axis=1), 1.):

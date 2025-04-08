@@ -37,7 +37,7 @@ class TrackOrientationDensityImaging(object):
         """
         assert len(img_shape) == 3
 
-        self.sphere = get_sphere(sphere_type)
+        self.sphere = get_sphere(name=sphere_type)
         self.nb_sphere_vts = len(self.sphere.vertices)
 
         self.img_shape = img_shape

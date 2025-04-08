@@ -46,12 +46,13 @@ from scilpy.io.utils import (add_overwrite_arg, add_reference_arg,
 from scilpy.tractograms.dps_and_dpp_management import (
     convert_dps_to_dpp, perform_operation_dpp_to_dps, project_dpp_to_map)
 from scilpy.utils.filenames import split_name_with_nii
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(
-        description=__doc__,
-        formatter_class=argparse.RawTextHelpFormatter)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
 
     p.add_argument('in_bundle',
                    help='Fiber bundle file.')

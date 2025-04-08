@@ -34,11 +34,14 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_outputs_exist)
 from scilpy.image.utils import compute_nifti_bounding_box
 from scilpy.image.volume_operations import crop_volume
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
-                                description=__doc__)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
+
     p.add_argument('in_image',
                    help='Path of the nifti file to crop.')
     p.add_argument('out_image',

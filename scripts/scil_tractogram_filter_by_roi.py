@@ -102,14 +102,16 @@ from scilpy.io.utils import (add_json_args, add_overwrite_arg,
                              read_info_from_mb_bdo, assert_headers_compatible)
 from scilpy.segment.streamlines import (filter_cuboid, filter_ellipsoid,
                                         filter_grid_roi)
+from scilpy.version import version_string
 
 MODES = ['any', 'all', 'either_end', 'both_ends']
 CRITERIA = ['include', 'exclude']
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
-                                description=__doc__)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
 
     p.add_argument('in_tractogram',
                    help='Path of the input tractogram file.')
