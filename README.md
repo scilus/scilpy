@@ -15,6 +15,16 @@
 **Scilpy** mainly comprises tools and utilities to quickly work with diffusion MRI. Most of the tools are based
 on or are wrappers of the [DIPY] library, and most of them will eventually be migrated to [DIPY]. Those tools implement the recommended workflows and parameters used in the lab.
 
+## Install scilpy as a user
+
+We highly encourage to install scilpy in a virtual environnement. Once done and you're in your virtual environnement you can run this command:
+
+```
+pip install scilpy
+```
+
+## Install scilpy as a developer
+
 The library is now built for Python 3.10 so be sure to create a virtual environnement for Python 3.10. If this version is not installed on your computer:
 ```
 sudo add-apt-repository ppa:deadsnakes/ppa
