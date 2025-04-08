@@ -126,7 +126,7 @@ def main():
 
                 if not roi_data.any():
                     logging.warning("ROI '{}' is empty. "
-                                    "Put NaN as mean and std."
+                                    "Putting NaN as mean and std."
                                     .format(roi_name))
                     mean = np.nan
                     std = np.nan

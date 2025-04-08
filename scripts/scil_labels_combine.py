@@ -136,7 +136,7 @@ def main():
                                       merge_groups=args.merge_groups)
 
     if args.not_save_empty and not resulting_labels.any():
-        print("Output: {} is empty. Not saving.".format(args.output))
+        logging.info("Output: {} is empty. Not saving.".format(args.output))
         return
 
     # Save final combined volume
