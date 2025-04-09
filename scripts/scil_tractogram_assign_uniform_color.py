@@ -124,10 +124,10 @@ def main():
         with open(args.dict_colors, 'r') as data:
             dict_colors = json.load(data)
 
-    rgb_colors = []
-    for color in dict_colors.values():
-        tmp_color = format_hexadecimal_color_to_rgb(color)
-        rgb_colors.append(tuple(tc/256 for tc in tmp_color))
+        rgb_colors = []
+        for color in dict_colors.values():
+            tmp_color = format_hexadecimal_color_to_rgb(color)
+            rgb_colors.append(tuple(tc/256 for tc in tmp_color))
 
     # Processing
     for i, filename in enumerate(args.in_tractograms):
@@ -147,6 +147,7 @@ def main():
             for key in dict_colors.keys():
                 if key in base:
                     color = dict_colors[key]
+
             if color is None and args.overwrite:
                 updated_dict = True
                 logging.warning('No color found for {} in your '
@@ -159,7 +160,8 @@ def main():
                 new_color = [tc*255 for tc in new_color]
                 color = '0x%02x%02x%02x' % tuple(new_color[0].astype(int))
                 dict_colors[base] = color
-            else:
+            
+            if color is None:
                 parser.error("Basename of file {} ({}) not found in your "
                              "dict_colors keys.".format(filename, base))
         else:  # args.fill_color is not None:
