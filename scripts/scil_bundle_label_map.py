@@ -119,6 +119,10 @@ def main():
                 parser.error('Header of {} and {} are not compatible'.format(
                     args.in_bundles[0], filename))
 
+    if len(sft_list) == 0:
+        logging.error('No bundle to process. Exiting.')
+        return
+
     density_list = []
     binary_list = []
     for sft in sft_list:
