@@ -70,30 +70,6 @@ def create_image_from_2d_array(array_2d, size, mode=None,
         .resize(size, resampling)
 
 
-def create_mask_from_2d_array(array_2d, size, greater_threshold=0):
-    """
-    Create a binary `PIL.Image` from the 2d array data.
-
-    Parameters
-    ----------
-    array_2d : ndarray
-        2d scene data.
-    size : array-like
-        Image size (pixels) (width, height).
-    greater_threshold: Any
-        Threshold to use to binarize the data.
-        Type must abide with the array dtype
-
-    Returns
-    -------
-    image : PIL.Image
-        Image.
-    """
-
-    _bin_arr = array_2d > greater_threshold
-    return create_image_from_2d_array(any2grayscale(_bin_arr), size)
-
-
 def compute_canvas_size(rows, columns, cell_width, cell_height,
                         width_overlap, height_overlap):
     """
@@ -104,7 +80,7 @@ def compute_canvas_size(rows, columns, cell_width, cell_height,
     ----------
     rows : int
         Number of rows.
-    cols : int
+    columns : int
         Number of columns.
     cell_width : int
         Cell width (pixels).
@@ -275,6 +251,8 @@ def draw_2d_array_at_position(canvas, array_2d, size,
         Top position (pixels).
     transparency : ndarray, optional
         Transparency mask.
+    image_alpha: float
+        Transparency alpha value.
     labelmap_overlay : ndarray
         Labelmap overlay scene data to be drawn.
     labelmap_overlay_alpha : float
@@ -283,11 +261,11 @@ def draw_2d_array_at_position(canvas, array_2d, size,
         Overlays scene data to be drawn.
     overlays_alpha : float
         Alpha value for the overlays in range [0, 1].
-    overlays_color : list, optional
+    overlays_colors : list, optional
         Color for the overlays as a list of 3 integers in range [0, 255].
-    peaks_overlay : ndarray
+    peak_overlay : ndarray
         Peaks overlay scene data to be drawn.
-    peaks_overlay_alpha : float
+    peak_overlay_alpha : float
         Alpha value for peaks overlay in range [0, 1].
     """
 
