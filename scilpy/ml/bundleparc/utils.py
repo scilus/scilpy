@@ -7,7 +7,7 @@ from dipy.utils.optpkg import optional_package
 from tqdm import tqdm
 
 from scilpy.io.image import get_data_as_mask
-from scilpy.ml.labelseg.labelsegnet import LabelSegNet
+from scilpy.ml.bundleparc.bundleparcnet import BundleParcNet
 
 IMPORT_ERROR_MSG = "PyTorch is required to run this script. Please install" + \
                    " it first. See the official website for more info: " + \
@@ -71,7 +71,7 @@ def get_model(checkpoint_file, device):
 
     Returns
     -------
-    model : LabelSegNet
+    model : BundleParcNet
         Model loaded from the checkpoint.
     """
 
@@ -88,7 +88,7 @@ def get_model(checkpoint_file, device):
     state_dict = checkpoint['state_dict']
     hyperparameters = checkpoint['hyperparameters']
 
-    model = LabelSegNet(
+    model = BundleParcNet(
         hyperparameters['in_chans'],
         hyperparameters['volume_size'],
         hyperparameters['prompt_strategy'],
@@ -106,7 +106,7 @@ def get_model(checkpoint_file, device):
 
 
 def download_weights(path, chunk_size=1024, verbose=True):
-    """ Download the weights for LabelSegNet.
+    """ Download the weights for BundleParcNet.
 
     Parameters
     ----------
@@ -123,7 +123,7 @@ def download_weights(path, chunk_size=1024, verbose=True):
     url = 'https://zenodo.org/records/14813477/files/labelsegnet.ckpt'
     resp = requests.get(url, stream=True)
     total = int(resp.headers.get('content-length', 0))
-    logging.info('Downloading weights for LabelSeg ...')
+    logging.info('Downloading weights for BundleParc ...')
     with open(path, 'wb') as file, tqdm(
         desc=path,
         total=total,

@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 
 """
-LabelSeg: automatic tract labelling without tractography.
+BundleParc: automatic tract labelling without tractography.
 
 This method takes as input fODF maps of order 6 (or above) and a whole-brain WM mask and outputs 71 bundle label maps. These maps can then be used to perform tractometry/tract profiling/radiomics. The bundle definitions follow TractSeg's minus the whole CC.
 
 Example usage:
-    $ scil_labelseg.py fodf.nii.gz wm_mask.nii.gz --out_prefix sub-001__
+    $ scil_bundleparc.py fodf.nii.gz wm_mask.nii.gz --out_prefix sub-001__
 
 Example output:
     sub-001__AF_left.nii.gz, sub-001__AF_right.nii.gz, ..., sub-001__UF_right.nii.gz
@@ -39,8 +39,8 @@ from scilpy.io.utils import (
     add_verbose_arg)
 from scilpy.image.volume_operations import resample_volume
 
-from scilpy.ml.labelseg.predict import predict
-from scilpy.ml.labelseg.utils import get_data, get_model, download_weights
+from scilpy.ml.bundleparc.predict import predict
+from scilpy.ml.bundleparc.utils import get_data, get_model, download_weights
 from scilpy.ml.utils import get_device
 from scilpy import SCILPY_HOME
 
@@ -54,7 +54,7 @@ torch, have_torch, _ = optional_package('torch', trip_msg=IMPORT_ERROR_MSG)
 # TODO: Get bundle list from model
 DEFAULT_BUNDLES = ['AF_left', 'AF_right', 'ATR_left', 'ATR_right', 'CA', 'CC_1', 'CC_2', 'CC_3', 'CC_4', 'CC_5', 'CC_6', 'CC_7', 'CG_left', 'CG_right', 'CST_left', 'CST_right', 'FPT_left', 'FPT_right', 'FX_left', 'FX_right', 'ICP_left', 'ICP_right', 'IFO_left', 'IFO_right', 'ILF_left', 'ILF_right', 'MCP', 'MLF_left', 'MLF_right', 'OR_left', 'OR_right', 'POPT_left', 'POPT_right', 'SCP_left', 'SCP_right', 'SLF_III_left', 'SLF_III_right', 'SLF_II_left', 'SLF_II_right', 'SLF_I_left', 'SLF_I_right', 'STR_left', 'STR_right', 'ST_FO_left', 'ST_FO_right', 'ST_OCC_left', 'ST_OCC_right', 'ST_PAR_left', 'ST_PAR_right', 'ST_POSTC_left', 'ST_POSTC_right', 'ST_PREC_left', 'ST_PREC_right', 'ST_PREF_left', 'ST_PREF_right', 'ST_PREM_left', 'ST_PREM_right', 'T_OCC_left', 'T_OCC_right', 'T_PAR_left', 'T_PAR_right', 'T_POSTC_left', 'T_POSTC_right', 'T_PREC_left', 'T_PREC_right', 'T_PREF_left', 'T_PREF_right', 'T_PREM_left', 'T_PREM_right', 'UF_left', 'UF_right']  # noqa E501
 
-DEFAULT_CKPT = os.path.join(SCILPY_HOME, 'checkpoints', 'labelsegnet.ckpt')
+DEFAULT_CKPT = os.path.join(SCILPY_HOME, 'checkpoints', 'bundleparc.ckpt')
 
 
 def _build_arg_parser():

@@ -1,7 +1,7 @@
 from dipy.utils.optpkg import optional_package
 
-from scilpy.ml.labelseg.encodings import PositionalEncodingPermute3D
-from scilpy.ml.labelseg.attention import TwoWayAttentionBlock3D
+from scilpy.ml.bundleparc.encodings import PositionalEncodingPermute3D
+from scilpy.ml.bundleparc.attention import TwoWayAttentionBlock3D
 
 IMPORT_ERROR_MSG = "PyTorch is required to run this script. Please install" + \
                    " it first. See the official website for more info: " + \
@@ -275,7 +275,7 @@ class DecoderNextLayer(torch.nn.Module):
         return z, prompt_encoding, ds_out
 
 
-class LabelSegNetDecoder(torch.nn.Module):
+class BundleParcNetDecoder(torch.nn.Module):
     """ MedNeXt decoder with 4 decoder layers. """
 
     def __init__(
@@ -343,7 +343,7 @@ class Head(torch.nn.Module):
         return x
 
 
-class LabelSegNet(torch.nn.Module):
+class BundleParcNet(torch.nn.Module):
 
     def __init__(self, in_chans, volume_size=96,
                  prompt_strategy='add',
@@ -363,8 +363,8 @@ class LabelSegNet(torch.nn.Module):
         self.mask_encoder = UNextEncoder(self.channels)
 
         self.bottleneck = ConvNextBlock(bottleneck_dim, ratio=4)
-        self.decoder = LabelSegNetDecoder(prompt_strategy,
-                                          channels=self.channels[::-1])
+        self.decoder = BundleParcNetDecoder(prompt_strategy,
+                                            channels=self.channels[::-1])
 
         self.prompt_embedding = torch.nn.Sequential(
             torch.nn.Linear(n_bundles, bottleneck_dim), torch.nn.GELU())
