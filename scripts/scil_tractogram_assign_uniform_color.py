@@ -128,6 +128,7 @@ def main():
     for color in dict_colors.values():
         tmp_color = format_hexadecimal_color_to_rgb(color)
         rgb_colors.append(tuple(tc/256 for tc in tmp_color))
+
     # Processing
     for i, filename in enumerate(args.in_tractograms):
         color = None
