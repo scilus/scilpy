@@ -6,7 +6,7 @@ BundleParc: automatic tract labelling without tractography.
 This method takes as input fODF maps of order 6 (or above) and a whole-brain WM mask and outputs 71 bundle label maps. These maps can then be used to perform tractometry/tract profiling/radiomics. The bundle definitions follow TractSeg's minus the whole CC.
 
 Example usage:
-    $ scil_bundleparc.py fodf.nii.gz wm_mask.nii.gz --out_prefix sub-001__
+    $ scil_fodf_bundleparc.py fodf.nii.gz wm_mask.nii.gz --out_prefix sub-001__
 
 Example output:
     sub-001__AF_left.nii.gz, sub-001__AF_right.nii.gz, ..., sub-001__UF_right.nii.gz
