@@ -184,8 +184,6 @@ class DecoderNextLayer(torch.nn.Module):
         self.conv1 = ConvNextBlock(out_chans, ratio)
         self.conv2 = ConvNextBlock(out_chans, ratio)
 
-        # TODO: Split the prompting strategy into a separate class
-        # TODO: Or remove the "add" strategy
         self.prompt_encoding = torch.nn.Sequential(
             torch.nn.Linear(in_chans, out_chans), torch.nn.GELU())
 
@@ -248,7 +246,25 @@ class DecoderNextLayer(torch.nn.Module):
         return z, prompt_encoding
 
     def _prompt_attn(self, z, prompt_encoding, dense_encoding):
-        """ TODO """
+        """ Perform attention on the prompt and dense encodings.
+
+        Parameters
+        ----------
+        z : torch.Tensor
+            Input feature map.
+        prompt_encoding : torch.Tensor
+            Prompt encoding.
+        dense_encoding : torch.Tensor
+            Dense encoding.
+
+        Returns
+        -------
+        z : torch.Tensor
+            Feature map with the prompt and dense encodings added.
+        prompt_encoding : torch.Tensor
+            Updated prompt encoding.
+        """
+
         B, C, X, Y, Z = z.shape
         prompt_encoding = prompt_encoding[:, None, :]
         pe = self.pe_layer(z)
@@ -265,7 +281,32 @@ class DecoderNextLayer(torch.nn.Module):
         return z, prompt_encoding
 
     def forward(self, z, encoder_feature, prompt_encoding, dense_encoding):
-        """ TODO """
+        """ Forward pass of the decoder layers.
+        The encoder features are passed through the decoder layers
+        in reverse order to match the encoder features. The deep
+        supervision heads produce "early" versions of the final output.
+
+        Parameters
+        ----------
+        z : torch.Tensor
+            Input feature map.
+        encoder_feature : torch.Tensor
+            Feature map from the encoder.
+        prompt_encoding : torch.Tensor
+            Prompt encoding.
+        dense_encoding : torch.Tensor
+            Dense encoding.
+
+        Returns
+        -------
+        z : torch.Tensor
+            Decoded feature map.
+        prompt_encoding : torch.Tensor
+            Updated prompt encoding.
+        ds_out : torch.Tensor
+            Deep supervision head output.
+        """
+
         z = self._decode(z, encoder_feature)
         prompt_encoding = self.prompt_encoding(prompt_encoding)
         z, prompt_encoding = self._prompt_func(
@@ -406,8 +447,6 @@ class BundleParcNet(torch.nn.Module):
 
         # Embded the "dense" prompt if it is provided
         # Else, use the learned embedding
-        # TODO: Is it actually necessary to support the no mask case?
-        # TODO: Consider removing the mask input altogether
         if torch.sum(wm_prompt) == 0:
             dense_embeddings = self.no_mask_embed.weight.reshape(
                 1, -1, 1, 1, 1).expand(
@@ -416,7 +455,6 @@ class BundleParcNet(torch.nn.Module):
             dense_embeddings = self.mask_stem(wm_prompt)
 
         # Run the encoders for the input fodf and the mask
-        # TODO: Consider using a single encoder for both ?
         encoder_features = []
         mask_features = []
         x = input_embedding
@@ -453,7 +491,6 @@ class BundleParcNet(torch.nn.Module):
 
         # Embded the "dense" mask if it is provided
         # Else, use the learned embedding
-        # TODO: Is it actually necessary to support the no mask case?
         if torch.sum(wm_prompt) == 0:
             dense_embeddings = self.no_mask_embed.weight.reshape(
                 1, -1, 1, 1, 1).expand(
@@ -462,7 +499,6 @@ class BundleParcNet(torch.nn.Module):
             dense_embeddings = self.mask_stem(wm_prompt)
 
         # Run the encoders for the input fodf and the mask
-        # TODO: Consider using a single encoder for both ?
         encoder_features = []
         mask_features = []
 

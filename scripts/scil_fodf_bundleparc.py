@@ -138,7 +138,7 @@ def main():
     # Hack so that get_data_as_mask works
     resampled_wm.set_filename(wm_in.get_filename())
 
-    # shape = fodf_in.get_fdata().shape[:3]
+    # Get data in the right format
     fodf_data, wm_data = get_data(
         resampled_fodf, resampled_wm, img_size, n_coefs)
 
