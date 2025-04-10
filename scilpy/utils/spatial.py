@@ -5,6 +5,7 @@ import json
 import nibabel.orientations as ornt
 import numpy as np
 from numpy.lib.index_tricks import r_ as row
+import pickle
 
 
 RAS_AXES_NAMES = ["sagittal", "coronal", "axial"]
@@ -217,7 +218,7 @@ class WorldBoundingBox(object):
         self.maximums = np.asarray(maximums)
         self.voxel_size = np.asarray(voxel_size)
 
-    def dump(self, filename):
+    def dump(self, filename, use_deprecated_pickle=False):
         """
         Save the bounding box to a json file.
 
@@ -227,13 +228,16 @@ class WorldBoundingBox(object):
             Path to the json file.
         """
         with open(filename, 'w+') as bbox_file:
-            json.dump({
-                "minimums": self.minimums.tolist(),
-                "maximums": self.maximums.tolist(),
-                "voxel_size": self.voxel_size.tolist()}, bbox_file)
+            if use_deprecated_pickle:
+                pickle.dump(self, bbox_file)
+            else:
+                json.dump({
+                    "minimums": self.minimums.tolist(),
+                    "maximums": self.maximums.tolist(),
+                    "voxel_size": self.voxel_size.tolist()}, bbox_file)
 
     @classmethod
-    def load(cls, filename):
+    def load(cls, filename, use_deprecated_pickle=False):
         """
         Load a bounding box from a json file.
 
@@ -248,8 +252,10 @@ class WorldBoundingBox(object):
             The bounding box object.
         """
         with open(filename) as bbox_file:
-            values = json.load(bbox_file)
+            if use_deprecated_pickle:
+                return pickle.load(bbox_file)
 
+            values = json.load(bbox_file)
             return WorldBoundingBox(np.array(values['minimums']),
                                     np.array(values['maximums']),
                                     np.array(values['voxel_size']))

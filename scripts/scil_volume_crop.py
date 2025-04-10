@@ -63,6 +63,8 @@ def _build_arg_parser():
     g1.add_argument('--output_bbox',
                     help='Path of the json file where to write the '
                          'computed bounding box.')
+    g1.add_argument('--use_deprecated_pickle', action='store_true',
+                    help='Enable to use .pkl bounding boxes instead of .json.')
 
     return p
 
@@ -77,7 +79,8 @@ def main():
 
     img = nib.load(args.in_image)
     if args.input_bbox:
-        wbbox = WorldBoundingBox.load(args.input_bbox)
+        wbbox = WorldBoundingBox.load(args.input_bbox,
+                                      args.use_deprecated_pickle)
         if not args.ignore_voxel_size:
             voxel_size = img.header.get_zooms()[0:3]
             if not np.allclose(voxel_size, wbbox.voxel_size[0:3], atol=1e-03):
@@ -87,7 +90,7 @@ def main():
     else:
         wbbox = compute_nifti_bounding_box(img)
         if args.output_bbox:
-            wbbox.dump(args.output_bbox)
+            wbbox.dump(args.output_bbox, args.use_deprecated_pickle)
 
     out_nifti_file = crop_volume(img, wbbox)
     nib.save(out_nifti_file, args.out_image)
