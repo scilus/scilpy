@@ -108,12 +108,22 @@ def main():
                           'Skipping'.format(args.in_bundle))
         sft.to_vox()
         sft.to_corner()
-        sft_list.append(sft)
+
+        # Only process sft containing more than 1 streamlines
+        if len(sft.streamlines) > 1:
+            sft_list.append(sft)
+        else:
+            logging.warning("Bundle {} contains less than 2 streamlines."
+                            " It won't be processed.".format(filename))
 
         if len(sft_list):
             if not is_header_compatible(sft_list[0], sft_list[-1]):
                 parser.error('Header of {} and {} are not compatible'.format(
                     args.in_bundles[0], filename))
+
+    if len(sft_list) == 0:
+        logging.error('No bundle to process. Exiting.')
+        return
 
     density_list = []
     binary_list = []
