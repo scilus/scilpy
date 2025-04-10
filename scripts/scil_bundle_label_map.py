@@ -161,6 +161,12 @@ def main():
     if args.correlation_thr < 0:
         parser.error('correlation_thr must be greater than 0')
 
+    if args.hyperplane:
+        heading = '=' * 76
+        warning = 'WARNING: The --hyperplane option should be used carefully,' \
+                  ' not fully tested!'
+        logging.warning(f'{heading}\n{warning}\n{heading}')
+
     sft_centroid = load_tractogram_with_reference(parser, args,
                                                   args.in_centroid)
     if args.transformation is not None:
