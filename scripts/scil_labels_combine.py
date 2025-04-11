@@ -67,10 +67,10 @@ def _build_arg_parser():
     p.add_argument('--merge_groups', action='store_true',
                    help='Each group from the --volume_ids option will be '
                         'merged as a single labels.')
-    
+    p.add_argument('--not_save_empty', action='store_true',
+                   help='If set, the output will not be saved if it is empty.')
     add_verbose_arg(p)
     add_overwrite_arg(p)
-    
     return p
 
 
@@ -135,10 +135,13 @@ def main():
                                       background_id=args.background,
                                       merge_groups=args.merge_groups)
 
-    # Save final combined volume
-    nib.save(nib.Nifti1Image(resulting_labels, first_img.affine,
-                             header=first_img.header),
-             args.output)
+    if args.not_save_empty and not resulting_labels.any():
+        logging.warning("Output: {} is empty. Not saving.".format(args.output))
+    else:
+        # Save final combined volume
+        nib.save(nib.Nifti1Image(resulting_labels, first_img.affine,
+                                 header=first_img.header),
+                 args.output)
 
 
 if __name__ == "__main__":
