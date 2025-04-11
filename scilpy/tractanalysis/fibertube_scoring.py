@@ -38,16 +38,16 @@ def fibertube_density(sft, samples_per_voxel_axis, verbose=False):
 
     Returns
     -------
-    density_grid: ndarray
+    density_map: ndarray
         Per-voxel volumetric density of fibertubes as a 3D image.
-    density_flat: list
+    density_valid_only: list
         Per-voxel volumetric density of fibertubes as a list, containing only
         the voxels that were valid in the binary mask (i.e. that contained
         fibertubes). This is useful for calculating measurements on the
         various density values, like mean, median, etc.
-    collision_grid: ndarray
+    collision_map: ndarray
         Per-voxel number of fibertube collisions.
-    collision_flat: list
+    collision_valid_only: list
         Per-voxel number of fibertubes collisions as a list, containing only
         the voxels that were valid in the binary mask (i.e. that contained
         fibertubes). This is useful for calculating measurements on the
@@ -100,13 +100,13 @@ def fibertube_density(sft, samples_per_voxel_axis, verbose=False):
         sft.streamlines, verbose=verbose)
     tree = KDTree(centers)
 
-    density_grid = np.zeros(mask.shape)
-    density_flat = []
+    density_map = np.zeros(mask.shape)
+    density_valid_only = []
     # Set containing sets of fibertube indexes
     # This way, each pair of fibertube is only entered once.
     collisions = set()
-    collision_grid = np.zeros(mask.shape)
-    collision_flat = []
+    collision_map = np.zeros(mask.shape)
+    collision_valid_only = []
     # For each voxel, get density
     for i, j, k in tqdm_if_verbose(np.ndindex(mask.shape), verbose,
                                    total=len(np.ravel(mask))):
@@ -143,12 +143,12 @@ def fibertube_density(sft, samples_per_voxel_axis, verbose=False):
             if len(fibertubes_touching_sample) > 1:
                 collisions.add(frozenset(fibertubes_touching_sample))
 
-        density_grid[i][j][k] = nb_samples_in_fibertubes / len(voxel_samples)
-        density_flat.append(density_grid[i][j][k])
-        collision_grid[i][j][k] = len(collisions) - collisions_before_voxel
-        collision_flat.append(collision_grid[i][j][k])
+        density_map[i][j][k] = nb_samples_in_fibertubes / len(voxel_samples)
+        density_valid_only.append(density_map[i][j][k])
+        collision_map[i][j][k] = len(collisions) - collisions_before_voxel
+        collision_valid_only.append(collision_map[i][j][k])
 
-    return density_grid, density_flat, collision_grid, collision_flat
+    return density_map, density_valid_only, collision_map, collision_valid_only
 
 
 def min_external_distance(sft, verbose):
