@@ -45,7 +45,8 @@ def init_data():
                                       space=Space.VOX,
                                       origin=Origin.NIFTI)
     sft_tracking.data_per_streamline = {
-        "seeds": [streamlines[0][0], streamlines[1][0]]
+        "seeds": [streamlines[0][0], streamlines[1][-1]],
+        "seed_ids": [0., 1.]
     }
 
     save_tractogram(sft_fibertubes, 'fibertubes.trk', True)

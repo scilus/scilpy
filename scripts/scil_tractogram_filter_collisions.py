@@ -115,9 +115,9 @@ def _build_arg_parser():
                    'be .trk). By default, the diameters will be \n'
                    'saved as data_per_streamline.')
 
-    p.add_argument('--save_colliding', action='store_true',
+    p.add_argument('--out_colliding_prefix', default=None, type=str,
                    help='Useful for visualization. If set, the script will \n'
-                   'produce two other tractograms (.trk) containing \n'
+                   'produce two other tractograms files containing \n'
                    'colliding streamlines. The first one contains invalid \n'
                    'streamlines that have been filtered out, along with \n'
                    'their collision point as data per streamline. The \n'
@@ -125,9 +125,10 @@ def _build_arg_parser():
                    'that the first tractogram collided with. Note that the \n'
                    'streamlines in the second tractogram may or may not \n'
                    'have been filtered afterwards. \n'
-                   'Filenames are derived from [in_tractogram] with \n'
+                   'Filenames are derived from [out_colliding_prefix] with \n'
                    '"_invalid" appended for the first tractogram, and \n'
-                   '"_obstacle" appended for the second tractogram.')
+                   '"_obstacle" appended for the second tractogram. You \n'
+                   'may include a path in this prefix.')
 
     p.add_argument('--out_metrics', default=None, type=str,
                    help='If set, metrics about the streamlines and their \n'
@@ -153,8 +154,9 @@ def _build_arg_parser():
 
     p.add_argument('--disable_shuffling', action='store_true',
                    help='If set, no shuffling will be performed before \n'
-                   'the filtering process. Streamlines will be picked in \n'
-                   'order.')
+                   'the filtering process. Streamline segments will be \n'
+                   'picked in order from the first segment of the first \n'
+                   'streamlines to the last segment of the last streamline.')
 
     p.add_argument('--rng_seed', type=int, default=0,
                    help='If set, all random values will be generated \n'
@@ -196,9 +198,9 @@ def main():
                              "{0}".format(args.out_rotation_matrix))
 
     outputs = [args.out_tractogram]
-    if args.save_colliding:
-        outputs.append(in_tractogram_no_ext + '_invalid.trk')
-        outputs.append(in_tractogram_no_ext + '_obstacle.trk')
+    if args.out_colliding_prefix:
+        outputs.append(args.out_colliding_prefix + '_invalid.trk')
+        outputs.append(args.out_colliding_prefix + '_obstacle.trk')
 
     assert_inputs_exist(parser, args.in_tractogram)
     assert_outputs_exist(parser, args, outputs,
@@ -219,41 +221,32 @@ def main():
         raise ValueError('Number of diameters does not match the number ' +
                          'of streamlines.')
 
-    if not args.disable_shuffling:
-        logging.debug('Shuffling streamlines')
-        indexes = list(range(len(streamlines)))
-        gen = np.random.default_rng(args.rng_seed)
-        gen.shuffle(indexes)
-
-        streamlines = streamlines[indexes]
-        diameters = diameters[indexes]
-        in_sft = StatefulTractogram.from_sft(streamlines, in_sft)
-
     # Casting ArraySequence as a list to improve speed
     streamlines = list(streamlines)
 
     logging.debug('Building IntersectionFinder')
     inter_finder = IntersectionFinder(
-        in_sft, diameters, args.verbose != 'WARNING')
+        in_sft, diameters, not args.disable_shuffling, args.rng_seed,
+        args.verbose != 'WARNING')
 
     logging.debug('Finding intersections')
     inter_finder.find_intersections(args.min_distance)
 
     logging.debug('Building new tractogram(s)')
     out_sft, invalid_sft, obstacle_sft = inter_finder.build_tractograms(
-        args.save_colliding)
+        args.out_colliding_prefix)
 
     logging.debug('Saving new tractogram(s)')
     save_tractogram(out_sft, args.out_tractogram)
 
-    if args.save_colliding:
+    if args.out_colliding_prefix:
         save_tractogram(
             invalid_sft,
-            in_tractogram_no_ext + '_invalid.trk')
+            args.out_colliding_prefix + '_invalid.trk')
 
         save_tractogram(
             obstacle_sft,
-            in_tractogram_no_ext + '_obstacle.trk')
+            args.out_colliding_prefix + '_obstacle.trk')
 
     logging.debug('Input streamline count: ' + str(len(streamlines)) +
                   ' | Output streamline count: ' +
