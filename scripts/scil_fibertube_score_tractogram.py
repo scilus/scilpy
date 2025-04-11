@@ -6,17 +6,17 @@ Given ground-truth fibertubes and a tractogram obtained through fibertube
 tracking, computes metrics about the quality of individual fiber
 reconstruction.
 
-Each streamline is associated with an "Arrival fibertube segment", which is
+Each streamline is associated with an "Termination fibertube segment", which is
 the closest fibertube segment to its before-last coordinate. We then define
 the following terms:
 
-VC: "Valid Connection": A streamline whose arrival fibertube segment is
+VC: "Valid Connection": A streamline whose termination fibertube segment is
 the final segment of the fibertube in which is was originally seeded.
 
-IC: "Invalid Connection": A streamline whose arrival fibertube segment is
+IC: "Invalid Connection": A streamline whose termination fibertube segment is
 the start or final segment of a fibertube in which is was not seeded.
 
-NC: "No Connection": A streamline whose arrival fibertube segment is
+NC: "No Connection": A streamline whose termination fibertube segment is
 not the start or final segment of any fibertube.
 
 The "absolute error" of a coordinate is the distance in mm between that

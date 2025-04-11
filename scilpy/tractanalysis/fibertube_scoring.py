@@ -499,7 +499,7 @@ def endpoint_connectivity(blur_radius, centerlines, centerlines_length,
                           seeded_fibertube_indices):
     """
     For every streamline, find whether or not it has reached the end segment
-    of its fibertube. Each streamline is associated with an "Arrival fibertube
+    of its fibertube. Each streamline is associated with an "Termination fibertube
     segment", which is the closest fibertube segment to its before-last
     coordinate.
 
@@ -507,13 +507,13 @@ def endpoint_connectivity(blur_radius, centerlines, centerlines_length,
     which means they are saved so that [0] is the seeding position and [-1] is
     the end.
 
-    VC: "Valid Connection": A streamline whose arrival fibertube segment is
+    VC: "Valid Connection": A streamline whose termination fibertube segment is
     the final segment of the fibertube in which is was originally seeded.
 
-    IC: "Invalid Connection": A streamline whose arrival fibertube segment is
+    IC: "Invalid Connection": A streamline whose termination fibertube segment is
     the start or final segment of a fibertube in which is was not seeded.
 
-    NC: "No Connection": A streamline whose arrival fibertube segment is
+    NC: "No Connection": A streamline whose termination fibertube segment is
     not the start or final segment of any fibertube.
 
     Parameters

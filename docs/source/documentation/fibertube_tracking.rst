@@ -256,16 +256,16 @@ performed.
 First, streamlines are truncated to remove their last coordinate. It
 was not in range or aligned with any fibertube, and thus represents
 an invalid step that should be removed. Each streamline is then
-associated with an "Arrival fibertube segment", which is the closest
+associated with an "Termination fibertube segment", which is the closest
 fibertube segment to its last coordinate. We define the following terms:
 
-VC: "Valid Connection": A streamline whose arrival fibertube segment is
+VC: "Valid Connection": A streamline whose termination fibertube segment is
 the final segment of the fibertube in which is was originally seeded.
 
-IC: "Invalid Connection": A streamline whose arrival fibertube segment is
+IC: "Invalid Connection": A streamline whose termination fibertube segment is
 the start or final segment of a fibertube in which is was not seeded.
 
-NC: "No Connection": A streamline whose arrival fibertube segment is
+NC: "No Connection": A streamline whose termination fibertube segment is
 not the start or final segment of any fibertube.
 
 The "absolute error" of a coordinate is the distance in mm between that
@@ -279,7 +279,7 @@ on MAE but a high impact on the endpoint distance.
 
 In this image, green is a VC, yellow is an IC and red is a NC. The
 coordinate error is represented by black lines, and the thicker one is the
-endpoint distance. The white and black circles are the seeding and arrival
+endpoint distance. The white and black circles are the seeding and termination
 locations respectively.
 
 .. image:: https://github.com/user-attachments/assets/dbbeea60-54e5-4269-a387-2ea3e6b06bcc
@@ -333,10 +333,10 @@ giving us the following output in ``reconstruction_metrics.json``:
 This data tells us that:
 
 - 40% of streamlines had the end of their own fibertube as
-  their arrival fibertube segment. (``"vc_ratio": 0.3``)
+  their termination fibertube segment. (``"vc_ratio": 0.3``)
 - 40% of streamlines did connect their own fibertube, but instead another fibertube.
   (``"ic_ratio": 0.4``)
-- 26% of streamlines had an arrival fibertube segment that
+- 26% of streamlines had an termination fibertube segment that
   was not a start nor end segment. (``"nc_ratio": 0.2``)
 - Lastly, we notice that the streamline with the "worst" trajectory was on average
   ~9.5mm away from its fibertube. (``"mae_max": 9.507027053725844``)
