@@ -159,9 +159,11 @@ def main():
                 # and not already used.
                 new_color = distinguishable_colormap(nb_colors=1,
                                                      exclude=rgb_colors)
-                new_color = [tc*255 for tc in new_color]
-                rgb_colors.append(tuple(tc/255 for tc in new_color[0]))
-                color = '0x%02x%02x%02x' % tuple(new_color[0].astype(int))
+                # Append the new color to the list of used colors
+                rgb_colors.append(tuple(tc for tc in new_color[0]))
+                # Convert to hexadecimal format
+                color = '0x%02x%02x%02x' % tuple(map(int, rgb_colors[-1]))
+                # Add the new color to the dictionary
                 dict_colors[base] = color
 
             if color is None:
