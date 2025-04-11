@@ -35,6 +35,7 @@ import numpy as np
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (assert_inputs_exist,
                              assert_outputs_exist,
+                             add_json_args,
                              add_overwrite_arg,
                              add_verbose_arg,
                              add_reference_arg, assert_headers_compatible)
@@ -80,6 +81,7 @@ def _build_arg_parser():
     add_reference_arg(p)
     add_verbose_arg(p)
     add_overwrite_arg(p)
+    add_json_args(p)
     return p
 
 
@@ -127,7 +129,7 @@ def main():
         rgb_colors = []
         for color in dict_colors.values():
             tmp_color = format_hexadecimal_color_to_rgb(color)
-            rgb_colors.append(tuple(tc/256 for tc in tmp_color))
+            rgb_colors.append(tuple(tc/255 for tc in tmp_color))
 
     # Processing
     for i, filename in enumerate(args.in_tractograms):
@@ -158,12 +160,16 @@ def main():
                 new_color = distinguishable_colormap(nb_colors=1,
                                                      exclude=rgb_colors)
                 new_color = [tc*255 for tc in new_color]
+                rgb_colors.append(tuple(tc/255 for tc in new_color[0]))
                 color = '0x%02x%02x%02x' % tuple(new_color[0].astype(int))
                 dict_colors[base] = color
-            
+
             if color is None:
                 parser.error("Basename of file {} ({}) not found in your "
-                             "dict_colors keys.".format(filename, base))
+                             "dict_colors keys.\nYou can force the creation "
+                             "of new colors by adding -f to your "
+                             "command line. It will also save the new color "
+                             "dictionnary.".format(filename, base))
         else:  # args.fill_color is not None:
             color = args.fill_color
 
@@ -180,7 +186,9 @@ def main():
         new_dict = os.path.join(os.path.dirname(args.dict_colors),
                                 'new_color_dict_{}.json'.format(random.randint(0, 100000)))
         with open(new_dict, 'w') as data:
-            json.dump(dict_colors, data, indent=4)
+            json.dump(dict_colors, data,
+                      indent=args.indent,
+                      sort_keys=args.sort_keys)
         logging.warning('New color dict saved as {}'.format(new_dict))
 
 
