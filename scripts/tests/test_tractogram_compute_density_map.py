@@ -22,7 +22,7 @@ def test_execution_others(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_bundle = os.path.join(SCILPY_HOME, 'others', 'IFGWM.trk')
     ret = script_runner.run('scil_tractogram_compute_density_map.py',
-                            in_bundle, 'binary.nii.gz', '--binary')
+                            in_bundle, 'binary.nii.gz', '--endpoints_only')
     assert ret.success
 
 
