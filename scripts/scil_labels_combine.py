@@ -8,7 +8,7 @@ overwrite them based on the input order.
     >>> scil_labels_combine.py out_labels.nii.gz
             --volume_ids animal_labels.nii 20
             --volume_ids DKT_labels.nii.gz 44 53
-            --out_labels_indices 20 44 53
+            --out_labels_ids 20 44 53
     >>> scil_labels_combine.py slf_labels.nii.gz
             --volume_ids a2009s_aseg.nii.gz all
             --volume_ids clean/s1__DKT.nii.gz 1028 2028
