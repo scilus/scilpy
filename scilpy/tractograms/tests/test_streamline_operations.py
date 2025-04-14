@@ -104,12 +104,31 @@ def test_cut_invalid_streamlines():
     assert nb == 1
 
 
-def test_filter_streamlines_by_nb_points():
+def test_filter_streamlines_by_min_nb_points_2():
     sft = load_tractogram(in_short_sft, in_ref)
 
     # Adding a one-point streamline
     sft.streamlines.append([[7, 7, 7]])
     new_sft = filter_streamlines_by_nb_points(sft, min_nb_points=2)
+    assert len(new_sft) == len(sft) - 1
+
+
+def test_filter_streamlines_min_by_nb_points_5():
+    sft = load_tractogram(in_short_sft, in_ref)
+
+    # Adding a one-point streamline
+    sft.streamlines.append([[7, 7, 7],
+                            [7, 7, 7],
+                            [7, 7, 7],
+                            [7, 7, 7],
+                            [7, 7, 7], ])
+
+    sft.streamlines.append([[7, 7, 7],
+                            [7, 7, 7],
+                            [7, 7, 7],
+                            [7, 7, 7], ])
+
+    new_sft = filter_streamlines_by_nb_points(sft, min_nb_points=5)
     assert len(new_sft) == len(sft) - 1
 
 
