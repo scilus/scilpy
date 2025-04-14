@@ -24,7 +24,7 @@ from scilpy.tractograms.streamline_operations import (
     smooth_line_spline,
     parallel_transport_streamline,
     remove_overlapping_points_streamlines,
-    remove_single_point_streamlines)
+    filter_streamlines_by_nb_points)
 from scilpy.tractograms.tractogram_operations import concatenate_sft
 
 fetch_data(get_testing_files_dict(), keys=['tractograms.zip'])
@@ -104,12 +104,12 @@ def test_cut_invalid_streamlines():
     assert nb == 1
 
 
-def test_remove_single_point_streamlines():
+def test_filter_streamlines_by_nb_points():
     sft = load_tractogram(in_short_sft, in_ref)
 
     # Adding a one-point streamline
     sft.streamlines.append([[7, 7, 7]])
-    new_sft = remove_single_point_streamlines(sft)
+    new_sft = filter_streamlines_by_nb_points(sft, min_nb_points=2)
     assert len(new_sft) == len(sft) - 1
 
 

@@ -23,7 +23,7 @@ from scilpy.io.utils import (add_overwrite_arg, add_verbose_arg,
 from scilpy.tractograms.streamline_operations import (
     cut_invalid_streamlines,
     remove_overlapping_points_streamlines,
-    remove_single_point_streamlines)
+    filter_streamlines_by_nb_points)
 from scilpy.version import version_string
 
 
@@ -88,13 +88,14 @@ def main():
         sft.remove_invalid_streamlines()
 
     if args.remove_single_point:
-        sft = remove_single_point_streamlines(sft)
+        sft = filter_streamlines_by_nb_points(sft, min_nb_points=2)
 
     if args.remove_overlapping_points:
         sft = remove_overlapping_points_streamlines(sft, args.threshold)
         logging.warning("data_per_point will be discarded.")
-        logging.warning('Removed {} overlapping points from tractogram.'.format(
-            ori_len_pts - len(sft.streamlines._data)))
+        logging.warning('Removed {} overlapping points "'
+                        'from tractogram.'.format(ori_len_pts -
+                                                  len(sft.streamlines._data)))
 
     logging.warning('Removed {} invalid streamlines.'.format(
         ori_len - len(sft)))
