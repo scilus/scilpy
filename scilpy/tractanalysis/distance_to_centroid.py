@@ -19,9 +19,13 @@ from scilpy.tractograms.streamline_operations import \
     resample_streamlines_num_points, resample_streamlines_step_size
 
 
-def min_dist_to_centroid(bundle_pts, centroid_pts, nb_pts):
+def closest_match_to_centroid(bundle_pts, centroid_pts, nb_pts):
     """
-    Compute minimal distance between two sets of 3D points.
+    Assign a label to each point in the bundle_pts based on the closest
+    centroid_pts. The labels are between 1 and nb_pts, where nb_pts is the
+    number of points in the centroid_pts. The labels are assigned based on
+    the order of the centroid_pts.
+
     The 3D points are expected to be in the same space.
 
     Typically the bundle_pts will be voxel indices (from argwhere) and the
@@ -463,12 +467,11 @@ def subdivide_bundles(sft, sft_centroid, binary_mask, nb_pts,
     timer = time.time()
 
     indices = np.array(np.nonzero(binary_mask), dtype=int).T
-    labels = min_dist_to_centroid(indices,
-                                  sft_centroid[0].streamlines._data,
-                                  nb_pts=nb_pts)
+    labels = closest_match_to_centroid(indices,
+                                       sft_centroid[0].streamlines._data,
+                                       nb_pts=nb_pts)
     logging.debug('Computed labels using the euclidian method '
                   f'in {round(time.time() - timer, 3)} seconds')
-    min_label, max_label = labels.min(), labels.max()
 
     if method == 'centerline':
         labels_map = np.zeros(binary_mask.shape, dtype=np.uint16)
@@ -488,7 +491,7 @@ def subdivide_bundles(sft, sft_centroid, binary_mask, nb_pts,
         # Associate the labels to the streamlines using the centroids as
         # reference (to handle shorter bundles due to missing data)
         mini_timer = time.time()
-        labels, points, = associate_labels(tmp_sft, min_label, max_label)
+        labels, points = associate_labels(tmp_sft, min_label, max_label)
 
         kd_tree = KDTree(points)
         indices = np.array(np.nonzero(binary_mask), dtype=int).T
@@ -524,11 +527,11 @@ def subdivide_bundles(sft, sft_centroid, binary_mask, nb_pts,
         logging.debug('\tSVC prediction of labels in '
                       f'{round(time.time() - mini_timer, 3)} seconds')
 
-        logging.debug('Computed labels using the hyperplane method '
-                      f'in {round(time.time() - timer, 3)} seconds')
         labels_map = np.zeros(binary_mask.shape, dtype=np.uint16)
         labels_map[np.where(masked_binary_mask)] = labels
 
+        # Find the missing labels and assign them to the nearest neighbor
+        # using the KDTree (we skip every other voxel to speed up the process)
         missing_indices = np.argwhere(binary_mask - masked_binary_mask)
         valid_indices = np.argwhere(masked_binary_mask)
 
@@ -542,6 +545,9 @@ def subdivide_bundles(sft, sft_centroid, binary_mask, nb_pts,
         labels_map[labels_map == 1] = 2
         labels_map[labels_map > 0] -= 1
         nb_pts -= 2
+
+    logging.debug('Computed labels using the hyperplane method '
+                  f'in {round(time.time() - timer, 3)} seconds')
 
     # Correct the labels jump to prevent discontinuities
     if fix_jumps:
