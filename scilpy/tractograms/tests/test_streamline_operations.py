@@ -87,20 +87,46 @@ def test_compress_sft():
 
 
 def test_cut_invalid_streamlines():
-    sft = load_tractogram(in_long_sft, in_ref)
+    sft = load_tractogram(in_short_sft, in_ref)
     sft.to_vox()
 
     cut, nb = cut_invalid_streamlines(sft)
     assert len(cut) == len(sft)
     assert nb == 0
 
-    # Faking an invalid streamline. Currently, volume is 64x64x3
+    # Faking an invalid streamline at all positions.
+    # Currently, volume is 64x64x3
+    remaining_streamlines = [11, 10, 9, 8, 7, 6, 6, 7, 8, 9, 10, 11]
+    for index, ind_cut in enumerate(sft.streamlines[0]):
+        sft = load_tractogram(in_short_sft, in_ref)
+        sft.streamlines[0][index, :] = [65.0, 65.0, 2.0]
+        cut, nb = cut_invalid_streamlines(sft)
+        assert len(cut) == len(sft)
+        assert np.all([len(sc) <= len(s) for s, sc in
+                       zip(sft.streamlines, cut.streamlines)])
+        assert len(cut.streamlines[0]) == remaining_streamlines[index]
+        assert nb == 1
+
+    # Faking an invalid streamline at position 0 and -1
+    sft = load_tractogram(in_short_sft, in_ref)
+    sft.streamlines[0][0, :] = [65.0, 65.0, 2.0]
     sft.streamlines[0][-1, :] = [65.0, 65.0, 2.0]
     cut, nb = cut_invalid_streamlines(sft)
     assert len(cut) == len(sft)
     assert np.all([len(sc) <= len(s) for s, sc in
                    zip(sft.streamlines, cut.streamlines)])
-    assert len(cut.streamlines[0]) == len(sft.streamlines[0]) - 1
+    assert len(cut.streamlines[0]) == len(sft.streamlines[0]) - 2
+    assert nb == 1
+
+    # Faking an invalid streamline at position 2 and 2
+    sft = load_tractogram(in_short_sft, in_ref)
+    sft.streamlines[0][2, :] = [65.0, 65.0, 2.0]
+    sft.streamlines[0][9, :] = [65.0, 65.0, 2.0]
+    cut, nb = cut_invalid_streamlines(sft)
+    assert len(cut) == len(sft)
+    assert np.all([len(sc) <= len(s) for s, sc in
+                   zip(sft.streamlines, cut.streamlines)])
+    assert len(cut.streamlines[0]) == 6
     assert nb == 1
 
 
