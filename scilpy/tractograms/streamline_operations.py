@@ -310,21 +310,27 @@ def cut_invalid_streamlines(sft, epsilon=0.001):
     return new_sft, cutting_counter
 
 
-def remove_single_point_streamlines(sft):
+def filter_streamlines_by_nb_points(sft, min_nb_points=2):
     """
-    Remove single point streamlines from a StatefulTractogram.
+    Remove streamlines from a StatefulTractogram with fewer nb_points.
 
     Parameters
     ----------
     sft: StatefulTractogram
         The sft to remove single point streamlines from.
+    min_nb_points: int
+        Minimum number of point a streamline needs to have to kept.
 
     Returns
     -------
     new_sft : StatefulTractogram
         New object with the single point streamlines removed.
     """
-    indices = [i for i in range(len(sft)) if len(sft.streamlines[i]) > 1]
+    if min_nb_points <= 1:
+        raise ValueError("The value of min_nb_points "
+                         "should be greater than 1!")
+
+    indices = [i for i in range(len(sft)) if len(sft.streamlines[i]) > min_nb_points - 1]
     if len(indices):
         new_sft = sft[indices]
     else:

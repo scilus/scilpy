@@ -30,7 +30,7 @@ from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
 from scilpy.tractograms.streamline_operations import smooth_line_gaussian, \
     resample_streamlines_step_size, parallel_transport_streamline, \
     compress_sft, cut_invalid_streamlines, \
-    remove_overlapping_points_streamlines, remove_single_point_streamlines
+    remove_overlapping_points_streamlines, filter_streamlines_by_nb_points
 from scilpy.tractograms.streamline_and_mask_operations import \
     cut_streamlines_with_mask
 from scilpy.utils.spatial import generate_rotation_matrix
@@ -1316,7 +1316,7 @@ def transform_streamlines_alter(sft, min_dice=0.90, epsilon=0.01):
         # Remove invalid streamlines to avoid numerical issues
         curr_sft = StatefulTractogram.from_sft(streamlines, sft)
         curr_sft, _ = cut_invalid_streamlines(curr_sft)
-        curr_sft = remove_single_point_streamlines(curr_sft)
+        curr_sft = filter_streamlines_by_nb_points(curr_sft, min_nb_points=2)
         curr_sft = remove_overlapping_points_streamlines(curr_sft)
 
         curr_density_map = compute_tract_counts_map(curr_sft.streamlines,

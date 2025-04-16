@@ -11,10 +11,8 @@ from scipy.ndimage import map_coordinates
 
 from scilpy.tractograms.uncompress import streamlines_to_voxel_coordinates
 from scilpy.tractograms.streamline_operations import \
-    resample_streamlines_step_size
-
-from scilpy.tractograms.streamline_operations import \
-    filter_streamlines_by_length, _get_point_on_line, _get_streamline_pt_index
+    (filter_streamlines_by_length, _get_point_on_line, _get_streamline_pt_index,
+     resample_streamlines_step_size)
 
 
 class CuttingStyle(Enum):
@@ -76,7 +74,6 @@ def get_head_tail_density_maps(sft, point_to_select=1, to_millimeters=False):
     - np.ndarray: A np.ndarray where voxel values represent the density of
         tail endpoints.
     """
-
     sft.to_vox()
     sft.to_corner()
 
@@ -698,7 +695,6 @@ def compute_streamline_segment(orig_strl, inter_vox, in_vox_idx, out_vox_idx,
     # add the number of artificial points
     nb_points_orig_strl = out_strl_point - in_strl_point + 1
     nb_points = nb_points_orig_strl + nb_add_points
-    orig_segment_len = len(orig_strl[in_strl_point:out_strl_point + 1])
 
     # Initialize the new streamline segment
     segment = np.zeros((nb_points, 3))
