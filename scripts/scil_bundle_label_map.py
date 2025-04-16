@@ -88,9 +88,9 @@ from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
 from scilpy.tractanalysis.distance_to_centroid import (subdivide_bundles,
                                                        compute_distance_map)
 from scilpy.tractograms.streamline_and_mask_operations import \
-    cut_streamlines_with_mask
+    cut_streamlines_with_mask, CuttingStyle
 from scilpy.tractograms.streamline_operations import \
-    resample_streamlines_num_points, filter_streamlines_by_nb_points
+    filter_streamlines_by_nb_points
 from scilpy.viz.color import get_lookup_table
 from scilpy.version import version_string
 
