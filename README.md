@@ -20,6 +20,7 @@ on or are wrappers of the [DIPY] library, and most of them will eventually be mi
 We highly encourage to install scilpy in a virtual environnement. Once done and you're in your virtual environnement you can run this command:
 
 ```
+export SETUPTOOLS_USE_DISTUTILS=stdlib
 pip install scilpy
 ```
 
