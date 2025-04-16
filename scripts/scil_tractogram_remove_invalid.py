@@ -79,7 +79,6 @@ def main():
 
     # Processing
     ori_len = len(sft)
-    ori_len_pts = len(sft.streamlines._data)
     if args.cut_invalid:
         sft, cutting_counter = cut_invalid_streamlines(sft,
                                                        epsilon=args.threshold)
@@ -89,15 +88,18 @@ def main():
 
     if args.remove_single_point:
         sft = filter_streamlines_by_nb_points(sft, min_nb_points=2)
+        logging.warning('Removed {} streamlines one point.'.format(
+            ori_len - len(sft)))
 
     if args.remove_overlapping_points:
+        ori_len_pts = len(sft.streamlines._data)
         sft = remove_overlapping_points_streamlines(sft, args.threshold)
         logging.warning("data_per_point will be discarded.")
         logging.warning('Removed {} overlapping points "'
                         'from tractogram.'.format(ori_len_pts -
                                                   len(sft.streamlines._data)))
 
-    logging.warning('Removed {} invalid streamlines.'.format(
+    logging.warning('Removed a total of {} invalid streamlines.'.format(
         ori_len - len(sft)))
 
     save_tractogram(sft, args.out_tractogram, args.no_empty)
