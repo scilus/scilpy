@@ -312,7 +312,7 @@ def cut_invalid_streamlines(sft, epsilon=0.001):
 
 def filter_streamlines_by_nb_points(sft, min_nb_points=2):
     """
-    Remove streamlines from a StatefulTractogram with less than nb_points.
+    Remove streamlines from a StatefulTractogram with fewer nb_points.
 
     Parameters
     ----------
