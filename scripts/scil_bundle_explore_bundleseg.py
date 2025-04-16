@@ -36,6 +36,8 @@ from scilpy.io.utils import (add_overwrite_arg,
                              add_verbose_arg,
                              assert_inputs_exist,
                              assert_output_dirs_exist_and_empty, )
+pil_logger = logging.getLogger('PIL')
+pil_logger.setLevel(logging.WARNING)
 
 
 def update_scene():
@@ -73,15 +75,15 @@ def update_scene():
     bundle_name_textbox.message = key
 
 
-def build_label(text):
+def build_label(text, font_size=18, justification='left'):
     """
     Utility function to create a TextBlock2D label with the provided text.
     """
     label = fury.ui.TextBlock2D()
     label.message = text
-    label.font_size = 18
+    label.font_size = font_size
     label.font_family = 'Arial'
-    label.justification = 'left'
+    label.justification = justification
     label.bold = False
     label.italic = False
     label.shadow = False
@@ -104,21 +106,42 @@ def setup(sft, ref_img, mapping, mask):
     - mask: Optional mask image to highlight regions of interest.
     """
     global current_index, filter_slider, scene, size, dropdown, \
-        bundle_name_textbox
+        bundle_name_textbox, image_actor_x, image_actor_y, image_actor_z
 
     data = ref_img.get_fdata()
     shape = ref_img.shape
     affine = ref_img.affine
 
+    # This must be done in RASMM
+    min_x, min_y, min_z = 0, 0, 0
+    vector = np.array([min_x, min_y, min_z, 1])
+    min_x, min_y, min_z = np.dot(affine, vector)[:3].astype(int)
+
+    max_x, max_y, max_z = shape[0], shape[1], shape[2]
+    vector = np.array([max_x, max_y, max_z, 1])
+    max_x, max_y, max_z = np.dot(affine, vector)[:3].astype(int)
+
+    min_x, max_x = np.min([min_x, max_x]), np.max([min_x, max_x])
+    min_y, max_y = np.min([min_y, max_y]), np.max([min_y, max_y])
+    min_z, max_z = np.min([min_z, max_z]), np.max([min_z, max_z])
+
+    # Calculate the center slices for each axis
+    center_x = int(np.round((max_x - min_x) / 2))
+    center_y = int(np.round((max_y - min_y) / 2))
+    center_z = int(np.round((max_z - min_z) / 2))
+
     # Initialize the main scene for 3D rendering
     scene = window.Scene()
-    image_actor_z = fury.actor.slicer(data, affine=affine)
-
-    # Add slicers for each orthogonal plane
-    image_actor_x = image_actor_z.copy()
-    image_actor_y = image_actor_z.copy()
+    image_actor_x = fury.actor.slicer(data.copy(), affine=affine)
+    image_actor_x.display(x=center_x)
     scene.add(image_actor_x)
+
+    image_actor_y = fury.actor.slicer(data.copy(), affine=affine)
+    image_actor_y.display(y=center_y)
     scene.add(image_actor_y)
+
+    image_actor_z = fury.actor.slicer(data.copy(), affine=affine)
+    image_actor_z.display(z=center_z)
     scene.add(image_actor_z)
 
     # Add the surface representation of the mask if provided
@@ -133,15 +156,15 @@ def setup(sft, ref_img, mapping, mask):
     # ------------------- Slicing UI START -------------------
     # Slicers for X, Y, Z axes and opacity control
     line_slider_x = fury.ui.LineSlider2D(
-        min_value=0, max_value=shape[0] - 1, initial_value=shape[0] / 2,
+        min_value=0, max_value=max_x, initial_value=center_x,
         text_template='{value:.0f}', length=140)
 
     line_slider_y = fury.ui.LineSlider2D(
-        min_value=0, max_value=shape[1] - 1, initial_value=shape[1] / 2,
+        min_value=0, max_value=max_y, initial_value=center_y,
         text_template='{value:.0f}', length=140)
 
     line_slider_z = fury.ui.LineSlider2D(
-        min_value=0, max_value=shape[2] - 1, initial_value=shape[2] / 2,
+        min_value=0, max_value=max_z, initial_value=center_z,
         text_template='{value:.0f}', length=140)
 
     opacity_slider = fury.ui.LineSlider2D(
@@ -149,16 +172,19 @@ def setup(sft, ref_img, mapping, mask):
 
     # Callbacks for updating slice positions and opacity when sliders are moved
     def change_slice_x_callback(slider):
+        global image_actor_x
         x = int(np.round(slider.value))
-        image_actor_x.display_extent(x, x, 0, shape[1] - 1, 0, shape[2] - 1)
+        image_actor_x.display(x=x)
 
     def change_slice_y_callback(slider):
+        global image_actor_y
         y = int(np.round(slider.value))
-        image_actor_y.display_extent(0, shape[0] - 1, y, y, 0, shape[2] - 1)
+        image_actor_y.display(y=y)
 
     def change_slice_z_callback(slider):
+        global image_actor_z
         z = int(np.round(slider.value))
-        image_actor_z.display_extent(0, shape[0] - 1, 0, shape[1] - 1, z, z)
+        image_actor_z.display(z=z)
 
     def change_opacity_callback(slider):
         slicer_opacity = slider.value
@@ -167,9 +193,9 @@ def setup(sft, ref_img, mapping, mask):
         image_actor_z.opacity(slicer_opacity)
 
     # Attach callbacks to sliders
+    line_slider_z.on_change = change_slice_z_callback
     line_slider_x.on_change = change_slice_x_callback
     line_slider_y.on_change = change_slice_y_callback
-    line_slider_z.on_change = change_slice_z_callback
     opacity_slider.on_change = change_opacity_callback
 
     # Labels for each slicer
@@ -264,7 +290,7 @@ def setup(sft, ref_img, mapping, mask):
 
     # ------------------- Saving UI START -------------------
     # UI elements for saving filtered results
-    def apply_all_callback(i_ren, _obj, _button):
+    def save_all_callback(i_ren, _obj, _button):
         """Apply the filtering to all bundles and save the results."""
         for key in list(mapping.keys()):
             indices = np.array(mapping[key]['indices'], dtype=int)
@@ -294,13 +320,18 @@ def setup(sft, ref_img, mapping, mask):
         save_tractogram(new_sft, new_filename)
 
     # Create buttons for saving results
-    apply_button = fury.ui.Button2D(
-        [('Apply All', read_viz_icons(fname='database.png'))])
-    apply_button.on_left_mouse_button_clicked = apply_all_callback
+    save_all_button = fury.ui.Button2D(
+        [('Save All', read_viz_icons(fname='database.png'))])
+    save_all_button.on_left_mouse_button_clicked = save_all_callback
 
-    save_button = fury.ui.Button2D(
+    save_current_button = fury.ui.Button2D(
         [('Save Current', read_viz_icons(fname='floppy-disk.png'))])
-    save_button.on_left_mouse_button_clicked = save_current_callback
+    save_current_button.on_left_mouse_button_clicked = save_current_callback
+
+    save_all_label = build_label(text='Save\nAll', font_size=12,
+                                 justification='center')
+    save_current_label = build_label(text='Save\nCurrent', font_size=12,
+                                     justification='center')
     # ------------------- Saving UI END -------------------
 
     # ------------------- Checkboxes UI START -------------------
@@ -356,10 +387,12 @@ def setup(sft, ref_img, mapping, mask):
     panel_options.add_element(surface_button, (0.1, 0.7))
     panel_options.add_element(filter_slider_label, (0.1, 0.5))
     panel_options.add_element(filter_slider, (0.38, 0.5))
-    panel_options.add_element(save_button, (0.35, 0.25))
-    panel_options.add_element(apply_button, (0.55, 0.25))
+    panel_options.add_element(save_current_button, (0.35, 0.25))
+    panel_options.add_element(save_all_button, (0.55, 0.25))
     panel_options.add_element(next_button, (0.70, 0.25))
     panel_options.add_element(prev_button, (0.20, 0.25))
+    panel_options.add_element(save_current_label, (0.40, 0.15))
+    panel_options.add_element(save_all_label, (0.60, 0.15))
     panel_options.add_element(dropdown, (0.05, 0.05))
 
     # Display the name of the current bundle
@@ -427,7 +460,7 @@ def main():
     """
     parser = _build_arg_parser()
     args = parser.parse_args()
-
+    args.verbose = 'INFO' if args.verbose != 'DEBUG' else 'DEBUG'
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     global sft, ref_img, mapping, mask, out_dir
