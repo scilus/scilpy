@@ -17,15 +17,9 @@ import numpy as np
 from scipy.sparse import vstack
 
 from scilpy.io.streamlines import reconstruct_streamlines_from_memmap
+from scilpy.utils import get_duration
 
 logger = logging.getLogger('BundleSeg')
-
-
-def get_duration(start_time):
-    """
-    Helper function to get the duration of a process.
-    """
-    return np.round(time() - start_time, 2)
 
 
 class BundleSeg(object):

@@ -20,11 +20,17 @@ import numpy as np
 
 from scilpy.io.streamlines import streamlines_to_memmap, \
     reconstruct_streamlines_from_memmap
-from scilpy.segment.bundleseg import BundleSeg, get_duration
+from scilpy.segment.bundleseg import BundleSeg
+from scilpy.utils import get_duration
 
 logger = logging.getLogger('BundleSeg')
+
+# These parameters are leftovers from Recobundles.
+# Now with BundleSeg, they do not need to be modified.
 global MCT, TCT
 MCT, TCT = 4, 12
+# TCT means Tractogram Clustering Threshold (mm)
+# MCT means Model Clustering Threshold (mm)
 
 
 class VotingScheme(object):
@@ -36,7 +42,7 @@ class VotingScheme(object):
         config : dict
             Dictionary containing information relative to bundle recognition.
         atlas_directory : list
-            List of all directories to be used as atlas by bsg.
+            List of all directories to be used as atlas by BundleSeg.
             Must contain all bundles as declared in the config file.
         transformation : numpy.ndarray
             Transformation (4x4) bringing the models into subject space.
@@ -46,7 +52,7 @@ class VotingScheme(object):
             Value for the vote ratio for a streamline to be considered.
             (0 < minimal_vote_ratio < 1)
         multi_parameters : int
-            Number of runs bsg will performed.
+            Number of runs BundleSeg will performed.
             Enough parameter choices must be provided.
         """
         self.config = config
@@ -111,11 +117,21 @@ class VotingScheme(object):
         Will find the maximum values of a specific row (bundle_id), make
         sure they are the maximum values across bundles (argmax) and above the
         min_vote threshold. Return the indices respecting all three conditions.
-        :param bundle_id, int, indices of the bundles in the csr_matrix.
-        :param min_vote, int, minimum value for considering (voting).
 
-        :param bundles_wise_vote, scipy.sparse.csr_matrix,
+        Parameters
+        ----------
+        bundle_id : int
+            Indices of the bundles in the csr_matrix.
+        min_vote : int
+            Minimum value for considering (voting).
+        bundles_wise_vote : scipy.sparse.csr_matrix
             bundles-wise sparse matrix use for voting.
+
+        Returns
+        -------
+        streamlines_ids : numpy.ndarray
+            Indices of the streamlines that are above the min_vote
+            threshold and are the maximum values across bundles.
         """
         if min_vote == 0:
             streamlines_ids = np.asarray([], dtype=np.uint32)
@@ -207,7 +223,6 @@ class VotingScheme(object):
         seed : int
             Seed for the RandomState.
         """
-        global MCT, TCT
         # Load the subject tractogram
         load_timer = time()
         reference = input_tractograms_path[0] if reference is None else reference
@@ -337,7 +352,7 @@ def single_recognize(args):
     Parameters
     ----------
     bsg : Object
-        Initialize bsg object with QBx ClusterMap as values
+        Initialize BundleSeg object with QBx ClusterMap as values
     model_filepath : str
         Path to the model bundle file
     model_bundle: ArraySequence
@@ -359,7 +374,6 @@ def single_recognize(args):
         recognized_scores : (numpy.ndarray)
             Scores of the recognized streamlines.
     """
-    global MCT, TCT
     bsg = args[0]
     model_filepath = args[1]
     bundle_pruning_thr = args[2]
