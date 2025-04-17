@@ -89,6 +89,8 @@ from scilpy.tractanalysis.distance_to_centroid import (subdivide_bundles,
                                                        compute_distance_map)
 from scilpy.tractograms.streamline_and_mask_operations import \
     cut_streamlines_with_mask, CuttingStyle
+from scilpy.tractograms.streamline_operations import \
+    filter_streamlines_by_nb_points
 from scilpy.viz.color import get_lookup_table
 from scilpy.version import version_string
 
@@ -160,6 +162,12 @@ def main():
 
     if args.correlation_thr < 0:
         parser.error('correlation_thr must be greater than 0')
+
+    if args.hyperplane:
+        warning = 'WARNING: The --hyperplane option should be used carefully,' \
+                  ' not fully tested!'
+        heading = '=' * len(warning)
+        logging.warning(f'{heading}\n{warning}\n{heading}')
 
     sft_centroid = load_tractogram_with_reference(parser, args,
                                                   args.in_centroid)
@@ -262,14 +270,11 @@ def main():
     concat_sft.to_vox()
     concat_sft.to_corner()
     for i in range(len(sft_list)):
-        if args.streamlines_thr is not None:
-            sft_list[i] = cut_streamlines_with_mask(
-                sft_list[i], binary_mask,
-                cutting_style=CuttingStyle.KEEP_LONGEST)
-        else:
-            sft_list[i].data_per_streamline = {}
-            sft_list[i].data_per_point = {}
+        sft_list[i] = cut_streamlines_with_mask(sft_list[i],
+                                                binary_mask)
 
+        sft_list[i] = filter_streamlines_by_nb_points(sft_list[i],
+                                                      min_nb_points=4)
         if len(sft_list[i]):
             concat_sft += sft_list[i]
 
