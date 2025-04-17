@@ -11,10 +11,8 @@ from scipy.ndimage import map_coordinates
 
 from scilpy.tractograms.uncompress import streamlines_to_voxel_coordinates
 from scilpy.tractograms.streamline_operations import \
-    resample_streamlines_step_size
-
-from scilpy.tractograms.streamline_operations import \
-    filter_streamlines_by_length, _get_point_on_line, _get_streamline_pt_index
+    (filter_streamlines_by_length, _get_point_on_line, _get_streamline_pt_index,
+     resample_streamlines_step_size)
 
 
 class CuttingStyle(Enum):
@@ -76,7 +74,6 @@ def get_head_tail_density_maps(sft, point_to_select=1, to_millimeters=False):
     - np.ndarray: A np.ndarray where voxel values represent the density of
         tail endpoints.
     """
-
     sft.to_vox()
     sft.to_corner()
 
@@ -339,7 +336,8 @@ def cut_streamlines_with_mask(
 
 
 def cut_streamlines_between_labels(
-    sft, label_data, label_ids=None, min_len=0, processes=1
+    sft, label_data, label_ids=None, min_len=0,
+    one_point_in_roi=False, no_point_in_roi=False, processes=1
 ):
     """
     Cut streamlines so their segment are going from blob #1 to blob #2 in a
@@ -359,6 +357,10 @@ def cut_streamlines_between_labels(
         in the label map will be used.
     min_len: float
         Minimum length from the resulting streamlines.
+    one_point_in_roi: bool
+        If True, one point in each ROI will be kept.
+    no_point_in_roi: bool
+        If True, no point in the ROIs will be kept.
 
     Returns
     -------
@@ -401,7 +403,8 @@ def cut_streamlines_between_labels(
     # Trim streamlines with the mask and return the new streamlines
     pool = Pool(processes)
     lists_of_new_strmls = pool.starmap(
-        _cut_streamline_with_labels, [(i, s, pt, label_data_1, label_data_2)
+        _cut_streamline_with_labels, [(i, s, pt, label_data_1, label_data_2,
+                                       one_point_in_roi, no_point_in_roi)
                                       for (i, s, pt) in zip(
                                           indices, sft.streamlines,
                                           points_to_idx)])
@@ -423,7 +426,8 @@ def cut_streamlines_between_labels(
 
 
 def _cut_streamline_with_labels(
-    idx, streamline, pts_to_idx, roi_data_1, roi_data_2
+    idx, streamline, pts_to_idx, roi_data_1, roi_data_2,
+    one_point_in_roi=False, no_point_in_roi=False
 ):
     """
     Cut streamlines so their segment are going from label mask #1 to label
@@ -442,6 +446,10 @@ def _cut_streamline_with_labels(
         Boolean array representing the region #1.
     roi_data_2: np.ndarray
         Boolean array representing the region #2.
+    one_point_in_roi: bool
+        If True, one point in each ROI will be kept.
+    no_point_in_roi: bool
+        If True, no point in the ROIs will be kept.
 
     Returns
     -------
@@ -452,7 +460,9 @@ def _cut_streamline_with_labels(
     # ROIs
     in_strl_idx, out_strl_idx = _intersects_two_rois(roi_data_1,
                                                      roi_data_2,
-                                                     idx)
+                                                     idx,
+                                                     one_point_in_roi=one_point_in_roi,
+                                                     no_point_in_roi=no_point_in_roi)
 
     cut_strl = None
     # If the streamline intersects both ROIs
@@ -465,7 +475,7 @@ def _cut_streamline_with_labels(
     return cut_strl
 
 
-def _get_longest_streamline_segment_in_roi(all_strl_indices):
+def _get_all_streamline_segments_in_roi(all_strl_indices):
     """ Get the longest segment of a streamline that is in a ROI
     using the indices of the voxels intersected by the streamline.
 
@@ -485,7 +495,8 @@ def _get_longest_streamline_segment_in_roi(all_strl_indices):
     # Find the gradient of the indices of the voxels intersecting with
     # the ROIs
     strl_indices_grad = np.gradient(all_strl_indices)
-    split_pos = np.where(strl_indices_grad != 1)[0]
+
+    split_pos = np.where(strl_indices_grad != 1)[0] + 1
 
     # Covers weird cases where there is only non consecutive indices
     if len(strl_indices_grad) == len(split_pos) + 1:
@@ -495,16 +506,68 @@ def _get_longest_streamline_segment_in_roi(all_strl_indices):
     # segments where the gradient is 1 (i.e a chunk of consecutive indices)
     strl_indices_split = np.split(all_strl_indices, split_pos)
 
-    # Find the length of each segment
-    lens_strl_indices_split = [len(x) for x in strl_indices_split]
-    # Keep the segment with the longest length
-    strl_indices = strl_indices_split[
-        np.argmax(lens_strl_indices_split)]
-
-    return strl_indices
+    return [sublist for sublist in strl_indices_split if sublist.size > 0]
 
 
-def _intersects_two_rois(roi_data_1, roi_data_2, strl_indices):
+def _get_in_and_out_strl_indices(in_strl_indices_split, out_strl_indices_split,
+                                 one_point_in_roi=False,
+                                 no_point_in_roi=False):
+    """
+    Get the first and last "voxels" of the streamline
+
+    Parameters
+    ----------
+    in_strl_indices_split: list
+        List of np.array of streamline segment indices (N)
+    out_strl_indices_split: list
+        List of np.array of streamline segment indices (N)
+    one_point_in_roi: bool
+        If True, one point in each ROI will be kept.
+    no_point_in_roi: bool
+        If True, no point in the ROIs will be kept.
+
+    Returns
+    -------
+    in_strl_idx : int
+        index of the first point of the streamline
+    out_strl_idx : int
+        index of the last point of the streamline
+    """
+
+    # One of them is None takes the first segment of the other
+    if in_strl_indices_split[0] is None:
+        return None, out_strl_indices_split[0][-1]
+    elif out_strl_indices_split[0] is None:
+        return in_strl_indices_split[-1][0], None
+    else:
+        # Check the order of the first segments
+        if min(in_strl_indices_split[0]) > min(out_strl_indices_split[0]):
+            in_strl_indices_split, out_strl_indices_split = out_strl_indices_split, in_strl_indices_split
+
+        # Get the last segment in the first ROI
+        # Get the first segment in the second ROI
+        in_strl_indices = in_strl_indices_split[-1]
+        out_strl_indices = out_strl_indices_split[0]
+
+    # If no options are set, start the streamline with the first
+    # and last point of each segment
+    if not one_point_in_roi and not no_point_in_roi:
+        in_strl_idx = in_strl_indices[0]
+        out_strl_idx = out_strl_indices[-1]
+    else:
+        if one_point_in_roi:
+            add_indice = 0
+        elif no_point_in_roi:
+            add_indice = 1
+
+        in_strl_idx = in_strl_indices[-1] + add_indice
+        out_strl_idx = out_strl_indices[0] - add_indice
+
+    return in_strl_idx, out_strl_idx
+
+
+def _intersects_two_rois(roi_data_1, roi_data_2, strl_indices,
+                         one_point_in_roi=False, no_point_in_roi=False):
     """ Find the first and last "voxels" of the streamline that are in the
     ROIs.
 
@@ -516,6 +579,10 @@ def _intersects_two_rois(roi_data_1, roi_data_2, strl_indices):
         Boolean array representing the region #2
     strl_indices: list of tuple (N, 3)
         3D indices of the voxels intersected by the streamline
+    one_point_in_roi: bool
+        If True, one point in each ROI will be kept.
+    no_point_in_roi: bool
+        If True, no point in the ROIs will be kept.
 
     Returns
     -------
@@ -540,24 +607,23 @@ def _intersects_two_rois(roi_data_1, roi_data_2, strl_indices):
         in_strl_indices = [None]
     else:
         # Get the longest segment of the streamline that is in the ROI
-        in_strl_indices = _get_longest_streamline_segment_in_roi(
+        in_strl_indices = _get_all_streamline_segments_in_roi(
             in_strl_indices)
 
     if len(out_strl_indices) == 0:
         out_strl_indices = [None]
     else:
-        out_strl_indices = _get_longest_streamline_segment_in_roi(
+        out_strl_indices = _get_all_streamline_segments_in_roi(
             out_strl_indices)
 
-    # If the entry point is after the exit point, swap them
-    if in_strl_indices[0] is not None and out_strl_indices[0] is not None \
-       and min(in_strl_indices) > min(out_strl_indices):
-        in_strl_indices, out_strl_indices = out_strl_indices, in_strl_indices
-
-    # Get the index of the first and last "voxels" of the streamline that are
-    # in the ROIs
-    in_strl_idx = in_strl_indices[0]
-    out_strl_idx = out_strl_indices[-1]
+    if in_strl_indices[0] is None and out_strl_indices[0] is None:
+        return None, None
+    else:
+        in_strl_idx, out_strl_idx = _get_in_and_out_strl_indices(
+                                        in_strl_indices,
+                                        out_strl_indices,
+                                        one_point_in_roi,
+                                        no_point_in_roi)
 
     return in_strl_idx, out_strl_idx
 
@@ -629,7 +695,6 @@ def compute_streamline_segment(orig_strl, inter_vox, in_vox_idx, out_vox_idx,
     # add the number of artificial points
     nb_points_orig_strl = out_strl_point - in_strl_point + 1
     nb_points = nb_points_orig_strl + nb_add_points
-    orig_segment_len = len(orig_strl[in_strl_point:out_strl_point + 1])
 
     # Initialize the new streamline segment
     segment = np.zeros((nb_points, 3))

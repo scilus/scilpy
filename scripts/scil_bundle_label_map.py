@@ -42,7 +42,7 @@ from scilpy.tractanalysis.distance_to_centroid import min_dist_to_centroid
 from scilpy.tractograms.streamline_and_mask_operations import \
     cut_streamlines_with_mask
 from scilpy.tractograms.streamline_operations import \
-    resample_streamlines_num_points
+    resample_streamlines_num_points, filter_streamlines_by_nb_points
 from scilpy.viz.color import get_lookup_table
 from scilpy.version import version_string
 
@@ -106,12 +106,22 @@ def main():
                           'Skipping'.format(args.in_bundle))
         sft.to_vox()
         sft.to_corner()
-        sft_list.append(sft)
+
+        # Only process sft containing more than 1 streamlines
+        if len(sft.streamlines) > 1:
+            sft_list.append(sft)
+        else:
+            logging.warning("Bundle {} contains less than 2 streamlines."
+                            " It won't be processed.".format(filename))
 
         if len(sft_list):
             if not is_header_compatible(sft_list[0], sft_list[-1]):
                 parser.error('Header of {} and {} are not compatible'.format(
                     args.in_bundles[0], filename))
+
+    if len(sft_list) == 0:
+        logging.error('No bundle to process. Exiting.')
+        return
 
     density_list = []
     binary_list = []
@@ -152,6 +162,9 @@ def main():
     for i in range(len(sft_list)):
         sft_list[i] = cut_streamlines_with_mask(sft_list[i],
                                                 binary_bundle)
+
+        sft_list[i] = filter_streamlines_by_nb_points(sft_list[i],
+                                                      min_nb_points=4)
         if len(sft_list[i]):
             concat_sft += sft_list[i]
 
