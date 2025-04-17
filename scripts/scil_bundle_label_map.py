@@ -185,7 +185,13 @@ def main():
             uniformize_bundle_sft(sft, ref_bundle=sft_centroid)
         sft.to_vox()
         sft.to_corner()
-        sft_list.append(sft)
+
+        # Only process sft containing more than 1 streamlines
+        if len(sft.streamlines) > 1:
+            sft_list.append(sft)
+        else:
+            logging.warning("Bundle {} contains less than 2 streamlines."
+                            " It won't be processed.".format(filename))
 
         if len(sft_list):
             if not is_header_compatible(sft_list[0], sft_list[-1]):
@@ -196,6 +202,10 @@ def main():
     sft_centroid.to_corner()
     logging.debug(f'Loaded {len(args.in_bundles)} bundle(s) in '
                   f'{round(time.time() - timer, 3)} seconds.')
+
+    if len(sft_list) == 0:
+        logging.error('No bundle to process. Exiting.')
+        return
 
     density_list = []
     binary_list = []
