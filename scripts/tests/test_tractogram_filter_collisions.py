@@ -50,7 +50,7 @@ def test_execution_filtering(script_runner, monkeypatch):
     assert ret.success
 
 
-def test_execution_filtering_save_colliding(script_runner, monkeypatch):
+def test_execution_filtering_out_colliding_prefix(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     init_data()
 
@@ -59,7 +59,7 @@ def test_execution_filtering_save_colliding(script_runner, monkeypatch):
 
     ret = script_runner.run('scil_tractogram_filter_collisions.py',
                             'tractogram.trk', 'diameters.txt', 'clean.trk',
-                            '--save_colliding', '-f')
+                            '--out_colliding_prefix', 'tractogram', '-f')
     assert ret.success
 
 

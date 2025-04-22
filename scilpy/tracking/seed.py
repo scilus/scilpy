@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import numpy as np
+from typing import Literal
 
 from dipy.io.stateful_tractogram import Space, Origin
 from scilpy.tracking.fibertube_utils import sample_cylinder
@@ -273,7 +274,8 @@ class FibertubeSeedGenerator(SeedGenerator):
     fibertube tracking. Generates a given number of seed within the first
     segment of a given number of fibertubes.
     """
-    def __init__(self, centerlines, diameters, nb_seeds_per_fibertube):
+    def __init__(self, centerlines, diameters, nb_seeds_per_fibertube,
+                    local_seeding: Literal['center', 'random']):
         """
         Parameters
         ----------
@@ -282,13 +284,21 @@ class FibertubeSeedGenerator(SeedGenerator):
         diameters: list
             Diameters of each fibertube
         nb_seeds_per_fibertube: int
+            Number of seeds to be generated in each fibertube origin segment.
+        local_seeding: 'center' | 'random'
+            Seeding method within a fibertube origin segment
         """
+        if local_seeding not in ['center', 'random']:
+            raise ValueError("The provided local_seeding parameter is not "
+                             "one of the expected choices: " + local_seeding)
+
         self.space = Space.VOXMM
         self.origin = Origin.NIFTI
 
         self.centerlines = centerlines
         self.diameters = diameters
         self.nb_seeds_per_fibertube = nb_seeds_per_fibertube
+        self.local_seeding = local_seeding
 
     def init_generator(self, rng_seed, numbers_to_skip):
         """
@@ -344,24 +354,30 @@ class FibertubeSeedGenerator(SeedGenerator):
     def get_next_pos(self, random_generator: np.random.Generator,
                      shuffled_indices, which_seed):
         which_fi = which_seed // self.nb_seeds_per_fibertube
+        fibertube = self.centerlines[shuffled_indices[which_fi]]
 
-        fiber = self.centerlines[shuffled_indices[which_fi]]
-        radius = self.diameters[shuffled_indices[which_fi]] / 2
+        if self.local_seeding == 'center':
+            seed = (fibertube[0] + fibertube[1]) / 2
 
-        seed = sample_cylinder(fiber[0], fiber[1], radius, 1,
-                               random_generator)[0]
+        if self.local_seeding == 'random':
+            radius = self.diameters[shuffled_indices[which_fi]] / 2
+            seed = sample_cylinder(fibertube[0], fibertube[1], radius, 1,
+                                   random_generator)[0]
 
         return seed[0], seed[1], seed[2]
 
     def get_next_n_pos(self, random_generator, shuffled_indices,
                        which_seed_start, n):
         which_fi = which_seed_start // self.nb_seeds_per_fibertube
+        fibertube = self.centerlines[shuffled_indices[which_fi]]
 
-        fiber = self.centerlines[shuffled_indices[which_fi]]
-        radius = self.diameters[shuffled_indices[which_fi]] / 2
+        if self.local_seeding == 'center':
+            seeds = [(fibertube[0] + fibertube[1]) / 2] * n
 
-        seeds = sample_cylinder(fiber[0], fiber[1], radius, n,
-                                random_generator)
+        if self.local_seeding == 'random':
+            radius = self.diameters[shuffled_indices[which_fi]] / 2
+            seeds = sample_cylinder(fibertube[0], fibertube[1], radius, n,
+                                    random_generator)
 
         return seeds
 

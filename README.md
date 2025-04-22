@@ -15,11 +15,23 @@
 **Scilpy** mainly comprises tools and utilities to quickly work with diffusion MRI. Most of the tools are based
 on or are wrappers of the [DIPY] library, and most of them will eventually be migrated to [DIPY]. Those tools implement the recommended workflows and parameters used in the lab.
 
+## Install scilpy as a user
+
+We highly encourage to install scilpy in a virtual environnement. Once done and you're in your virtual environnement you can run this command:
+
+```
+export SETUPTOOLS_USE_DISTUTILS=stdlib
+pip install scilpy
+```
+
+## Install scilpy as a developer
+
 The library is now built for Python 3.10 so be sure to create a virtual environnement for Python 3.10. If this version is not installed on your computer:
 ```
 sudo add-apt-repository ppa:deadsnakes/ppa
 sudo apt-get install python3.10 python3.10-dev python3.10-venv python3.10-minimal python3.10-tk
 ```
+Python3.11 can work, Python3.12 is not supported.
 
 Make sure your pip is up-to-date before trying to install:
 ```

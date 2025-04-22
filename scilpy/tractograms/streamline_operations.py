@@ -248,7 +248,6 @@ def cut_invalid_streamlines(sft, epsilon=0.001):
 
     copy_sft = copy.deepcopy(sft)
     indices_to_cut, _ = copy_sft.remove_invalid_streamlines()
-
     new_streamlines = []
     new_data_per_point = {}
     new_data_per_streamline = {}
@@ -261,25 +260,26 @@ def cut_invalid_streamlines(sft, epsilon=0.001):
     for ind in range(len(sft.streamlines)):
         if ind in indices_to_cut:
             # This streamline was detected as invalid
-
-            best_pos = [0, 0]  # First and last valid points of longest segment
-            cur_pos = [0, 0]   # First and last valid points of current segment
-            for pos, point in enumerate(sft.streamlines[ind]):
+            pos = 0
+            cur_seg = [0, 0]
+            best_seg = [0, 0]
+            while pos < len(sft.streamlines[ind]):
+                point = sft.streamlines[ind][pos]
+                cur_seg[1] = pos + 1
                 if (point < epsilon).any() or \
                         (point >= sft.dimensions - epsilon).any():
-                    # The coordinate is < 0 or > box. Starting new segment
-                    cur_pos = [pos+1, pos+1]
-                elif cur_pos[1] - cur_pos[0] > best_pos[1] - best_pos[0]:
+                    cur_seg = [pos+1, pos+1]
+                elif cur_seg[1] - cur_seg[0] > best_seg[1] - best_seg[0]:
                     # We found a longer good segment.
-                    best_pos = cur_pos
+                    best_seg = cur_seg.copy()
 
                 # Ready to check next point.
-                cur_pos[1] += 1
+                pos += 1
 
             # Appending the longest segment to the list of streamlines
-            if not best_pos == [0, 0]:
+            if not best_seg == [0, 0]:
                 new_streamlines.append(
-                    sft.streamlines[ind][best_pos[0]:best_pos[1]])
+                    sft.streamlines[ind][best_seg[0]:best_seg[1]])
                 cutting_counter += 1
                 for key in sft.data_per_streamline.keys():
                     new_data_per_streamline[key].append(
@@ -287,7 +287,7 @@ def cut_invalid_streamlines(sft, epsilon=0.001):
                 for key in sft.data_per_point.keys():
                     new_data_per_point[key].append(
                         sft.data_per_point[key][ind][
-                            best_pos[0]:best_pos[1]])
+                            best_seg[0]:best_seg[1]])
             else:
                 logging.warning('Streamline entirely out of the volume.')
         else:
@@ -312,21 +312,27 @@ def cut_invalid_streamlines(sft, epsilon=0.001):
     return new_sft, cutting_counter
 
 
-def remove_single_point_streamlines(sft):
+def filter_streamlines_by_nb_points(sft, min_nb_points=2):
     """
-    Remove single point streamlines from a StatefulTractogram.
+    Remove streamlines from a StatefulTractogram with fewer nb_points.
 
     Parameters
     ----------
     sft: StatefulTractogram
         The sft to remove single point streamlines from.
+    min_nb_points: int
+        Minimum number of point a streamline needs to have to kept.
 
     Returns
     -------
     new_sft : StatefulTractogram
         New object with the single point streamlines removed.
     """
-    indices = [i for i in range(len(sft)) if len(sft.streamlines[i]) > 1]
+    if min_nb_points <= 1:
+        raise ValueError("The value of min_nb_points "
+                         "should be greater than 1!")
+
+    indices = [i for i in range(len(sft)) if len(sft.streamlines[i]) > min_nb_points - 1]
     if len(indices):
         new_sft = sft[indices]
     else:
@@ -982,6 +988,7 @@ def get_streamlines_as_fixed_array(streamlines):
     Parameters
     ----------
     streamlines: list
+        The list of streamlines to convert into a fixed length array
 
     Return
     ------
@@ -991,9 +998,45 @@ def get_streamlines_as_fixed_array(streamlines):
         Single dimensional array of all the streamline lengths.
     """
     lengths = [len(streamline) for streamline in streamlines]
-    streamlines_fixed = np.ndarray((len(streamlines), max(lengths), 3))
+    streamlines_fixed = np.zeros((len(streamlines), max(lengths), 3))
     for i, f in enumerate(streamlines_fixed):
         for j, c in enumerate(streamlines[i]):
             f[j] = c
 
     return streamlines_fixed, np.array(lengths)
+
+
+def find_seed_indexes_on_streamlines(seeds, streamlines, atol=1.e-8):
+    """
+    Given a list of seeds and a corresponding list of streamlines, finds
+    the index of each seed on its respective streamline.
+
+    Parameters
+    ----------
+    seeds: list
+        List of seeds to locate on streamlines
+    streamlines: list
+        List of streamlines produced from seeds
+    atol: float
+        Absolute tolerance of the comparison between a seed and each of the
+        streamline coordinates.
+
+    Return
+    ------
+    seed_indexes: list
+        A list containing the index of each seed on its streamline.
+    """
+    seed_indexes = []
+    for seed, streamline in zip(seeds, streamlines):
+        seed_index = -1
+
+        for i, point in enumerate(streamline):
+            if np.allclose(point, seed, rtol=0, atol=atol):
+                seed_index = i
+                break
+
+        if seed_index == -1:
+            raise ValueError('A seed coordinate was not found on streamline.')
+
+        seed_indexes.append(seed_index)
+    return seed_indexes

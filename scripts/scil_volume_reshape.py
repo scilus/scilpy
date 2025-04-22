@@ -12,8 +12,11 @@ To
     - interpolate/reslice to an arbitrary voxel size, use
       scil_volume_resample.py.
     - reslice a volume to match the shape of another, use
-      scil_volume_reslice_to_reference.py.
+      scil_volume_reshape.py.
     - crop a volume to constrain the field of view, use scil_volume_crop.py.
+
+We usually use this script to reshape the freesurfer output (ex: wmparc.nii.gz) with
+your orig data (rawavg.nii.gz).
 """
 
 import argparse

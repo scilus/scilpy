@@ -304,7 +304,7 @@ def test_cut_between_labels_streamlines():
     assert np.allclose(cut_sft.streamlines._data, res.streamlines._data)
 
 
-def test_cut_between_labels_streamlines_offset():
+def test_cut_between_labels_streamlines_offset_default():
     """ Test the cut_between_labels_streamlines function. This test
     loads a bundle with 10 streamlines, and cuts it with a mask that
     shaves off the endpoints slightly.
@@ -323,6 +323,60 @@ def test_cut_between_labels_streamlines_offset():
     in_result = os.path.join(SCILPY_HOME, 'tractograms',
                              'streamline_and_mask_operations',
                              'bundle_4_cut_endpoints.tck')
+
+    res = load_tractogram(in_result, reference)
+    res.to_vox()
+    res.to_corner()
+    assert np.allclose(cut_sft.streamlines._data, res.streamlines._data)
+
+
+def test_cut_between_labels_streamlines_offset_one_pt_in_roi():
+    """ Test the cut_between_labels_streamlines function. This test
+    loads a bundle with 10 streamlines, and cuts it with only one point in
+    each roi.
+    """
+
+    sft, reference, _, head_tail_offset_rois, _ = _setup_files()
+    # head_tail_offset_rois is a mask with two rois that are not exactly at the
+    # endpoints of the bundle.
+    head_tail_labels = get_labels_from_mask(head_tail_offset_rois)
+
+    cut_sft = cut_streamlines_between_labels(sft, head_tail_labels,
+                                             one_point_in_roi=True)
+
+    cut_sft.to_vox()
+    cut_sft.to_corner()
+
+    in_result = os.path.join(SCILPY_HOME, 'tractograms',
+                             'streamline_and_mask_operations',
+                             'bundle_4_cut_endpoints_one_point_in_roi.tck')
+
+    res = load_tractogram(in_result, reference)
+    res.to_vox()
+    res.to_corner()
+    assert np.allclose(cut_sft.streamlines._data, res.streamlines._data)
+
+
+def test_cut_between_labels_streamlines_offset_no_pt_in_roi():
+    """ Test the cut_between_labels_streamlines function. This test
+    loads a bundle with 10 streamlines, and cuts it with no point
+    in the endpoint mask.
+    """
+
+    sft, reference, _, head_tail_offset_rois, _ = _setup_files()
+    # head_tail_offset_rois is a mask with two rois that are not exactly at the
+    # endpoints of the bundle.
+    head_tail_labels = get_labels_from_mask(head_tail_offset_rois)
+
+    cut_sft = cut_streamlines_between_labels(sft, head_tail_labels,
+                                             no_point_in_roi=True)
+
+    cut_sft.to_vox()
+    cut_sft.to_corner()
+
+    in_result = os.path.join(SCILPY_HOME, 'tractograms',
+                             'streamline_and_mask_operations',
+                             'bundle_4_cut_endpoints_no_point_in_roi.tck')
 
     res = load_tractogram(in_result, reference)
     res.to_vox()
