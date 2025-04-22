@@ -95,7 +95,8 @@ def _build_arg_parser():
         help="Use dipy's basic estimation of sigma.")
     g.add_argument(
         '--piesno', action='store_true',
-        help="Estimate sigma using Piesno's method.")
+        help="Estimate sigma using Piesno's method. If data is 4D, the noise "
+             "is estimated for each slice (3rd dimension).")
 
     g = p.add_argument_group("Noise estimation options: piesno and basic")
     g.add_argument(
@@ -168,8 +169,10 @@ def main():
     # Loading
     vol = nib.load(args.in_image)
     vol_data = vol.get_fdata(dtype=np.float32)
+    nb_volumes = 1 if (len(vol_data.shape) != 4 or vol_data.shape[3] == 1) \
+        else vol_data.shape[-1]
 
-    if args.piesno and (len(vol_data.shape) != 4 or vol_data.shape[3] == 1):
+    if args.piesno and nb_volumes == 1:
         parser.error("The piesno method requires 4D data.")
 
     # Denoising mask
@@ -187,7 +190,7 @@ def main():
     if args.sigma is not None:
         logging.info('User supplied noise standard deviation is {}'
                      .format(args.sigma))
-        sigma = args.sigma
+        sigma = np.ones(vol_data.shape[:3]) * args.sigma
     elif args.basic_sigma:
         if args.mask_sigma:
             mask_sigma = get_data_as_mask(nib.load(args.mask_sigma))
@@ -205,7 +208,11 @@ def main():
             "The estimated noise for each volume is: {}".format(sigma))
         sigma = np.median(sigma)  # Managing 4D data.
         logging.info('The median noise is: {}'.format(sigma))
+
+        # Broadcast the single value to a whole 3D volume for nlmeans
+        sigma = np.ones(vol_data.shape) * sigma
     else:  # --piesno
+        logging.info("Computing sigma: one value per slice.")
         sigma, mask_noise = estimate_piesno_sigma(vol_data, args.number_coils)
 
         if args.save_piesno_mask:
@@ -215,8 +222,8 @@ def main():
                                      header=vol.header),
                      args.save_piesno_mask)
 
-    # Broadcast the single value to a whole 3D volume for nlmeans
-    sigma = np.ones(vol_data.shape[:3]) * sigma
+        # Broadcast the values per slice to a whole 3D volume for nlmeans
+        sigma = np.ones(vol_data.shape[:3]) * sigma[None, None, :]
 
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", category=DeprecationWarning)
