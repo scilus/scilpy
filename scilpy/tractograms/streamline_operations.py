@@ -268,26 +268,28 @@ def cut_invalid_streamlines(sft, epsilon=0.001):
             blobs, _ = ndi.label(in_vol)
 
             # Get the largest blob
-            largest_blob = np.argmax(np.bincount(blobs.ravel())[1:]) + 1
+            bins = np.bincount(blobs.ravel())[1:]
+            if len(bins) > 0:
+                largest_blob = np.argmax(bins) + 1
 
-            # Get the indices of the points in the largest blob
-            ind_in_vol = np.where(blobs == largest_blob)[0]
-            # If there are points in the volume
-            if len(ind_in_vol):
-                # Get the streamline segment that is within the volume
-                new_streamline = sft.streamlines[ind][ind_in_vol]
-                new_streamlines.append(new_streamline)
-
-                for key in sft.data_per_streamline.keys():
-                    new_data_per_streamline[key].append(
-                        sft.data_per_streamline[key][ind])
-                for key in sft.data_per_point.keys():
-                    new_data_per_point[key].append(
-                        sft.data_per_point[key][ind][
-                            ind_in_vol])
-                cutting_counter += 1
+                # Get the indices of the points in the largest blob
+                ind_in_vol = np.where(blobs == largest_blob)[0]
             else:
                 logging.warning('Streamline entirely out of the volume.')
+                continue
+
+            # Get the streamline segment that is within the volume
+            new_streamline = sft.streamlines[ind][ind_in_vol]
+            new_streamlines.append(new_streamline)
+
+            for key in sft.data_per_streamline.keys():
+                new_data_per_streamline[key].append(
+                    sft.data_per_streamline[key][ind])
+            for key in sft.data_per_point.keys():
+                new_data_per_point[key].append(
+                    sft.data_per_point[key][ind][
+                        ind_in_vol])
+            cutting_counter += 1
         else:
             # No reason to try to cut if all points are within the volume
             new_streamlines.append(sft.streamlines[ind])
