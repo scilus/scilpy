@@ -46,6 +46,11 @@ def _build_arg_parser():
                    help='Output endpoints map head filename.')
     p.add_argument('endpoints_map_tail',
                    help='Output endpoints map tail filename.')
+    p.add_argument('--out_json',
+                   help='Path of the output json file. Json file will contain '
+                        'the number of streamlines in each endpoint map. '
+                        'If not specified, no json file will be created.',
+                   default=None)
     p.add_argument('--swap', action='store_true',
                    help='Swap head<->tail convention. '
                         'Can be useful when the reference is not in RAS.')
@@ -128,7 +133,9 @@ def main():
         }
     }
 
-    print(json.dumps(stats, indent=args.indent))
+    with open(args.out_json, 'w') as outfile:
+        json.dump(stats, outfile,
+                  indent=args.indent, sort_keys=args.sort_keys)
 
 
 if __name__ == '__main__':
