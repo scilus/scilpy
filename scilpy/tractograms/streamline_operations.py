@@ -246,6 +246,7 @@ def cut_invalid_streamlines(sft, epsilon=0.001):
 
     copy_sft = copy.deepcopy(sft)
     indices_to_cut, _ = copy_sft.remove_invalid_streamlines()
+
     new_streamlines = []
     new_data_per_point = {}
     new_data_per_streamline = {}
@@ -257,35 +258,34 @@ def cut_invalid_streamlines(sft, epsilon=0.001):
     cutting_counter = 0
     for ind in range(len(sft.streamlines)):
         if ind in indices_to_cut:
-            # This streamline was detected as invalid
-            pos = 0
-            cur_seg = [0, 0]
-            best_seg = [0, 0]
-            while pos < len(sft.streamlines[ind]):
-                point = sft.streamlines[ind][pos]
-                cur_seg[1] = pos + 1
-                if (point < epsilon).any() or \
-                        (point >= sft.dimensions - epsilon).any():
-                    cur_seg = [pos+1, pos+1]
-                elif cur_seg[1] - cur_seg[0] > best_seg[1] - best_seg[0]:
-                    # We found a longer good segment.
-                    best_seg = cur_seg.copy()
 
-                # Ready to check next point.
-                pos += 1
+            in_vol = np.logical_and(
+                sft.streamlines[ind] >= epsilon,
+                sft.streamlines[ind] < sft.dimensions - epsilon).all(axis=1)
 
-            # Appending the longest segment to the list of streamlines
-            if not best_seg == [0, 0]:
-                new_streamlines.append(
-                    sft.streamlines[ind][best_seg[0]:best_seg[1]])
-                cutting_counter += 1
+            # Get segments in the streamline that are within the volume using
+            # ndi.label
+            blobs, _ = ndi.label(in_vol)
+
+            # Get the largest blob
+            largest_blob = np.argmax(np.bincount(blobs.ravel())[1:]) + 1
+
+            # Get the indices of the points in the largest blob
+            ind_in_vol = np.where(blobs == largest_blob)[0]
+            # If there are points in the volume
+            if len(ind_in_vol):
+                # Get the streamline segment that is within the volume
+                new_streamline = sft.streamlines[ind][ind_in_vol]
+                new_streamlines.append(new_streamline)
+
                 for key in sft.data_per_streamline.keys():
                     new_data_per_streamline[key].append(
                         sft.data_per_streamline[key][ind])
                 for key in sft.data_per_point.keys():
                     new_data_per_point[key].append(
                         sft.data_per_point[key][ind][
-                            best_seg[0]:best_seg[1]])
+                            ind_in_vol])
+                cutting_counter += 1
             else:
                 logging.warning('Streamline entirely out of the volume.')
         else:
@@ -296,6 +296,7 @@ def cut_invalid_streamlines(sft, epsilon=0.001):
                     sft.data_per_streamline[key][ind])
             for key in sft.data_per_point.keys():
                 new_data_per_point[key].append(sft.data_per_point[key][ind])
+
     new_sft = StatefulTractogram.from_sft(
         new_streamlines, sft, data_per_streamline=new_data_per_streamline,
         data_per_point=new_data_per_point)
@@ -306,31 +307,24 @@ def cut_invalid_streamlines(sft, epsilon=0.001):
 
     new_sft.to_space(space)
     new_sft.to_origin(origin)
-
     return new_sft, cutting_counter
 
 
-def filter_streamlines_by_nb_points(sft, min_nb_points=2):
+def remove_single_point_streamlines(sft):
     """
-    Remove streamlines from a StatefulTractogram with fewer nb_points.
+    Remove single point streamlines from a StatefulTractogram.
 
     Parameters
     ----------
     sft: StatefulTractogram
         The sft to remove single point streamlines from.
-    min_nb_points: int
-        Minimum number of point a streamline needs to have to kept.
 
     Returns
     -------
     new_sft : StatefulTractogram
         New object with the single point streamlines removed.
     """
-    if min_nb_points <= 1:
-        raise ValueError("The value of min_nb_points "
-                         "should be greater than 1!")
-
-    indices = [i for i in range(len(sft)) if len(sft.streamlines[i]) > min_nb_points - 1]
+    indices = [i for i in range(len(sft)) if len(sft.streamlines[i]) > 1]
     if len(indices):
         new_sft = sft[indices]
     else:
@@ -986,7 +980,6 @@ def get_streamlines_as_fixed_array(streamlines):
     Parameters
     ----------
     streamlines: list
-        The list of streamlines to convert into a fixed length array
 
     Return
     ------
@@ -996,45 +989,9 @@ def get_streamlines_as_fixed_array(streamlines):
         Single dimensional array of all the streamline lengths.
     """
     lengths = [len(streamline) for streamline in streamlines]
-    streamlines_fixed = np.zeros((len(streamlines), max(lengths), 3))
+    streamlines_fixed = np.ndarray((len(streamlines), max(lengths), 3))
     for i, f in enumerate(streamlines_fixed):
         for j, c in enumerate(streamlines[i]):
             f[j] = c
 
     return streamlines_fixed, np.array(lengths)
-
-
-def find_seed_indexes_on_streamlines(seeds, streamlines, atol=1.e-8):
-    """
-    Given a list of seeds and a corresponding list of streamlines, finds
-    the index of each seed on its respective streamline.
-
-    Parameters
-    ----------
-    seeds: list
-        List of seeds to locate on streamlines
-    streamlines: list
-        List of streamlines produced from seeds
-    atol: float
-        Absolute tolerance of the comparison between a seed and each of the
-        streamline coordinates.
-
-    Return
-    ------
-    seed_indexes: list
-        A list containing the index of each seed on its streamline.
-    """
-    seed_indexes = []
-    for seed, streamline in zip(seeds, streamlines):
-        seed_index = -1
-
-        for i, point in enumerate(streamline):
-            if np.allclose(point, seed, rtol=0, atol=atol):
-                seed_index = i
-                break
-
-        if seed_index == -1:
-            raise ValueError('A seed coordinate was not found on streamline.')
-
-        seed_indexes.append(seed_index)
-    return seed_indexes
