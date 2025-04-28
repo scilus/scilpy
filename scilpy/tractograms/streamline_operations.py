@@ -330,7 +330,8 @@ def filter_streamlines_by_nb_points(sft, min_nb_points=2):
         raise ValueError("The value of min_nb_points "
                          "should be greater than 1!")
 
-    indices = [i for i in range(len(sft)) if len(sft.streamlines[i]) > min_nb_points - 1]
+    indices = [i for i in range(len(sft)) if len(
+        sft.streamlines[i]) > min_nb_points - 1]
     if len(indices):
         new_sft = sft[indices]
     else:
