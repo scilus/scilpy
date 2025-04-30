@@ -62,7 +62,8 @@ from scilpy.io.utils import (add_default_screenshot_args,
                              add_verbose_arg, assert_headers_compatible,
                              assert_inputs_exist,
                              assert_overlay_colors,
-                             get_default_screenshotting_data)
+                             get_default_screenshotting_data,
+                             assert_outputs_exist, add_overwrite_arg)
 from scilpy.image.utils import check_slice_indices
 from scilpy.utils.spatial import get_axis_index
 from scilpy.version import version_string
@@ -96,7 +97,7 @@ def _build_arg_parser():
     add_overlays_screenshot_args(xg, 0.5, og)
     add_peaks_screenshot_args(xg, rendering_parsing_group=pg)
     add_verbose_arg(p)
-
+    add_overwrite_arg(p)
     return p
 
 
@@ -141,6 +142,9 @@ def main():
     else:
         ax_idx = get_axis_index(args.axis)
         slice_ids = np.arange(vol_img.shape[ax_idx])
+    name, ext = splitext(args.out_fname)
+    names = ["{}_slice_{}{}".format(name, s, ext) for s in slice_ids]
+    assert_outputs_exist(parser, args, names)
 
     # Generate the image slices
     volume_screenhots_generator = screenshot_volume(vol_img, args.axis,
@@ -182,11 +186,10 @@ def main():
             screenshot_peaks, ([peaks, args.axis, slice_ids,
                                 args.size] for peaks in peaks_imgs)))
 
-    name, ext = splitext(args.out_fname)
-    names = ["{}_slice_{}{}".format(name, s, ext) for s in slice_ids]
     sides_labels = ["P", "A"] if args.axis == "sagittal" else ["L", "R"]
 
     # Compose and save each slice
+    logging.info("Preparing all {} slices: ".format(len(slice_ids)))
     for volume, trans, label, contour, peaks, name, slice_id in zip_longest(
             volume_screenhots_generator,
             transparency_screenshots_generator,
@@ -197,6 +200,7 @@ def main():
             slice_ids,
             fillvalue=None):
 
+        logging.info("  - Slice {}".format(slice_id))
         img = compose_image(volume, args.size, slice_id,
                             transparency_scene=trans,
                             image_alpha=args.volume_opacity,
