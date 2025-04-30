@@ -16,11 +16,9 @@ import nibabel as nib
 
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg, add_reference_arg,
-                             assert_inputs_exist, add_verbose_arg, 
+                             assert_inputs_exist, add_verbose_arg,
                              assert_outputs_exist)
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
-from scilpy.tractograms.streamline_operations import \
-    resample_streamlines_num_points
 from scilpy.version import version_string
 
 
@@ -81,7 +79,8 @@ def main():
                 endpoint_voxel = np.floor(s[p, :]).astype(int)
                 streamline_count[tuple(endpoint_voxel)] += 1
     else:
-        streamline_count = compute_tract_counts_map(sft.streamlines, dimensions)
+        streamline_count = compute_tract_counts_map(sft.streamlines,
+                                                    dimensions)
 
     # Saving
     dtype_to_use = np.int32
