@@ -14,7 +14,8 @@ from scilpy.viz.screenshot import compose_image
 
 def plot_each_shell(ms, centroids, plot_sym_vecs=True, use_sphere=True,
                     same_color=False, rad=0.025, opacity=1.0, ofile=None,
-                    ores=(300, 300), titles=None):
+                    ores=(300, 300), titles=None): # pragma: no cover
+    # (Function ignored from coverage statistics)
     """
     Plot each shell
 
@@ -94,7 +95,8 @@ def plot_each_shell(ms, centroids, plot_sym_vecs=True, use_sphere=True,
 
 def plot_proj_shell(ms, use_sym=True, use_sphere=True, same_color=False,
                     rad=0.025, opacity=1.0, ofile=None, ores=(300, 300),
-                    title=None):
+                    title=None): # pragma: no cover
+    # (Function ignored from coverage statistics)
     """
     Plot each shell
 
@@ -177,7 +179,7 @@ def build_ms_from_shell_idx(bvecs, shell_idx):
     """
 
     S = len(set(shell_idx))
-    if (-1 in set(shell_idx)):
+    if -1 in set(shell_idx):
         S -= 1
 
     ms = []
