@@ -371,7 +371,7 @@ def main():
                                     args.win_dims)
         _mask_arr = None
         if mask_scene:
-            _mask_arr = any2grayscale(next(snapshots))
+            _mask_arr = [any2grayscale(next(snapshots))]
 
         image = compose_image(next(snapshots),
                               args.win_dims,

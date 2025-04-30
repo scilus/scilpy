@@ -284,8 +284,9 @@ def snapshot_scenes(scenes, window_size):
 
     Returns
     -------
-    snapshots : generator of 2d np.ndarray
+    snapshots : generator of 2d np.ndarray.
         Generator of snapshots.
+        The resulting numpy arrays are 3D (RGB 2D): (dimx, dimy, 3).
     """
 
     for scene in scenes:

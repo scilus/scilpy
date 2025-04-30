@@ -30,9 +30,9 @@ def test_run(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_fodf = os.path.join(SCILPY_HOME, 'tracking', 'fodf.nii.gz')
     in_mask = os.path.join(SCILPY_HOME, 'tracking', 'seeding_mask.nii.gz')
-
+    out_name = os.path.join(tmp_dir.name, 'out.png')
     ret = script_runner.run('scil_viz_fodf.py', in_fodf, '--silent',
                             '--in_transparency_mask', in_mask,
-                            '--output', tmp_dir.name)
+                            '--output', out_name)
 
     assert ret.success

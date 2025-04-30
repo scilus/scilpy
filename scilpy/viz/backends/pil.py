@@ -257,8 +257,8 @@ def draw_2d_array_at_position(canvas, array_2d, size,
         Labelmap overlay scene data to be drawn.
     labelmap_overlay_alpha : float
         Alpha value for labelmap overlay in range [0, 1].
-    overlays : ndarray
-        Overlays scene data to be drawn.
+    overlays : list[ndarray], optional
+        Overlays scene data to be drawn. List of 2D arrays.
     overlays_alpha : float
         Alpha value for the overlays in range [0, 1].
     overlays_colors : list, optional
@@ -268,7 +268,6 @@ def draw_2d_array_at_position(canvas, array_2d, size,
     peak_overlay_alpha : float
         Alpha value for peaks overlay in range [0, 1].
     """
-
     image = create_image_from_2d_array(array_2d, size, "RGB")
 
     _transparency = None
@@ -302,7 +301,8 @@ def draw_2d_array_at_position(canvas, array_2d, size,
             overlays_colors = generate_n_colors(len(overlays))
 
         for img, color in zip(overlays, overlays_colors):
-            overlay = create_image_from_2d_array(img * color, size, "RGB")
+            overlay = create_image_from_2d_array(img[:, :, None] * color,
+                                                 size, "RGB")
 
             # Create transparency mask over the mask overlay image
             overlay_transparency = create_image_from_2d_array(
