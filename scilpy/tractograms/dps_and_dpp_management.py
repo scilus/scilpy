@@ -1,84 +1,101 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 
-from scilpy.viz.color import clip_and_normalize_data_for_cmap
+from nibabel.streamlines import ArraySequence
 
 
-def add_data_as_color_dpp(sft, cmap, data, clip_outliers=False, min_range=None,
-                          max_range=None, min_cmap=None, max_cmap=None,
-                          log=False, LUT=None):
+def get_data_as_arraysequence(data, ref_sft, per_point=False):
+    """ Get data in the same shape as a reference StatefulTractogram's
+    streamlines, so it can be used to set data_per_point or
+    data_per_streamline. The data may represent one value per streamline or one
+    value per point. The function will return an ArraySequence with the same
+    shape as the streamlines.
+
+    Parameters
+    ----------
+    data: np.ndarray
+        The data to convert to ArraySequence.
+    ref_sft: StatefulTractogram
+        The reference StatefulTractogram containing the streamlines.
+    per_point: bool, optional
+        Return one value per point if True, one value per streamline otherwise.
+
+    Returns
+    -------
+    data_as_arraysequence: ArraySequence
+        The data as an ArraySequence.
     """
-    Normalizes data between 0 and 1 for an easier management with colormaps.
-    The real lower bound and upperbound are returned.
+    # Check if data has the right shape, either one value per streamline or one
+    # value per point.
+    if data.shape[0] == ref_sft._get_streamline_count():
+        # Two consective if statements to handle both 1D and 2D arrays
+        # and turn them into lists of lists of lists.
+        # Check if the data is a vector or a scalar.
+        if len(data.shape) == 1:
+            data = data[:, None]
+        # ArraySequence expects a list of lists of lists, so we need to add
+        # an extra dimension.
+        if len(data.shape) == 2:
+            data = data[:, None, :]
 
-    Data can be clipped to (min_range, max_range) before normalization.
-    Alternatively, data can be kept as is, but the colormap be fixed to
-    (min_cmap, max_cmap).
+        # Repeat the data for each point in the streamline.
+        if per_point:
+            data = [
+                [data[i]]*len(s) for i, s in enumerate(ref_sft.streamlines)]
+
+        data_as_arraysequence = ArraySequence(data)
+
+    elif data.shape[0] == ref_sft._get_point_count():
+        # Split the data into a list of arrays, one per streamline.
+        # np.split takes the indices at which to split the array, so use
+        # np.cumsum to get the indices of the end of each streamline.
+        data_split = np.split(
+            data, np.cumsum(ref_sft.streamlines._lengths)[:-1])
+        # Create an ArraySequence from the list of arrays.
+        data_as_arraysequence = ArraySequence(data_split)
+    else:
+        raise ValueError("Data has the wrong shape. Expecting either one value"
+                         " per streamline ({}) or one per point ({}) but got "
+                         "{}."
+                         .format(len(ref_sft), len(ref_sft.streamlines._data),
+                                 data.shape[0]))
+    return data_as_arraysequence
+
+
+def add_data_as_color_dpp(sft, color):
+    """
+    Ensures the color data is in the right shape and adds it to the
+    data_per_point of the StatefulTractogram. The color data must have one
+    color per point. The function will return the StatefulTractogram with the
+    color data added.
 
     Parameters
     ----------
     sft: StatefulTractogram
         The tractogram
-    cmap: plt colormap
-        The colormap. Ex, see scilpy.viz.utils.get_colormap().
-    data: np.ndarray or list[list] or list[np.ndarray]
-        The data to convert to color. Expecting one value per point to add as
-        dpp. If instead data has one value per streamline, setting the same
-        color to all points of the streamline (as dpp).
-        Either a vector numpy array (all streamlines concatenated), or a list
-        of arrays per streamline.
-    clip_outliers: bool
-        See description of the following parameters in
-        clip_and_normalize_data_for_cmap.
-    min_range: float
-        Data values below min_range will be clipped.
-    max_range: float
-        Data values above max_range will be clipped.
-    min_cmap: float
-        Minimum value of the colormap. Most useful when min_range and max_range
-        are not set; to fix the colormap range without modifying the data.
-    max_cmap: float
-        Maximum value of the colormap. Idem.
-    log: bool
-        If True, apply a logarithmic scale to the data.
-    LUT: np.ndarray
-        If set, replaces the data values by the Look-Up Table values. In order,
-        the first value of the LUT is set everywhere where data==1, etc.
+    color: ArraySequence
+        The color data.
 
     Returns
     -------
     sft: StatefulTractogram
         The tractogram, with dpp 'color' added.
-    lbound: float
-        The lower bound of the associated colormap.
-    ubound: float
-        The upper bound of the associated colormap.
     """
-    # If data is a list of lists, merge.
-    if isinstance(data[0], list) or isinstance(data[0], np.ndarray):
-        data = np.hstack(data)
+    if color.total_nb_rows != sft._get_point_count():
+        raise ValueError("Colors do not have the right shape. Expecting one "
+                         "color per point ({}) but got {}.".format(
+                             sft._get_point_count(),
+                             color.total_nb_rows))
 
-    values, lbound, ubound = clip_and_normalize_data_for_cmap(
-        data, clip_outliers, min_range, max_range,
-        min_cmap, max_cmap, log, LUT)
+    # Check if the color data is in the right shape (tuple of 3 values).
+    if (type(color.common_shape) is not tuple or
+        len(color.common_shape) < 1 or
+            color.common_shape[-1] != 3):
+        raise ValueError("Colors do not have the right shape. Expecting RGB "
+                         "colors but got shape {}.".format(color.common_shape))
 
-    # Important: values are in float after clip_and_normalize.
-    color = np.asarray(cmap(values)[:, 0:3]) * 255
-    if len(color) == len(sft):
-        tmp = [np.tile([color[i][0], color[i][1], color[i][2]],
-                       (len(sft.streamlines[i]), 1))
-               for i in range(len(sft.streamlines))]
-        sft.data_per_point['color'] = tmp
-    elif len(color) == len(sft.streamlines._data):
-        sft.data_per_point['color'] = sft.streamlines
-        sft.data_per_point['color']._data = color
-    else:
-        raise ValueError("Error in the code... Colors do not have the right "
-                         "shape. Expecting either one color per streamline "
-                         "({}) or one per point ({}) but got {}."
-                         .format(len(sft), len(sft.streamlines._data),
-                                 len(color)))
-    return sft, lbound, ubound
+    sft.data_per_point['color'] = color
+    return sft
 
 
 def convert_dps_to_dpp(sft, keys, overwrite=False):
