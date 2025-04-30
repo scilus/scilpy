@@ -24,7 +24,7 @@ from scilpy.tractograms.streamline_operations import (
     smooth_line_spline,
     parallel_transport_streamline,
     remove_overlapping_points_streamlines,
-    remove_single_point_streamlines)
+    filter_streamlines_by_nb_points)
 from scilpy.tractograms.tractogram_operations import concatenate_sft
 
 fetch_data(get_testing_files_dict(), keys=['tractograms.zip'])
@@ -87,29 +87,74 @@ def test_compress_sft():
 
 
 def test_cut_invalid_streamlines():
-    sft = load_tractogram(in_long_sft, in_ref)
+    sft = load_tractogram(in_short_sft, in_ref)
     sft.to_vox()
 
     cut, nb = cut_invalid_streamlines(sft)
     assert len(cut) == len(sft)
     assert nb == 0
 
-    # Faking an invalid streamline. Currently, volume is 64x64x3
+    # Faking an invalid streamline at all positions.
+    # Currently, volume is 64x64x3
+    remaining_streamlines = [11, 10, 9, 8, 7, 6, 6, 7, 8, 9, 10, 11]
+    for index, ind_cut in enumerate(sft.streamlines[0]):
+        sft = load_tractogram(in_short_sft, in_ref)
+        sft.streamlines[0][index, :] = [65.0, 65.0, 2.0]
+        cut, nb = cut_invalid_streamlines(sft)
+        assert len(cut) == len(sft)
+        assert np.all([len(sc) <= len(s) for s, sc in
+                       zip(sft.streamlines, cut.streamlines)])
+        assert len(cut.streamlines[0]) == remaining_streamlines[index]
+        assert nb == 1
+
+    # Faking an invalid streamline at position 0 and -1
+    sft = load_tractogram(in_short_sft, in_ref)
+    sft.streamlines[0][0, :] = [65.0, 65.0, 2.0]
     sft.streamlines[0][-1, :] = [65.0, 65.0, 2.0]
     cut, nb = cut_invalid_streamlines(sft)
     assert len(cut) == len(sft)
     assert np.all([len(sc) <= len(s) for s, sc in
                    zip(sft.streamlines, cut.streamlines)])
-    assert len(cut.streamlines[0]) == len(sft.streamlines[0]) - 1
+    assert len(cut.streamlines[0]) == len(sft.streamlines[0]) - 2
+    assert nb == 1
+
+    # Faking an invalid streamline at position 2 and 2
+    sft = load_tractogram(in_short_sft, in_ref)
+    sft.streamlines[0][2, :] = [65.0, 65.0, 2.0]
+    sft.streamlines[0][9, :] = [65.0, 65.0, 2.0]
+    cut, nb = cut_invalid_streamlines(sft)
+    assert len(cut) == len(sft)
+    assert np.all([len(sc) <= len(s) for s, sc in
+                   zip(sft.streamlines, cut.streamlines)])
+    assert len(cut.streamlines[0]) == 6
     assert nb == 1
 
 
-def test_remove_single_point_streamlines():
+def test_filter_streamlines_by_min_nb_points_2():
     sft = load_tractogram(in_short_sft, in_ref)
 
     # Adding a one-point streamline
     sft.streamlines.append([[7, 7, 7]])
-    new_sft = remove_single_point_streamlines(sft)
+    new_sft = filter_streamlines_by_nb_points(sft, min_nb_points=2)
+    assert len(new_sft) == len(sft) - 1
+
+
+def test_filter_streamlines_min_by_nb_points_5():
+    sft = load_tractogram(in_short_sft, in_ref)
+
+    # Adding a one-point streamline
+    sft.streamlines.append([[7, 7, 7],
+                            [7, 7, 7],
+                            [7, 7, 7],
+                            [7, 7, 7],
+                            [7, 7, 7], ])
+
+    sft.streamlines.append([[7, 7, 7],
+                            [7, 7, 7],
+                            [7, 7, 7],
+                            [7, 7, 7], ])
+
+    new_sft = filter_streamlines_by_nb_points(sft, min_nb_points=5)
     assert len(new_sft) == len(sft) - 1
 
 
