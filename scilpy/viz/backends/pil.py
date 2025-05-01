@@ -46,7 +46,7 @@ def create_image_from_2d_array(array_2d, size, mode=None,
     Parameters
     ----------
     array_2d : ndarray
-        2d array data.
+        2d array data, or 3d (RGB) with [dimx, dimy, 3].
     size : array-like
         Image size (pixels) (width, height).
     mode : str, optional
@@ -301,8 +301,12 @@ def draw_2d_array_at_position(canvas, array_2d, size,
             overlays_colors = generate_n_colors(len(overlays))
 
         for img, color in zip(overlays, overlays_colors):
-            overlay = create_image_from_2d_array(img[:, :, None] * color,
-                                                 size, "RGB")
+            if len(img.shape) == 2:
+                overlay = create_image_from_2d_array(img[:, :, None] * color,
+                                                     size, "RGB")
+            else:
+                overlay = create_image_from_2d_array(img * color,
+                                                     size, "RGB")
 
             # Create transparency mask over the mask overlay image
             overlay_transparency = create_image_from_2d_array(
