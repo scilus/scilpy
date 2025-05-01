@@ -6,6 +6,9 @@ assumed to be saved from scil_fodf_to_bingham.py.
 
 Given an image of Bingham coefficients, this script displays a slice in a
 given orientation.
+
+Note. The interactive visualization is not verified by tests. If you encounter
+any bug, please report it to our team or use --silent.
 """
 
 import argparse
