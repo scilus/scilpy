@@ -52,7 +52,8 @@ def generate_n_colors(n, generator=colormap.distinguishable_colormap,
     n : int
         Number of colors to generate.
     generator : function
-        Color generating function f(n, exclude=[...]) -> [color, color, ...],
+        Color generating function
+        f(nb_colors=n, exclude=[...]) -> [color, color, ...],
         accepting an optional list of colors to exclude from the generation.
     pick_from_base10 : bool
         When True, start picking from the base 10 colors before using
@@ -73,7 +74,8 @@ def generate_n_colors(n, generator=colormap.distinguishable_colormap,
 
     if n - len(_colors):
         _colors = np.concatenate(
-            (_colors, generator(n - len(_colors), exclude=_colors)), axis=0)
+            (_colors, generator(nb_colors=n - len(_colors), exclude=_colors)),
+            axis=0)
 
     if shuffle:
         np.random.shuffle(_colors)
