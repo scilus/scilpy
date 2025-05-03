@@ -297,7 +297,8 @@ def cut_streamlines_with_mask(sft, mask,
         sft.streamlines,
         return_mapping=True
     )
-
+    print(len(sft.streamlines[0]), len(points_to_idx[0]))
+    print(sft.streamlines[0])
     if len(sft.streamlines[0]) != len(points_to_idx[0]):
         raise ValueError("Error in the streamlines_to_voxel_coordinates "
                          "function. Try running the "
