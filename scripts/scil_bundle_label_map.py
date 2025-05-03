@@ -187,7 +187,6 @@ def main():
     sft_list = []
     for filename in args.in_bundles:
         sft = load_tractogram_with_reference(parser, args, filename)
-        print(len(sft))
         if not len(sft.streamlines):
             raise IOError(f'Empty bundle file {args.in_bundles}. Skipping.')
         if not args.skip_uniformize:
