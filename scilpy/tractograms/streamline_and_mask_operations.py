@@ -297,8 +297,6 @@ def cut_streamlines_with_mask(sft, mask,
         sft.streamlines,
         return_mapping=True
     )
-    print(len(sft.streamlines[0]), len(points_to_idx[0]))
-    print(sft.streamlines[0])
     if len(sft.streamlines[0]) != len(points_to_idx[0]):
         raise ValueError("Error in the streamlines_to_voxel_coordinates "
                          "function. Try running the "
@@ -668,40 +666,49 @@ def compute_streamline_segment(orig_strl, inter_vox, in_vox_idx, out_vox_idx,
         """
         return np.argmin(np.abs(arr - val))
 
-    trimmed_points = np.trim_zeros(points_to_indices, 'b')
-
     # Check if the ROI contains a real streamline point at
     # the beginning of the streamline
-    in_strl_point = _get_streamline_pt_index(trimmed_points,
+    in_strl_point = _get_streamline_pt_index(points_to_indices,
                                              in_vox_idx)
 
     # If not, find the next real streamline point
     if in_strl_point is None:
         # Find the index of the next real streamline point
-        in_strl_point = search(trimmed_points, in_vox_idx)
+        in_strl_point = search(points_to_indices, in_vox_idx)
 
-        # Generate an artificial point on the line between the previous
-        # real point and the next real point
-        additional_start_pt = _get_point_on_line(orig_strl[in_strl_point],
-                                                 orig_strl[max(in_strl_point - 1, 0)],
-                                                 inter_vox[in_vox_idx])
-        nb_add_points += 1
+        if in_strl_point == 0:
+            # If the entry point is the first point of the streamline,
+            # don't generate a new point
+            additional_start_pt = None
+        else:
+
+            # Generate an artificial point on the line between the previous
+            # real point and the next real point
+            additional_start_pt = _get_point_on_line(orig_strl[in_strl_point - 1],
+                                                     orig_strl[in_strl_point],
+                                                     inter_vox[in_vox_idx])
+            nb_add_points += 1
 
     # Check if the ROI contains a real streamline point at
     # the end of the streamline
-    out_strl_point = _get_streamline_pt_index(trimmed_points,
+    out_strl_point = _get_streamline_pt_index(points_to_indices,
                                               out_vox_idx,
                                               from_start=False)
     # If not, find the previous real streamline point
     if out_strl_point is None:
         # Find the index of the previous real streamline point
-        out_strl_point = search(trimmed_points, out_vox_idx)
-        # Generate an artificial point on the line between the previous
-        # real point and the next real point
-        additional_exit_pt = _get_point_on_line(orig_strl[out_strl_point],
-                                                orig_strl[min(out_strl_point + 1, len(orig_strl) - 1)],
-                                                inter_vox[out_vox_idx])
-        nb_add_points += 1
+        out_strl_point = search(points_to_indices, out_vox_idx)
+        if out_strl_point == len(points_to_indices) - 1:
+            # If the exit point is the last point of the streamline,
+            # don't generate a new point
+            additional_exit_pt = None
+        else:
+            # Generate an artificial point on the line between the previous
+            # real point and the next real point
+            additional_exit_pt = _get_point_on_line(orig_strl[out_strl_point],
+                                                    orig_strl[out_strl_point + 1],
+                                                    inter_vox[out_vox_idx])
+            nb_add_points += 1
 
     # Swap the points if the entry point is after the exit point
     if in_strl_point > out_strl_point:
@@ -709,70 +716,20 @@ def compute_streamline_segment(orig_strl, inter_vox, in_vox_idx, out_vox_idx,
         additional_start_pt, additional_exit_pt = \
             additional_exit_pt, additional_start_pt
 
-    # Compute the number of points in the cut streamline and
-    # add the number of artificial points
-    if out_strl_point == len(orig_strl):
-        nb_points_orig_strl = out_strl_point - in_strl_point
-    else:
-        nb_points_orig_strl = out_strl_point - in_strl_point + 1
-    nb_points = nb_points_orig_strl + nb_add_points
-
     # Set the segment as the part of the original streamline that is
     # in the ROI
-    # Initialize the new streamline segment
-    try:
-        segment = np.zeros((nb_points, 3))
-    except ValueError as e:
-        print("orig_strl.shape: ", orig_strl.shape)
-        print("in_vox_idx", in_vox_idx)
-        print("out_vox_idx", out_vox_idx)
-        print("in_strl_point: ", in_strl_point)
-        print("out_strl_point: ", out_strl_point)
-        print("nb_points_orig_strl: ", nb_points_orig_strl)
-        # print("offset: ", offset)
-        print("nb_points: ", nb_points)
-        print("nb_add_points: ", nb_add_points)
-        # print("segment.shape: ", segment.shape)
-        print("points_to_indices.shape: ", points_to_indices.shape)
-        print("points_to_indices: ", points_to_indices)
-        raise e
-
-    print("orig_strl.shape: ", orig_strl.shape)
-    print("in_vox_idx", in_vox_idx)
-    print("out_vox_idx", out_vox_idx)
-    print("in_strl_point: ", in_strl_point)
-    print("out_strl_point: ", out_strl_point)
-    print("nb_points_orig_strl: ", nb_points_orig_strl)
-    # print("offset: ", offset)
-    print("nb_points: ", nb_points)
-    print("nb_add_points: ", nb_add_points)
-    # print("segment.shape: ", segment.shape)
-    print("points_to_indices.shape: ", points_to_indices.shape)
-    print("points_to_indices: ", points_to_indices)
-
-    # offset for indexing in case there are new points
-    offset = 0
+    segment = \
+        orig_strl[in_strl_point:out_strl_point + 1]
 
     # If there is a new point at the beginning of the streamline
     # add it to the segment
     if additional_start_pt is not None:
-        segment[0] = additional_start_pt
-        offset += 1
-
-    # Note: this works correctly even in the case where the "previous"
-    # point is the same or lower than the entry point, because of
-    # numpy indexing
-    segment[offset:offset + nb_points_orig_strl] = \
-        orig_strl[in_strl_point:out_strl_point + 1]
+        segment = np.insert(segment, 0, [additional_start_pt], axis=0)
 
     # If there is a new point at the end of the streamline
     # add it to the segment.
     if additional_exit_pt is not None:
-        segment[-1] = additional_exit_pt
-
-    # # Assert no point is outside the voxel grid
-    # if np.any(np.logical_or(segment < 0, segment >= orig_strl.shape[1])):
-    #     raise ValueError("Some points are outside the voxel grid.")
+        segment = np.append(segment, [additional_exit_pt], axis=0)
 
     # Return the segment
     return segment
