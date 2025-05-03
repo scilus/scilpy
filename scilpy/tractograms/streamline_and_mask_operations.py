@@ -662,8 +662,8 @@ def compute_streamline_segment(orig_strl, inter_vox, in_vox_idx, out_vox_idx,
     nb_add_points = 0
 
     def find_closest_index(indices, index):
-        """ Search for the index of the streamline point in the
-        points_to_indices array.
+        """ Search for the index of the streamline point in
+        points_to_indices.
         """
         return np.argmin(np.abs(indices - index))
 
