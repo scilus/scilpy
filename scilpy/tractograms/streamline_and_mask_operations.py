@@ -297,6 +297,7 @@ def cut_streamlines_with_mask(sft, mask,
         sft.streamlines,
         return_mapping=True
     )
+
     if len(sft.streamlines[0]) != len(points_to_idx[0]):
         raise ValueError("Error in the streamlines_to_voxel_coordinates "
                          "function. Try running the "
@@ -660,11 +661,11 @@ def compute_streamline_segment(orig_strl, inter_vox, in_vox_idx, out_vox_idx,
     additional_exit_pt = None
     nb_add_points = 0
 
-    def search(val, arr):
+    def find_closest_index(indices, index):
         """ Search for the index of the streamline point in the
         points_to_indices array.
         """
-        return np.argmin(np.abs(arr - val))
+        return np.argmin(np.abs(indices - index))
 
     # Check if the ROI contains a real streamline point at
     # the beginning of the streamline
@@ -674,7 +675,7 @@ def compute_streamline_segment(orig_strl, inter_vox, in_vox_idx, out_vox_idx,
     # If not, find the next real streamline point
     if in_strl_point is None:
         # Find the index of the next real streamline point
-        in_strl_point = search(points_to_indices, in_vox_idx)
+        in_strl_point = find_closest_index(points_to_indices, in_vox_idx)
 
         if in_strl_point == 0:
             # If the entry point is the first point of the streamline,
@@ -697,7 +698,7 @@ def compute_streamline_segment(orig_strl, inter_vox, in_vox_idx, out_vox_idx,
     # If not, find the previous real streamline point
     if out_strl_point is None:
         # Find the index of the previous real streamline point
-        out_strl_point = search(points_to_indices, out_vox_idx)
+        out_strl_point = find_closest_index(points_to_indices, out_vox_idx)
         if out_strl_point == len(points_to_indices) - 1:
             # If the exit point is the last point of the streamline,
             # don't generate a new point
@@ -718,8 +719,11 @@ def compute_streamline_segment(orig_strl, inter_vox, in_vox_idx, out_vox_idx,
 
     # Set the segment as the part of the original streamline that is
     # in the ROI
-    segment = \
-        orig_strl[in_strl_point:out_strl_point + 1]
+    segment = orig_strl[in_strl_point:out_strl_point + 1]
+
+    # Whereas the original implementation was using offsets to include
+    # additional points, we are now inserting and appending to simplify
+    # the code and avoid introducing more bugs.
 
     # If there is a new point at the beginning of the streamline
     # add it to the segment
