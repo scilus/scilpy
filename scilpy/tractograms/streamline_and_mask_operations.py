@@ -144,7 +144,6 @@ def _trim_streamline_in_mask(
     # Split the streamline into segments that are in the mask
     split_strmls = np.array_split(np.arange(len(roi_data_1_intersect)),
                                   split_idx)
-    size = mask.shape
     new_strmls = []
     for strml in split_strmls:
         if len(strml) <= 3:
@@ -197,7 +196,6 @@ def _trim_streamline_endpoints_in_mask(
     # Get the entry and exit points for each segment
     in_strl_idx = np.amin(mask_idx)
     out_strl_idx = np.amax(mask_idx)
-    size = mask.shape
     cut_strl = compute_streamline_segment(streamline, idx,
                                           in_strl_idx, out_strl_idx,
                                           pts_to_idx)
@@ -243,7 +241,6 @@ def _trim_streamline_in_mask_keep_longest(
 
     if len(longest_strml) <= 1:
         return []
-    size = mask.shape
     # Get the entry and exit points for the longest segment
     # Skip the first point as it caused the split
     id_to_pick = 0 if np.count_nonzero(roi_data_1_intersect) == len(idx) else 1
@@ -466,7 +463,6 @@ def _cut_streamline_with_labels(
                                                      idx,
                                                      one_point_in_roi=one_point_in_roi,
                                                      no_point_in_roi=no_point_in_roi)
-    size = roi_data_1.shape
     cut_strl = None
     # If the streamline intersects both ROIs
     if in_strl_idx is not None and out_strl_idx is not None:
@@ -716,12 +712,6 @@ def compute_streamline_segment(orig_strl, inter_vox, in_vox_idx, out_vox_idx,
                                                              inter_vox[out_vox_idx])
             nb_add_points += 1
 
-    # # Swap the points if the entry point is after the exit point
-    # if in_strl_point > out_strl_point:
-    #     in_strl_point, out_strl_point = out_strl_point, in_strl_point
-    #     additional_start_pt, additional_exit_pt = \
-    #         additional_exit_pt, additional_start_pt
-
     # Set the segment as the part of the original streamline that is
     # in the ROI
     segment = orig_strl[in_strl_point:out_strl_point + 1]
@@ -739,26 +729,6 @@ def compute_streamline_segment(orig_strl, inter_vox, in_vox_idx, out_vox_idx,
     # add it to the segment.
     if additional_exit_pt is not None:
         segment = np.append(segment, [additional_exit_pt], axis=0)
-
-    # Assert the segment is in the bounding box
-    if np.any(segment < 0):
-        print("Segment: ", segment)
-        print("in_strl_point: ", in_strl_point)
-        print("in_vox_idx: ", in_vox_idx)
-        print("inter_vox[in_vox_idx]: ", inter_vox[in_vox_idx])
-        print("orig_strl[in_strl_point]: ", orig_strl[in_strl_point])
-        print("orig_strl[in_strl_point - 1]: ", orig_strl[in_strl_point - 1])
-        print("out_strl_point: ", out_strl_point)
-        print("inter_vox[out_vox_idx]: ", inter_vox[out_vox_idx])
-        print("orig_strl[out_strl_point]: ", orig_strl[out_strl_point])
-        print("orig_strl[out_strl_point - 1]: ", orig_strl[out_strl_point - 1])
-        print("out_vox_idx: ", out_vox_idx)
-        print("points_to_indices", points_to_indices)
-        print("additional_start_pt: ", additional_start_pt)
-        print("additional_exit_pt: ", additional_exit_pt)
-        print('normin', normin)
-        print('normout', normout)
-        raise ValueError("The segment is out of the bounding box.")
 
     # Return the segment
     return segment
