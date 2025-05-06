@@ -18,8 +18,8 @@ def test_help_option(script_runner):
     assert ret.success
 
 
-def test_execution_tractometry_euclidian(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution_tractometry_euclidian(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_bundle = os.path.join(SCILPY_HOME, 'tractometry',
                              'IFGWM.trk')
     in_centroid = os.path.join(SCILPY_HOME, 'tractometry',
@@ -31,8 +31,8 @@ def test_execution_tractometry_euclidian(script_runner):
     assert ret.success
 
 
-def test_execution_tractometry_hyperplane(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution_tractometry_hyperplane(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_bundle = os.path.join(SCILPY_HOME, 'tractometry',
                              'IFGWM.trk')
     in_centroid = os.path.join(SCILPY_HOME, 'tractometry',
