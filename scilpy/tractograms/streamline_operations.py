@@ -74,18 +74,22 @@ def _get_point_on_line(first_point, second_point, vox_lower_corner):
     """
 
     ray = second_point - first_point
+    ray /= np.linalg.norm(ray)
+
     corners = np.array([vox_lower_corner, vox_lower_corner + 1])
-    tmin, tmax = 0, np.linalg.norm(ray)
+
+    t0 = 0
+    t1 = np.inf
 
     for i in range(3):
-        if ray[i] != 0:
+        if ray[i] != 0.:
             inv_ray = 1. / ray[i]
             v0 = (corners[0, i] - first_point[i]) * inv_ray
             v1 = (corners[1, i] - first_point[i]) * inv_ray
-            tnear, tfar = min(v0, v1), max(v0, v1)
-            tmin = max(tmin, tnear)
-            tmax = min(tmax, tfar)
-    return first_point + ray * tmin, ray
+            t0 = max(t0, min(v0, v1))
+            t1 = min(t1, max(v0, v1))
+
+    return first_point + ray * (t0 + t1) / 2.
 
 
 def get_angles(sft, degrees=True, add_zeros=False):
