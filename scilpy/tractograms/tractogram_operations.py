@@ -1235,6 +1235,9 @@ def trim_streamlines_alter(sft, min_dice=0.90, epsilon=0.01):
         log_level = logging.getLogger().getEffectiveLevel()
         logging.getLogger().setLevel(logging.ERROR)
         new_sft = cut_streamlines_with_mask(sft, mask, min_len=10)
+        streamline_copy = new_sft.get_streamlines_copy()
+        idx_to_remove, _ = new_sft.remove_invalid_streamlines()
+        print(streamline_copy[idx_to_remove])
         # reset logger level
         logging.getLogger().setLevel(log_level)
 
