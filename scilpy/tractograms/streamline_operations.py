@@ -92,6 +92,31 @@ def _get_point_on_line(first_point, second_point, vox_lower_corner):
     return first_point + ray * (t0 + t1) / 2.
 
 
+def _find_closest_index(indices, index, end=False):
+    """ Return the index (before or after) of the point where index is smaller,
+    presuming the indices are sorted.
+
+    Although np.searchsorted may seem like a better option, it is not
+    appropriate here since we need to return the first index encountered that
+    fits our condition, regardless if there is a better option later.
+
+    Parameters
+    ----------
+    indices: list
+        The indices to search in.
+    index: int
+        The index to search for.
+    end: bool
+        If True, will return the position before the index.
+        If False, will return the position after the index.
+    """
+    mod = -1 if end else 0
+    for i, ind in enumerate(indices):
+        if ind >= index:
+            return i + mod
+    return len(indices) - 1
+
+
 def get_angles(sft, degrees=True, add_zeros=False):
     """
     Returns the angle between each segment of the streamlines.
@@ -332,7 +357,8 @@ def filter_streamlines_by_nb_points(sft, min_nb_points=2):
         raise ValueError("The value of min_nb_points "
                          "should be greater than 1!")
 
-    indices = [i for i in range(len(sft)) if len(sft.streamlines[i]) > min_nb_points - 1]
+    indices = [i for i in range(len(sft))
+               if len(sft.streamlines[i]) > min_nb_points - 1]
     if len(indices):
         new_sft = sft[indices]
     else:
