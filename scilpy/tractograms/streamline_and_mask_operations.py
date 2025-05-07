@@ -686,7 +686,7 @@ def compute_streamline_segment(orig_strl, inter_vox, in_vox_idx, out_vox_idx,
 
             # Generate an artificial point on the line between the previous
             # real point and the next real point
-            additional_start_pt, normin = _get_point_on_line(orig_strl[in_strl_point - 1],
+            additional_start_pt = _get_point_on_line(orig_strl[in_strl_point - 1],
                                                              orig_strl[in_strl_point],
                                                              inter_vox[in_vox_idx])
             nb_add_points += 1
@@ -707,7 +707,7 @@ def compute_streamline_segment(orig_strl, inter_vox, in_vox_idx, out_vox_idx,
         else:
             # Generate an artificial point on the line between the previous
             # real point and the next real point
-            additional_exit_pt, normout = _get_point_on_line(orig_strl[out_strl_point],
+            additional_exit_pt = _get_point_on_line(orig_strl[out_strl_point],
                                                              orig_strl[out_strl_point + 1],
                                                              inter_vox[out_vox_idx])
             nb_add_points += 1
