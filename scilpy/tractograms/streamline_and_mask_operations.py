@@ -691,7 +691,6 @@ def compute_streamline_segment(orig_strl, inter_vox, in_vox_idx, out_vox_idx,
         if out_strl_point == len(points_to_indices) - 1:
             # If the exit point is the last point of the streamline,
             # don't generate a new point
-            print('lol')
             additional_exit_pt = None
         else:
             # Generate an artificial point on the line between the previous
