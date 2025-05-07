@@ -96,6 +96,10 @@ def _find_closest_index(indices, index, end=False):
     """ Return the index (before or after) of the point where index is smaller,
     presuming the indices are sorted.
 
+    Although np.searchsorted may seem like a better option, it is not
+    appropriate here since we need to return the first index encountered that
+    fits our condition, regardless if there is a better option later.
+
     Parameters
     ----------
     indices: list
