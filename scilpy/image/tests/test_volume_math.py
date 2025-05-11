@@ -324,6 +324,9 @@ def test_addition():
     expected_output = img_data_1 + img_data_3
     assert_array_almost_equal(output_data, expected_output)
 
+    output_data = addition([5, img1], img1)
+    assert_array_almost_equal(output_data, expected_output)
+
 
 def test_subtraction():
     img_data_1 = np.array([1, 2]).astype(float)
@@ -338,6 +341,10 @@ def test_subtraction():
 
     output_data = subtraction([img1, 1], img1)
     expected_output = img_data_1 - img_data_3
+    assert_array_almost_equal(output_data, expected_output)
+
+    output_data = subtraction([1, img1], img1)
+    expected_output = img_data_3 - img_data_1
     assert_array_almost_equal(output_data, expected_output)
 
 
@@ -356,6 +363,9 @@ def test_multiplication():
     expected_output = img_data_1 * img_data_3
     assert_array_almost_equal(output_data, expected_output)
 
+    output_data = multiplication([2, img1], img1)
+    assert_array_almost_equal(output_data, expected_output)
+
 
 def test_division():
     img_data_1 = np.array([3, 4]).astype(float)
@@ -370,6 +380,10 @@ def test_division():
 
     output_data = division([img1, 2], img1)
     expected_output = img_data_1 / img_data_3
+    assert_array_almost_equal(output_data, expected_output)
+
+    output_data = division([2, img1], img1)
+    expected_output = img_data_3 / img_data_1
     assert_array_almost_equal(output_data, expected_output)
 
 
