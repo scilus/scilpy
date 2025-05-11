@@ -312,6 +312,7 @@ def test_convert():
 def test_addition():
     img_data_1 = np.array([1, 2]).astype(float)
     img_data_2 = np.array([3, 4]).astype(float)
+    img_data_3 = np.array([5, 5]).astype(float)
     affine = np.eye(4)
     img1 = nib.Nifti1Image(img_data_1, affine)
     img2 = nib.Nifti1Image(img_data_2, affine)
@@ -319,11 +320,15 @@ def test_addition():
     output_data = addition([img1, img2], img1)
     assert_array_almost_equal(output_data, expected_output)
 
+    output_data = addition([img1, 5], img1)
+    expected_output = img_data_1 + img_data_3
+    assert_array_almost_equal(output_data, expected_output)
 
-# Test function for subtraction
+
 def test_subtraction():
     img_data_1 = np.array([1, 2]).astype(float)
     img_data_2 = np.array([3, 4]).astype(float)
+    img_data_3 = np.array([1, 1]).astype(float)
     affine = np.eye(4)
     img1 = nib.Nifti1Image(img_data_1, affine)
     img2 = nib.Nifti1Image(img_data_2, affine)
@@ -331,10 +336,15 @@ def test_subtraction():
     output_data = subtraction([img1, img2], img1)
     assert_array_almost_equal(output_data, expected_output)
 
+    output_data = subtraction([img1, 1], img1)
+    expected_output = img_data_1 - img_data_3
+    assert_array_almost_equal(output_data, expected_output)
+
 
 def test_multiplication():
     img_data_1 = np.array([1, 2]).astype(float)
     img_data_2 = np.array([3, 4]).astype(float)
+    img_data_3 = np.array([2, 2]).astype(float)
     affine = np.eye(4)
     img1 = nib.Nifti1Image(img_data_1, affine)
     img2 = nib.Nifti1Image(img_data_2, affine)
@@ -342,15 +352,24 @@ def test_multiplication():
     output_data = multiplication([img1, img2], img1)
     assert_array_almost_equal(output_data, expected_output)
 
+    output_data = multiplication([img1, 2], img1)
+    expected_output = img_data_1 * img_data_3
+    assert_array_almost_equal(output_data, expected_output)
+
 
 def test_division():
     img_data_1 = np.array([3, 4]).astype(float)
     img_data_2 = np.array([1, 2]).astype(float)
+    img_data_3 = np.array([2, 2]).astype(float)
     affine = np.eye(4)
     img1 = nib.Nifti1Image(img_data_1, affine)
     img2 = nib.Nifti1Image(img_data_2, affine)
     expected_output = img_data_1 / img_data_2
     output_data = division([img1, img2], img1)
+    assert_array_almost_equal(output_data, expected_output)
+
+    output_data = division([img1, 2], img1)
+    expected_output = img_data_1 / img_data_3
     assert_array_almost_equal(output_data, expected_output)
 
 
