@@ -12,7 +12,8 @@ from scipy.ndimage import map_coordinates
 from scilpy.tractograms.uncompress import streamlines_to_voxel_coordinates
 from scilpy.tractograms.streamline_operations import \
     (_get_point_on_line, _get_streamline_pt_index,
-     _find_closest_index, filter_streamlines_by_length,
+     _get_next_real_point, _get_previous_real_point,
+     filter_streamlines_by_length,
      resample_streamlines_step_size)
 
 
@@ -154,7 +155,7 @@ def _trim_streamline_in_mask(
         in_strl_idx, out_strl_idx = strml[1], strml[-1]
         cut_strl = compute_streamline_segment(streamline, idx,
                                               in_strl_idx, out_strl_idx,
-                                              pts_to_idx)
+                                              pts_to_idx, mask)
         new_strmls.append(cut_strl)
 
     return new_strmls
@@ -199,7 +200,7 @@ def _trim_streamline_endpoints_in_mask(
     out_strl_idx = np.amax(mask_idx)
     cut_strl = compute_streamline_segment(streamline, idx,
                                           in_strl_idx, out_strl_idx,
-                                          pts_to_idx)
+                                          pts_to_idx, mask)
     return [cut_strl]
 
 
@@ -225,7 +226,6 @@ def _trim_streamline_in_mask_keep_longest(
     streamline: np.ndarray
         The trimmed streamline within the mask.
     """
-
     # Find all the points of the streamline that are in the ROIs
     roi_data_1_intersect = map_coordinates(
         mask, idx.T, order=0, mode='constant', cval=0)
@@ -248,7 +248,7 @@ def _trim_streamline_in_mask_keep_longest(
     in_strl_idx, out_strl_idx = longest_strml[id_to_pick], longest_strml[-1]
     cut_strl = compute_streamline_segment(streamline, idx,
                                           in_strl_idx, out_strl_idx,
-                                          pts_to_idx)
+                                          pts_to_idx, mask)
     return [cut_strl]
 
 
@@ -469,7 +469,7 @@ def _cut_streamline_with_labels(
         # the two ROIs
         cut_strl = compute_streamline_segment(streamline, idx,
                                               in_strl_idx, out_strl_idx,
-                                              pts_to_idx)
+                                              pts_to_idx, roi_data_1)
     return cut_strl
 
 
@@ -628,7 +628,7 @@ def _intersects_two_rois(roi_data_1, roi_data_2, strl_indices,
 
 
 def compute_streamline_segment(orig_strl, inter_vox, in_vox_idx, out_vox_idx,
-                               points_to_indices):
+                               points_to_indices, mask):
     """ Compute the segment of a streamline that is in a given ROI or
     between two ROIs.
 
@@ -665,7 +665,7 @@ def compute_streamline_segment(orig_strl, inter_vox, in_vox_idx, out_vox_idx,
     # If not, find the next real streamline point
     if in_strl_point is None:
         # Find the index of the next real streamline point
-        in_strl_point = _find_closest_index(points_to_indices, in_vox_idx)
+        in_strl_point = _get_next_real_point(points_to_indices, in_vox_idx)
 
         if in_strl_point == 0:
             # If the entry point is the first point of the streamline,
@@ -686,8 +686,9 @@ def compute_streamline_segment(orig_strl, inter_vox, in_vox_idx, out_vox_idx,
     # If not, find the previous real streamline point
     if out_strl_point is None:
         # Find the index of the previous real streamline point
-        out_strl_point = _find_closest_index(points_to_indices,
-                                             out_vox_idx, end=True)
+        out_strl_point = _get_previous_real_point(points_to_indices,
+                                                  out_vox_idx)
+
         if out_strl_point == len(points_to_indices) - 1:
             # If the exit point is the last point of the streamline,
             # don't generate a new point
@@ -716,6 +717,21 @@ def compute_streamline_segment(orig_strl, inter_vox, in_vox_idx, out_vox_idx,
     # add it to the segment.
     if additional_exit_pt is not None:
         segment = np.append(segment, [additional_exit_pt], axis=0)
+
+    assert not np.any(segment < 0), print(segment)
+    try:
+        assert not np.any(segment > mask.shape)
+    except AssertionError as e:
+        print(mask.shape)
+        print(segment)
+        print(additional_start_pt)
+        print(out_strl_point)
+        print(orig_strl[out_strl_point])
+        print(orig_strl[out_strl_point + 1])
+        print(inter_vox[out_vox_idx])
+        print(points_to_indices)
+        print(additional_exit_pt)
+        raise e
 
     # Return the segment
     return segment
