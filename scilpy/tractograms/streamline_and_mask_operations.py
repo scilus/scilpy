@@ -155,7 +155,7 @@ def _trim_streamline_in_mask(
         in_strl_idx, out_strl_idx = strml[1], strml[-1]
         cut_strl = compute_streamline_segment(streamline, idx,
                                               in_strl_idx, out_strl_idx,
-                                              pts_to_idx, mask)
+                                              pts_to_idx)
         new_strmls.append(cut_strl)
 
     return new_strmls
@@ -200,7 +200,7 @@ def _trim_streamline_endpoints_in_mask(
     out_strl_idx = np.amax(mask_idx)
     cut_strl = compute_streamline_segment(streamline, idx,
                                           in_strl_idx, out_strl_idx,
-                                          pts_to_idx, mask)
+                                          pts_to_idx)
     return [cut_strl]
 
 
@@ -248,7 +248,7 @@ def _trim_streamline_in_mask_keep_longest(
     in_strl_idx, out_strl_idx = longest_strml[id_to_pick], longest_strml[-1]
     cut_strl = compute_streamline_segment(streamline, idx,
                                           in_strl_idx, out_strl_idx,
-                                          pts_to_idx, mask)
+                                          pts_to_idx)
     return [cut_strl]
 
 
@@ -469,7 +469,7 @@ def _cut_streamline_with_labels(
         # the two ROIs
         cut_strl = compute_streamline_segment(streamline, idx,
                                               in_strl_idx, out_strl_idx,
-                                              pts_to_idx, roi_data_1)
+                                              pts_to_idx)
     return cut_strl
 
 
@@ -628,7 +628,7 @@ def _intersects_two_rois(roi_data_1, roi_data_2, strl_indices,
 
 
 def compute_streamline_segment(orig_strl, inter_vox, in_vox_idx, out_vox_idx,
-                               points_to_indices, mask):
+                               points_to_indices):
     """ Compute the segment of a streamline that is in a given ROI or
     between two ROIs.
 
@@ -717,21 +717,6 @@ def compute_streamline_segment(orig_strl, inter_vox, in_vox_idx, out_vox_idx,
     # add it to the segment.
     if additional_exit_pt is not None:
         segment = np.append(segment, [additional_exit_pt], axis=0)
-
-    assert not np.any(segment < 0), print(segment)
-    try:
-        assert not np.any(segment > mask.shape)
-    except AssertionError as e:
-        print(mask.shape)
-        print(segment)
-        print(additional_start_pt)
-        print(out_strl_point)
-        print(orig_strl[out_strl_point])
-        print(orig_strl[out_strl_point + 1])
-        print(inter_vox[out_vox_idx])
-        print(points_to_indices)
-        print(additional_exit_pt)
-        raise e
 
     # Return the segment
     return segment
