@@ -92,9 +92,11 @@ def _get_point_on_line(first_point, second_point, vox_lower_corner):
     return first_point + ray * (t0 + t1) / 2.
 
 
-def _find_closest_index(indices, index, end=False):
-    """ Return the index (before or after) of the point where index is smaller,
+def _get_next_real_point(points_to_index, vox_index):
+    """ Return the index after the point in points_to_index is smaller,
     presuming the indices are sorted.
+
+    ~~~ HERE BE DRAGONS, modify with care. ~~~
 
     Although np.searchsorted may seem like a better option, it is not
     appropriate here since we need to return the first index encountered that
@@ -102,19 +104,53 @@ def _find_closest_index(indices, index, end=False):
 
     Parameters
     ----------
-    indices: list
+    points_to_index: list
         The indices to search in.
-    index: int
+    vox_index: int
         The index to search for.
-    end: bool
-        If True, will return the position before the index.
-        If False, will return the position after the index.
     """
-    mod = -1 if end else 0
-    for i, ind in enumerate(indices):
-        if ind >= index:
-            return i + mod
-    return len(indices) - 1
+
+    map_idx, next_point = -1, -1
+    nb_points_to_index = len(points_to_index)
+    internal_vox_index = vox_index
+    pts_to_index_view = points_to_index
+
+    while map_idx < internal_vox_index and next_point < nb_points_to_index - 1:
+        next_point += 1
+        map_idx = pts_to_index_view[next_point]
+
+    return next_point
+
+
+def _get_previous_real_point(points_to_index, vox_index):
+    """ Return the index before the point in points_to_index is larger,
+    presuming the indices are sorted.
+
+    ~~~ HERE BE DRAGONS, modify with care. ~~~
+
+    Although np.searchsorted may seem like a better option, it is not
+    appropriate here since we need to return the first index encountered that
+    fits our condition, regardless if there is a better option later.
+
+    Parameters
+    ----------
+    points_to_index: list
+        The indices to search in.
+    vox_index: int
+        The index to search for.
+    """
+
+    previous_point = len(points_to_index)
+    internal_vox_index = vox_index
+
+    map_idx = internal_vox_index + 1
+    pts_to_index_view = points_to_index
+
+    while map_idx > internal_vox_index and previous_point > 0:
+        previous_point -= 1
+        map_idx = pts_to_index_view[previous_point]
+
+    return previous_point
 
 
 def get_angles(sft, degrees=True, add_zeros=False):
