@@ -69,7 +69,6 @@ from dipy.io.streamline import save_tractogram
 from dipy.io.stateful_tractogram import StatefulTractogram, Space
 from dipy.io.utils import is_header_compatible
 from dipy.tracking.streamline import transform_streamlines
-from dipy.tracking.streamlinespeed import length
 import nibabel as nib
 from nibabel.streamlines.array_sequence import ArraySequence
 import numpy as np
@@ -281,9 +280,6 @@ def main():
     logging.debug(
         f'Trim bundle(s) in {round(time.time() - timer, 3)} seconds.')
 
-    # Use later to trim the streamlines without assignement
-    min_len = np.min(length(concat_sft.streamlines))
-
     method = 'hyperplane' if args.hyperplane else 'centerline'
     args.nb_pts = len(sft_centroid.streamlines[0]) if args.nb_pts is None \
         else args.nb_pts
@@ -327,7 +323,7 @@ def main():
         timer = time.time()
         new_sft = StatefulTractogram.from_sft(sft.streamlines, sft_list[0])
         cut_sft = cut_streamlines_with_mask(
-            new_sft, binary_mask, min_len=min_len,
+            new_sft, binary_mask,
             cutting_style=CuttingStyle.KEEP_LONGEST)
         logging.debug(
             f'Cut streamlines in {round(time.time() - timer, 3)} seconds')
