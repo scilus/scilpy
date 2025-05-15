@@ -11,7 +11,9 @@ from scipy.ndimage import map_coordinates
 
 from scilpy.tractograms.uncompress import streamlines_to_voxel_coordinates
 from scilpy.tractograms.streamline_operations import \
-    (filter_streamlines_by_length, _get_point_on_line, _get_streamline_pt_index,
+    (_get_point_on_line, _get_streamline_pt_index,
+     _get_next_real_point, _get_previous_real_point,
+     filter_streamlines_by_length,
      resample_streamlines_step_size)
 
 
@@ -98,7 +100,8 @@ def get_head_tail_density_maps(sft, point_to_select=1, to_millimeters=False):
 
         # Get the head and tail coordinates
         # +1 to include the last point
-        head_indices = indices[:points[point_to_select]+1, :]
+        point_to_select = min(point_to_select, len(points) - 1)
+        head_indices = indices[:points[point_to_select] + 1, :]
         tail_indices = indices[points[-point_to_select]:, :]
 
         # Add the points to the endpoints map
@@ -195,7 +198,6 @@ def _trim_streamline_endpoints_in_mask(
     # Get the entry and exit points for each segment
     in_strl_idx = np.amin(mask_idx)
     out_strl_idx = np.amax(mask_idx)
-
     cut_strl = compute_streamline_segment(streamline, idx,
                                           in_strl_idx, out_strl_idx,
                                           pts_to_idx)
@@ -224,7 +226,6 @@ def _trim_streamline_in_mask_keep_longest(
     streamline: np.ndarray
         The trimmed streamline within the mask.
     """
-
     # Find all the points of the streamline that are in the ROIs
     roi_data_1_intersect = map_coordinates(
         mask, idx.T, order=0, mode='constant', cval=0)
@@ -241,19 +242,19 @@ def _trim_streamline_in_mask_keep_longest(
 
     if len(longest_strml) <= 1:
         return []
-
     # Get the entry and exit points for the longest segment
     # Skip the first point as it caused the split
-    in_strl_idx, out_strl_idx = longest_strml[1], longest_strml[-1]
+    id_to_pick = 0 if np.count_nonzero(roi_data_1_intersect) == len(idx) else 1
+    in_strl_idx, out_strl_idx = longest_strml[id_to_pick], longest_strml[-1]
     cut_strl = compute_streamline_segment(streamline, idx,
                                           in_strl_idx, out_strl_idx,
                                           pts_to_idx)
     return [cut_strl]
 
 
-def cut_streamlines_with_mask(
-    sft, mask, cutting_style=CuttingStyle.DEFAULT, min_len=0, processes=1
-):
+def cut_streamlines_with_mask(sft, mask,
+                              cutting_style=CuttingStyle.DEFAULT,
+                              min_len=0, processes=1):
     """
     Cut streamlines according to a binary mask. This function erases the
     data_per_point.
@@ -465,12 +466,9 @@ def _cut_streamline_with_labels(
     """
     # Find the first and last "voxels" of the streamline that are in the
     # ROIs
-    in_strl_idx, out_strl_idx = _intersects_two_rois(roi_data_1,
-                                                     roi_data_2,
-                                                     idx,
-                                                     one_point_in_roi=one_point_in_roi,
-                                                     no_point_in_roi=no_point_in_roi)
-
+    in_strl_idx, out_strl_idx = _intersects_two_rois(
+        roi_data_1, roi_data_2, idx, one_point_in_roi=one_point_in_roi,
+        no_point_in_roi=no_point_in_roi)
     cut_strl = None
     # If the streamline intersects both ROIs
     if in_strl_idx is not None and out_strl_idx is not None:
@@ -549,7 +547,8 @@ def _get_in_and_out_strl_indices(in_strl_indices_split, out_strl_indices_split,
     else:
         # Check the order of the first segments
         if min(in_strl_indices_split[0]) > min(out_strl_indices_split[0]):
-            in_strl_indices_split, out_strl_indices_split = out_strl_indices_split, in_strl_indices_split
+            in_strl_indices_split, out_strl_indices_split = \
+                out_strl_indices_split, in_strl_indices_split
 
         # Get the last segment in the first ROI
         # Get the first segment in the second ROI
@@ -627,10 +626,10 @@ def _intersects_two_rois(roi_data_1, roi_data_2, strl_indices,
         return None, None
     else:
         in_strl_idx, out_strl_idx = _get_in_and_out_strl_indices(
-                                        in_strl_indices,
-                                        out_strl_indices,
-                                        one_point_in_roi,
-                                        no_point_in_roi)
+            in_strl_indices,
+            out_strl_indices,
+            one_point_in_roi,
+            no_point_in_roi)
 
     return in_strl_idx, out_strl_idx
 
@@ -664,7 +663,6 @@ def compute_streamline_segment(orig_strl, inter_vox, in_vox_idx, out_vox_idx,
 
     additional_start_pt = None
     additional_exit_pt = None
-    nb_add_points = 0
 
     # Check if the ROI contains a real streamline point at
     # the beginning of the streamline
@@ -674,14 +672,19 @@ def compute_streamline_segment(orig_strl, inter_vox, in_vox_idx, out_vox_idx,
     # If not, find the next real streamline point
     if in_strl_point is None:
         # Find the index of the next real streamline point
-        in_strl_point = np.searchsorted(points_to_indices, in_vox_idx)
-        # Generate an artificial point on the line between the previous
-        # real point and the next real point
-        additional_start_pt = _get_point_on_line(orig_strl[in_strl_point - 1],
-                                                 orig_strl[in_strl_point],
-                                                 inter_vox[in_vox_idx])
-        nb_add_points += 1
+        in_strl_point = _get_next_real_point(points_to_indices, in_vox_idx)
 
+        if in_strl_point == 0:
+            # If the entry point is the first point of the streamline,
+            # don't generate a new point
+            additional_start_pt = None
+        else:
+
+            # Generate an artificial point on the line between the previous
+            # real point and the next real point
+            additional_start_pt = _get_point_on_line(
+                orig_strl[in_strl_point - 1], orig_strl[in_strl_point],
+                inter_vox[in_vox_idx])
     # Check if the ROI contains a real streamline point at
     # the end of the streamline
     out_strl_point = _get_streamline_pt_index(points_to_indices,
@@ -690,43 +693,37 @@ def compute_streamline_segment(orig_strl, inter_vox, in_vox_idx, out_vox_idx,
     # If not, find the previous real streamline point
     if out_strl_point is None:
         # Find the index of the previous real streamline point
-        out_strl_point = np.searchsorted(points_to_indices, out_vox_idx) - 1
-        # Generate an artificial point on the line between the previous
-        # real point and the next real point
-        additional_exit_pt = _get_point_on_line(orig_strl[out_strl_point],
-                                                orig_strl[out_strl_point + 1],
-                                                inter_vox[out_vox_idx])
-        nb_add_points += 1
+        out_strl_point = _get_previous_real_point(points_to_indices,
+                                                  out_vox_idx)
 
-    # Compute the number of points in the cut streamline and
-    # add the number of artificial points
-    nb_points_orig_strl = out_strl_point - in_strl_point + 1
-    nb_points = nb_points_orig_strl + nb_add_points
+        if out_strl_point == len(points_to_indices) - 1:
+            # If the exit point is the last point of the streamline,
+            # don't generate a new point
+            additional_exit_pt = None
+        else:
+            # Generate an artificial point on the line between the previous
+            # real point and the next real point
+            additional_exit_pt = _get_point_on_line(
+                orig_strl[out_strl_point], orig_strl[out_strl_point + 1],
+                inter_vox[out_vox_idx])
 
-    # Initialize the new streamline segment
-    segment = np.zeros((nb_points, 3))
-    # offset for indexing in case there are new points
-    offset = 0
+    # Set the segment as the part of the original streamline that is
+    # in the ROI
+    segment = orig_strl[in_strl_point:out_strl_point + 1]
+
+    # Whereas the original implementation was using offsets to include
+    # additional points, we are now inserting and appending to simplify
+    # the code and avoid introducing more bugs.
 
     # If there is a new point at the beginning of the streamline
     # add it to the segment
     if additional_start_pt is not None:
-        segment[0] = additional_start_pt
-        offset += 1
-
-    # Set the segment as the part of the original streamline that is
-    # in the ROI
-
-    # Note: this works correctly even in the case where the "previous"
-    # point is the same or lower than the entry point, because of
-    # numpy indexing
-    segment[offset:offset + nb_points_orig_strl] = \
-        orig_strl[in_strl_point:out_strl_point + 1]
+        segment = np.insert(segment, 0, [additional_start_pt], axis=0)
 
     # If there is a new point at the end of the streamline
     # add it to the segment.
     if additional_exit_pt is not None:
-        segment[-1] = additional_exit_pt
+        segment = np.append(segment, [additional_exit_pt], axis=0)
 
     # Return the segment
     return segment

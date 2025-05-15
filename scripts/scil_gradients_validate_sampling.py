@@ -102,8 +102,8 @@ def main():
                                         in_gradients[1])
     elif len(args.in_gradients) == 1:
         assert_gradients_filenames_valid(parser, args.in_gradients, False)
-        bvecs = np.genfromtxt(args.in_gradients, delimiter=' ')[:, :3]
-        bvals = np.genfromtxt(args.in_gradients, delimiter=' ')[:, 3]
+        bvecs = np.genfromtxt(args.in_gradients[0], delimiter=' ')[:, :3]
+        bvals = np.genfromtxt(args.in_gradients[0], delimiter=' ')[:, 3]
     else:
         parser.error('Depending on the gradient format, you should have '
                      'two files for FSL format and one file for MRtrix')

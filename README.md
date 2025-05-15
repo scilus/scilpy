@@ -31,6 +31,7 @@ The library is now built for Python 3.10 so be sure to create a virtual environn
 sudo add-apt-repository ppa:deadsnakes/ppa
 sudo apt-get install python3.10 python3.10-dev python3.10-venv python3.10-minimal python3.10-tk
 ```
+Python3.11 can work, Python3.12 is not supported.
 
 Make sure your pip is up-to-date before trying to install:
 ```
