@@ -3,7 +3,7 @@ from enum import Enum
 from multiprocessing import Pool
 
 import numpy as np
-from dipy.io.stateful_tractogram import StatefulTractogram
+from dipy.io.stateful_tractogram import StatefulTractogram, Space, Origin
 
 from nibabel.streamlines import ArraySequence
 
@@ -328,8 +328,12 @@ def cut_streamlines_with_mask(sft, mask,
 
     new_sft = StatefulTractogram.from_sft(
         new_strmls, sft)
+    
+    # Put back the original space and origin
     new_sft.to_space(orig_space)
     new_sft.to_origin(orig_origin)
+    sft.to_space(orig_space)
+    sft.to_origin(orig_origin)
 
     new_sft, *_ = filter_streamlines_by_length(new_sft, min_length=min_len)
 
@@ -416,10 +420,13 @@ def cut_streamlines_between_labels(
                           if strml is not None]
     new_strmls = ArraySequence(list_of_new_strmls)
 
-    new_sft = StatefulTractogram.from_sft(
-        new_strmls, sft)
+    new_sft = StatefulTractogram.from_sft(new_strmls, sft)
+
+    # Put back the original space and origin
     new_sft.to_space(orig_space)
     new_sft.to_origin(orig_origin)
+    sft.to_space(orig_space)
+    sft.to_origin(orig_origin)
 
     new_sft, *_ = filter_streamlines_by_length(new_sft, min_length=min_len)
 

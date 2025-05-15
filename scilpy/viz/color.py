@@ -104,7 +104,7 @@ def get_lookup_table(name):
         name_list = name.split('-')
         colors_list = [mcolors.to_rgba(color)[0:3] for color in name_list]
         cmap = mcolors.LinearSegmentedColormap.from_list('CustomCmap',
-                                                        colors_list)
+                                                         colors_list)
         return cmap
 
     return plt.colormaps.get_cmap(name)
@@ -288,7 +288,7 @@ def prepare_colorbar_figure(cmap, lbound, ubound, nb_values=255, nb_ticks=10,
 def ambiant_occlusion(sft, colors, factor=4):
     """
     Apply ambiant occlusion to a set of colors based on point density
-    around each points. 
+    around each points.
 
     Parameters
     ----------
@@ -298,7 +298,7 @@ def ambiant_occlusion(sft, colors, factor=4):
         The original colors to modify.
     factor : float
         The factor of occlusion (how density will affect the saturation).
-    
+
     Returns
     -------
     np.ndarray
@@ -325,6 +325,7 @@ def ambiant_occlusion(sft, colors, factor=4):
     hsv[:, 2] = np.clip(hsv[:, 2], 0, 255)
 
     return mcolors.hsv_to_rgb(hsv)
+
 
 def generate_local_coloring(sft):
     """
