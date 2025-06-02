@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+import logging
+
 from dipy.io.stateful_tractogram import StatefulTractogram, Space, Origin
 from dipy.io.utils import create_nifti_header
 import numpy as np
@@ -98,21 +100,27 @@ def reconstruct_sft_from_hdf5(hdf5_handle, group_keys, space=Space.VOX,
         if i == 0 or not merge_groups:
             dps.append({})
         if len(tmp_streamlines) > 0:
+            discarded_keys = []
             for sub_key in hdf5_handle[group_key].keys():
                 if sub_key not in ['data', 'offsets', 'lengths']:
                     data = hdf5_handle[group_key][sub_key]
                     if data.shape == hdf5_handle[group_key]['offsets'].shape:
-                        # Discovered dps
+                        # Discovered dps (the array is the same length as
+                        # offsets, so it is per streamline)
                         if load_dps:
                             if i == 0 or not merge_groups:
                                 dps[i][sub_key] = data
                             else:
                                 dps[i][sub_key] = np.concatenate(
                                     (dps[i][sub_key], data))
-                    else:
-                        if load_dpp:
-                            raise NotImplementedError(
-                                "Don't know how to load dpp yet.")
+                    elif data.shape == hdf5_handle[group_key]['data'].shape \
+                            and load_dpp and sub_key not in discarded_keys:
+                        # Discovered dpp (the array is not the same length as
+                        # offsets, so it is per point)
+                        logging.warning("DPP discoverted in the HDF5, but "
+                                        "not implemented yet. Skipping "
+                                        "loading of {}.".format(sub_key))
+                        discarded_keys.append(sub_key)
 
     # 3) Format as SFT
     if merge_groups:
