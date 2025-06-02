@@ -1,11 +1,7 @@
 # -*- coding: utf-8 -*-
 
-import logging
-
 from dipy.io.stateful_tractogram import StatefulTractogram, Space, Origin
-import nibabel as nib
 from dipy.io.utils import create_nifti_header
-from nibabel.streamlines.array_sequence import ArraySequence
 import numpy as np
 
 from scilpy.io.streamlines import reconstruct_streamlines
@@ -117,7 +113,6 @@ def reconstruct_sft_from_hdf5(hdf5_handle, group_keys, space=Space.VOX,
                         if load_dpp:
                             raise NotImplementedError(
                                 "Don't know how to load dpp yet.")
-                        raise NotImplementedError("DPP data? Other?")
 
     # 3) Format as SFT
     if merge_groups:
