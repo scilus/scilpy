@@ -102,6 +102,7 @@ def reconstruct_sft_from_hdf5(hdf5_handle, group_keys, space=Space.VOX,
         if i == 0 or not merge_groups:
             dps.append({})
         if len(tmp_streamlines) > 0:
+            discarded_keys = []
             for sub_key in hdf5_handle[group_key].keys():
                 if sub_key not in ['data', 'offsets', 'lengths']:
                     data = hdf5_handle[group_key][sub_key]
@@ -114,12 +115,14 @@ def reconstruct_sft_from_hdf5(hdf5_handle, group_keys, space=Space.VOX,
                             else:
                                 dps[i][sub_key] = np.concatenate(
                                     (dps[i][sub_key], data))
-                    elif load_dpp:
+                    elif data.shape == hdf5_handle[group_key]['data'].shape \
+                            and load_dpp and sub_key not in discarded_keys:
                         # Discovered dpp (the array is not the same length as
                         # offsets, so it is per point)
                         logging.warning("DPP discoverted in the HDF5, but "
                                         "not implemented yet. Skipping "
                                         "loading of {}.".format(sub_key))
+                        discarded_keys.append(sub_key)
 
     # 3) Format as SFT
     if merge_groups:
