@@ -143,6 +143,7 @@ def main():
 
         if args.dict_colors:
             base, ext = os.path.splitext(filename)
+            base = os.path.basename(base)
             pos = base.index('__') if '__' in base else -2
             base = base[pos + 2:]
 
