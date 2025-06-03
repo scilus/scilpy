@@ -3,18 +3,15 @@ from contextlib import nullcontext
 import itertools
 import logging
 import multiprocessing
-from operator import mod
 import os
 import sys
 from tempfile import TemporaryDirectory
-from time import perf_counter
 import traceback
 from typing import Union
 from tqdm import tqdm
 
 import numpy as np
 from dipy.data import get_sphere
-from dipy.core.sphere import HemiSphere
 from dipy.io.stateful_tractogram import Space
 from dipy.reconst.shm import sh_to_sf_matrix
 from dipy.tracking.streamlinespeed import compress_streamlines
@@ -38,7 +35,7 @@ class Tracker(object):
                  nbr_processes=1, save_seeds=False,
                  mmap_mode: Union[str, None] = None, rng_seed=1234,
                  track_forward_only=False, skip=0, verbose=False,
-                 append_last_point=True):
+                 min_iter=100, append_last_point=True):
         """
         Parameters
         ----------
@@ -81,6 +78,9 @@ class Tracker(object):
             skip 1,000,000.
         verbose: bool
             Display tracking progression.
+        min_iter: int
+            Minimum number of tracked streamlines required to update the
+            tracking progression bar.
         append_last_point: bool
             Whether to add the last point (once out of the tracking mask) to
             the streamline or not. Note that points obtained after an invalid
@@ -128,6 +128,7 @@ class Tracker(object):
 
         self.printing_frequency = 1000
         self.verbose = verbose
+        self.min_iter = min_iter
 
     def track(self):
         """
@@ -318,11 +319,6 @@ class Tracker(object):
             if lock is None:
                 lock = nullcontext()
             with lock:
-                # Note. Option miniters does not work with manual pbar update.
-                # Will verify manually, lower.
-                # Fixed choice of value rather than a percentage of the chunk
-                # size because our tracker is quite slow.
-                miniters = 100
                 p = tqdm(total=chunk_size, desc=tqdm_text, position=chunk_id+1,
                          leave=False)
 
@@ -364,9 +360,13 @@ class Tracker(object):
                 if self.save_seeds:
                     seeds.append(np.asarray(seed, dtype='float32'))
 
-            if self.verbose and (s + 1) % miniters == 0:
+            # Note. Option min_iter does not work with manual pbar update.
+            # Will verify manually, lower.
+            # Fixed choice of value rather than a percentage of the chunk
+            # size because our tracker is quite slow.
+            if self.verbose and (s + 1) % self.min_iter == 0:
                 with lock:
-                    p.update(miniters)
+                    p.update(self.min_iter)
 
         if self.verbose:
             with lock:
@@ -535,7 +535,7 @@ class GPUTacker():
             np.array_split(seeds + 0.5, np.ceil(len(seeds)/batch_size))
 
         if sphere is None:
-            self.sphere = get_sphere("repulsion724")
+            self.sphere = get_sphere(name="repulsion724")
         else:
             self.sphere = sphere
 

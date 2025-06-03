@@ -11,62 +11,144 @@ from scilpy.tracking.fibertube_utils import (streamlines_to_segments,
                                              dist_segment_segment,
                                              dist_point_segment)
 from scilpy.tracking.utils import tqdm_if_verbose
-from scilpy.tractanalysis.todi import TrackOrientationDensityImaging
+from scilpy.tractograms.uncompress import streamlines_to_voxel_coordinates
 
 
-def mean_fibertube_density(sft):
+def fibertube_density(sft, samples_per_voxel_axis, verbose=False):
     """
-    Estimates the average per-voxel spatial density of a set of fibertubes.
-    This is obtained by dividing the volume of fibertube segments present
-    each voxel by the the total volume of the voxel.
+    Estimates the per-voxel volumetric density of a set of fibertubes. In other
+    words, how much space is occupied by fibertubes and how much is emptiness.
+
+    1. Segments voxels that contain at least a single fibertube.
+    2. Valid voxels are finely sampled and we count the number of samples that
+    landed within a fibertube. For each voxel, this number is then divided by
+    its total amount of samples.
+    3. By doing the same steps for samples that landed within 2 or more
+    fibertubes, we can create a density map of the fibertube collisions.
 
     Parameters
     ----------
     sft: StatefulTractogram
         Stateful Tractogram object containing the fibertubes.
+    samples_per_voxel_axis: int
+        Number of samples to be created along a single axis of a voxel. The
+        total number of samples in the voxel will be this number cubed.
+    verbose: bool
+        Whether the function and sub-functions should be verbose.
 
     Returns
     -------
-    mean_density: float
-        Per-voxel spatial density, averaged for the whole tractogram.
+    density_map: ndarray
+        Per-voxel volumetric density of fibertubes as a 3D image.
+    density_valid_only: list
+        Per-voxel volumetric density of fibertubes as a list, containing only
+        the voxels that were valid in the binary mask (i.e. that contained
+        fibertubes). This is useful for calculating measurements on the
+        various density values, like mean, median, etc.
+    collision_map: ndarray
+        Per-voxel number of fibertube collisions.
+    collision_valid_only: list
+        Per-voxel number of fibertubes collisions as a list, containing only
+        the voxels that were valid in the binary mask (i.e. that contained
+        fibertubes). This is useful for calculating measurements on the
+        various density values, like mean, median, etc.
     """
+    if "diameters" not in sft.data_per_streamline:
+        raise ValueError('No diameter found as data_per_streamline '
+                         'in the provided tractogram')
+    # Everything will be in vox and corner for
+    # streamlines_to_voxel_coordinates.
+    sft.to_vox()
+    sft.to_corner()
     diameters = np.reshape(sft.data_per_streamline['diameters'],
                            len(sft.streamlines))
-    mean_diameter = np.mean(diameters)
 
-    mean_segment_lengths = []
-    for streamline in sft.streamlines:
-        mean_segment_lengths.append(
-            np.mean(np.linalg.norm(streamline[1:] - streamline[:-1], axis=-1)))
-    mean_segment_length = np.mean(mean_segment_lengths)
-    # Computing mean tube density per voxel.
-    sft.to_vox()
-    # Because compute_todi expects streamline points (in voxel coordinates)
-    # to be in the range [0, size] rather than [-0.5, size - 0.5], we shift
-    # the voxel origin to corner.
-    sft.to_corner()
+    # Bringing diameters to voxel space. Assuming isotropic voxels dimensions.
+    diameters /= sft.space_attributes[2][0]
+    max_diameter = np.max(diameters)
 
-    # Computing TDI
-    _, data_shape, _, _ = sft.space_attributes
-    todi_obj = TrackOrientationDensityImaging(tuple(data_shape))
-    todi_obj.compute_todi(sft.streamlines)
-    img = todi_obj.get_tdi()
-    img = todi_obj.reshape_to_3d(img)
+    vox_idx_for_streamline = streamlines_to_voxel_coordinates(sft.streamlines)
+    mask_idx = np.concatenate(vox_idx_for_streamline)
+    mask = np.zeros((sft.dimensions), dtype=np.uint8)
+    # Numpy array indexing in 3D works like this
+    mask[mask_idx[:, 0], mask_idx[:, 1], mask_idx[:, 2]] = 1
 
-    nb_voxels_nonzero = np.count_nonzero(img)
-    sum = np.sum(img, axis=-1)
-    sum = np.sum(sum, axis=-1)
-    sum = np.sum(sum, axis=-1)
+    sampling_density = np.array([samples_per_voxel_axis,
+                                 samples_per_voxel_axis,
+                                 samples_per_voxel_axis])
 
-    mean_seg_volume = np.pi * ((mean_diameter/2) ** 2) * mean_segment_length
+    # Source: dipy.tracking.seeds_from_mask
+    # Grid of points between -.5 and .5, centered at 0, with given density
+    grid = np.mgrid[0: sampling_density[0], 0: sampling_density[1],
+                    0: sampling_density[2]]
+    grid = grid.T.reshape((-1, 3))
+    grid = grid / sampling_density
+    grid += 0.5 / sampling_density - 0.5
+    grid = grid.reshape(*sampling_density, 3)
 
-    mean_seg_count = sum / nb_voxels_nonzero
-    mean_volume = mean_seg_count * mean_seg_volume
-    mean_density = mean_volume / (sft.voxel_sizes[0] *
-                                  sft.voxel_sizes[1] *
-                                  sft.voxel_sizes[2])
+    # Back to corner origin
+    grid += 0.5
 
-    return mean_density
+    # Add samples to each voxel in mask
+    samples = np.empty(mask.shape, dtype=object)
+    for i, j, k in np.ndindex(mask.shape):
+        if mask[i][j][k]:
+            samples[i][j][k] = [i, j, k] + grid
+
+    # Building KDTree from fibertube segments
+    centers, indices, max_seg_length = streamlines_to_segments(
+        sft.streamlines, verbose=verbose)
+    tree = KDTree(centers)
+
+    density_map = np.zeros(mask.shape)
+    density_valid_only = []
+    # Set containing sets of fibertube indexes
+    # This way, each pair of fibertube is only entered once.
+    collisions = set()
+    collision_map = np.zeros(mask.shape)
+    collision_valid_only = []
+    # For each voxel, get density
+    for i, j, k in tqdm_if_verbose(np.ndindex(mask.shape), verbose,
+                                   total=len(np.ravel(mask))):
+        if not mask[i][j][k]:
+            continue
+
+        voxel_samples = np.reshape(samples[i][j][k], (-1, 3))
+
+        # Returns an list of lists of neighbor indexes for each sample
+        # Ex: [[265, 45, 0, 1231], [12, 67]]
+        all_sample_neighbors = tree.query_ball_point(
+            voxel_samples, max_seg_length/2+max_diameter/2, workers=-1)
+
+        nb_samples_in_fibertubes = 0
+        collisions_before_voxel = len(collisions)
+        for index, sample in enumerate(voxel_samples):
+            neigbors = all_sample_neighbors[index]
+            fibertubes_touching_sample = set()
+            for segi in neigbors:
+                fi = indices[segi][0]
+                pi = indices[segi][1]
+                centerline = sft.streamlines[fi]
+                radius = diameters[fi] / 2
+
+                dist, _, _ = dist_point_segment(centerline[pi],
+                                                centerline[pi+1],
+                                                np.float32(sample))
+
+                if dist < radius:
+                    fibertubes_touching_sample.add(fi)
+
+            if len(fibertubes_touching_sample) > 0:
+                nb_samples_in_fibertubes += 1
+            if len(fibertubes_touching_sample) > 1:
+                collisions.add(frozenset(fibertubes_touching_sample))
+
+        density_map[i][j][k] = nb_samples_in_fibertubes / len(voxel_samples)
+        density_valid_only.append(density_map[i][j][k])
+        collision_map[i][j][k] = len(collisions) - collisions_before_voxel
+        collision_valid_only.append(collision_map[i][j][k])
+
+    return density_map, density_valid_only, collision_map, collision_valid_only
 
 
 def min_external_distance(sft, verbose):
@@ -98,7 +180,7 @@ def min_external_distance(sft, verbose):
         ValueError("Cannot compute metrics of a tractogram with a single" +
                    "streamline or less")
     seg_centers, seg_indices, max_seg_length = streamlines_to_segments(
-        centerlines, verbose)
+        centerlines, verbose=verbose)
     tree = KDTree(seg_centers)
     min_external_distance = np.inf
     min_external_distance_vec = np.zeros(0, dtype=np.float32)
@@ -142,7 +224,7 @@ def min_external_distance(sft, verbose):
                 min_external_distance = external_distance
                 min_external_distance_vec = (
                     get_external_vector_from_centerline_vector(vector, rp, rq)
-                    )
+                )
 
     return min_external_distance, min_external_distance_vec
 
@@ -247,40 +329,77 @@ def get_external_vector_from_centerline_vector(vector, r1, r2):
     return external_vector
 
 
-@njit
-def resolve_origin_seeding(seeds, centerlines, diameters):
+def make_streamlines_forward_only(streamlines, seed_ids):
     """
-    Associates given seeds to segment 0 of the fibertube in which they have
-    been generated. This pairing only works with fiber origin seeding.
+    Truncates the streamlines and orients them so that they begin with their
+    seed. In case the seed is near the middle of the streamline, the longest
+    side will be kept.
+
+    Parameters
+    ----------
+    streamlines: ndarray
+        Array of streamlines tracked from seeds.
+    seed_ids: ndarray
+        Indexe of each seed within the streamline.
+
+    Returns
+    -------
+    forward_only_streamlines: list
+        List of streamlines oriented forward from the seed point.
+    """
+    forward_only_streamlines = []
+
+    for seed_id, streamline in zip(seed_ids, streamlines):
+        if seed_id+1 > len(streamline) / 2:
+            streamline = streamline[:seed_id+1]
+            streamline = streamline[::-1]
+        else:
+            streamline = streamline[seed_id:]
+
+        forward_only_streamlines.append(streamline)
+
+    return forward_only_streamlines
+
+
+@njit
+def associate_seeds_to_fibertubes(seeds, centerlines, diameters):
+    """
+    Given seeds generated in the first segment of fibertubes (origin seeding)
+    and a set of fibertubes, associates each seed/streamline to their
+    corresponding fibertube.
 
     Parameters
     ----------
     seeds: ndarray
+        Seeds to associate to each fibertube.
     centerlines: ndarray
         Fibertube centerlines given as a fixed array
         (see streamlines_as_fixed_array).
-    diameters: ndarray
+    diameters: ndarray,
+        Diameters of the fibertubes.
 
     Return
     ------
-    seeds_fiber: ndarray
-        Array containing the fiber index of each seed. If the seed is not in a
-        fiber, its value will be -1.
+    seeded_fibertube_indices: ndarray
+        Array containing the fibertube index of each seed. If the seed is
+        not in a fibertube, its value in the array will be -1.
     """
-    seeds_fiber = [-1] * len(seeds)
+    seeded_fibertube_indices = [-1] * len(seeds)
 
     for si, seed in enumerate(seeds):
-        for fi, fiber in enumerate(centerlines):
-            if point_in_cylinder(fiber[0], fiber[1], diameters[fi]/2, seed):
-                seeds_fiber[si] = fi
+        for fi, fibertube in enumerate(centerlines):
+            if point_in_cylinder(fibertube[0], fibertube[1], diameters[fi]/2,
+                                 seed):
+                seeded_fibertube_indices[si] = fi
                 break
 
-    return np.array(seeds_fiber)
+    return np.array(seeded_fibertube_indices)
 
 
 @njit
 def mean_reconstruction_error(centerlines, centerlines_length, diameters,
-                              streamlines, streamlines_length, seeds_fiber,
+                              streamlines, streamlines_length,
+                              seeded_fibertube_indices,
                               return_error_tractogram=False):
     """
     For each provided streamline, finds the mean distance between its
@@ -300,9 +419,9 @@ def mean_reconstruction_error(centerlines, centerlines_length, diameters,
         process.
     streamlines_length: ndarray,
         Fixed array containing the number of coordinates of each streamline
-    seeds_fiber: list
+    seeded_fibertube_indices: list
         Array of the same length as there are streamlines. For every
-        streamline, contains the index of the fiber in which it has been
+        streamline, contains the index of the fibertube in which it has been
         seeded.
     return_error_tractogram: bool = False
 
@@ -313,7 +432,7 @@ def mean_reconstruction_error(centerlines, centerlines_length, diameters,
     error_tractogram: list
         Empty when return_error_tractogram is set to False. Otherwise,
         contains a visual representation of the error between every streamline
-        and the fiber in which it has been seeded.
+        and the fibertube in which it has been seeded.
     """
     mean_errors = []
     error_tractogram = []
@@ -321,10 +440,11 @@ def mean_reconstruction_error(centerlines, centerlines_length, diameters,
     # objmode allows the execution of non numba-compatible code within a numba
     # function
     with objmode(centers='float64[:, :]', indices='int64[:, :]'):
-        centers, indices, _ = streamlines_to_segments(centerlines, False)
-    centers_fixed_length = len(centerlines[0])-1
+        centers, indices, _ = streamlines_to_segments(
+            centerlines, centerlines_length, False)
+    fixed_length = len(centerlines[0])-1
 
-    # Building a tree for first fibertube
+    # Building a tree with the first fibertube only.
     tree = nbKDTree(centers[:centerlines_length[0]-1])
     tree_fi = 0
 
@@ -332,15 +452,15 @@ def mean_reconstruction_error(centerlines, centerlines_length, diameters,
         streamline = streamline_fixed[:streamlines_length[si]-1]
         errors = []
 
-        seeded_fi = seeds_fiber[si]
-        fiber = centerlines[seeded_fi]
+        seeded_fi = seeded_fibertube_indices[si]
+        fibertube = centerlines[seeded_fi]
         radius = diameters[seeded_fi] / 2
 
-        # Rebuild tree for current fiber.
+        # Rebuild tree for current fibertube.
         if tree_fi != seeded_fi:
             tree = nbKDTree(
-                centers[centers_fixed_length * seeded_fi:
-                        (centers_fixed_length * seeded_fi +
+                centers[fixed_length * seeded_fi:
+                        (fixed_length * seeded_fi +
                          centerlines_length[seeded_fi] - 1)])
 
         # Querying nearest neighbor for each coordinate of the streamline.
@@ -351,10 +471,10 @@ def mean_reconstruction_error(centerlines, centerlines_length, diameters,
 
             # Retrieving the closest cylinder segment.
             _, pi = indices[nearest_index]
-            pt1 = fiber[pi]
-            pt2 = fiber[pi + 1]
+            pt1 = fibertube[pi]
+            pt2 = fibertube[pi + 1]
 
-            # If we're within the fiber, error = 0
+            # If we're within the fibertube, error = 0
             if (np.linalg.norm(point - pt1) < radius or
                 np.linalg.norm(point - pt2) < radius or
                     point_in_cylinder(pt1, pt2, radius, point)):
@@ -370,16 +490,16 @@ def mean_reconstruction_error(centerlines, centerlines_length, diameters,
                     error_tractogram.append([fiber_collision_point, point])
 
         mean_errors.append(np.array(errors).mean())
-
     return mean_errors, error_tractogram
 
 
 @njit
 def endpoint_connectivity(blur_radius, centerlines, centerlines_length,
-                          diameters, streamlines, seeds_fiber):
+                          diameters, streamlines, streamlines_length,
+                          seeded_fibertube_indices):
     """
     For every streamline, find whether or not it has reached the end segment
-    of its fibertube. Each streamline is associated with an "Arrival fibertube
+    of its fibertube. Each streamline is associated with an "Termination fibertube
     segment", which is the closest fibertube segment to its before-last
     coordinate.
 
@@ -387,13 +507,13 @@ def endpoint_connectivity(blur_radius, centerlines, centerlines_length,
     which means they are saved so that [0] is the seeding position and [-1] is
     the end.
 
-    VC: "Valid Connection": A streamline whose arrival fibertube segment is
+    VC: "Valid Connection": A streamline whose termination fibertube segment is
     the final segment of the fibertube in which is was originally seeded.
 
-    IC: "Invalid Connection": A streamline whose arrival fibertube segment is
+    IC: "Invalid Connection": A streamline whose termination fibertube segment is
     the start or final segment of a fibertube in which is was not seeded.
 
-    NC: "No Connection": A streamline whose arrival fibertube segment is
+    NC: "No Connection": A streamline whose termination fibertube segment is
     not the start or final segment of any fibertube.
 
     Parameters
@@ -412,7 +532,7 @@ def endpoint_connectivity(blur_radius, centerlines, centerlines_length,
         process.
     streamlines_length: ndarray,
         Fixed array containing the number of coordinates of each streamline
-    seeds_fiber: list
+    seeded_fibertube_indices: list
         Array of the same length as there are streamlines. For every
         streamline, contains the index of the fibertube in which it has been
         seeded.
@@ -431,40 +551,58 @@ def endpoint_connectivity(blur_radius, centerlines, centerlines_length,
     """
     max_diameter = np.max(diameters)
 
+    # We store the point before last of each streamline. It is the last
+    # coordinate that had a valid direction during tracking.
+    final_coordinates = []
+    for si, s in enumerate(streamlines):
+        final_coordinates.append(s[streamlines_length[si]-2])
+
     # objmode allows the execution of non numba-compatible code within a numba
     # function
     with objmode(centers='float64[:, :]', indices='int64[:, :]',
                  max_seg_length='float64'):
         centers, indices, max_seg_length = streamlines_to_segments(
-            centerlines, False)
+            centerlines, centerlines_length, False)
 
     tree = nbKDTree(centers)
+    all_neighbors = tree.query_radius(
+        final_coordinates,
+        blur_radius + max_seg_length / 2 + max_diameter)
 
     vc = set()
     ic = set()
     nc = set()
+    endpoint_distances = []
 
-    # streamline[-2] is the last point with a valid direction
-    all_neighbors = tree.query_radius(
-        streamlines[:, -2], blur_radius + max_seg_length / 2 + max_diameter)
+    for index, coord in enumerate(final_coordinates):
+        tracked_fibertube_index = seeded_fibertube_indices[index]
 
-    for streamline_index, streamline in enumerate(streamlines):
-        seed_fi = seeds_fiber[streamline_index]
-        neighbors = all_neighbors[streamline_index]
+        # 1. Compute endpoint_distance.
+        tracked_fibertube = centerlines[tracked_fibertube_index]
+        fibertube_end = tracked_fibertube[
+            centerlines_length[tracked_fibertube_index]-1]
+        endpoint_distances.append(np.linalg.norm(coord - fibertube_end))
+
+        # 2. Find final segment of current streamline and deep VC, IC or NC.
+        neighbors = all_neighbors[index]
 
         closest_dist = np.inf
         closest_seg = 0
 
         # Finding closest segment
-        # There will always be a neighbor to override np.inf
         for segment_index in neighbors:
             fibertube_index = indices[segment_index][0]
             point_index = indices[segment_index][1]
 
+            # Don't consider distance with points that are just there
+            # to fill the array.
+            if point_index > centerlines_length[fibertube_index]:
+                continue
+
             dist, _, _ = dist_point_segment(
                 centerlines[fibertube_index][point_index],
                 centerlines[fibertube_index][point_index+1],
-                streamline[-2])
+                coord)
 
             if dist < closest_dist:
                 closest_dist = dist
@@ -474,14 +612,15 @@ def endpoint_connectivity(blur_radius, centerlines, centerlines_length,
         point_index = indices[closest_seg][1]
 
         # If the closest segment is the last of its centerlines
-        if point_index == centerlines_length[fibertube_index]-1:
-            if fibertube_index == seed_fi:
-                vc.add(streamline_index)
+        # (centerline[-2] is the coordinates of the last segment)
+        if point_index == centerlines_length[fibertube_index]-2:
+            if fibertube_index == tracked_fibertube_index:
+                vc.add(index)
             else:
-                ic.add(streamline_index)
+                ic.add(index)
         elif point_index == 0:
-            ic.add(streamline_index)
+            ic.add(index)
         else:
-            nc.add(streamline_index)
+            nc.add(index)
 
-    return list(vc), list(ic), list(nc)
+    return list(vc), list(ic), list(nc), endpoint_distances

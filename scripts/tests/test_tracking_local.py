@@ -55,7 +55,7 @@ def test_execution_tracking_ptt(script_runner, monkeypatch):
                             in_mask, in_mask, 'local_ptt.trk', '--nt', '100',
                             '--compress', '0.1', '--sh_basis', 'descoteaux07',
                             '--min_length', '20', '--max_length', '200',
-                            '--algo', 'ptt')
+                            '--algo', 'ptt', '-f')
     assert ret.success
 
 
@@ -172,7 +172,7 @@ def test_execution_tracking_fodf_prob_pmf_mapping(script_runner, monkeypatch):
     assert ret.success
 
 
-def test_execution_tracking_ptt(script_runner, monkeypatch):
+def test_execution_tracking_ptt_with_probe(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_fodf = os.path.join(SCILPY_HOME, 'tracking', 'fodf.nii.gz')
     in_mask = os.path.join(SCILPY_HOME, 'tracking', 'seeding_mask.nii.gz')
@@ -182,7 +182,7 @@ def test_execution_tracking_ptt(script_runner, monkeypatch):
                             '--compress', '0.1', '--sh_basis', 'descoteaux07',
                             '--min_length', '20', '--max_length', '200',
                             '--sh_to_pmf', '-v', '--probe_length', '2',
-                            '--probe_quality', '5', '--algo', 'ptt')
+                            '--probe_quality', '5', '--algo', 'ptt', '-f')
     assert ret.success
 
 

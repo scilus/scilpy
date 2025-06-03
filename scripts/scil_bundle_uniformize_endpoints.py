@@ -34,12 +34,14 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist, assert_headers_compatible)
 from scilpy.tractanalysis.bundle_operations import \
     uniformize_bundle_sft, uniformize_bundle_sft_using_mask
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(
-        description=__doc__,
-        formatter_class=argparse.RawTextHelpFormatter)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
+
     p.add_argument('in_bundle',
                    help='Input path of the tractography file.')
     p.add_argument('out_bundle',

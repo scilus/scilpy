@@ -27,7 +27,8 @@ def init_data():
     }
     mask_img = nib.nifti2.Nifti2Image(mask, affine, header, extra)
 
-    sft = StatefulTractogram(streamlines, mask_img, Space.VOX, Origin.NIFTI)
+    sft = StatefulTractogram(streamlines, mask_img,
+                             space=Space.VOX, origin=Origin.NIFTI)
     save_tractogram(sft, 'tractogram.trk', True)
 
 
@@ -49,7 +50,7 @@ def test_execution_filtering(script_runner, monkeypatch):
     assert ret.success
 
 
-def test_execution_filtering_save_colliding(script_runner, monkeypatch):
+def test_execution_filtering_out_colliding_prefix(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     init_data()
 
@@ -58,7 +59,7 @@ def test_execution_filtering_save_colliding(script_runner, monkeypatch):
 
     ret = script_runner.run('scil_tractogram_filter_collisions.py',
                             'tractogram.trk', 'diameters.txt', 'clean.trk',
-                            '--save_colliding', '-f')
+                            '--out_colliding_prefix', 'tractogram', '-f')
     assert ret.success
 
 

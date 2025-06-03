@@ -33,6 +33,11 @@ If data comparison is performed, the bundles MUST be in same resolution.
 
 Formerly: scil_compute_bundle_volume.py or
 scil_evaluate_bundles_individual_measures.py
+------------------------------------------------------------------------------
+Reference:
+[1] Fang-Cheng Yeh. 2020.
+    Shape analysis of the human association pathways. NeuroImage.
+------------------------------------------------------------------------------
 """
 
 import argparse
@@ -58,17 +63,14 @@ from scilpy.tractanalysis.reproducibility_measures \
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
 from scilpy.tractograms.streamline_and_mask_operations import \
     get_endpoints_density_map, get_head_tail_density_maps
-
-EPILOG = """
-References:
-[1] Fang-Cheng Yeh. 2020.
-    Shape analysis of the human association pathways. NeuroImage.
-"""
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(description=__doc__, epilog=EPILOG,
-                                formatter_class=argparse.RawTextHelpFormatter)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
+    
     p.add_argument('in_bundles', nargs='+',
                    help='Path of the input bundles.')
     p.add_argument('--out_json',

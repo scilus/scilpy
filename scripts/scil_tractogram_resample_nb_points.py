@@ -20,11 +20,13 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_outputs_exist)
 from scilpy.tractograms.streamline_operations import \
     resample_streamlines_num_points, resample_streamlines_step_size
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(
-        formatter_class=argparse.RawTextHelpFormatter, description=__doc__)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
 
     p.add_argument('in_tractogram',
                    help='Streamlines input file name.')

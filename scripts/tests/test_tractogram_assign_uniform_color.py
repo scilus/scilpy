@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 import json
 import os
+import shutil
 import tempfile
 
 from scilpy import SCILPY_HOME
@@ -40,5 +41,21 @@ def test_execution_dict(script_runner, monkeypatch):
 
     ret = script_runner.run('scil_tractogram_assign_uniform_color.py',
                             in_bundle, '--dict_colors', json_file,
+                            '--out_suffix', 'colored', '-f')
+    assert ret.success
+
+def test_execution_dict_new_color(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
+
+    # Create a fake dictionary. Using the other hexadecimal format.
+    my_dict = {'IFGWM': '#000000'}
+    json_file = 'my_json_dict.json'
+    with open(json_file, "w+") as f:
+        json.dump(my_dict, f)
+
+    shutil.copy2(in_bundle, 'dummy.trk')
+    ret = script_runner.run('scil_tractogram_assign_uniform_color.py',
+                            in_bundle, "dummy.trk",
+                            '--dict_colors', json_file,
                             '--out_suffix', 'colored', '-f')
     assert ret.success

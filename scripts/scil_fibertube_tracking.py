@@ -22,6 +22,11 @@ by the previous tracking direction and the angular constraint.
 
 Seeding is done within the first segment of each fibertube.
 
+To form fibertubes from a set of streamlines, you can use the scripts:
+- scil_tractogram_filter_collisions.py to assign a diameter to each streamline
+  and remove all colliding fibertubes.
+- scil_tractogram_dps_math.py to assign a diameter without filtering.
+
 For a better understanding of Fibertube Tracking please see:
     - docs/source/documentation/fibertube_tracking.rst
 """
@@ -35,34 +40,38 @@ import numpy as np
 import nibabel as nib
 import dipy.core.geometry as gm
 
-from scilpy.tracking.seed import FibertubeSeedGenerator
-from scilpy.tracking.propagator import FibertubePropagator
-from scilpy.image.volume_space_management import FibertubeDataVolume
+from scilpy.tracking.seed import FibertubeSeedGenerator, CustomSeedsDispenser
+from scilpy.tracking.propagator import FibertubePropagator, ODFPropagator
+from scilpy.image.volume_space_management import (FibertubeDataVolume,
+                                                  FTODFDataVolume)
 from dipy.io.stateful_tractogram import StatefulTractogram, Space, Origin
 from dipy.io.streamline import load_tractogram, save_tractogram
 from scilpy.tracking.tracker import Tracker
 from scilpy.image.volume_space_management import DataVolume
-from scilpy.io.utils import (assert_inputs_exist,
+from scilpy.tractograms.streamline_operations import \
+    find_seed_indexes_on_streamlines
+from scilpy.io.utils import (parse_sh_basis_arg,
+                             load_matrix_in_any_format,
+                             assert_inputs_exist,
                              assert_outputs_exist,
+                             add_sh_basis_args,
+                             add_sphere_arg,
                              add_processes_arg,
                              add_verbose_arg,
                              add_json_args,
                              add_overwrite_arg)
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(
-        formatter_class=argparse.RawTextHelpFormatter,
-        description=__doc__)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
 
     p.add_argument('in_fibertubes',
                    help='Path to the tractogram (must be .trk) file \n'
-                        'containing fibertubes. They must be: \n'
-                        '1- Void of any collision. \n'
-                        '2- With their respective diameter saved \n'
-                        'as data_per_streamline. \n'
-                        'For both of these requirements, see \n'
-                        'scil_tractogram_filter_collisions.py.')
+                        'containing fibertubes. They must have their \n'
+                        'respective diameter saved as data_per_streamline.')
 
     p.add_argument('out_tractogram',
                    help='Tractogram output file (must be .trk or .tck).')
@@ -93,10 +102,9 @@ def _build_arg_parser():
         '[%(default)s]')
     track_g.add_argument(
         '--theta', type=float, default=60.,
-        help='Maximum angle between 2 steps. If the angle is '
-             'too big, streamline is \nstopped and the '
-             'following point is NOT included.\n'
-             '[%(default)s]')
+        help='Maximum angle between 2 steps. If the angle is \n'
+             'too big, streamline is stopped and the \n'
+             'following point is NOT included. [%(default)s]')
     track_g.add_argument(
         '--rk_order', metavar="K", type=int, default=1,
         choices=[1, 2, 4],
@@ -121,12 +129,45 @@ def _build_arg_parser():
              '(based on the propagator\'s definition of invalid) \n'
              'are never added.')
 
+    ftod_g = p.add_argument_group(
+        'ftODF Options',
+        'Options required if you want to perform fibertube tracking using\n'
+        'fibertube orientation distribution (ftODF).\n'
+        'If you\'re not familiar with these options, please refer to the\n'
+        'fibertube tracking demo.')
+    ftod_g.add_argument('--use_ftODF', action='store_true',
+                        help='If set, will build a fibertube orientation\n'
+                        'distribution function at each tracking step. It \n'
+                        'also allows the use of the scilpy ODFPropagator \n'
+                        'instead of FibertubePropagator.')
+    ftod_g.add_argument('--algo', default='prob', choices=['det', 'prob'],
+                        help='Algorithm to use with ftODF. If ftODF is \n'
+                             'NOT used, this argument is not considered. \n'
+                             '[%(default)s]')
+    add_sphere_arg(ftod_g, symmetric_only=False)
+    add_sh_basis_args(ftod_g)
+    ftod_g.add_argument('--sh_order',
+                        type=int, default=8,
+                        help='Spherical harmonics order at which to build'
+                             ' ftODF. [%(default)s]')
+    ftod_g.add_argument('--sub_sphere',
+                        type=int, default=0,
+                        help='Subdivides each face of the sphere into 4^s new'
+                             ' faces. [%(default)s]')
+    ftod_g.add_argument('--sfthres', dest='sf_threshold', metavar='sf_th',
+                        type=float, default=0.1,
+                        help='Spherical function relative threshold. '
+                             '[%(default)s]')
+    ftod_g.add_argument('--sfthres_init', metavar='sf_th', type=float,
+                        default=0.5, dest='sf_threshold_init',
+                        help="Spherical function relative threshold value "
+                             "for the \ninitial direction. [%(default)s]")
+
     seed_group = p.add_argument_group(
-        'Seeding options',
-        'When no option is provided, uses --nb_seeds_per_fibertube 5.')
+        'Seeding options')
     seed_group.add_argument(
         '--nb_seeds_per_fibertube', type=int, default=5,
-        help='The number of seeds planted in the first segment \n'
+        help='The number of seeds generated randomly in the first segment \n'
              'of each fibertube. The total amount of streamlines will \n'
              'be [nb_seeds_per_fibertube] * [nb_fibertubes]. [%(default)s]')
     seed_group.add_argument(
@@ -135,6 +176,16 @@ def _build_arg_parser():
              'amount of fibers. Otherwise, the entire tractogram \n'
              'will be tracked. The total amount of streamlines \n'
              'will be [nb_seeds_per_fibertube] * [nb_fibertubes].')
+    seed_group.add_argument(
+        '--local_seeding', default='random', choices=['center', 'random'],
+        help='Defines where/how seeds will be placed within a fibertube \n'
+             'origin segment. [%(default)s]')
+    seed_group.add_argument(
+        '--in_custom_seeds', type=str,
+        help='Path to a file containing a list of custom seeding \n'
+             'coordinates (.txt, .mat or .npy). They should be in \n'
+             'VOXMM space. Setting this parameter will ignore all other \n'
+             'seeding parameters.')
 
     rand_g = p.add_argument_group('Random options')
     rand_g.add_argument(
@@ -190,20 +241,22 @@ def main():
                          [args.out_config])
 
     theta = gm.math.radians(args.theta)
-
     max_nbr_pts = int(args.max_length / args.step_size)
     min_nbr_pts = max(int(args.min_length / args.step_size), 1)
-
+    # Using space and origin in the propagator: vox and center, like
+    # in dipy.
     our_space = Space.VOXMM
     our_origin = Origin('center')
+    sh_basis, is_legacy = parse_sh_basis_arg(args)
 
     logging.debug('Loading tractogram & diameters')
-    in_sft = load_tractogram(args.in_fibertubes, 'same', our_space, our_origin)
+    in_sft = load_tractogram(args.in_fibertubes, 'same',
+                             to_space=our_space,
+                             to_origin=our_origin)
     centerlines = list(in_sft.get_streamlines_copy())
     diameters = np.reshape(in_sft.data_per_streamline['diameters'],
                            len(centerlines))
 
-    logging.debug("Instantiating datavolumes")
     # The scilpy Tracker requires a mask for tracking, but fibertube tracking
     # aims to eliminate grids (or masks) in tractography. Instead, the tracking
     # stops when no more fibertubes are detected by the Tracker.
@@ -212,30 +265,54 @@ def main():
     # never interfere.
     fake_mask_data = np.ones(in_sft.dimensions)
     fake_mask = DataVolume(fake_mask_data, in_sft.voxel_sizes, 'nearest')
-    datavolume = FibertubeDataVolume(centerlines, diameters, in_sft,
+
+    if args.use_ftODF:
+        logging.debug("Instantiating FTODF datavolume")
+        datavolume = FTODFDataVolume(centerlines, diameters, in_sft,
                                      args.blur_radius,
-                                     np.random.default_rng(args.rng_seed))
+                                     np.random.default_rng(args.rng_seed),
+                                     sh_basis, args.sh_order)
+    else:
+        logging.debug("Instantiating fibertube datavolume")
+        datavolume = FibertubeDataVolume(centerlines, diameters, in_sft,
+                                         args.blur_radius,
+                                         np.random.default_rng(args.rng_seed))
 
     logging.debug("Instantiating seed generator")
-    seed_generator = FibertubeSeedGenerator(centerlines, diameters,
-                                            args.nb_seeds_per_fibertube)
+    if args.in_custom_seeds:
+        seeds = np.squeeze(load_matrix_in_any_format(args.in_custom_seeds))
+        seed_generator = CustomSeedsDispenser(seeds, space=our_space,
+                                              origin=our_origin)
+        nbr_seeds = len(seeds)
+    else:
+        seed_generator = FibertubeSeedGenerator(centerlines, diameters,
+                                                args.nb_seeds_per_fibertube,
+                                                args.local_seeding)
 
-    logging.debug("Instantiating propagator")
-    propagator = FibertubePropagator(datavolume, args.step_size,
-                                     args.rk_order, theta, our_space,
-                                     our_origin)
+        max_nbr_seeds = args.nb_seeds_per_fibertube * len(centerlines)
+        if args.nb_fibertubes:
+            if args.nb_fibertubes > len(centerlines):
+                raise ValueError("The provided number of seeded fibers" +
+                                 "exceeds the number of available fibertubes.")
+            else:
+                nbr_seeds = args.nb_seeds_per_fibertube * args.nb_fibertubes
+        else:
+            nbr_seeds = max_nbr_seeds
+
+    if args.use_ftODF:
+        logging.debug("Instantiating ODF propagator")
+        propagator = ODFPropagator(
+            datavolume, args.step_size, args.rk_order, args.algo, sh_basis,
+            args.sf_threshold, args.sf_threshold_init, theta, args.sphere,
+            sub_sphere=args.sub_sphere,
+            space=our_space, origin=our_origin, is_legacy=is_legacy)
+    else:
+        logging.debug("Instantiating fibertube propagator")
+        propagator = FibertubePropagator(datavolume, args.step_size,
+                                         args.rk_order, theta, our_space,
+                                         our_origin)
 
     logging.debug("Instantiating tracker")
-    max_nbr_seeds = args.nb_seeds_per_fibertube * len(centerlines)
-    if args.nb_fibertubes:
-        if args.nb_fibertubes > len(centerlines):
-            raise ValueError("The provided number of seeded fibers exceeds" +
-                             "the number of available fibertubes.")
-        else:
-            nbr_seeds = args.nb_seeds_per_fibertube * args.nb_fibertubes
-    else:
-        nbr_seeds = max_nbr_seeds
-
     if args.skip and nbr_seeds + args.skip > max_nbr_seeds:
         raise ValueError("The number of seeds plus the number of skipped " +
                          "seeds requires more fibertubes than there are " +
@@ -245,9 +322,10 @@ def main():
                       args.max_invalid_nb_points, 0,
                       args.nbr_processes, True, 'r+',
                       rng_seed=args.rng_seed,
-                      track_forward_only=True,
+                      track_forward_only=not args.use_ftODF,
                       skip=args.skip,
                       verbose=args.verbose,
+                      min_iter=1,
                       append_last_point=args.keep_last_out_point)
 
     start_time = time.time()
@@ -256,8 +334,11 @@ def main():
     str_time = "%.2f" % (time.time() - start_time)
     logging.debug('Finished tracking in: ' + str_time + ' seconds')
 
+    seed_indexes = find_seed_indexes_on_streamlines(seeds, streamlines)
+
     out_sft = StatefulTractogram.from_sft(streamlines, in_sft)
     out_sft.data_per_streamline['seeds'] = seeds
+    out_sft.data_per_streamline['seed_ids'] = seed_indexes
     save_tractogram(out_sft, args.out_tractogram)
 
     config = {

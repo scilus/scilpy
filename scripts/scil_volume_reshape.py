@@ -12,8 +12,11 @@ To
     - interpolate/reslice to an arbitrary voxel size, use
       scil_volume_resample.py.
     - reslice a volume to match the shape of another, use
-      scil_volume_reslice_to_reference.py.
+      scil_volume_reshape.py.
     - crop a volume to constrain the field of view, use scil_volume_crop.py.
+
+We usually use this script to reshape the freesurfer output (ex: wmparc.nii.gz) with
+your orig data (rawavg.nii.gz).
 """
 
 import argparse
@@ -24,11 +27,13 @@ import nibabel as nib
 from scilpy.io.utils import (add_verbose_arg, add_overwrite_arg,
                              assert_inputs_exist, assert_outputs_exist)
 from scilpy.image.volume_operations import reshape_volume
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(
-        description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
 
     p.add_argument('in_image',
                    help='Path of the input volume.')

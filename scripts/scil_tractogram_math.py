@@ -61,12 +61,13 @@ from scilpy.io.utils import (add_bbox_arg,
 from scilpy.tractograms.lazy_tractogram_operations import lazy_concatenate
 from scilpy.tractograms.tractogram_operations import (
     perform_tractogram_operation_on_sft, concatenate_sft)
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(
-        formatter_class=argparse.RawTextHelpFormatter,
-        description=__doc__)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
 
     p.add_argument('operation', metavar='OPERATION',
                    choices=['difference', 'intersection', 'union',
