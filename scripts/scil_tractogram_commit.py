@@ -283,11 +283,12 @@ def _save_results(args, tmp_dir, ext, in_hdf5_file, offsets_list, sub_dir,
 
     if ext == '.h5':
         _save_out_hdf5(commit_results_dir, sft, in_hdf5_file,
-                       streamline_weights, offsets_list, is_commit_2)
+                       streamline_weights, offsets_list, out_dir,
+                       is_commit_2)
 
 
 def _save_out_hdf5(commit_results_dir, sft, in_hdf5_file,
-                   streamline_weights, offsets_list, is_commit_2):
+                   streamline_weights, offsets_list, out_dir, is_commit_2):
     new_filename = os.path.join(commit_results_dir, 'decompose_commit.h5')
     with h5py.File(new_filename, 'w') as out_hdf5_file:
         construct_hdf5_header(out_hdf5_file, sft)
@@ -330,6 +331,7 @@ def _save_out_hdf5(commit_results_dir, sft, in_hdf5_file,
             construct_hdf5_group_from_streamlines(
                 new_group, tmp_streamlines, dps=dps, dpp=None)
 
+    shutil.copy(new_filename, out_dir)
 
 def main():
     parser = _build_arg_parser()
