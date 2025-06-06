@@ -51,9 +51,9 @@ def _afd_rd_wrapper(args):
     is_legacy = args[5]
 
     with h5py.File(in_hdf5_filename, 'r') as in_hdf5_file:
-        sft, _ = reconstruct_sft_from_hdf5(in_hdf5_file, key)
+        sft, _ = reconstruct_sft_from_hdf5(in_hdf5_file, key, allow_empty=True)
 
-    if sft is None:  # No streamlines in group
+    if len(sft) == 0:  # No streamlines in group
         return key, 0
 
     afd_mean_map, rd_mean_map = afd_map_along_streamlines(sft, fodf_img,
@@ -63,6 +63,7 @@ def _afd_rd_wrapper(args):
     afd_mean = np.average(afd_mean_map[afd_mean_map > 0])
 
     return key, afd_mean
+
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(description=__doc__,

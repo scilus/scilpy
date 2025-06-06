@@ -3,9 +3,7 @@
 import logging
 
 from dipy.io.stateful_tractogram import StatefulTractogram, Space, Origin
-import nibabel as nib
 from dipy.io.utils import create_nifti_header
-from nibabel.streamlines.array_sequence import ArraySequence
 import numpy as np
 
 from scilpy.io.streamlines import reconstruct_streamlines

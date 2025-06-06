@@ -75,10 +75,15 @@ def _average_wrapper(args):
 
             # scil_tractogram_segment_connections_from_labels.py saves the
             # streamlines in VOX/CORNER
-            streamlines = reconstruct_streamlines_from_hdf5(hdf5_file[key])
-            if len(streamlines) == 0:
+            if key not in hdf5_file:
+                logging.warning('Key {} not found in {}. Skipping.'.format(
+                    key, hdf5_filename))
                 continue
-            density = compute_tract_counts_map(streamlines, dimensions)
+            else:
+                streamlines = reconstruct_streamlines_from_hdf5(hdf5_file[key])
+                if len(streamlines) == 0:
+                    continue
+                density = compute_tract_counts_map(streamlines, dimensions)
 
         if binary:
             density_data[density > 0] += 1
