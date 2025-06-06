@@ -503,8 +503,7 @@ def main():
                 lambdas=(perc_lambda, None, None),
                 params=(params_IC, None, None))
 
-            mit.fit(tol_fun=1e-3, max_iter=args.nbr_iter,
-                    verbose=False)
+            mit.fit(tol_fun=1e-3, max_iter=args.nbr_iter)
             mit.save_results()
             _save_results(args, tmp_dir, ext, hdf5_file, offsets_list,
                           'commit_2/', True)
