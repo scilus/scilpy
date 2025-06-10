@@ -151,9 +151,7 @@ def main():
 
     # Loading
     sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
-    # Streamlines must be in voxel space to deal correctly with bounding box.
-    sft.to_vox()
-    sft.to_corner()
+
     # Resample streamlines to a specific step-size in mm. May impact the
     # cutting process.
     if args.step_size is not None:

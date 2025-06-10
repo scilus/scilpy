@@ -69,7 +69,6 @@ from dipy.io.streamline import save_tractogram
 from dipy.io.stateful_tractogram import StatefulTractogram, Space
 from dipy.io.utils import is_header_compatible
 from dipy.tracking.streamline import transform_streamlines
-from dipy.tracking.streamlinespeed import length
 import nibabel as nib
 from nibabel.streamlines.array_sequence import ArraySequence
 import numpy as np
@@ -164,7 +163,7 @@ def main():
         parser.error('correlation_thr must be greater than 0')
 
     if args.hyperplane:
-        warning = 'WARNING: The --hyperplane option should be used carefully,' \
+        warning = 'WARNING: The --hyperplane option should be used carefully,'\
                   ' not fully tested!'
         heading = '=' * len(warning)
         logging.warning(f'{heading}\n{warning}\n{heading}')
@@ -230,8 +229,8 @@ def main():
         density_list.append(density)
 
     if not is_header_compatible(sft_centroid, sft_list[0]):
-        raise IOError(f'{args.in_centroid} and {args.in_bundles} do not have a '
-                      'compatible header')
+        raise IOError(f'{args.in_centroid} and {args.in_bundles} do not have a'
+                      ' compatible header')
 
     logging.debug('Computed density and binary map(s) in '
                   f'{round(time.time() - timer, 3)}.')
@@ -281,16 +280,14 @@ def main():
     logging.debug(
         f'Trim bundle(s) in {round(time.time() - timer, 3)} seconds.')
 
-    # Use later to trim the streamlines without assignement
-    min_len = np.min(length(concat_sft.streamlines))
-
     method = 'hyperplane' if args.hyperplane else 'centerline'
     args.nb_pts = len(sft_centroid.streamlines[0]) if args.nb_pts is None \
         else args.nb_pts
     labels_map = subdivide_bundles(concat_sft, sft_centroid, binary_mask,
                                    args.nb_pts, method=method)
 
-    # We trim the streamlines due to looping labels, so we have a new binary mask
+    # We trim the streamlines due to looping labels, so we have a new binary
+    # mask
     binary_mask = np.zeros(labels_map.shape, dtype=np.uint8)
     binary_mask[labels_map > 0] = 1
 
@@ -326,7 +323,7 @@ def main():
         timer = time.time()
         new_sft = StatefulTractogram.from_sft(sft.streamlines, sft_list[0])
         cut_sft = cut_streamlines_with_mask(
-            new_sft, binary_mask, min_len=min_len,
+            new_sft, binary_mask,
             cutting_style=CuttingStyle.KEEP_LONGEST)
         logging.debug(
             f'Cut streamlines in {round(time.time() - timer, 3)} seconds')
@@ -341,13 +338,14 @@ def main():
 
         # Iterate through each type to save the files
         for basename, map in data_dict.items():
-            nib.save(nib.Nifti1Image((binary_list[i] * map), sft_list[0].affine),
-                     os.path.join(sub_out_dir, f'{basename}_map.nii.gz'))
+            nib.save(
+                nib.Nifti1Image((binary_list[i] * map), sft_list[0].affine),
+                os.path.join(sub_out_dir, f'{basename}_map.nii.gz'))
 
             if basename == 'correlation' and len(args.in_bundles) == 1:
                 continue
 
-            if len(sft):
+            if len(cut_sft):
                 tmp_data = ndi.map_coordinates(
                     map, cut_sft.streamlines._data.T - 0.5, order=0)
 
