@@ -6,7 +6,7 @@ BundleParc: automatic tract labelling without tractography.
 This method takes as input fODF maps and outputs 71 bundle label maps. These maps can then be used to perform tractometry/tract profiling/radiomics. The bundle definitions follow TractSeg's minus the whole CC.
 
 Example usage:
-    $ bundleparc_predict fodf.nii.gz --out_prefix sub-001__
+    $ scil_fodf_bundleparc.py fodf.nii.gz --out_prefix sub-001__
 
 Example output:
     sub-001__AF_left.nii.gz, sub-001__AF_right.nii.gz, ..., sub-001__UF_right.nii.gz
@@ -117,8 +117,9 @@ def main():
     img_size = 128
 
     # Check the number of coefficients in the input fODF
-    assert C >= n_coefs, \
-        f'Input fODFs should have at least {n_coefs} coefficients.'
+    if C < n_coefs:
+        logging.warning(f'Input fODFs have fewer than {n_coefs} coefficients. '
+                        'Accuracy may be reduced.')
     if C > n_coefs:
         logging.warning(f'Input fODFs have more than {n_coefs} coefficients. '
                         f'Only the first {n_coefs} will be used.')
