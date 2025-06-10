@@ -1,17 +1,24 @@
+import logging
 import numpy as np
-from scipy.ndimage import gaussian_filter
+
 from tqdm import tqdm
 
-from dipy.utils.optpkg import optional_package
+from scipy.ndimage import gaussian_filter, label
+
 from scilpy.ml.utils import get_device, to_numpy
+from scilpy.ml.bundleparc.utils import get_data
 
-IMPORT_ERROR_MSG = "PyTorch is required to run this script. Please install" + \
+# Putting this first to prevent accidental import of torch
+from dipy.utils.optpkg import optional_package # noqa E402
+IMPORT_ERROR_MSG = "PyTorch 2.1 is required to run this script. Please install" + \
                    " it first. See the official website for more info: " + \
-                   "https://pytorch.org/get-started/locally/"  # noqa
-torch, have_torch, _ = optional_package('torch', trip_msg=IMPORT_ERROR_MSG)
+                   "https://pytorch.org/get-started/previous-versions/"  # noqa
+torch, have_torch, _ = optional_package('torch', trip_msg=IMPORT_ERROR_MSG) # noqa E402
 
 
-def post_process_mask(mask, bundle_name):
+def post_process_mask(
+    mask, bundle_name, min_blob_size=100, keep_biggest_blob=False
+):
     """ Post-process the mask. This function binarizes the mask. In a future
     release, it will also remove small blobs and fill holes (this is why
     the bundle name is passed).
@@ -23,14 +30,35 @@ def post_process_mask(mask, bundle_name):
     bundle_name : str
         Name of the bundle.
     """
-
-    # Binarize the mask
     bundle_mask = (mask > 0.5)
 
-    # TODO: investigate blobs. TractSeg performs some post-processing
-    # to fix broken commissures or fornices. Would be nice to do the same.
-    # For future ref: use ndi.label to get the blobs
+    # Get the blobs in the image. Ideally, a mask only has one blob.
+    # More than one either indicates a broken segmentation, or extraneous
+    # voxels.
+    blobs, nb = label(bundle_mask)
 
+    # No need to process, return the mask
+    if nb <= 1:
+        logging.debug(f"Only one blob in {bundle_name}.")
+        return bundle_mask.astype(np.uint8)
+
+    # Calculate the size of each blob
+    blob_sizes = np.bincount(blobs.ravel())
+    new_mask = np.zeros_like(bundle_mask)
+
+    if keep_biggest_blob:
+        logging.debug(f"More than one blob in {bundle_name}, keeping largest")
+        biggest_blob = np.argmax(blob_sizes[1:])
+        new_mask[blobs == biggest_blob + 1] = 1
+        return new_mask
+
+    # Remove blobs under a certain size (min_blob_size)
+    new_nb_blobs = 0
+    for i in range(1, len(blob_sizes[1:])):
+        if blob_sizes[i] >= min_blob_size:
+            new_mask[blobs == i] = 1
+            new_nb_blobs += 1
+    logging.debug(f'Kept {new_nb_blobs} blob out of {nb} in {bundle_name}.')
     return bundle_mask.astype(np.uint8)
 
 
@@ -58,29 +86,30 @@ def post_process_labels(
         Predicted labels for the bundle.
     """
 
+    # Determine the output type based on the number of labels
+    out_type = np.uint16 if nb_labels > 1 else np.uint8
+
     # Masked convolution
-    # The labels are first smoothed using a Gaussian filter.
     float_mask = bundle_mask.astype(float)
     filtered = gaussian_filter(bundle_label * float_mask, sigma=sigma)
     weights = gaussian_filter(float_mask, sigma=sigma)
     filtered /= (weights + 1e-8)
     filtered = filtered * bundle_mask
-
-    # Label masking.
+    # Label masking
     discrete_labels = bundle_label[bundle_mask.astype(bool)]
 
-    # Label dicretizing.
-    discrete_labels = np.round(discrete_labels * nb_labels)
+    # Label dicretizing
+    discrete_labels = np.ceil(discrete_labels * nb_labels)
     bundle_label[bundle_mask.astype(bool)] = discrete_labels
     bundle_label[~bundle_mask.astype(bool)] = 0
 
-    return bundle_label.astype(np.int32)
+    return bundle_label.astype(out_type)
 
 
 @torch.no_grad()
 def predict(
-    model, fodf_data, wm_data, nb_labels, bundles, half_precision=False,
-    verbose=True
+    model, fodf, n_coefs, nb_labels, bundles, min_blob_size, keep_biggest_blob,
+    half_precision=False, verbose=False
 ):
     """ Predict the  bundle labels. This function is a generator that yields
     the predicted labels for each bundle.
@@ -89,10 +118,10 @@ def predict(
     ----------
     model : LabelSegNet
         Model to use for the prediction.
-    fodf_data : np.ndarray
-        fODF data.
-    wm_data : np.ndarray
-        Whole-brain white matter mask.
+    fodf: nib.nib.Nifti1Image
+        fODF image, resampled to the model's input size.
+    n_coefs : int
+        Number of SH coefficients to use.
     nb_labels : int
         Number of labels to predict.
     bundles : list of str
@@ -110,21 +139,18 @@ def predict(
     bundle_name : str
         Name of the bundle.
     """
+
+    nb_bundles = len(bundles)
     device = get_device()
+    fodf_data = get_data(fodf, n_coefs)
 
-    # Predict the scores of the streamlines
-    pbar = tqdm(range(len(bundles)), disable=not verbose)
+    pbar = tqdm(range(nb_bundles), disable=not verbose)
 
-    with torch.amp.autocast(str(device), enabled=half_precision):
+    with torch.amp.autocast(device.type, enabled=half_precision):
 
-        # Convert the data to tensors and move them to the device.
+        # Convert the fODF data to a torch tensor
         data = torch.tensor(
             fodf_data,
-            dtype=torch.float
-        ).to(device)
-
-        wm_prompt = torch.tensor(
-            wm_data,
             dtype=torch.float
         ).to(device)
 
@@ -132,29 +158,30 @@ def predict(
         prompts = torch.eye(len(bundles), device=device)
 
         # Encode the data once, reuse the features.
-        z, encoder_features, mask_features = model.encode(
-            data[None, ...], wm_prompt[None, ...])
+        z, encoder_features = model.encode(
+            data[None, ...])
 
         # Loop over the bundles.
         for i in pbar:
             pbar.set_description(bundles[i])
 
-            # Predict the scores.
+            # Decode the features for the current bundle.
             y_hat = torch.nn.functional.sigmoid(model.decode(
-                z, encoder_features, mask_features, prompts[None, i, ...]
+                z, encoder_features, prompts[None, i, ...]
             )[-1]).squeeze()
 
-            # Get the numpy arrays (first dim is the bundle mask and the second
-            # is the labels).
+            # Get the predicted mask and labels as numpy arrays.
             y_hat_np = to_numpy(y_hat)
             bundle_mask = y_hat_np[0]
             bundle_label = y_hat_np[1]
 
             # Post-process the mask and labels.
             # Binarize the mask (and in a future release remove small blobs and
-            # fill holes).
+            # fill holes
             bundle_mask = post_process_mask(
-                bundle_mask, bundles[i])
+                bundle_mask, bundles[i], min_blob_size=min_blob_size,
+                keep_biggest_blob=keep_biggest_blob)
+
             # Extract the labels using the mask, then filter and discretize
             # them.
             bundle_label = post_process_labels(
