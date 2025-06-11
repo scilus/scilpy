@@ -142,7 +142,7 @@ def predict(
 
     nb_bundles = len(bundles)
     device = get_device()
-    fodf_data = get_data(fodf.get_fdata(), n_coefs)
+    fodf_data = get_data(fodf, n_coefs)
 
     pbar = tqdm(range(nb_bundles), disable=not verbose)
 

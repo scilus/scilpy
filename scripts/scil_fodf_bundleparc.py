@@ -61,9 +61,8 @@ def _build_arg_parser():
                         help='fODF input.')
     parser.add_argument('--out_prefix', type=str, default='',
                         help='Output file prefix. Default is nothing. ')
-    parser.add_argument('--out_folder', type=str, default='',
-                        help='Output destination. Default is the current '
-                             'directory.')
+    parser.add_argument('--out_folder', type=str, default='bundleparc',
+                        help='Output destination. Default is [%(default)s].')
     parser.add_argument('--nb_pts', type=int, default=50,
                         help='Number of divisions per bundle. '
                              'Default is [%(default)s].')
@@ -135,9 +134,10 @@ def main():
     # Predict label maps. `predict` is a generator
     # yielding one label map per bundle and its name.
     for y_hat_label, b_name in predict(
-        model, resampled_img, n_coefs, args.nb_pts, DEFAULT_BUNDLES,
-        args.min_blob_size, args.keep_biggest_blob, args.half_precision,
-        logging.getLogger().getEffectiveLevel() < logging.WARNING
+        model, resampled_img.get_fdata(), n_coefs, args.nb_pts,
+        DEFAULT_BUNDLES, args.min_blob_size, args.keep_biggest_blob,
+        args.half_precision, logging.getLogger().getEffectiveLevel() <
+        logging.WARNING
     ):
 
         # Format the output as a nifti image
