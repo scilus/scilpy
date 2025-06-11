@@ -31,7 +31,11 @@ def get_model(checkpoint_file, device, kwargs={}):
             weights_only=False)
 
     state_dict = checkpoint['state_dict']
-    net_state_dict = { '.'.join(k.split('.')[1:]): v for k,v in state_dict.items() if 'bundleparcnet' in k}
+    # A bit hackish, but we have to extract the "BundleParcNet" section from
+    # the weights, as they were saved as part of an encompassing BundleParc
+    # module.
+    net_state_dict = {'.'.join(k.split('.')[1:]): v for k, v in
+                      state_dict.items() if 'bundleparcnet' in k}
     model = BundleParcNet(45)
 
     model.load_state_dict(net_state_dict)
@@ -50,7 +54,7 @@ def get_data(fodf, n_coefs):
 
     Parameters
     ----------
-    fodf : nibabel.Nifti1Image
+    fodf : numpy.ndarray
         fODF data.
     n_coefs : int
         Number of SH coefficients to use.
@@ -64,7 +68,7 @@ def get_data(fodf, n_coefs):
     # Select the first n_coefs coefficients from the fodf data and put it in
     # the first dimension. This truncates the number of coefficients if there
     # are more than n_coefs.
-    input_fodf_data = fodf.get_fdata().transpose(
+    input_fodf_data = fodf.transpose(
         (3, 0, 1, 2))[:n_coefs, ...].astype(dtype=np.float32)
 
     # Shape of the input fODF data
@@ -72,7 +76,7 @@ def get_data(fodf, n_coefs):
 
     # If the input fODF has fewer than n_coefs coefficients, pad with zeros
     fodf_data = np.zeros((n_coefs, *fodf_shape[1:]), dtype=np.float32)
-    fodf_data[:n_coefs, ...] = input_fodf_data
+    fodf_data[:input_fodf_data.shape[0], ...] = input_fodf_data
 
     # z-score norm
     mean = np.mean(fodf_data)
@@ -104,7 +108,7 @@ def download_weights(path, chunk_size=1024, verbose=True):
     # https://gist.github.com/yanqd0/c13ed29e29432e3cf3e7c38467f42f51
     if not os.path.exists(os.path.dirname(path)):
         os.makedirs(os.path.dirname(path))
-        url = 'https://zenodo.org/records/15579498/files/123_4_5_bundleparc.ckpt'
+        url = 'https://zenodo.org/records/15579498/files/123_4_5_bundleparc.ckpt' # noqa E501
         resp = requests.get(url, stream=True)
         total = int(resp.headers.get('content-length', 0))
         logging.info('Downloading weights for BundleParc ...')
