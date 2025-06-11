@@ -9,11 +9,12 @@ from scilpy.ml.utils import get_device, to_numpy
 from scilpy.ml.bundleparc.utils import get_data
 
 # Putting this first to prevent accidental import of torch
-from dipy.utils.optpkg import optional_package # noqa E402
-IMPORT_ERROR_MSG = "PyTorch 2.1 is required to run this script. Please install" + \
+from dipy.utils.optpkg import optional_package
+
+IMPORT_ERROR_MSG = "PyTorch is required to run this script. Please install" + \
                    " it first. See the official website for more info: " + \
-                   "https://pytorch.org/get-started/previous-versions/"  # noqa
-torch, have_torch, _ = optional_package('torch', trip_msg=IMPORT_ERROR_MSG) # noqa E402
+                   "https://pytorch.org/get-started/locally/" # noqa
+torch, have_torch, _ = optional_package('torch', trip_msg=IMPORT_ERROR_MSG)
 
 
 def post_process_mask(

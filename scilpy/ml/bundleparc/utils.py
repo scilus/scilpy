@@ -9,14 +9,6 @@ from tqdm import tqdm
 from scilpy.ml.bundleparc.bundleparcnet import BundleParcNet
 
 
-def to_numpy(tensor: torch.Tensor, dtype=np.float32) -> np.ndarray:
-    """ Helper function to convert a torch GPU tensor
-    to numpy.
-    """
-
-    return tensor.cpu().numpy().astype(dtype)
-
-
 def get_model(checkpoint_file, device, kwargs={}):
     """ Get the model from a checkpoint. """
 
@@ -86,13 +78,6 @@ def get_data(fodf, n_coefs):
     return fodf_data
 
 
-def get_device():
-    if torch.cuda.is_available():
-        return torch.device("cuda")
-    else:
-        return torch.device("cpu")
-
-
 def download_weights(path, chunk_size=1024, verbose=True):
     """ Download the weights for BundleParcNet.
 
@@ -106,8 +91,11 @@ def download_weights(path, chunk_size=1024, verbose=True):
 
     # Adapted from
     # https://gist.github.com/yanqd0/c13ed29e29432e3cf3e7c38467f42f51
+    # Make sure directory exists
     if not os.path.exists(os.path.dirname(path)):
         os.makedirs(os.path.dirname(path))
+
+    if not os.path.exists(path):
         url = 'https://zenodo.org/records/15579498/files/123_4_5_bundleparc.ckpt' # noqa E501
         resp = requests.get(url, stream=True)
         total = int(resp.headers.get('content-length', 0))
