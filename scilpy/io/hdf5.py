@@ -104,7 +104,6 @@ def reconstruct_sft_from_hdf5(hdf5_handle, group_keys, space=Space.VOX,
             for sub_key in hdf5_handle[group_key].keys():
                 if sub_key not in ['data', 'offsets', 'lengths']:
                     data = hdf5_handle[group_key][sub_key]
-                    print(sub_key)
                     if data.shape == hdf5_handle[group_key]['offsets'].shape or np.isreal(data):
                         if data.shape == ():
                             data = np.asarray(data).astype(float) * np.ones(hdf5_handle[group_key]['offsets'].shape)
