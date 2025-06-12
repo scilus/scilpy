@@ -326,7 +326,7 @@ def create_contours_actor(contours, opacity=1., linewidth=3.,
 
 def create_odf_actors(sf_fodf, sphere, scale, sf_variance=None, mask=None,
                       radial_scale=False, norm=False, colormap=None,
-                      variance_k=1.0, variance_color=None, B_matrix=None):
+                      variance_k=1.0, variance_color=None, B_mat=None):
     """
     Create an ODF slicer actor displaying a fODF slice. The input volume is a
     3-dimensional grid containing the SH coefficients of the fODF at each
@@ -355,7 +355,7 @@ def create_odf_actors(sf_fodf, sphere, scale, sf_variance=None, mask=None,
         Factor that multiplies sqrt(variance).
     variance_color : tuple, optional
         Color of the variance fODF data, in RGB.
-    B_matrix : ndarray (n_coeffs, n_vertices)
+    B_mat : ndarray (n_coeffs, n_vertices)
         Optional SH to SF matrix for projecting `odfs` given in SH
         coefficients on the `sphere`. If None, then the input is assumed
         to be expressed in SF coefficients.

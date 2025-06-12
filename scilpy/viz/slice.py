@@ -265,7 +265,7 @@ def create_odf_slicer(sh_fodf, orientation, slice_index, sphere, sh_order,
                                              mask, radial_scale,
                                              norm, colormap,
                                              variance_k, variance_color,
-                                             B_matrix=B_mat)
+                                             B_mat=B_mat)
 
     set_display_extent(odf_actor, orientation, sh_fodf.shape[:3], slice_index)
     if sh_variance is not None:
