@@ -39,5 +39,5 @@ def test_execution_keep_biggest_blob(script_runner, monkeypatch):
     in_fodf = os.path.join(SCILPY_HOME, 'tracking', 'fodf.nii.gz')
 
     ret = script_runner.run('scil_fodf_bundleparc.py', in_fodf,
-                            '--keep_biggest_blob' '-f')
+                            '--keep_biggest_blob', '-f')
     assert ret.success
