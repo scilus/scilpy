@@ -3,9 +3,7 @@
 import logging
 
 from dipy.io.stateful_tractogram import StatefulTractogram, Space, Origin
-import nibabel as nib
 from dipy.io.utils import create_nifti_header
-from nibabel.streamlines.array_sequence import ArraySequence
 import numpy as np
 
 from scilpy.io.streamlines import reconstruct_streamlines
@@ -103,10 +101,13 @@ def reconstruct_sft_from_hdf5(hdf5_handle, group_keys, space=Space.VOX,
             dps.append({})
         if len(tmp_streamlines) > 0:
             discarded_keys = []
+
             for sub_key in hdf5_handle[group_key].keys():
                 if sub_key not in ['data', 'offsets', 'lengths']:
                     data = hdf5_handle[group_key][sub_key]
-                    if data.shape == hdf5_handle[group_key]['offsets'].shape:
+                    if data.shape == hdf5_handle[group_key]['offsets'].shape or np.isreal(data):
+                        if data.shape == ():  # If data is a scalar (data_per_group coming from afd_fixel)
+                            data = np.asarray(data).astype(float) * np.ones(hdf5_handle[group_key]['offsets'].shape)
                         # Discovered dps (the array is the same length as
                         # offsets, so it is per streamline)
                         if load_dps:
