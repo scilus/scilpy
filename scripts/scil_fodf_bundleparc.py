@@ -13,7 +13,7 @@ Example output:
 
 The output can be further processed with scil_bundle_mean_std.py to compute statistics for each bundle.
 
-This script requires PyTorch to be installed. To install it, see the official website: https://pytorch.org/get-started/locally/
+This script requires PyTorch==2.2.1 to be installed. See the official website: https://pytorch.org/get-started/locally/
 
 This script requires a GPU with ~6GB of available memory. If you use
 half-precision (float16) inference, you may be able to run it with ~3GB of
@@ -26,25 +26,24 @@ Parts of the implementation are based on or lifted from:
 To cite: Antoine Théberge, Zineb El Yamani, François Rheault, Maxime Descoteaux, Pierre-Marc Jodoin (2025). LabelSeg. ISMRM Workshop on 40 Years of Diffusion: Past, Present & Future Perspectives, Kyoto, Japan.  # noqa
 """
 
-import argparse # noqa E402
-import logging # noqa E402
-import nibabel as nib # noqa E402
-import numpy as np # noqa E402
-import os # noqa E402
+import argparse
+import logging
+import nibabel as nib
+import numpy as np
+import os
 
-from argparse import RawTextHelpFormatter # noqa E402
-from pathlib import Path # noqa E402
+from argparse import RawTextHelpFormatter
 
-from scilpy.io.utils import ( # noqa E402
+from scilpy.io.utils import (
     assert_inputs_exist, assert_outputs_exist,
     assert_output_dirs_exist_and_empty, add_overwrite_arg,
-    add_verbose_arg) # noqa E402
-from scilpy.image.volume_operations import resample_volume # noqa E402
+    add_verbose_arg)
+from scilpy.image.volume_operations import resample_volume
 
-from scilpy.ml.bundleparc.predict import predict # noqa E402
-from scilpy.ml.bundleparc.utils import get_data, get_model, download_weights # noqa E402
-from scilpy.ml.utils import get_device # noqa E402
-from scilpy import SCILPY_HOME # noqa E402
+from scilpy.ml.bundleparc.predict import predict
+from scilpy.ml.bundleparc.utils import get_model, download_weights
+from scilpy.ml.utils import get_device
+from scilpy import SCILPY_HOME
 
 # TODO: Get bundle list from model
 DEFAULT_BUNDLES = ['AF_left', 'AF_right', 'ATR_left', 'ATR_right', 'CA', 'CC_1', 'CC_2', 'CC_3', 'CC_4', 'CC_5', 'CC_6', 'CC_7', 'CG_left', 'CG_right', 'CST_left', 'CST_right', 'FPT_left', 'FPT_right', 'FX_left', 'FX_right', 'ICP_left', 'ICP_right', 'IFO_left', 'IFO_right', 'ILF_left', 'ILF_right', 'MCP', 'MLF_left', 'MLF_right', 'OR_left', 'OR_right', 'POPT_left', 'POPT_right', 'SCP_left', 'SCP_right', 'SLF_III_left', 'SLF_III_right', 'SLF_II_left', 'SLF_II_right', 'SLF_I_left', 'SLF_I_right', 'STR_left', 'STR_right', 'ST_FO_left', 'ST_FO_right', 'ST_OCC_left', 'ST_OCC_right', 'ST_PAR_left', 'ST_PAR_right', 'ST_POSTC_left', 'ST_POSTC_right', 'ST_PREC_left', 'ST_PREC_right', 'ST_PREF_left', 'ST_PREF_right', 'ST_PREM_left', 'ST_PREM_right', 'T_OCC_left', 'T_OCC_right', 'T_PAR_left', 'T_PAR_right', 'T_POSTC_left', 'T_POSTC_right', 'T_PREC_left', 'T_PREC_right', 'T_PREF_left', 'T_PREF_right', 'T_PREM_left', 'T_PREM_right', 'UF_left', 'UF_right']  # noqa E501
