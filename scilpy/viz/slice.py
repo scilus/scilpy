@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from dipy.reconst.shm import sh_to_sf
+from dipy.reconst.shm import sh_to_sf, sh_to_sf_matrix
 from fury import actor
 import numpy as np
 
@@ -252,14 +252,20 @@ def create_odf_slicer(sh_fodf, orientation, slice_index, sphere, sh_order,
                     full_basis=full_basis, legacy=is_legacy)
 
     fodf_var = None
+    B_mat = None
     if sh_variance is not None:
         fodf_var = sh_to_sf(sh_variance, sphere, sh_order, sh_basis,
                             full_basis=full_basis, legacy=is_legacy)
+    else:
+        fodf = sh_fodf
+        B_mat = sh_to_sf_matrix(sphere, sh_order, sh_basis,
+                                full_basis, return_inv=False)
 
     odf_actor, var_actor = create_odf_actors(fodf, sphere, scale, fodf_var,
                                              mask, radial_scale,
                                              norm, colormap,
-                                             variance_k, variance_color)
+                                             variance_k, variance_color,
+                                             B_matrix=B_mat)
 
     set_display_extent(odf_actor, orientation, sh_fodf.shape[:3], slice_index)
     if sh_variance is not None:

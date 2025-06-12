@@ -289,6 +289,8 @@ def main():
     variance = data['variance'] if args.variance else None
     var_color = np.asarray(args.var_color) * 255
     # Instantiate the ODF slicer actor
+    print('scale: {}'.format(args.scale))
+    print('Radial scale off: {}'.format(not args.radial_scale_off))
     odf_actor, var_actor = create_odf_slicer(data['fodf'], args.axis_name,
                                              args.slice_index, sph, sh_order,
                                              sh_basis, full_basis,
