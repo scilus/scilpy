@@ -241,7 +241,7 @@ def _save_results(args, tmp_dir, ext, in_hdf5_file, offsets_list, sub_dir,
     # Loading the tractogram (we never did yet! Only sent the filename to
     # commit). Reminder. If input was a hdf5, we have changed
     # args.in_tractogram to our tmp_tractogram saved in tmp_dir.
-    if ext == '.trk' or args.reference is None:
+    if ext == '.trk' and args.reference is None:
         args.reference = 'same'
     logging.debug('Loading tractogram from {} with reference {}.'
                   .format(args.in_tractogram, args.reference))
@@ -332,6 +332,7 @@ def _save_out_hdf5(commit_results_dir, sft, in_hdf5_file,
                 new_group, tmp_streamlines, dps=dps, dpp=None)
 
     shutil.copy(new_filename, out_dir)
+
 
 def main():
     parser = _build_arg_parser()
@@ -429,6 +430,8 @@ def main():
     with redirected_stdout:
         # Setting up the tractogram and nifti files
         if ext == '.tck':
+            if args.reference is None:
+                logging.error('Reference image is mandatory for .tck files.')
             other_args = {'TCK_ref_image': args.reference}
         else:
             other_args = {}
