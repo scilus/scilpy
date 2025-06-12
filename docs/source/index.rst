@@ -10,7 +10,7 @@ Welcome to the scilpy documentation!
 
 .. toctree::
     :maxdepth: 1
-    :caption: Documentation
+    :caption: Documentation and Tutorials
 
     documentation/btensor_scripts
     documentation/bundle_diameter_fitting_function
