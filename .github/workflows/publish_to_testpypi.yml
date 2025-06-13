@@ -38,7 +38,7 @@ jobs:
           platforms: all
 
       - name: Build wheels for Scilpy
-        uses: pypa/cibuildwheel@v2.16.2
+        uses: pypa/cibuildwheel@v3.0.0
         with:
           package-dir: ${{ steps.workspace.outputs.path }}/scilpy
           output-dir: ${{ steps.workspace.outputs.path }}/sdist
