@@ -169,6 +169,7 @@ def main():
 
         ae.set_config('ATOMS_path', kernels_dir)
         ae.set_config('OUTPUT_path', args.out_dir)
+        ae.set_config('nthreads', args.nbr_processes)
         ae.generate_kernels(regenerate=regenerate_kernels)
         if args.compute_only:
             return
