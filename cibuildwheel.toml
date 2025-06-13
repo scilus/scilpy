@@ -11,7 +11,7 @@ build-frontend = "build"
 # We build for all those python versions, plus extras
 # (see below for skipped implementations)
 # TODO: add back *311-* when we pass to h5py >=3.8
-build = "*39-* *310-*"
+build = "*39-* *310-* *311-*"
 
 # By default, we skip :
 #  - All Pypa builds, since we have C extensions (not fully supported)
@@ -24,7 +24,7 @@ skip = "pp* *-win* *-win32* *aarch64"
 test-command = "echo 'Wheel installed successfully'"
 
 # Dipy forgot to list packaging, we should not need this after 1.8.0
-before-test = "pip install packaging"
+# before-test = "pip install packaging"
 
 # Install blas, lapack, freetype on x86_64
 [tool.cibuildwheel.linux]
