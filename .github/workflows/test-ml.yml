@@ -4,11 +4,15 @@ on:
   push:
     branches:
       - master
+    paths:
+      - 'scilpy/ml/**'
   pull_request:
     branches:
       - master
+    paths:
+      - 'scilpy/ml/**'
   merge_group:
-
+        
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
@@ -18,10 +22,9 @@ env:
   OPENBLAS_NUM_THREADS: 1
 
 jobs:
-  test:
+  test-ml:
     runs-on: scilus-runners
     if: github.repository == 'scilus/scilpy'
-
     steps:
       - name: Checkout repository at merge
         uses: actions/checkout@v4
@@ -54,11 +57,12 @@ jobs:
           python -m pip install --upgrade pip wheel
           python -m pip install --upgrade "setuptools<71.0.0" 
           python -m pip install -e .
+          python -m pip install torch==2.2.1 torchvision==0.17.1
 
-      - name: Run tests
+      - name: Run ML tests
         run: |
           export C_INCLUDE_PATH=$pythonLocation/include/python${{ steps.python-selector.outputs.python-version }}:$C_INCLUDE_PATH
-          pytest --cov-report term-missing:skip-covered
+          pytest -m ml --ml --cov-report term-missing:skip-covered
 
       - name: Save test results and coverage
         uses: actions/upload-artifact@v4
@@ -70,37 +74,3 @@ jobs:
           path: |
             .coverage
             .test_reports/
-
-  coverage:
-    runs-on: ubuntu-latest
-    if: github.repository == 'scilus/scilpy'
-    needs: test
-
-    steps:
-      - name: Checkout repository at merge
-        uses: actions/checkout@v4
-
-      - name: Set up Python for codecov upload
-        uses: actions/setup-python@v5.0.0
-        with:
-          python-version: '3.10'
-          cache: 'pip'
-
-      - name: Install pycoverage
-        run: pip install coverage
-
-      - name: Download test results and coverage
-        uses: actions/download-artifact@v4
-        with:
-          name: test-coverage-${{ github.run_id }}
-
-      - name: Upload coverage reports to Codecov
-        uses: codecov/codecov-action@v4
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          flags: unittests
-          name: scilpy-unittests-${{ github.run_id }}-${{ github.run_attempt }}
-          verbose: true
-          fail_ci_if_error: true
-          plugin: pycoverage
-
