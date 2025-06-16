@@ -5,37 +5,54 @@
 # 64-bit architecture can be disabled by setting this to auto64.
 archs = ["native"]
 
-# We use build (instead of steuptools or pip) to create the Scilpy package
+# We use build (instead of setuptools or pip) to create the Scilpy package
 build-frontend = "build"
 
 # We build for all those python versions, plus extras
 # (see below for skipped implementations)
-# TODO: add back *311-* when we pass to h5py >=3.8
-build = "*39-* *310-*"
+build = "*3.9-* *310-* *311-*"
 
 # By default, we skip :
 #  - All Pypa builds, since we have C extensions (not fully supported)
 #  - All windows builds (spams doesn't handle them)
 #  - All aarch64 builds (we don't have wheels for vtk)
-skip = "pp* *-win* *-win32* *aarch64"
-
-# Here, we want to run pytest on scilpy, once mocking accelerate all of them
-# For now, we only ensure the wheel has installed sucessfully
+skip = "*musllinux* pp* *-win* *-win32* *aarch64"
 test-command = "echo 'Wheel installed successfully'"
 
 # Dipy forgot to list packaging, we should not need this after 1.8.0
-before-test = "pip install packaging"
+# before-test = "pip install packaging"
 
 # Install blas, lapack, freetype on x86_64
 [tool.cibuildwheel.linux]
-before-all = "yum -y update && yum -y install blas-devel lapack-devel freetype-devel"
+before-all = "yum -y update && yum -y install blas-devel lapack-devel freetype-devel libgit2-glib libgit2-devel"
 before-test = "yum -y update && yum -y install openblas-devel lapack freetype && pip install packaging"
 
+before-build = """
+    yum -y groupinstall "Development Tools"
+    yum -y install cmake openssl-devel libcurl-devel git
+
+    git clone https://github.com/libgit2/libgit2.git
+    cd libgit2
+    git checkout v1.9.0
+    mkdir build && cd build
+    cmake .. -DCMAKE_INSTALL_PREFIX=/usr/local
+    make -j$(nproc)
+    make install
+
+    export PKG_CONFIG_PATH=/usr/local/lib/pkgconfig
+    export CMAKE_PREFIX_PATH=/usr/local
+    export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
+"""
+
+environment = { SETUPTOOLS_USE_DISTUTILS = "stdlib",    PKG_CONFIG_PATH = "/usr/local/lib/pkgconfig", CMAKE_PREFIX_PATH = "/usr/local", LD_LIBRARY_PATH = "/usr/local/lib"}
+
+
 # Musl Linux uses APK instead of YUM, on x86_64
-[[tool.cibuildwheel.overrides]]
-select = "*-musllinux*"
-before-all = "apk add --no-cache blas-dev lapack-dev freetype-dev"
-before-test = "apk add --no-cache openblas-dev lapack freetype && pip install packaging"
+# Need debug for spams with python 3.12
+#[[tool.cibuildwheel.overrides]]
+#select = "*-musllinux*"
+#before-all = "apk add --no-cache blas-dev lapack-dev freetype-dev"
+#before-test = "apk add --no-cache openblas-dev lapack freetype && pip install packaging"
 
 # To reinstate once vtk has official linux aarch64 wheels available (we won't build them for them)
 #[[tool.cibuildwheel.overrides]]
