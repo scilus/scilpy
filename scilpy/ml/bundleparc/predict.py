@@ -6,7 +6,7 @@ from tqdm import tqdm
 from scipy.ndimage import gaussian_filter, label
 
 from scilpy.ml.utils import get_device, to_numpy
-from scilpy.ml.bundleparc.utils import get_data
+from scilpy.ml.bundleparc.utils import DEFAULT_BUNDLES, get_data
 
 # Putting this first to prevent accidental import of torch
 from dipy.utils.optpkg import optional_package
@@ -141,11 +141,11 @@ def predict(
         Name of the bundle.
     """
 
-    nb_bundles = len(bundles)
+    bundle_indices = np.array([DEFAULT_BUNDLES.index(b) for b in bundles])
     device = get_device()
     fodf_data = get_data(fodf, n_coefs)
 
-    pbar = tqdm(range(nb_bundles), disable=not verbose)
+    pbar = tqdm(bundle_indices, disable=not verbose)
 
     with torch.amp.autocast(device.type, enabled=half_precision):
 
@@ -156,7 +156,7 @@ def predict(
         ).to(device)
 
         # Create a one-hot encoding of the bundle prompts.
-        prompts = torch.eye(len(bundles), device=device)
+        prompts = torch.eye(len(DEFAULT_BUNDLES), device=device)
 
         # Encode the data once, reuse the features.
         z, encoder_features = model.encode(
@@ -164,7 +164,7 @@ def predict(
 
         # Loop over the bundles.
         for i in pbar:
-            pbar.set_description(bundles[i])
+            pbar.set_description(DEFAULT_BUNDLES[i])
 
             # Decode the features for the current bundle.
             y_hat = torch.nn.functional.sigmoid(model.decode(
@@ -180,7 +180,7 @@ def predict(
             # Binarize the mask (and in a future release remove small blobs and
             # fill holes
             bundle_mask = post_process_mask(
-                bundle_mask, bundles[i], min_blob_size=min_blob_size,
+                bundle_mask, DEFAULT_BUNDLES[i], min_blob_size=min_blob_size,
                 keep_biggest_blob=keep_biggest_blob)
 
             # Extract the labels using the mask, then filter and discretize
@@ -188,4 +188,4 @@ def predict(
             bundle_label = post_process_labels(
                 bundle_label, bundle_mask, nb_labels)
 
-            yield bundle_label, bundles[i]
+            yield bundle_label, DEFAULT_BUNDLES[i]
