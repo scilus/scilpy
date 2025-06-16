@@ -38,13 +38,14 @@ jobs:
           platforms: all
 
       - name: Build wheels for Scilpy
-        uses: pypa/cibuildwheel@v2.16.2
+        uses: pypa/cibuildwheel@v3.0.0
         with:
           package-dir: ${{ steps.workspace.outputs.path }}/scilpy
           output-dir: ${{ steps.workspace.outputs.path }}/sdist
           config-file: ${{ steps.workspace.outputs.path }}/scilpy/cibuildwheel.toml
         env:
           CIBW_ARCHS_LINUX: auto64
+          SETUPTOOLS_USE_DISTUTILS: stdlib
           CIBW_SKIP: "*-musllinux* pp* *-win* *-win32* *aarch64"
 
       - name: Upload wheels and source to artifacts
