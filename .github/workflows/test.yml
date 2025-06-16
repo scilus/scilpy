@@ -74,7 +74,10 @@ jobs:
   test-ml:
     runs-on: scilus-runners
     if: github.repository == 'scilus/scilpy'
-
+    on:
+      push:
+        paths:
+          - 'scilpy/ml/**'
     steps:
       - name: Checkout repository at merge
         uses: actions/checkout@v4
