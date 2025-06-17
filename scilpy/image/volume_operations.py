@@ -626,7 +626,7 @@ def reshape_volume(
     mode : str, optional
         Padding mode. See np.pad for more information. Default is 'constant'.
     cval: float, optional
-        Value to use for padding when mode is 'constant'. Default is 0.s
+        Value to use for padding when mode is 'constant'. Default is 0.
     dtype: np.dtype
         Data type to cast the volume to. If unset, the volume is kept to its
         original type.
