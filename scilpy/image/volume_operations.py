@@ -633,7 +633,7 @@ def reshape_volume(
     reshaped_img : nib.Nifti1Image
         The reshaped image.
     """
-
+    orig_dtype = img.get_data_dtype()
     data = img.get_fdata(dtype=np.float32)
     affine = img.affine
 
@@ -683,7 +683,7 @@ def reshape_volume(
     new_affine = np.copy(affine)
     new_affine[0:3, 3] = translation[0:3]
 
-    return nib.Nifti1Image(cropped_data, new_affine)
+    return nib.Nifti1Image(cropped_data.astype(orig_dtype), new_affine)
 
 
 def mask_data_with_default_cube(data):
