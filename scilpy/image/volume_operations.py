@@ -612,7 +612,7 @@ def resample_volume(img, ref_img=None, volume_shape=None, iso_min=False,
 
 
 def reshape_volume(
-    img, volume_shape, mode='constant', cval=0
+    img, volume_shape, mode='constant', cval=0, dtype=None
 ):
     """ Reshape a volume to a specified shape by padding or cropping. The
     new volume is centered wrt the old volume in world space.
@@ -626,14 +626,19 @@ def reshape_volume(
     mode : str, optional
         Padding mode. See np.pad for more information. Default is 'constant'.
     cval: float, optional
-        Value to use for padding when mode is 'constant'. Default is 0.
+        Value to use for padding when mode is 'constant'. Default is 0.s
+    dtype: np.dtype
+        Data type to cast the volume to. If unset, the volume is kept to its
+        original type.
 
     Returns
     -------
     reshaped_img : nib.Nifti1Image
         The reshaped image.
     """
-    orig_dtype = img.get_data_dtype()
+
+    if not dtype:
+        dtype = img.get_data_dtype()
     data = img.get_fdata(dtype=np.float32)
     affine = img.affine
 
@@ -683,7 +688,7 @@ def reshape_volume(
     new_affine = np.copy(affine)
     new_affine[0:3, 3] = translation[0:3]
 
-    return nib.Nifti1Image(cropped_data.astype(orig_dtype), new_affine)
+    return nib.Nifti1Image(cropped_data.astype(dtype), new_affine)
 
 
 def mask_data_with_default_cube(data):
