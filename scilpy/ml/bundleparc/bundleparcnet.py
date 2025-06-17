@@ -56,7 +56,9 @@ class Attention(torch.nn.Module):
         x = x.transpose(1, 2).contiguous()
         return x.reshape(b, n_tokens, n_heads * c_per_head)  # B x N_tokens x C
 
-    def forward(self, q: torch.Tensor, k: torch.Tensor, v: torch.Tensor) -> torch.Tensor:
+    def forward(
+        self, q: torch.Tensor, k: torch.Tensor, v: torch.Tensor
+    ) -> torch.Tensor:
 
         # Input projections
         q = self.q_proj(q)
@@ -170,7 +172,8 @@ class ConvNextBlock(torch.nn.Module):
 
         # Use Xavier initialisation for weights
         for m in self.modules():
-            if isinstance(m, torch.nn.Conv3d) or isinstance(m, torch.nn.ConvTranspose3d):
+            if isinstance(m, torch.nn.Conv3d) or \
+               isinstance(m, torch.nn.ConvTranspose3d):
                 torch.nn.init.xavier_uniform_(m.weight)
 
     def forward(self, x):
@@ -209,7 +212,8 @@ class DownsampleNextBlock(torch.nn.Module):
 
         # Use Xavier initialisation for weights
         for m in self.modules():
-            if isinstance(m, torch.nn.Conv3d) or isinstance(m, torch.nn.ConvTranspose3d):
+            if isinstance(m, torch.nn.Conv3d) or \
+               isinstance(m, torch.nn.ConvTranspose3d):
                 torch.nn.init.xavier_uniform_(m.weight)
 
     def forward(self, x):
@@ -283,7 +287,8 @@ class UpsampleNextBlock(torch.nn.Module):
 
         # Use Xavier initialisation for weights
         for m in self.modules():
-            if isinstance(m, torch.nn.Conv3d) or isinstance(m, torch.nn.ConvTranspose3d):
+            if isinstance(m, torch.nn.Conv3d) or \
+               isinstance(m, torch.nn.ConvTranspose3d):
                 torch.nn.init.xavier_uniform_(m.weight)
 
     def forward(self, x):
@@ -392,11 +397,6 @@ class Stem(torch.nn.Module):
         self.conv = torch.nn.Conv3d(
             in_chans, out_chans, kernel_size=1, stride=1)
 
-        # # Use Xavier initialisation for weights
-        # for m in self.modules():
-        #     if isinstance(m, torch.nn.Conv3d) or isinstance(m, torch.nn.ConvTranspose3d):
-        #         torch.nn.init.xavier_uniform_(m.weight)
-
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.conv(x)
 
@@ -412,7 +412,8 @@ class Head(torch.nn.Module):
 
         # Use Xavier initialisation for weights
         for m in self.modules():
-            if isinstance(m, torch.nn.Conv3d) or isinstance(m, torch.nn.ConvTranspose3d):
+            if isinstance(m, torch.nn.Conv3d) or \
+               isinstance(m, torch.nn.ConvTranspose3d):
                 torch.nn.init.xavier_uniform_(m.weight)
 
     def forward(self, x):
