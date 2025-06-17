@@ -13,6 +13,8 @@ Example output:
 
 The output can be further processed with scil_bundle_mean_std.py to compute statistics for each bundle.
 
+The default value of 50 for --min_blob_size was found empirically on adult brains at a resolution of 1mm^3. The best value for your dataset may differ.
+
 This script requires PyTorch==2.2.1 to be installed. See the official website: https://pytorch.org/get-started/locally/
 
 This script requires a GPU with ~6GB of available memory. If you use
@@ -41,7 +43,8 @@ from scilpy.io.utils import (
 from scilpy.image.volume_operations import resample_volume
 
 from scilpy.ml.bundleparc.predict import predict
-from scilpy.ml.bundleparc.utils import DEFAULT_BUNDLES, download_weights, get_model
+from scilpy.ml.bundleparc.utils import DEFAULT_BUNDLES, download_weights, \
+    get_model
 from scilpy.ml.utils import get_device
 from scilpy import SCILPY_HOME
 
@@ -53,11 +56,11 @@ def _build_arg_parser():
         description=__doc__,
         formatter_class=RawTextHelpFormatter)
 
-    parser.add_argument('in_fodf', type=str,
+    parser.add_argument('in_fodf',
                         help='fODF input.')
-    parser.add_argument('--out_prefix', type=str, default='',
+    parser.add_argument('--out_prefix', default='',
                         help='Output file prefix. Default is nothing. ')
-    parser.add_argument('--out_folder', type=str, default='bundleparc',
+    parser.add_argument('--out_folder', default='bundleparc',
                         help='Output destination. Default is [%(default)s].')
     parser.add_argument('--nb_pts', type=int, default=50,
                         help='Number of divisions per bundle. '
@@ -72,11 +75,9 @@ def _build_arg_parser():
                         help='Use half precision (float16) for inference. '
                              'This reduces memory usage but may lead to '
                              'reduced accuracy.')
-    parser.add_argument('--bundles', choices=DEFAULT_BUNDLES,
-                        nargs='+', type=str,
+    parser.add_argument('--bundles', choices=DEFAULT_BUNDLES, nargs='+',
                         help='Bundles to predict. Default is [%(default)s].')
-    parser.add_argument('--checkpoint', type=str,
-                        default=DEFAULT_CKPT,
+    parser.add_argument('--checkpoint', default=DEFAULT_CKPT,
                         help='Checkpoint (.ckpt) containing hyperparameters '
                              'and weights of model. Default is '
                              '[%(default)s]. If the file does not exist, it '
@@ -93,7 +94,9 @@ def main():
     args = parser.parse_args()
 
     assert_inputs_exist(parser, [args.in_fodf])
-    assert_outputs_exist(parser, args, args.out_prefix)
+    outs = [os.path.join(args.out_folder, f'{args.out_prefix}{b_name}.nii.gz')
+            for b_name in args.bundles]
+    assert_outputs_exist(parser, args, outs)
     assert_output_dirs_exist_and_empty(parser, args, args.out_folder,
                                        create_dir=True)
 
