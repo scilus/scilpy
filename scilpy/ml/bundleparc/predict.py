@@ -5,15 +5,10 @@ from tqdm import tqdm
 
 from scipy.ndimage import gaussian_filter, label
 
-from scilpy.ml.utils import get_device, to_numpy
+from scilpy.ml.utils import get_device, to_numpy, IMPORT_ERROR_MSG
 from scilpy.ml.bundleparc.utils import DEFAULT_BUNDLES, get_data
 
-# Putting this first to prevent accidental import of torch
 from dipy.utils.optpkg import optional_package
-
-IMPORT_ERROR_MSG = "PyTorch is required to run this script. Please install" + \
-                   " it first. See the official website for more info: " + \
-                   "https://pytorch.org/get-started/locally/" # noqa
 torch, have_torch, _ = optional_package('torch', trip_msg=IMPORT_ERROR_MSG)
 
 

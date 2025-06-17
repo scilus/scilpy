@@ -1,32 +1,29 @@
-import torch
-
 from typing import Tuple, Type
 
-from torch import nn, Tensor
-from torch.nn import functional as F
-
+from scilpy.ml.utils import IMPORT_ERROR_MSG
 from scilpy.ml.bundleparc.encodings import PositionalEncodingPermute3D
 
-# TODO: Cite MedSAM3D
+from dipy.utils.optpkg import optional_package
+torch, have_torch, _ = optional_package('torch', trip_msg=IMPORT_ERROR_MSG)
 
 
-class MLPBlock3D(nn.Module):
+class MLPBlock3D(torch.nn.Module):
     def __init__(
         self,
         embedding_dim: int,
         mlp_dim: int,
-        act: Type[nn.Module] = nn.GELU,
+        act: Type[torch.nn.Module] = torch.nn.GELU,
     ) -> None:
         super().__init__()
-        self.lin1 = nn.Linear(embedding_dim, mlp_dim)
-        self.lin2 = nn.Linear(mlp_dim, embedding_dim)
+        self.lin1 = torch.nn.Linear(embedding_dim, mlp_dim)
+        self.lin2 = torch.nn.Linear(mlp_dim, embedding_dim)
         self.act = act()
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.lin2(self.act(self.lin1(x)))
 
 
-class Attention(nn.Module):
+class Attention(torch.nn.Module):
     """
     An attention layer that allows for downscaling the size of the embedding
     after projection to queries, keys, and values.
@@ -43,23 +40,23 @@ class Attention(nn.Module):
         self.internal_dim = embedding_dim // downsample_rate
         self.num_heads = num_heads
 
-        self.q_proj = nn.Linear(embedding_dim, self.internal_dim)
-        self.k_proj = nn.Linear(embedding_dim, self.internal_dim)
-        self.v_proj = nn.Linear(embedding_dim, self.internal_dim)
-        self.out_proj = nn.Linear(self.internal_dim, embedding_dim)
+        self.q_proj = torch.nn.Linear(embedding_dim, self.internal_dim)
+        self.k_proj = torch.nn.Linear(embedding_dim, self.internal_dim)
+        self.v_proj = torch.nn.Linear(embedding_dim, self.internal_dim)
+        self.out_proj = torch.nn.Linear(self.internal_dim, embedding_dim)
 
-    def _separate_heads(self, x: Tensor, num_heads: int) -> Tensor:
+    def _separate_heads(self, x: torch.Tensor, num_heads: int) -> torch.Tensor:
         b, n, c = x.shape
         x = x.reshape(b, n, num_heads, c // num_heads)
         # B x N_heads x N_tokens x C_per_head
         return x.transpose(1, 2).contiguous()
 
-    def _recombine_heads(self, x: Tensor) -> Tensor:
+    def _recombine_heads(self, x: torch.Tensor) -> torch.Tensor:
         b, n_heads, n_tokens, c_per_head = x.shape
         x = x.transpose(1, 2).contiguous()
         return x.reshape(b, n_tokens, n_heads * c_per_head)  # B x N_tokens x C
 
-    def forward(self, q: Tensor, k: Tensor, v: Tensor) -> Tensor:
+    def forward(self, q: torch.Tensor, k: torch.Tensor, v: torch.Tensor) -> torch.Tensor:
 
         # Input projections
         q = self.q_proj(q)
@@ -79,7 +76,7 @@ class Attention(nn.Module):
 
         # # Get output
         # out = attn @ v
-        out = F.scaled_dot_product_attention(q, k, v)
+        out = torch.nn.functional.scaled_dot_product_attention(q, k, v)
 
         out = self._recombine_heads(out)
         out = self.out_proj(out)
@@ -87,13 +84,13 @@ class Attention(nn.Module):
         return out
 
 
-class TwoWayAttentionBlock3D(nn.Module):
+class TwoWayAttentionBlock3D(torch.nn.Module):
     def __init__(
         self,
         embedding_dim: int,
         num_heads: int,
         mlp_dim: int = 2048,
-        activation: Type[nn.Module] = nn.ReLU,
+        activation: Type[torch.nn.Module] = torch.nn.ReLU,
         attention_downsample_rate: int = 2,
     ) -> None:
         """
@@ -108,25 +105,25 @@ class TwoWayAttentionBlock3D(nn.Module):
           embedding_dim (int): the channel dimension of the embeddings
           num_heads (int): the number of heads in the attention layers
           mlp_dim (int): the hidden dimension of the mlp block
-          activation (nn.Module): the activation of the mlp block
+          activation (torch.nn.Module): the activation of the mlp block
           skip_first_layer_pe (bool): skip the PE on the first layer
         """
         super().__init__()
 
         self.cross_attn_token_to_image = Attention(
             embedding_dim, num_heads)
-        self.norm2 = nn.LayerNorm(embedding_dim)
+        self.norm2 = torch.nn.LayerNorm(embedding_dim)
 
         self.mlp = MLPBlock3D(embedding_dim, mlp_dim, activation)
-        self.norm3 = nn.LayerNorm(embedding_dim)
+        self.norm3 = torch.nn.LayerNorm(embedding_dim)
 
-        self.norm4 = nn.LayerNorm(embedding_dim)
+        self.norm4 = torch.nn.LayerNorm(embedding_dim)
         self.cross_attn_image_to_token = Attention(
             embedding_dim, num_heads)
 
     def forward(
-        self, queries: Tensor, keys: Tensor, query_pe: Tensor
-    ) -> Tuple[Tensor, Tensor]:
+        self, queries: torch.Tensor, keys: torch.Tensor, query_pe: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
 
         q = queries + query_pe
         k = keys
@@ -151,7 +148,7 @@ class TwoWayAttentionBlock3D(nn.Module):
         return queries, keys
 
 
-class ConvNextBlock(nn.Module):
+class ConvNextBlock(torch.nn.Module):
     """ MedNeXt convolutional block with a convolutional layer, group
     normalization layer and GELU activation.
     """
@@ -159,22 +156,22 @@ class ConvNextBlock(nn.Module):
     def __init__(self, in_chans: int, ratio: int = 1):
         super().__init__()
 
-        self.conv1 = nn.Conv3d(
+        self.conv1 = torch.nn.Conv3d(
             in_chans, in_chans, kernel_size=3, padding=1, stride=1,
             groups=in_chans)
-        self.gn1 = nn.GroupNorm(in_chans, in_chans)
+        self.gn1 = torch.nn.GroupNorm(in_chans, in_chans)
 
-        self.conv2 = nn.Conv3d(
+        self.conv2 = torch.nn.Conv3d(
             in_chans, in_chans * ratio, kernel_size=1, stride=1)
-        self.gelu1 = nn.GELU()
+        self.gelu1 = torch.nn.GELU()
 
-        self.conv3 = nn.Conv3d(
+        self.conv3 = torch.nn.Conv3d(
             in_chans * ratio, in_chans, kernel_size=1, stride=1)
 
         # Use Xavier initialisation for weights
         for m in self.modules():
-            if isinstance(m, nn.Conv3d) or isinstance(m, nn.ConvTranspose3d):
-                nn.init.xavier_uniform_(m.weight)
+            if isinstance(m, torch.nn.Conv3d) or isinstance(m, torch.nn.ConvTranspose3d):
+                torch.nn.init.xavier_uniform_(m.weight)
 
     def forward(self, x):
         res = x
@@ -186,7 +183,7 @@ class ConvNextBlock(nn.Module):
         return x + res
 
 
-class DownsampleNextBlock(nn.Module):
+class DownsampleNextBlock(torch.nn.Module):
     """ Downsample block with a convolutional layer, group normalization
     layer and GELU activation. Identical to the convolutional block but
     with a stride of 2.
@@ -195,25 +192,25 @@ class DownsampleNextBlock(nn.Module):
     def __init__(self, in_chans, out_chans, ratio: int = 1):
         super().__init__()
 
-        self.conv1 = nn.Conv3d(
+        self.conv1 = torch.nn.Conv3d(
             in_chans, in_chans, kernel_size=3, padding=1, stride=2,
             groups=in_chans)
-        self.gn1 = nn.GroupNorm(in_chans, in_chans)
+        self.gn1 = torch.nn.GroupNorm(in_chans, in_chans)
 
-        self.conv2 = nn.Conv3d(
+        self.conv2 = torch.nn.Conv3d(
             in_chans, in_chans * ratio, kernel_size=1, stride=1)
-        self.gelu1 = nn.GELU()
+        self.gelu1 = torch.nn.GELU()
 
-        self.conv3 = nn.Conv3d(
+        self.conv3 = torch.nn.Conv3d(
             in_chans * ratio, out_chans, kernel_size=1, stride=1)
 
-        self.resconv = nn.Conv3d(
+        self.resconv = torch.nn.Conv3d(
             in_chans, out_chans, kernel_size=1, stride=2)
 
         # Use Xavier initialisation for weights
         for m in self.modules():
-            if isinstance(m, nn.Conv3d) or isinstance(m, nn.ConvTranspose3d):
-                nn.init.xavier_uniform_(m.weight)
+            if isinstance(m, torch.nn.Conv3d) or isinstance(m, torch.nn.ConvTranspose3d):
+                torch.nn.init.xavier_uniform_(m.weight)
 
     def forward(self, x):
         res = self.resconv(x)
@@ -225,7 +222,7 @@ class DownsampleNextBlock(nn.Module):
         return x + res
 
 
-class EncoderNextLayer(nn.ModuleList):
+class EncoderNextLayer(torch.nn.ModuleList):
     """ Encoder layer with two convolutional blocks. """
 
     def __init__(self, in_chans: int, out_chans: int, ratio):
@@ -247,13 +244,13 @@ class EncoderNextLayer(nn.ModuleList):
         return x, x_res
 
 
-class UNextEncoder(nn.Module):
+class UNextEncoder(torch.nn.Module):
     """ MedNeXt encoder with 4 encoder layers. """
 
     def __init__(self, channels=[32, 64, 128, 256, 512]):
         super().__init__()
 
-        self.layers = nn.ModuleList([
+        self.layers = torch.nn.ModuleList([
             EncoderNextLayer(channels[0], channels[1], ratio=2),
             EncoderNextLayer(channels[1], channels[2], ratio=3),
             EncoderNextLayer(channels[2], channels[3], ratio=4),
@@ -261,33 +258,33 @@ class UNextEncoder(nn.Module):
         ])
 
 
-class UpsampleNextBlock(nn.Module):
+class UpsampleNextBlock(torch.nn.Module):
     """ Upsamping block with a convolutional layer and a group normalization
     layer. """
 
     def __init__(self, in_chans, out_chans, ratio: int = 1):
         super().__init__()
 
-        self.conv1 = nn.ConvTranspose3d(
+        self.conv1 = torch.nn.ConvTranspose3d(
             in_chans, in_chans, kernel_size=2, padding=0, stride=2,
             groups=in_chans)
 
-        self.gn1 = nn.GroupNorm(in_chans, in_chans)
+        self.gn1 = torch.nn.GroupNorm(in_chans, in_chans)
 
-        self.conv2 = nn.Conv3d(
+        self.conv2 = torch.nn.Conv3d(
             in_chans, in_chans * ratio, kernel_size=1, stride=1)
-        self.gelu1 = nn.GELU()
+        self.gelu1 = torch.nn.GELU()
 
-        self.conv3 = nn.Conv3d(
+        self.conv3 = torch.nn.Conv3d(
             in_chans * ratio, out_chans, kernel_size=1, stride=1)
 
-        self.resconv = nn.ConvTranspose3d(
+        self.resconv = torch.nn.ConvTranspose3d(
             in_chans, out_chans, kernel_size=2, stride=2)
 
         # Use Xavier initialisation for weights
         for m in self.modules():
-            if isinstance(m, nn.Conv3d) or isinstance(m, nn.ConvTranspose3d):
-                nn.init.xavier_uniform_(m.weight)
+            if isinstance(m, torch.nn.Conv3d) or isinstance(m, torch.nn.ConvTranspose3d):
+                torch.nn.init.xavier_uniform_(m.weight)
 
     def forward(self, x):
         res = self.resconv(x)
@@ -301,7 +298,7 @@ class UpsampleNextBlock(nn.Module):
         return x + res
 
 
-class DecoderNextLayer(nn.Module):
+class DecoderNextLayer(torch.nn.Module):
     """ Decoder layer. Includes upsampling, attention blocks and
     a deep supervision head.
     """
@@ -317,8 +314,8 @@ class DecoderNextLayer(nn.Module):
         self.conv2 = ConvNextBlock(out_chans, ratio)
 
         # TODO: Split the prompting strategy into a separate class
-        self.prompt_encoding = nn.Sequential(
-            nn.Linear(in_chans, out_chans), nn.GELU())
+        self.prompt_encoding = torch.nn.Sequential(
+            torch.nn.Linear(in_chans, out_chans), torch.nn.GELU())
 
         self.tkn2img = TwoWayAttentionBlock3D(
             out_chans, 4, mlp_dim=out_chans * ratio)
@@ -358,7 +355,7 @@ class DecoderNextLayer(nn.Module):
         return z, prompt_encoding
 
 
-class BundleParcNetDecoder(nn.Module):
+class BundleParcNetDecoder(torch.nn.Module):
     """ MedNeXt decoder with 4 decoder layers. """
 
     def __init__(
@@ -366,7 +363,7 @@ class BundleParcNetDecoder(nn.Module):
     ):
         super().__init__()
 
-        self.layers = nn.ModuleList([
+        self.layers = torch.nn.ModuleList([
             DecoderNextLayer(channels[0], channels[1], ratio=4),
             DecoderNextLayer(channels[1], channels[2], ratio=4),
             DecoderNextLayer(channels[2], channels[3], ratio=3),
@@ -385,38 +382,38 @@ class BundleParcNetDecoder(nn.Module):
         return x
 
 
-class Stem(nn.Module):
+class Stem(torch.nn.Module):
     """ 3D Convolutional block with a convolutional layer, batch normalization
     and ReLU activation. """
 
     def __init__(self, in_chans: int, out_chans: int):
         super().__init__()
 
-        self.conv = nn.Conv3d(
+        self.conv = torch.nn.Conv3d(
             in_chans, out_chans, kernel_size=1, stride=1)
 
         # # Use Xavier initialisation for weights
         # for m in self.modules():
-        #     if isinstance(m, nn.Conv3d) or isinstance(m, nn.ConvTranspose3d):
-        #         nn.init.xavier_uniform_(m.weight)
+        #     if isinstance(m, torch.nn.Conv3d) or isinstance(m, torch.nn.ConvTranspose3d):
+        #         torch.nn.init.xavier_uniform_(m.weight)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.conv(x)
 
 
-class Head(nn.Module):
+class Head(torch.nn.Module):
 
     def __init__(self, in_chans: int):
         super().__init__()
 
-        self.conv = nn.Conv3d(
+        self.conv = torch.nn.Conv3d(
             in_chans, 2, kernel_size=1, stride=1)
-        # self.act = nn.Sigmoid()
+        # self.act = torch.nn.Sigmoid()
 
         # Use Xavier initialisation for weights
         for m in self.modules():
-            if isinstance(m, nn.Conv3d) or isinstance(m, nn.ConvTranspose3d):
-                nn.init.xavier_uniform_(m.weight)
+            if isinstance(m, torch.nn.Conv3d) or isinstance(m, torch.nn.ConvTranspose3d):
+                torch.nn.init.xavier_uniform_(m.weight)
 
     def forward(self, x):
         x = self.conv(x)
@@ -424,7 +421,7 @@ class Head(nn.Module):
         return x
 
 
-class BundleParcNet(nn.Module):
+class BundleParcNet(torch.nn.Module):
 
     def __init__(self, in_chans, volume_size=128,
                  channels=[32, 64, 128, 256, 512], n_bundles=71):
@@ -441,7 +438,7 @@ class BundleParcNet(nn.Module):
         self.n_bundles = n_bundles
 
         # Define the input branch
-        self.stem = nn.Conv3d(
+        self.stem = torch.nn.Conv3d(
             in_chans, self.embed_dim, kernel_size=1, stride=1)
 
         # Define the output head
@@ -452,8 +449,8 @@ class BundleParcNet(nn.Module):
         self.bottleneck = ConvNextBlock(self.bottleneck_dim, ratio=4)
         self.decoder = BundleParcNetDecoder(channels=self.channels[::-1])
 
-        self.prompt_embedding = nn.Sequential(
-            nn.Linear(n_bundles, self.bottleneck_dim), nn.GELU())
+        self.prompt_embedding = torch.nn.Sequential(
+            torch.nn.Linear(n_bundles, self.bottleneck_dim), torch.nn.GELU())
 
     def forward(self, fodf, bundle_prompt):
         """ Forward pass of the model. """
