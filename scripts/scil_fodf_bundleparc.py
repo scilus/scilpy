@@ -94,15 +94,14 @@ def main():
     args = parser.parse_args()
 
     assert_inputs_exist(parser, [args.in_fodf])
+    assert_output_dirs_exist_and_empty(parser, args, args.out_folder,
+                                       create_dir=True)
     outs = [os.path.join(args.out_folder, f'{args.out_prefix}{b_name}.nii.gz')
             for b_name in args.bundles]
     assert_outputs_exist(parser, args, outs)
-    assert_output_dirs_exist_and_empty(parser, args, args.out_folder,
-                                       create_dir=True)
 
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
-    # if file not exists
     if not os.path.exists(args.checkpoint):
         download_weights(args.checkpoint)
 
