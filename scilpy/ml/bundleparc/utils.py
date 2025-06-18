@@ -7,11 +7,10 @@ from dipy.utils.optpkg import optional_package
 from tqdm import tqdm
 
 from scilpy.io.image import get_data_as_mask
+from scilpy.ml.utils import IMPORT_ERROR_MSG
 from scilpy.ml.bundleparc.bundleparcnet import BundleParcNet
 
-IMPORT_ERROR_MSG = "PyTorch is required to run this script. Please install" + \
-                   " it first. See the official website for more info: " + \
-                   "https://pytorch.org/get-started/locally/"  # noqa
+
 torch, have_torch, _ = optional_package('torch', trip_msg=IMPORT_ERROR_MSG)
 
 

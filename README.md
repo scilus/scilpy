@@ -1,6 +1,5 @@
 # Scilpy
 [![GitHub release (latest by date)](https://img.shields.io/github/v/release/scilus/scilpy)](https://github.com/scilus/scilpy/releases)
-[![Build Status](https://travis-ci.com/scilus/scilpy.svg?branch=master)](https://travis-ci.com/scilus/scilpy)
 [![codecov](https://codecov.io/github/scilus/scilpy/graph/badge.svg?token=oXjDog4YZG)](https://codecov.io/github/scilus/scilpy)
 [![Documentation Status](https://readthedocs.org/projects/scilpy/badge/?version=latest)](https://scilpy.readthedocs.io/en/latest/?badge=latest)
 
