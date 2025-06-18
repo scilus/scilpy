@@ -3,7 +3,9 @@
 """
 BundleParc: automatic tract labelling without tractography.
 
-This method takes as input fODF maps and outputs 71 bundle label maps. These maps can then be used to perform tractometry/tract profiling/radiomics. The bundle definitions follow TractSeg's minus the whole CC.
+This method takes as input fODF maps and outputs 71 bundle label maps. These maps can then be used to perform tractometry/tract profiling/radiomics. The bundle definitions follow TractSeg's minus the whole CC. fODFs must be of basis descoteaux07. fODFs can be of order < 8 but accuracy may be reduced.
+
+Model weights will be downloaded the first time the script is run, which will require an internet connection at runtime. Otherwise can manually download them from zenodo [1] and specify --checkpoint.
 
 Example usage:
     $ scil_fodf_bundleparc.py fodf.nii.gz --out_prefix sub-001__
@@ -15,18 +17,16 @@ The output can be further processed with scil_bundle_mean_std.py to compute stat
 
 The default value of 50 for --min_blob_size was found empirically on adult brains at a resolution of 1mm^3. The best value for your dataset may differ.
 
-This script requires PyTorch==2.2.1 to be installed. See the official website: https://pytorch.org/get-started/locally/
-
-This script requires a GPU with ~6GB of available memory. If you use
-half-precision (float16) inference, you may be able to run it with ~3GB of
-GPU memory available. Otherwise, install the CPU version of PyTorch.
+This script requires a GPU with ~6GB of available memory. If you use half-precision (float16) inference, you may be able to run it with ~3GB of GPU memory available. Otherwise, install the CPU version of PyTorch.
 
 Parts of the implementation are based on or lifted from:
     SAM-Med3D: https://github.com/uni-medical/SAM-Med3D
     Multidimensional Positional Encoding: https://github.com/tatp22/multidim-positional-encoding
 
-To cite: Antoine Théberge, Zineb El Yamani, François Rheault, Maxime Descoteaux, Pierre-Marc Jodoin (2025). LabelSeg. ISMRM Workshop on 40 Years of Diffusion: Past, Present & Future Perspectives, Kyoto, Japan.  # noqa
-"""
+To cite: Antoine Théberge, Zineb El Yamani, François Rheault, Maxime Descoteaux, Pierre-Marc Jodoin (2025). LabelSeg. ISMRM Workshop on 40 Years of Diffusion: Past, Present & Future Perspectives, Kyoto, Japan.
+
+[1]: https://zenodo.org/records/15579498
+"""  # noqa
 
 import argparse
 import logging
@@ -43,8 +43,8 @@ from scilpy.io.utils import (
 from scilpy.image.volume_operations import resample_volume
 
 from scilpy.ml.bundleparc.predict import predict
-from scilpy.ml.bundleparc.utils import DEFAULT_BUNDLES, download_weights, \
-    get_model
+from scilpy.ml.bundleparc.utils import DEFAULT_BUNDLES, \
+    download_weights, get_model
 from scilpy.ml.utils import get_device, IMPORT_ERROR_MSG
 from scilpy import SCILPY_HOME
 
@@ -57,7 +57,7 @@ DEFAULT_CKPT = os.path.join(SCILPY_HOME, 'checkpoints', 'bundleparc.ckpt')
 
 def _build_arg_parser():
     parser = argparse.ArgumentParser(
-        description=__doc__,
+        description=__doc__ + '\n' + IMPORT_ERROR_MSG,
         formatter_class=RawTextHelpFormatter)
 
     parser.add_argument('in_fodf',
@@ -115,7 +115,7 @@ def main():
     model = get_model(args.checkpoint, device, {'pretrained': True})
 
     fodf_in = nib.load(args.in_fodf)
-    X, Y, Z, C = fodf_in.get_fdata().shape
+    X, Y, Z, C = fodf_in.get_fdata(dtype=np.float32).shape
 
     # TODO in future release: infer these from model
     n_coefs = 45
@@ -140,7 +140,7 @@ def main():
     # Predict label maps. `predict` is a generator
     # yielding one label map per bundle and its name.
     for y_hat_label, b_name in predict(
-        model, resampled_img.get_fdata(), n_coefs, args.nb_pts,
+        model, resampled_img.get_fdata(np.float32), n_coefs, args.nb_pts,
         args.bundles, args.min_blob_size, args.keep_biggest_blob,
         args.half_precision, logging.getLogger().getEffectiveLevel() <
         logging.WARNING

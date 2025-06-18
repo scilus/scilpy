@@ -101,7 +101,7 @@ class TwoWayAttentionBlock3D(torch.nn.Module):
         block on sparse inputs, and (4) cross attention of dense inputs to
         sparse inputs.
 
-        From: TODO
+        From SAM-Med3D: https://github.com/uni-medical/SAM-Med3D
 
         Arguments:
           embedding_dim (int): the channel dimension of the embeddings
@@ -318,7 +318,6 @@ class DecoderNextLayer(torch.nn.Module):
         self.conv1 = ConvNextBlock(out_chans, ratio)
         self.conv2 = ConvNextBlock(out_chans, ratio)
 
-        # TODO: Split the prompting strategy into a separate class
         self.prompt_encoding = torch.nn.Sequential(
             torch.nn.Linear(in_chans, out_chans), torch.nn.GELU())
 
@@ -327,14 +326,12 @@ class DecoderNextLayer(torch.nn.Module):
         self.pe_layer = PositionalEncodingPermute3D(out_chans)
 
     def _decode(self, z, encoder_feature):
-        """ TODO """
         z = self.upsample(z)
         z = z + encoder_feature
         z = self.conv1(z)
         return z
 
     def _prompt_attn(self, z, prompt_encoding):
-        """ TODO """
         B, C, X, Y, Z = z.shape
         prompt_encoding = prompt_encoding[:, None, :]
         pe = self.pe_layer(z)
@@ -351,7 +348,6 @@ class DecoderNextLayer(torch.nn.Module):
         return z, prompt_encoding
 
     def forward(self, z, encoder_feature, prompt_encoding):
-        """ TODO """
         z = self._decode(z, encoder_feature)
         prompt_encoding = self.prompt_encoding(prompt_encoding)
         z, prompt_encoding = self._prompt_attn(
@@ -429,7 +425,6 @@ class BundleParcNet(torch.nn.Module):
         super().__init__()
 
         self.channels = channels
-        # self.channels = [32, 64, 128, 256, 512]
 
         # Important to store this for loading the model later.
         self.in_chans = in_chans
@@ -471,7 +466,6 @@ class BundleParcNet(torch.nn.Module):
         x = self.stem(fodf)
 
         # Run the encoders for the input fodf
-        # TODO: Consider using a single encoder for both ?
         encoder_features = []
         for encoder_layer in self.encoder.layers:
             x, x_res = encoder_layer(x)
