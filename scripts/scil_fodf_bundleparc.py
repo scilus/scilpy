@@ -3,9 +3,11 @@
 """
 BundleParc: automatic tract labelling without tractography.
 
-This method takes as input fODF maps and outputs 71 bundle label maps. These maps can then be used to perform tractometry/tract profiling/radiomics. The bundle definitions follow TractSeg's minus the whole CC. fODFs must be of basis descoteaux07. fODFs can be of order < 8 but accuracy may be reduced.
+This method takes as input fODF maps and outputs 71 bundle label maps. These maps can then be used to perform tractometry/tract profiling/radiomics. The bundle definitions follow TractSeg's minus the whole CC.
 
-Model weights will be downloaded the first time the script is run, which will require an internet connection at runtime. Otherwise can manually download them from zenodo [1] and specify --checkpoint.
+Inputs are presumed to come from Tractoflow and must be BET and cropped. fODFs must be of basis descoteaux07 and can be of order < 8 but accuracy may be reduced.
+
+Model weights will be downloaded the first time the script is run, which will require an internet connection at runtime. Otherwise they can be manually downloaded from zenodo [1] and by specifying --checkpoint.
 
 Example usage:
     $ scil_fodf_bundleparc.py fodf.nii.gz --out_prefix sub-001__
@@ -140,7 +142,7 @@ def main():
     # Predict label maps. `predict` is a generator
     # yielding one label map per bundle and its name.
     for y_hat_label, b_name in predict(
-        model, resampled_img.get_fdata(np.float32), n_coefs, args.nb_pts,
+        model, resampled_img.get_fdata(dtype=np.float32), n_coefs, args.nb_pts,
         args.bundles, args.min_blob_size, args.keep_biggest_blob,
         args.half_precision, logging.getLogger().getEffectiveLevel() <
         logging.WARNING
