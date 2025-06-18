@@ -39,9 +39,8 @@ import os
 from argparse import RawTextHelpFormatter
 
 from scilpy.io.utils import (
-    assert_inputs_exist, assert_outputs_exist,
-    assert_output_dirs_exist_and_empty, add_overwrite_arg,
-    add_verbose_arg)
+    assert_inputs_exist, assert_output_dirs_exist_and_empty,
+    add_overwrite_arg, add_verbose_arg)
 from scilpy.image.volume_operations import resample_volume
 
 from scilpy.ml.bundleparc.predict import predict
@@ -103,9 +102,6 @@ def main():
     assert_inputs_exist(parser, [args.in_fodf])
     assert_output_dirs_exist_and_empty(parser, args, args.out_folder,
                                        create_dir=True)
-    outs = [os.path.join(args.out_folder, f'{args.out_prefix}{b_name}.nii.gz')
-            for b_name in args.bundles]
-    assert_outputs_exist(parser, args, outs)
 
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
