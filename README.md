@@ -1,13 +1,12 @@
 # Scilpy
 [![GitHub release (latest by date)](https://img.shields.io/github/v/release/scilus/scilpy)](https://github.com/scilus/scilpy/releases)
-[![Build Status](https://travis-ci.com/scilus/scilpy.svg?branch=master)](https://travis-ci.com/scilus/scilpy)
 [![codecov](https://codecov.io/github/scilus/scilpy/graph/badge.svg?token=oXjDog4YZG)](https://codecov.io/github/scilus/scilpy)
 [![Documentation Status](https://readthedocs.org/projects/scilpy/badge/?version=latest)](https://scilpy.readthedocs.io/en/latest/?badge=latest)
 
 [![PyPI version badge](https://img.shields.io/pypi/v/scilpy?logo=pypi&logoColor=white)](https://pypi.org/project/scilpy)
 [![PyPI - Downloads](https://static.pepy.tech/badge/scilpy)](https://pypi.org/project/scilpy)
 
-[![Docker container badge](https://img.shields.io/docker/v/scilus/scilus?label=docker&logo=docker&logoColor=white)](https://hub.docker.com/r/scilus/scilus)
+[![Docker container badge](https://img.shields.io/docker/v/scilus/scilus?label=docker&logo=docker&logoColor=white)](https://hub.docker.com/r/scilus/scilpy)
 
 **Scilpy** is the main library supporting research and development at the Sherbrooke Connectivity Imaging Lab
 ([SCIL]).
@@ -26,12 +25,12 @@ pip install scilpy
 
 ## Install scilpy as a developer
 
-The library is now built for Python 3.10 so be sure to create a virtual environnement for Python 3.10. If this version is not installed on your computer:
+The library is now built for Python 3.9/3.10 and 3.11. Please, be sure to create a virtual environnement. 
+If none of these versions are installed on your computer, we suggest you to install python3.10:
 ```
 sudo add-apt-repository ppa:deadsnakes/ppa
 sudo apt-get install python3.10 python3.10-dev python3.10-venv python3.10-minimal python3.10-tk
 ```
-Python3.11 can work, Python3.12 is not supported.
 
 Make sure your pip is up-to-date before trying to install:
 ```

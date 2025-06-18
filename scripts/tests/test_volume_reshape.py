@@ -43,6 +43,15 @@ def test_execution_full_size(script_runner, monkeypatch):
     assert ret.success
 
 
+def test_execution_dtype(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
+    ret = script_runner.run('scil_volume_reshape.py', in_img,
+                            'fa_reshape.nii.gz', '--volume_size',
+                            '111', '133', '109', '--data_type',
+                            'uint8', '-f')
+    assert ret.success
+
+
 def test_execution_ref(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     ref = os.path.join(SCILPY_HOME, 'others', 'fa_resample.nii.gz')
