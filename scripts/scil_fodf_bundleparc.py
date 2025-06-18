@@ -80,6 +80,7 @@ def _build_arg_parser():
                              'This reduces memory usage but may lead to '
                              'reduced accuracy.')
     parser.add_argument('--bundles', choices=DEFAULT_BUNDLES, nargs='+',
+                        default=DEFAULT_BUNDLES,
                         help='Bundles to predict. Default is [%(default)s].')
     parser.add_argument('--checkpoint', default=DEFAULT_CKPT,
                         help='Checkpoint (.ckpt) containing hyperparameters '
