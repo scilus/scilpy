@@ -82,7 +82,7 @@ def _build_arg_parser():
                              'reduced accuracy.')
     parser.add_argument('--bundles', choices=DEFAULT_BUNDLES, nargs='+',
                         default=DEFAULT_BUNDLES,
-                        help='Bundles to predict. Default is [%(default)s].')
+                        help='Bundles to predict. Default is every bundle.')
     parser.add_argument('--checkpoint', default=DEFAULT_CKPT,
                         help='Checkpoint (.ckpt) containing hyperparameters '
                              'and weights of model. Default is '
