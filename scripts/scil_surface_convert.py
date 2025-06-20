@@ -46,12 +46,12 @@ def _build_arg_parser():
 
     p.add_argument('in_surface',
                    help='Input a surface (FreeSurfer or supported by VTK).')
+    p.add_argument('reference',
+                   help='Reference image to extract the transformation matrix\n'
+                        'to align the freesurfer surface with the T1.')
     p.add_argument('out_surface',
                    help='Output surface (formats supported by VTK).\n'
                         'Recommended extension: .vtk or .ply')
-    p.add_argument('--reference',
-                   help='Reference image to extract the transformation matrix\n'
-                        'to align the freesurfer surface with the T1.')
 
     r = p.add_mutually_exclusive_group()
     r.add_argument('--ref_pial',
@@ -85,11 +85,14 @@ def main():
     if ext not in ['.vtk', '.vtp', '.fib', '.ply', '.stl', '.xml', '.obj']:
         if args.reference is None:
             parser.error('The reference image is required for FreeSurfer '
-                         'surfaces.')
+                         'surfaces to get a xform.')
 
         if args.source_space or args.source_origin:
             print('The source space and source origin can not be changed for '
                   'FreeSurfer surfaces. Will be ignored.')
+    elif args.reference is None:
+        parser.error('The reference image is required to obtain the '
+                     'reference frame to align the surface with the volume.')
 
     _, ext = os.path.splitext(args.out_surface)
     if ext not in ['.vtk', '.vtp', '.fib', '.ply', '.stl', '.xml', '.obj']:
