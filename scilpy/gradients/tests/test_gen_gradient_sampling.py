@@ -1,7 +1,17 @@
 # -*- coding: utf-8 -*-
+import os
+import tempfile
+
 import numpy as np
 
-from scilpy.gradients.gen_gradient_sampling import generate_gradient_sampling
+from scilpy import SCILPY_HOME
+from scilpy.gradients.gen_gradient_sampling import (generate_gradient_sampling,
+                                                    energy_comparison)
+from scilpy.io.fetcher import fetch_data, get_testing_files_dict
+
+fetch_data(get_testing_files_dict(), keys=['processing.zip'])
+tmp_dir = tempfile.TemporaryDirectory()
+in_bvec = os.path.join(SCILPY_HOME, 'processing', '1000.bvec')
 
 
 def test_generate_gradient_sampling():
@@ -20,3 +30,16 @@ def test_generate_gradient_sampling():
     # Normalized vectors?
     norm = np.sqrt(np.sum(bvecs**2, axis=1))
     assert np.allclose(norm, 1)
+
+
+def test_energy_comparison_same():
+    bvec1 = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
+    e1, e2 = energy_comparison(bvec1, bvec1, 1, [3])
+    assert e1 == e2
+
+
+def test_energy_comparison_diff():
+    bvec1 = np.array([[1, 0, 0], [0, 1, 0], [0, 0.9, 0.1]])
+    bvec2 = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
+    e1, e2 = energy_comparison(bvec1, bvec2, 1, [3])
+    assert e1/e2 > 1.25
