@@ -1,17 +1,8 @@
 # -*- coding: utf-8 -*-
-import os
-import tempfile
-
 import numpy as np
 
-from scilpy import SCILPY_HOME
 from scilpy.gradients.gen_gradient_sampling import (generate_gradient_sampling,
                                                     energy_comparison)
-from scilpy.io.fetcher import fetch_data, get_testing_files_dict
-
-fetch_data(get_testing_files_dict(), keys=['processing.zip'])
-tmp_dir = tempfile.TemporaryDirectory()
-in_bvec = os.path.join(SCILPY_HOME, 'processing', '1000.bvec')
 
 
 def test_generate_gradient_sampling():
