@@ -40,9 +40,9 @@ A few notes on Runge-Kutta integration.
 
 Formerly: scil_compute_local_tracking_dev.py
 -------------------------------------------------------------------------------
-Reference: 
-[1] Girard, G., Whittingstall K., Deriche, R., and Descoteaux, M. (2014). 
-    Towards quantitative connectivity analysis:reducing tractography biases. 
+Reference:
+[1] Girard, G., Whittingstall K., Deriche, R., and Descoteaux, M. (2014).
+    Towards quantitative connectivity analysis:reducing tractography biases.
     Neuroimage, 98, 266-278.
 -------------------------------------------------------------------------------
 """
@@ -150,6 +150,13 @@ def _build_arg_parser():
                           "with -nt 1,000,000, \nyou can create tractogram_2 "
                           "with \n--skip 1,000,000.")
 
+    track_g.add_argument('--hurdle_mask', default=None,
+                         help='Hurdle mask (.nii.gz).\n'
+                        'Hurdle rracking will start within this mask.')
+    track_g.add_argument('--hurdle_method', default='continue',
+                        choices=['continue'],
+                        help="Method to solve hurdles [%(default)s]")
+
     m_g = p.add_argument_group('Memory options')
     add_processes_arg(m_g)
 
@@ -236,6 +243,15 @@ def main():
     mask_res = mask_img.header.get_zooms()[:3]
     mask = DataVolume(mask_data, mask_res, args.mask_interp)
 
+    if args.hurdle_mask:
+        logging.info("Loading hurdle mask.")
+        hurdle_img = nib.load(args.hurdle_mask)
+        hurdle_data = hurdle_img.get_fdata(caching='unchanged', dtype=float)
+        hurdle_res = hurdle_img.header.get_zooms()[:3]
+        hurdle_mask = DataVolume(hurdle_data, hurdle_res, args.mask_interp)
+    else:
+        hurdle_mask = None
+
     logging.info("Loading ODF SH data.")
     odf_sh_img = nib.load(args.in_odf)
     odf_sh_data = odf_sh_img.get_fdata(caching='unchanged', dtype=float)
@@ -270,6 +286,8 @@ def main():
                       track_forward_only=args.forward_only,
                       skip=args.skip,
                       append_last_point=args.keep_last_out_point,
+                      hurdle_mask=hurdle_mask,
+                      hurdle_method=args.hurdle_method,
                       verbose=args.verbose)
 
     start = time.time()

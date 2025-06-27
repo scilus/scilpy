@@ -20,6 +20,7 @@ from scilpy.image.volume_space_management import DataVolume
 from scilpy.tracking.propagator import AbstractPropagator, PropagationStatus
 from scilpy.reconst.utils import find_order_from_nb_coeff
 from scilpy.tracking.seed import SeedGenerator
+from scilpy.tracking.hurdle import hurdle_continue
 from scilpy.gpuparallel.opencl_utils import CLKernel, CLManager, have_opencl
 
 # For the multi-processing:
@@ -35,7 +36,8 @@ class Tracker(object):
                  nbr_processes=1, save_seeds=False,
                  mmap_mode: Union[str, None] = None, rng_seed=1234,
                  track_forward_only=False, skip=0, verbose=False,
-                 min_iter=100, append_last_point=True):
+                 min_iter=100, append_last_point=True,
+                 hurdle_mask=None, hurdle_method=None):
         """
         Parameters
         ----------
@@ -87,6 +89,10 @@ class Tracker(object):
             direction (based on the propagator's definition of invalid; ex
             when angle is too sharp of sh_threshold not reached) are never
             added.
+        hurdle_mask: DataVolume
+            Hurdle volume.
+        hurdle_method: string
+            Name of the hurdle method to use.
         """
         self.propagator = propagator
         self.mask = mask
@@ -129,6 +135,14 @@ class Tracker(object):
         self.printing_frequency = 1000
         self.verbose = verbose
         self.min_iter = min_iter
+
+        self.hurdle_mask = hurdle_mask
+
+        if hurdle_method == "continue":
+            self.hurdle_fct = hurdle_continue
+        else:
+            self.hurdle_fct = None
+            #replace by throw Valuerror
 
     def track(self):
         """
@@ -460,6 +474,12 @@ class Tracker(object):
 
             tracking_info = new_tracking_info
 
+            # Call the hurdle function if needed
+            if propagation_can_continue and self.hurdle_mask:
+                if self.hurdle_mask.get_value_at_coordinate(
+                    *new_pos, space=self.space, origin=self.origin) > 0:
+                    line, new_tracking_info = self.hurdle_fct(self, line, new_tracking_info)
+
         return line
 
     def _verify_stopping_criteria(self, last_pos):
@@ -648,141 +668,3 @@ class GPUTacker():
                 # output is yielded so that we can use LazyTractogram.
                 # seed and strl with origin center (same as DIPY)
                 yield strl - 0.5, seed - 0.5
-
-
-
-#########################################################################################
-class HurdleTracker(object):
-    def __init__(self, propagator: AbstractPropagator, mask: DataVolume,
-                 hurdle: DataVolume, hurdle_fct,
-                 seed_generator: SeedGenerator, nbr_seeds, min_nbr_pts,
-                 max_nbr_pts, max_invalid_dirs, compression_th=0.1,
-                 nbr_processes=1, save_seeds=False,
-                 mmap_mode: Union[str, None] = None, rng_seed=1234,
-                 track_forward_only=False, skip=0, verbose=False,
-                 min_iter=100, append_last_point=True):
-        """
-        Parameters
-        ----------
-        propagator : AbstractPropagator
-            Tracking object.
-            This tracker will use space and origin defined in the
-            propagator.
-        mask : DataVolume
-            Tracking volume(s).
-        hurdle : DataVolume
-            Hurdle volume(s).
-        hurdle_fct : functer
-            Routine for hurdle triggers.
-        seed_generator : SeedGenerator
-            Seeding volume.
-        nbr_seeds: int
-            Number of seeds to create via the seed generator.
-        min_nbr_pts: int
-            Minimum number of points for streamlines.
-        max_nbr_pts: int
-            Maximum number of points for streamlines.
-        max_invalid_dirs: int
-            Number of consecutives invalid directions allowed during tracking.
-        compression_th : float,
-            Maximal distance threshold for compression. If None, no
-            compression is applied.
-        nbr_processes: int
-            Number of sub processes to use.
-        save_seeds: bool
-            Whether to save the seeds associated to their respective
-            streamlines.
-        mmap_mode: str
-            Memory-mapping mode. One of {None, 'r+', 'c'}. This value is passed
-            to np.load() when loading the raw tracking data from a subprocess.
-        rng_seed: int
-            The random "seed" for the random generator.
-        track_forward_only: bool
-            If true, only the forward direction is computed.
-        skip: int
-            Skip the first N seeds created (and thus N rng numbers). Useful if
-            you want to create new streamlines to add to a previously created
-            tractogram with a fixed rng_seed. Ex: If tractogram_1 was created
-            with nbr_seeds=1,000,000, you can create tractogram_2 with
-            skip 1,000,000.
-        verbose: bool
-            Display tracking progression.
-        min_iter: int
-            Minimum number of tracked streamlines required to update the
-            tracking progression bar.
-        append_last_point: bool
-            Whether to add the last point (once out of the tracking mask) to
-            the streamline or not. Note that points obtained after an invalid
-            direction (based on the propagator's definition of invalid; ex
-            when angle is too sharp of sh_threshold not reached) are never
-            added.
-        """
-
-        super().__init__(propagator, mask, seed_generator, nbr_seeds, min_nbr_pts,
-                 max_nbr_pts, max_invalid_dirs, compression_th,
-                 nbr_processes, save_seeds,
-                 mmap_mode, rng_seed,
-                 track_forward_only, skip, verbose,
-                 min_iter, append_last_point)
-        self.hurdle = hurdle
-        self.hurdle_fct = hurdle_fct
-
-
-        def _propagate_line(self, line, tracking_info):
-        """
-        Generate a streamline in forward or backward direction from an initial
-        position following the tracking parameters.
-
-        Propagation will stop if the current position is out of bounds (mask's
-        bounds and data's bounds should be the same) or if mask's value at
-        current position is 0 (usual use is with a binary mask but this is not
-        mandatory).
-
-        Parameters
-        ----------
-        line: List[np.ndarrays]
-            Beginning of the line to propagate: list of 3D coordinates
-            formatted as arrays.
-        tracking_info: Any
-            Information necessary to know how to propagate. Type: as understood
-            by the propagator. Example, with the typical fODF propagator: the
-            previous direction of the streamline, v_in, used to define a cone
-            theta, of type TrackingDirection.
-
-        Returns
-        -------
-        line: list of 3D positions
-            At minimum, stays as initial line. Or extended with new tracked
-            points.
-        """
-        invalid_direction_count = 0
-        propagation_can_continue = True
-        while len(line) < self.max_nbr_pts and propagation_can_continue:
-            new_pos, new_tracking_info, is_direction_valid = \
-                self.propagator.propagate(line, tracking_info)
-
-
-            # Verifying if direction is valid
-            # If invalid: break. Else, verify tracking mask.
-            if is_direction_valid:
-                invalid_direction_count = 0
-            else:
-                invalid_direction_count += 1
-                if invalid_direction_count > self.max_invalid_dirs:
-                    break
-
-            propagation_can_continue = self._verify_stopping_criteria(new_pos)
-            if propagation_can_continue or self.append_last_point:
-                line.append(new_pos)
-
-            tracking_info = new_tracking_info
-
-            # tracking_info is last direction?
-            ############################################################################
-            if self.hurdle.get_value_at_coordinate(
-                new_pos, space=self.space, origin=self.origin) > 0:
-                line, new_tracking_info = self.hurdle_fct(self, line, new_tracking_info)
-            ############################################################################
-
-
-        return line
