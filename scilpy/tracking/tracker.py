@@ -141,8 +141,7 @@ class Tracker(object):
         if hurdle_method == "continue":
             self.hurdle_fct = hurdle_continue
         else:
-            self.hurdle_fct = None
-            #replace by throw Valuerror
+            raise ValueError("Hurdle tracking method, unknown.")
 
     def track(self):
         """
