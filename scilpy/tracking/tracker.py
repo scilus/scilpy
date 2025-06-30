@@ -454,9 +454,15 @@ class Tracker(object):
         invalid_direction_count = 0
         propagation_can_continue = True
         while len(line) < self.max_nbr_pts and propagation_can_continue:
+
+            # Call the hurdle function if needed
+            if propagation_can_continue and self.hurdle_mask:
+                if self.hurdle_mask.get_value_at_coordinate(
+                    *line[-1], space=self.space, origin=self.origin) > 0:
+                    line, new_tracking_info = self.hurdle_fct(self, line, tracking_info)
+
             new_pos, new_tracking_info, is_direction_valid = \
                 self.propagator.propagate(line, tracking_info)
-
 
             # Verifying if direction is valid
             # If invalid: break. Else, verify tracking mask.
@@ -472,12 +478,6 @@ class Tracker(object):
                 line.append(new_pos)
 
             tracking_info = new_tracking_info
-
-            # Call the hurdle function if needed
-            if propagation_can_continue and self.hurdle_mask:
-                if self.hurdle_mask.get_value_at_coordinate(
-                    *new_pos, space=self.space, origin=self.origin) > 0:
-                    line, new_tracking_info = self.hurdle_fct(self, line, new_tracking_info)
 
         return line
 
