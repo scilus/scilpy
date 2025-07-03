@@ -153,8 +153,8 @@ def _build_arg_parser():
     track_g.add_argument('--hurdle_mask', default=None,
                          help='Hurdle mask (.nii.gz).\n'
                         'Hurdle rracking will start within this mask.')
-    track_g.add_argument('--hurdle_method', default='continue',
-                        choices=['continue'],
+    track_g.add_argument('--hurdle_method', default='None',
+                        choices=['None', 'continue'],
                         help="Method to solve hurdles [%(default)s]")
 
     m_g = p.add_argument_group('Memory options')
@@ -251,6 +251,9 @@ def main():
         hurdle_mask = DataVolume(hurdle_data, hurdle_res, args.mask_interp)
     else:
         hurdle_mask = None
+
+    if hurdle_mask is not None and args.hurdle_method is "None":
+        parser.error('No hurdle method selected.')
 
     logging.info("Loading ODF SH data.")
     odf_sh_img = nib.load(args.in_odf)
