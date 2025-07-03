@@ -247,14 +247,14 @@ def main():
 
     if args.rap_mask:
         logging.info("Loading RAP mask.")
-        RAP_img = nib.load(args.rap_mask)
-        RAP_data = RAP_img.get_fdata(caching='unchanged', dtype=float)
-        RAP_res = RAP_img.header.get_zooms()[:3]
-        RAP_mask = DataVolume(RAP_data, RAP_res, args.mask_interp)
+        rap_img = nib.load(args.rap_mask)
+        rap_data = rap_img.get_fdata(caching='unchanged', dtype=float)
+        rap_res = rap_img.header.get_zooms()[:3]
+        rap_mask = DataVolume(rap_data, rap_res, args.mask_interp)
     else:
-        RAP_mask = None
+        rap_mask = None
 
-    if RAP_mask is not None and args.rap_method is "None":
+    if rap_mask is not None and args.rap_method == "None":
         parser.error('No RAP method selected.')
 
     logging.info("Loading ODF SH data.")
@@ -291,8 +291,8 @@ def main():
                       track_forward_only=args.forward_only,
                       skip=args.skip,
                       append_last_point=args.keep_last_out_point,
-                      RAP_mask=RAP_mask,
-                      RAP_method=args.rap_method,
+                      rap_mask=rap_mask,
+                      rap_method=args.rap_method,
                       verbose=args.verbose)
 
     start = time.time()

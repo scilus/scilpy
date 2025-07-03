@@ -37,7 +37,7 @@ class Tracker(object):
                  mmap_mode: Union[str, None] = None, rng_seed=1234,
                  track_forward_only=False, skip=0, verbose=False,
                  min_iter=100, append_last_point=True,
-                 RAP_mask=None, RAP_method=None):
+                 rap_mask=None, rap_method=None):
         """
         Parameters
         ----------
@@ -89,9 +89,9 @@ class Tracker(object):
             direction (based on the propagator's definition of invalid; ex
             when angle is too sharp of sh_threshold not reached) are never
             added.
-        RAP_mask: DataVolume
-            HRegion-Adaptive Propagation tractography volume.
-        RAP_method: string
+        rap_mask: DataVolume
+            Region-Adaptive Propagation tractography volume.
+        rap_method: string
             Name of the Region-Adaptive Propagation method to use.
         """
         self.propagator = propagator
@@ -136,11 +136,11 @@ class Tracker(object):
         self.verbose = verbose
         self.min_iter = min_iter
 
-        self.RAP_mask = RAP_mask
+        self.rap_mask = rap_mask
 
-        if RAP_method == "continue":
-            self.RAP_fct = rap_continue
-        elif RAP_mask:
+        if rap_method == "continue":
+            self.rap_fct = rap_continue
+        elif rap_mask:
             raise ValueError("RAP tracking method, unknown.")
 
     def track(self):
@@ -456,10 +456,10 @@ class Tracker(object):
         while len(line) < self.max_nbr_pts and propagation_can_continue:
 
             # Call the RAP function if needed
-            if propagation_can_continue and self.RAP_mask:
-                if self.RAP_mask.get_value_at_coordinate(
+            if propagation_can_continue and self.rap_mask:
+                if self.rap_mask.get_value_at_coordinate(
                     *line[-1], space=self.space, origin=self.origin) > 0:
-                    line, new_tracking_info = self.RAP_fct(self, line, tracking_info)
+                    line, new_tracking_info = self.rap_fct(self, line, tracking_info)
 
             new_pos, new_tracking_info, is_direction_valid = \
                 self.propagator.propagate(line, tracking_info)
