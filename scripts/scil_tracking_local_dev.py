@@ -189,7 +189,7 @@ def main():
 
     if args.rap_mask is not None and args.rap_method == "None":
         parser.error('No RAP method selected.')
-    if args.rap_method is not None and args.rap_mask is None:
+    if not args.rap_method == "None" and args.rap_mask is None:
         parser.error('No RAP mask selected.')
 
     tracts_format = detect_format(args.out_tractogram)
