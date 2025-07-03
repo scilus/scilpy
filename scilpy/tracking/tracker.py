@@ -20,7 +20,6 @@ from scilpy.image.volume_space_management import DataVolume
 from scilpy.tracking.propagator import AbstractPropagator, PropagationStatus
 from scilpy.reconst.utils import find_order_from_nb_coeff
 from scilpy.tracking.seed import SeedGenerator
-from scilpy.tracking.rap import rap_continue
 from scilpy.gpuparallel.opencl_utils import CLKernel, CLManager, have_opencl
 
 # For the multi-processing:
@@ -36,8 +35,7 @@ class Tracker(object):
                  nbr_processes=1, save_seeds=False,
                  mmap_mode: Union[str, None] = None, rng_seed=1234,
                  track_forward_only=False, skip=0, verbose=False,
-                 min_iter=100, append_last_point=True,
-                 RAP_mask=None, RAP_method=None):
+                 min_iter=100, append_last_point=True, rap=None):
         """
         Parameters
         ----------
@@ -79,7 +77,7 @@ class Tracker(object):
             with nbr_seeds=1,000,000, you can create tractogram_2 with
             skip 1,000,000.
         verbose: bool
-            Display tracking progression.
+            Display tracking progression with TQDM progress bar.
         min_iter: int
             Minimum number of tracked streamlines required to update the
             tracking progression bar.
@@ -89,12 +87,11 @@ class Tracker(object):
             direction (based on the propagator's definition of invalid; ex
             when angle is too sharp of sh_threshold not reached) are never
             added.
-        RAP_mask: DataVolume
-            HRegion-Adaptive Propagation tractography volume.
-        RAP_method: string
-            Name of the Region-Adaptive Propagation method to use.
+        rap: RAP object
+            Intantiated RAP object.
         """
         self.propagator = propagator
+        self.rap = rap
         self.mask = mask
         self.seed_generator = seed_generator
         self.nbr_seeds = nbr_seeds
@@ -135,13 +132,6 @@ class Tracker(object):
         self.printing_frequency = 1000
         self.verbose = verbose
         self.min_iter = min_iter
-
-        self.RAP_mask = RAP_mask
-
-        if RAP_method == "continue":
-            self.RAP_fct = rap_continue
-        elif RAP_mask:
-            raise ValueError("RAP tracking method, unknown.")
 
     def track(self):
         """
@@ -424,7 +414,7 @@ class Tracker(object):
             return line
         return None
 
-    def _propagate_line(self, line, tracking_info):
+    def _propagate_line(self, line, previous_dir):
         """
         Generate a streamline in forward or backward direction from an initial
         position following the tracking parameters.
@@ -439,7 +429,7 @@ class Tracker(object):
         line: List[np.ndarrays]
             Beginning of the line to propagate: list of 3D coordinates
             formatted as arrays.
-        tracking_info: Any
+        previous_dir: Any
             Information necessary to know how to propagate. Type: as understood
             by the propagator. Example, with the typical fODF propagator: the
             previous direction of the streamline, v_in, used to define a cone
@@ -453,31 +443,42 @@ class Tracker(object):
         """
         invalid_direction_count = 0
         propagation_can_continue = True
+
         while len(line) < self.max_nbr_pts and propagation_can_continue:
 
-            # Call the RAP function if needed
-            if propagation_can_continue and self.RAP_mask:
-                if self.RAP_mask.get_value_at_coordinate(
-                    *line[-1], space=self.space, origin=self.origin) > 0:
-                    line, new_tracking_info = self.RAP_fct(self, line, tracking_info)
+            # Call the RAP function if needed. Can advance of as many points
+            # as they want.
+            if (propagation_can_continue and self.rap and
+                    self.rap.is_in_rap_region(
+                        line[-1], space=self.space, origin=self.origin)):
+                line, new_dir, is_line_valid = (
+                    self.rap.rap_multistep_propagate(line, previous_dir))
 
-            new_pos, new_tracking_info, is_direction_valid = \
-                self.propagator.propagate(line, tracking_info)
-
-            # Verifying if direction is valid
-            # If invalid: break. Else, verify tracking mask.
-            if is_direction_valid:
-                invalid_direction_count = 0
-            else:
-                invalid_direction_count += 1
-                if invalid_direction_count > self.max_invalid_dirs:
+                if is_line_valid:
+                    invalid_direction_count = 0
+                else:
                     break
+
+                new_pos = line[-1]
+            # Else, "normal" one-step propagation
+            else:
+                new_pos, new_dir, is_direction_valid = \
+                    self.propagator.propagate(line, previous_dir)
+
+                # Verifying if direction is valid
+                # If invalid: break. Else, verify tracking mask.
+                if is_direction_valid:
+                    invalid_direction_count = 0
+                else:
+                    invalid_direction_count += 1
+                    if invalid_direction_count > self.max_invalid_dirs:
+                        break
 
             propagation_can_continue = self._verify_stopping_criteria(new_pos)
             if propagation_can_continue or self.append_last_point:
                 line.append(new_pos)
 
-            tracking_info = new_tracking_info
+            previous_dir = new_dir
 
         return line
 

@@ -67,6 +67,7 @@ from scilpy.io.utils import (add_processes_arg, add_sphere_arg,
                              load_matrix_in_any_format)
 from scilpy.image.volume_space_management import DataVolume
 from scilpy.tracking.propagator import ODFPropagator
+from scilpy.tracking.rap import RAPContinue
 from scilpy.tracking.seed import SeedGenerator, CustomSeedsDispenser
 from scilpy.tracking.tracker import Tracker
 from scilpy.tracking.utils import (add_mandatory_options_tracking,
@@ -173,6 +174,7 @@ def main():
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
+    # ------- CHECKS -------
     if not nib.streamlines.is_supported(args.out_tractogram):
         parser.error('Invalid output streamline file format (must be trk or ' +
                      'tck): {0}'.format(args.out_tractogram))
@@ -185,6 +187,11 @@ def main():
     verify_compression_th(args.compress_th)
     verify_seed_options(parser, args)
 
+    if args.rap_mask is not None and args.rap_method is "None":
+        parser.error('No RAP method selected.')
+    if args.rap_method is not None and args.rap_mask is None:
+        parser.error('No RAP mask selected.')
+
     tracts_format = detect_format(args.out_tractogram)
     if tracts_format is not TrkFile:
         logging.warning("You have selected option --save_seeds but you are "
@@ -193,6 +200,7 @@ def main():
                         "Ignoring.")
         args.save_seeds = False
 
+    # ------- PREPARING DATA -------
     theta = gm.math.radians(get_theta(args.theta, args.algo))
 
     max_nbr_pts = int(args.max_length / args.step_size)
@@ -206,7 +214,6 @@ def main():
     our_space = Space.VOX
     our_origin = Origin('center')
 
-    # Preparing everything
     logging.info("Loading seeding mask.")
     seed_img = nib.load(args.in_seed)
     seed_data = seed_img.get_fdata(caching='unchanged', dtype=float)
@@ -216,6 +223,8 @@ def main():
                       'seeding mask.'.format(args.in_seed))
 
     seed_res = seed_img.header.get_zooms()[:3]
+
+    # ------- INSTANTIATING SEED GENERATOR -------
     if args.in_custom_seeds:
         seeds = np.squeeze(load_matrix_in_any_format(args.in_custom_seeds))
         seed_generator = CustomSeedsDispenser(seeds, space=our_space,
@@ -245,18 +254,7 @@ def main():
     mask_res = mask_img.header.get_zooms()[:3]
     mask = DataVolume(mask_data, mask_res, args.mask_interp)
 
-    if args.rap_mask:
-        logging.info("Loading RAP mask.")
-        RAP_img = nib.load(args.rap_mask)
-        RAP_data = RAP_img.get_fdata(caching='unchanged', dtype=float)
-        RAP_res = RAP_img.header.get_zooms()[:3]
-        RAP_mask = DataVolume(RAP_data, RAP_res, args.mask_interp)
-    else:
-        RAP_mask = None
-
-    if RAP_mask is not None and args.rap_method is "None":
-        parser.error('No RAP method selected.')
-
+    # ------- INSTANTIATING PROPAGATOR -------
     logging.info("Loading ODF SH data.")
     odf_sh_img = nib.load(args.in_odf)
     odf_sh_data = odf_sh_img.get_fdata(caching='unchanged', dtype=float)
@@ -281,6 +279,22 @@ def main():
         sub_sphere=args.sub_sphere,
         space=our_space, origin=our_origin, is_legacy=is_legacy)
 
+    # ------- INSTANTIATING RAP OBJECT -------
+    if args.rap_mask:
+        logging.info("Loading RAP mask.")
+        rap_img = nib.load(args.rap_mask)
+        rap_data = rap_img.get_fdata(caching='unchanged', dtype=float)
+        rap_res = rap_img.header.get_zooms()[:3]
+        rap_mask = DataVolume(rap_data, rap_res, args.mask_interp)
+    else:
+        rap_mask = None
+
+    if args.rap_method == "continue":
+        rap = RAPContinue(rap_mask, propagator, max_nbr_pts,
+                          step_size=vox_step_size)
+    else:
+        rap = None
+
     logging.info("Instantiating tracker.")
     tracker = Tracker(propagator, mask, seed_generator, nbr_seeds, min_nbr_pts,
                       max_nbr_pts, args.max_invalid_nb_points,
@@ -291,9 +305,7 @@ def main():
                       track_forward_only=args.forward_only,
                       skip=args.skip,
                       append_last_point=args.keep_last_out_point,
-                      RAP_mask=RAP_mask,
-                      RAP_method=args.rap_method,
-                      verbose=args.verbose)
+                      rap=rap, verbose=args.verbose)
 
     start = time.time()
     logging.info("Tracking...")
