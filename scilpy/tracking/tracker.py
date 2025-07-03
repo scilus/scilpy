@@ -20,7 +20,7 @@ from scilpy.image.volume_space_management import DataVolume
 from scilpy.tracking.propagator import AbstractPropagator, PropagationStatus
 from scilpy.reconst.utils import find_order_from_nb_coeff
 from scilpy.tracking.seed import SeedGenerator
-from scilpy.tracking.hurdle import hurdle_continue
+from scilpy.tracking.rap import rap_continue
 from scilpy.gpuparallel.opencl_utils import CLKernel, CLManager, have_opencl
 
 # For the multi-processing:
@@ -37,7 +37,7 @@ class Tracker(object):
                  mmap_mode: Union[str, None] = None, rng_seed=1234,
                  track_forward_only=False, skip=0, verbose=False,
                  min_iter=100, append_last_point=True,
-                 hurdle_mask=None, hurdle_method=None):
+                 RAP_mask=None, RAP_method=None):
         """
         Parameters
         ----------
@@ -89,10 +89,10 @@ class Tracker(object):
             direction (based on the propagator's definition of invalid; ex
             when angle is too sharp of sh_threshold not reached) are never
             added.
-        hurdle_mask: DataVolume
-            Hurdle volume.
-        hurdle_method: string
-            Name of the hurdle method to use.
+        RAP_mask: DataVolume
+            HRegion-Adaptive Propagation tractography volume.
+        RAP_method: string
+            Name of the Region-Adaptive Propagation method to use.
         """
         self.propagator = propagator
         self.mask = mask
@@ -136,12 +136,12 @@ class Tracker(object):
         self.verbose = verbose
         self.min_iter = min_iter
 
-        self.hurdle_mask = hurdle_mask
+        self.RAP_mask = RAP_mask
 
-        if hurdle_method == "continue":
-            self.hurdle_fct = hurdle_continue
-        elif hurdle_mask:
-            raise ValueError("Hurdle tracking method, unknown.")
+        if RAP_method == "continue":
+            self.RAP_fct = rap_continue
+        elif RAP_mask:
+            raise ValueError("RAP tracking method, unknown.")
 
     def track(self):
         """
@@ -455,11 +455,11 @@ class Tracker(object):
         propagation_can_continue = True
         while len(line) < self.max_nbr_pts and propagation_can_continue:
 
-            # Call the hurdle function if needed
-            if propagation_can_continue and self.hurdle_mask:
-                if self.hurdle_mask.get_value_at_coordinate(
+            # Call the RAP function if needed
+            if propagation_can_continue and self.RAP_mask:
+                if self.RAP_mask.get_value_at_coordinate(
                     *line[-1], space=self.space, origin=self.origin) > 0:
-                    line, new_tracking_info = self.hurdle_fct(self, line, tracking_info)
+                    line, new_tracking_info = self.RAP_fct(self, line, tracking_info)
 
             new_pos, new_tracking_info, is_direction_valid = \
                 self.propagator.propagate(line, tracking_info)

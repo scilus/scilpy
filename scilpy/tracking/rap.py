@@ -1,6 +1,6 @@
 import numpy as np
 
-def hurdle_continue(tracker, line, prev_direction):
+def rap_continue(tracker, line, prev_direction):
     if len(line)>3:
         v_out = line[-2] - line[-3]
         v_out = v_out / np.linalg.norm(v_out)
