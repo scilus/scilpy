@@ -187,7 +187,7 @@ def main():
     verify_compression_th(args.compress_th)
     verify_seed_options(parser, args)
 
-    if args.rap_mask is not None and args.rap_method is "None":
+    if args.rap_mask is not None and args.rap_method == "None":
         parser.error('No RAP method selected.')
     if args.rap_method is not None and args.rap_mask is None:
         parser.error('No RAP mask selected.')
