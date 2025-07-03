@@ -966,7 +966,7 @@ def assert_headers_compatible(parser, required, optional=None, reference=None):
         if in_extension in ['.trk', '.nii', '.nii.gz']:
             headers.append(filepath)
             files.append(filepath)
-        elif in_extension == '.tck':
+        elif in_extension in ['.tck', '.fib', '.vtk', '.dpy']:
             if reference is None:
                 parser.error(
                     '{} must be provided with a reference.'.format(filepath))
