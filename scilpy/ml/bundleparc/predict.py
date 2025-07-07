@@ -76,11 +76,18 @@ def predict(
         Number of SH coefficients to use.
     label_function: function
         Function to use for label post-processing. Can be one of:
-            post_process_labels_discrete,
+           post_process_labels_discrete,
            post_process_labels_mm,
            post_process_labels_continuous.
     bundles : list of str
         List of bundle names.
+    min_blob_size : int
+        Minimum size of a blob to keep in the mask. Small blobs will be
+        removed from the mask.
+    keep_biggest_blob : bool
+        Whether to keep the biggest blob in the mask. If True, all other
+        blobs will be removed. If False, all blobs smaller than
+        `min_blob_size` will be removed.
     half_precision : bool, optional
         Whether to use half precision. Will reduce GPU memory usage but may
         reduce the accuracy of the label maps. Default is False.
