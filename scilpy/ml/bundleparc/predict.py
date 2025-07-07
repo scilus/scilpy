@@ -3,10 +3,10 @@ import numpy as np
 
 from tqdm import tqdm
 
-from scipy.ndimage import gaussian_filter, label
+from scipy.ndimage import label
 
 from scilpy.ml.utils import get_device, to_numpy, IMPORT_ERROR_MSG
-from scilpy.ml.bundleparc.utils import DEFAULT_BUNDLES, get_data
+from scilpy.ml.bundleparc.utils import (DEFAULT_BUNDLES, get_data)
 
 from dipy.utils.optpkg import optional_package
 torch, have_torch, _ = optional_package('torch', trip_msg=IMPORT_ERROR_MSG)
@@ -58,54 +58,10 @@ def post_process_mask(
     return bundle_mask.astype(np.uint8)
 
 
-def post_process_labels(
-    bundle_label, bundle_mask, nb_labels, sigma=0.5
-):
-    """ Masked filtering (normalized convolution) and label discretizing.
-    Reference:
-    https://stackoverflow.com/questions/59685140/python-perform-blur-only-within-a-mask-of-image  # noqa
-
-    Parameters
-    ----------
-    bundle_label : np.ndarray
-        Predicted continuous labels for the bundle.
-    bundle_mask : np.ndarray
-        Mask of the bundle.
-    nb_labels : int
-        Number of labels to discretize to.
-    sigma : float, optional
-        Filtering sigma. Default is 0.5.
-
-    Returns
-    -------
-    bundle_label : np.ndarray
-        Predicted labels for the bundle.
-    """
-
-    # Determine the output type based on the number of labels
-    out_type = np.uint16 if nb_labels > 1 else np.uint8
-
-    # Masked convolution
-    float_mask = bundle_mask.astype(float)
-    filtered = gaussian_filter(bundle_label * float_mask, sigma=sigma)
-    weights = gaussian_filter(float_mask, sigma=sigma)
-    filtered /= (weights + 1e-8)
-    filtered = filtered * bundle_mask
-    # Label masking
-    discrete_labels = bundle_label[bundle_mask.astype(bool)]
-
-    # Label dicretizing
-    discrete_labels = np.ceil(discrete_labels * nb_labels)
-    bundle_label[bundle_mask.astype(bool)] = discrete_labels
-    bundle_label[~bundle_mask.astype(bool)] = 0
-
-    return bundle_label.astype(out_type)
-
-
 @torch.no_grad()
 def predict(
-    model, fodf, n_coefs, nb_labels, bundles, min_blob_size, keep_biggest_blob,
-    half_precision=False, verbose=False
+    model, fodf, n_coefs, label_function, bundles, min_blob_size,
+    keep_biggest_blob, half_precision=False, verbose=False
 ):
     """ Predict the  bundle labels. This function is a generator that yields
     the predicted labels for each bundle.
@@ -118,8 +74,11 @@ def predict(
         fODF image, resampled to the model's input size.
     n_coefs : int
         Number of SH coefficients to use.
-    nb_labels : int
-        Number of labels to predict.
+    label_function: function
+        Function to use for label post-processing. Can be one of:
+            post_process_labels_discrete,
+           post_process_labels_mm,
+           post_process_labels_continuous.
     bundles : list of str
         List of bundle names.
     half_precision : bool, optional
@@ -180,7 +139,7 @@ def predict(
 
             # Extract the labels using the mask, then filter and discretize
             # them.
-            bundle_label = post_process_labels(
-                bundle_label, bundle_mask, nb_labels)
+            bundle_label = label_function(
+                bundle_label, bundle_mask, DEFAULT_BUNDLES[i])
 
             yield bundle_label, DEFAULT_BUNDLES[i]

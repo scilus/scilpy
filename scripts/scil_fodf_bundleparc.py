@@ -37,6 +37,7 @@ import numpy as np
 import os
 
 from argparse import RawTextHelpFormatter
+from functools import partial
 
 from scilpy.io.utils import (
     assert_inputs_exist, assert_output_dirs_exist_and_empty,
@@ -44,6 +45,8 @@ from scilpy.io.utils import (
 from scilpy.image.volume_operations import resample_volume
 
 from scilpy.ml.bundleparc.predict import predict
+from scilpy.ml.bundleparc.labels import post_process_labels_discrete, \
+    post_process_labels_mm, post_process_labels_continuous
 from scilpy.ml.bundleparc.utils import DEFAULT_BUNDLES, \
     download_weights, get_model
 from scilpy.ml.utils import get_device, IMPORT_ERROR_MSG
@@ -67,9 +70,15 @@ def _build_arg_parser():
                         help='Output file prefix. Default is nothing. ')
     parser.add_argument('--out_folder', default='bundleparc',
                         help='Output destination. Default is [%(default)s].')
-    parser.add_argument('--nb_pts', type=int, default=50,
-                        help='Number of divisions per bundle. '
-                             'Default is [%(default)s].')
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument('--nb_pts', type=int,
+                       help='Number of divisions per bundle. ')
+    group.add_argument('--mm', type=float,
+                       help='If set, bundles will be split in sections '
+                            'roughly X mm wide.')
+    group.add_argument('--continuous', action='store_true',
+                       help='If set, the output label maps will be continuous'
+                            ' ∈ [0, 1].')
     parser.add_argument('--min_blob_size', type=int, default=50,
                         help='Minimum blob size (in voxels) to keep. Smaller '
                              'blobs will be removed. Default is '
@@ -135,19 +144,33 @@ def main():
                                     interp='lin',
                                     enforce_dimensions=False)
 
+    # Get the voxel size of the input fODF after resampling
+    # Presuming isotropic resampling
+    voxel_size = np.mean(resampled_img.header.get_zooms()[:3])
+
+    # Get the label function to use for post-processing
+    if args.continuous:
+        label_function = post_process_labels_continuous
+    elif args.mm is not None:
+        label_function = partial(post_process_labels_mm, args.mm, voxel_size)
+    else:
+        label_function = partial(post_process_labels_discrete,
+                                 args.nb_pts)
+
     # Predict label maps. `predict` is a generator
     # yielding one label map per bundle and its name.
     for y_hat_label, b_name in predict(
-        model, resampled_img.get_fdata(dtype=np.float32), n_coefs, args.nb_pts,
-        args.bundles, args.min_blob_size, args.keep_biggest_blob,
-        args.half_precision, logging.getLogger().getEffectiveLevel() <
-        logging.WARNING
+        model, resampled_img.get_fdata(dtype=np.float32), n_coefs,
+        label_function, DEFAULT_BUNDLES, args.keep_biggest_blob,
+        args.half_precision,
+        logging.getLogger().getEffectiveLevel() < logging.WARNING
     ):
 
         # Format the output as a nifti image
         label_img = nib.Nifti1Image(y_hat_label,
                                     resampled_img.affine,
-                                    resampled_img.header, dtype=np.uint16)
+                                    resampled_img.header,
+                                    dtype=y_hat_label.dtype)
 
         # Resampling volume to fit the original image size
         resampled_label = resample_volume(label_img, ref_img=None,

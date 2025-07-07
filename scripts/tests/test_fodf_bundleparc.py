@@ -53,3 +53,23 @@ def test_execution_invalid_bundle(script_runner, monkeypatch):
     ret = script_runner.run('scil_fodf_bundleparc.py', in_fodf,
                             '-f', '--bundles', 'CC')
     assert not ret.success
+
+
+@pytest.mark.ml
+def test_execution_mm(script_runner, monkeypatch):
+    in_fodf = os.path.join(SCILPY_HOME, 'tracking', 'fodf.nii.gz')
+
+    ret = script_runner.run('scil_fodf_bundleparc.py', in_fodf,
+                            '-f', '--bundles', 'IFO_right',
+                            '--mm', '10')
+    assert not ret.success
+
+
+@pytest.mark.ml
+def test_execution_cont(script_runner, monkeypatch):
+    in_fodf = os.path.join(SCILPY_HOME, 'tracking', 'fodf.nii.gz')
+
+    ret = script_runner.run('scil_fodf_bundleparc.py', in_fodf,
+                            '-f', '--bundles', 'IFO_right',
+                            '--continuous')
+    assert not ret.success
