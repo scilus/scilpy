@@ -5,7 +5,7 @@ BundleParc: automatic tract labelling without tractography.
 
 This method takes as input fODF maps and outputs 71 bundle label maps. These maps can then be used to perform tractometry/tract profiling/radiomics. The bundle definitions follow TractSeg's minus the whole CC.
 
-Inputs are presumed to come from Tractoflow and must be BET and cropped. fODFs must be of basis descoteaux07_legacy and can be of order < 8 but accuracy may be reduced.
+Inputs are presumed to come from Tractoflow and must be BET and cropped. fODFs must be in SH format, basis descoteaux07_legacy and can be of order < 8 but accuracy may be reduced. Use scil_sh_convert.py to convert from other formats.
 
 Model weights will be downloaded the first time the script is run, which will require an internet connection at runtime. Otherwise they can be manually downloaded from zenodo [1] and by specifying --checkpoint.
 
