@@ -38,7 +38,7 @@ in_sft = os.path.join(SCILPY_HOME, 'surface_vtk_fib', 'gyri_fanning.trk')
 sft = load_tractogram(in_sft, 'same')[0:4]
 
 # Faking data_per_streamline
-sft.data_per_streamline['test'] = [1] * len(sft)
+sft.data_per_streamline['test'] = np.ones(len(sft))
 sft.data_per_point['test2'] = [[[1, 2, 3]] * len(s) for s in sft.streamlines]
 
 

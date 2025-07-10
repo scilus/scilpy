@@ -2,18 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-Assign an hexadecimal RGB color to one or more Trackvis (.trk) tractogram.
-(If called with .tck, the output will always be .trk, because data_per_point
-has no equivalent in tck file.)
 
-Saves the RGB values in the data_per_point 'color' with values
-(color_x, color_y, color_z).
-
-The hexadecimal RGB color should be formatted as 0xRRGGBB or "#RRGGBB".
-
-See also: scil_tractogram_assign_custom_color.py
-
-Formerly: scil_assign_uniform_color_to_tractograms.py
 """
 
 import argparse
@@ -21,16 +10,18 @@ import json
 import logging
 import os
 
-from dipy.io.streamline import save_tractogram
+from dipy.io.surface import load_surface, save_surface
 import numpy as np
 
-from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (assert_inputs_exist,
                              assert_outputs_exist,
                              add_overwrite_arg,
                              add_verbose_arg,
-                             add_reference_arg, assert_headers_compatible)
-from scilpy.viz.color import format_hexadecimal_color_to_rgb, ambiant_occlusion
+                             add_reference_arg,
+                             add_surface_spatial_arg,
+                             add_vtk_legacy_arg,
+                             convert_stateful_str_to_enum)
+from scilpy.viz.color import format_hexadecimal_color_to_rgb
 
 
 def _build_arg_parser():
@@ -38,13 +29,8 @@ def _build_arg_parser():
         description=__doc__,
         formatter_class=argparse.RawTextHelpFormatter)
 
-    p.add_argument('in_tractograms', nargs='+',
-                   help='Input tractograms (.trk or .tck).')
-
-    p.add_argument('--ambiant_occlusion', nargs='?', const=4, type=int,
-                   help='Impact factor of the ambiant occlusion '
-                   'approximation.\n Use factor or 2. Decrease for '
-                   'lighter and increase for darker [%(default)s].')
+    p.add_argument('in_surfaces', nargs='+',
+                   help='Input surface(s) (VTK + PIAL + GII supported).')
 
     g1 = p.add_argument_group(title='Coloring Methods')
     p1 = g1.add_mutually_exclusive_group(required=True)
@@ -65,9 +51,11 @@ def _build_arg_parser():
                          'Mandatory choice if you run this script on multiple '
                          'tractograms.\nMandatory choice with --dict_colors.\n'
                          '[%(default)s]')
-    p2.add_argument('--out_tractogram', metavar='file.trk',
-                    help='Output filename of colored tractogram (.trk).')
+    p2.add_argument('--out_surface', metavar='FILE',
+                    help='Output filename of colored Surface (VTK supported).')
 
+    add_surface_spatial_arg(p)
+    add_vtk_legacy_arg(p)
     add_reference_arg(p)
     add_verbose_arg(p)
     add_overwrite_arg(p)
@@ -78,35 +66,34 @@ def _build_arg_parser():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
+
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     # Verifications
-    if len(args.in_tractograms) > 1 and args.out_tractogram:
+    if len(args.in_surfaces) > 1 and args.out_surface:
         parser.error('Using multiple inputs, use --out_suffix.')
-    if args.dict_colors and args.out_tractogram:
+    if args.dict_colors and args.out_surface:
         parser.error('Using --dict_colors, use --out_suffix.')
 
-    assert_inputs_exist(parser, args.in_tractograms, args.reference)
-    assert_headers_compatible(parser, args.in_tractograms,
-                              reference=args.reference)
+    assert_inputs_exist(parser, args.in_surfaces, args.reference)
+    convert_stateful_str_to_enum(args)
+
+    if args.reference is None:
+        parser.error('A reference file is required to determine the space.\n'
+                     'Please provide one using --reference')
 
     if args.out_suffix and args.out_suffix[0] != '_':
         args.out_suffix = '_' + args.out_suffix
 
-    if args.out_tractogram:
-        out_filenames = [args.out_tractogram]
-        _, ext = os.path.splitext(args.out_tractogram)
-        if not ext == '.trk':
-            parser.error("--out_tractogram must be a .trk file.")
+    if args.out_surface:
+        out_filenames = [args.out_surface]
+        _, ext = os.path.splitext(args.out_surface)
     else:  # args.out_suffix
         out_filenames = []
-        for filename in args.in_tractograms:
+        for filename in args.in_surfaces:
             base, ext = os.path.splitext(filename)
-            if not ext == '.trk':
-                logging.warning('Input is a .tck file, but output will be a '
-                                '.trk file.')
             out_filenames.append('{}{}{}'
-                                 .format(base, args.out_suffix, '.trk'))
+                                 .format(base, args.out_suffix, ext))
     assert_outputs_exist(parser, args, out_filenames)
 
     # Loading (except tractograms, in loop)
@@ -116,14 +103,12 @@ def main():
             dict_colors = json.load(data)
 
     # Processing
-    for i, filename in enumerate(args.in_tractograms):
+    for i, filename in enumerate(args.in_surfaces):
         color = None
 
-        sft = load_tractogram_with_reference(parser, args, filename)
-
-        sft.data_per_point['color'] = sft.streamlines.copy()
-        sft.data_per_point['color']._data = np.zeros(
-            (len(sft.streamlines._data), 3), dtype=np.uint8)
+        sfs = load_surface(filename, args.reference,
+                           from_space=args.source_space,
+                           from_origin=args.source_origin)
 
         if args.dict_colors:
             base, ext = os.path.splitext(filename)
@@ -142,12 +127,13 @@ def main():
 
         red, green, blue = format_hexadecimal_color_to_rgb(color)
 
-        colors = np.tile([red, green, blue], (len(sft.streamlines._data), 1))
-        if args.ambiant_occlusion:
-            colors = ambiant_occlusion(sft, colors,
-                                       factor=args.ambiant_occlusion)
-        sft.data_per_point['color']._data = colors
-        save_tractogram(sft, out_filenames[i])
+        colors = np.tile([red, green, blue], (len(sfs.vertices), 1))
+
+        sfs.data_per_point['RGB'] = colors
+        save_surface(sfs, out_filenames[i],
+                     to_space=args.destination_space,
+                     to_origin=args.destination_origin,
+                     legacy_vtk_format=args.legacy_vtk_format)
 
 
 if __name__ == '__main__':
