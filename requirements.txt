@@ -6,7 +6,7 @@ cvxpy==1.4.*
 cycler==0.11.*
 #Cython==0.29.*, !=0.29.29
 Cython==3.0.*
-dipy==1.10.*
+dipy==1.12.*
 deepdiff==6.3.0
 dmri-amico==2.0.3
 dmri-commit==2.3.0
@@ -14,7 +14,7 @@ docopt==0.6.*
 dvc==3.48.*
 dvc-http==2.32.*
 formulaic==0.3.*
-fury==0.11.*
+fury==0.12.*
 future==0.18.*
 GitPython==3.1.*
 h5py==3.10.*

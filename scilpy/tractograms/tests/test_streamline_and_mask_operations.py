@@ -148,6 +148,7 @@ def test_trim_streamline_in_mask():
     sft.to_vox()
     sft.to_corner()
 
+    sft.streamlines._data = sft.streamlines._data.astype(np.float32)
     idices, points_to_idx = uncompress(sft.streamlines, return_mapping=True)
     strl_indices = idices[0]
     points_to_idices = points_to_idx[0]
@@ -201,6 +202,7 @@ def test_trim_streamline_in_mask_keep_longest():
     sft.to_vox()
     sft.to_corner()
 
+    sft.streamlines._data = sft.streamlines._data.astype(np.float32)
     idices, points_to_idx = uncompress(sft.streamlines, return_mapping=True)
     strl_indices = idices[0]
     points_to_idices = points_to_idx[0]
@@ -251,6 +253,7 @@ def test_trim_streamline_endpoints_in_mask():
     sft.to_vox()
     sft.to_corner()
 
+    sft.streamlines._data = sft.streamlines._data.astype(np.float32)
     idices, points_to_idx = uncompress(sft.streamlines, return_mapping=True)
     strl_indices = idices[0]
     points_to_idices = points_to_idx[0]
@@ -337,6 +340,7 @@ def test_compute_streamline_segment():
     roi_data_1, roi_data_2 = split_mask_blobs_kmeans(
         head_tail_offset_rois, nb_clusters=2)
 
+    one_sft.streamlines._data = one_sft.streamlines._data.astype(np.float32)
     (indices, points_to_idx) = uncompress(one_sft.streamlines,
                                           return_mapping=True)
 

@@ -85,9 +85,11 @@ def get_head_tail_density_maps(sft, point_to_select=1, to_millimeters=False):
         streamlines = resample_streamlines_step_size(sft, 1.0).streamlines
     else:
         streamlines = sft.streamlines
+    streamlines._data = streamlines._data.astype(np.float32)
 
     dimensions = sft.dimensions
     # Uncompress the streamlines to get the indices of the voxels intersected
+    streamlines._data = streamlines._data.astype(np.float32)
     list_indices, points_to_indices = uncompress(
         streamlines, return_mapping=True)
 
@@ -291,9 +293,11 @@ def cut_streamlines_with_mask(
     orig_origin = sft.origin
     sft.to_vox()
     sft.to_corner()
+    sft.streamlines._data = sft.streamlines._data.astype(np.float32)
 
     # Uncompress the streamlines to get the indices of the voxels
     # intersected by the streamlines and the mapping from points to indices
+    sft.streamlines._data = sft.streamlines._data.astype(np.float32)
     indices, points_to_idx = uncompress(sft.streamlines,
                                         return_mapping=True)
 
@@ -383,6 +387,7 @@ def cut_streamlines_between_labels(
     mask = label_data_2 != unique_vals[1]
     label_data_2[mask] = 0
 
+    sft.streamlines._data = sft.streamlines._data.astype(np.float32)
     (indices, points_to_idx) = uncompress(sft.streamlines, return_mapping=True)
 
     if len(sft.streamlines[0]) != len(points_to_idx[0]):

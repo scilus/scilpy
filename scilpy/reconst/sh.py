@@ -212,9 +212,9 @@ def _peaks_from_sh_loop(shm_coeff, B, sphere, relative_peak_threshold,
             odf[odf < absolute_threshold] = 0.
 
             dirs, peaks, ind = peak_directions(odf, sphere,
-                                               relative_peak_threshold,
-                                               min_separation_angle,
-                                               is_symmetric)
+                                               relative_peak_threshold=relative_peak_threshold,
+                                               min_separation_angle=min_separation_angle,
+                                               is_symmetric=is_symmetric)
 
             if peaks.shape[0] != 0:
                 n = min(npeaks, peaks.shape[0])

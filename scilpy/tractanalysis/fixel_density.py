@@ -22,7 +22,8 @@ def _fixel_density_single_bundle(bundle, peaks, max_theta, dps_key):
 
     min_cos_theta = np.cos(np.radians(max_theta))
 
-    all_split_streamlines =\
+    sft.streamlines._data = sft.streamlines._data.astype(np.float32)
+    all_split_streamlines = \
         subdivide_streamlines_at_voxel_faces(sft.streamlines)
     for i, split_streamlines in enumerate(all_split_streamlines):
         segments = split_streamlines[1:] - split_streamlines[:-1]
