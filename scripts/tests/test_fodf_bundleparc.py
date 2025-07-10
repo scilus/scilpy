@@ -22,7 +22,7 @@ def test_execution(script_runner, monkeypatch):
     in_fodf = os.path.join(SCILPY_HOME, 'tracking', 'fodf.nii.gz')
 
     ret = script_runner.run('scil_fodf_bundleparc.py', in_fodf, '-f',
-                            '--bundles', 'FX_left')
+                            '--nb_pts', '10', '--bundles', 'FX_left')
     assert ret.success
 
 
@@ -41,8 +41,8 @@ def test_execution_keep_biggest_blob(script_runner, monkeypatch):
     in_fodf = os.path.join(SCILPY_HOME, 'tracking', 'fodf.nii.gz')
 
     ret = script_runner.run('scil_fodf_bundleparc.py', in_fodf,
-                            '--keep_biggest_blob', '-f', '--bundles',
-                            'CA')
+                            '--nb_pts', '10', '--keep_biggest_blob',
+                            '-f', '--bundles', 'CA')
     assert ret.success
 
 
@@ -60,9 +60,9 @@ def test_execution_mm(script_runner, monkeypatch):
     in_fodf = os.path.join(SCILPY_HOME, 'tracking', 'fodf.nii.gz')
 
     ret = script_runner.run('scil_fodf_bundleparc.py', in_fodf,
-                            '-f', '--bundles', 'IFO_right',
-                            '--mm', '10')
-    assert not ret.success
+                            '--mm', '10',
+                            '--bundles', 'IFO_right', '-f')
+    assert ret.success
 
 
 @pytest.mark.ml
@@ -70,6 +70,6 @@ def test_execution_cont(script_runner, monkeypatch):
     in_fodf = os.path.join(SCILPY_HOME, 'tracking', 'fodf.nii.gz')
 
     ret = script_runner.run('scil_fodf_bundleparc.py', in_fodf,
-                            '-f', '--bundles', 'IFO_right',
-                            '--continuous')
-    assert not ret.success
+                            '--continuous',
+                            '--bundles', 'IFO_right', '-f')
+    assert ret.success
