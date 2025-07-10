@@ -170,7 +170,7 @@ def bingham_fit_sh(sh, max_lobes=5, abs_th=0.,
     order, full_basis = get_sh_order_and_fullness(sh.shape[-1])
     shape = sh.shape
 
-    sphere = get_sphere('symmetric724').subdivide(n=2)
+    sphere = get_sphere(name='symmetric724').subdivide(n=2)
     B_mat = sh_to_sf_matrix(sphere, order,
                             full_basis=full_basis,
                             return_inv=False)

@@ -236,7 +236,7 @@ def compute_msmt_frf(data, bvals, bvecs, btens=None, data_dti=None,
     # Note. Using the tolerance here because currently, the gtab.b0s_mask is
     # not used. Below, we use the tolerance only (in dipy).
     # An issue has been added in dipy too.
-    gtab = gradient_table(bvals, bvecs, btens=btens, b0_threshold=tol)
+    gtab = gradient_table(bvals=bvals, bvecs=bvecs, btens=btens, b0_threshold=tol)
 
     if data_dti is None and bvals_dti is None and bvecs_dti is None:
         logging.warning(
@@ -257,7 +257,7 @@ def compute_msmt_frf(data, bvals, bvecs, btens=None, data_dti=None,
             logging.warning('Your b-vectors do not seem normalized...')
             bvecs_dti = normalize_bvecs(bvecs_dti)
 
-        gtab_dti = gradient_table(bvals_dti, bvecs_dti, btens=btens_dti)
+        gtab_dti = gradient_table(bvals=bvals_dti, bvecs=bvecs_dti, btens=btens_dti)
 
         wm_frf_mask, gm_frf_mask, csf_frf_mask \
             = mask_for_response_msmt(gtab_dti, data_dti,

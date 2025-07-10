@@ -105,7 +105,7 @@ def main():
     args.b0_threshold = check_b0_threshold(bvals.min(),
                                            b0_thr=args.b0_threshold,
                                            skip_b0_check=args.skip_b0_check)
-    gtab = gradient_table(bvals, bvecs, b0_threshold=args.b0_threshold)
+    gtab = gradient_table(bvals=bvals, bvecs=bvecs, b0_threshold=args.b0_threshold)
 
     # Checking full_frf and separating it
     if not full_frf.shape[0] == 4:
