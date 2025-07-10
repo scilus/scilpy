@@ -61,8 +61,8 @@ def get_ventricles_max_fodf(data, fa, md, zoom, sh_basis,
     """
 
     order = find_order_from_nb_coeff(data)
-    sphere = get_sphere('repulsion100')
-    b_matrix, _ = sh_to_sf_matrix(sphere, order, sh_basis, legacy=is_legacy)
+    sphere = get_sphere(name='repulsion100')
+    b_matrix, _ = sh_to_sf_matrix(sphere, sh_order_max=order, basis_type=sh_basis, legacy=is_legacy)
     mask = np.zeros(data.shape[:-1])
 
     # 1000 works well at 2x2x2 = 8 mm3

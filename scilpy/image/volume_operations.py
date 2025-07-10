@@ -168,8 +168,8 @@ def apply_transform(transfo, reference, moving,
                             'bvecs with scil_gradients_apply_transform.py')
 
         affine_map = AffineMap(np.linalg.inv(transfo),
-                               dim[0:3], grid2world,
-                               moving_data.shape[0:3], moving_affine)
+                               domain_grid_shape=dim[0:3], domain_grid2world=grid2world,
+                               codomain_grid_shape=moving_data.shape[0:3], codomain_grid2world=moving_affine)
 
         orig_type = moving_data.dtype
         resampled = transform_dwi(affine_map, static_data, moving_data,

@@ -111,7 +111,7 @@ def main():
                 len(pwd_avg_idx), shell))
 
         # remove b0 indices
-        b0_idx = get_bval_indices(bvals, 0, args.b0_thr)
+        b0_idx = get_bval_indices(bvals, 0, tol=args.b0_thr)
         logging.debug('{} b0 volumes detected and not included'.format(
             len(b0_idx)))
         for val in b0_idx:

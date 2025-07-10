@@ -115,7 +115,7 @@ def main():
     mean_b0_val = full_frf[3]
 
     # Loading the sphere
-    reg_sphere = get_sphere('symmetric362')
+    reg_sphere = get_sphere(name='symmetric362')
 
     # Computing CSD
     csd_model = ConstrainedSphericalDeconvModel(gtab, (frf, mean_b0_val),

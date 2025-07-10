@@ -163,8 +163,8 @@ def main():
     our_origin = Origin('center')
 
     logging.debug('Loading centerline tractogram & diameters')
-    truth_sft = load_tractogram(args.in_fibertubes, 'same', our_space,
-                                our_origin)
+    truth_sft = load_tractogram(args.in_fibertubes, 'same', to_space=our_space,
+                                to_origin=our_origin)
     centerlines = truth_sft.get_streamlines_copy()
     centerlines, centerlines_length = get_streamlines_as_fixed_array(
         centerlines)
@@ -176,8 +176,8 @@ def main():
                            len(centerlines))
 
     logging.debug('Loading reconstructed tractogram')
-    in_sft = load_tractogram(args.in_tracking, 'same', our_space,
-                             our_origin)
+    in_sft = load_tractogram(args.in_tracking, 'same', to_space=our_space,
+                             to_origin=our_origin)
     streamlines = in_sft.get_streamlines_copy()
     streamlines, streamlines_length = get_streamlines_as_fixed_array(
         streamlines)

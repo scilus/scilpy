@@ -78,7 +78,7 @@ def unified_filtering(sh_data, sh_order, sh_basis, is_legacy, full_basis,
         raise ValueError('Option use_opencl must be enabled '
                          'to use device \'gpu\'.')
 
-    sphere = get_sphere(sphere_str)
+    sphere = get_sphere(name=sphere_str)
 
     if sigma_spatial is not None:
         if sigma_spatial <= 0.0:
@@ -104,7 +104,7 @@ def unified_filtering(sh_data, sh_order, sh_basis, is_legacy, full_basis,
     nx_filter = _unified_filter_build_nx(filter_shape, sigma_spatial,
                                          sigma_align, sphere, exclude_center)
 
-    B = sh_to_sf_matrix(sphere, sh_order, sh_basis, full_basis,
+    B = sh_to_sf_matrix(sphere, sh_order_max=sh_order, basis_type=sh_basis, full_basis=full_basis,
                         legacy=is_legacy, return_inv=False)
     _, B_inv = sh_to_sf_matrix(sphere, sh_order, sh_basis, True,
                                legacy=is_legacy, return_inv=True)
@@ -523,7 +523,7 @@ def cosine_filtering(in_sh, sh_order=8, sh_basis='descoteaux07',
         Filtered signal as SH coefficients in full SH basis.
     """
     # Load the sphere used for projection of SH
-    sphere = get_sphere(sphere_str)
+    sphere = get_sphere(name=sphere_str)
 
     # Normalized filter for each sf direction
     weights = _get_cosine_weights(sphere, dot_sharpness, sigma)

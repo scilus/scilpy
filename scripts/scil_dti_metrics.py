@@ -350,7 +350,7 @@ def main():
                 tenfit2 = tenmodel.fit(data[i, :, :, :])
 
             S0_i = np.maximum(S0[i, :, :], tenfit2.model.min_signal)
-            tenfit2_predict[i, :, :, :] = tenfit2.predict(gtab, S0_i)
+            tenfit2_predict[i, :, :, :] = tenfit2.predict(gtab, S0=S0_i)
 
         R, data_diff = compute_residuals(
             predicted_data=tenfit2_predict.astype(np.float32),

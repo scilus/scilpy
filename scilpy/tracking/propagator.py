@@ -278,7 +278,7 @@ class PropagatorOnSphere(AbstractPropagator):
         """
         super().__init__(datavolume, step_size, rk_order, space, origin)
 
-        self.sphere = dipy.data.get_sphere(dipy_sphere).subdivide(sub_sphere)
+        self.sphere = dipy.data.get_sphere(name=dipy_sphere).subdivide(n=sub_sphere)
         self.dirs = np.zeros(len(self.sphere.vertices), dtype=np.ndarray)
         for i in range(len(self.sphere.vertices)):
             self.dirs[i] = TrackingDirection(self.sphere.vertices[i], i)
@@ -402,7 +402,7 @@ class ODFPropagator(PropagatorOnSphere):
             get_sh_order_and_fullness(self.datavolume.data.shape[-1])
         self.basis = basis
         self.is_legacy = is_legacy
-        self.B = sh_to_sf_matrix(self.sphere, sh_order, self.basis,
+        self.B = sh_to_sf_matrix(self.sphere, sh_order_max=sh_order, basis_type=self.basis,
                                  smooth=0.006, return_inv=False,
                                  full_basis=full_basis, legacy=self.is_legacy)
 
