@@ -21,12 +21,24 @@ recognition will be.
 
 Example data and usage available at: https://zenodo.org/record/7950602
 
+For CPU usage, it can be variable (advanced CPU vs. basic CPU):
+    On personal computer: 4 CPU per subject and then it is better to parallelize
+    across subjects.
+    On a cluster: 8 CPU per subject and then it is better to parallelize across
+    subjects.
+
 For RAM usage, it is recommanded to use this heuristic:
     (size of inputs tractogram (GB) * number of processes) < RAM (GB)
 This is important because many instances of data structures are initialized
 in parallel and can lead to a RAM overflow.
 
 Formerly: scil_recognize_multi_bundles.py
+------------------------------------------------------------------------------------------
+Reference:
+[1] St-Onge, Etienne, Kurt G. Schilling, and Francois Rheault."BundleSeg: A versatile,
+    reliable and reproducible approach to white matter bundle segmentation." International 
+    Workshop on Computational Diffusion MRI. Cham: Springer Nature Switzerland (2023)
+------------------------------------------------------------------------------------------
 """
 
 import argparse
@@ -43,6 +55,9 @@ from scilpy.io.utils import (add_overwrite_arg, add_processes_arg,
                              assert_output_dirs_exist_and_empty,
                              load_matrix_in_any_format, ranged_type)
 from scilpy.segment.voting_scheme import VotingScheme
+from scilpy.version import version_string
+
+logger = logging.getLogger('BundleSeg')
 
 EPILOG = """
 [1] St-Onge, Etienne, Kurt G. Schilling, and Francois Rheault.
@@ -53,10 +68,9 @@ Diffusion MRI. Cham: Springer Nature Switzerland (2023)
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(
-        formatter_class=argparse.RawTextHelpFormatter,
-        description=__doc__,
-        epilog=EPILOG)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
 
     p.add_argument('in_tractograms', nargs='+',
                    help='Input tractogram filename (.trk or .tck).')
@@ -78,8 +92,18 @@ def _build_arg_parser():
                         'recognized often enough.\n'
                         'The ratio is a value between 0 and 1. Ex: If you '
                         'have 5 input model directories and a '
-                        'minimal_vote_ratio of 0.5, you will need at least 3'
+                        'minimal_vote_ratio of 0.5, you will need at least 3 '
                         'votes. [%(default)s]')
+
+    g = p.add_argument_group(title='Exploration mode')
+    p2 = g.add_mutually_exclusive_group()
+    p2.add_argument('--exploration_mode', action='store_true',
+                    help='Use higher pruning threshold, but optimal filtering '
+                    'can be explored using scil_bundle_explore_bundleseg.py')
+    p2.add_argument('--modify_distance_thr', type=float, default=0.0,
+                    help='Increase or decrease the distance threshold for '
+                         'pruning for all bundles in the configuration '
+                         '[%(default)s]')
 
     p.add_argument('--seed', type=int, default=0,
                    help='Random number generator seed %(default)s.')
@@ -97,7 +121,9 @@ def _build_arg_parser():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
-    logging.getLogger().setLevel(logging.getLevelName(args.verbose))
+
+    logger.setLevel(logging.getLevelName(args.verbose))
+    logging.getLogger().setLevel(logging.getLevelName('INFO'))
 
     # Verifications
     in_models_directories = [
@@ -106,8 +132,8 @@ def main():
         if os.path.isdir(os.path.join(args.in_directory, x))]
     if len(in_models_directories) == 0:
         parser.error("Found no model in {}".format(args.in_directory))
-    logging.info("Found {} models in your model directory!"
-                 .format(len(in_models_directories)))
+    logger.info("Found {} models in your model directory!"
+                .format(len(in_models_directories)))
 
     assert_inputs_exist(parser, args.in_tractograms +
                         [args.in_config_file, args.in_transfo],
@@ -116,8 +142,16 @@ def main():
 
     # Loading
     transfo = load_matrix_in_any_format(args.in_transfo)
+
     with open(args.in_config_file) as json_data:
         config = json.load(json_data)
+
+    if args.exploration_mode:
+        for key in config.keys():
+            config[key] = 10
+    elif args.modify_distance_thr is not None:
+        for key in config.keys():
+            config[key] += args.modify_distance_thr
 
     # (verifying now tractograms' extensions. Loading will only be later.)
     for in_tractogram in args.in_tractograms:
@@ -132,7 +166,7 @@ def main():
         fmt='%(asctime)s, %(name)s %(levelname)s %(message)s',
         datefmt='%H:%M:%S')
     file_handler.setFormatter(formatter)
-    logging.getLogger().addHandler(file_handler)
+    logger.addHandler(file_handler)
     coloredlogs.install(level=logging.getLevelName(args.verbose))
 
     # Processing.
@@ -140,8 +174,9 @@ def main():
         transfo = np.linalg.inv(transfo)
 
     # Note. Loading and saving are managed through the VotingScheme class.
-    # For code simplicity, it is still RecobundlesX class and all, but
+    # For code simplicity, it is still BundleSeg class and all, but
     # the last pruning step was modified to be in line with BundleSeg.
+
     voting = VotingScheme(config, in_models_directories,
                           transfo, args.out_dir,
                           minimal_vote_ratio=args.minimal_vote_ratio)

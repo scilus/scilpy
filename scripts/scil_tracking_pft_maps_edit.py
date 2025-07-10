@@ -17,27 +17,29 @@ from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_overwrite_arg, add_verbose_arg,
                              assert_inputs_exist, assert_outputs_exist,
                              assert_headers_compatible)
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
-    parser = argparse.ArgumentParser(
-        description=__doc__,
-        formatter_class=argparse.RawTextHelpFormatter)
-    parser.add_argument('map_include',
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
+
+    p.add_argument('map_include',
                         help='PFT map include.')
-    parser.add_argument('map_exclude',
+    p.add_argument('map_exclude',
                         help='PFT map exclude.')
-    parser.add_argument('additional_mask',
+    p.add_argument('additional_mask',
                         help='Allow PFT tracking in this mask.')
-    parser.add_argument('map_include_corr',
+    p.add_argument('map_include_corr',
                         help='Corrected PFT map include output file name.')
-    parser.add_argument('map_exclude_corr',
+    p.add_argument('map_exclude_corr',
                         help='Corrected PFT map exclude output file name.')
 
-    add_verbose_arg(parser)
-    add_overwrite_arg(parser)
+    add_verbose_arg(p)
+    add_overwrite_arg(p)
 
-    return parser
+    return p
 
 
 def main():

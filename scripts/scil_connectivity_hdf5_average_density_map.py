@@ -36,11 +36,13 @@ from scilpy.io.utils import (add_overwrite_arg, add_verbose_arg,
                              assert_output_dirs_exist_and_empty,
                              validate_nbr_processes)
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(
-        description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
     p.add_argument('in_hdf5', nargs='+',
                    help='List of HDF5 filenames (.h5) from '
                         'scil_tractogram_segment_connections_from_labels.py.')
@@ -73,10 +75,15 @@ def _average_wrapper(args):
 
             # scil_tractogram_segment_connections_from_labels.py saves the
             # streamlines in VOX/CORNER
-            streamlines = reconstruct_streamlines_from_hdf5(hdf5_file[key])
-            if len(streamlines) == 0:
+            if key not in hdf5_file:
+                logging.warning('Key {} not found in {}. Skipping.'.format(
+                    key, hdf5_filename))
                 continue
-            density = compute_tract_counts_map(streamlines, dimensions)
+            else:
+                streamlines = reconstruct_streamlines_from_hdf5(hdf5_file[key])
+                if len(streamlines) == 0:
+                    continue
+                density = compute_tract_counts_map(streamlines, dimensions)
 
         if binary:
             density_data[density > 0] += 1

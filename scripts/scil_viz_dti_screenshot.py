@@ -28,13 +28,15 @@ from scilpy.gradients.bvec_bval_tools import normalize_bvecs
 from scilpy.image.volume_operations import register_image
 from scilpy.utils.spatial import RAS_AXES_NAMES
 from scilpy.utils.spatial import get_axis_name
+from scilpy.version import version_string
 from scilpy.viz.legacy import display_slices
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(
-        description=__doc__,
-        formatter_class=argparse.RawTextHelpFormatter)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
+    
     p.add_argument('in_dwi',
                    help='Path of the input diffusion volume.')
     p.add_argument('in_bval',
@@ -81,7 +83,8 @@ def prepare_data_for_actors(dwi_filename, bvals_filename, bvecs_filename,
                                     x_slice, y_slice, z_slice)
 
     # Extract B0
-    gtab = gradient_table(bvals, normalize_bvecs(bvecs), b0_threshold=10)
+    gtab = gradient_table(bvals, bvecs=normalize_bvecs(bvecs),
+                          b0_threshold=10)
     b0_idx = np.where(gtab.b0s_mask)[0]
     mean_b0 = np.mean(dwi_data[..., b0_idx], axis=3, dtype=dwi_data.dtype)
 
@@ -115,7 +118,8 @@ def prepare_data_for_actors(dwi_filename, bvals_filename, bvecs_filename,
     rotated_bvecs = np.dot(shell_bvecs, transformation[0:3, 0:3])
 
     rotated_bvecs = normalize_bvecs(rotated_bvecs)
-    rotated_gtab = gradient_table(shell_bvals, rotated_bvecs, b0_threshold=10)
+    rotated_gtab = gradient_table(shell_bvals, bvecs=rotated_bvecs,
+                                  b0_threshold=10)
 
     # Get tensors
     tensor_model = TensorModel(rotated_gtab, fit_method='LS')

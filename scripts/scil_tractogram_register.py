@@ -10,6 +10,13 @@ doc at:
 https://scilpy.readthedocs.io/en/latest/documentation/tractogram_registration.html
 
 Formerly: scil_register_tractogram.py
+----------------------------------------------------------------------------------
+Reference:
+[1] E. Garyfallidis, O. Ocegueda, D. Wassermann, M. Descoteaux
+    Robust and efficient linear registration of white-matter fascicles in the
+    space of streamlines, NeuroImage, Volume 117, 15 August 2015, Pages 124-140
+    (http://www.sciencedirect.com/science/article/pii/S1053811915003961)
+----------------------------------------------------------------------------------
 """
 
 import argparse
@@ -23,18 +30,13 @@ from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg, add_reference_arg,
                              add_verbose_arg,
                              assert_inputs_exist, assert_outputs_exist)
-
-EPILOG = """References:
-[1] E. Garyfallidis, O. Ocegueda, D. Wassermann, M. Descoteaux
-Robust and efficient linear registration of white-matter fascicles in the
-space of streamlines, NeuroImage, Volume 117, 15 August 2015, Pages 124-140
-(http://www.sciencedirect.com/science/article/pii/S1053811915003961)
-"""
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
-                                description=__doc__, epilog=EPILOG)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
 
     p.add_argument('moving_tractogram',
                    help='Path of the moving tractogram.')

@@ -1,0 +1,76 @@
+name: Scilpy test suite
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - 'scilpy/ml/**'
+  pull_request:
+    branches:
+      - master
+    paths:
+      - 'scilpy/ml/**'
+  merge_group:
+        
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}-ml
+  cancel-in-progress: true
+  
+env:
+  MPLBACKEND: agg
+  OPENBLAS_NUM_THREADS: 1
+
+jobs:
+  test-ml:
+    runs-on: scilus-runners
+    if: github.repository == 'scilus/scilpy'
+    steps:
+      - name: Checkout repository at merge
+        uses: actions/checkout@v4
+
+      - name: Fetch python version from repository
+        id: python-selector
+        run: echo "python-version=$(head -1 .python-version)" >> $GITHUB_OUTPUT
+
+      - name: Set up Python for Scilpy
+        uses: actions/setup-python@v5.0.0
+        with:
+          python-version: ${{ steps.python-selector.outputs.python-version }}
+          cache: 'pip'
+
+      - name: Install non-python dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            curl \
+            git \
+            libblas-dev \
+            liblapack-dev \
+            libfreetype6-dev \
+            libdrm-dev
+
+      - name: Install Scilpy
+        run: |
+          export SETUPTOOLS_USE_DISTUTILS=stdlib
+          python -m pip install --upgrade pip wheel
+          python -m pip install --upgrade "setuptools<71.0.0" 
+          python -m pip install -e .
+          python -m pip install torch==2.2.1 torchvision==0.17.1
+
+      - name: Run ML tests
+        run: |
+          export C_INCLUDE_PATH=$pythonLocation/include/python${{ steps.python-selector.outputs.python-version }}:$C_INCLUDE_PATH
+          pytest -m ml --ml --cov-report term-missing:skip-covered
+
+      - name: Save test results and coverage
+        uses: actions/upload-artifact@v4
+        id: test-coverage-results
+        with:
+          name: test-coverage-${{ github.run_id }}
+          retention-days: 1
+          include-hidden-files: true
+          path: |
+            .coverage
+            .test_reports/

@@ -27,12 +27,15 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_output_dirs_exist_and_empty,
                              assert_headers_compatible)
 from scilpy.utils.filenames import split_name_with_nii
+from scilpy.version import version_string
 from scilpy.viz.backends.pil import fetch_truetype_font
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(
-        description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
+
     p.add_argument('in_volume',
                    help='Volume used as background (e.g. T1, FA, b0).')
     p.add_argument('in_bundles', nargs='+',
@@ -85,7 +88,7 @@ def _build_arg_parser():
 
 
 def draw_column_with_names(draw, output_names, cell_width, cell_height,
-                           font, row_count, no_bundle_name, no_elements_count):
+                           font, row_count, no_bundle_name, no_streamline_count):
     """
     Draw the first column with row's description
     (views and bundle information to display).
@@ -101,12 +104,12 @@ def draw_column_with_names(draw, output_names, cell_width, cell_height,
                             anchor='mm', align='center')
 
     # First column, last row: description of the information to show
-    if not (no_bundle_name and no_elements_count):
+    if not (no_bundle_name and no_streamline_count):
         text = []
         if not no_bundle_name:
             text.append('Bundle')
-        if not no_elements_count:
-            text.append('Elements')
+        if not no_streamline_count:
+            text.append('# streamlines')
 
         j = cell_height * row_count
         padding = np.clip(cell_width // 10, 1, font.size)
@@ -135,6 +138,7 @@ def set_img_in_cell(mosaic, ren, view_number, width, height, i):
     # fury-gl flips image
     image = Image.fromarray(out[::-1])
     image.thumbnail((width, height))
+    image = image.rotate(180)
     mosaic.paste(image, (i, j))
 
 

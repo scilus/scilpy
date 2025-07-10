@@ -16,14 +16,17 @@ import nibabel as nib
 
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg, add_reference_arg,
-                             assert_inputs_exist, add_verbose_arg, 
+                             assert_inputs_exist, add_verbose_arg,
                              assert_outputs_exist)
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(
-        description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
+
     p.add_argument('in_bundle',
                    help='Tractogram filename.')
     p.add_argument('out_img',
@@ -36,6 +39,11 @@ def _build_arg_parser():
                         'When set without a value, 1 is used (and dtype \n'
                         'uint8). If a value is given, will be used as the '
                         'stored value.')
+
+    p.add_argument('--endpoints_only', action='store_true',
+                   help='If set, will only use the endpoints.\n'
+                        'To get a head and a tail maps, see '
+                        'scil_bundle_compute_endpoints_map.py.')
     add_reference_arg(p)
     add_verbose_arg(p)
     add_overwrite_arg(p)
@@ -64,7 +72,15 @@ def main():
     transformation, dimensions, _, _ = sft.space_attributes
 
     # Processing
-    streamline_count = compute_tract_counts_map(sft.streamlines, dimensions)
+    if args.endpoints_only:
+        streamline_count = np.zeros(dimensions, dtype=np.int32)
+        for s in sft.streamlines:
+            for p in [0, -1]:
+                endpoint_voxel = np.floor(s[p, :]).astype(int)
+                streamline_count[tuple(endpoint_voxel)] += 1
+    else:
+        streamline_count = compute_tract_counts_map(sft.streamlines,
+                                                    dimensions)
 
     # Saving
     dtype_to_use = np.int32

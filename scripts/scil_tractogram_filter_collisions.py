@@ -45,10 +45,6 @@ bias, streamlines are shuffled first unless --disable_shuffling is set.
 
 If the --out_metrics parameter is given, several metrics about the data will
 be computed (all expressed in mm):
-    - fibertube_density
-        Estimate of the following ratio: volume of fibertubes / total volume
-        where the total volume is the combined volume of all voxels containing
-        at least one fibertube.
     - min_external_distance
         Smallest distance separating two streamlines, outside their diameter.
     - max_voxel_anisotropic
@@ -86,8 +82,7 @@ from scilpy.tractograms.intersection_finder import IntersectionFinder
 from dipy.io.stateful_tractogram import StatefulTractogram
 from dipy.io.streamline import save_tractogram
 from scilpy.io.streamlines import load_tractogram_with_reference
-from scilpy.tractanalysis.fibertube_scoring import (mean_fibertube_density,
-                                                    min_external_distance,
+from scilpy.tractanalysis.fibertube_scoring import (min_external_distance,
                                                     max_voxels,
                                                     max_voxel_rotated)
 from scilpy.io.utils import (assert_inputs_exist,
@@ -95,12 +90,13 @@ from scilpy.io.utils import (assert_inputs_exist,
                              add_overwrite_arg,
                              add_verbose_arg,
                              add_json_args)
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(
-        formatter_class=argparse.RawTextHelpFormatter,
-        description=__doc__)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
 
     p.add_argument('in_tractogram',
                    help='Path to the tractogram file containing the \n'
@@ -119,9 +115,9 @@ def _build_arg_parser():
                    'be .trk). By default, the diameters will be \n'
                    'saved as data_per_streamline.')
 
-    p.add_argument('--save_colliding', action='store_true',
+    p.add_argument('--out_colliding_prefix', default=None, type=str,
                    help='Useful for visualization. If set, the script will \n'
-                   'produce two other tractograms (.trk) containing \n'
+                   'produce two other tractograms files containing \n'
                    'colliding streamlines. The first one contains invalid \n'
                    'streamlines that have been filtered out, along with \n'
                    'their collision point as data per streamline. The \n'
@@ -129,9 +125,10 @@ def _build_arg_parser():
                    'that the first tractogram collided with. Note that the \n'
                    'streamlines in the second tractogram may or may not \n'
                    'have been filtered afterwards. \n'
-                   'Filenames are derived from [in_tractogram] with \n'
+                   'Filenames are derived from [out_colliding_prefix] with \n'
                    '"_invalid" appended for the first tractogram, and \n'
-                   '"_obstacle" appended for the second tractogram.')
+                   '"_obstacle" appended for the second tractogram. You \n'
+                   'may include a path in this prefix.')
 
     p.add_argument('--out_metrics', default=None, type=str,
                    help='If set, metrics about the streamlines and their \n'
@@ -157,8 +154,9 @@ def _build_arg_parser():
 
     p.add_argument('--disable_shuffling', action='store_true',
                    help='If set, no shuffling will be performed before \n'
-                   'the filtering process. Streamlines will be picked in \n'
-                   'order.')
+                   'the filtering process. Streamline segments will be \n'
+                   'picked in order from the first segment of the first \n'
+                   'streamlines to the last segment of the last streamline.')
 
     p.add_argument('--rng_seed', type=int, default=0,
                    help='If set, all random values will be generated \n'
@@ -200,9 +198,9 @@ def main():
                              "{0}".format(args.out_rotation_matrix))
 
     outputs = [args.out_tractogram]
-    if args.save_colliding:
-        outputs.append(in_tractogram_no_ext + '_invalid.trk')
-        outputs.append(in_tractogram_no_ext + '_obstacle.trk')
+    if args.out_colliding_prefix:
+        outputs.append(args.out_colliding_prefix + '_invalid.trk')
+        outputs.append(args.out_colliding_prefix + '_obstacle.trk')
 
     assert_inputs_exist(parser, args.in_tractogram)
     assert_outputs_exist(parser, args, outputs,
@@ -223,41 +221,32 @@ def main():
         raise ValueError('Number of diameters does not match the number ' +
                          'of streamlines.')
 
-    if not args.disable_shuffling:
-        logging.debug('Shuffling streamlines')
-        indexes = list(range(len(streamlines)))
-        gen = np.random.default_rng(args.rng_seed)
-        gen.shuffle(indexes)
-
-        streamlines = streamlines[indexes]
-        diameters = diameters[indexes]
-        in_sft = StatefulTractogram.from_sft(streamlines, in_sft)
-
     # Casting ArraySequence as a list to improve speed
     streamlines = list(streamlines)
 
     logging.debug('Building IntersectionFinder')
     inter_finder = IntersectionFinder(
-        in_sft, diameters, args.verbose != 'WARNING')
+        in_sft, diameters, not args.disable_shuffling, args.rng_seed,
+        args.verbose != 'WARNING')
 
     logging.debug('Finding intersections')
     inter_finder.find_intersections(args.min_distance)
 
     logging.debug('Building new tractogram(s)')
     out_sft, invalid_sft, obstacle_sft = inter_finder.build_tractograms(
-        args.save_colliding)
+        args.out_colliding_prefix)
 
     logging.debug('Saving new tractogram(s)')
     save_tractogram(out_sft, args.out_tractogram)
 
-    if args.save_colliding:
+    if args.out_colliding_prefix:
         save_tractogram(
             invalid_sft,
-            in_tractogram_no_ext + '_invalid.trk')
+            args.out_colliding_prefix + '_invalid.trk')
 
         save_tractogram(
             obstacle_sft,
-            in_tractogram_no_ext + '_obstacle.trk')
+            args.out_colliding_prefix + '_obstacle.trk')
 
     logging.debug('Input streamline count: ' + str(len(streamlines)) +
                   ' | Output streamline count: ' +
@@ -277,12 +266,8 @@ def main():
         max_voxel_ani, max_voxel_iso = max_voxels(min_ext_dist_vect)
         mvr_rot, mvr_edge = max_voxel_rotated(min_ext_dist_vect)
 
-        # Fibertube density comes last, because it changes space and origin.
-        mean_density = mean_fibertube_density(out_sft)
-
         if args.out_metrics:
             metrics = {
-                'mean_density': mean_density,
                 'min_external_distance': min_ext_dist.tolist(),
                 'max_voxel_anisotropic': max_voxel_ani.tolist(),
                 'max_voxel_isotropic': max_voxel_iso.tolist(),

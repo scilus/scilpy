@@ -71,6 +71,16 @@ When tunning parameters, such as --iso_diff, --para_diff, --perp_diff or
     - Compare the density map before and after (essential tractogram)
 
 Formerly: scil_run_commit.py
+--------------------------------------------------------------------------------
+References:
+[1] Daducci, Alessandro, et al. "COMMIT: convex optimization modeling for
+    microstructure informed tractography." IEEE transactions on medical
+    imaging 34.1 (2014): 246-257.
+
+[2] Schiavi, Simona, et al. "A new method for accurate in vivo mapping of
+    human brain connections using microstructural and anatomical information."
+    Science advances 6.31 (2020): eaba8245.
+--------------------------------------------------------------------------------
 """
 
 import argparse
@@ -103,24 +113,17 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist,
                              assert_output_dirs_exist_and_empty,
                              redirect_stdout_c, add_tolerance_arg,
-                             add_skip_b0_check_arg, assert_headers_compatible)
+                             add_skip_b0_check_arg, assert_headers_compatible,
+                             add_reference_arg)
 from scilpy.gradients.bvec_bval_tools import identify_shells, \
     check_b0_threshold
-
-EPILOG = """
-References:
-[1] Daducci, Alessandro, et al. "COMMIT: convex optimization modeling for
-    microstructure informed tractography." IEEE transactions on medical
-    imaging 34.1 (2014): 246-257.
-[2] Schiavi, Simona, et al. "A new method for accurate in vivo mapping of
-    human brain connections using microstructural and anatomical information."
-    Science advances 6.31 (2020): eaba8245.
-"""
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(description=__doc__, epilog=EPILOG,
-                                formatter_class=argparse.RawTextHelpFormatter)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
 
     p.add_argument('in_tractogram',
                    help='Input tractogram (.trk or .tck or .h5).')
@@ -190,6 +193,7 @@ def _build_arg_parser():
     g2.add_argument('--compute_only', action='store_true',
                     help='Compute kernels only, --save_kernels must be used.')
 
+    add_reference_arg(p)
     add_tolerance_arg(p)
     add_skip_b0_check_arg(p, will_overwrite_with_min=True)
     add_processes_arg(p)
@@ -205,9 +209,10 @@ def _save_tmp_tractogram_from_hdf5(tmp_dir, args, dwi_img):
 
     # Keep track of the order of connections/streamlines in relation to the
     # tractogram as well as the number of streamlines for each connection.
-    with h5py.File(args.in_tractogram, 'r') as hdf5_file:
-        sft, bundle_groups_len = reconstruct_sft_from_hdf5(
-            hdf5_file, group_keys=None, ref_img=dwi_img, merge_groups=True)
+    hdf5_file = h5py.File(args.in_tractogram, 'r')
+
+    sft, bundle_groups_len = reconstruct_sft_from_hdf5(
+        hdf5_file, group_keys=None, ref_img=dwi_img, merge_groups=True)
 
     offsets_list = np.cumsum([0] + bundle_groups_len)
     tmp_tractogram_filename = os.path.join(tmp_dir.name, 'tractogram.trk')
@@ -236,7 +241,12 @@ def _save_results(args, tmp_dir, ext, in_hdf5_file, offsets_list, sub_dir,
     # Loading the tractogram (we never did yet! Only sent the filename to
     # commit). Reminder. If input was a hdf5, we have changed
     # args.in_tractogram to our tmp_tractogram saved in tmp_dir.
-    sft = load_tractogram(args.in_tractogram, 'same')
+    if ext == '.trk' and args.reference is None:
+        args.reference = 'same'
+    logging.debug('Loading tractogram from {} with reference {}.'
+                  .format(args.in_tractogram, args.reference))
+    sft = load_tractogram(args.in_tractogram, args.reference)
+
     length_list = length(sft.streamlines)
     np.savetxt(os.path.join(commit_results_dir, 'streamlines_length.txt'),
                length_list)
@@ -273,11 +283,12 @@ def _save_results(args, tmp_dir, ext, in_hdf5_file, offsets_list, sub_dir,
 
     if ext == '.h5':
         _save_out_hdf5(commit_results_dir, sft, in_hdf5_file,
-                       streamline_weights, offsets_list, is_commit_2)
+                       streamline_weights, offsets_list, out_dir,
+                       is_commit_2)
 
 
 def _save_out_hdf5(commit_results_dir, sft, in_hdf5_file,
-                   streamline_weights, offsets_list, is_commit_2):
+                   streamline_weights, offsets_list, out_dir, is_commit_2):
     new_filename = os.path.join(commit_results_dir, 'decompose_commit.h5')
     with h5py.File(new_filename, 'w') as out_hdf5_file:
         construct_hdf5_header(out_hdf5_file, sft)
@@ -320,6 +331,8 @@ def _save_out_hdf5(commit_results_dir, sft, in_hdf5_file,
             construct_hdf5_group_from_streamlines(
                 new_group, tmp_streamlines, dps=dps, dpp=None)
 
+    shutil.copy(new_filename, out_dir)
+
 
 def main():
     parser = _build_arg_parser()
@@ -337,12 +350,14 @@ def main():
     # === Verifications ===
     assert_inputs_exist(parser, [args.in_tractogram, args.in_dwi,
                                  args.in_bval, args.in_bvec],
-                        [args.in_peaks, args.in_tracking_mask])
+                        [args.in_peaks, args.in_tracking_mask,
+                         args.reference])
     assert_output_dirs_exist_and_empty(parser, args, args.out_dir,
                                        optional=args.save_kernels)
     _, ext = os.path.splitext(args.in_tractogram)
-    if ext == '.trk':
-        assert_headers_compatible(parser, [args.in_tractogram, args.in_dwi])
+    if ext in ['.trk', '.tck']:
+        assert_headers_compatible(parser, [args.in_tractogram, args.in_dwi],
+                                  reference=args.reference)
 
     if args.commit2:
         if os.path.splitext(args.in_tractogram)[1] != '.h5':
@@ -414,13 +429,19 @@ def main():
         shells_centroids))
     with redirected_stdout:
         # Setting up the tractogram and nifti files
+        if ext == '.tck':
+            if args.reference is None:
+                logging.error('Reference image is mandatory for .tck files.')
+            other_args = {'TCK_ref_image': args.reference}
+        else:
+            other_args = {}
         trk2dictionary.run(filename_tractogram=args.in_tractogram,
                            filename_peaks=args.in_peaks,
                            peaks_use_affine=False,
                            filename_mask=args.in_tracking_mask,
                            ndirs=args.nbr_dir,
                            path_out=tmp_dir.name,
-                           n_threads=args.nbr_processes)
+                           n_threads=args.nbr_processes, **other_args)
 
         # Preparation for fitting
         commit.core.setup()
@@ -469,20 +490,25 @@ def main():
 
         if args.commit2:
             tmp = np.insert(np.cumsum(bundle_groups_len), 0, 0)
-            group_idx = np.array([np.arange(tmp[i], tmp[i + 1])
-                                  for i in range(len(tmp) - 1)])
-            group_w = np.empty_like(bundle_groups_len, dtype=np.float64)
-            for k in range(len(bundle_groups_len)):
-                group_w[k] = np.sqrt(bundle_groups_len[k]) / \
-                             (np.linalg.norm(mit.x[group_idx[k]]) + 1e-12)
-            prior_on_bundles = commit.solvers.init_regularisation(
-                mit, structureIC=group_idx, weightsIC=group_w,
-                regnorms=[commit.solvers.group_sparsity,
-                          commit.solvers.non_negative,
-                          commit.solvers.non_negative],
-                lambdas=[args.lambda_commit_2, 0.0, 0.0])
-            mit.fit(tol_fun=1e-3, max_iter=args.nbr_iter,
-                    regularisation=prior_on_bundles, verbose=False)
+            group_idx = np.fromiter([np.arange(tmp[i], tmp[i + 1])
+                                     for i in range(len(tmp) - 1)],
+                                    dtype=np.object_)
+
+            params_IC = {}
+            params_IC['group_idx'] = group_idx
+            params_IC['group_weights_cardinality'] = True
+            params_IC['group_weights_adaptive'] = True
+
+            perc_lambda = args.lambda_commit_2
+
+            # set the regularisation
+            mit.set_regularisation(
+                regularisers=('group_lasso', None, None),
+                is_nonnegative=(True, True, True),
+                lambdas=(perc_lambda, None, None),
+                params=(params_IC, None, None))
+
+            mit.fit(tol_fun=1e-3, max_iter=args.nbr_iter)
             mit.save_results()
             _save_results(args, tmp_dir, ext, hdf5_file, offsets_list,
                           'commit_2/', True)

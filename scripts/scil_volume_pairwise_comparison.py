@@ -47,13 +47,16 @@ from scilpy.io.utils import (add_json_args,
                              assert_outputs_exist,
                              validate_nbr_processes)
 from scilpy.image.labels import get_data_as_labels
-from scilpy.tractanalysis.reproducibility_measures import compare_volume_wrapper
+from scilpy.tractanalysis.reproducibility_measures import \
+    compare_volume_wrapper
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(
-        description=__doc__,
-        formatter_class=argparse.RawTextHelpFormatter)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
+
     p.add_argument('in_volumes', nargs='*',
                    help='Path of the input volumes.')
     p.add_argument('out_json',
@@ -69,6 +72,10 @@ def _build_arg_parser():
                    help='Compute overlap and overreach as a ratio over the '
                         'reference volume rather than volume.\n'
                         'Can only be used if also using --single_compare`.')
+    p.add_argument('--labels_to_mask', action='store_true',
+                   help='Allows for comparison between labels and single '
+                        'binary mask. Can only be used with '
+                        '--single_compare.')
 
     add_processes_arg(p)
     add_json_args(p)
@@ -83,6 +90,7 @@ def compute_all_measures(args):
     filename_2 = args[0][1]
     adjency_no_overlap = args[1]
     ratio = args[2]
+    labels_to_mask = args[3]
 
     img_1, dtype_1 = load_img(filename_1)
 
@@ -100,10 +108,11 @@ def compute_all_measures(args):
     data_2 = get_data_as_labels(img_2)
 
     _, _, voxel_size, _ = get_reference_info(img_1)
-    voxel_size = np.product(voxel_size)
+    voxel_size = np.prod(voxel_size)
     logging.info(f"Comparing {filename_1} and {filename_2}")
     dict_measures = compare_volume_wrapper(data_1, data_2, voxel_size,
-                                           ratio, adjency_no_overlap)
+                                           ratio, adjency_no_overlap,
+                                           labels_to_mask)
     return dict_measures
 
 
@@ -118,6 +127,10 @@ def main():
 
     if args.ratio and not args.single_compare:
         parser.error('Can only compute ratio if also using `single_compare`')
+
+    if args.labels_to_mask and not args.single_compare:
+        parser.error('Can only compare labels to a mask if also using '
+                     '`single_compare`.')
 
     nbr_cpu = validate_nbr_processes(parser, args)
     if nbr_cpu > 1:
@@ -140,13 +153,15 @@ def main():
             all_measures_dict.append(compute_all_measures([
                 curr_tuple,
                 args.ignore_zeros_in_BA,
-                args.ratio]))
+                args.ratio,
+                args.labels_to_mask]))
     else:
         all_measures_dict = pool.map(
             compute_all_measures,
             zip(comb_dict_keys,
                 itertools.repeat(args.ignore_zeros_in_BA),
-                itertools.repeat(args.ratio)))
+                itertools.repeat(args.ratio),
+                itertools.repeat(args.labels_to_mask)))
         pool.close()
         pool.join()
 

@@ -192,7 +192,7 @@ def generate_btensor_input(in_dwis, in_bvals, in_bvecs, in_bdeltas,
     ub_deltas_full = np.take_along_axis(np.asarray(ub_deltas_full),
                                         sorted_indices, axis=0)
     # Creating the corresponding gtab
-    gtab_full = gradient_table(bvals_full, bvecs_full,
+    gtab_full = gradient_table(bvals_full, bvecs=bvecs_full,
                                b0_threshold=bvals_full.min(),
                                btens=b_shapes)
 

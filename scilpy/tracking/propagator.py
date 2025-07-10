@@ -4,7 +4,7 @@ import logging
 
 import numpy as np
 
-import dipy
+from dipy.data import get_sphere
 from dipy.io.stateful_tractogram import Space, Origin
 from dipy.reconst.shm import sh_to_sf_matrix
 
@@ -278,7 +278,7 @@ class PropagatorOnSphere(AbstractPropagator):
         """
         super().__init__(datavolume, step_size, rk_order, space, origin)
 
-        self.sphere = dipy.data.get_sphere(dipy_sphere).subdivide(sub_sphere)
+        self.sphere = get_sphere(name=dipy_sphere).subdivide(n=sub_sphere)
         self.dirs = np.zeros(len(self.sphere.vertices), dtype=np.ndarray)
         for i in range(len(self.sphere.vertices)):
             self.dirs[i] = TrackingDirection(self.sphere.vertices[i], i)
@@ -399,7 +399,7 @@ class ODFPropagator(PropagatorOnSphere):
         self.sf_threshold = sf_threshold
         self.sf_threshold_init = sf_threshold_init
         sh_order, full_basis =\
-            get_sh_order_and_fullness(self.datavolume.data.shape[-1])
+            get_sh_order_and_fullness(self.datavolume.nb_coeffs)
         self.basis = basis
         self.is_legacy = is_legacy
         self.B = sh_to_sf_matrix(self.sphere, sh_order, self.basis,
@@ -582,6 +582,10 @@ class FibertubePropagator(AbstractPropagator):
     uses the volume of intersection between fibertube segments and the
     blurring sphere as a random distribution for picking a segment. This
     segment is then used as the propagation direction.
+
+    This propagator expects an array of possible directions and their random
+    distribution. If using an ftODF (the same directions, but expressed as a
+    spherical function), the ODFPropagator should be used.
     """
     def __init__(self, datavolume: FibertubeDataVolume, step_size, rk_order,
                  theta, space, origin):

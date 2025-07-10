@@ -8,12 +8,18 @@ overwrite them based on the input order.
     >>> scil_labels_combine.py out_labels.nii.gz
             --volume_ids animal_labels.nii 20
             --volume_ids DKT_labels.nii.gz 44 53
-            --out_labels_indices 20 44 53
+            --out_labels_ids 20 44 53
     >>> scil_labels_combine.py slf_labels.nii.gz
             --volume_ids a2009s_aseg.nii.gz all
             --volume_ids clean/s1__DKT.nii.gz 1028 2028
 
-Formerly: scil_combine_labels.py.
+Formerly: scil_combine_labels.py
+------------------------------------------------------------------------------
+Reference:
+[1] Al-Sharif N.B., St-Onge E., Vogel J.W., Theaud G.,
+    Evans A.C. and Descoteaux M. OHBM 2019.
+    Surface integration for connectome analysis in age prediction.
+------------------------------------------------------------------------------
 """
 
 
@@ -27,19 +33,13 @@ import numpy as np
 from scilpy.image.labels import get_data_as_labels, combine_labels
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              add_verbose_arg, assert_outputs_exist)
-
-
-EPILOG = """
-    References:
-        [1] Al-Sharif N.B., St-Onge E., Vogel J.W., Theaud G.,
-            Evans A.C. and Descoteaux M. OHBM 2019.
-            Surface integration for connectome analysis in age prediction.
-    """
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(description=__doc__, epilog=EPILOG,
-                                formatter_class=argparse.RawTextHelpFormatter)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
 
     p.add_argument('output',
                    help='Combined labels volume output.')
@@ -67,10 +67,10 @@ def _build_arg_parser():
     p.add_argument('--merge_groups', action='store_true',
                    help='Each group from the --volume_ids option will be '
                         'merged as a single labels.')
-    
+    p.add_argument('--not_save_empty', action='store_true',
+                   help='If set, the output will not be saved if it is empty.')
     add_verbose_arg(p)
     add_overwrite_arg(p)
-    
     return p
 
 
@@ -135,10 +135,13 @@ def main():
                                       background_id=args.background,
                                       merge_groups=args.merge_groups)
 
-    # Save final combined volume
-    nib.save(nib.Nifti1Image(resulting_labels, first_img.affine,
-                             header=first_img.header),
-             args.output)
+    if args.not_save_empty and not resulting_labels.any():
+        logging.warning("Output: {} is empty. Not saving.".format(args.output))
+    else:
+        # Save final combined volume
+        nib.save(nib.Nifti1Image(resulting_labels, first_img.affine,
+                                 header=first_img.header),
+                 args.output)
 
 
 if __name__ == "__main__":

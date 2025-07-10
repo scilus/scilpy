@@ -18,7 +18,6 @@ from collections import OrderedDict
 
 import nibabel as nib
 import numpy as np
-from dipy.io.utils import is_header_compatible
 from numpy.lib import stride_tricks
 from scipy.ndimage import (binary_closing, binary_dilation,
                            binary_erosion, binary_opening,
@@ -88,21 +87,34 @@ def get_operations_doc(ops: dict):
     return "".join(full_doc)
 
 
-def _validate_same_shape(*imgs):
+def _validate_same_shape(*imgs, all_imgs=True):
     """Make sure that all shapes match."""
-    ref_img = imgs[-1]
-    for img in imgs:
-        if not np.all(ref_img.header.get_data_shape() ==
-                      img.header.get_data_shape()):
-            raise ValueError('Not all inputs have the same shape!')
+    if all_imgs:
+        ref_img = imgs[-1]
+        for img in imgs:
+            if not np.all(ref_img.header.get_data_shape() ==
+                          img.header.get_data_shape()):
+                raise ValueError('Not all inputs have the same shape!')
+    else:
+        ref_img = imgs[-1]
+        for img in imgs:
+            if isinstance(img, nib.Nifti1Image):
+                if not np.all(ref_img.header.get_data_shape() ==
+                              img.header.get_data_shape()):
+                    raise ValueError('Not all inputs have the same shape!')
 
 
-def _validate_imgs_type(*imgs):
+def _validate_imgs_type(*imgs, all_imgs=True):
     """Make sure that all inputs are images."""
-    for img in imgs:
-        if not isinstance(img, nib.Nifti1Image):
-            raise ValueError('Inputs are not all images. Received a {} when '
-                             'we were expecting an image.'.format(type(img)))
+    if all_imgs:
+        for img in imgs:
+            if not isinstance(img, nib.Nifti1Image):
+                raise ValueError('Inputs are not all images. '
+                                 'Received a {} when we were expecting'
+                                 ' an image.'.format(type(img)))
+    else:
+        if not any(isinstance(img, nib.Nifti1Image) for img in imgs):
+            raise ValueError('No image found in inputs.')
 
 
 def _validate_length(input_list, length, at_least=False):
@@ -112,7 +124,6 @@ def _validate_length(input_list, length, at_least=False):
         if not len(input_list) >= length:
             raise ValueError('This operation requires at least {}'
                              ' operands.'.format(length))
-
     else:
         if not len(input_list) == length:
             raise ValueError('This operation requires exactly {} '
@@ -437,8 +448,8 @@ def addition(input_list, ref_img):
         Add multiple images together.
     """
     _validate_length(input_list, 2, at_least=True)
-    _validate_imgs_type(*input_list)
-    _validate_same_shape(*input_list, ref_img)
+    _validate_imgs_type(*input_list, all_imgs=False)
+    _validate_same_shape(*input_list, ref_img, all_imgs=False)
 
     output_data = np.zeros(ref_img.header.get_data_shape(), dtype=np.float64)
     for img in input_list:
@@ -458,8 +469,8 @@ def subtraction(input_list, ref_img):
         Subtract first image by the second (IMG_1 - IMG_2).
     """
     _validate_length(input_list, 2)
-    _validate_imgs_type(*input_list)
-    _validate_same_shape(*input_list, ref_img)
+    _validate_imgs_type(*input_list, all_imgs=False)
+    _validate_same_shape(*input_list, ref_img, all_imgs=False)
 
     output_data = np.zeros(ref_img.header.get_data_shape(), dtype=np.float64)
     if isinstance(input_list[0], nib.Nifti1Image):
@@ -481,8 +492,8 @@ def multiplication(input_list, ref_img):
         Multiply multiple images together (danger of underflow and overflow)
     """
     _validate_length(input_list, 2, at_least=True)
-    _validate_imgs_type(*input_list)
-    _validate_same_shape(*input_list, ref_img)
+    _validate_imgs_type(*input_list, all_imgs=False)
+    _validate_same_shape(*input_list, ref_img, all_imgs=False)
 
     output_data = np.ones(ref_img.header.get_data_shape())
     if isinstance(input_list[0], nib.Nifti1Image):
@@ -507,16 +518,21 @@ def division(input_list, ref_img):
         Ignore zeros values, excluded from the operation.
     """
     _validate_length(input_list, 2)
-    _validate_imgs_type(*input_list)
-    _validate_same_shape(*input_list, ref_img)
+    _validate_imgs_type(*input_list, all_imgs=False)
+    _validate_same_shape(*input_list, ref_img, all_imgs=False)
 
     output_data = np.zeros(ref_img.header.get_data_shape(), dtype=np.float64)
     if isinstance(input_list[0], nib.Nifti1Image):
         data_1 = input_list[0].get_fdata(dtype=np.float64)
+    elif isinstance(input_list[0], (int, float, np.number)):
+        data_1 = np.ones(ref_img.header.get_data_shape()) * input_list[0]
     else:
         data_1 = input_list[0]
+
     if isinstance(input_list[1], nib.Nifti1Image):
         data_2 = input_list[1].get_fdata(dtype=np.float64)
+    elif isinstance(input_list[1], (int, float, np.number)):
+        data_2 = np.ones(ref_img.header.get_data_shape()) * input_list[1]
     else:
         data_2 = input_list[1]
 

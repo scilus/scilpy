@@ -29,11 +29,14 @@ from scilpy.io.utils import (add_overwrite_arg, add_processes_arg,
                              assert_inputs_exist, assert_outputs_exist,
                              parse_sh_basis_arg, validate_nbr_processes)
 from scilpy.reconst.sh import convert_sh_to_sf
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(
-        description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
+
     p.add_argument('in_sh',
                    help='Path of the SH volume.')
     p.add_argument('out_sf',
@@ -150,9 +153,10 @@ def main():
 
     # Sample SF from SH
     if args.sphere:
-        sphere = get_sphere(args.sphere)
+        sphere = get_sphere(name=args.sphere)
     else:  # args.in_bvec is set.
-        gtab = gradient_table(bvals, bvecs, b0_threshold=args.b0_threshold)
+        gtab = gradient_table(bvals, bvecs=bvecs,
+                              b0_threshold=args.b0_threshold)
         # Remove bvecs corresponding to b0 images
         bvecs = bvecs[np.logical_not(gtab.b0s_mask)]
         sphere = Sphere(xyz=bvecs)

@@ -30,12 +30,13 @@ from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              assert_outputs_exist, add_verbose_arg,
                              assert_headers_compatible)
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(
-        description=__doc__,
-        formatter_class=argparse.RawTextHelpFormatter)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
     p.add_argument('in_dwi',
                    help='Path of the input diffusion volume.')
     p.add_argument('in_bval',
@@ -111,7 +112,7 @@ def main():
                 len(pwd_avg_idx), shell))
 
         # remove b0 indices
-        b0_idx = get_bval_indices(bvals, 0, args.b0_thr)
+        b0_idx = get_bval_indices(bvals, 0, tol=args.b0_thr)
         logging.debug('{} b0 volumes detected and not included'.format(
             len(b0_idx)))
         for val in b0_idx:
