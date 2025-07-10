@@ -5,20 +5,19 @@ import pathlib
 import re
 import subprocess
 
-
+import nltk
+from nltk.stem import PorterStemmer
 from tqdm import tqdm
 
 SPACING_LEN = 80
 
+stemmer = PorterStemmer()
 try:
-    import nltk
-    from nltk.stem import PorterStemmer
     nltk.download('punkt', quiet=True)
     nltk.download('wordnet', quiet=True)
 except ImportError:
     raise ImportError("You must install the 'nltk' package to use this script."
                       "Please run 'pip install nltk'.")
-stemmer = PorterStemmer()
 
 # Path to the JSON file containing script information and keywords
 VOCAB_FILE_PATH = pathlib.Path(

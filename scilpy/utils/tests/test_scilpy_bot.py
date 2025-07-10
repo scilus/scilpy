@@ -1,4 +1,3 @@
-import pytest
 
 from scilpy.utils.scilpy_bot import (
     _make_title, _get_docstring_from_script_path,
@@ -7,24 +6,12 @@ from scilpy.utils.scilpy_bot import (
     _extract_keywords_and_phrases, _calculate_score
 )
 
-try:
-    import nltk
-    nltk.download('punkt_tab', quiet=True)
-    nltk.download('wordnet', quiet=True)
-    have_nltk = True
-except ImportError:
-    have_nltk = False
 
-print(have_nltk)
-
-
-@pytest.mark.skipif(not have_nltk, reason="Requires NLTK")
 def test_make_title():
     result = _make_title("Test Title")
     assert "Test Title" in result
 
 
-@pytest.mark.skipif(not have_nltk, reason="Requires NLTK")
 def test_get_docstring_from_script_path(tmp_path):
     script_content = '"""This is a test docstring."""'
     script_path = tmp_path / "test_script.py"
@@ -33,7 +20,6 @@ def test_get_docstring_from_script_path(tmp_path):
     assert result == "This is a test docstring."
 
 
-@pytest.mark.skipif(not have_nltk, reason="Requires NLTK")
 def test_split_first_sentence():
     text = "This is the first sentence. This is the second sentence."
     first, remaining = _split_first_sentence(text)
@@ -41,28 +27,24 @@ def test_split_first_sentence():
     assert remaining == " This is the second sentence."
 
 
-@pytest.mark.skipif(not have_nltk, reason="Requires NLTK")
 def test_stem_keywords():
     keywords = ["running", "jumps"]
     result = _stem_keywords(keywords)
     assert result == ["run", "jump"]
 
 
-@pytest.mark.skipif(not have_nltk, reason="Requires NLTK")
 def test_stem_text():
     text = "Running and jumping."
     result = _stem_text(text)
     assert result == "run and jump ."
 
 
-@pytest.mark.skipif(not have_nltk, reason="Requires NLTK")
 def test_stem_phrase():
     phrase = "Running quickly"
     result = _stem_phrase(phrase)
     assert result == "run quickli"
 
 
-@pytest.mark.skipif(not have_nltk, reason="Requires NLTK")
 def test_highlight_keywords():
     text = "Running and jumping."
     stemmed_keywords = ["run"]
@@ -70,7 +52,6 @@ def test_highlight_keywords():
     assert "Running" in result
 
 
-@pytest.mark.skipif(not have_nltk, reason="Requires NLTK")
 def test_get_synonyms():
     synonyms_data = [["run", "sprint"], ["jump", "leap"]]
     result = _get_synonyms("run", synonyms_data)
@@ -78,7 +59,6 @@ def test_get_synonyms():
     assert len(result) == 2
 
 
-@pytest.mark.skipif(not have_nltk, reason="Requires NLTK")
 def test_extract_keywords_and_phrases():
     keywords = ["running", "jumps", "quick run"]
     result_keywords, result_phrases = _extract_keywords_and_phrases(keywords)
@@ -92,7 +72,6 @@ def test_extract_keywords_and_phrases():
     assert "quick run" in result_phrases
 
 
-@pytest.mark.skipif(not have_nltk, reason="Requires NLTK")
 def test_stem_word_specific():
     result = _stem_word("streamlines")
     assert result == "streamlin"
@@ -107,7 +86,6 @@ def test_stem_word_specific():
     assert result == "tractometri"
 
 
-@pytest.mark.skipif(not have_nltk, reason="Requires NLTK")
 def test_calculate_score():
     keywords = ["run"]
     phrases = ["quick run"]
