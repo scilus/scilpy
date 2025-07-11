@@ -11,6 +11,12 @@ Saves the RGB values in the data_per_point 'color' with values
 
 The hexadecimal RGB color should be formatted as 0xRRGGBB or "#RRGGBB".
 
+If the color dictionnary provided is not complete and the -f option is enabled,
+the script will generate a new color for the missing tractograms and
+add it to the dictionnary. The new dictionnary will be saved in the same
+location as the input
+dictionnary with the following name: new_color_dict_[RND].json.
+
 See also: scil_tractogram_assign_custom_color.py
 
 Formerly: scil_assign_uniform_color_to_tractograms.py
@@ -20,23 +26,27 @@ import argparse
 import json
 import logging
 import os
+import random
 
 from dipy.io.streamline import save_tractogram
+from fury.colormap import distinguishable_colormap
 import numpy as np
 
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (assert_inputs_exist,
                              assert_outputs_exist,
+                             add_json_args,
                              add_overwrite_arg,
                              add_verbose_arg,
                              add_reference_arg, assert_headers_compatible)
 from scilpy.viz.color import format_hexadecimal_color_to_rgb, ambiant_occlusion
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(
-        description=__doc__,
-        formatter_class=argparse.RawTextHelpFormatter)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
 
     p.add_argument('in_tractograms', nargs='+',
                    help='Input tractograms (.trk or .tck).')
@@ -71,7 +81,7 @@ def _build_arg_parser():
     add_reference_arg(p)
     add_verbose_arg(p)
     add_overwrite_arg(p)
-
+    add_json_args(p)
     return p
 
 
@@ -80,6 +90,7 @@ def main():
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
+    updated_dict = False
     # Verifications
     if len(args.in_tractograms) > 1 and args.out_tractogram:
         parser.error('Using multiple inputs, use --out_suffix.')
@@ -115,6 +126,11 @@ def main():
         with open(args.dict_colors, 'r') as data:
             dict_colors = json.load(data)
 
+        rgb_colors = []
+        for color in dict_colors.values():
+            tmp_color = format_hexadecimal_color_to_rgb(color)
+            rgb_colors.append(tuple(tc/255 for tc in tmp_color))
+
     # Processing
     for i, filename in enumerate(args.in_tractograms):
         color = None
@@ -134,9 +150,29 @@ def main():
             for key in dict_colors.keys():
                 if key in base:
                     color = dict_colors[key]
+
+            if color is None and args.overwrite:
+                updated_dict = True
+                logging.warning('No color found for {} in your '
+                                'dict_colors. Generating a new color.'
+                                .format(base))
+                # Generate a new color that is not in the dict_colors
+                # and not already used.
+                new_color = distinguishable_colormap(nb_colors=1,
+                                                     exclude=rgb_colors)
+                # Append the new color to the list of used colors
+                rgb_colors.append(tuple(tc for tc in new_color[0]))
+                # Convert to hexadecimal format
+                color = '0x%02x%02x%02x' % tuple(map(int, rgb_colors[-1]))
+                # Add the new color to the dictionary
+                dict_colors[base] = color
+
             if color is None:
                 parser.error("Basename of file {} ({}) not found in your "
-                             "dict_colors keys.".format(filename, base))
+                             "dict_colors keys.\nYou can force the creation "
+                             "of new colors by adding -f to your "
+                             "command line. It will also save the new color "
+                             "dictionnary.".format(filename, base))
         else:  # args.fill_color is not None:
             color = args.fill_color
 
@@ -148,6 +184,15 @@ def main():
                                        factor=args.ambiant_occlusion)
         sft.data_per_point['color']._data = colors
         save_tractogram(sft, out_filenames[i])
+
+    if args.dict_colors and updated_dict:
+        new_dict = os.path.join(os.path.dirname(args.dict_colors),
+                                'new_color_dict_{}.json'.format(random.randint(0, 100000)))
+        with open(new_dict, 'w') as data:
+            json.dump(dict_colors, data,
+                      indent=args.indent,
+                      sort_keys=args.sort_keys)
+        logging.warning('New color dict saved as {}'.format(new_dict))
 
 
 if __name__ == '__main__':

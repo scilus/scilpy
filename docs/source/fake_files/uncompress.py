@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
 
 
-def uncompress():
+def streamlines_to_voxel_coordinates():
     pass

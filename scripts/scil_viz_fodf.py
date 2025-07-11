@@ -34,6 +34,7 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_headers_compatible)
 from scilpy.io.image import assert_same_resolution, get_data_as_mask
 from scilpy.utils.spatial import RAS_AXES_NAMES
+from scilpy.version import version_string
 from scilpy.viz.backends.fury import (create_interactive_window,
                                       create_scene,
                                       snapshot_scenes)
@@ -46,7 +47,8 @@ from scilpy.viz.slice import (create_odf_slicer,
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(description=__doc__,
-                                formatter_class=argparse.RawTextHelpFormatter)
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
 
     # Positional arguments
     p.add_argument('in_fodf', default=None, help='Input SH image file.')
@@ -193,10 +195,9 @@ def _parse_args(parser):
     output = []
     if args.output:
         output.append(args.output)
-    else:
-        if args.silent:
-            parser.error('Silent mode is enabled but no output is specified.'
-                         'Specify an output with --output to use silent mode.')
+    elif args.silent:
+        parser.error('Silent mode is enabled but no output is specified.'
+                     'Specify an output with --output to use silent mode.')
 
     if args.peaks_values and not args.peaks:
         parser.error('Peaks values image supplied without peaks. Specify '
@@ -225,8 +226,7 @@ def _get_data_from_inputs(args):
         data['bg'] = bg
     if args.in_transparency_mask:
         transparency_mask = get_data_as_mask(
-            nib.load(args.in_transparency_mask), dtype=bool
-        )
+            nib.load(args.in_transparency_mask), dtype=bool)
         data['transparency_mask'] = transparency_mask
     if args.mask:
         assert_same_resolution([args.mask, args.in_fodf])
@@ -268,7 +268,7 @@ def main():
     parser = _build_arg_parser()
     args = _parse_args(parser)
     data = _get_data_from_inputs(args)
-    sph = get_sphere(args.sphere)
+    sph = get_sphere(name=args.sphere)
     sh_order, full_basis = get_sh_order_and_fullness(data['fodf'].shape[-1])
     sh_basis, is_legacy = parse_sh_basis_arg(args)
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
@@ -371,7 +371,7 @@ def main():
                                     args.win_dims)
         _mask_arr = None
         if mask_scene:
-            _mask_arr = any2grayscale(next(snapshots))
+            _mask_arr = [any2grayscale(next(snapshots))]
 
         image = compose_image(next(snapshots),
                               args.win_dims,

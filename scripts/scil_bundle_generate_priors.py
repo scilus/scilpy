@@ -7,6 +7,11 @@ The bundle must have been cleaned thorougly before use. The E-FOD can then
 be used for bundle-specific tractography, but not for FOD metrics.
 
 Formerly: scil_generate_priors_from_bundle.py
+-----------------------------------------------------------------------------
+Reference:
+[1] Rheault, Francois, et al. "Bundle-specific tractography with incorporated
+    anatomical and orientational priors." NeuroImage 186 (2019): 382-398
+-----------------------------------------------------------------------------
 """
 
 import argparse
@@ -30,19 +35,14 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_headers_compatible)
 from scilpy.reconst.utils import find_order_from_nb_coeff
 from scilpy.tractanalysis.todi import TrackOrientationDensityImaging
-
-
-EPILOG = """
-    References:
-        [1] Rheault, Francois, et al. "Bundle-specific tractography with
-        incorporated anatomical and orientational priors."
-        NeuroImage 186 (2019): 382-398
-    """
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
-                                description=__doc__, epilog=EPILOG,)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
+
     p.add_argument('in_bundle',
                    help='Input bundle filename.')
 

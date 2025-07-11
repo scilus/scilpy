@@ -37,11 +37,13 @@ from scilpy.io.utils import (add_overwrite_arg, add_json_args,
                              assert_inputs_exist, add_verbose_arg,
                              assert_outputs_exist)
 from scilpy.tractanalysis.json_utils import merge_dict, average_dict
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
-                                description=__doc__)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
 
     p.add_argument('in_json', nargs='+',
                    help='List of json files to merge (.json).')

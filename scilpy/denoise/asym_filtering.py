@@ -536,7 +536,8 @@ def cosine_filtering(in_sh, sh_order=8, sh_basis='descoteaux07',
 
     # We want a B matrix to project on an inverse sphere to have the sf on
     # the opposite hemisphere for a given vertice
-    neg_B = sh_to_sf_matrix(Sphere(xyz=-sphere.vertices), sh_order_max=sh_order,
+    neg_B = sh_to_sf_matrix(Sphere(xyz=-sphere.vertices),
+                            sh_order_max=sh_order,
                             basis_type=sh_basis, return_inv=False,
                             full_basis=in_full_basis, legacy=is_legacy)
 

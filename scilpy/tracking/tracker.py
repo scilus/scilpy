@@ -3,18 +3,15 @@ from contextlib import nullcontext
 import itertools
 import logging
 import multiprocessing
-from operator import mod
 import os
 import sys
 from tempfile import TemporaryDirectory
-from time import perf_counter
 import traceback
 from typing import Union
 from tqdm import tqdm
 
 import numpy as np
 from dipy.data import get_sphere
-from dipy.core.sphere import HemiSphere
 from dipy.io.stateful_tractogram import Space
 from dipy.reconst.shm import sh_to_sf_matrix
 from dipy.tracking.streamlinespeed import compress_streamlines
@@ -38,7 +35,7 @@ class Tracker(object):
                  nbr_processes=1, save_seeds=False,
                  mmap_mode: Union[str, None] = None, rng_seed=1234,
                  track_forward_only=False, skip=0, verbose=False,
-                 append_last_point=True):
+                 min_iter=100, append_last_point=True, rap=None):
         """
         Parameters
         ----------
@@ -80,15 +77,21 @@ class Tracker(object):
             with nbr_seeds=1,000,000, you can create tractogram_2 with
             skip 1,000,000.
         verbose: bool
-            Display tracking progression.
+            Display tracking progression with TQDM progress bar.
+        min_iter: int
+            Minimum number of tracked streamlines required to update the
+            tracking progression bar.
         append_last_point: bool
             Whether to add the last point (once out of the tracking mask) to
             the streamline or not. Note that points obtained after an invalid
             direction (based on the propagator's definition of invalid; ex
             when angle is too sharp of sh_threshold not reached) are never
             added.
+        rap: RAP object
+            Intantiated RAP object.
         """
         self.propagator = propagator
+        self.rap = rap
         self.mask = mask
         self.seed_generator = seed_generator
         self.nbr_seeds = nbr_seeds
@@ -128,6 +131,7 @@ class Tracker(object):
 
         self.printing_frequency = 1000
         self.verbose = verbose
+        self.min_iter = min_iter
 
     def track(self):
         """
@@ -318,11 +322,6 @@ class Tracker(object):
             if lock is None:
                 lock = nullcontext()
             with lock:
-                # Note. Option miniters does not work with manual pbar update.
-                # Will verify manually, lower.
-                # Fixed choice of value rather than a percentage of the chunk
-                # size because our tracker is quite slow.
-                miniters = 100
                 p = tqdm(total=chunk_size, desc=tqdm_text, position=chunk_id+1,
                          leave=False)
 
@@ -364,9 +363,13 @@ class Tracker(object):
                 if self.save_seeds:
                     seeds.append(np.asarray(seed, dtype='float32'))
 
-            if self.verbose and (s + 1) % miniters == 0:
+            # Note. Option min_iter does not work with manual pbar update.
+            # Will verify manually, lower.
+            # Fixed choice of value rather than a percentage of the chunk
+            # size because our tracker is quite slow.
+            if self.verbose and (s + 1) % self.min_iter == 0:
                 with lock:
-                    p.update(miniters)
+                    p.update(self.min_iter)
 
         if self.verbose:
             with lock:
@@ -411,7 +414,7 @@ class Tracker(object):
             return line
         return None
 
-    def _propagate_line(self, line, tracking_info):
+    def _propagate_line(self, line, previous_dir):
         """
         Generate a streamline in forward or backward direction from an initial
         position following the tracking parameters.
@@ -426,7 +429,7 @@ class Tracker(object):
         line: List[np.ndarrays]
             Beginning of the line to propagate: list of 3D coordinates
             formatted as arrays.
-        tracking_info: Any
+        previous_dir: Any
             Information necessary to know how to propagate. Type: as understood
             by the propagator. Example, with the typical fODF propagator: the
             previous direction of the streamline, v_in, used to define a cone
@@ -440,24 +443,42 @@ class Tracker(object):
         """
         invalid_direction_count = 0
         propagation_can_continue = True
-        while len(line) < self.max_nbr_pts and propagation_can_continue:
-            new_pos, new_tracking_info, is_direction_valid = \
-                self.propagator.propagate(line, tracking_info)
 
-            # Verifying if direction is valid
-            # If invalid: break. Else, verify tracking mask.
-            if is_direction_valid:
-                invalid_direction_count = 0
-            else:
-                invalid_direction_count += 1
-                if invalid_direction_count > self.max_invalid_dirs:
+        while len(line) < self.max_nbr_pts and propagation_can_continue:
+
+            # Call the RAP function if needed. Can advance of as many points
+            # as they want.
+            if (propagation_can_continue and self.rap and
+                    self.rap.is_in_rap_region(
+                        line[-1], space=self.space, origin=self.origin)):
+                line, new_dir, is_line_valid = (
+                    self.rap.rap_multistep_propagate(line, previous_dir))
+
+                if is_line_valid:
+                    invalid_direction_count = 0
+                else:
                     break
+
+                new_pos = line[-1]
+            # Else, "normal" one-step propagation
+            else:
+                new_pos, new_dir, is_direction_valid = \
+                    self.propagator.propagate(line, previous_dir)
+
+                # Verifying if direction is valid
+                # If invalid: break. Else, verify tracking mask.
+                if is_direction_valid:
+                    invalid_direction_count = 0
+                else:
+                    invalid_direction_count += 1
+                    if invalid_direction_count > self.max_invalid_dirs:
+                        break
 
             propagation_can_continue = self._verify_stopping_criteria(new_pos)
             if propagation_can_continue or self.append_last_point:
                 line.append(new_pos)
 
-            tracking_info = new_tracking_info
+            previous_dir = new_dir
 
         return line
 
@@ -535,7 +556,7 @@ class GPUTacker():
             np.array_split(seeds + 0.5, np.ceil(len(seeds)/batch_size))
 
         if sphere is None:
-            self.sphere = get_sphere("repulsion724")
+            self.sphere = get_sphere(name="repulsion724")
         else:
             self.sphere = sphere
 

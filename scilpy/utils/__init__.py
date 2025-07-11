@@ -1,3 +1,11 @@
+# -*- coding: utf-8 -*-
+
+from time import time
+
+
+def get_duration(start_time, decimal=2):
+    """ Convert a duration in seconds """
+    return round(time() - start_time, decimal)
 
 
 def is_float(value):

@@ -21,6 +21,19 @@ are available:
 --label: Label containing 2 blobs. Streamlines will be cut so they go from the
 first label region to the second label region. The two blobs must be disjoint.
 
+    Default: The streamline will start with the first point of the last segment
+    of the streamline in the first label and end with the last point of the
+    first segment of the streamline in the second label.
+
+    --one_point_in_roi:
+        The streamline will start with the last point of the last segment of
+        the streamline in the first label and end with the first point in the
+        second label. The streamline will be cut at the boundary of the labels.
+
+    --no_point_in_roi:
+        The streamline will be cut at the boundary of the labels. No point will
+        be kept in the labels.
+
 Both scenarios will erase data_per_point and data_per_streamline. Streamlines
 will be extended so they reach the boundary of the mask or the two labels,
 therefore won't be equal to the input streamlines.
@@ -52,6 +65,7 @@ from scilpy.tractograms.streamline_and_mask_operations import \
     CuttingStyle
 from scilpy.tractograms.streamline_operations import \
     resample_streamlines_step_size
+from scilpy.version import version_string
 
 # Mapping the arguments to the cutting style
 # (keep_longest, trim_endpoints) -> CuttingStyle
@@ -61,9 +75,10 @@ args_to_style = {(False, False): CuttingStyle.DEFAULT,
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(
-        description=__doc__,
-        formatter_class=argparse.RawTextHelpFormatter)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
+
     p.add_argument('in_tractogram',
                    help='Input tractogram file.')
 
@@ -72,6 +87,7 @@ def _build_arg_parser():
                     help='Binary mask.')
     g1.add_argument('--labels',
                     help='Label containing 2 blobs.')
+
     p.add_argument('out_tractogram',
                    help='Output tractogram file. Note: data_per_point and '
                         'data_per_streamline will be discarded.')
@@ -84,6 +100,7 @@ def _build_arg_parser():
     p.add_argument('--min_length', type=float, default=0,
                    help='Minimum length of streamlines to keep (in mm) '
                         '[%(default)s].')
+
     g = p.add_argument_group('Cutting options', 'Options for cutting '
                              'streamlines with --mask.')
     g2 = g.add_mutually_exclusive_group()
@@ -93,6 +110,14 @@ def _build_arg_parser():
     g2.add_argument('--trim_endpoints', action='store_true',
                     help='If set, will only remove the endpoints of the '
                          'streamlines that are outside the mask.')
+
+    g1 = p.add_argument_group('Cutting options', 'Options for cutting '
+                              'streamlines with --labels.')
+    g3 = g1.add_mutually_exclusive_group()
+    g3.add_argument('--one_point_in_roi', action='store_true',
+                    help='If set, will keep one point in each label.')
+    g3.add_argument('--no_point_in_roi', action='store_true',
+                    help='If set, will not keep any point in the labels.')
 
     add_compression_arg(p)
     add_overwrite_arg(p)
@@ -120,12 +145,13 @@ def main():
     if args.labels and (args.keep_longest or args.trim_endpoints):
         parser.error('Cannot use --keep_longest or --trim_endpoints with '
                      'labels.')
+    elif args.mask and (args.one_point_in_roi or args.no_point_in_roi):
+        parser.error('Cannot use --one_point_in_roi or --no_point_in_roi with '
+                     'mask.')
 
     # Loading
     sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
-    # Streamlines must be in voxel space to deal correctly with bounding box.
-    sft.to_vox()
-    sft.to_corner()
+
     # Resample streamlines to a specific step-size in mm. May impact the
     # cutting process.
     if args.step_size is not None:
@@ -153,6 +179,8 @@ def main():
 
         new_sft = cut_streamlines_between_labels(
             sft, label_data, args.label_ids, min_len=args.min_length,
+            one_point_in_roi=args.one_point_in_roi,
+            no_point_in_roi=args.no_point_in_roi,
             processes=args.nbr_processes)
 
     # Saving

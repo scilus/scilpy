@@ -33,11 +33,13 @@ conditions must be met in order to not be filtered.
 If the user wants to manually handle the requirements, --keep_condition_count
 can be used and manually binarized using scil_connectivity_math.py
 
-[1] Sidhu, J. (2022). Inter-lobar Connectivity of the Frontal Lobe Association
-Tracts Consistently Observed in 105 Healthy Adults
-(Doctoral dissertation, Université de Sherbrooke).
-
 Formerly: scil_filter_connectivity.py
+----------------------------------------------------------------------------
+Reference:
+[1] Sidhu, J. (2022). Inter-lobar Connectivity of the Frontal Lobe Association
+    Tracts Consistently Observed in 105 Healthy Adults
+    (Doctoral dissertation, Université de Sherbrooke).
+----------------------------------------------------------------------------
 """
 
 import argparse
@@ -50,12 +52,12 @@ from scilpy.io.utils import (add_overwrite_arg, add_verbose_arg,
                              assert_outputs_exist,
                              load_matrix_in_any_format,
                              save_matrix_in_any_format, assert_inputs_exist)
-
+from scilpy.version import version_string
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(
-        description=__doc__,
-        formatter_class=argparse.RawTextHelpFormatter)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
 
     p.add_argument('out_matrix_mask',
                    help='Output mask (matrix) resulting from the provided '

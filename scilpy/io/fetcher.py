@@ -56,9 +56,9 @@ def get_testing_files_dict():
         "plot.zip": "a1dc54cad7e1d17e55228c2518a1b34e",
         "others.zip": "82248b4888a63b0aeffc8070cc206995",
         "fodf_filtering.zip": "5985c0644321ecf81fd694fb91e2c898",
-        "processing.zip": "eece5cdbf437b8e4b5cb89c797872e28",
+        "processing.zip": "1ba6869c9d8b58a9b911ba71fdd50a07",
         "surface_vtk_fib.zip": "241f3afd6344c967d7176b43e4a99a41",
-        "tractograms.zip": "1eb29085db974b5e58d32b13eb76fbe6",
+        "tractograms.zip": "964113f307213523d784b3dbf3a5117a",
         "mrds.zip": "5abe6092400e11e9bb2423e2c387e774"
     }
 

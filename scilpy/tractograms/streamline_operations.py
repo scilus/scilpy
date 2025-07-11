@@ -92,6 +92,67 @@ def _get_point_on_line(first_point, second_point, vox_lower_corner):
     return first_point + ray * (t0 + t1) / 2.
 
 
+def _get_next_real_point(points_to_index, vox_index):
+    """ Return the index after the point in points_to_index is smaller,
+    presuming the indices are sorted.
+
+    ~~~ HERE BE DRAGONS, modify with care. ~~~
+
+    Although np.searchsorted may seem like a better option, it is not
+    appropriate here since we need to return the first index encountered that
+    fits our condition, regardless if there is a better option later.
+
+    Parameters
+    ----------
+    points_to_index: list
+        The indices to search in.
+    vox_index: int
+        The index to search for.
+    """
+
+    map_idx, next_point = -1, -1
+    nb_points_to_index = len(points_to_index)
+    internal_vox_index = vox_index
+    pts_to_index_view = points_to_index
+
+    while map_idx < internal_vox_index and next_point < nb_points_to_index - 1:
+        next_point += 1
+        map_idx = pts_to_index_view[next_point]
+
+    return next_point
+
+
+def _get_previous_real_point(points_to_index, vox_index):
+    """ Return the index before the point in points_to_index is larger,
+    presuming the indices are sorted.
+
+    ~~~ HERE BE DRAGONS, modify with care. ~~~
+
+    Although np.searchsorted may seem like a better option, it is not
+    appropriate here since we need to return the first index encountered that
+    fits our condition, regardless if there is a better option later.
+
+    Parameters
+    ----------
+    points_to_index: list
+        The indices to search in.
+    vox_index: int
+        The index to search for.
+    """
+
+    previous_point = len(points_to_index)
+    internal_vox_index = vox_index
+
+    map_idx = internal_vox_index + 1
+    pts_to_index_view = points_to_index
+
+    while map_idx > internal_vox_index and previous_point > 0:
+        previous_point -= 1
+        map_idx = pts_to_index_view[previous_point]
+
+    return previous_point
+
+
 def get_angles(sft, degrees=True, add_zeros=False):
     """
     Returns the angle between each segment of the streamlines.
@@ -258,36 +319,38 @@ def cut_invalid_streamlines(sft, epsilon=0.001):
     cutting_counter = 0
     for ind in range(len(sft.streamlines)):
         if ind in indices_to_cut:
-            # This streamline was detected as invalid
 
-            best_pos = [0, 0]  # First and last valid points of longest segment
-            cur_pos = [0, 0]   # First and last valid points of current segment
-            for pos, point in enumerate(sft.streamlines[ind]):
-                if (point < epsilon).any() or \
-                        (point >= sft.dimensions - epsilon).any():
-                    # The coordinate is < 0 or > box. Starting new segment
-                    cur_pos = [pos+1, pos+1]
-                elif cur_pos[1] - cur_pos[0] > best_pos[1] - best_pos[0]:
-                    # We found a longer good segment.
-                    best_pos = cur_pos
+            in_vol = np.logical_and(
+                sft.streamlines[ind] >= epsilon,
+                sft.streamlines[ind] < sft.dimensions - epsilon).all(axis=1)
 
-                # Ready to check next point.
-                cur_pos[1] += 1
+            # Get segments in the streamline that are within the volume using
+            # ndi.label
+            blobs, _ = ndi.label(in_vol)
 
-            # Appending the longest segment to the list of streamlines
-            if not best_pos == [0, 0]:
-                new_streamlines.append(
-                    sft.streamlines[ind][best_pos[0]:best_pos[1]])
-                cutting_counter += 1
-                for key in sft.data_per_streamline.keys():
-                    new_data_per_streamline[key].append(
-                        sft.data_per_streamline[key][ind])
-                for key in sft.data_per_point.keys():
-                    new_data_per_point[key].append(
-                        sft.data_per_point[key][ind][
-                            best_pos[0]:best_pos[1]-1])
+            # Get the largest blob
+            bins = np.bincount(blobs.ravel())[1:]
+            if len(bins) > 0:
+                largest_blob = np.argmax(bins) + 1
+
+                # Get the indices of the points in the largest blob
+                ind_in_vol = np.where(blobs == largest_blob)[0]
             else:
                 logging.warning('Streamline entirely out of the volume.')
+                continue
+
+            # Get the streamline segment that is within the volume
+            new_streamline = sft.streamlines[ind][ind_in_vol]
+            new_streamlines.append(new_streamline)
+
+            for key in sft.data_per_streamline.keys():
+                new_data_per_streamline[key].append(
+                    sft.data_per_streamline[key][ind])
+            for key in sft.data_per_point.keys():
+                new_data_per_point[key].append(
+                    sft.data_per_point[key][ind][
+                        ind_in_vol])
+            cutting_counter += 1
         else:
             # No reason to try to cut if all points are within the volume
             new_streamlines.append(sft.streamlines[ind])
@@ -296,6 +359,7 @@ def cut_invalid_streamlines(sft, epsilon=0.001):
                     sft.data_per_streamline[key][ind])
             for key in sft.data_per_point.keys():
                 new_data_per_point[key].append(sft.data_per_point[key][ind])
+
     new_sft = StatefulTractogram.from_sft(
         new_streamlines, sft, data_per_streamline=new_data_per_streamline,
         data_per_point=new_data_per_point)
@@ -306,25 +370,31 @@ def cut_invalid_streamlines(sft, epsilon=0.001):
 
     new_sft.to_space(space)
     new_sft.to_origin(origin)
-
     return new_sft, cutting_counter
 
 
-def remove_single_point_streamlines(sft):
+def filter_streamlines_by_nb_points(sft, min_nb_points=2):
     """
-    Remove single point streamlines from a StatefulTractogram.
+    Remove streamlines from a StatefulTractogram with fewer nb_points.
 
     Parameters
     ----------
     sft: StatefulTractogram
         The sft to remove single point streamlines from.
+    min_nb_points: int
+        Minimum number of point a streamline needs to have to kept.
 
     Returns
     -------
     new_sft : StatefulTractogram
         New object with the single point streamlines removed.
     """
-    indices = [i for i in range(len(sft)) if len(sft.streamlines[i]) > 1]
+    if min_nb_points <= 1:
+        raise ValueError("The value of min_nb_points "
+                         "should be greater than 1!")
+
+    indices = [i for i in range(len(sft))
+               if len(sft.streamlines[i]) > min_nb_points - 1]
     if len(indices):
         new_sft = sft[indices]
     else:
@@ -982,6 +1052,7 @@ def get_streamlines_as_fixed_array(streamlines):
     Parameters
     ----------
     streamlines: list
+        The list of streamlines to convert into a fixed length array
 
     Return
     ------
@@ -991,9 +1062,45 @@ def get_streamlines_as_fixed_array(streamlines):
         Single dimensional array of all the streamline lengths.
     """
     lengths = [len(streamline) for streamline in streamlines]
-    streamlines_fixed = np.ndarray((len(streamlines), max(lengths), 3))
+    streamlines_fixed = np.zeros((len(streamlines), max(lengths), 3))
     for i, f in enumerate(streamlines_fixed):
         for j, c in enumerate(streamlines[i]):
             f[j] = c
 
     return streamlines_fixed, np.array(lengths)
+
+
+def find_seed_indexes_on_streamlines(seeds, streamlines, atol=1.e-8):
+    """
+    Given a list of seeds and a corresponding list of streamlines, finds
+    the index of each seed on its respective streamline.
+
+    Parameters
+    ----------
+    seeds: list
+        List of seeds to locate on streamlines
+    streamlines: list
+        List of streamlines produced from seeds
+    atol: float
+        Absolute tolerance of the comparison between a seed and each of the
+        streamline coordinates.
+
+    Return
+    ------
+    seed_indexes: list
+        A list containing the index of each seed on its streamline.
+    """
+    seed_indexes = []
+    for seed, streamline in zip(seeds, streamlines):
+        seed_index = -1
+
+        for i, point in enumerate(streamline):
+            if np.allclose(point, seed, rtol=0, atol=atol):
+                seed_index = i
+                break
+
+        if seed_index == -1:
+            raise ValueError('A seed coordinate was not found on streamline.')
+
+        seed_indexes.append(seed_index)
+    return seed_indexes

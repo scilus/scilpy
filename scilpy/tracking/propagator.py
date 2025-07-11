@@ -4,7 +4,7 @@ import logging
 
 import numpy as np
 
-import dipy
+from dipy.data import get_sphere
 from dipy.io.stateful_tractogram import Space, Origin
 from dipy.reconst.shm import sh_to_sf_matrix
 
@@ -29,6 +29,7 @@ class AbstractPropagator(object):
     Propagation depends on the type of data (ex, DTI, fODF) and the way to get
     a direction from it (ex, det, prob).
     """
+
     def __init__(self, datavolume, step_size, rk_order, space, origin):
         """
         Parameters
@@ -278,7 +279,7 @@ class PropagatorOnSphere(AbstractPropagator):
         """
         super().__init__(datavolume, step_size, rk_order, space, origin)
 
-        self.sphere = dipy.data.get_sphere(name=dipy_sphere).subdivide(n=sub_sphere)
+        self.sphere = get_sphere(name=dipy_sphere).subdivide(n=sub_sphere)
         self.dirs = np.zeros(len(self.sphere.vertices), dtype=np.ndarray)
         for i in range(len(self.sphere.vertices)):
             self.dirs[i] = TrackingDirection(self.sphere.vertices[i], i)
@@ -319,6 +320,7 @@ class ODFPropagator(PropagatorOnSphere):
     """
     Propagator on ODFs/fODFs. Algo can be det or prob.
     """
+
     def __init__(self, datavolume, step_size,
                  rk_order, algo, basis, sf_threshold, sf_threshold_init,
                  theta, dipy_sphere='symmetric724',
@@ -399,7 +401,7 @@ class ODFPropagator(PropagatorOnSphere):
         self.sf_threshold = sf_threshold
         self.sf_threshold_init = sf_threshold_init
         sh_order, full_basis =\
-            get_sh_order_and_fullness(self.datavolume.data.shape[-1])
+            get_sh_order_and_fullness(self.datavolume.nb_coeffs)
         self.basis = basis
         self.is_legacy = is_legacy
         self.B = sh_to_sf_matrix(self.sphere, sh_order_max=sh_order, basis_type=self.basis,
@@ -570,7 +572,7 @@ class ODFPropagator(PropagatorOnSphere):
         sf[sf < self.sf_threshold] = 0
         maxima = []
         for i in np.nonzero(self.tracking_neighbours[
-                                previous_direction.index])[0]:
+                previous_direction.index])[0]:
             if 0 < sf[i] == np.max(sf[self.maxima_neighbours[i]]):
                 maxima.append(self.dirs[i])
         return maxima
@@ -582,7 +584,12 @@ class FibertubePropagator(AbstractPropagator):
     uses the volume of intersection between fibertube segments and the
     blurring sphere as a random distribution for picking a segment. This
     segment is then used as the propagation direction.
+
+    This propagator expects an array of possible directions and their random
+    distribution. If using an ftODF (the same directions, but expressed as a
+    spherical function), the ODFPropagator should be used.
     """
+
     def __init__(self, datavolume: FibertubeDataVolume, step_size, rk_order,
                  theta, space, origin):
         """"

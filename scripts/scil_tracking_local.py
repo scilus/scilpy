@@ -45,16 +45,15 @@ implementations:
 
 All the input nifti files must be in isotropic resolution.
 
-
-References
-----------
-[1]: Garyfallidis, E. (2012). Towards an accurate brain tractography
-[PhD thesis]. University of Cambridge. United Kingdom.
-
-[2]: Aydogan, D. B., & Shi, Y. (2020). Parallel transport tractography.
-IEEE transactions on medical imaging, 40(2), 635-647.
-
 Formerly: scil_compute_local_tracking.py
+--------------------------------------------------------------------------------
+References:
+[1] Garyfallidis, E. (2012). Towards an accurate brain tractography
+    [PhD thesis]. University of Cambridge. United Kingdom.
+
+[2] Aydogan, D. B., & Shi, Y. (2020). Parallel transport tractography.
+    IEEE transactions on medical imaging, 40(2), 635-647.
+--------------------------------------------------------------------------------
 """
 
 import argparse
@@ -82,6 +81,7 @@ from scilpy.tracking.utils import (add_mandatory_options_tracking,
                                    get_direction_getter, get_theta,
                                    save_tractogram, verify_seed_options,
                                    verify_streamline_length_options)
+from scilpy.version import version_string
 
 # GPU tracking arguments default values
 DEFAULT_BATCH_SIZE = 10000
@@ -91,9 +91,9 @@ DEFAULT_GPU_SPHERE = 'repulsion724'
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(
-        description=__doc__,
-        formatter_class=argparse.RawTextHelpFormatter)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
 
     # Options that are the same in this script and scil_tracking_local_dev:
     add_mandatory_options_tracking(p)

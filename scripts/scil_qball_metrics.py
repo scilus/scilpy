@@ -39,14 +39,17 @@ from scilpy.io.utils import (add_b0_thresh_arg, add_overwrite_arg,
                              assert_inputs_exist, assert_outputs_exist,
                              parse_sh_basis_arg, validate_nbr_processes,
                              assert_headers_compatible)
+from scilpy.version import version_string
 
 
 DEFAULT_SMOOTH = 0.006
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(
-        description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
+
     p.add_argument('in_dwi',
                    help='Path of the input diffusion volume.')
     p.add_argument('in_bval',
@@ -140,7 +143,7 @@ def main():
     args.b0_threshold = check_b0_threshold(bvals.min(),
                                            b0_thr=args.b0_threshold,
                                            skip_b0_check=args.skip_b0_check)
-    gtab = gradient_table(bvals=bvals, bvecs=bvecs, b0_threshold=args.b0_threshold)
+    gtab = gradient_table(bvals, bvecs=bvecs, b0_threshold=args.b0_threshold)
 
     sphere = get_sphere(name='symmetric724')
     sh_basis, is_legacy = parse_sh_basis_arg(args)

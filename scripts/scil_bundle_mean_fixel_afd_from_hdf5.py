@@ -11,6 +11,13 @@ of each connection, averaged at every voxel.
 Please use a hdf5 (.h5) file containing decomposed connections
 
 Formerly: scil_compute_fixel_afd_from_hdf5.py
+----------------------------------------------------------------------------
+Reference:
+[1] Raffelt, D., Tournier, JD., Rose, S., Ridgway, GR., Henderson, R.,Crozier,
+    S., Salvado, O., & Connelly, A. (2012). Apparent Fibre Density: a novel
+    measure for the analysis of diffusion-weighted magnetic resonance images.
+    NeuroImage, 59(4), 3976--3994.
+----------------------------------------------------------------------------
 """
 
 import argparse
@@ -32,15 +39,7 @@ from scilpy.io.utils import (add_overwrite_arg, add_processes_arg,
                              parse_sh_basis_arg, validate_nbr_processes)
 from scilpy.tractanalysis.afd_along_streamlines \
     import afd_map_along_streamlines
-
-EPILOG = """
-Reference:
-    [1] Raffelt, D., Tournier, JD., Rose, S., Ridgway, GR., Henderson, R.,
-        Crozier, S., Salvado, O., & Connelly, A. (2012).
-        Apparent Fibre Density: a novel measure for the analysis of
-        diffusion-weighted magnetic resonance images. NeuroImage,
-        59(4), 3976--3994.
-"""
+from scilpy.version import version_string
 
 
 def _afd_rd_wrapper(args):
@@ -52,9 +51,9 @@ def _afd_rd_wrapper(args):
     is_legacy = args[5]
 
     with h5py.File(in_hdf5_filename, 'r') as in_hdf5_file:
-        sft, _ = reconstruct_sft_from_hdf5(in_hdf5_file, key)
+        sft, _ = reconstruct_sft_from_hdf5(in_hdf5_file, key, allow_empty=True)
 
-    if sft is None:  # No streamlines in group
+    if len(sft) == 0:  # No streamlines in group
         return key, 0
 
     afd_mean_map, rd_mean_map = afd_map_along_streamlines(sft, fodf_img,
@@ -67,8 +66,10 @@ def _afd_rd_wrapper(args):
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(description=__doc__, epilog=EPILOG,
-                                formatter_class=argparse.RawTextHelpFormatter)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
+
     p.add_argument('in_hdf5',
                    help='HDF5 filename (.h5) containing decomposed '
                         'connections.')

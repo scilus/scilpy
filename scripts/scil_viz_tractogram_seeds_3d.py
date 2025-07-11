@@ -19,16 +19,18 @@ from fury import window, actor
 from scilpy.io.utils import (assert_inputs_exist,
                              add_verbose_arg,
                              parser_color_type)
+from scilpy.version import version_string
 from scilpy.viz.color import lut_from_matplotlib_name
-
 
 streamline_actor = {'tube': actor.streamtube,
                     'line': actor.line}
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(
-        description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
+
     p.add_argument('in_seed_map',
                    help='Seed density map.')
     p.add_argument('--tractogram', type=str,

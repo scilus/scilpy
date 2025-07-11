@@ -54,15 +54,16 @@ from scilpy.gradients.bvec_bval_tools import (check_b0_threshold,
                                               normalize_bvecs)
 from scilpy.utils.filenames import add_filename_suffix, split_name_with_nii
 from scilpy.viz.plot import plot_residuals
+from scilpy.version import version_string
 
 logger = logging.getLogger("DTI_Metrics")
 logger.setLevel(logging.INFO)
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(
-        description=__doc__,
-        formatter_class=argparse.RawTextHelpFormatter)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
     p.add_argument('in_dwi',
                    help='Path of the input diffusion volume.')
     p.add_argument('in_bval',
@@ -207,7 +208,7 @@ def main():
     args.b0_threshold = check_b0_threshold(bvals.min(),
                                            b0_thr=args.b0_threshold,
                                            skip_b0_check=args.skip_b0_check)
-    gtab = gradient_table(bvals=bvals, bvecs=bvecs, b0_threshold=args.b0_threshold)
+    gtab = gradient_table(bvals, bvecs=bvecs, b0_threshold=args.b0_threshold)
 
     # Processing
 
@@ -220,7 +221,7 @@ def main():
         tenmodel = TensorModel(gtab, fit_method=args.method,
                                min_signal=np.min(data[data > 0]))
 
-    tenfit = tenmodel.fit(data=data, mask=mask)
+    tenfit = tenmodel.fit(data, mask=mask)
 
     # Save all metrics.
     if args.tensor:
@@ -345,12 +346,12 @@ def main():
 
         for i in range(data.shape[0]):
             if args.mask is not None:
-                tenfit2 = tenmodel.fit(data=data[i, :, :, :], mask=mask[i, :, :])
+                tenfit2 = tenmodel.fit(data[i, ...], mask=mask[i, :, :])
             else:
-                tenfit2 = tenmodel.fit(data=data[i, :, :, :])
+                tenfit2 = tenmodel.fit(data[i, ...])
 
             S0_i = np.maximum(S0[i, :, :], tenfit2.model.min_signal)
-            tenfit2_predict[i, :, :, :] = tenfit2.predict(gtab, S0=S0_i)
+            tenfit2_predict[i, ...] = tenfit2.predict(gtab, S0=S0_i)
 
         R, data_diff = compute_residuals(
             predicted_data=tenfit2_predict.astype(np.float32),

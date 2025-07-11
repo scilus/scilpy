@@ -65,6 +65,7 @@ from scilpy.io.utils import (add_default_screenshot_args,
                              get_default_screenshotting_data)
 from scilpy.image.utils import check_slice_indices
 from scilpy.utils.spatial import get_axis_index
+from scilpy.version import version_string
 from scilpy.viz.screenshot import (compose_image,
                                    screenshot_contour,
                                    screenshot_peaks,
@@ -72,9 +73,9 @@ from scilpy.viz.screenshot import (compose_image,
 
 
 def _build_arg_parser():
-
     p = argparse.ArgumentParser(description=__doc__,
-                                formatter_class=argparse.RawTextHelpFormatter)
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
 
     sg = p.add_argument_group(title="Slicing")
     xg = p.add_argument_group(title="Input overlays")
@@ -83,7 +84,14 @@ def _build_arg_parser():
     og = p.add_argument_group(title="Overlay rendering")
     ag = p.add_argument_group(title="Annotations")
 
-    add_default_screenshot_args(p, False, False, False, sg, ag, vg, vg)
+    add_default_screenshot_args(p,
+                                slice_ids_mandatory=False,
+                                transparency_mask_mandatory=False,
+                                disable_annotations=False,
+                                slicing_parsing_group=sg,
+                                annotation_parsing_group=ag,
+                                cmap_parsing_group=vg,
+                                opacity_parsing_group=vg)
     add_labelmap_screenshot_args(xg, "viridis", 0.5, vg, vg)
     add_overlays_screenshot_args(xg, 0.5, og)
     add_peaks_screenshot_args(xg, rendering_parsing_group=pg)

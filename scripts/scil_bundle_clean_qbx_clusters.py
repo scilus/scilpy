@@ -34,11 +34,13 @@ from scilpy.io.utils import (add_bbox_arg,
                              assert_outputs_exist,
                              assert_output_dirs_exist_and_empty,
                              assert_headers_compatible)
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(description=__doc__,
-                                formatter_class=argparse.RawTextHelpFormatter)
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
 
     p.add_argument('in_bundles', nargs='+',
                    help='List of the clusters filename.')
@@ -177,9 +179,6 @@ def main():
     sft_rejected_on_size, filename_rejected_on_size = [], []
     concat_streamlines = []
 
-    ref_bundle = load_tractogram_with_reference(
-        parser, args, args.in_bundles[0])
-
     for filename in args.in_bundles:
         basename = os.path.basename(filename)
         sft = load_tractogram_with_reference(parser, args, filename)
@@ -280,7 +279,7 @@ def save_clusters(cluster_lists, indexes_list, directory, basenames_list,
         if directory:
             tmp_sft = StatefulTractogram(streamlines,
                                          cluster_lists[0],
-                                         Space.RASMM)
+                                         space=Space.RASMM)
             tmp_filename = os.path.join(directory,
                                         basenames_list[idx])
             save_tractogram(tmp_sft, tmp_filename,

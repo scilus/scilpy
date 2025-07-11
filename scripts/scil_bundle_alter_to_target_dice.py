@@ -48,15 +48,18 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_outputs_exist)
 from scilpy.tractograms.streamline_operations import \
     remove_overlapping_points_streamlines, \
-    remove_single_point_streamlines, cut_invalid_streamlines
+    filter_streamlines_by_nb_points, cut_invalid_streamlines
 from scilpy.tractograms.tractogram_operations import transform_streamlines_alter, \
     trim_streamlines_alter, cut_streamlines_alter, subsample_streamlines_alter, \
     replace_streamlines_alter, shuffle_streamlines, shuffle_streamlines_orientation
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(description=__doc__,
-                                formatter_class=argparse.RawTextHelpFormatter)
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
+
     p.add_argument('in_bundle',
                    help='Input bundle filename (.trk, .tck).')
     p.add_argument('out_bundle',
@@ -142,7 +145,7 @@ def main():
     print(altered_sft.streamlines._data.dtype)
     # Some operations could have generated invalid streamlines
     altered_sft, _ = cut_invalid_streamlines(altered_sft)
-    altered_sft = remove_single_point_streamlines(altered_sft)
+    altered_sft = filter_streamlines_by_nb_points(altered_sft, min_nb_points=2)
     altered_sft = remove_overlapping_points_streamlines(altered_sft)
 
     if args.shuffle:

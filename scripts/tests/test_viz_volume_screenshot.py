@@ -16,7 +16,8 @@ def test_screenshot(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_fa = os.path.join(SCILPY_HOME, 'bst', 'fa.nii.gz')
 
-    ret = script_runner.run("scil_viz_volume_screenshot.py", in_fa, 'fa.png')
+    ret = script_runner.run("scil_viz_volume_screenshot.py", in_fa, 'fa.png',
+                            '--display_slice_number', '--display_lr')
     assert ret.success
 
 
