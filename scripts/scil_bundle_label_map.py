@@ -121,7 +121,7 @@ def _build_arg_parser():
     p.add_argument('--threshold', type=ranged_type(float, 0, None),
                    default=0.001,
                    help='Maximum distance between two points to be considered '
-                        'overlapping [%(default)s mm].')    
+                        'overlapping [%(default)s mm].')
     p.add_argument('--colormap', default='jet',
                    help='Select the colormap for colored trk (data_per_point) '
                         '[%(default)s].')
@@ -330,8 +330,9 @@ def main():
         cut_sft = cut_streamlines_with_mask(
             new_sft, binary_mask,
             cutting_style=CuttingStyle.KEEP_LONGEST)
-        
-        cut_sft = remove_overlapping_points_streamlines(cut_sft, args.threshold)
+
+        cut_sft = remove_overlapping_points_streamlines(cut_sft,
+                                                        args.threshold)
         cut_sft = filter_streamlines_by_nb_points(cut_sft, min_nb_points=2)
 
         logging.debug(
