@@ -23,7 +23,7 @@ conversion = {"LR": "i",
 
 
 def generate_fake_metadata_json(
-    intended_for=None, phase_dir=None, readout=None, **kwargs):
+        intended_for=None, phase_dir=None, readout=None, **kwargs):
 
     base_dict = {}
     if intended_for:
@@ -40,11 +40,11 @@ def generate_fake_metadata_json(
 
 
 def generate_image_packet(
-    data,directory, prefix,
-    intended_for=None,
-    phase_dir=None,
-    readout=None,
-    **kwargs):
+        data, directory, prefix,
+        intended_for=None,
+        phase_dir=None,
+        readout=None,
+        **kwargs):
 
     nib.save(nib.Nifti1Image(data, np.eye(4)),
              os.path.join(directory, "{}.nii.gz".format(prefix)))
@@ -302,7 +302,7 @@ def generate_fake_bids_structure(
     return structure_dir
 
 
-def compare_jsons(json_output, test_dir):  
+def compare_jsons(json_output, test_dir):
     # Open test json file
     with open(os.path.join(test_dir, json_output), 'r') as f:
         test_json = json.load(f)[0]
@@ -310,10 +310,11 @@ def compare_jsons(json_output, test_dir):
     # Clean test_json
     for key, value in test_json.items():
         if isinstance(value, str):
-            test_json[key] = value.replace(test_dir + os.path.sep,'')
+            test_json[key] = value.replace(test_dir + os.path.sep, '')
 
     # Open correct json file
-    result_json = os.path.join(SCILPY_HOME, 'bids_json', json_output.replace('test', 'result'))
+    result_json = os.path.join(
+        SCILPY_HOME, 'bids_json', json_output.replace('test', 'result'))
 
     with open(result_json, 'r') as f:
         result = json.load(f)[0]
@@ -329,7 +330,6 @@ def compare_jsons(json_output, test_dir):
 def test_help_option(script_runner):
     ret = script_runner.run(['scil_bids_validate.py', '--help'])
     assert ret.success
-
 
 
 @pytest.mark.parametrize(
@@ -348,8 +348,8 @@ def test_bids_epi(tmpdir, script_runner, dwi_is_complex, json_output):
     ret = script_runner.run([
         'scil_bids_validate.py',
         test_dir,
-        os.path.join(test_dir, json_output]),
-        '-f', '-v')
+        os.path.join(test_dir, json_output),
+        '-f', '-v'])
 
     if ret.success:
         assert compare_jsons(json_output, test_dir)
@@ -363,7 +363,7 @@ def test_bids_epi(tmpdir, script_runner, dwi_is_complex, json_output):
      (True, True, 'test_complex_dwi_complex_sbref.json')]
 )
 def test_bids_sbref(
-    tmpdir, script_runner, dwi_is_complex, sbref_is_complex, json_output):
+        tmpdir, script_runner, dwi_is_complex, sbref_is_complex, json_output):
     test_dir = generate_fake_bids_structure(
         tmpdir, 1, 1,
         gen_anat_t1=True,
@@ -375,8 +375,8 @@ def test_bids_sbref(
     ret = script_runner.run([
         'scil_bids_validate.py',
         test_dir,
-        os.path.join(test_dir, json_output]),
-        '-f', '-v')
+        os.path.join(test_dir, json_output),
+        '-f', '-v'])
 
     if ret.success:
         assert compare_jsons(json_output, test_dir)
@@ -390,7 +390,7 @@ def test_bids_sbref(
      (True, True, 'test_complex_dwi_complex_rev_dwi.json')]
 )
 def test_bids_rev_dwi(
-    tmpdir, script_runner, dwi_is_complex, rev_is_complex, json_output):
+        tmpdir, script_runner, dwi_is_complex, rev_is_complex, json_output):
     test_dir = generate_fake_bids_structure(
         tmpdir, 1, 1,
         gen_anat_t1=True,
@@ -401,8 +401,8 @@ def test_bids_rev_dwi(
     ret = script_runner.run([
         'scil_bids_validate.py',
         test_dir,
-        os.path.join(test_dir, json_output]),
-        '-f', '-v')
+        os.path.join(test_dir, json_output),
+        '-f', '-v'])
 
     if ret.success:
         assert compare_jsons(json_output, test_dir)
@@ -416,7 +416,7 @@ def test_bids_rev_dwi(
      (True, True, 'test_complex_dwi_complex_rev_dwi_sbref.json')]
 )
 def test_bids_rev_dwi_sbref(
-    tmpdir, script_runner, dwi_is_complex, rev_is_complex, json_output):
+        tmpdir, script_runner, dwi_is_complex, rev_is_complex, json_output):
     test_dir = generate_fake_bids_structure(
         tmpdir, 1, 1,
         gen_anat_t1=True,
@@ -429,8 +429,8 @@ def test_bids_rev_dwi_sbref(
     ret = script_runner.run([
         'scil_bids_validate.py',
         test_dir,
-        os.path.join(test_dir, json_output]),
-        '-f', '-v')
+        os.path.join(test_dir, json_output),
+        '-f', '-v'])
 
     if ret.success:
         assert compare_jsons(json_output, test_dir)

@@ -31,15 +31,15 @@ def test_asym_basis_output_gpu(script_runner, in_fodf, expected_fodf, monkeypatc
     ret = script_runner.run(['scil_sh_to_aodf.py',
                             in_fodf, 'out_fodf1.nii.gz',
                             '--sphere', 'repulsion100',
-                            '--sigma_align', '0.8',
-                            '--sigma_spatial', '1.0',
-                            '--sigma_range', '0.2',
-                            '--sigma_angle', '0.06',
-                            '--use_opencl',
-                            '--device', 'gpu',
-                            '--sh_basis', 'descoteaux07_legacy', '-f',
-                            '--include_center',
-                            print_result=True, shell=True])
+                             '--sigma_align', '0.8',
+                             '--sigma_spatial', '1.0',
+                             '--sigma_range', '0.2',
+                             '--sigma_angle', '0.06',
+                             '--use_opencl',
+                             '--device', 'gpu',
+                             '--sh_basis', 'descoteaux07_legacy', '-f',
+                             '--include_center'],
+                            print_result=True, shell=True)
 
     if have_opencl:
         # if we have opencl the script should not raise an error
@@ -67,14 +67,14 @@ def test_asym_basis_output(script_runner, in_fodf, expected_fodf, monkeypatch):
     ret = script_runner.run(['scil_sh_to_aodf.py',
                             in_fodf, 'out_fodf1.nii.gz',
                             '--sphere', 'repulsion100',
-                            '--sigma_align', '0.8',
-                            '--sigma_spatial', '1.0',
-                            '--sigma_range', '0.2',
-                            '--sigma_angle', '0.06',
-                            '--device', 'cpu',
-                            '--sh_basis', 'descoteaux07_legacy', '-f',
-                            '--include_center',
-                            print_result=True, shell=True])
+                             '--sigma_align', '0.8',
+                             '--sigma_spatial', '1.0',
+                             '--sigma_range', '0.2',
+                             '--sigma_angle', '0.06',
+                             '--device', 'cpu',
+                             '--sh_basis', 'descoteaux07_legacy', '-f',
+                             '--include_center'],
+                            print_result=True, shell=True)
 
     assert ret.success
 
@@ -94,14 +94,14 @@ def test_asym_input(script_runner, in_fodf, expected_fodf, monkeypatch):
     ret = script_runner.run(['scil_sh_to_aodf.py',
                             in_fodf, 'out_fodf1.nii.gz',
                             '--sphere', 'repulsion100',
-                            '--sigma_align', '0.8',
-                            '--sigma_spatial', '1.0',
-                            '--sigma_range', '0.2',
-                            '--sigma_angle', '0.06',
-                            '--device', 'cpu',
-                            '--sh_basis', 'descoteaux07_legacy', '-f',
-                            '--include_center',
-                            print_result=True, shell=True])
+                             '--sigma_align', '0.8',
+                             '--sigma_spatial', '1.0',
+                             '--sigma_range', '0.2',
+                             '--sigma_angle', '0.06',
+                             '--device', 'cpu',
+                             '--sh_basis', 'descoteaux07_legacy', '-f',
+                             '--include_center'],
+                            print_result=True, shell=True)
 
     assert ret.success
 
@@ -120,9 +120,9 @@ def test_cosine_method(script_runner, in_fodf, out_fodf, monkeypatch):
     ret = script_runner.run(['scil_sh_to_aodf.py',
                             in_fodf, 'out_fodf1.nii.gz',
                             '--sphere', 'repulsion100',
-                            '--method', 'cosine', '-f',
-                            '--sh_basis', 'descoteaux07_legacy',
-                            print_result=True, shell=True])
+                             '--method', 'cosine', '-f',
+                             '--sh_basis', 'descoteaux07_legacy'],
+                            print_result=True, shell=True)
 
     assert ret.success
 
