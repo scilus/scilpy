@@ -81,7 +81,8 @@ from scilpy.io.utils import (add_overwrite_arg,
                              add_verbose_arg,
                              assert_inputs_exist,
                              assert_output_dirs_exist_and_empty,
-                             load_matrix_in_any_format)
+                             load_matrix_in_any_format,
+                             ranged_type)
 from scilpy.tractanalysis.bundle_operations import uniformize_bundle_sft
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
 from scilpy.tractanalysis.distance_to_centroid import (subdivide_bundles,
@@ -89,7 +90,7 @@ from scilpy.tractanalysis.distance_to_centroid import (subdivide_bundles,
 from scilpy.tractograms.streamline_and_mask_operations import \
     cut_streamlines_with_mask, CuttingStyle
 from scilpy.tractograms.streamline_operations import \
-    filter_streamlines_by_nb_points
+    filter_streamlines_by_nb_points, remove_overlapping_points_streamlines
 from scilpy.viz.color import get_lookup_table
 from scilpy.version import version_string
 
@@ -117,6 +118,10 @@ def _build_arg_parser():
     p.add_argument('--nb_pts', type=int,
                    help='Number of divisions for the bundles.\n'
                         'Default is the number of points of the centroid.')
+    p.add_argument('--threshold', type=ranged_type(float, 0, None),
+                   default=0.001,
+                   help='Maximum distance between two points to be considered '
+                        'overlapping [%(default)s mm].')    
     p.add_argument('--colormap', default='jet',
                    help='Select the colormap for colored trk (data_per_point) '
                         '[%(default)s].')
@@ -325,6 +330,10 @@ def main():
         cut_sft = cut_streamlines_with_mask(
             new_sft, binary_mask,
             cutting_style=CuttingStyle.KEEP_LONGEST)
+        
+        cut_sft = remove_overlapping_points_streamlines(cut_sft, args.threshold)
+        cut_sft = filter_streamlines_by_nb_points(cut_sft, min_nb_points=2)
+
         logging.debug(
             f'Cut streamlines in {round(time.time() - timer, 3)} seconds')
         cut_sft.data_per_point['color'] = ArraySequence(cut_sft.streamlines)
