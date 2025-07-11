@@ -74,7 +74,8 @@ def bingham_metric_sum_along_streamlines(sft, bingham_coeffs, metric,
     weight_map = np.zeros(metric.shape[:-1])
     min_cos_theta = np.cos(np.radians(max_theta))
 
-    all_split_streamlines =\
+    sft.streamlines._data = sft.streamlines._data.astype(np.float32)
+    all_split_streamlines = \
         subdivide_streamlines_at_voxel_faces(sft.streamlines)
     for split_streamlines in all_split_streamlines:
         segments = split_streamlines[1:] - split_streamlines[:-1]

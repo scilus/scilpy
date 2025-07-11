@@ -286,6 +286,7 @@ def main():
     # Get the indices of the voxels traversed by each streamline
     logging.info('*** Computing voxels traversed by each streamline ***')
     time1 = time.time()
+    sft.streamlines._data = sft.streamlines._data.astype(np.float32)
     indices, points_to_idx = streamlines_to_voxel_coordinates(
         sft.streamlines,
         return_mapping=True
