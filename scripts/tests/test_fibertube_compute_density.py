@@ -31,7 +31,7 @@ def init_data():
     sft_fibertubes = StatefulTractogram(streamlines, mask_img, Space.VOX,
                                         Origin.NIFTI)
     sft_fibertubes.data_per_streamline = {
-        "diameters": [0.2, 0.01]
+        "diameters": np.array([0.2, 0.01])
     }
 
     save_tractogram(sft_fibertubes, 'fibertubes.trk', True)

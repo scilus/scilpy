@@ -39,14 +39,14 @@ def init_data():
                                         space=Space.VOX,
                                         origin=Origin.NIFTI)
     sft_fibertubes.data_per_streamline = {
-        "diameters": [0.002, 0.001]
+        "diameters": np.array([0.002, 0.001])
     }
     sft_tracking = StatefulTractogram(streamlines, mask_img,
                                       space=Space.VOX,
                                       origin=Origin.NIFTI)
     sft_tracking.data_per_streamline = {
-        "seeds": [streamlines[0][0], streamlines[1][-1]],
-        "seed_ids": [0., 1.]
+        "seeds": np.array([streamlines[0][0], streamlines[1][-1]]),
+        "seed_ids": np.array([0, 1], dtype=np.uint32),
     }
 
     save_tractogram(sft_fibertubes, 'fibertubes.trk', True)

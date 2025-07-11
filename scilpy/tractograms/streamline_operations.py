@@ -1103,4 +1103,4 @@ def find_seed_indexes_on_streamlines(seeds, streamlines, atol=1.e-8):
             raise ValueError('A seed coordinate was not found on streamline.')
 
         seed_indexes.append(seed_index)
-    return seed_indexes
+    return np.array(seed_indexes, dtype=np.uint32)

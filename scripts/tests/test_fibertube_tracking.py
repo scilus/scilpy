@@ -31,7 +31,7 @@ def init_data():
                              space=Space.VOX,
                              origin=Origin.NIFTI)
     sft.data_per_streamline = {
-        "diameters": [0.002, 0.001]
+        "diameters": np.array([0.002, 0.001])
     }
 
     save_tractogram(sft, 'tractogram.trk', True)
