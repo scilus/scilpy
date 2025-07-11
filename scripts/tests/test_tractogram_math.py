@@ -14,7 +14,7 @@ trk_path = os.path.join(SCILPY_HOME, 'others')
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_tractogram_math.py', '--help')
+    ret = script_runner.run(['scil_tractogram_math.py', '--help'])
     assert ret.success
 
 
@@ -22,9 +22,9 @@ def test_execution_lazy_concatenate_no_color(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_tracto_1 = os.path.join(trk_path, 'fibercup_bundles.trk')
     in_tracto_2 = os.path.join(trk_path, 'fibercup_bundle_0.trk')
-    ret = script_runner.run('scil_tractogram_math.py', 'lazy_concatenate',
+    ret = script_runner.run(['scil_tractogram_math.py', 'lazy_concatenate',
                             in_tracto_1, in_tracto_2,
-                            'lazy_concatenate.trk')
+                            'lazy_concatenate.trk'])
     assert ret.success
 
 
@@ -32,9 +32,9 @@ def test_execution_lazy_concatenate_mix(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_tracto_1 = os.path.join(trk_path, 'fibercup_bundles_color.trk')
     in_tracto_2 = os.path.join(trk_path, 'fibercup_bundle_0.trk')
-    ret = script_runner.run('scil_tractogram_math.py', 'lazy_concatenate',
+    ret = script_runner.run(['scil_tractogram_math.py', 'lazy_concatenate',
                             in_tracto_1, in_tracto_2,
-                            'lazy_concatenate_mix.trk')
+                            'lazy_concatenate_mix.trk'])
     assert ret.success
 
 
@@ -42,8 +42,8 @@ def test_execution_union_no_color(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_tracto_1 = os.path.join(trk_path, 'fibercup_bundles.trk')
     in_tracto_2 = os.path.join(trk_path, 'fibercup_bundle_0.trk')
-    ret = script_runner.run('scil_tractogram_math.py', 'union',
-                            in_tracto_1, in_tracto_2, 'union.trk')
+    ret = script_runner.run(['scil_tractogram_math.py', 'union',
+                            in_tracto_1, in_tracto_2, 'union.trk'])
     assert ret.success
 
 
@@ -51,8 +51,8 @@ def test_execution_intersection_no_color(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_tracto_1 = os.path.join(trk_path, 'fibercup_bundles.trk')
     in_tracto_2 = os.path.join(trk_path, 'fibercup_bundle_0.trk')
-    ret = script_runner.run('scil_tractogram_math.py', 'intersection',
-                            in_tracto_1, in_tracto_2, 'intersection.trk')
+    ret = script_runner.run(['scil_tractogram_math.py', 'intersection',
+                            in_tracto_1, in_tracto_2, 'intersection.trk'])
     assert ret.success
 
 
@@ -60,8 +60,8 @@ def test_execution_difference_no_color(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_tracto_1 = os.path.join(trk_path, 'fibercup_bundles.trk')
     in_tracto_2 = os.path.join(trk_path, 'fibercup_bundle_0.trk')
-    ret = script_runner.run('scil_tractogram_math.py', 'difference',
-                            in_tracto_1, in_tracto_2, 'difference.trk')
+    ret = script_runner.run(['scil_tractogram_math.py', 'difference',
+                            in_tracto_1, in_tracto_2, 'difference.trk'])
     assert ret.success
 
 
@@ -69,8 +69,8 @@ def test_execution_concatenate_no_color(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_tracto_1 = os.path.join(trk_path, 'fibercup_bundles.trk')
     in_tracto_2 = os.path.join(trk_path, 'fibercup_bundle_0.trk')
-    ret = script_runner.run('scil_tractogram_math.py', 'concatenate',
-                            in_tracto_1, in_tracto_2, 'concatenate.trk')
+    ret = script_runner.run(['scil_tractogram_math.py', 'concatenate',
+                            in_tracto_1, in_tracto_2, 'concatenate.trk'])
     assert ret.success
 
 
@@ -78,9 +78,9 @@ def test_execution_union_no_color_robust(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_tracto_1 = os.path.join(trk_path, 'fibercup_bundles.trk')
     in_tracto_2 = os.path.join(trk_path, 'fibercup_bundle_0.trk')
-    ret = script_runner.run('scil_tractogram_math.py', 'union',
+    ret = script_runner.run(['scil_tractogram_math.py', 'union',
                             in_tracto_1, in_tracto_2, 'union_r.trk',
-                            '--robust')
+                            '--robust'])
     assert ret.success
 
 
@@ -88,9 +88,9 @@ def test_execution_intersection_no_color_robust(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_tracto_1 = os.path.join(trk_path, 'fibercup_bundles.trk')
     in_tracto_2 = os.path.join(trk_path, 'fibercup_bundle_0.trk')
-    ret = script_runner.run('scil_tractogram_math.py', 'intersection',
+    ret = script_runner.run(['scil_tractogram_math.py', 'intersection',
                             in_tracto_1, in_tracto_2, 'intersection_r.trk',
-                            '--robust')
+                            '--robust'])
     assert ret.success
 
 
@@ -98,9 +98,9 @@ def test_execution_difference_no_color_robust(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_tracto_1 = os.path.join(trk_path, 'fibercup_bundles.trk')
     in_tracto_2 = os.path.join(trk_path, 'fibercup_bundle_0.trk')
-    ret = script_runner.run('scil_tractogram_math.py', 'difference',
+    ret = script_runner.run(['scil_tractogram_math.py', 'difference',
                             in_tracto_1, in_tracto_2, 'difference_r.trk',
-                            '--robust')
+                            '--robust'])
     assert ret.success
 
 
@@ -108,8 +108,8 @@ def test_execution_union_color(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_tracto_1 = os.path.join(trk_path, 'fibercup_bundles_color.trk')
     in_tracto_2 = os.path.join(trk_path, 'fibercup_bundle_0_color.trk')
-    ret = script_runner.run('scil_tractogram_math.py', 'union',
-                            in_tracto_1, in_tracto_2, 'union_color.trk')
+    ret = script_runner.run(['scil_tractogram_math.py', 'union',
+                            in_tracto_1, in_tracto_2, 'union_color.trk'])
     assert ret.success
 
 
@@ -117,8 +117,8 @@ def test_execution_intersection_color(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_tracto_1 = os.path.join(trk_path, 'fibercup_bundles_color.trk')
     in_tracto_2 = os.path.join(trk_path, 'fibercup_bundle_0_color.trk')
-    ret = script_runner.run('scil_tractogram_math.py', 'intersection',
-                            in_tracto_1, in_tracto_2, 'intersection_color.trk')
+    ret = script_runner.run(['scil_tractogram_math.py', 'intersection',
+                            in_tracto_1, in_tracto_2, 'intersection_color.trk'])
     assert ret.success
 
 
@@ -126,8 +126,8 @@ def test_execution_difference_color(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_tracto_1 = os.path.join(trk_path, 'fibercup_bundles_color.trk')
     in_tracto_2 = os.path.join(trk_path, 'fibercup_bundle_0_color.trk')
-    ret = script_runner.run('scil_tractogram_math.py', 'difference',
-                            in_tracto_1, in_tracto_2, 'difference_color.trk')
+    ret = script_runner.run(['scil_tractogram_math.py', 'difference',
+                            in_tracto_1, in_tracto_2, 'difference_color.trk'])
     assert ret.success
 
 
@@ -135,8 +135,8 @@ def test_execution_concatenate_color(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_tracto_1 = os.path.join(trk_path, 'fibercup_bundles_color.trk')
     in_tracto_2 = os.path.join(trk_path, 'fibercup_bundle_0_color.trk')
-    ret = script_runner.run('scil_tractogram_math.py', 'concatenate',
-                            in_tracto_1, in_tracto_2, 'concatenate_color.trk')
+    ret = script_runner.run(['scil_tractogram_math.py', 'concatenate',
+                            in_tracto_1, in_tracto_2, 'concatenate_color.trk'])
     assert ret.success
 
 
@@ -145,8 +145,8 @@ def test_execution_union_mix(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_tracto_1 = os.path.join(trk_path, 'fibercup_bundles_color.trk')
     in_tracto_2 = os.path.join(trk_path, 'fibercup_bundle_0.trk')
-    ret = script_runner.run('scil_tractogram_math.py', 'union',
-                            in_tracto_1, in_tracto_2, 'union_mix.trk')
+    ret = script_runner.run(['scil_tractogram_math.py', 'union',
+                            in_tracto_1, in_tracto_2, 'union_mix.trk'])
     assert not ret.success
 
 
@@ -154,9 +154,9 @@ def test_execution_intersection_mix_fake(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_tracto_1 = os.path.join(trk_path, 'fibercup_bundles_color.trk')
     in_tracto_2 = os.path.join(trk_path, 'fibercup_bundle_0.trk')
-    ret = script_runner.run('scil_tractogram_math.py', 'intersection',
+    ret = script_runner.run(['scil_tractogram_math.py', 'intersection',
                             in_tracto_1, in_tracto_2, 'intersection_mix.trk',
-                            '--fake_metadata')
+                            '--fake_metadata'])
     assert ret.success
 
 
@@ -164,9 +164,9 @@ def test_execution_difference_empty_result(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_tracto_1 = os.path.join(trk_path, 'fibercup_bundle_0.trk')
     in_tracto_2 = os.path.join(trk_path, 'fibercup_bundle_0_color.trk')
-    ret = script_runner.run('scil_tractogram_math.py', 'difference',
+    ret = script_runner.run(['scil_tractogram_math.py', 'difference',
                             in_tracto_1, in_tracto_2,
-                            'difference_empty_results.trk', '--no_metadata')
+                            'difference_empty_results.trk', '--no_metadata'])
     assert ret.success
 
 
@@ -174,9 +174,9 @@ def test_execution_difference_empty_input_1(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_tracto_1 = os.path.join(trk_path, 'empty.trk')
     in_tracto_2 = os.path.join(trk_path, 'fibercup_bundle_0_color.trk')
-    ret = script_runner.run('scil_tractogram_math.py', 'difference',
+    ret = script_runner.run(['scil_tractogram_math.py', 'difference',
                             in_tracto_1, in_tracto_2, 'difference_empty_1.trk',
-                            '--no_metadata')
+                            '--no_metadata'])
     assert ret.success
 
 
@@ -184,7 +184,7 @@ def test_execution_difference_empty_input_2(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_tracto_1 = os.path.join(trk_path, 'fibercup_bundle_0_color.trk')
     in_tracto_2 = os.path.join(trk_path, 'empty.trk')
-    ret = script_runner.run('scil_tractogram_math.py', 'difference',
+    ret = script_runner.run(['scil_tractogram_math.py', 'difference',
                             in_tracto_1, in_tracto_2, 'difference_empty_2.trk',
-                            '--no_metadata')
+                            '--no_metadata'])
     assert ret.success

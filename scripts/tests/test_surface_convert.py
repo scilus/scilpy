@@ -13,7 +13,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_surface_convert.py', '--help')
+    ret = script_runner.run(['scil_surface_convert.py', '--help'])
     assert ret.success
 
 
@@ -21,8 +21,8 @@ def test_execution_surface_vtk_fib(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_surf = os.path.join(SCILPY_HOME, 'surface_vtk_fib',
                            'lhpialt.vtk')
-    ret = script_runner.run('scil_surface_convert.py', in_surf,
-                            'rhpialt.ply')
+    ret = script_runner.run(['scil_surface_convert.py', in_surf,
+                            'rhpialt.ply'])
     assert ret.success
 
 
@@ -31,7 +31,7 @@ def test_execution_surface_vtk_xfrom(script_runner, monkeypatch):
     in_surf = os.path.join(SCILPY_HOME, 'surface_vtk_fib',
                            'lh.pialt_xform')
     ref = os.path.join(SCILPY_HOME, 'surface_vtk_fib', 'fa.nii.gz')
-    ret = script_runner.run('scil_surface_convert.py', in_surf,
+    ret = script_runner.run(['scil_surface_convert.py', in_surf,
                             'lh.pialt_xform.vtk', '--reference', ref,
-                            '--flip_axes', '-1', '-1', '1')
+                            '--flip_axes', '-1', '-1', '1'])
     assert ret.success

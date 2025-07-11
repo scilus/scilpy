@@ -13,8 +13,8 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_tractogram_apply_transform_to_hdf5.py',
-                            '--help')
+    ret = script_runner.run(['scil_tractogram_apply_transform_to_hdf5.py',
+                            '--help'])
     assert ret.success
 
 
@@ -28,6 +28,6 @@ def test_execution_connectivity(script_runner, monkeypatch):
     # toDo. Add a --in_deformation file in our test data, fitting with hdf5.
     #  (See test_tractogram_apply_transform)
     # toDo. Add some dps in the hdf5's data for more line coverage.
-    ret = script_runner.run('scil_tractogram_apply_transform_to_hdf5.py',
-                            in_h5, in_target, in_transfo, 'decompose_lin.h5')
+    ret = script_runner.run(['scil_tractogram_apply_transform_to_hdf5.py',
+                            in_h5, in_target, in_transfo, 'decompose_lin.h5'])
     assert ret.success

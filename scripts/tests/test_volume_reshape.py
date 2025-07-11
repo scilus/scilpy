@@ -15,46 +15,46 @@ in_img = os.path.join(SCILPY_HOME, 'others', 'fa.nii.gz')
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_volume_reshape.py', '--help')
+    ret = script_runner.run(['scil_volume_reshape.py', '--help'])
     assert ret.success
 
 
 def test_execution_crop(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
-    ret = script_runner.run('scil_volume_reshape.py', in_img,
+    ret = script_runner.run(['scil_volume_reshape.py', in_img,
                             'fa_reshape.nii.gz', '--volume_size', '90',
-                            '-f')
+                            '-f'])
     assert ret.success
 
 
 def test_execution_pad(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
-    ret = script_runner.run('scil_volume_reshape.py', in_img,
+    ret = script_runner.run(['scil_volume_reshape.py', in_img,
                             'fa_reshape.nii.gz', '--volume_size', '150',
-                            '-f')
+                            '-f'])
     assert ret.success
 
 
 def test_execution_full_size(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
-    ret = script_runner.run('scil_volume_reshape.py', in_img,
+    ret = script_runner.run(['scil_volume_reshape.py', in_img,
                             'fa_reshape.nii.gz', '--volume_size',
-                            '164', '164', '164', '-f')
+                            '164', '164', '164', '-f'])
     assert ret.success
 
 
 def test_execution_dtype(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
-    ret = script_runner.run('scil_volume_reshape.py', in_img,
+    ret = script_runner.run(['scil_volume_reshape.py', in_img,
                             'fa_reshape.nii.gz', '--volume_size',
                             '111', '133', '109', '--data_type',
-                            'uint8', '-f')
+                            'uint8', '-f'])
     assert ret.success
 
 
 def test_execution_ref(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     ref = os.path.join(SCILPY_HOME, 'others', 'fa_resample.nii.gz')
-    ret = script_runner.run('scil_volume_reshape.py', in_img,
-                            'fa_reshape.nii.gz', '--ref', ref, '-f')
+    ret = script_runner.run(['scil_volume_reshape.py', in_img,
+                            'fa_reshape.nii.gz', '--ref', ref, '-f'])
     assert ret.success

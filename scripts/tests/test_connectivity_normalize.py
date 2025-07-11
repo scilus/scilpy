@@ -13,7 +13,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_connectivity_normalize.py', '--help')
+    ret = script_runner.run(['scil_connectivity_normalize.py', '--help'])
     assert ret.success
 
 
@@ -25,7 +25,7 @@ def test_execution_connectivity(script_runner, monkeypatch):
                             'endpoints_atlas.nii.gz')
     in_labels_list = os.path.join(SCILPY_HOME, 'connectivity',
                                   'labels_list.txt')
-    ret = script_runner.run('scil_connectivity_normalize.py', in_sc,
+    ret = script_runner.run(['scil_connectivity_normalize.py', in_sc,
                             'sc_norm.npy', '--length', in_len,
-                            '--parcel_volume', in_atlas, in_labels_list)
+                            '--parcel_volume', in_atlas, in_labels_list])
     assert ret.success

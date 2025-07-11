@@ -14,7 +14,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_gradients_apply_transform.py', '--help')
+    ret = script_runner.run(['scil_gradients_apply_transform.py', '--help'])
     assert ret.success
 
 
@@ -24,7 +24,7 @@ def test_execution_bst(script_runner, monkeypatch):
                             'dwi.bvec')
     in_aff = os.path.join(SCILPY_HOME, 'bst',
                           'output0GenericAffine.mat')
-    ret = script_runner.run('scil_gradients_apply_transform.py',
+    ret = script_runner.run(['scil_gradients_apply_transform.py',
                             in_bvecs, in_aff,
-                            'bvecs_transformed.bvec', '--inverse')
+                            'bvecs_transformed.bvec', '--inverse'])
     assert ret.success

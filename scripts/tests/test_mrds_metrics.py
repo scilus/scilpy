@@ -13,7 +13,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_mrds_metrics.py', '--help')
+    ret = script_runner.run(['scil_mrds_metrics.py', '--help'])
     assert ret.success
 
 
@@ -24,9 +24,9 @@ def test_execution_mrds_all_metrics(script_runner, monkeypatch):
                             'mrds', 'sub-01_MRDS_eigenvalues.nii.gz')
 
     # no option
-    ret = script_runner.run('scil_mrds_metrics.py',
+    ret = script_runner.run(['scil_mrds_metrics.py',
                             in_evals,
-                            '-f')
+                            '-f'])
     assert ret.success
 
 
@@ -38,7 +38,7 @@ def test_execution_mrds_not_all_metrics(script_runner, monkeypatch):
     in_mask = os.path.join(SCILPY_HOME,
                            'mrds', 'sub-01_mask.nii.gz')
     # no option
-    ret = script_runner.run('scil_mrds_metrics.py',
+    ret = script_runner.run(['scil_mrds_metrics.py',
                             in_evals,
                             '--mask', in_mask,
                             '--not_all',
@@ -46,5 +46,5 @@ def test_execution_mrds_not_all_metrics(script_runner, monkeypatch):
                             '--ad', 'sub-01_MRDS_AD.nii.gz',
                             '--rd', 'sub-01_MRDS_RD.nii.gz',
                             '--md', 'sub-01_MRDS_MD.nii.gz',
-                            '-f')
+                            '-f'])
     assert ret.success

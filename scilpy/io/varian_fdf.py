@@ -101,11 +101,11 @@ def read_file(file_path):
     # Extracts floating point numbers
     # ex: 'float  roi[] = {3.840000,3.840000,0.035000};'
     # returns ['3.840000', '3.840000', '0.035000']
-    float_regex = '[-+]?[0-9]*\.?[0-9]+'
+    float_regex = r'[-+]?[0-9]*\.?[0-9]+'
 
     # Extracts value of a line of the type:
     # 'int    slice_no = 1;' would return '1'
-    named_value_regex = '= *\"*(.*[^\"])\"* *;'
+    named_value_regex = r'= *\"*(.*[^\"])\"* *;'
 
     # (tag_in_file, tag_in_header)
     find_values = (('echos', 'nechoes'),
@@ -172,7 +172,7 @@ def read_file(file_path):
                 # Extracts digits.
                 # ex: 'float  matrix[] = {128, 128};'
                 # returns ['128', '128']
-                m = re.findall('(\d+)', line.rstrip())
+                m = re.findall(r'(\d+)', line.rstrip())
                 raw_header['shape'] = np.array([int(x) for x in m])
 
         # Total number of data pixels

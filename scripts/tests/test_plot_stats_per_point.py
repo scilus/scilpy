@@ -13,7 +13,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_plot_stats_per_point.py', '--help')
+    ret = script_runner.run(['scil_plot_stats_per_point.py', '--help'])
     assert ret.success
 
 
@@ -21,7 +21,7 @@ def test_execution_tractometry(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_json = os.path.join(SCILPY_HOME, 'tractometry',
                            'metric_label.json')
-    ret = script_runner.run('scil_plot_stats_per_point.py', in_json,
-                            'out/', '--stats_over_population')
+    ret = script_runner.run(['scil_plot_stats_per_point.py', in_json,
+                            'out/', '--stats_over_population'])
 
     assert ret.success

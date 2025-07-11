@@ -656,6 +656,8 @@ def resample_streamlines_step_size(sft, step_size):
 
     # Return to original space
     resampled_sft.to_space(orig_space)
+    resampled_sft.streamlines._data = resampled_sft.streamlines._data.astype(
+        np.float32)
 
     return resampled_sft
 
@@ -1101,4 +1103,4 @@ def find_seed_indexes_on_streamlines(seeds, streamlines, atol=1.e-8):
             raise ValueError('A seed coordinate was not found on streamline.')
 
         seed_indexes.append(seed_index)
-    return seed_indexes
+    return np.array(seed_indexes, dtype=np.uint32)

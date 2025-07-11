@@ -31,36 +31,36 @@ def init_data():
     sft_fibertubes = StatefulTractogram(streamlines, mask_img, Space.VOX,
                                         Origin.NIFTI)
     sft_fibertubes.data_per_streamline = {
-        "diameters": [0.2, 0.01]
+        "diameters": np.array([0.2, 0.01])
     }
 
     save_tractogram(sft_fibertubes, 'fibertubes.trk', True)
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_fibertube_compute_density.py', '--help')
+    ret = script_runner.run(['scil_fibertube_compute_density.py', '--help'])
     assert ret.success
 
 
 def test_execution_density(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     init_data()
-    ret = script_runner.run('scil_fibertube_compute_density.py',
+    ret = script_runner.run(['scil_fibertube_compute_density.py',
                             'fibertubes.trk',
                             '--out_density_map', 'density_map.nii.gz',
                             '--out_density_measures',
                             'density_measures.json',
-                            '-f')
+                            '-f'])
     assert ret.success
 
 
 def test_execution_collisions(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     init_data()
-    ret = script_runner.run('scil_fibertube_compute_density.py',
+    ret = script_runner.run(['scil_fibertube_compute_density.py',
                             'fibertubes.trk',
                             '--out_collision_map', 'collision_map.nii.gz',
                             '--out_collision_measures',
                             'collision_measures.json',
-                            '-f')
+                            '-f'])
     assert ret.success

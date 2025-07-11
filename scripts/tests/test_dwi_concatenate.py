@@ -13,7 +13,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_dwi_concatenate.py', '--help')
+    ret = script_runner.run(['scil_dwi_concatenate.py', '--help'])
     assert ret.success
 
 
@@ -25,9 +25,9 @@ def test_execution_processing_concatenate(script_runner, monkeypatch):
                            'dwi.bval')
     in_bvec = os.path.join(SCILPY_HOME, 'processing',
                            'dwi.bvec')
-    ret = script_runner.run('scil_dwi_concatenate.py', 'dwi_concat.nii.gz',
+    ret = script_runner.run(['scil_dwi_concatenate.py', 'dwi_concat.nii.gz',
                             'concat.bval', 'concat.bvec',
                             '--in_dwi', in_dwi, in_dwi,
                             '--in_bvals', in_bval, in_bval,
-                            '--in_bvecs', in_bvec, in_bvec)
+                            '--in_bvecs', in_bvec, in_bvec])
     assert ret.success
