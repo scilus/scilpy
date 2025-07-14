@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
+from Quactography.quactography.quac_matrix_adj_build import build_mat
 
 
 class RAP:
@@ -61,10 +62,21 @@ class RAPContinue(RAP):
 
 
 class RAPGraph(RAP):
-    def __init__(self, mask_rap, propagator, max_nbr_pts, neighboorhood_size):
+    def __init__(self, mask_rap, propagator, max_nbr_pts, neighboorhood_size, fodf):
         super().__init__(mask_rap, propagator, max_nbr_pts)
         self.neighboorhood_size = neighboorhood_size
+        self.fodf = fodf
 
 
     def rap_multistep_propagate(self, line, prev_direction):
-        raise NotImplementedError
+        is_line_valid = True
+        list_of_end_points = []
+        try:
+            if self.max_nbr_pts + len(list_of_end_points)> 17: 
+                raise ValueError("RAPGraph: max number of points exceeded")
+        except ValueError as e:
+            print(e)
+            is_line_valid = False
+            return line, prev_direction, is_line_valid
+        line.append(build_mat(self.mask_rap, self.fodf, "output_graph", line[-1], list_of_end_points))
+        return line, prev_direction, is_line_valid
