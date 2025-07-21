@@ -7,6 +7,8 @@ This method takes as input fODF maps and outputs 71 bundle label maps. These map
 
 Inputs are presumed to come from Tractoflow and must be BET and cropped. fODFs must be in SH format, basis descoteaux07_legacy and can be of order < 8 but accuracy may be reduced. Use scil_sh_convert.py to convert from other formats.
 
+Using DWI as input is also supported. In this case, the script will compute fODFs from the DWI using SSST CSD. The DWI must be preprocessed (e.g. denoised, eddy-corrected, BET, cropped, etc.) and the bval and bvec files must be provided in FSL format.
+
 Model weights will be downloaded the first time the script is run, which will require an internet connection at runtime. Otherwise they can be manually downloaded from zenodo [1] and by specifying --checkpoint.
 
 Example usage:
@@ -48,7 +50,7 @@ from scilpy.ml.bundleparc.predict import predict
 from scilpy.ml.bundleparc.labels import post_process_labels_discrete, \
     post_process_labels_mm, post_process_labels_continuous
 from scilpy.ml.bundleparc.utils import DEFAULT_BUNDLES, \
-    download_weights, get_model
+    compute_fodf_from_dwi, download_weights, get_model
 from scilpy.ml.utils import get_device, IMPORT_ERROR_MSG
 from scilpy import SCILPY_HOME
 
@@ -64,27 +66,12 @@ def _build_arg_parser():
         description=__doc__ + '\n' + IMPORT_ERROR_MSG,
         formatter_class=RawTextHelpFormatter)
 
-    parser.add_argument('in_fodf',
-                        help='fODF input.')
+    parser.add_argument('in_volume',
+                        help='Input. fODF (or DWI) volume in nifti format. ')
     parser.add_argument('--out_prefix', default='',
                         help='Output file prefix. Default is nothing. ')
     parser.add_argument('--out_folder', default='bundleparc',
                         help='Output destination. Default is [%(default)s].')
-    group = parser.add_mutually_exclusive_group(required=True)
-    group.add_argument('--nb_pts', type=int,
-                       help='Number of divisions per bundle. ')
-    group.add_argument('--mm', type=float,
-                       help='If set, bundles will be split in sections '
-                            'roughly X mm wide.')
-    group.add_argument('--continuous', action='store_true',
-                       help='If set, the output label maps will be continuous'
-                            ' ∈ [0, 1].')
-    parser.add_argument('--min_blob_size', type=int, default=50,
-                        help='Minimum blob size (in voxels) to keep. Smaller '
-                             'blobs will be removed. Default is '
-                             '[%(default)s].')
-    parser.add_argument('--keep_biggest_blob', action='store_true',
-                        help='If set, only keep the biggest blob predicted.')
     parser.add_argument('--half_precision', action='store_true',
                         help='Use half precision (float16) for inference. '
                              'This reduces memory usage but may lead to '
@@ -97,6 +84,33 @@ def _build_arg_parser():
                              'and weights of model. Default is '
                              '[%(default)s]. If the file does not exist, it '
                              'will be downloaded.')
+    parcel_group = parser.add_mutually_exclusive_group(required=True)
+    parcel_group.add_argument('--nb_pts', type=int,
+                              help='Number of divisions per bundle. ')
+    parcel_group.add_argument('--mm', type=float,
+                              help='If set, bundles will be split in sections '
+                                   'roughly X mm wide.')
+    parcel_group.add_argument('--continuous', action='store_true',
+                              help='If set, the output label maps will be '
+                                   'continuous ∈ [0, 1].')
+    blob_group = parser.add_mutually_exclusive_group()
+    blob_group.add_argument('--min_blob_size', type=int, default=50,
+                            help='Minimum blob size (in voxels) to keep. '
+                                 'Smaller blobs will be removed. Default is '
+                                 '[%(default)s].')
+    blob_group.add_argument('--keep_biggest_blob', action='store_true',
+                            help='Only keep the biggest blob predicted.')
+    dwi_group = parser.add_argument_group('Compute fODF from DWI.')
+    dwi_group.add_argument('--dwi', action='store_true',
+                           help='If set, the input fODF is a DWI volume. The '
+                                'script will compute fODF from the DWI '
+                                'using SSST CSD.')
+    dwi_group.add_argument('--bval',
+                           help='Path to the bval file, in FSL format. '
+                                'Required if --dwi is set.')
+    dwi_group.add_argument('--bvec',
+                           help='Path to the bvec file, in FSL format. '
+                                'Required if --dwi is set.')
     add_overwrite_arg(parser)
     add_verbose_arg(parser)
 
@@ -108,7 +122,7 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, [args.in_fodf])
+    assert_inputs_exist(parser, [args.in_volume], [args.bval, args.bvec])
     assert_output_dirs_exist_and_empty(parser, args, args.out_folder,
                                        create_dir=True)
 
@@ -121,7 +135,12 @@ def main():
     # Load the model
     model = get_model(args.checkpoint, device, {'pretrained': True})
 
-    fodf_in = nib.load(args.in_fodf)
+    if args.dwi:
+        fodf_in = compute_fodf_from_dwi(
+            args.in_volume, args.bval, args.bvec)
+    else:
+        fodf_in = nib.load(args.in_volume)
+
     X, Y, Z, C = fodf_in.get_fdata(dtype=np.float32).shape
 
     # TODO in future release: infer these from model
