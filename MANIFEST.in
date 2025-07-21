@@ -4,6 +4,6 @@ include requirements.txt
 include .python-version
 
 recursive-include src/scilpy/data *
-recursive-include scilpy *.c
-recursive-include scilpy *.cpp
-recursive-include scilpy *.pyx
+recursive-include src/scilpy *.c
+recursive-include src/scilpy *.cpp
+recursive-include src/scilpy *.pyx
