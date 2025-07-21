@@ -7,7 +7,7 @@ This method takes as input fODF maps and outputs 71 bundle label maps. These map
 
 Inputs are presumed to come from Tractoflow and must be BET and cropped. fODFs must be in SH format, basis descoteaux07_legacy and can be of order < 8 but accuracy may be reduced. Use scil_sh_convert.py to convert from other formats.
 
-Using DWI as input is also supported. In this case, the script will compute fODFs from the DWI using SSST CSD. The DWI must be preprocessed (e.g. denoised, eddy-corrected, BET, cropped, etc.) and the bval and bvec files must be provided in FSL format.
+Using DWI as input is also supported. In this case, the script will compute fODFs from the DWI using SSST CSD [1]. The DWI must be preprocessed (e.g. denoised, eddy-corrected, BET, cropped, etc.) and the bval and bvec files must be provided in FSL format.
 
 Model weights will be downloaded the first time the script is run, which will require an internet connection at runtime. Otherwise they can be manually downloaded from zenodo [1] and by specifying --checkpoint.
 
@@ -29,7 +29,8 @@ Parts of the implementation are based on or lifted from:
 
 To cite: Antoine Théberge, Zineb El Yamani, François Rheault, Maxime Descoteaux, Pierre-Marc Jodoin (2025). LabelSeg. ISMRM Workshop on 40 Years of Diffusion: Past, Present & Future Perspectives, Kyoto, Japan.
 
-[1]: https://zenodo.org/records/15579498
+[1]: Descoteaux, M., Deriche, R., Knösche, T. R., & Anwander, A. (2007). Deterministic and probabilistic tractography based on complex fibre orientation distributions. IEEE Transactions on Medical Imaging, 26(11), 1464-1477.
+[2]: https://zenodo.org/records/15579498
 """  # noqa
 
 import argparse
