@@ -61,6 +61,7 @@ jobs:
       - name: Run tests
         run: |
           export C_INCLUDE_PATH=$pythonLocation/include/python${{ steps.python-selector.outputs.python-version }}:$C_INCLUDE_PATH
+          source ~/.venvs/scilpy/bin/activate
           pytest --cov-report term-missing:skip-covered
 
       - name: Save test results and coverage
