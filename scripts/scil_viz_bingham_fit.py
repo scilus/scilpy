@@ -41,7 +41,7 @@ def _build_arg_parser():
     # Positional arguments
     p.add_argument('in_bingham',
                    help='Input SH image file. Expecting data to be of size '
-                        '(X, Y, Z, 9 * nb_lobes)')
+                        '(X, Y, Z, nb_lobes, 7)')
 
     # Window configuration options
     p.add_argument('--slice_index', type=int,

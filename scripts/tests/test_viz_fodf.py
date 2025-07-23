@@ -30,14 +30,28 @@ def test_run(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_fodf = os.path.join(SCILPY_HOME, 'tracking', 'fodf.nii.gz')
     in_mask = os.path.join(SCILPY_HOME, 'tracking', 'seeding_mask.nii.gz')
-    # No variance file in data, but faking it with the fodf file.
+    # No variance file in our test data, but faking it with the fodf file.
     in_variance = os.path.join(SCILPY_HOME, 'tracking', 'fodf.nii.gz')
     out_name = os.path.join(tmp_dir.name, 'out.png')
     ret = script_runner.run(['scil_viz_fodf.py', in_fodf, '--silent',
                             '--in_transparency_mask', in_mask,
-                            '--mask', in_mask, '--sph_subdivide', '2',
+                            '--mask', in_mask,
+                            '--variance', in_variance,
                             '--output', out_name])
-    # toDo: With additional option ['--variance', in_variance], tests
-    #  crash locally..
+    assert ret.success
+
+
+def test_run_sphsubdivide(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
+    in_fodf = os.path.join(SCILPY_HOME, 'tracking', 'fodf.nii.gz')
+    in_mask = os.path.join(SCILPY_HOME, 'tracking', 'seeding_mask.nii.gz')
+    out_name = os.path.join(tmp_dir.name, 'out2.png')
+
+    # Note. Cannot add --sph_subdivide to the test above, causes a memory
+    # crash. Without the variance, lighter.
+    ret = script_runner.run('scil_viz_fodf.py', in_fodf, '--silent',
+                            '--mask', in_mask,
+                            '--sph_subdivide', '2',
+                            '--output', out_name)
 
     assert ret.success
