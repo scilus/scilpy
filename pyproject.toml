@@ -14,12 +14,11 @@ description = "Scilpy: diffusion MRI tools and utilities"
 authors = [{ name = "SCIL Team" }]
 readme = "README.md"
 requires-python = ">=3.9, <3.12"
-license = { file = "LICENSE" }
+license-files = ["LICENSE"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Environment :: Console",
     "Intended Audience :: Science/Research",
-    "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Programming Language :: Python",
     "Topic :: Scientific/Engineering"
