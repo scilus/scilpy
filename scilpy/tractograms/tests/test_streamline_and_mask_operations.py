@@ -89,7 +89,7 @@ def test_get_endpoints_density_map_five_points():
     """
 
     sft, reference, *_ = _setup_files()
-    print(sft.streamlines._data.dtype)
+
     endpoints_map = get_endpoints_density_map(
         sft, point_to_select=5, to_millimeters=True)
 

@@ -1273,17 +1273,3 @@ def get_default_screenshotting_data(args, peaks=True):
             ovl_imgs,
             ovl_colors,
             peaks_imgs)
-
-
-def convert_stateful_str_to_enum(args):
-    """
-    Convert spatial arguments from string to enum for stateful operations.
-    """
-
-    for space in ['source_space', 'destination_space']:
-        if hasattr(args, space):
-            setattr(args, space, Space(args.__getattribute__(space)))
-
-    for origin in ['source_origin', 'destination_origin']:
-        if hasattr(args, origin):
-            setattr(args, origin, Origin(args.__getattribute__(origin)))
