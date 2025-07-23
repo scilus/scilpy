@@ -284,8 +284,10 @@ def create_bingham_slicer(data, orientation, slice_index,
 
     Parameters
     ----------
-    data: ndarray (X, Y, Z, 9 * nb_lobes)
-        The Bingham volume.
+    data: Array
+        Volume of shape (X, Y, Z, N_LOBES, NB_PARAMS) containing
+        the Bingham distributions parameters. Note, NB_PARAMS is usually 7.
+        One of X, Y, Z should be of value 1 (one slice).
     orientation: str
         Name of the axis to visualize. Choices are axial, coronal and sagittal.
     slice_index: int
@@ -302,13 +304,15 @@ def create_bingham_slicer(data, orientation, slice_index,
         ODF slicer actors representing the Bingham distributions.
     """
     shape = data.shape
+    if len(shape) != 5:
+        raise ValueError('Expecting bingham data to be 5D '
+                         '(x, y, z, N_LOBES, NB_PARAMS), but got {}'
+                         .format(shape))
     nb_lobes = shape[-2]
     colors = [c * 255 for c in generate_n_colors(nb_lobes)]
 
-    # lmax norm for normalization
-    print("???????? data", data.shape)
+    # lmax norm for normalization: first bingham param, averaged on lobes
     lmaxnorm = np.max(np.abs(data[..., 0]), axis=-1)
-    print("???????? lmaxnorm", lmaxnorm.shape)
     bingham_sf = bingham_to_sf(data, sphere.vertices)
 
     actors = []

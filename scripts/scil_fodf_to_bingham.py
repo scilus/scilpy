@@ -37,7 +37,7 @@ from scilpy.io.utils import (add_overwrite_arg, add_processes_arg,
                              assert_outputs_exist, validate_nbr_processes,
                              assert_headers_compatible)
 from scilpy.io.image import get_data_as_mask
-from scilpy.reconst.bingham import (bingham_fit_sh)
+from scilpy.reconst.bingham import bingham_fit_sh
 from scilpy.version import version_string
 
 
