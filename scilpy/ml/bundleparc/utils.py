@@ -1,4 +1,5 @@
 import logging
+import nibabel as nib
 import numpy as np
 import os
 import requests
@@ -6,11 +7,20 @@ import torch
 
 from tqdm import tqdm
 
+from dipy.core.gradients import gradient_table
+from dipy.data import get_sphere
+from dipy.io.gradients import read_bvals_bvecs
+from dipy.reconst.csdeconv import ConstrainedSphericalDeconvModel
+
+from scilpy.dwi.utils import B0ExtractionStrategy, extract_b0
 from scilpy.ml.bundleparc.bundleparcnet import BundleParcNet
+from scilpy.reconst.frf import compute_ssst_frf
+from scilpy.reconst.fodf import fit_from_model
 
 
 # TODO in future: Get bundle list from model
 DEFAULT_BUNDLES = ['AF_left', 'AF_right', 'ATR_left', 'ATR_right', 'CA', 'CC_1', 'CC_2', 'CC_3', 'CC_4', 'CC_5', 'CC_6', 'CC_7', 'CG_left', 'CG_right', 'CST_left', 'CST_right', 'FPT_left', 'FPT_right', 'FX_left', 'FX_right', 'ICP_left', 'ICP_right', 'IFO_left', 'IFO_right', 'ILF_left', 'ILF_right', 'MCP', 'MLF_left', 'MLF_right', 'OR_left', 'OR_right', 'POPT_left', 'POPT_right', 'SCP_left', 'SCP_right', 'SLF_III_left', 'SLF_III_right', 'SLF_II_left', 'SLF_II_right', 'SLF_I_left', 'SLF_I_right', 'STR_left', 'STR_right', 'ST_FO_left', 'ST_FO_right', 'ST_OCC_left', 'ST_OCC_right', 'ST_PAR_left', 'ST_PAR_right', 'ST_POSTC_left', 'ST_POSTC_right', 'ST_PREC_left', 'ST_PREC_right', 'ST_PREF_left', 'ST_PREF_right', 'ST_PREM_left', 'ST_PREM_right', 'T_OCC_left', 'T_OCC_right', 'T_PAR_left', 'T_PAR_right', 'T_POSTC_left', 'T_POSTC_right', 'T_PREC_left', 'T_PREC_right', 'T_PREF_left', 'T_PREF_right', 'T_PREM_left', 'T_PREM_right', 'UF_left', 'UF_right']  # noqa E501
+
 
 CKPT_URL = 'https://zenodo.org/records/15579498/files/123_4_5_bundleparc.ckpt' # noqa E501
 
@@ -82,6 +92,88 @@ def get_data(fodf, n_coefs):
     fodf_data = (fodf_data - mean) / std
 
     return fodf_data
+
+
+def compute_fodf_from_dwi(dwi_file, bval_file, bvec_file):
+    """ Compute fODF from DWI data using SSST CSD.
+
+    Parameters
+    ----------
+    dwi_file : str
+        Path to the input DWI volume.
+    bval_file : str
+        Path to the bval file, in FSL format.
+    bvec_file : str
+        Path to the bvec file, in FSL format.
+
+    Returns
+    -------
+    fodf_img : nib.Nifti1Image
+        fODF image.
+    """
+
+    # Loading DWI data
+    image = nib.load(dwi_file)
+    data = image.get_fdata(dtype=np.float32)
+
+    bvals, bvecs = read_bvals_bvecs(bval_file, bvec_file)
+    gtab = gradient_table(bvals, bvecs=bvecs)
+
+    b0_strategy = B0ExtractionStrategy.MEAN
+    extract_in_cluster = False
+
+    # Extract B0 volumes from the DWI data
+    logging.info('Extracting B0 volumes from DWI data...')
+    b0_volume = extract_b0(
+        image, gtab.b0s_mask, extract_in_cluster, b0_strategy)
+    # Compute a brain mask from the B0 volumes
+    logging.info('Computing brain mask...')
+    b0_mask = b0_volume > 0.00001
+
+    # Compute the FRF from the DWI using the B0 mask
+    logging.info('Computing Fiber Response Function (FRF) from DWI data...')
+    full_frf = compute_ssst_frf(
+        data, bvals, bvecs, mask=b0_mask)
+
+    # Checking full_frf and separating it
+    frf = full_frf[0:3]
+    mean_b0_val = full_frf[3]
+
+    # Computing fODF
+    logging.info('Computing Constrained Spherical Deconvolution ...')
+    reg_sphere = get_sphere(name='symmetric362')
+
+    # Checkin the max SH order that can be computed
+    sh_order = 8
+    while data.shape[-1] < (sh_order + 1) * (sh_order + 2) / 2 and \
+            sh_order > 2:
+        sh_order -= 2
+
+    if sh_order < 8:
+        logging.warning(
+            'We recommend having at least {} unique DWI volumes, but you '
+            'currently have {} volumes. SH order 8 is optimal, but is not '
+            'possible with your data. Using SH order {} instead.'.format(
+                (8 + 1) * (8 + 2) / 2, data.shape[-1], sh_order))
+
+    # Computing CSD
+    csd_model = ConstrainedSphericalDeconvModel(gtab, (frf, mean_b0_val),
+                                                reg_sphere=reg_sphere,
+                                                sh_order_max=sh_order)
+
+    # Computing CSD fit
+    csd_fit = fit_from_model(csd_model, data,
+                             mask=b0_mask, nbr_processes=8)
+    shm_coeff = csd_fit.shm_coeff
+
+    # Saving results
+    fodf_img = nib.Nifti1Image(
+        shm_coeff.astype(np.float32),
+        affine=image.affine,
+        header=image.header
+    )
+
+    return fodf_img
 
 
 def download_weights(path, chunk_size=1024, verbose=True):
