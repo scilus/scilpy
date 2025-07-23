@@ -609,8 +609,8 @@ def convert_sh_basis(shm_coeff, sphere, mask=None,
     sh_order = order_from_ncoef(shm_coeff.shape[-1])
     B_in, _ = sh_to_sf_matrix(sphere, sh_order, input_basis,
                               legacy=is_input_legacy)
-    _, invB_out = sh_to_sf_matrix(sphere, sh_order, output_basis,
-                                  legacy=is_output_legacy)
+    _, invB_out = sh_to_sf_matrix(sphere, sh_order_max=sh_order, basis_type=output_basis,
+                                  full_basis=False, legacy=is_output_legacy)
 
     data_shape = shm_coeff.shape
     if mask is None:

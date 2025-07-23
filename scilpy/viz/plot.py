@@ -136,7 +136,10 @@ def plot_residuals(data_diff, mask, R_k, q1, q3, iqr, residual_basename):
         if mask is not None:
             x = data_diff[..., k]
             outliers = (x < stats[k]['whislo']) | (x > stats[k]['whishi'])
-            percent_outliers[k] = np.sum(outliers) / nb_voxels * 100
+            if nb_voxels > 0:
+                percent_outliers[k] = np.sum(outliers) / nb_voxels * 100
+            else:
+                percent_outliers[k] = 0
             # What would be our definition of too many outliers?
             # Maybe mean(all_means)+-3SD?
             # Or we let people choose based on the figure.
