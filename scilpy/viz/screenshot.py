@@ -31,6 +31,8 @@ def screenshot_volume(img, orientation, slice_ids, size, labelmap=None):
         Slice indices.
     size : array-like
         Size of the screenshot image (pixels).
+    labelmap: str, vtkLookupTable, optional
+        Either a vtk lookup table or a matplotlib colormap name.
 
     Returns
     -------

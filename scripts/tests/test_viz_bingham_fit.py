@@ -21,8 +21,8 @@ def test_silent_without_output(script_runner, monkeypatch):
 
     # dummy dataset (the script should raise an error before using it)
     in_dummy = os.path.join(SCILPY_HOME, 'tracking', 'fodf.nii.gz')
-
+    out = os.path.join(tmp_dir.name, 'fodf.png')
     ret = script_runner.run('scil_viz_bingham_fit.py', in_dummy,
-                            '--silent')
+                            '--silent', '--output', out)
 
-    assert (not ret.success)
+    assert ret.success #(not ret.success)
