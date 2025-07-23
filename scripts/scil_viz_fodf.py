@@ -182,7 +182,7 @@ def _build_arg_parser():
                                'as follow: mean + k * sqrt(variance), where '
                                'mean is the input fodf (in_fodf) and k is the '
                                'scaling factor (variance_k).')
-    var.add_argument('--variance', help='FODF variance file.')
+    var.add_argument('--variance', help='FODF variance file (nifti).')
     var.add_argument('--variance_k', default=1, type=float,
                      help='Scaling factor (k) for the computation of the fodf '
                           'uncertainty. [%(default)s]')
@@ -286,17 +286,13 @@ def main():
     var_color = np.asarray(args.var_color) * 255
 
     # Instantiate the ODF slicer actor
-    odf_actor, var_actor = create_odf_slicer(fodf, args.axis_name,
-                                             args.slice_index, sph, sh_order,
-                                             sh_basis, full_basis,
-                                             args.scale, variance, mask,
-                                             args.sph_subdivide,
-                                             not args.radial_scale_off,
-                                             not args.norm_off,
-                                             args.colormap or color_rgb,
-                                             variance_k=args.variance_k,
-                                             variance_color=var_color,
-                                             is_legacy=is_legacy)
+    odf_actor, var_actor = create_odf_slicer(
+        fodf, args.axis_name, args.slice_index, sph, sh_order,
+        sh_basis, full_basis, args.scale,
+        sh_variance=variance, mask=mask, nb_subdivide=args.sph_subdivide,
+        radial_scale=not args.radial_scale_off, norm=not args.norm_off,
+        colormap=args.colormap or color_rgb, variance_k=args.variance_k,
+        variance_color=var_color, is_legacy=is_legacy)
     actors.append(odf_actor)
 
     # Instantiate a variance slicer actor if a variance image is supplied

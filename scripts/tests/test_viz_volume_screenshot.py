@@ -25,5 +25,6 @@ def test_screenshot(script_runner, monkeypatch):
                             '--slices', '50',
                             '--display_slice_number', '--display_lr',
                             '--overlays', in_mask,
-                            '--overlays_as_contours'])
+                            '--overlays_as_contours',
+                            '--volume_cmap_name', 'viridis'])
     assert ret.success

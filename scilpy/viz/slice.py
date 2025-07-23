@@ -41,7 +41,7 @@ def create_texture_slicer(texture, orientation, slice_index, *, mask=None,
     offset : float
         The offset of the texture image. Defaults to 0.5.
     lut : str, vtkLookupTable, optional
-        Either a vtk lookup table or a matplotlib name for one.
+        Either a vtk lookup table or a matplotlib colormap name.
     interpolation : str
         Interpolation mode for the texture image. Choices are nearest or
         linear. Defaults to nearest.
@@ -235,6 +235,8 @@ def create_odf_slicer(sh_fodf, orientation, slice_index, sphere, sh_order,
         Factor that multiplies sqrt(variance).
     variance_color : tuple, optional
         Color of the variance fODF data, in RGB.
+    is_legacy: bool
+        Whether the SH basis is used in legacy formats [True].
 
     Returns
     -------
@@ -304,7 +306,9 @@ def create_bingham_slicer(data, orientation, slice_index,
     colors = [c * 255 for c in generate_n_colors(nb_lobes)]
 
     # lmax norm for normalization
+    print("???????? data", data.shape)
     lmaxnorm = np.max(np.abs(data[..., 0]), axis=-1)
+    print("???????? lmaxnorm", lmaxnorm.shape)
     bingham_sf = bingham_to_sf(data, sphere.vertices)
 
     actors = []
