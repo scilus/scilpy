@@ -49,9 +49,9 @@ jobs:
             libdrm-dev
 
       - name: stdlib checkout
-        if: ${{ !contains(${{ steps.python-selector.outputs.python-version }}, '3.12') }}
+        if: ${{ !contains(steps.python-selector.outputs.python-version, '3.12') }}
         run: |
-          export SETUPTOOLS_USE_DISTUTILS=stdlib
+          echo "SETUPTOOLS_USE_DISTUTILS=stdlib" >> "$GITHUB_ENV"
 
       - name: Install Scilpy
         run: |
