@@ -296,8 +296,7 @@ def snapshot_scenes(scenes, window_size):
 
 
 def create_contours_actor(contours, opacity=1., linewidth=3.,
-                          color=[255, 0, 0]): # pragma: no cover
-    # (Function ignored from coverage statistics)
+                          color=[255, 0, 0]):
     """
     Create an actor from a vtkPolyData of contours
 
