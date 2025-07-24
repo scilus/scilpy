@@ -73,6 +73,9 @@ def _build_arg_parser():
         '--opacity', type=float, default=1.0,
         help='Opacity for the shells.')
 
+    p.add_argument('--test_run', action='store_true',
+                   help="If set, will not show anything. For debugging "
+                        "purposes.")
     add_verbose_arg(p)
     add_overwrite_arg(p)
 
@@ -133,9 +136,8 @@ def main():
             bvals = tmp[:, 3]
             centroids, shell_idx = identify_shells(bvals)
 
-        if args.verbose:
-            logging.info("Found {} centroids: {}".format(
-                len(centroids), centroids))
+        logging.info("Found {} centroids: {}"
+                     .format(len(centroids), centroids))
 
         if args.out_basename:
             out_basename, ext = os.path.splitext(args.out_basename)
@@ -169,6 +171,11 @@ def main():
     sym = args.enable_sym
     sph = args.enable_sph
     same = args.same_color
+
+    if args.test_run:
+        logging.warning("Tested everything. Exiting before launching "
+                        "vizualisation.")
+        exit(0)
 
     if proj:
         plot_proj_shell(ms, use_sym=sym, use_sphere=sph, same_color=same,

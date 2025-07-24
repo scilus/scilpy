@@ -41,7 +41,7 @@ BASE_10_COLORS = convert_color_names_to_rgb(["Red",
 
 
 def generate_n_colors(n, generator=colormap.distinguishable_colormap,
-                      pick_from_base10=True, shuffle=False):
+                      pick_from_base10=True):
     """
     Generate a set of N colors. When using the default parameters, colors will
     always be unique. When using a custom generator, ensure it generates unique
@@ -58,8 +58,6 @@ def generate_n_colors(n, generator=colormap.distinguishable_colormap,
     pick_from_base10 : bool
         When True, start picking from the base 10 colors before using
         the generator funtion (see BASE_COLORS_10).
-    shuffle : bool
-        Shuffle the color list before returning.
 
     Returns
     -------
@@ -76,9 +74,6 @@ def generate_n_colors(n, generator=colormap.distinguishable_colormap,
         _colors = np.concatenate(
             (_colors, generator(nb_colors=n - len(_colors), exclude=_colors)),
             axis=0)
-
-    if shuffle:
-        np.random.shuffle(_colors)
 
     return _colors
 
@@ -167,8 +162,6 @@ def clip_and_normalize_data_for_cmap(
         the first value of the LUT is set everywhere where data==1, etc.
     """
     # Make sure data type is float
-    if isinstance(data, list):
-        data = np.asarray(data)
     data = data.astype(float)
 
     if LUT is not None:
