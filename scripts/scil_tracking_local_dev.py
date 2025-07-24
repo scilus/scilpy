@@ -156,8 +156,9 @@ def _build_arg_parser():
                         'Region-Adaptive Propagation tractography will start within '
                         'this mask.')
     track_g.add_argument('--rap_method', default='None',
-                        choices=['None', 'continue'],
-                        help="Region-Adaptive Propagation tractography method "
+                        choices=['None', 'continue', ['quack']],
+                        help="Region-Adaptive Propagation tractography method." \
+                        "To use option quack, you must install Quacktography "
                         " [%(default)s]")
 
     m_g = p.add_argument_group('Memory options')
