@@ -38,6 +38,7 @@ jobs:
 
       - name: Install non-python dependencies
         run: |
+          curl -LsSf https://astral.sh/uv/install.sh | sh
           sudo apt-get update
           sudo apt-get install -y \
             build-essential \
@@ -51,18 +52,20 @@ jobs:
       - name: Install Scilpy
         run: |
           export SETUPTOOLS_USE_DISTUTILS=stdlib
-          python -m pip install --upgrade pip wheel
-          python -m pip install --upgrade "setuptools<71.0.0" 
-          python -m pip install -e .
+          uv venv ~/.venvs/scilpy --python=${{ steps.python-selector.outputs.python-version }}
+          source ~/.venvs/scilpy/bin/activate
+          uv pip install --upgrade pip wheel
+          uv pip install --upgrade "setuptools<71.0.0" 
+          uv pip install -e .
           # TODO: to adapt once Scilpy passes to VTK 9.4.0, which selects OSMesa at runtime
           # https://discourse.vtk.org/t/status-update-runtime-opengl-render-window-selection-in-vtk/14583
           VTK_VERSION=$(cat requirements.txt | grep 'vtk==' | sed 's/vtk==//g')
-          python -m pip install --extra-index-url https://wheels.vtk.org vtk-osmesa==$VTK_VERSION
-
+          uv pip install --extra-index-url https://wheels.vtk.org vtk-osmesa==$VTK_VERSION
       - name: Run tests
         run: |
           export C_INCLUDE_PATH=$pythonLocation/include/python${{ steps.python-selector.outputs.python-version }}:$C_INCLUDE_PATH
-          pytest --cov-report term-missing:skip-covered
+          source ~/.venvs/scilpy/bin/activate
+          uv run --active pytest --cov-report term-missing:skip-covered
 
       - name: Save test results and coverage
         uses: actions/upload-artifact@v4
