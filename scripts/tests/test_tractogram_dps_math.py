@@ -128,7 +128,7 @@ def test_execution_dps_math_delete(script_runner, monkeypatch):
     in_bundle = 'bundle_4.trk'
     sft = load_tractogram(in_bundle_no_key, 'same')
     sft.data_per_streamline = {
-        "key": [0] * len(sft)
+        "key": np.zeros(len(sft), dtype=np.float32)
     }
     save_tractogram(sft, in_bundle)
     outname = 'out.trk'
@@ -158,7 +158,7 @@ def test_execution_dps_math_export(script_runner, monkeypatch):
     in_bundle = 'bundle_4.trk'
     sft = load_tractogram(in_bundle_no_key, 'same')
     sft.data_per_streamline = {
-        "key": [0] * len(sft)
+        "key": np.zeros(len(sft), dtype=np.float32)
     }
     save_tractogram(sft, in_bundle)
     filename = 'out.txt'
