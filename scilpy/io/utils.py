@@ -308,24 +308,6 @@ def add_bbox_arg(parser):
                              'streamlines).')
 
 
-def add_surface_spatial_arg(parser):
-    SPACES = ['vox', 'voxmm', 'rasmm', 'lpsmm']
-    ORIGINS = ['corner', 'center']
-    surf = parser.add_argument_group(title='Surface spatial options')
-    surf.add_argument('--source_space',
-                      default='rasmm', choices=SPACES,
-                      help='Source space of the input surface [%(default)s].')
-    surf.add_argument('--destination_space',
-                      default='rasmm', choices=SPACES,
-                      help='Destination space of the output surface [%(default)s].')
-    surf.add_argument('--source_origin',
-                      default='center', choices=ORIGINS,
-                      help='Source origin of the input surface [%(default)s].')
-    surf.add_argument('--destination_origin',
-                      default='center', choices=ORIGINS,
-                      help='Destination origin of the output surface [%(default)s].')
-
-
 def add_vtk_legacy_arg(parser):
     parser.add_argument('--legacy_vtk_format', action='store_true',
                         help='Save the VTK file in the legacy format.')

@@ -183,6 +183,7 @@ def test_perform_operation_on_dpp():
     # Option 'endpoints only':
     dpp = perform_operation_on_dpp('max', fake_sft, 'my_dpp',
                                    endpoints_only=True)
+    fake_sft.data_per_point['my_dpp2'] = dpp
     assert nan_array_equal(dpp[0].squeeze(), [1.0, np.nan, 1])
     assert nan_array_equal(dpp[1].squeeze(), [2.0, np.nan, 2])
 

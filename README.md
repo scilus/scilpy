@@ -17,7 +17,7 @@ on or are wrappers of the [DIPY] library, and most of them will eventually be mi
 The library is now built for Python 3.12 so be sure to create a virtual environnement for Python 3.12. If this version is not installed on your computer:
 ```
 sudo add-apt-repository ppa:deadsnakes/ppa
-sudo apt-get install python3.12 python3.12-dev python3.12-venv python3.12-minimal python3.12-tk
+sudo apt-get install python3.12 python3.12-dev python3.12-venv python3.12-tk
 ```
 
 Make sure your pip is up-to-date before trying to install:
@@ -29,7 +29,8 @@ The library's structure is mostly aligned on that of [DIPY].
 
 The library and scripts can be installed locally by using:
 ```
-export SETUPTOOLS_USE_DISTUTILS=stdlib
+# If you are using Python3.10 or Python3.11, export this variable before installing
+# export SETUPTOOLS_USE_DISTUTILS=stdlib
 pip install -e .
 ```
 
