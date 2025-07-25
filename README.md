@@ -31,7 +31,8 @@ The library and scripts can be installed locally by using:
 ```
 # If you are using Python3.10 or Python3.11, export this variable before installing
 # export SETUPTOOLS_USE_DISTUTILS=stdlib
-pip install -e .
+pip install scilpy # For the most recent release from PyPi
+pip install -e . # Install from source code (for development)
 ```
 
 If you don't want to install legacy scripts:
