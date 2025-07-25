@@ -14,8 +14,8 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_tractogram_segment_with_bundleseg.py',
-                            '--help')
+    ret = script_runner.run(['scil_tractogram_segment_with_bundleseg.py',
+                            '--help'])
     assert ret.success
 
 
@@ -34,9 +34,9 @@ def test_execution_bundles(script_runner, monkeypatch):
     with open('config.json', 'w') as outfile:
         json.dump(tmp_config, outfile)
 
-    ret = script_runner.run('scil_tractogram_segment_with_bundleseg.py',
+    ret = script_runner.run(['scil_tractogram_segment_with_bundleseg.py',
                             in_tractogram, 'config.json',
                             in_models,
                             in_aff, '--inverse',
-                            '--processes', '1', '-v', 'WARNING')
+                            '--processes', '1', '-v', 'WARNING'])
     assert ret.success

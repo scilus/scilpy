@@ -11,7 +11,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_volume_stats_in_labels.py', '--help')
+    ret = script_runner.run(['scil_volume_stats_in_labels.py', '--help'])
     assert ret.success
 
 
@@ -22,19 +22,19 @@ def test_execution(script_runner, monkeypatch):
     atlas_lut = os.path.join(SCILPY_HOME, 'plot', 'atlas_brainnetome.json')
 
     # Test with a single metric
-    ret = script_runner.run('scil_volume_stats_in_labels.py',
-                            in_atlas, atlas_lut, "--metrics", in_metric)
+    ret = script_runner.run(['scil_volume_stats_in_labels.py',
+                            in_atlas, atlas_lut, "--metrics", in_metric])
     assert ret.success
 
     # Test with multiple metrics
-    ret = script_runner.run('scil_volume_stats_in_labels.py',
+    ret = script_runner.run(['scil_volume_stats_in_labels.py',
                             in_atlas, atlas_lut, "--metrics",
-                            in_metric, in_metric, in_metric)
+                            in_metric, in_metric, in_metric])
     assert ret.success
 
     # Test with a metric folder
     metrics_dir = os.path.join(SCILPY_HOME, 'plot')
-    ret = script_runner.run('scil_volume_stats_in_labels.py',
+    ret = script_runner.run(['scil_volume_stats_in_labels.py',
                             in_atlas, atlas_lut, "--metrics_dir",
-                            metrics_dir)
+                            metrics_dir])
     assert ret.success

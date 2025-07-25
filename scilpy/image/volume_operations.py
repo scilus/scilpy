@@ -453,7 +453,7 @@ def remove_outliers_ransac(in_data, min_fit, fit_thr, max_iter):
 
     X = in_nzr_ind[0][:, np.newaxis]
     model_ransac = linear_model.RANSACRegressor(
-        base_estimator=linear_model.LinearRegression(), min_samples=min_fit,
+        estimator=linear_model.LinearRegression(), min_samples=min_fit,
         residual_threshold=fit_thr, max_trials=max_iter)
     model_ransac.fit(X, in_nzr_val)
 

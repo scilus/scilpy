@@ -140,7 +140,7 @@ def main():
             if len(data) == 1:
                 data = data[0]
 
-            data = [data] * len(sft.streamlines)
+            data = np.array([data] * len(sft), dtype=data.dtype)
 
         sft.data_per_streamline[args.dps_key] = data
 

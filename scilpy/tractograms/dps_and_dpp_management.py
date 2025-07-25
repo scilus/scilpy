@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import numpy as np
+from nibabel.streamlines.array_sequence import ArraySequence
 
 from scilpy.viz.color import clip_and_normalize_data_for_cmap
 
@@ -105,9 +106,10 @@ def convert_dps_to_dpp(sft, keys, overwrite=False):
         if key in sft.data_per_point and not overwrite:
             raise ValueError("Dpp key {} already existed. Please allow "
                              "overwriting.".format(key))
-        sft.data_per_point[key] = [[val]*len(s) for val, s in
-                                   zip(sft.data_per_streamline[key],
-                                       sft.streamlines)]
+        dps_data = sft.data_per_streamline[key]
+        dpp_data = ArraySequence([np.tile(dps_data[i], (len(s), 1))
+                                  for i, s in enumerate(sft.streamlines)])
+        sft.data_per_point[key] = dpp_data
         del sft.data_per_streamline[key]
 
     return sft
@@ -252,7 +254,7 @@ def perform_operation_on_dpp(op_name, sft, dpp_name, endpoints_only=False):
 
     Returns
     -------
-    new_data_per_point: list[np.ndarray]
+    new_data_per_point: ArraySequence
         The values that could now be associated to a new data_per_point key.
     """
     call_op = OPERATIONS[op_name]
@@ -262,16 +264,13 @@ def perform_operation_on_dpp(op_name, sft, dpp_name, endpoints_only=False):
             this_data_per_point = np.nan * np.ones((len(s), 1))
             this_data_per_point[0] = call_op(s[0])
             this_data_per_point[-1] = call_op(s[-1])
-            new_data_per_point.append(np.asarray(this_data_per_point)[:, None])
+            new_data_per_point.append(this_data_per_point)
     else:
         new_data_per_point = []
         for s in sft.data_per_point[dpp_name]:
-            this_data_per_point = []
-            for p in s:
-                this_data_per_point.append(call_op(p))
-            new_data_per_point.append(np.asarray(this_data_per_point)[:, None])
+            new_data_per_point.append([call_op(p) for p in s])
 
-    return new_data_per_point
+    return ArraySequence(new_data_per_point)
 
 
 def perform_operation_dpp_to_dps(op_name, sft, dpp_name, endpoints_only=False):
@@ -315,7 +314,7 @@ def perform_operation_dpp_to_dps(op_name, sft, dpp_name, endpoints_only=False):
             s_np = np.asarray(s)
             new_data_per_streamline.append(call_op(s_np))
 
-    return new_data_per_streamline
+    return np.array(new_data_per_streamline)
 
 
 def perform_correlation_on_endpoints(sft, dpp_name='metric'):
@@ -339,23 +338,23 @@ def perform_correlation_on_endpoints(sft, dpp_name='metric'):
     for s in sft.data_per_point[dpp_name]:
         new_data_per_streamline.append(np.corrcoef(s[0], s[-1])[0, 1])
 
-    return new_data_per_streamline
+    return np.array(new_data_per_streamline)
 
 
 def _stream_mean(array):
-    return np.squeeze(np.mean(array, axis=0))
+    return np.atleast_1d(np.mean(array, axis=0))
 
 
 def _stream_sum(array):
-    return np.squeeze(np.sum(array, axis=0))
+    return np.atleast_1d(np.sum(array, axis=0))
 
 
 def _stream_min(array):
-    return np.squeeze(np.min(array, axis=0))
+    return np.atleast_1d(np.min(array, axis=0))
 
 
 def _stream_max(array):
-    return np.squeeze(np.max(array, axis=0))
+    return np.atleast_1d(np.max(array, axis=0))
 
 
 OPERATIONS = {

@@ -284,7 +284,7 @@ class BundleSeg(object):
                 tmp_dist_mat = fss.radius_search(
                     neighb_streamlines[chuck_id:chuck_id+CHUNK_SIZE],
                     pruning_thr)
-                tmp_dist_mat.data = tmp_dist_mat.data.astype(np.float16)
+                tmp_dist_mat.data = tmp_dist_mat.data.astype(np.float32)
                 dist_mat_list.append(tmp_dist_mat.copy())
                 del tmp_dist_mat
                 gc.collect()
@@ -293,7 +293,7 @@ class BundleSeg(object):
             for tmp_dist_mat in dist_mat_list:
                 del tmp_dist_mat
             gc.collect()
-            dist_mat.data = dist_mat.data.astype(np.float16)
+            dist_mat.data = dist_mat.data.astype(np.float32)
             dist_mat = dist_mat.T
 
         logger.debug(f'Fast search took of dimensions {dist_mat.shape}: '

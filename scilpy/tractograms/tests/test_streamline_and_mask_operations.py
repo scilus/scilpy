@@ -62,6 +62,7 @@ def _setup_files():
 
     # Load sft
     sft = load_tractogram(in_sft, reference)
+    sft.streamlines._data = sft.streamlines._data.astype(np.float32)
     return sft, reference, head_tail_rois, head_tail_offset_rois, center_roi
 
 
@@ -395,7 +396,7 @@ def test_compute_streamline_segment():
     streamline between two rois.
     """
 
-    sft, reference, _, head_tail_offset_rois, _ = _setup_files()
+    sft, _, _, head_tail_offset_rois, _ = _setup_files()
 
     sft.to_vox()
     sft.to_corner()

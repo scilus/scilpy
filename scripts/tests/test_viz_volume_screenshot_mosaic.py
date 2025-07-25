@@ -3,5 +3,5 @@
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run("scil_viz_volume_screenshot_mosaic.py", "--help")
+    ret = script_runner.run(["scil_viz_volume_screenshot_mosaic.py", "--help"])
     assert ret.success

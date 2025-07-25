@@ -259,8 +259,8 @@ def _save_results(args, tmp_dir, ext, in_hdf5_file, offsets_list, sub_dir,
         shutil.copy(os.path.join(commit_results_dir, f), out_dir)
 
     dps_key = 'commit2_weights' if is_commit_2 else 'commit1_weights'
-    dps_key_tot = 'tot_commit2_weights' if is_commit_2 else \
-        'tot_commit1_weights'
+    dps_key_tot = 'tot_commit2_w' if is_commit_2 else \
+        'tot_commit_w'
     # Reload is needed because of COMMIT handling its file by itself
     sft.data_per_streamline[dps_key] = streamline_weights
     sft.data_per_streamline[dps_key_tot] = streamline_weights * length_list
@@ -322,8 +322,8 @@ def _save_out_hdf5(commit_results_dir, sft, in_hdf5_file,
             dps_commit_key = 'commit2_weights' if is_commit_2 else \
                 'commit1_weights'
             dps[dps_commit_key] = tmp_streamline_weights
-            dps_key_tot = 'tot_commit2_weights' if is_commit_2 else \
-                'tot_commit1_weights'
+            dps_key_tot = 'tot_commit2_w' if is_commit_2 else \
+                'tot_commit_w'
             dps[dps_key_tot] = tmp_streamline_weights * tmp_length_list
 
             # Replacing the data with the one above the threshold

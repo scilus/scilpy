@@ -15,7 +15,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_volume_distance_map.py', '--help')
+    ret = script_runner.run(['scil_volume_distance_map.py', '--help'])
     assert ret.success
 
 
@@ -27,9 +27,9 @@ def test_execution(script_runner, monkeypatch):
     in_mask_2 = os.path.join(SCILPY_HOME, 'tractograms',
                              'streamline_and_mask_operations',
                              'bundle_4_center.nii.gz')
-    ret = script_runner.run('scil_volume_distance_map.py',
+    ret = script_runner.run(['scil_volume_distance_map.py',
                             in_mask_1, in_mask_2,
-                            'distance_map.nii.gz')
+                            'distance_map.nii.gz'])
 
     img = nib.load('distance_map.nii.gz')
     data = img.get_fdata()

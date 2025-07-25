@@ -13,7 +13,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_fodf_max_in_ventricles.py', '--help')
+    ret = script_runner.run(['scil_fodf_max_in_ventricles.py', '--help'])
     assert ret.success
 
 
@@ -25,6 +25,6 @@ def test_execution_processing(script_runner, monkeypatch):
                          'fa.nii.gz')
     in_md = os.path.join(SCILPY_HOME, 'processing',
                          'md.nii.gz')
-    ret = script_runner.run('scil_fodf_max_in_ventricles.py', in_fodf,
-                            in_fa, in_md, '--sh_basis', 'tournier07')
+    ret = script_runner.run(['scil_fodf_max_in_ventricles.py', in_fodf,
+                            in_fa, in_md, '--sh_basis', 'tournier07'])
     assert ret.success
