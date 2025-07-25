@@ -744,6 +744,12 @@ def compare_volume_wrapper(data_1, data_2, voxel_size=1, ratio=False,
 
     union_values = np.union1d(unique_values_1, unique_values_2)
 
+    measures_name = ['adjacency_voxels',
+                     'dice_voxels',
+                     'hausdorff',
+                     'volume_overlap',
+                     'volume_overreach']
+
     dict_measures = {}
     for val in union_values:
         binary_1 = np.zeros(data_1.shape, dtype=np.uint8)
@@ -754,6 +760,15 @@ def compare_volume_wrapper(data_1, data_2, voxel_size=1, ratio=False,
             binary_2[data_2 == unique_values_2[0]] = 1
         else:
             binary_2[data_2 == val] = 1
+
+        if np.count_nonzero(binary_1) == 0 or np.count_nonzero(binary_2) == 0:
+            tmp_dict = dict.fromkeys(measures_name, np.nan)
+            for measure_name in measures_name:
+                if measure_name not in dict_measures:
+                    dict_measures[measure_name] = {}
+                dict_measures[measure_name].update(
+                    {int(val): tmp_dict[measure_name]})
+            continue
 
         # These measures are in mm^3
         volume_overlap = np.count_nonzero(binary_1 * binary_2)
@@ -775,12 +790,6 @@ def compare_volume_wrapper(data_1, data_2, voxel_size=1, ratio=False,
                                          binary_2)
 
         hausdorff_vox = compute_hausdorff_voxel(binary_1, binary_2)
-
-        measures_name = ['adjacency_voxels',
-                         'dice_voxels',
-                         'hausdorff',
-                         'volume_overlap',
-                         'volume_overreach']
 
         # If computing ratio, voxel size does not make sense
         if ratio:
