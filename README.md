@@ -27,21 +27,34 @@ pip install --upgrade pip
 
 The library's structure is mostly aligned on that of [DIPY].
 
-The library and scripts can be installed locally by using:
+We highly encourage to install scilpy in a virtual environnement. Once done and you're in your virtual environnement, the library and scripts can be installed locally by running these commands:
+
+## Install scilpy as a user
+
 ```
 # If you are using Python3.10 or Python3.11, export this variable before installing
-# export SETUPTOOLS_USE_DISTUTILS=stdlib
+export SETUPTOOLS_USE_DISTUTILS=stdlib
+
+# If you don't want to install legacy scripts
+export SCILPY_LEGACY='False'
+
 pip install scilpy # For the most recent release from PyPi
+```
+
+## Install scilpy as a developer
+
+```
+# If you are using Python3.10 or Python3.11, export this variable before installing
+export SETUPTOOLS_USE_DISTUTILS=stdlib
+
+# If you don't want to install legacy scripts
+export SCILPY_LEGACY='False'
 pip install -e . # Install from source code (for development)
 ```
 
-If you don't want to install legacy scripts:
-```
-export SCILPY_LEGACY='False'
-pip install -e .
-```
+## EXTRAS
 
-(Then, without the legacy scripts, if you want to use pytest, use:)
+Then, without the legacy scripts, if you want to use pytest, use:
 ```
 pytest --ignore=scripts/legacy
 ```
