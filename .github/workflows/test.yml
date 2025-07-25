@@ -12,7 +12,7 @@ on:
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
-  
+
 env:
   MPLBACKEND: agg
   OPENBLAS_NUM_THREADS: 1
@@ -48,9 +48,13 @@ jobs:
             libfreetype6-dev \
             libdrm-dev
 
+      - name: stdlib checkout
+        if: ${{ !contains(steps.python-selector.outputs.python-version, '3.12') }}
+        run: |
+          echo "SETUPTOOLS_USE_DISTUTILS=stdlib" >> "$GITHUB_ENV"
+
       - name: Install Scilpy
         run: |
-          export SETUPTOOLS_USE_DISTUTILS=stdlib
           python -m pip install --upgrade pip wheel
           python -m pip install --upgrade "setuptools<71.0.0" 
           python -m pip install -e .

@@ -17,7 +17,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_sh_to_aodf.py', '--help')
+    ret = script_runner.run(['scil_sh_to_aodf.py', '--help'])
     assert ret.success
 
 
@@ -28,17 +28,17 @@ def test_help_option(script_runner):
 def test_asym_basis_output_gpu(script_runner, in_fodf, expected_fodf, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
 
-    ret = script_runner.run('scil_sh_to_aodf.py',
+    ret = script_runner.run(['scil_sh_to_aodf.py',
                             in_fodf, 'out_fodf1.nii.gz',
                             '--sphere', 'repulsion100',
-                            '--sigma_align', '0.8',
-                            '--sigma_spatial', '1.0',
-                            '--sigma_range', '0.2',
-                            '--sigma_angle', '0.06',
-                            '--use_opencl',
-                            '--device', 'gpu',
-                            '--sh_basis', 'descoteaux07_legacy', '-f',
-                            '--include_center',
+                             '--sigma_align', '0.8',
+                             '--sigma_spatial', '1.0',
+                             '--sigma_range', '0.2',
+                             '--sigma_angle', '0.06',
+                             '--use_opencl',
+                             '--device', 'gpu',
+                             '--sh_basis', 'descoteaux07_legacy', '-f',
+                             '--include_center'],
                             print_result=True, shell=True)
 
     if have_opencl:
@@ -64,16 +64,16 @@ def test_asym_basis_output_gpu(script_runner, in_fodf, expected_fodf, monkeypatc
 def test_asym_basis_output(script_runner, in_fodf, expected_fodf, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
 
-    ret = script_runner.run('scil_sh_to_aodf.py',
+    ret = script_runner.run(['scil_sh_to_aodf.py',
                             in_fodf, 'out_fodf1.nii.gz',
                             '--sphere', 'repulsion100',
-                            '--sigma_align', '0.8',
-                            '--sigma_spatial', '1.0',
-                            '--sigma_range', '0.2',
-                            '--sigma_angle', '0.06',
-                            '--device', 'cpu',
-                            '--sh_basis', 'descoteaux07_legacy', '-f',
-                            '--include_center',
+                             '--sigma_align', '0.8',
+                             '--sigma_spatial', '1.0',
+                             '--sigma_range', '0.2',
+                             '--sigma_angle', '0.06',
+                             '--device', 'cpu',
+                             '--sh_basis', 'descoteaux07_legacy', '-f',
+                             '--include_center'],
                             print_result=True, shell=True)
 
     assert ret.success
@@ -91,16 +91,16 @@ def test_asym_basis_output(script_runner, in_fodf, expected_fodf, monkeypatch):
 def test_asym_input(script_runner, in_fodf, expected_fodf, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
 
-    ret = script_runner.run('scil_sh_to_aodf.py',
+    ret = script_runner.run(['scil_sh_to_aodf.py',
                             in_fodf, 'out_fodf1.nii.gz',
                             '--sphere', 'repulsion100',
-                            '--sigma_align', '0.8',
-                            '--sigma_spatial', '1.0',
-                            '--sigma_range', '0.2',
-                            '--sigma_angle', '0.06',
-                            '--device', 'cpu',
-                            '--sh_basis', 'descoteaux07_legacy', '-f',
-                            '--include_center',
+                             '--sigma_align', '0.8',
+                             '--sigma_spatial', '1.0',
+                             '--sigma_range', '0.2',
+                             '--sigma_angle', '0.06',
+                             '--device', 'cpu',
+                             '--sh_basis', 'descoteaux07_legacy', '-f',
+                             '--include_center'],
                             print_result=True, shell=True)
 
     assert ret.success
@@ -117,11 +117,11 @@ def test_asym_input(script_runner, in_fodf, expected_fodf, monkeypatch):
 def test_cosine_method(script_runner, in_fodf, out_fodf, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
 
-    ret = script_runner.run('scil_sh_to_aodf.py',
+    ret = script_runner.run(['scil_sh_to_aodf.py',
                             in_fodf, 'out_fodf1.nii.gz',
                             '--sphere', 'repulsion100',
-                            '--method', 'cosine', '-f',
-                            '--sh_basis', 'descoteaux07_legacy',
+                             '--method', 'cosine', '-f',
+                             '--sh_basis', 'descoteaux07_legacy'],
                             print_result=True, shell=True)
 
     assert ret.success

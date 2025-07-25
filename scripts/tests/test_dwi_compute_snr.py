@@ -12,7 +12,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_dwi_compute_snr.py', '--help')
+    ret = script_runner.run(['scil_dwi_compute_snr.py', '--help'])
     assert ret.success
 
 
@@ -29,8 +29,8 @@ def test_snr(script_runner, monkeypatch):
     noise_mask = os.path.join(SCILPY_HOME, 'processing',
                               'small_roi_gm_mask.nii.gz')
 
-    ret = script_runner.run('scil_dwi_compute_snr.py', in_dwi,
+    ret = script_runner.run(['scil_dwi_compute_snr.py', in_dwi,
                             in_bval, in_bvec, in_mask,
                             '--noise_mask', noise_mask,
-                            '--b0_thr', '10')
+                            '--b0_thr', '10'])
     assert ret.success

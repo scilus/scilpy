@@ -17,7 +17,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_dwi_reorder_philips.py', '--help')
+    ret = script_runner.run(['scil_dwi_reorder_philips.py', '--help'])
     assert ret.success
 
 
@@ -35,8 +35,8 @@ def test_reorder(script_runner, monkeypatch):
     table[30] = tmp
     in_table = os.path.expanduser(tmp_dir.name) + "/in_table.txt"
     np.savetxt(in_table, table, header="Test")
-    ret = script_runner.run('scil_dwi_reorder_philips.py', in_dwi, in_bval,
-                            in_bvec, in_table, 'out1', '-f')
+    ret = script_runner.run(['scil_dwi_reorder_philips.py', in_dwi, in_bval,
+                            in_bvec, in_table, 'out1', '-f'])
     assert ret.success
 
 
@@ -58,8 +58,8 @@ def test_reorder_w_json_old_version(script_runner, monkeypatch):
     info = {'SoftwareVersions': '5.5'}
     with open(in_json, 'w') as f:
         json.dump(info, f)
-    ret = script_runner.run('scil_dwi_reorder_philips.py', in_dwi, in_bval,
-                            in_bvec, in_table, 'out2', '--json', in_json)
+    ret = script_runner.run(['scil_dwi_reorder_philips.py', in_dwi, in_bval,
+                            in_bvec, in_table, 'out2', '--json', in_json])
     assert ret.success
 
 
@@ -81,6 +81,6 @@ def test_reorder_w_json_new_version(script_runner, monkeypatch):
     info = {'SoftwareVersions': '5.6'}
     with open(in_json, 'w') as f:
         json.dump(info, f)
-    ret = script_runner.run('scil_dwi_reorder_philips.py', in_dwi, in_bval,
-                            in_bvec, in_table, 'out3', '--json', in_json)
+    ret = script_runner.run(['scil_dwi_reorder_philips.py', in_dwi, in_bval,
+                            in_bvec, in_table, 'out3', '--json', in_json])
     assert not ret.success

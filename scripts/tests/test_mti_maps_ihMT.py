@@ -67,7 +67,7 @@ in_b1_json = os.path.join(SCILPY_HOME, 'MT', 'sub-001_run-01_B1map.json')
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_mti_maps_ihMT.py', '--help')
+    ret = script_runner.run(['scil_mti_maps_ihMT.py', '--help'])
     assert ret.success
 
 
@@ -75,7 +75,7 @@ def test_execution_ihMT_no_option(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
 
     # no option
-    ret = script_runner.run('scil_mti_maps_ihMT.py', tmp_dir.name,
+    ret = script_runner.run(['scil_mti_maps_ihMT.py', tmp_dir.name,
                             '--mask', in_mask,
                             '--in_altnp', in_e1_altnp, in_e2_altnp,
                             in_e3_altnp,
@@ -89,7 +89,7 @@ def test_execution_ihMT_no_option(script_runner, monkeypatch):
                             in_e3_mtoff_t1,
                             '--in_jsons', in_mtoff_pd_json,
                             in_mtoff_t1_json,
-                            '-f')
+                            '-f'])
     assert ret.success
 
 
@@ -97,7 +97,7 @@ def test_execution_ihMT_prefix(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
 
     # --out_prefix
-    ret = script_runner.run('scil_mti_maps_ihMT.py', tmp_dir.name,
+    ret = script_runner.run(['scil_mti_maps_ihMT.py', tmp_dir.name,
                             '--mask', in_mask,
                             '--in_altnp', in_e1_altnp, in_e2_altnp,
                             in_e3_altnp,
@@ -114,7 +114,7 @@ def test_execution_ihMT_prefix(script_runner, monkeypatch):
                             '--in_jsons', in_mtoff_pd_json,
                             in_mtoff_t1_json,
                             '--out_prefix', 'sub_01',
-                            '-f')
+                            '-f'])
     assert ret.success
 
 
@@ -122,7 +122,7 @@ def test_execution_ihMT_extended(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
 
     # --extended
-    ret = script_runner.run('scil_mti_maps_ihMT.py', tmp_dir.name,
+    ret = script_runner.run(['scil_mti_maps_ihMT.py', tmp_dir.name,
                             '--mask', in_mask,
                             '--in_altnp', in_e1_altnp, in_e2_altnp,
                             in_e3_altnp,
@@ -139,7 +139,7 @@ def test_execution_ihMT_extended(script_runner, monkeypatch):
                             '--in_jsons', in_mtoff_pd_json,
                             in_mtoff_t1_json,
                             '--extended',
-                            '-f')
+                            '-f'])
     assert ret.success
 
 
@@ -147,7 +147,7 @@ def test_execution_ihMT_filtering(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
 
     # --filtering
-    ret = script_runner.run('scil_mti_maps_ihMT.py', tmp_dir.name,
+    ret = script_runner.run(['scil_mti_maps_ihMT.py', tmp_dir.name,
                             '--mask', in_mask,
                             '--in_altnp', in_e1_altnp, in_e2_altnp,
                             in_e3_altnp,
@@ -163,7 +163,7 @@ def test_execution_ihMT_filtering(script_runner, monkeypatch):
                             in_mtoff_t1_json,
                             '--out_prefix', 'sub-01',
                             '--filtering',
-                            '-f')
+                            '-f'])
     assert ret.success
 
 
@@ -173,10 +173,10 @@ def test_execution_ihMT_B1_map(script_runner, monkeypatch):
     out_b1_map = tmp_dir.name + '/B1map.nii.gz'
 
     # Temporary trick to have the B1 map with proper header.
-    ret = script_runner.run('scil_mti_adjust_B1_header.py', in_b1_map,
-                            out_b1_map, in_b1_json, '-f')
+    ret = script_runner.run(['scil_mti_adjust_B1_header.py', in_b1_map,
+                            out_b1_map, in_b1_json, '-f'])
 
-    ret = script_runner.run('scil_mti_maps_ihMT.py', tmp_dir.name,
+    ret = script_runner.run(['scil_mti_maps_ihMT.py', tmp_dir.name,
                             '--mask', in_mask,
                             '--in_altnp', in_e1_altnp, in_e2_altnp,
                             in_e3_altnp,
@@ -193,7 +193,7 @@ def test_execution_ihMT_B1_map(script_runner, monkeypatch):
                             '--B1_correction_method', 'empiric',
                             '--in_jsons', in_mtoff_pd_json,
                             in_mtoff_t1_json,
-                            '-f')
+                            '-f'])
     assert ret.success
 
 
@@ -203,10 +203,10 @@ def test_execution_ihMT_B1_no_T1(script_runner, monkeypatch):
     out_b1_map = tmp_dir.name + '/B1map.nii.gz'
 
     # Temporary trick to have the B1 map with proper header.
-    ret = script_runner.run('scil_mti_adjust_B1_header.py', in_b1_map,
-                            out_b1_map, in_b1_json, '-f')
+    ret = script_runner.run(['scil_mti_adjust_B1_header.py', in_b1_map,
+                            out_b1_map, in_b1_json, '-f'])
 
-    ret = script_runner.run('scil_mti_maps_ihMT.py', tmp_dir.name,
+    ret = script_runner.run(['scil_mti_maps_ihMT.py', tmp_dir.name,
                             '--mask', in_mask,
                             '--in_altnp', in_e1_altnp, in_e2_altnp,
                             in_e3_altnp,
@@ -220,14 +220,14 @@ def test_execution_ihMT_B1_no_T1(script_runner, monkeypatch):
                             '--B1_correction_method', 'empiric',
                             '--in_jsons', in_mtoff_pd_json,
                             in_mtoff_t1_json,
-                            '-f')
+                            '-f'])
     assert ret.success
 
 
 def test_execution_ihMT_wrong_echoes(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
 
-    ret = script_runner.run('scil_mti_maps_ihMT.py', tmp_dir.name,
+    ret = script_runner.run(['scil_mti_maps_ihMT.py', tmp_dir.name,
                             '--mask', in_mask,
                             '--in_altnp', in_e1_altnp, in_e2_altnp,
                             in_e3_altnp,
@@ -240,7 +240,7 @@ def test_execution_ihMT_wrong_echoes(script_runner, monkeypatch):
                             '--in_mtoff_t1', in_e1_mtoff_t1, in_e2_mtoff_t1,
                             '--in_jsons', in_mtoff_pd_json,
                             in_mtoff_t1_json,
-                            '-f')
+                            '-f'])
     assert (not ret.success)
 
 
@@ -250,10 +250,10 @@ def test_execution_ihMT_B1_no_fit(script_runner, monkeypatch):
     out_b1_map = tmp_dir.name + '/B1map.nii.gz'
 
     # Temporary trick to have the B1 map with proper header.
-    ret = script_runner.run('scil_mti_adjust_B1_header.py', in_b1_map,
-                            out_b1_map, in_b1_json, '-f')
+    ret = script_runner.run(['scil_mti_adjust_B1_header.py', in_b1_map,
+                            out_b1_map, in_b1_json, '-f'])
 
-    ret = script_runner.run('scil_mti_maps_ihMT.py', tmp_dir.name,
+    ret = script_runner.run(['scil_mti_maps_ihMT.py', tmp_dir.name,
                             '--mask', in_mask,
                             '--in_altnp', in_e1_altnp, in_e2_altnp,
                             in_e3_altnp,
@@ -270,14 +270,14 @@ def test_execution_ihMT_B1_no_fit(script_runner, monkeypatch):
                             '--B1_correction_method', 'model_based',
                             '--in_jsons', in_mtoff_pd_json,
                             in_mtoff_t1_json,
-                            '-f')
+                            '-f'])
     assert (not ret.success)
 
 
 def test_execution_ihMT_single_echo(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
 
-    ret = script_runner.run('scil_mti_maps_ihMT.py', tmp_dir.name,
+    ret = script_runner.run(['scil_mti_maps_ihMT.py', tmp_dir.name,
                             '--mask', in_mask,
                             '--in_altnp', in_e1_altnp,
                             '--in_altpn', in_e1_altpn,
@@ -287,14 +287,14 @@ def test_execution_ihMT_single_echo(script_runner, monkeypatch):
                             '--in_mtoff_t1', in_e1_mtoff_t1,
                             '--out_prefix', 'sub_01',
                             '--in_jsons', in_mtoff_pd_json,
-                            in_mtoff_t1_json, '-f')
+                            in_mtoff_t1_json, '-f'])
     assert ret.success
 
 
 def test_execution_ihMT_acq_params(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
 
-    ret = script_runner.run('scil_mti_maps_ihMT.py', tmp_dir.name,
+    ret = script_runner.run(['scil_mti_maps_ihMT.py', tmp_dir.name,
                             '--mask', in_mask,
                             '--in_altnp', in_e1_altnp,
                             '--in_altpn', in_e1_altpn,
@@ -304,5 +304,5 @@ def test_execution_ihMT_acq_params(script_runner, monkeypatch):
                             '--in_mtoff_t1', in_e1_mtoff_t1,
                             '--out_prefix', 'sub_01',
                             '--in_acq_parameters', '15', '15', '0.1', '0.1',
-                            '-f')
+                            '-f'])
     assert ret.success
