@@ -5,7 +5,7 @@ import threading
 
 from dipy.io.stateful_tractogram import StatefulTractogram
 from dipy.io.utils import is_header_compatible, get_reference_info
-from dipy.tracking.streamlinespeed import length
+from dipy.tracking.streamlinespeed import length, set_number_of_points
 from dipy.tracking.vox2track import _streamlines_in_mask
 import h5py
 import nibabel as nib
@@ -38,7 +38,7 @@ def compute_triu_connectivity_from_labels(tractogram, data_labels,
         When using directly with a list of streamlines, streamlines must be in
         vox space, center origin.
     data_labels: np.ndarray
-        The loaded nifti image.
+        The loaded nifti image. Must be 3D.
     keep_background: Bool
         By default, the background (label 0) is not included in the matrix.
         If True, label 0 is kept.
@@ -66,25 +66,30 @@ def compute_triu_connectivity_from_labels(tractogram, data_labels,
         streamlines = sfs_2_pts.streamlines
 
     else:
-        streamlines = tractogram
+        # Using directly on streamlines, no SFT. Usually not recommended,
+        # useful for dwi_ml methods. Calling directly dipy's resampling.
+        streamlines = nib.streamlines.ArraySequence(tractogram)
+        streamlines = set_number_of_points(streamlines, 2)
 
     ordered_labels = list(np.sort(np.unique(data_labels)))
-    assert ordered_labels[0] >= 0, "Only accepting positive labels."
+    assert ordered_labels[0] >= 0, "Only accepting positive labels, or 0."
     nb_labels = len(ordered_labels)
     logging.debug("Computing connectivity matrix for {} labels."
                   .format(nb_labels))
 
     matrix = np.zeros((nb_labels, nb_labels), dtype=int)
-
-    labels = map_coordinates(data_labels, streamlines._data.T, order=0)
+    labels = map_coordinates(data_labels, streamlines._data.T, order=0,
+                             mode='nearest')
     start_labels = labels[0::2]
     end_labels = labels[1::2]
 
     # sort each pair of labels for start to be smaller than end
     start_labels, end_labels = zip(*[sorted(pair) for pair in
                                      zip(start_labels, end_labels)])
-
-    np.add.at(matrix, (start_labels, end_labels), 1)
+    ordered_labels = list(ordered_labels)
+    start_index = [ordered_labels.index(label) for label in start_labels]
+    end_index = [ordered_labels.index(label) for label in end_labels]
+    np.add.at(matrix, (start_index, end_index), 1)
     assert matrix.sum() == len(streamlines)
 
     # Rejecting background
@@ -117,7 +122,7 @@ def compute_triu_connectivity_from_labels(tractogram, data_labels,
     return matrix, ordered_labels, start_labels, end_labels
 
 
-def load_node_nifti(directory, in_label, out_label, ref_img):
+def _load_node_nifti(directory, in_label, out_label, ref_img):
     in_filename = os.path.join(directory,
                                '{}_{}.nii.gz'.format(in_label, out_label))
 
@@ -252,8 +257,8 @@ def compute_connectivity_matrices_from_hdf5(
         measures_to_return['streamline_count'] = len(streamlines)
 
     if similarity_directory is not None:
-        density_sim = load_node_nifti(similarity_directory,
-                                      in_label, out_label, labels_img)
+        density_sim = _load_node_nifti(similarity_directory,
+                                       in_label, out_label, labels_img)
         if density_sim is None:
             ba_vox = 0
         else:
