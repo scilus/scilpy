@@ -181,11 +181,16 @@ def _convert_filering_list_to_roi_args(parser, args):
 
     for roi_opt in content:
         # Convert the line with spaces to a list of args.
-        tmp_opt = roi_opt.split()
+        # tmp_opt = roi_opt.split()
+        tmp_opt = []
+        if "\"" in roi_opt:
+            tmp_tmp = [i.strip() for i in roi_opt.strip().split("\"")]
+            tmp_opt.append(
+                    tmp_tmp[0].split() + [tmp_tmp[1]] + tmp_tmp[2].split())
+        else:
+            tmp_opt.append(roi_opt.strip().split())
 
-        # Manage cases with " " or ' ' around options
-        tmp_opt = [i.replace("\"", '') for i in tmp_opt]
-        tmp_opt = [i.replace("'", '') for i in tmp_opt]
+        tmp_opt = tmp_opt[0]
 
         if tmp_opt[0] == 'drawn_roi':
             args.drawn_roi.append(tmp_opt[1:])
@@ -202,7 +207,8 @@ def _convert_filering_list_to_roi_args(parser, args):
         else:
             parser.error("Filtering list option {} not understood."
                          .format(tmp_opt[0]))
-
+    print(args.atlas_roi)
+    print(args.bdo)
     return args
 
 
