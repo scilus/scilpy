@@ -180,8 +180,7 @@ def _convert_filering_list_to_roi_args(parser, args):
         content = txt.readlines()
 
     for roi_opt in content:
-        # Convert the line with spaces to a list of args.
-        # tmp_opt = roi_opt.split()
+        # Handle args when using multiple IDs with atlas_roi
         tmp_opt = []
         if "\"" in roi_opt:
             tmp_tmp = [i.strip() for i in roi_opt.strip().split("\"")]
@@ -207,8 +206,6 @@ def _convert_filering_list_to_roi_args(parser, args):
         else:
             parser.error("Filtering list option {} not understood."
                          .format(tmp_opt[0]))
-    print(args.atlas_roi)
-    print(args.bdo)
     return args
 
 
