@@ -49,9 +49,10 @@ def test_run_sphsubdivide(script_runner, monkeypatch):
 
     # Note. Cannot add --sph_subdivide to the test above, causes a memory
     # crash. Without the variance, lighter.
-    ret = script_runner.run('scil_viz_fodf.py', in_fodf, '--silent',
+    ret = script_runner.run(['scil_viz_fodf.py', in_fodf, '--silent',
                             '--mask', in_mask,
                             '--sph_subdivide', '2',
-                            '--output', out_name)
+                            '--sphere', 'repulsion100',
+                            '--output', out_name])
 
     assert ret.success
