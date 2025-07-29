@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import logging
 
 from dipy.io.stateful_tractogram import StatefulTractogram
 from fury import colormap
@@ -281,7 +282,7 @@ def prepare_colorbar_figure(cmap, lbound, ubound, nb_values=255, nb_ticks=10,
 def ambiant_occlusion(sft, colors, factor=4):
     """
     Apply ambiant occlusion to a set of colors based on point density
-    around each points.
+    around each point.
 
     Parameters
     ----------
@@ -299,6 +300,17 @@ def ambiant_occlusion(sft, colors, factor=4):
     """
 
     pts = sft.streamlines._data
+
+    if np.min(colors) < 0:
+        logging.warning("Minimal color in 'color' was less than 0 ({}). Are "
+                        "you sure that this dpp contains colors?"
+                        .format(np.min(colors)))
+    if np.max(colors) > 1:
+        # Normalizing
+        logging.debug("'colors' contained data between 0 and {}, normalizing."
+                      .format(np.max(colors)))
+        colors = colors / np.max(colors)
+
     hsv = mcolors.rgb_to_hsv(colors)
 
     tree = KDTree(pts)
