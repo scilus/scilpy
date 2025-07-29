@@ -43,7 +43,7 @@ def get_testing_files_dict():
         "bundles.zip": "54b6e2bf2dda579886efe4e2a8989486",
         "stats.zip": "2aeac4da5ab054b3a460fc5fdc5e4243",
         "bst.zip": "eed227fd246255e7417f92d49eb1066a",
-        "filtering.zip": "19116ff4244d057c8214ee3fe8e05f71",
+        "filtering.zip": "aa35388a791d803e3051a3236577ae19",
         "ihMT.zip": "08fcf44848ba2649aad5a5a470b3cb06",
         "tractometry.zip": "890bfa70e44b15c0d044085de54e00c6",
         "bids_json.zip": "97fd9a414849567fbfdfdb0ef400488b",
