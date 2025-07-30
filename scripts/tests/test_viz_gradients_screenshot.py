@@ -20,12 +20,12 @@ def test_run_bval(script_runner):
     bvec = os.path.join(SCILPY_HOME, 'processing', 'dwi.bvec')
     ret = script_runner.run('scil_viz_gradients_screenshot.py',
                             '--in_gradient_scheme', bval, bvec,
-                            '--test_run')
+                            '--silent')
     assert ret.success
 
 
 def test_run_dipy_sphere(script_runner):
     ret = script_runner.run('scil_viz_gradients_screenshot.py',
                             '--dipy_sphere', 'symmetric362',
-                            '--test_run')
+                            '--silent')
     assert ret.success
