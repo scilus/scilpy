@@ -20,8 +20,8 @@ value, the script raises a warning.
 
 The user might want to use the -v verbose option to see the computed energies.
 The --viz option displays both the input and optimal b-vectors on a single
-shell. The --save_viz option this image as png. If --save_viz is used without
---viz, the image will be saved but not shown. For more options on
+shell. The --save_viz option saves this image as png. If --save_viz is used
+without --viz, the image will be saved but not shown. For more options on
 visualization, please use scil_viz_gradients_screenshot.py.
 ------------------------------------------------------------------------------
 Reference:

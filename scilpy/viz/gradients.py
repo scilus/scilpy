@@ -41,7 +41,7 @@ def plot_each_shell(ms, centroids, plot_sym_vecs=True, use_sphere=True,
     titles: list of str
         titles for the windows, one per shell
     silent: bool
-        If True, skips interactive visualization. Note that, then, titles will
+        If True, skips interactive visualization. In that case, titles will
         not be added to the window.
     """
 
@@ -124,8 +124,7 @@ def plot_proj_shell(ms, use_sym=True, use_sphere=True, same_color=False,
         title for the window
     silent: bool
         If True, skips interactive visualization. Useful for debugging.
-        Note that, then, titles will not be added to the window and will not
-        be tested.
+        In that case, titles will not be added to the window.
     """
 
     _colors = generate_n_colors(len(ms))
