@@ -81,18 +81,6 @@ def _build_arg_parser():
     return p
 
 
-def _parse_args(parser):
-    args = parser.parse_args()
-    if not args.output and args.silent:
-        parser.error('Silent mode is enabled but no output is specified.'
-                     'Specify an output with --output to use silent mode.')
-
-    assert_inputs_exist(parser, [args.in_bingham])
-    assert_outputs_exist(parser, args, [args.output])
-
-    return args
-
-
 def _get_slicing_for_axis(axis_name, index, shape):
     """
     Get a tuple of slice representing the slice of interest at `index`
@@ -120,10 +108,18 @@ def _get_data_from_inputs(args):
 
 def main():
     parser = _build_arg_parser()
-    args = _parse_args(parser)
+    args = parser.parse_args()
+    logging.getLogger().setLevel(logging.getLevelName(args.verbose))
+
+    if not args.output and args.silent:
+        parser.error('Silent mode is enabled but no output is specified.'
+                     'Specify an output with --output to use silent mode.')
+
+    assert_inputs_exist(parser, args.in_bingham)
+    assert_outputs_exist(parser, args, [], args.output)
+
     data = _get_data_from_inputs(args)
     sph = get_sphere(name=args.sphere)
-    logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     actors = create_bingham_slicer(data, args.axis_name,
                                    args.slice_index, sph,

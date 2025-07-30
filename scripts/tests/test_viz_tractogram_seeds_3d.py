@@ -16,6 +16,6 @@ def test_run_option(script_runner):
     seed_map = os.path.join(SCILPY_HOME, 'processing', 'fa.nii.gz')
 
     # To test option --tractogram, we would need a tractogram with seeds saved.
-    ret = script_runner.run('scil_viz_tractogram_seeds_3d.py', seed_map,
-                            '--no-show')
+    ret = script_runner.run(['scil_viz_tractogram_seeds_3d.py', seed_map,
+                            '--silent'])
     assert ret.success
