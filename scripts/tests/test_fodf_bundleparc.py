@@ -12,7 +12,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 @pytest.mark.ml
 def test_help_option(script_runner, monkeypatch):
-    ret = script_runner.run('scil_fodf_bundleparc.py', '--help')
+    ret = script_runner.run(['scil_fodf_bundleparc.py', '--help'])
 
     assert ret.success
 
@@ -20,18 +20,36 @@ def test_help_option(script_runner, monkeypatch):
 @pytest.mark.ml
 def test_execution(script_runner, monkeypatch):
     in_fodf = os.path.join(SCILPY_HOME, 'tracking', 'fodf.nii.gz')
-    in_mask = os.path.join(SCILPY_HOME, 'tracking', 'seeding_mask.nii.gz')
 
-    ret = script_runner.run('scil_fodf_bundleparc.py', in_fodf, in_mask,
-                            '--half')
+    ret = script_runner.run(['scil_fodf_bundleparc.py', in_fodf, '-f',
+                            '--bundles', 'FX_left'])
     assert ret.success
 
 
 @pytest.mark.ml
 def test_execution_100_labels(script_runner, monkeypatch):
     in_fodf = os.path.join(SCILPY_HOME, 'tracking', 'fodf.nii.gz')
-    in_mask = os.path.join(SCILPY_HOME, 'tracking', 'seeding_mask.nii.gz')
 
-    ret = script_runner.run('scil_fodf_bundleparc.py', in_fodf, in_mask,
-                            '--nb_pts', '100', '--half')
+    ret = script_runner.run(['scil_fodf_bundleparc.py', in_fodf,
+                            '--nb_pts', '100', '-f', '--bundles',
+                            'IFO_right'])
     assert ret.success
+
+
+@pytest.mark.ml
+def test_execution_keep_biggest_blob(script_runner, monkeypatch):
+    in_fodf = os.path.join(SCILPY_HOME, 'tracking', 'fodf.nii.gz')
+
+    ret = script_runner.run(['scil_fodf_bundleparc.py', in_fodf,
+                            '--keep_biggest_blob', '-f', '--bundles',
+                            'CA'])
+    assert ret.success
+
+
+@pytest.mark.ml
+def test_execution_invalid_bundle(script_runner, monkeypatch):
+    in_fodf = os.path.join(SCILPY_HOME, 'tracking', 'fodf.nii.gz')
+
+    ret = script_runner.run(['scil_fodf_bundleparc.py', in_fodf,
+                            '-f', '--bundles', 'CC'])
+    assert not ret.success

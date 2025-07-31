@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import logging
 
 from dipy.io.stateful_tractogram import StatefulTractogram
 from fury import colormap
@@ -41,7 +42,7 @@ BASE_10_COLORS = convert_color_names_to_rgb(["Red",
 
 
 def generate_n_colors(n, generator=colormap.distinguishable_colormap,
-                      pick_from_base10=True, shuffle=False):
+                      pick_from_base10=True):
     """
     Generate a set of N colors. When using the default parameters, colors will
     always be unique. When using a custom generator, ensure it generates unique
@@ -52,13 +53,12 @@ def generate_n_colors(n, generator=colormap.distinguishable_colormap,
     n : int
         Number of colors to generate.
     generator : function
-        Color generating function f(n, exclude=[...]) -> [color, color, ...],
+        Color generating function
+        f(nb_colors=n, exclude=[...]) -> [color, color, ...],
         accepting an optional list of colors to exclude from the generation.
     pick_from_base10 : bool
         When True, start picking from the base 10 colors before using
         the generator funtion (see BASE_COLORS_10).
-    shuffle : bool
-        Shuffle the color list before returning.
 
     Returns
     -------
@@ -73,10 +73,8 @@ def generate_n_colors(n, generator=colormap.distinguishable_colormap,
 
     if n - len(_colors):
         _colors = np.concatenate(
-            (_colors, generator(n - len(_colors), exclude=_colors)), axis=0)
-
-    if shuffle:
-        np.random.shuffle(_colors)
+            (_colors, generator(nb_colors=n - len(_colors), exclude=_colors)),
+            axis=0)
 
     return _colors
 
@@ -102,7 +100,7 @@ def get_lookup_table(name):
         name_list = name.split('-')
         colors_list = [mcolors.to_rgba(color)[0:3] for color in name_list]
         cmap = mcolors.LinearSegmentedColormap.from_list('CustomCmap',
-                                                        colors_list)
+                                                         colors_list)
         return cmap
 
     return plt.colormaps.get_cmap(name)
@@ -165,8 +163,6 @@ def clip_and_normalize_data_for_cmap(
         the first value of the LUT is set everywhere where data==1, etc.
     """
     # Make sure data type is float
-    if isinstance(data, list):
-        data = np.asarray(data)
     data = data.astype(float)
 
     if LUT is not None:
@@ -286,7 +282,7 @@ def prepare_colorbar_figure(cmap, lbound, ubound, nb_values=255, nb_ticks=10,
 def ambiant_occlusion(sft, colors, factor=4):
     """
     Apply ambiant occlusion to a set of colors based on point density
-    around each points. 
+    around each point.
 
     Parameters
     ----------
@@ -296,7 +292,7 @@ def ambiant_occlusion(sft, colors, factor=4):
         The original colors to modify.
     factor : float
         The factor of occlusion (how density will affect the saturation).
-    
+
     Returns
     -------
     np.ndarray
@@ -304,6 +300,17 @@ def ambiant_occlusion(sft, colors, factor=4):
     """
 
     pts = sft.streamlines._data
+
+    if np.min(colors) < 0:
+        logging.warning("Minimal color in 'color' was less than 0 ({}). Are "
+                        "you sure that this dpp contains colors?"
+                        .format(np.min(colors)))
+    if np.max(colors) > 1:
+        # Normalizing
+        logging.debug("'colors' contained data between 0 and {}, normalizing."
+                      .format(np.max(colors)))
+        colors = colors / np.max(colors)
+
     hsv = mcolors.rgb_to_hsv(colors)
 
     tree = KDTree(pts)
@@ -323,6 +330,7 @@ def ambiant_occlusion(sft, colors, factor=4):
     hsv[:, 2] = np.clip(hsv[:, 2], 0, 255)
 
     return mcolors.hsv_to_rgb(hsv)
+
 
 def generate_local_coloring(sft):
     """

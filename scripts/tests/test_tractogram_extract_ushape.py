@@ -13,8 +13,8 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_tractogram_extract_ushape.py',
-                            '--help')
+    ret = script_runner.run(['scil_tractogram_extract_ushape.py',
+                            '--help'])
     assert ret.success
 
 
@@ -23,10 +23,10 @@ def test_execution_processing(script_runner, monkeypatch):
     in_trk = os.path.join(SCILPY_HOME, 'tracking', 'union.trk')
     out_trk = 'ushape.trk'
     remaining_trk = 'remaining.trk'
-    ret = script_runner.run('scil_tractogram_extract_ushape.py',
+    ret = script_runner.run(['scil_tractogram_extract_ushape.py',
                             in_trk, out_trk,
                             '--minU', '0.5',
                             '--maxU', '1',
                             '--remaining_tractogram', remaining_trk,
-                            '--display_counts')
+                            '--display_counts'])
     assert ret.success

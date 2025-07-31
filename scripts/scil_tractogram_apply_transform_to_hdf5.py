@@ -111,7 +111,7 @@ def main():
             for key in in_hdf5_file.keys():
                 # Get the bundle as sft
                 moving_sft, _ = reconstruct_sft_from_hdf5(
-                    in_hdf5_file, key, load_dps=True, load_dpp=False)
+                    in_hdf5_file, key, load_dps=True, load_dpp=False, allow_empty=True)
                 if moving_sft is None:
                     continue
 
