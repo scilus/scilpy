@@ -14,6 +14,9 @@ mask non-zero values are set to full transparency in the saved scene.
 
 !!! CAUTION !!! The script is memory intensive about (9kB of allocated RAM per
 voxel, or 9GB for a 1M voxel volume) with a sphere interpolated to 362 points.
+
+Note. The interactive visualization is not verified by tests. If you encounter
+any bug, please report it to our team or use --silent.
 """
 
 import argparse
@@ -179,7 +182,7 @@ def _build_arg_parser():
                                'as follow: mean + k * sqrt(variance), where '
                                'mean is the input fodf (in_fodf) and k is the '
                                'scaling factor (variance_k).')
-    var.add_argument('--variance', help='FODF variance file.')
+    var.add_argument('--variance', help='FODF variance file (nifti).')
     var.add_argument('--variance_k', default=1, type=float,
                      help='Scaling factor (k) for the computation of the fodf '
                           'uncertainty. [%(default)s]')
@@ -195,10 +198,9 @@ def _parse_args(parser):
     output = []
     if args.output:
         output.append(args.output)
-    else:
-        if args.silent:
-            parser.error('Silent mode is enabled but no output is specified.'
-                         'Specify an output with --output to use silent mode.')
+    elif args.silent:
+        parser.error('Silent mode is enabled but no output is specified.'
+                     'Specify an output with --output to use silent mode.')
 
     if args.peaks_values and not args.peaks:
         parser.error('Peaks values image supplied without peaks. Specify '
@@ -218,22 +220,24 @@ def _get_data_from_inputs(args):
     Load data given by args. Perform checks to ensure dimensions agree
     between the data for mask, background, peaks and fODF.
     """
-
     fodf = nib.load(args.in_fodf).get_fdata(dtype=np.float32)
-    data = {'fodf': fodf}
+
+    # Optional:
+    bg = None
+    transparency_mask = None
+    mask = None
+    peaks = None
+    peak_vals = None
+    variance = None
     if args.background:
         assert_same_resolution([args.background, args.in_fodf])
         bg = nib.load(args.background).get_fdata()
-        data['bg'] = bg
     if args.in_transparency_mask:
         transparency_mask = get_data_as_mask(
-            nib.load(args.in_transparency_mask), dtype=bool
-        )
-        data['transparency_mask'] = transparency_mask
+            nib.load(args.in_transparency_mask), dtype=bool)
     if args.mask:
         assert_same_resolution([args.mask, args.in_fodf])
         mask = get_data_as_mask(nib.load(args.mask), dtype=bool)
-        data['mask'] = mask
     if args.peaks:
         assert_same_resolution([args.peaks, args.in_fodf])
         peaks = nib.load(args.peaks).get_fdata()
@@ -246,12 +250,10 @@ def _get_data_from_inputs(args):
                 raise ValueError('Peaks volume last dimension ({0}) cannot '
                                  'be reshaped as (npeaks, 3).'
                                  .format(peaks.shape[-1]))
-        data['peaks'] = peaks
         if args.peaks_values:
             assert_same_resolution([args.peaks_values, args.in_fodf])
             peak_vals =\
                 nib.load(args.peaks_values).get_fdata()
-            data['peaks_values'] = peak_vals
     if args.variance:
         assert_same_resolution([args.variance, args.in_fodf])
         variance = nib.load(args.variance).get_fdata(dtype=np.float32)
@@ -261,56 +263,45 @@ def _get_data_from_inputs(args):
             raise ValueError('Dimensions mismatch between fODF {0} and '
                              'variance {1}.'
                              .format(fodf.shape, variance.shape))
-        data['variance'] = variance
 
-    return data
+    return fodf, bg, transparency_mask, mask, peaks, peak_vals, variance
 
 
 def main():
     parser = _build_arg_parser()
     args = _parse_args(parser)
-    data = _get_data_from_inputs(args)
+    (fodf, bg, transparency_mask, mask, peaks, peaks_values,
+     variance) = _get_data_from_inputs(args)
     sph = get_sphere(name=args.sphere)
-    sh_order, full_basis = get_sh_order_and_fullness(data['fodf'].shape[-1])
+    sh_order, full_basis = get_sh_order_and_fullness(fodf.shape[-1])
     sh_basis, is_legacy = parse_sh_basis_arg(args)
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     actors = []
 
-    # Retrieve the mask if supplied
-    if 'mask' in data:
-        mask = data['mask']
-    else:
-        mask = None
-
     if args.color_rgb:
         color_rgb = np.round(np.asarray(args.color_rgb) * 255)
     else:
         color_rgb = None
-
-    variance = data['variance'] if args.variance else None
     var_color = np.asarray(args.var_color) * 255
+
     # Instantiate the ODF slicer actor
-    odf_actor, var_actor = create_odf_slicer(data['fodf'], args.axis_name,
-                                             args.slice_index, sph, sh_order,
-                                             sh_basis, full_basis,
-                                             args.scale, variance, mask,
-                                             args.sph_subdivide,
-                                             not args.radial_scale_off,
-                                             not args.norm_off,
-                                             args.colormap or color_rgb,
-                                             variance_k=args.variance_k,
-                                             variance_color=var_color,
-                                             is_legacy=is_legacy)
+    odf_actor, var_actor = create_odf_slicer(
+        fodf, args.axis_name, args.slice_index, sph, sh_order,
+        sh_basis, full_basis, args.scale,
+        sh_variance=variance, mask=mask, nb_subdivide=args.sph_subdivide,
+        radial_scale=not args.radial_scale_off, norm=not args.norm_off,
+        colormap=args.colormap or color_rgb, variance_k=args.variance_k,
+        variance_color=var_color, is_legacy=is_legacy)
     actors.append(odf_actor)
 
     # Instantiate a variance slicer actor if a variance image is supplied
-    if 'variance' in data:
+    if variance is not None:
         actors.append(var_actor)
 
     # Instantiate a texture slicer actor if a background image is supplied
-    if 'bg' in data:
-        bg_actor = create_texture_slicer(data['bg'],
+    if bg is not None:
+        bg_actor = create_texture_slicer(bg,
                                          args.axis_name,
                                          args.slice_index,
                                          mask=mask,
@@ -321,14 +312,10 @@ def main():
         actors.append(bg_actor)
 
     # Instantiate a peaks slicer actor if peaks are supplied
-    if 'peaks' in data:
-
-        if 'peaks_values' in data:
-            peaks_values = data['peaks_values']
-        else:
-            peaks_values =\
-                np.ones(data['peaks'].shape[:-1]) * args.peaks_length
-        peaks_actor = create_peaks_slicer(data['peaks'],
+    if peaks is not None:
+        if peaks_values is None:
+            peaks_values = np.ones(peaks.shape[:-1]) * args.peaks_length
+        peaks_actor = create_peaks_slicer(peaks,
                                           args.axis_name,
                                           args.slice_index,
                                           peak_values=peaks_values,
@@ -343,37 +330,32 @@ def main():
     # Prepare and display the scene
     scene = create_scene(actors, args.axis_name,
                          args.slice_index,
-                         data['fodf'].shape[:3],
+                         fodf.shape[:3],
                          args.win_dims[0] / args.win_dims[1],
                          bg_color=args.bg_color)
 
     mask_scene = None
-    if 'transparency_mask' in data:
-        mask_actor = create_texture_slicer(
-            data['transparency_mask'].astype("uint8"),
-            args.axis_name,
-            args.slice_index,
-            offset=0.0,
-            )
+    if transparency_mask is not None:
+        mask_actor = create_texture_slicer(transparency_mask.astype("uint8"),
+                                           args.axis_name,
+                                           args.slice_index,
+                                           offset=0.0)
 
-        mask_scene = create_scene(
-            [mask_actor],
-            args.axis_name,
-            args.slice_index,
-            data['transparency_mask'].shape,
-            args.win_dims[0] / args.win_dims[1],
-            bg_color=args.bg_color)
+        mask_scene = create_scene([mask_actor], args.axis_name,
+                                  args.slice_index,
+                                  transparency_mask.shape,
+                                  args.win_dims[0] / args.win_dims[1],
+                                  bg_color=args.bg_color)
 
     if not args.silent:
-        create_interactive_window(
-            scene, args.win_dims, args.interactor)
+        create_interactive_window(scene, args.win_dims, args.interactor)
 
     if args.output:
         snapshots = snapshot_scenes(filter(None, [mask_scene, scene]),
                                     args.win_dims)
         _mask_arr = None
         if mask_scene:
-            _mask_arr = any2grayscale(next(snapshots))
+            _mask_arr = [any2grayscale(next(snapshots))]
 
         image = compose_image(next(snapshots),
                               args.win_dims,

@@ -9,6 +9,12 @@ from dipy.io.streamline import load_tractogram
 from scilpy import SCILPY_HOME
 from scilpy.image.utils import split_mask_blobs_kmeans
 from scilpy.io.fetcher import fetch_data, get_testing_files_dict
+from scilpy.tests.streamlines import (inter_vox_additional_exit_point,
+                                      in_vox_idx_additional_exit_point,
+                                      orig_strl_additional_exit_point,
+                                      out_vox_idx_additional_exit_point,
+                                      points_to_indices_additional_exit_point,
+                                      segment_additional_exit_point)
 from scilpy.tractograms.streamline_and_mask_operations import (
     _intersects_two_rois,
     _trim_streamline_in_mask,
@@ -56,6 +62,7 @@ def _setup_files():
 
     # Load sft
     sft = load_tractogram(in_sft, reference)
+    sft.streamlines._data = sft.streamlines._data.astype(np.float32)
     return sft, reference, head_tail_rois, head_tail_offset_rois, center_roi
 
 
@@ -389,7 +396,7 @@ def test_compute_streamline_segment():
     streamline between two rois.
     """
 
-    sft, reference, _, head_tail_offset_rois, _ = _setup_files()
+    sft, _, _, head_tail_offset_rois, _ = _setup_files()
 
     sft.to_vox()
     sft.to_corner()
@@ -425,3 +432,82 @@ def test_compute_streamline_segment():
     # Streamline should be shorter than the original
     assert len(res) < len(one_sft.streamlines[0])
     assert len(res) == 105
+
+
+def test_compute_streamline_segment_no_additional_point():
+    """ Test the compute_streamline_segment function by finding the streamline
+    points in a roi. The function should return the original streamline.
+    """
+
+    orig_streamline = np.array([[21.34375,  116.194626, 100.8819],
+                                [19.5625,  117.203125, 100.59375],
+                                [17.71875,  117.328125, 99.875],
+                                [15.40625,  116.734375, 99.28125],
+                                [13.6875,  116.734375, 98.3125]])
+    inter_vox = np.array([[21, 116, 100],
+                          [20, 116, 100],
+                          [19, 116, 100],
+                          [19, 117, 100],
+                          [18, 117, 100],
+                          [18, 117,  99],
+                          [17, 117,  99],
+                          [16, 117,  99],
+                          [16, 116,  99],
+                          [15, 116,  99],
+                          [14, 116,  99],
+                          [14, 116,  98],
+                          [13, 116,  98]])
+    in_vox_idx = 0
+    out_vox_idx = 12
+    points_to_indices = np.array([0,  3,  6,  9, 12])
+
+    res = compute_streamline_segment(orig_streamline, inter_vox,
+                                     in_vox_idx, out_vox_idx,
+                                     points_to_indices)
+
+    assert np.allclose(res, orig_streamline)
+
+
+def test_compute_streamline_segment_additional_entry_point():
+    """ Test the compute_streamline_segment function by finding the streamline
+    points in a roi. The function should return an additional entry point
+    in the streamline.
+    """
+
+    orig_streamline = np.array([[49.005207, 160.90625,   89.04874],
+                                [49.21875,  164.75,      89.125],
+                                [49.515625, 166.5625,    88.4375],
+                                [49.28125,  168.5,       88.234375]])
+    inter_vox = np.array([[49, 160,  89],
+                          [49, 161,  89],
+                          [49, 162,  89],
+                          [49, 163,  89],
+                          [49, 164,  89],
+                          [49, 165,  89],
+                          [49, 165,  88],
+                          [49, 166,  88],
+                          [49, 167,  88],
+                          [49, 168,  88]])
+    in_vox_idx = 1
+    out_vox_idx = 4
+    points_to_indices = np.array([0, 4, 7, 9])
+    expected_result = [[49.038193, 161.5,       89.06052],
+                       [49.21875,  164.75,      89.125]]
+    res = compute_streamline_segment(orig_streamline, inter_vox,
+                                     in_vox_idx, out_vox_idx,
+                                     points_to_indices)
+
+    assert np.allclose(res, expected_result)
+    assert np.all(res[0] != orig_streamline[0])
+
+
+def test_compute_streamline_segment_additional_exit_point():
+
+    res = compute_streamline_segment(orig_strl_additional_exit_point,
+                                     inter_vox_additional_exit_point,
+                                     in_vox_idx_additional_exit_point,
+                                     out_vox_idx_additional_exit_point,
+                                     points_to_indices_additional_exit_point)
+
+    assert np.allclose(res, segment_additional_exit_point)
+    assert np.all(res[-1] != orig_strl_additional_exit_point[-1])

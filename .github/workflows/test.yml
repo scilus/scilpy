@@ -12,7 +12,7 @@ on:
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
-  
+
 env:
   MPLBACKEND: agg
   OPENBLAS_NUM_THREADS: 1
@@ -48,12 +48,20 @@ jobs:
             libfreetype6-dev \
             libdrm-dev
 
+      - name: stdlib checkout
+        if: ${{ !contains(steps.python-selector.outputs.python-version, '3.12') }}
+        run: |
+          echo "SETUPTOOLS_USE_DISTUTILS=stdlib" >> "$GITHUB_ENV"
+
       - name: Install Scilpy
         run: |
-          export SETUPTOOLS_USE_DISTUTILS=stdlib
           python -m pip install --upgrade pip wheel
           python -m pip install --upgrade "setuptools<71.0.0" 
           python -m pip install -e .
+          # TODO: to adapt once Scilpy passes to VTK 9.4.0, which selects OSMesa at runtime
+          # https://discourse.vtk.org/t/status-update-runtime-opengl-render-window-selection-in-vtk/14583
+          VTK_VERSION=$(cat requirements.txt | grep 'vtk==' | sed 's/vtk==//g')
+          python -m pip install --extra-index-url https://wheels.vtk.org vtk-osmesa==$VTK_VERSION
 
       - name: Run tests
         run: |

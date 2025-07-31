@@ -13,6 +13,7 @@ from dipy.tracking.distances import bundles_distances_mdf
 import numpy as np
 from numpy.random import RandomState
 from scipy.spatial import cKDTree
+from scipy.spatial.distance import directed_hausdorff
 from sklearn.metrics import cohen_kappa_score
 from sklearn.neighbors import KDTree
 from tqdm import tqdm
@@ -279,8 +280,14 @@ def compute_bundle_adjacency_voxel(binary_1, binary_2, non_overlap=False):
     -------
     float: Distance in millimeters between both bundles.
     """
-    b1_ind = np.argwhere(binary_1 > 0)
-    b2_ind = np.argwhere(binary_2 > 0)
+    if isinstance(binary_1, np.ndarray) and isinstance(binary_2, np.ndarray) \
+            and binary_1.ndim == 3 and binary_2.ndim == 3:
+        b1_ind = np.argwhere(binary_1 > 0)
+        b2_ind = np.argwhere(binary_2 > 0)
+    else:
+        b1_ind = binary_1
+        b2_ind = binary_2
+
     b1_tree = cKDTree(b1_ind)
     b2_tree = cKDTree(b2_ind)
 
@@ -346,6 +353,33 @@ def compute_dice_voxel(density_1, density_2):
         w_dice = np.nan
 
     return dice, w_dice
+
+
+def compute_hausdorff_voxel(map_1, map_2):
+    """
+    Compute the Hausdorff distance between two sets of coordinates,
+    representing density or binary maps.
+
+    Parameters
+    ----------
+    map_1: ndarray
+        Density (or binary) map computed from the first bundle
+    map_2: ndarray
+        Density (or binary) map computed from the second bundle
+
+    Returns
+    -------
+    distance: float
+        Value representing the Hausdorff distance in voxels. Should
+        be multiplied afterwards by the voxel size to get the distance in mm.
+    """
+
+    coords_1 = np.argwhere(map_1)
+    coords_2 = np.argwhere(map_2)
+
+    dist, _, _ = directed_hausdorff(coords_1, coords_2)
+
+    return dist
 
 
 def compute_correlation(density_1, density_2):
@@ -670,7 +704,7 @@ def tractogram_pairwise_comparison(sft_one, sft_two, mask, nbr_cpu=1,
 
 
 def compare_volume_wrapper(data_1, data_2, voxel_size=1, ratio=False,
-                           adjency_no_overlap=False):
+                           adjency_no_overlap=False, labels_to_mask=False):
     """
     Compute the similarity between binary mask or labels maps in the voxel
     representation.
@@ -694,6 +728,10 @@ def compare_volume_wrapper(data_1, data_2, voxel_size=1, ratio=False,
         in the first volume.
     adjency_no_overlap: bool
         If true, exclude overlapping voxels (0mm) from the computation.
+    labels_to_mask: bool
+        If true, explicitely compare every labels in the first image to
+        the ROI in the second image. Otherwise, the computation presumes
+        both images are either label maps or binary masks.
 
     Returns
     -------
@@ -703,14 +741,34 @@ def compare_volume_wrapper(data_1, data_2, voxel_size=1, ratio=False,
     # Exclude 0 (background)
     unique_values_1 = np.unique(data_1)[1:]
     unique_values_2 = np.unique(data_2)[1:]
+
     union_values = np.union1d(unique_values_1, unique_values_2)
+
+    measures_name = ['adjacency_voxels',
+                     'dice_voxels',
+                     'hausdorff',
+                     'volume_overlap',
+                     'volume_overreach']
 
     dict_measures = {}
     for val in union_values:
         binary_1 = np.zeros(data_1.shape, dtype=np.uint8)
         binary_1[data_1 == val] = 1
+
         binary_2 = np.zeros(data_2.shape, dtype=np.uint8)
-        binary_2[data_2 == val] = 1
+        if labels_to_mask:
+            binary_2[data_2 == unique_values_2[0]] = 1
+        else:
+            binary_2[data_2 == val] = 1
+
+        if np.count_nonzero(binary_1) == 0 or np.count_nonzero(binary_2) == 0:
+            tmp_dict = dict.fromkeys(measures_name, np.nan)
+            for measure_name in measures_name:
+                if measure_name not in dict_measures:
+                    dict_measures[measure_name] = {}
+                dict_measures[measure_name].update(
+                    {int(val): tmp_dict[measure_name]})
+            continue
 
         # These measures are in mm^3
         volume_overlap = np.count_nonzero(binary_1 * binary_2)
@@ -731,16 +789,13 @@ def compare_volume_wrapper(data_1, data_2, voxel_size=1, ratio=False,
         dice_vox, _ = compute_dice_voxel(binary_1,
                                          binary_2)
 
-        measures_name = ['adjacency_voxels',
-                         'dice_voxels',
-                         'volume_overlap',
-                         'volume_overreach']
+        hausdorff_vox = compute_hausdorff_voxel(binary_1, binary_2)
 
         # If computing ratio, voxel size does not make sense
         if ratio:
             voxel_size = 1.
         measures = [bundle_adjacency_voxel,
-                    dice_vox,
+                    dice_vox, hausdorff_vox * voxel_size,
                     volume_overlap * voxel_size,
                     volume_overreach * voxel_size]
 

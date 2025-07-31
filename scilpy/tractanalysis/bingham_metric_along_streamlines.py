@@ -18,7 +18,7 @@ def bingham_metric_map_along_streamlines(sft, bingham_coeffs,
         StatefulTractogram containing the streamlines needed.
     bingham_coeffs : ndarray
         Array of shape (X, Y, Z, N_LOBES, NB_PARAMS) containing
-        the Bingham distributions parameters.
+        the Bingham distributions parameters. Note, NB_PARAMS is usually 7.
     metric : ndarray
         Array of shape (X, Y, Z) containing the Bingham metric of interest.
     max_theta : float

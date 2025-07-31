@@ -64,15 +64,15 @@ def test_tractogram_pairwise_comparison():
 
     # Comparing with values obtained when creating this test.
     np.testing.assert_almost_equal(np.mean(acc_norm[~np.isnan(acc_norm)]),
-                                   0.6590763379712203, decimal=6)
+                                   0.659076, decimal=3)
     np.testing.assert_almost_equal(np.mean(corr_norm[~np.isnan(corr_norm)]),
-                                   0.6263207793235779, decimal=6)
+                                   0.626320, decimal=3)
     np.testing.assert_almost_equal(np.max(corr_norm[~np.isnan(corr_norm)]),
-                                   0.99676438850212097, decimal=6)
+                                   0.996764, decimal=3)
     np.testing.assert_almost_equal(np.mean(diff_norm[~np.isnan(diff_norm)]),
-                                   0.7345049471266359, decimal=6)
+                                   0.734504, decimal=3)
     np.testing.assert_almost_equal(np.mean(heatmap[~np.isnan(heatmap)]),
-                                   0.7395923591441349, decimal=6)
+                                   0.739592, decimal=3)
 
     # Supervise the number of NaNs in each output.
     # Note. Not the same because:

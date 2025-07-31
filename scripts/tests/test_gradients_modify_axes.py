@@ -13,7 +13,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_gradients_modify_axes.py', '--help')
+    ret = script_runner.run(['scil_gradients_modify_axes.py', '--help'])
     assert ret.success
 
 
@@ -22,12 +22,12 @@ def test_execution_processing(script_runner, monkeypatch):
 
     # mrtrix
     in_encoding = os.path.join(SCILPY_HOME, 'processing', '1000.b')
-    ret = script_runner.run('scil_gradients_modify_axes.py', in_encoding,
-                            '1000_flip.b', '-1', '3', '2')
+    ret = script_runner.run(['scil_gradients_modify_axes.py', in_encoding,
+                            '1000_flip.b', '-1', '3', '2'])
     assert ret.success
 
     # FSL
     in_encoding = os.path.join(SCILPY_HOME, 'processing', '1000.bvec')
-    ret = script_runner.run('scil_gradients_modify_axes.py', in_encoding,
-                            '1000_flip.bvec', '1', '-3', '2')
+    ret = script_runner.run(['scil_gradients_modify_axes.py', in_encoding,
+                            '1000_flip.bvec', '1', '-3', '2'])
     assert ret.success

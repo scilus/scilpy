@@ -13,8 +13,8 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run(
-        'scil_bundle_pairwise_comparison.py', '--help')
+    ret = script_runner.run([
+        'scil_bundle_pairwise_comparison.py', '--help'])
     assert ret.success
 
 
@@ -24,11 +24,11 @@ def test_execution_bundles(script_runner, monkeypatch):
     in_2 = os.path.join(SCILPY_HOME, 'bundles', 'voting_results',
                         'bundle_0.trk')
     in_ref = os.path.join(SCILPY_HOME, 'bundles', 'bundle_all_1mm.nii.gz')
-    ret = script_runner.run(
+    ret = script_runner.run([
         'scil_bundle_pairwise_comparison.py',
         in_1, in_2, 'AF_L_similarity.json',
         '--streamline_dice', '--reference', in_ref,
-        '--processes', '1')
+        '--processes', '1'])
     assert ret.success
 
 
@@ -38,12 +38,12 @@ def test_single(script_runner, monkeypatch):
     in_2 = os.path.join(SCILPY_HOME, 'bundles', 'voting_results',
                         'bundle_0.trk')
     in_ref = os.path.join(SCILPY_HOME, 'bundles', 'bundle_all_1mm.nii.gz')
-    ret = script_runner.run(
+    ret = script_runner.run([
         'scil_bundle_pairwise_comparison.py',
         in_2, 'AF_L_similarity_single.json',
         '--streamline_dice', '--reference', in_ref,
         '--single_compare', in_1,
-        '--processes', '1')
+        '--processes', '1'])
     assert ret.success
 
 
@@ -53,12 +53,12 @@ def test_no_overlap(script_runner, monkeypatch):
     in_2 = os.path.join(SCILPY_HOME, 'bundles', 'voting_results',
                         'bundle_0.trk')
     in_ref = os.path.join(SCILPY_HOME, 'bundles', 'bundle_all_1mm.nii.gz')
-    ret = script_runner.run(
+    ret = script_runner.run([
         'scil_bundle_pairwise_comparison.py', in_1,
         in_2, 'AF_L_similarity_no_overlap.json',
         '--streamline_dice', '--reference', in_ref,
         '--ignore_zeros_in_BA',
-        '--processes', '1')
+        '--processes', '1'])
     assert ret.success
 
 
@@ -68,13 +68,13 @@ def test_ratio(script_runner, monkeypatch):
     in_2 = os.path.join(SCILPY_HOME, 'bundles', 'voting_results',
                         'bundle_0.trk')
     in_ref = os.path.join(SCILPY_HOME, 'bundles', 'bundle_all_1mm.nii.gz')
-    ret = script_runner.run(
+    ret = script_runner.run([
         'scil_bundle_pairwise_comparison.py',
         in_2, 'AF_L_similarity_ratio.json',
         '--streamline_dice', '--reference', in_ref,
         '--single_compare', in_1,
         '--processes', '1',
-        '--ratio')
+        '--ratio'])
     assert ret.success
 
 
@@ -87,10 +87,10 @@ def test_ratio_fail(script_runner, monkeypatch):
     in_2 = os.path.join(SCILPY_HOME, 'bundles', 'voting_results',
                         'bundle_0.trk')
     in_ref = os.path.join(SCILPY_HOME, 'bundles', 'bundle_all_1mm.nii.gz')
-    ret = script_runner.run(
+    ret = script_runner.run([
         'scil_bundle_pairwise_comparison.py',
         in_1, in_2, 'AF_L_similarity_fail.json',
         '--streamline_dice', '--reference', in_ref,
         '--processes', '1',
-        '--ratio')
+        '--ratio'])
     assert not ret.success

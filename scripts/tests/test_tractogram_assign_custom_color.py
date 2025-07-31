@@ -18,8 +18,8 @@ in_bundle = os.path.join(SCILPY_HOME, 'tractometry', 'IFGWM.trk')
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_tractogram_assign_custom_color.py',
-                            '--help')
+    ret = script_runner.run(['scil_tractogram_assign_custom_color.py',
+                            '--help'])
     assert ret.success
 
 
@@ -28,23 +28,32 @@ def test_execution_from_anat(script_runner, monkeypatch):
     in_anat = os.path.join(SCILPY_HOME, 'tractometry',
                            'IFGWM_labels_map.nii.gz')
 
-    ret = script_runner.run('scil_tractogram_assign_custom_color.py',
+    ret = script_runner.run(['scil_tractogram_assign_custom_color.py',
                             in_bundle, 'colored.trk', '--from_anatomy',
-                            in_anat, '--out_colorbar', 'test_colorbar.png')
+                            in_anat, '--out_colorbar', 'test_colorbar.png'])
     assert ret.success
 
 
 def test_execution_along_profile(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
 
-    ret = script_runner.run('scil_tractogram_assign_custom_color.py',
-                            in_bundle, 'colored2.trk', '--along_profile')
+    ret = script_runner.run(['scil_tractogram_assign_custom_color.py',
+                            in_bundle, 'colored2.trk', '--along_profile'])
     assert ret.success
 
 
 def test_execution_from_angle(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
 
-    ret = script_runner.run('scil_tractogram_assign_custom_color.py',
-                            in_bundle, 'colored3.trk', '--local_angle')
+    ret = script_runner.run(['scil_tractogram_assign_custom_color.py',
+                            in_bundle, 'colored3.trk', '--local_angle'])
+    assert ret.success
+
+
+def test_execution_ambiant_occlusion(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
+
+    ret = script_runner.run(['scil_tractogram_assign_custom_color.py',
+                            in_bundle, 'colored4.trk', '--local_orientation',
+                            '--ambiant_occlusion'])
     assert ret.success

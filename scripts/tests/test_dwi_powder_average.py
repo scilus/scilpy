@@ -13,7 +13,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_dwi_powder_average.py', '--help')
+    ret = script_runner.run(['scil_dwi_powder_average.py', '--help'])
     assert ret.success
 
 
@@ -25,6 +25,6 @@ def test_execution_processing(script_runner, monkeypatch):
     in_bval = os.path.join(SCILPY_HOME, 'processing',
                            '1000.bval')
 
-    ret = script_runner.run('scil_dwi_powder_average.py', in_dwi,
-                            in_bval, 'out_pwd_avg.nii.gz', '--shells', '1000')
+    ret = script_runner.run(['scil_dwi_powder_average.py', in_dwi,
+                            in_bval, 'out_pwd_avg.nii.gz', '--shells', '1000'])
     assert ret.success

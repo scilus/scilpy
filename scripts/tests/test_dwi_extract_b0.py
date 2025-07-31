@@ -13,7 +13,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_dwi_extract_b0.py', '--help')
+    ret = script_runner.run(['scil_dwi_extract_b0.py', '--help'])
     assert ret.success
 
 
@@ -25,11 +25,11 @@ def test_execution_processing(script_runner, monkeypatch):
                            'dwi.bval')
     in_bvec = os.path.join(SCILPY_HOME, 'processing',
                            'dwi.bvec')
-    ret = script_runner.run('scil_dwi_extract_b0.py', in_dwi, in_bval, in_bvec,
-                            'b0_mean.nii.gz', '--mean', '--b0', '20')
+    ret = script_runner.run(['scil_dwi_extract_b0.py', in_dwi, in_bval, in_bvec,
+                            'b0_mean.nii.gz', '--mean', '--b0', '20'])
     assert ret.success
 
     # Test wrong b0. Current minimal b-value is 5.
-    ret = script_runner.run('scil_dwi_extract_b0.py', in_dwi, in_bval, in_bvec,
-                            'b0_mean.nii.gz', '--mean', '--b0', '1', '-f')
+    ret = script_runner.run(['scil_dwi_extract_b0.py', in_dwi, in_bval, in_bvec,
+                            'b0_mean.nii.gz', '--mean', '--b0', '1', '-f'])
     assert not ret.success

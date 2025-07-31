@@ -209,9 +209,10 @@ def _save_tmp_tractogram_from_hdf5(tmp_dir, args, dwi_img):
 
     # Keep track of the order of connections/streamlines in relation to the
     # tractogram as well as the number of streamlines for each connection.
-    with h5py.File(args.in_tractogram, 'r') as hdf5_file:
-        sft, bundle_groups_len = reconstruct_sft_from_hdf5(
-            hdf5_file, group_keys=None, ref_img=dwi_img, merge_groups=True)
+    hdf5_file = h5py.File(args.in_tractogram, 'r')
+
+    sft, bundle_groups_len = reconstruct_sft_from_hdf5(
+        hdf5_file, group_keys=None, ref_img=dwi_img, merge_groups=True)
 
     offsets_list = np.cumsum([0] + bundle_groups_len)
     tmp_tractogram_filename = os.path.join(tmp_dir.name, 'tractogram.trk')
@@ -240,9 +241,12 @@ def _save_results(args, tmp_dir, ext, in_hdf5_file, offsets_list, sub_dir,
     # Loading the tractogram (we never did yet! Only sent the filename to
     # commit). Reminder. If input was a hdf5, we have changed
     # args.in_tractogram to our tmp_tractogram saved in tmp_dir.
-    if ext == '.trk':
+    if ext == '.trk' and args.reference is None:
         args.reference = 'same'
+    logging.debug('Loading tractogram from {} with reference {}.'
+                  .format(args.in_tractogram, args.reference))
     sft = load_tractogram(args.in_tractogram, args.reference)
+
     length_list = length(sft.streamlines)
     np.savetxt(os.path.join(commit_results_dir, 'streamlines_length.txt'),
                length_list)
@@ -255,8 +259,8 @@ def _save_results(args, tmp_dir, ext, in_hdf5_file, offsets_list, sub_dir,
         shutil.copy(os.path.join(commit_results_dir, f), out_dir)
 
     dps_key = 'commit2_weights' if is_commit_2 else 'commit1_weights'
-    dps_key_tot = 'tot_commit2_weights' if is_commit_2 else \
-        'tot_commit1_weights'
+    dps_key_tot = 'tot_commit2_w' if is_commit_2 else \
+        'tot_commit_w'
     # Reload is needed because of COMMIT handling its file by itself
     sft.data_per_streamline[dps_key] = streamline_weights
     sft.data_per_streamline[dps_key_tot] = streamline_weights * length_list
@@ -279,11 +283,12 @@ def _save_results(args, tmp_dir, ext, in_hdf5_file, offsets_list, sub_dir,
 
     if ext == '.h5':
         _save_out_hdf5(commit_results_dir, sft, in_hdf5_file,
-                       streamline_weights, offsets_list, is_commit_2)
+                       streamline_weights, offsets_list, out_dir,
+                       is_commit_2)
 
 
 def _save_out_hdf5(commit_results_dir, sft, in_hdf5_file,
-                   streamline_weights, offsets_list, is_commit_2):
+                   streamline_weights, offsets_list, out_dir, is_commit_2):
     new_filename = os.path.join(commit_results_dir, 'decompose_commit.h5')
     with h5py.File(new_filename, 'w') as out_hdf5_file:
         construct_hdf5_header(out_hdf5_file, sft)
@@ -317,14 +322,16 @@ def _save_out_hdf5(commit_results_dir, sft, in_hdf5_file,
             dps_commit_key = 'commit2_weights' if is_commit_2 else \
                 'commit1_weights'
             dps[dps_commit_key] = tmp_streamline_weights
-            dps_key_tot = 'tot_commit2_weights' if is_commit_2 else \
-                'tot_commit1_weights'
+            dps_key_tot = 'tot_commit2_w' if is_commit_2 else \
+                'tot_commit_w'
             dps[dps_key_tot] = tmp_streamline_weights * tmp_length_list
 
             # Replacing the data with the one above the threshold
             # Safe since this hdf5 was a copy in the first place
             construct_hdf5_group_from_streamlines(
                 new_group, tmp_streamlines, dps=dps, dpp=None)
+
+    shutil.copy(new_filename, out_dir)
 
 
 def main():
@@ -423,6 +430,8 @@ def main():
     with redirected_stdout:
         # Setting up the tractogram and nifti files
         if ext == '.tck':
+            if args.reference is None:
+                logging.error('Reference image is mandatory for .tck files.')
             other_args = {'TCK_ref_image': args.reference}
         else:
             other_args = {}
@@ -481,20 +490,25 @@ def main():
 
         if args.commit2:
             tmp = np.insert(np.cumsum(bundle_groups_len), 0, 0)
-            group_idx = np.array([np.arange(tmp[i], tmp[i + 1])
-                                  for i in range(len(tmp) - 1)])
-            group_w = np.empty_like(bundle_groups_len, dtype=np.float64)
-            for k in range(len(bundle_groups_len)):
-                group_w[k] = np.sqrt(bundle_groups_len[k]) / \
-                             (np.linalg.norm(mit.x[group_idx[k]]) + 1e-12)
-            prior_on_bundles = commit.solvers.init_regularisation(
-                mit, structureIC=group_idx, weightsIC=group_w,
-                regnorms=[commit.solvers.group_sparsity,
-                          commit.solvers.non_negative,
-                          commit.solvers.non_negative],
-                lambdas=[args.lambda_commit_2, 0.0, 0.0])
-            mit.fit(tol_fun=1e-3, max_iter=args.nbr_iter,
-                    regularisation=prior_on_bundles, verbose=False)
+            group_idx = np.fromiter([np.arange(tmp[i], tmp[i + 1])
+                                     for i in range(len(tmp) - 1)],
+                                    dtype=np.object_)
+
+            params_IC = {}
+            params_IC['group_idx'] = group_idx
+            params_IC['group_weights_cardinality'] = True
+            params_IC['group_weights_adaptive'] = True
+
+            perc_lambda = args.lambda_commit_2
+
+            # set the regularisation
+            mit.set_regularisation(
+                regularisers=('group_lasso', None, None),
+                is_nonnegative=(True, True, True),
+                lambdas=(perc_lambda, None, None),
+                params=(params_IC, None, None))
+
+            mit.fit(tol_fun=1e-3, max_iter=args.nbr_iter)
             mit.save_results()
             _save_results(args, tmp_dir, ext, hdf5_file, offsets_list,
                           'commit_2/', True)
