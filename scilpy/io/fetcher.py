@@ -59,7 +59,8 @@ def get_testing_files_dict():
         "processing.zip": "1ba6869c9d8b58a9b911ba71fdd50a07",
         "surface_vtk_fib.zip": "241f3afd6344c967d7176b43e4a99a41",
         "tractograms.zip": "964113f307213523d784b3dbf3a5117a",
-        "mrds.zip": "5abe6092400e11e9bb2423e2c387e774"
+        "mrds.zip": "5abe6092400e11e9bb2423e2c387e774",
+        "lesions.zip": "dbd160b4c0c5d2db9cada875c0bbb00c"
     }
 
 
