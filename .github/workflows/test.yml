@@ -56,7 +56,6 @@ jobs:
 
       - name: Install Scilpy
         run: |
-          export SETUPTOOLS_USE_DISTUTILS=stdlib
           uv venv ~/.venvs/scilpy --python=${{ steps.python-selector.outputs.python-version }}
           source ~/.venvs/scilpy/bin/activate
           uv pip install --upgrade pip wheel
