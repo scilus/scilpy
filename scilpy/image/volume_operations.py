@@ -453,7 +453,7 @@ def remove_outliers_ransac(in_data, min_fit, fit_thr, max_iter):
 
     X = in_nzr_ind[0][:, np.newaxis]
     model_ransac = linear_model.RANSACRegressor(
-        base_estimator=linear_model.LinearRegression(), min_samples=min_fit,
+        estimator=linear_model.LinearRegression(), min_samples=min_fit,
         residual_threshold=fit_thr, max_trials=max_iter)
     model_ransac.fit(X, in_nzr_val)
 
@@ -612,7 +612,7 @@ def resample_volume(img, ref_img=None, volume_shape=None, iso_min=False,
 
 
 def reshape_volume(
-    img, volume_shape, mode='constant', cval=0
+    img, volume_shape, mode='constant', cval=0, dtype=None
 ):
     """ Reshape a volume to a specified shape by padding or cropping. The
     new volume is centered wrt the old volume in world space.
@@ -627,6 +627,9 @@ def reshape_volume(
         Padding mode. See np.pad for more information. Default is 'constant'.
     cval: float, optional
         Value to use for padding when mode is 'constant'. Default is 0.
+    dtype: np.dtype
+        Data type to cast the volume to. If unset, the volume is kept to its
+        original type.
 
     Returns
     -------
@@ -634,6 +637,8 @@ def reshape_volume(
         The reshaped image.
     """
 
+    if not dtype:
+        dtype = img.get_data_dtype()
     data = img.get_fdata(dtype=np.float32)
     affine = img.affine
 
@@ -683,7 +688,7 @@ def reshape_volume(
     new_affine = np.copy(affine)
     new_affine[0:3, 3] = translation[0:3]
 
-    return nib.Nifti1Image(cropped_data, new_affine)
+    return nib.Nifti1Image(cropped_data.astype(dtype), new_affine)
 
 
 def mask_data_with_default_cube(data):

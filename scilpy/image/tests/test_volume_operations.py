@@ -13,7 +13,6 @@ from scilpy.image.volume_operations import (apply_transform,
                                             compute_distance_map, compute_snr,
                                             crop_volume, flip_volume,
                                             mask_data_with_default_cube,
-                                            compute_distance_map,
                                             compute_nawm,
                                             merge_metrics, normalize_metric,
                                             resample_volume, reshape_volume,
@@ -274,6 +273,23 @@ def test_reshape_volume_crop():
     assert_equal(reshaped_img.get_fdata().shape, (2, 2, 2, 2))
     assert_equal(reshaped_img.affine[:, -1], [0, 0, 0, 1])
     assert_equal(reshaped_img.get_fdata()[0, 0, 0, 0], 1)
+
+
+def test_reshape_volume_dtype():
+    # 3D img
+    img = nib.Nifti1Image(
+        np.arange(1, (3**3)+1).reshape((3, 3, 3)).astype(np.uint16),
+        np.eye(4))
+
+    # 1) Staying in 3x3x3, same dtype
+    reshaped_img = reshape_volume(img, (3, 3, 3))
+    assert_equal(reshaped_img.get_fdata().shape, (3, 3, 3))
+    assert reshaped_img.get_data_dtype() == img.get_data_dtype()
+
+    # 1) Staying in 3x3x3, casting to float
+    reshaped_img = reshape_volume(img, (3, 3, 3), dtype=float)
+    assert_equal(reshaped_img.get_fdata().shape, (3, 3, 3))
+    assert reshaped_img.get_data_dtype() == float
 
 
 def test_normalize_metric_basic():

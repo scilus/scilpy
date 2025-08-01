@@ -13,7 +13,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_mti_adjust_B1_header.py', '--help')
+    ret = script_runner.run(['scil_mti_adjust_B1_header.py', '--help'])
     assert ret.success
 
 
@@ -26,6 +26,6 @@ def test_execution_ihMT_no_option(script_runner, monkeypatch):
                               'MT', 'sub-001_run-01_B1map.json')
 
     # no option
-    ret = script_runner.run('scil_mti_adjust_B1_header.py', in_b1_map,
-                            tmp_dir.name, in_b1_json, '-f')
+    ret = script_runner.run(['scil_mti_adjust_B1_header.py', in_b1_map,
+                            tmp_dir.name, in_b1_json, '-f'])
     assert ret.success

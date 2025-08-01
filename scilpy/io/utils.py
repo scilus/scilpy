@@ -13,6 +13,7 @@ import xml.etree.ElementTree as ET
 import nibabel as nib
 import numpy as np
 from dipy.data import SPHERE_FILES
+from dipy.io.stateful_tractogram import Space, Origin
 from dipy.io.utils import is_header_compatible
 from scipy.io import loadmat
 import six
@@ -307,6 +308,11 @@ def add_bbox_arg(parser):
                              'streamlines).')
 
 
+def add_vtk_legacy_arg(parser):
+    parser.add_argument('--legacy_vtk_format', action='store_true',
+                        help='Save the VTK file in the legacy format.')
+
+
 def add_sh_basis_args(parser, mandatory=False, input_output=False):
     """
     Add spherical harmonics (SH) bases argument. For more information about
@@ -473,18 +479,18 @@ def add_overlays_screenshot_args(parser, default_alpha=0.5,
     rpg = rendering_parsing_group or parser
     rpg.add_argument("--overlays_as_contours", action='store_true',
                      help="Display overlays contours and reduce the opacity "
-                          "of their inner region (see the "
+                          "of their \ninner region (see the "
                           "`--overlays_opacity` argument).")
     rpg.add_argument("--overlays_colors", nargs="+",
                      type=ranged_type(int, 0, 255), metavar="R G B",
                      help="Colors for the overlays or contours. You may "
-                          "provide a single color, for all overlays/contours, "
-                          "or one color for each. Each color is given as "
-                          "three values: R G B")
+                          "provide a single color, \nfor all "
+                          "overlays/contours, or one color for each. Each "
+                          "color is given \nas three values: R G B")
     rpg.add_argument("--overlays_opacity", type=ranged_type(float, 0., 1.),
                      default=default_alpha,
                      help="Opacity value for the masks overlays. When "
-                          "combined with `--overlays_as_contours`, this will "
+                          "combined with `--overlays_as_contours`,\nthis will "
                           "be the opacity of the region inside the computed "
                           "contours. [%(default)s]")
 
@@ -525,14 +531,14 @@ def add_volume_screenshot_args(parser, input_name, mandatory=True,
     cmap_parsing_group.add_argument(f"--{input_name}_cmap_name",
                                     default=default_cmap,
                                     help=f"Colormap name for the {descriptor} "
-                                         f"image data. [%(default)s]")
+                                    f"image data. [%(default)s]")
 
     opacity_parsing_group.add_argument(f"--{input_name}_opacity",
                                        type=ranged_type(float, 0., 1.),
                                        default=default_alpha,
                                        help=f"Opacity value for the "
-                                            f"{descriptor} image data. "
-                                            f"[%(default)s]")
+                                       f"{descriptor} image data. "
+                                       f"[%(default)s]")
 
 
 def add_default_screenshot_args(parser, slice_ids_mandatory=True,
@@ -567,10 +573,10 @@ def add_default_screenshot_args(parser, slice_ids_mandatory=True,
 
     _output_help = "Name of the output image (e.g. img.jpg, img.png)."
     if not slice_ids_mandatory:
-        _output_help = "Name of the output image(s). If multiple slices are " \
-                       "provided (or none), their index will be append to " \
-                       "the name (e.g. volume.jpg, volume.png becomes " \
-                       "volume_slice_0.jpg, volume_slice_0.png)."
+        _output_help = ("Name of the output image(s). If multiple slices are"
+                        "provided (or none),\ntheir index will be appended to "
+                        "the name (e.g. volume.jpg, volume.png \nbecome "
+                        "volume_slice_0.jpg, volume_slice_0.png).")
 
     add_volume_screenshot_args(parser, "volume",
                                cmap_parsing_group=cmap_parsing_group,
@@ -579,12 +585,12 @@ def add_default_screenshot_args(parser, slice_ids_mandatory=True,
     if transparency_mask_mandatory:
         parser.add_argument("transparency",
                             help="Transparency Nifti image (.nii/.nii.gz). "
-                                 "Can either be a binary mask or a scalar "
+                                 "Can either be a \nbinary mask or a scalar "
                                  "image in the range [0, 1].")
     else:
         parser.add_argument("--transparency",
                             help="Transparency Nifti image (.nii/.nii.gz). "
-                                 "Can either be a binary mask or a scalar "
+                                 "Can either be a \nbinary mask or a scalar "
                                  "image in the range [0, 1].")
 
     parser.add_argument("out_fname", help=_output_help)
@@ -601,7 +607,7 @@ def add_default_screenshot_args(parser, slice_ids_mandatory=True,
         sg = slicing_parsing_group or parser
         sg.add_argument("--slices", nargs="+", type=int, metavar="SID",
                         help="Slice indices to screenshot. If None are "
-                             "supplied, all slices inside the transparency "
+                             "supplied, \nall slices inside the transparency "
                              "mask are selected.")
 
         sg.add_argument("--axis", default="axial",
@@ -966,7 +972,7 @@ def assert_headers_compatible(parser, required, optional=None, reference=None):
         if in_extension in ['.trk', '.nii', '.nii.gz']:
             headers.append(filepath)
             files.append(filepath)
-        elif in_extension == '.tck':
+        elif in_extension in ['.tck', '.fib', '.vtk', '.dpy']:
             if reference is None:
                 parser.error(
                     '{} must be provided with a reference.'.format(filepath))

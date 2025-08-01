@@ -120,7 +120,7 @@ def _build_arg_parser():
     g2 = p.add_argument_group(title='Coloring options')
     g2.add_argument('--ambiant_occlusion', nargs='?', const=4, type=int,
                     help='Impact factor of the ambiant occlusion '
-                    'approximation. [%(default)s]')
+                    'approximation. Default if set is 4.')
     g2.add_argument('--colormap', default='jet',
                     help='Select the colormap for colored trk (dps/dpp) '
                     '[%(default)s].\nUse two Matplotlib named color separeted '

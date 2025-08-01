@@ -73,6 +73,9 @@ def _build_arg_parser():
         '--opacity', type=float, default=1.0,
         help='Opacity for the shells.')
 
+    p.add_argument('--silent', action='store_true',
+                   help="If set, will not show anything, but will save "
+                        "image to disc only.")
     add_verbose_arg(p)
     add_overwrite_arg(p)
 
@@ -133,9 +136,8 @@ def main():
             bvals = tmp[:, 3]
             centroids, shell_idx = identify_shells(bvals)
 
-        if args.verbose:
-            logging.info("Found {} centroids: {}".format(
-                len(centroids), centroids))
+        logging.info("Found {} centroids: {}"
+                     .format(len(centroids), centroids))
 
         if args.out_basename:
             out_basename, ext = os.path.splitext(args.out_basename)
@@ -173,11 +175,13 @@ def main():
     if proj:
         plot_proj_shell(ms, use_sym=sym, use_sphere=sph, same_color=same,
                         rad=0.025, opacity=args.opacity,
-                        ofile=out_basename, ores=(args.res, args.res))
+                        ofile=out_basename, ores=(args.res, args.res),
+                        silent=args.silent)
     if each:
         plot_each_shell(ms, centroids, plot_sym_vecs=sym, use_sphere=sph,
                         same_color=same, rad=0.025, opacity=args.opacity,
-                        ofile=out_basename, ores=(args.res, args.res))
+                        ofile=out_basename, ores=(args.res, args.res),
+                        silent=args.silent)
 
 
 if __name__ == "__main__":

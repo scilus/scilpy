@@ -12,7 +12,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_fodf_memsmt.py', '--help')
+    ret = script_runner.run(['scil_fodf_memsmt.py', '--help'])
     assert ret.success
 
 
@@ -37,7 +37,7 @@ def test_inputs_check(script_runner, monkeypatch):
     in_csf_frf = os.path.join(SCILPY_HOME, 'btensor_testdata',
                               'csf_frf.txt')
 
-    ret = script_runner.run('scil_fodf_memsmt.py', in_wm_frf,
+    ret = script_runner.run(['scil_fodf_memsmt.py', in_wm_frf,
                             in_gm_frf, in_csf_frf, '--in_dwis',
                             in_dwi_lin, in_dwi_plan, '--in_bvals',
                             in_bval_lin, '--in_bvecs', in_bvec_lin,
@@ -46,10 +46,10 @@ def test_inputs_check(script_runner, monkeypatch):
                             '--gm_out_fODF', 'gm_fodf.nii.gz',
                             '--csf_out_fODF', 'csf_fodf.nii.gz', '--vf',
                             'vf.nii.gz', '--sh_order', '4', '--sh_basis',
-                            'tournier07', '--processes', '1', '-f')
+                            'tournier07', '--processes', '1', '-f'])
     assert (not ret.success)
 
-    ret = script_runner.run('scil_fodf_memsmt.py', in_wm_frf,
+    ret = script_runner.run(['scil_fodf_memsmt.py', in_wm_frf,
                             in_gm_frf, in_csf_frf, '--in_dwis',
                             in_dwi_lin, in_dwi_plan, '--in_bvals',
                             in_bval_lin, in_bval_plan, '--in_bvecs',
@@ -59,7 +59,7 @@ def test_inputs_check(script_runner, monkeypatch):
                             '--gm_out_fODF', 'gm_fodf.nii.gz',
                             '--csf_out_fODF', 'csf_fodf.nii.gz', '--vf',
                             'vf.nii.gz', '--sh_order', '4', '--sh_basis',
-                            'tournier07', '--processes', '1', '-f')
+                            'tournier07', '--processes', '1', '-f'])
     assert (not ret.success)
 
 
@@ -84,11 +84,11 @@ def test_execution_processing(script_runner, monkeypatch):
     in_csf_frf = os.path.join(SCILPY_HOME, 'btensor_testdata',
                               'csf_frf.txt')
 
-    ret = script_runner.run('scil_fodf_memsmt.py', in_wm_frf,
+    ret = script_runner.run(['scil_fodf_memsmt.py', in_wm_frf,
                             in_gm_frf, in_csf_frf, '--in_dwis',
                             in_dwi_lin, in_dwi_sph, '--in_bvals',
                             in_bval_lin, in_bval_sph,
                             '--in_bvecs', in_bvec_lin,
                             in_bvec_sph, '--in_bdeltas', '1', '0',
-                            '--sh_order', '8', '--processes', '8', '-f')
+                            '--sh_order', '8', '--processes', '8', '-f'])
     assert ret.success

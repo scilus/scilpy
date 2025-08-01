@@ -98,7 +98,7 @@ def initialize_camera(orientation, slice_index, volume_shape, aspect_ratio):
     # From vtkCamera documentation, see SetViewAngle and SetParallelScale
     # https://vtk.org/doc/nightly/html/classvtkCamera.html
     camera[CamParams.VIEW_ANGLE] = 2.0 * np.arctan(ref_height / 2.0)
-    camera[CamParams.PARA_SCALE] = ref_height / (2.0)
+    camera[CamParams.PARA_SCALE] = ref_height / 2.0
 
     return camera
 
@@ -202,7 +202,9 @@ def create_scene(actors, orientation, slice_index, volume_shape, aspect_ratio,
 
 
 def create_interactive_window(scene, window_size, interactor, *,
-                              title="Viewer", open_window=True):
+                              title="Viewer", open_window=True
+                              ): # pragma: no cover
+    # (Function ignored from coverage statistics)
     """
     Create a 3D window with the content of scene, equiped with an interactor.
 
@@ -252,7 +254,7 @@ def snapshot_slices(actors, slice_ids, orientation, shape, size):
         Name of the axis to snapshot.
     shape : tuple
         Shape of the volume.
-    size : tuple
+    size : tuple[int, int]
         Size of the viewport.
 
     Returns
@@ -279,13 +281,14 @@ def snapshot_scenes(scenes, window_size):
     ----------
     scenes : list of window.Scene
         List of scenes to snapshot.
-    window_size : tuple
+    window_size : tuple[int, int]
         Size of the window.
 
     Returns
     -------
-    snapshots : generator of 2d np.ndarray
+    snapshots : generator of 2d np.ndarray.
         Generator of snapshots.
+        The resulting numpy arrays are 3D (RGB 2D): (dimx, dimy, 3).
     """
 
     for scene in scenes:
@@ -311,7 +314,7 @@ def create_contours_actor(contours, opacity=1., linewidth=3.,
     Returns
     -------
     contours_actor : actor.odf_slicer
-        Fury object containing the contours information.
+        Fury object containing the contours' information.
     """
 
     contours_actor = get_actor_from_polydata(contours)
@@ -325,9 +328,9 @@ def create_contours_actor(contours, opacity=1., linewidth=3.,
 
 def create_odf_actors(sf_fodf, sphere, scale, sf_variance=None, mask=None,
                       radial_scale=False, norm=False, colormap=None,
-                      variance_k=1.0, variance_color=None):
+                      variance_k=1.0, variance_color=None, B_mat=None):
     """
-    Create a ODF slicer actor displaying a fODF slice. The input volume is a
+    Create an ODF slicer actor displaying a fODF slice. The input volume is a
     3-dimensional grid containing the SH coefficients of the fODF at each
     voxel, with the grid dimension having a size of 1 along the axis
     corresponding to the selected orientation.
@@ -354,6 +357,10 @@ def create_odf_actors(sf_fodf, sphere, scale, sf_variance=None, mask=None,
         Factor that multiplies sqrt(variance).
     variance_color : tuple, optional
         Color of the variance fODF data, in RGB.
+    B_mat : ndarray (n_coeffs, n_vertices)
+        Optional SH to SF matrix for projecting `odfs` given in SH
+        coefficients on the `sphere`. If None, then the input is assumed
+        to be expressed in SF coefficients.
 
     Returns
     -------
@@ -365,6 +372,7 @@ def create_odf_actors(sf_fodf, sphere, scale, sf_variance=None, mask=None,
 
     var_actor = None
     if sf_variance is not None:
+        B_mat = None
         fodf_uncertainty = sf_fodf + variance_k * np.sqrt(
             np.clip(sf_variance, 0, None))
 
@@ -388,7 +396,7 @@ def create_odf_actors(sf_fodf, sphere, scale, sf_variance=None, mask=None,
     odf_actor = actor.odf_slicer(sf_fodf, mask=mask, norm=False,
                                  radial_scale=radial_scale,
                                  sphere=sphere, scale=scale,
-                                 colormap=colormap)
+                                 colormap=colormap, B_matrix=B_mat)
 
     return odf_actor, var_actor
 
@@ -423,13 +431,13 @@ def create_peaks_actor(peaks, mask, opacity=1.0, linewidth=1.0, color=None,
         If True, use level of detail rendering.
     lod_nb_points : int
         Number of points to use for level of detail rendering.
-    lod_points_size : float
+    lod_points_size : int
         Size of the points for level of detail rendering.
 
     Returns
     -------
     peaks_actor : actor.odf_slicer
-        Fury object containing the peaks information.
+        Fury object containing the peaks' information.
     """
 
     return actor.peak_slicer(peaks, mask=mask, affine=np.eye(4),

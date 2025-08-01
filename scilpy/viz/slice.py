@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from dipy.reconst.shm import sh_to_sf
+from dipy.reconst.shm import sh_to_sf, sh_to_sf_matrix
 from fury import actor
 import numpy as np
 
@@ -41,7 +41,7 @@ def create_texture_slicer(texture, orientation, slice_index, *, mask=None,
     offset : float
         The offset of the texture image. Defaults to 0.5.
     lut : str, vtkLookupTable, optional
-        Either a vtk lookup table or a matplotlib name for one.
+        Either a vtk lookup table or a matplotlib colormap name.
     interpolation : str
         Interpolation mode for the texture image. Choices are nearest or
         linear. Defaults to nearest.
@@ -235,6 +235,8 @@ def create_odf_slicer(sh_fodf, orientation, slice_index, sphere, sh_order,
         Factor that multiplies sqrt(variance).
     variance_color : tuple, optional
         Color of the variance fODF data, in RGB.
+    is_legacy: bool
+        Whether the SH basis is used in legacy formats [True].
 
     Returns
     -------
@@ -252,14 +254,20 @@ def create_odf_slicer(sh_fodf, orientation, slice_index, sphere, sh_order,
                     full_basis=full_basis, legacy=is_legacy)
 
     fodf_var = None
+    B_mat = None
     if sh_variance is not None:
         fodf_var = sh_to_sf(sh_variance, sphere, sh_order, sh_basis,
                             full_basis=full_basis, legacy=is_legacy)
+    else:
+        fodf = sh_fodf
+        B_mat = sh_to_sf_matrix(sphere, sh_order, sh_basis,
+                                full_basis, return_inv=False)
 
     odf_actor, var_actor = create_odf_actors(fodf, sphere, scale, fodf_var,
                                              mask, radial_scale,
                                              norm, colormap,
-                                             variance_k, variance_color)
+                                             variance_k, variance_color,
+                                             B_mat=B_mat)
 
     set_display_extent(odf_actor, orientation, sh_fodf.shape[:3], slice_index)
     if sh_variance is not None:
@@ -276,8 +284,10 @@ def create_bingham_slicer(data, orientation, slice_index,
 
     Parameters
     ----------
-    data: ndarray (X, Y, Z, 9 * nb_lobes)
-        The Bingham volume.
+    data: Array
+        Volume of shape (X, Y, Z, N_LOBES, NB_PARAMS) containing
+        the Bingham distributions parameters. Note, NB_PARAMS is usually 7.
+        One of X, Y, Z should be of value 1 (one slice).
     orientation: str
         Name of the axis to visualize. Choices are axial, coronal and sagittal.
     slice_index: int
@@ -294,10 +304,14 @@ def create_bingham_slicer(data, orientation, slice_index,
         ODF slicer actors representing the Bingham distributions.
     """
     shape = data.shape
+    if len(shape) != 5:
+        raise ValueError('Expecting bingham data to be 5D '
+                         '(x, y, z, N_LOBES, NB_PARAMS), but got {}'
+                         .format(shape))
     nb_lobes = shape[-2]
     colors = [c * 255 for c in generate_n_colors(nb_lobes)]
 
-    # lmax norm for normalization
+    # lmax norm for normalization: first bingham param, averaged on lobes
     lmaxnorm = np.max(np.abs(data[..., 0]), axis=-1)
     bingham_sf = bingham_to_sf(data, sphere.vertices)
 

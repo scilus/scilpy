@@ -15,8 +15,8 @@ To
       scil_volume_reshape.py.
     - crop a volume to constrain the field of view, use scil_volume_crop.py.
 
-We usually use this script to reshape the freesurfer output (ex: wmparc.nii.gz) with
-your orig data (rawavg.nii.gz).
+We usually use this script to reshape the freesurfer output (ex: wmparc.nii.gz)
+with your orig data (rawavg.nii.gz).
 """
 
 import argparse
@@ -56,6 +56,9 @@ def _build_arg_parser():
              "edge: repeats the edge value.\nDefaults to [%(default)s].")
     p.add_argument('--constant_value', type=float, default=0,
                    help='Value to use for padding when mode is constant.')
+    p.add_argument('--data_type',
+                   help='Data type of the output image. Use the format: \n'
+                        'uint8, int16, int/float32, int/float64.')
 
     add_verbose_arg(p)
     add_overwrite_arg(p)
@@ -93,7 +96,8 @@ def main():
     # Resampling volume
     reshaped_img = reshape_volume(img, volume_shape,
                                   mode=args.mode,
-                                  cval=args.constant_value)
+                                  cval=args.constant_value,
+                                  dtype=args.data_type)
 
     # Saving results
     logging.info('Saving reshaped data to %s', args.out_image)
