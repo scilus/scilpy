@@ -11,8 +11,8 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_tractogram_segment_with_ROI_and_score',
-                            '--help')
+    ret = script_runner.run(['scil_tractogram_segment_with_ROI_and_score.py',
+                            '--help'])
     assert ret.success
 
 
@@ -35,8 +35,8 @@ def test_score_bundles(script_runner, monkeypatch):
     with open(os.path.join("config_file.json"), "w") as f:
         json.dump(json_contents, f)
 
-    ret = script_runner.run('scil_tractogram_segment_with_ROI_and_score',
+    ret = script_runner.run(['scil_tractogram_segment_with_ROI_and_score.py',
                             in_tractogram, "config_file.json",
                             'scoring_tractogram/', '--no_empty',
-                            '--use_gt_masks_as_all_masks')
+                            '--use_gt_masks_as_all_masks'])
     assert ret.success

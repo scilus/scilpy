@@ -13,7 +13,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_tractogram_remove_invalid', '--help')
+    ret = script_runner.run(['scil_tractogram_remove_invalid.py', '--help'])
     assert ret.success
 
 
@@ -21,7 +21,7 @@ def test_execution_bundles(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_tractogram = os.path.join(SCILPY_HOME, 'bundles',
                                  'bundle_all_1mm.trk')
-    ret = script_runner.run('scil_tractogram_remove_invalid',
+    ret = script_runner.run(['scil_tractogram_remove_invalid.py',
                             in_tractogram, 'bundle_all_1mm.trk', '--cut',
-                            '--remove_overlapping', '--remove_single', '-f')
+                            '--remove_overlapping', '--remove_single', '-f'])
     assert ret.success

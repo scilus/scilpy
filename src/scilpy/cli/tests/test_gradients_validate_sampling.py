@@ -13,7 +13,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_gradients_validate_sampling', '--help')
+    ret = script_runner.run(['scil_gradients_validate_sampling.py', '--help'])
     assert ret.success
 
 
@@ -24,8 +24,8 @@ def test_execution_normal(script_runner, monkeypatch):
     in_bvec = os.path.join(SCILPY_HOME, 'processing',
                            '1000.bvec')
 
-    ret = script_runner.run('scil_gradients_validate_sampling', in_bval,
-                            in_bvec)
+    ret = script_runner.run(['scil_gradients_validate_sampling.py', in_bval,
+                            in_bvec])
     assert ret.success
 
 
@@ -34,5 +34,5 @@ def test_execution_mrtrix(script_runner, monkeypatch):
     in_b = os.path.join(SCILPY_HOME, 'processing',
                            '1000.b')
 
-    ret = script_runner.run('scil_gradients_validate_sampling', in_b)
+    ret = script_runner.run(['scil_gradients_validate_sampling.py', in_b])
     assert ret.success

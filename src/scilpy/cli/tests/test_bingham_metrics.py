@@ -13,8 +13,8 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_bingham_metrics',
-                            '--help')
+    ret = script_runner.run(['scil_bingham_metrics.py',
+                            '--help'])
     assert ret.success
 
 
@@ -23,9 +23,9 @@ def test_execution_processing(script_runner, monkeypatch):
     in_bingham = os.path.join(SCILPY_HOME, 'processing',
                               'fodf_bingham.nii.gz')
 
-    ret = script_runner.run('scil_bingham_metrics',
+    ret = script_runner.run(['scil_bingham_metrics.py',
                             in_bingham, '--nbr_integration_steps', '10',
-                            '--processes', '1')
+                            '--processes', '1'])
 
     assert ret.success
 
@@ -37,9 +37,9 @@ def test_execution_processing_mask(script_runner, monkeypatch):
     in_mask = os.path.join(SCILPY_HOME, 'processing',
                            'seed.nii.gz')
 
-    ret = script_runner.run('scil_bingham_metrics',
+    ret = script_runner.run(['scil_bingham_metrics.py',
                             in_bingham, '--nbr_integration_steps', '10',
-                            '--processes', '1', '--mask', in_mask, '-f')
+                            '--processes', '1', '--mask', in_mask, '-f'])
 
     assert ret.success
 
@@ -49,9 +49,9 @@ def test_execution_processing_not_all(script_runner, monkeypatch):
     in_bingham = os.path.join(SCILPY_HOME, 'processing',
                               'fodf_bingham.nii.gz')
 
-    ret = script_runner.run('scil_bingham_metrics',
+    ret = script_runner.run(['scil_bingham_metrics.py',
                             in_bingham, '--nbr_integration_steps', '10',
                             '--processes', '1', '--not_all', '--out_fs',
-                            'fs.nii.gz', '-f')
+                            'fs.nii.gz', '-f'])
 
     assert ret.success

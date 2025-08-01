@@ -72,8 +72,9 @@ def bingham_to_sf(bingham_volume, vertices):
 
     Parameters
     ----------
-    bingham_volume: Bingham parameters volume.
-        A Bingham distributions volume.
+    bingham_volume: Array
+        Volume of shape (X, Y, Z, N_LOBES, NB_PARAMS) containing
+        the Bingham distributions parameters. Note, NB_PARAMS is usually 7.
     vertices: ndarray (n_vertices, 3)
         Sampling directions.
 
@@ -110,8 +111,9 @@ def bingham_to_peak_direction(bingham_volume):
 
     Parameters
     ----------
-    bingham_volume: ndarray (..., max_lobes, 9)
-        Bingham volume.
+    bingham_volume: Array
+        Volume of shape (X, Y, Z, N_LOBES, NB_PARAMS) containing
+        the Bingham distributions parameters. Note, NB_PARAMS is usually 7.
 
     Returns
     -------
@@ -357,8 +359,9 @@ def compute_fiber_density(bingham, m=50, mask=None, nbr_processes=None):
 
     Parameters
     ----------
-    bingham: ndarray (X, Y, Z, max_lobes*9)
-        Input Bingham volume.
+    bingham: Array
+        Volume of shape (X, Y, Z, N_LOBES, NB_PARAMS) containing
+        the Bingham distributions parameters. Note, NB_PARAMS is usually 7.
     m: unsigned int, optional
         Number of steps along theta axis for the integration. The number of
         steps along the phi axis is 2*m.
@@ -448,8 +451,9 @@ def compute_fiber_spread(binghams, fd):
 
     Parameters
     ----------
-    binghams: ndarray (X, Y, Z, max_lobes*9)
-        Bingham volume.
+    binghams: Array
+        Volume of shape (X, Y, Z, N_LOBES, NB_PARAMS) containing
+        the Bingham distributions parameters. Note, NB_PARAMS is usually 7.
     fd: ndarray (X, Y, Z, max_lobes)
         Fiber density image.
 

@@ -13,7 +13,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_sh_convert', '--help')
+    ret = script_runner.run(['scil_sh_convert.py', '--help'])
     assert ret.success
 
 
@@ -21,7 +21,7 @@ def test_execution_processing(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_fodf = os.path.join(SCILPY_HOME, 'processing',
                            'fodf.nii.gz')
-    ret = script_runner.run('scil_sh_convert', in_fodf,
+    ret = script_runner.run(['scil_sh_convert.py', in_fodf,
                             'fodf_descoteaux07.nii.gz', 'tournier07',
-                            'descoteaux07_legacy', '--processes', '1')
+                            'descoteaux07_legacy', '--processes', '1'])
     assert ret.success

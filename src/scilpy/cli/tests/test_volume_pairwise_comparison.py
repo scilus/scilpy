@@ -15,7 +15,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_volume_pairwise_comparison', '--help')
+    ret = script_runner.run(['scil_volume_pairwise_comparison.py', '--help'])
     assert ret.success
 
 
@@ -26,8 +26,8 @@ def test_label_comparison(script_runner, monkeypatch):
     in_atlas_dilated = os.path.join(
         SCILPY_HOME, 'atlas',
         'atlas_freesurfer_v2_single_brainstem_dil.nii.gz')
-    ret = script_runner.run('scil_volume_pairwise_comparison',
-                            in_atlas, in_atlas_dilated, 'atlas.json')
+    ret = script_runner.run(['scil_volume_pairwise_comparison.py',
+                            in_atlas, in_atlas_dilated, 'atlas.json'])
     assert ret.success
 
 
@@ -40,8 +40,8 @@ def test_binary_comparison(script_runner, monkeypatch):
                             'streamline_and_mask_operations',
                             'bundle_4_head_tail_offset.nii.gz')
 
-    ret = script_runner.run('scil_volume_pairwise_comparison',
-                            in_bin_1, in_bin_2, 'binary.json')
+    ret = script_runner.run(['scil_volume_pairwise_comparison.py',
+                            in_bin_1, in_bin_2, 'binary.json'])
     assert ret.success
 
 
@@ -58,8 +58,8 @@ def test_multiple_compare(script_runner, monkeypatch):
                             'streamline_and_mask_operations',
                             'bundle_4_center.nii.gz')
 
-    ret = script_runner.run('scil_volume_pairwise_comparison',
-                            in_bin_1, in_bin_2, in_bin_3, 'multiple.json')
+    ret = script_runner.run(['scil_volume_pairwise_comparison.py',
+                            in_bin_1, in_bin_2, in_bin_3, 'multiple.json'])
     assert ret.success
 
 
@@ -76,9 +76,9 @@ def test_single_compare(script_runner, monkeypatch):
                             'streamline_and_mask_operations',
                             'bundle_4_center.nii.gz')
 
-    ret = script_runner.run('scil_volume_pairwise_comparison',
+    ret = script_runner.run(['scil_volume_pairwise_comparison.py',
                             in_bin_1, in_bin_2, 'single.json',
-                            '--single_compare', in_bin_3)
+                            '--single_compare', in_bin_3])
     assert ret.success
 
 
@@ -95,10 +95,10 @@ def test_ratio_compare(script_runner, monkeypatch):
                             'streamline_and_mask_operations',
                             'bundle_4_center.nii.gz')
 
-    ret = script_runner.run('scil_volume_pairwise_comparison',
+    ret = script_runner.run(['scil_volume_pairwise_comparison.py',
                             in_bin_1, in_bin_2, 'ratio.json',
                             '--single_compare', in_bin_3,
-                            '--ratio')
+                            '--ratio'])
     assert ret.success
 
 
@@ -109,8 +109,8 @@ def test_labels_to_mask_compare(script_runner, monkeypatch):
     in_mask = os.path.join(
         SCILPY_HOME, 'atlas',
         'brainstem_bin.nii.gz')
-    ret = script_runner.run('scil_volume_pairwise_comparison',
+    ret = script_runner.run(['scil_volume_pairwise_comparison.py',
                             in_atlas, 'labels_to_maskjson',
                             '--single_compare', in_mask,
-                            '--labels_to_mask')
+                            '--labels_to_mask'])
     assert ret.success

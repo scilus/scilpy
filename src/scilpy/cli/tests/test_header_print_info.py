@@ -13,19 +13,19 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_header_print_info', '--help')
+    ret = script_runner.run(['scil_header_print_info.py', '--help'])
     assert ret.success
 
 
 def test_execution_img(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_img = os.path.join(SCILPY_HOME, 'others', 'fa.nii.gz')
-    ret = script_runner.run('scil_header_print_info', in_img)
+    ret = script_runner.run(['scil_header_print_info.py', in_img])
     assert ret.success
 
 
 def test_execution_tractogram(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_tracto = os.path.join(SCILPY_HOME, 'others', 'IFGWM.trk')
-    ret = script_runner.run('scil_header_print_info', in_tracto)
+    ret = script_runner.run(['scil_header_print_info.py', in_tracto])
     assert ret.success

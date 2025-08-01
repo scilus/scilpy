@@ -21,6 +21,7 @@ def any2grayscale(array_2d):
 
     Returns
     -------
+    Data: np.ndarray
         Grayscale `unit8` data in [0, 255] range.
     """
 

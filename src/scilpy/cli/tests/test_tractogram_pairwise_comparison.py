@@ -16,24 +16,24 @@ in_ref = os.path.join(SCILPY_HOME, 'bundles', 'bundle_all_1mm.nii.gz')
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run(
-        'scil_tractogram_pairwise_comparison', '--help')
+    ret = script_runner.run([
+        'scil_tractogram_pairwise_comparison.py', '--help'])
     assert ret.success
 
 
 def test_execution_bundles_skip(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
-    ret = script_runner.run('scil_tractogram_pairwise_comparison',
+    ret = script_runner.run(['scil_tractogram_pairwise_comparison.py',
                             in_1, in_2, '--out_dir', tmp_dir.name,
                             '--reference', in_ref,
-                            '--skip_streamlines_distance')
+                            '--skip_streamlines_distance'])
     assert ret.success
 
 
 def test_execution_bundles(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
-    ret = script_runner.run('scil_tractogram_pairwise_comparison',
+    ret = script_runner.run(['scil_tractogram_pairwise_comparison.py',
                             in_1, in_2, '--out_dir', tmp_dir.name,
                             '--reference', in_ref, '-f',
-                            '--skip_streamlines_distance')
+                            '--skip_streamlines_distance'])
     assert ret.success

@@ -6,6 +6,9 @@ assumed to be saved from scil_fodf_to_bingham.py.
 
 Given an image of Bingham coefficients, this script displays a slice in a
 given orientation.
+
+Note. The interactive visualization is not verified by tests. If you encounter
+any bug, please report it to our team or use --silent.
 """
 
 import argparse
@@ -36,7 +39,9 @@ def _build_arg_parser():
                                 epilog=version_string)
 
     # Positional arguments
-    p.add_argument('in_bingham', help='Input SH image file.')
+    p.add_argument('in_bingham',
+                   help='Input SH image file. Expecting data to be of size '
+                        '(X, Y, Z, nb_lobes, 7)')
 
     # Window configuration options
     p.add_argument('--slice_index', type=int,
@@ -59,7 +64,7 @@ def _build_arg_parser():
     p.add_argument('--silent', action='store_true',
                    help='Disable interactive visualization.')
 
-    p.add_argument('--output', help='Path to output file.')
+    p.add_argument('--output', help='Path to output image file.')
 
     add_verbose_arg(p)
     add_overwrite_arg(p)
@@ -74,24 +79,6 @@ def _build_arg_parser():
                         'different color. [%(default)s]')
 
     return p
-
-
-def _parse_args(parser):
-    args = parser.parse_args()
-    inputs = []
-    output = []
-    inputs.append(args.in_bingham)
-    if args.output:
-        output.append(args.output)
-    else:
-        if args.silent:
-            parser.error('Silent mode is enabled but no output is specified.'
-                         'Specify an output with --output to use silent mode.')
-
-    assert_inputs_exist(parser, inputs)
-    assert_outputs_exist(parser, args, output)
-
-    return args
 
 
 def _get_slicing_for_axis(axis_name, index, shape):
@@ -121,14 +108,22 @@ def _get_data_from_inputs(args):
 
 def main():
     parser = _build_arg_parser()
-    args = _parse_args(parser)
+    args = parser.parse_args()
+    logging.getLogger().setLevel(logging.getLevelName(args.verbose))
+
+    if not args.output and args.silent:
+        parser.error('Silent mode is enabled but no output is specified.'
+                     'Specify an output with --output to use silent mode.')
+
+    assert_inputs_exist(parser, args.in_bingham)
+    assert_outputs_exist(parser, args, [], args.output)
+
     data = _get_data_from_inputs(args)
     sph = get_sphere(name=args.sphere)
-    logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     actors = create_bingham_slicer(data, args.axis_name,
                                    args.slice_index, sph,
-                                   args.color_per_lobe)
+                                   color_per_lobe=args.color_per_lobe)
 
     # Prepare and display the scene
     scene = create_scene(actors, args.axis_name,

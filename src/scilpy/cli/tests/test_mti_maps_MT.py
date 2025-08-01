@@ -58,7 +58,7 @@ in_b1_json = os.path.join(SCILPY_HOME, 'MT', 'sub-001_run-01_B1map.json')
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_mti_maps_MT', '--help')
+    ret = script_runner.run(['scil_mti_maps_MT.py', '--help'])
     assert ret.success
 
 
@@ -66,7 +66,7 @@ def test_execution_MT_no_option(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
 
     # no option
-    ret = script_runner.run('scil_mti_maps_MT', tmp_dir.name,
+    ret = script_runner.run(['scil_mti_maps_MT.py', tmp_dir.name,
                             '--mask', in_mask,
                             '--in_mtoff_pd', in_e1_mtoff, in_e2_mtoff,
                             in_e3_mtoff, in_e4_mtoff, in_e5_mtoff,
@@ -75,7 +75,7 @@ def test_execution_MT_no_option(script_runner, monkeypatch):
                             '--in_mtoff_t1', in_e1_t1w, in_e2_t1w, in_e3_t1w,
                             in_e4_t1w, in_e5_t1w,
                             '--in_jsons', in_mtoff_json, in_t1w_json,
-                            '-f')
+                            '-f'])
     assert ret.success
 
 
@@ -83,7 +83,7 @@ def test_execution_MT_prefix(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
 
     # --out_prefix
-    ret = script_runner.run('scil_mti_maps_MT', tmp_dir.name,
+    ret = script_runner.run(['scil_mti_maps_MT.py', tmp_dir.name,
                             '--mask', in_mask,
                             '--in_mtoff_pd', in_e1_mtoff, in_e2_mtoff,
                             in_e3_mtoff, in_e4_mtoff, in_e5_mtoff,
@@ -93,7 +93,7 @@ def test_execution_MT_prefix(script_runner, monkeypatch):
                             in_e4_t1w, in_e5_t1w,
                             '--in_jsons', in_mtoff_json, in_t1w_json,
                             '--out_prefix', 'sub_01',
-                            '-f')
+                            '-f'])
     assert ret.success
 
 
@@ -101,7 +101,7 @@ def test_execution_MT_extended(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
 
     # --extended
-    ret = script_runner.run('scil_mti_maps_MT', tmp_dir.name,
+    ret = script_runner.run(['scil_mti_maps_MT.py', tmp_dir.name,
                             '--mask', in_mask,
                             '--in_mtoff_pd', in_e1_mtoff, in_e2_mtoff,
                             in_e3_mtoff, in_e4_mtoff, in_e5_mtoff,
@@ -111,7 +111,7 @@ def test_execution_MT_extended(script_runner, monkeypatch):
                             in_e4_t1w, in_e5_t1w,
                             '--in_jsons', in_mtoff_json, in_t1w_json,
                             '--extended',
-                            '-f')
+                            '-f'])
     assert ret.success
 
 
@@ -119,7 +119,7 @@ def test_execution_MT_filtering(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
 
     # --filtering
-    ret = script_runner.run('scil_mti_maps_MT', tmp_dir.name,
+    ret = script_runner.run(['scil_mti_maps_MT.py', tmp_dir.name,
                             '--mask', in_mask,
                             '--in_mtoff_pd', in_e1_mtoff, in_e2_mtoff,
                             in_e3_mtoff, in_e4_mtoff, in_e5_mtoff,
@@ -129,7 +129,7 @@ def test_execution_MT_filtering(script_runner, monkeypatch):
                             in_e4_t1w, in_e5_t1w,
                             '--in_jsons', in_mtoff_json, in_t1w_json,
                             '--filtering',
-                            '-f')
+                            '-f'])
     assert ret.success
 
 
@@ -139,11 +139,11 @@ def test_execution_MT_B1_map(script_runner, monkeypatch):
     out_b1_map = tmp_dir.name + '/B1map.nii.gz'
 
     # Temporary trick to have the B1 map with proper header.
-    ret = script_runner.run('scil_mti_adjust_B1_header', in_b1_map,
-                            out_b1_map, in_b1_json, '-f')
+    ret = script_runner.run(['scil_mti_adjust_B1_header.py', in_b1_map,
+                            out_b1_map, in_b1_json, '-f'])
 
     # --in_B1_map
-    ret = script_runner.run('scil_mti_maps_MT', tmp_dir.name,
+    ret = script_runner.run(['scil_mti_maps_MT.py', tmp_dir.name,
                             '--mask', in_mask,
                             '--in_mtoff_pd', in_e1_mtoff, in_e2_mtoff,
                             in_e3_mtoff, in_e4_mtoff, in_e5_mtoff,
@@ -157,7 +157,7 @@ def test_execution_MT_B1_map(script_runner, monkeypatch):
                             '--in_B1_map', out_b1_map,
                             '--B1_correction_method', 'empiric',
                             '--out_prefix', 'sub-01',
-                            '-f')
+                            '-f'])
     assert ret.success
 
 
@@ -165,7 +165,7 @@ def test_execution_MT_wrong_echoes(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
 
     # Wrong number of echoes for negative
-    ret = script_runner.run('scil_mti_maps_MT', tmp_dir.name,
+    ret = script_runner.run(['scil_mti_maps_MT.py', tmp_dir.name,
                             '--mask', in_mask,
                             '--in_mtoff_pd', in_e1_mtoff, in_e2_mtoff,
                             in_e3_mtoff, in_e4_mtoff, in_e5_mtoff,
@@ -176,7 +176,7 @@ def test_execution_MT_wrong_echoes(script_runner, monkeypatch):
                             '--in_mtoff_t1', in_e1_t1w, in_e2_t1w, in_e3_t1w,
                             in_e4_t1w, in_e5_t1w,
                             '--in_jsons', in_mtoff_json, in_t1w_json,
-                            '-f')
+                            '-f'])
     assert (not ret.success)
 
 
@@ -184,14 +184,14 @@ def test_execution_MT_single_echoe(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
 
     # Single echoe
-    ret = script_runner.run('scil_mti_maps_MT', tmp_dir.name,
+    ret = script_runner.run(['scil_mti_maps_MT.py', tmp_dir.name,
                             '--mask', in_mask,
                             '--in_mtoff_pd', in_e1_mtoff,
                             '--in_positive', in_e1_mton,
                             '--in_negative', in_e1_mton,
                             '--in_mtoff_t1', in_e1_t1w,
                             '--in_jsons', in_mtoff_json, in_t1w_json,
-                            '-f')
+                            '-f'])
     assert ret.success
 
 
@@ -201,11 +201,11 @@ def test_execution_MT_B1_not_T1(script_runner, monkeypatch):
     out_b1_map = tmp_dir.name + '/B1map.nii.gz'
 
     # Temporary trick to have the B1 map with proper header.
-    ret = script_runner.run('scil_mti_adjust_B1_header', in_b1_map,
-                            out_b1_map, in_b1_json, '-f')
+    ret = script_runner.run(['scil_mti_adjust_B1_header.py', in_b1_map,
+                            out_b1_map, in_b1_json, '-f'])
 
     # B1 no T1 should raise warning.
-    ret = script_runner.run('scil_mti_maps_MT', tmp_dir.name,
+    ret = script_runner.run(['scil_mti_maps_MT.py', tmp_dir.name,
                             '--mask', in_mask,
                             '--in_mtoff_pd', in_e1_mtoff,
                             '--in_positive', in_e1_mton,
@@ -213,7 +213,7 @@ def test_execution_MT_B1_not_T1(script_runner, monkeypatch):
                             '--in_jsons', in_mtoff_json, in_t1w_json,
                             '--in_B1_map', out_b1_map,
                             '--B1_correction_method', 'empiric',
-                            '-f')
+                            '-f'])
     assert ret.success
 
 
@@ -223,11 +223,11 @@ def test_execution_MT_B1_no_fit(script_runner, monkeypatch):
     out_b1_map = tmp_dir.name + '/B1map.nii.gz'
 
     # Temporary trick to have the B1 map with proper header.
-    ret = script_runner.run('scil_mti_adjust_B1_header', in_b1_map,
-                            out_b1_map, in_b1_json, '-f')
+    ret = script_runner.run(['scil_mti_adjust_B1_header.py', in_b1_map,
+                            out_b1_map, in_b1_json, '-f'])
 
     # B1 model_based but no fit values
-    ret = script_runner.run('scil_mti_maps_MT', tmp_dir.name,
+    ret = script_runner.run(['scil_mti_maps_MT.py', tmp_dir.name,
                             '--mask', in_mask,
                             '--in_mtoff_pd', in_e1_mtoff,
                             '--in_positive', in_e1_mton,
@@ -236,7 +236,7 @@ def test_execution_MT_B1_no_fit(script_runner, monkeypatch):
                             '--in_jsons', in_mtoff_json, in_t1w_json,
                             '--in_B1_map', out_b1_map,
                             '--B1_correction_method', 'model_based',
-                            '-f')
+                            '-f'])
     assert (not ret.success)
 
 
@@ -244,12 +244,12 @@ def test_execution_MT_acq_params(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
 
     # Acquisition parameters
-    ret = script_runner.run('scil_mti_maps_MT', tmp_dir.name,
+    ret = script_runner.run(['scil_mti_maps_MT.py', tmp_dir.name,
                             '--mask', in_mask,
                             '--in_mtoff_pd', in_e1_mtoff,
                             '--in_positive', in_e1_mton,
                             '--in_negative', in_e1_mton,
                             '--in_mtoff_t1', in_e1_t1w,
                             '--in_acq_parameters', "15", "15", "0.1", "0.1",
-                            '-f')
+                            '-f'])
     assert ret.success

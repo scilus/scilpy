@@ -227,7 +227,7 @@ class IntersectionFinder:
                 out_collisions.append(self._collisions[si])
             elif not self._excluded[si]:
                 out_streamlines.append(s)
-                out_diameters.append(self.diameters[si])
+                out_diameters.append(np.array([self.diameters[si]]))
             if self._obstacle[si]:
                 out_obstacle.append(s)
 

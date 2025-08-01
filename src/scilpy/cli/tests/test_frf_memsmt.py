@@ -12,7 +12,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_frf_memsmt', '--help')
+    ret = script_runner.run(['scil_frf_memsmt.py', '--help'])
     assert ret.success
 
 
@@ -37,13 +37,13 @@ def test_roi_center_shape_parameter(script_runner, monkeypatch):
     in_bvec_sph = os.path.join(SCILPY_HOME, 'btensor_testdata',
                                'spherical.bvecs')
 
-    ret = script_runner.run('scil_frf_memsmt', 'wm_frf.txt',
+    ret = script_runner.run(['scil_frf_memsmt.py', 'wm_frf.txt',
                             'gm_frf.txt', 'csf_frf.txt', '--in_dwis',
                             in_dwi_lin, in_dwi_plan, in_dwi_sph, '--in_bvals',
                             in_bval_lin, in_bval_plan, in_bval_sph,
                             '--in_bvecs', in_bvec_lin, in_bvec_plan,
                             in_bvec_sph, '--in_bdeltas', '1', '-0.5', '0',
-                            '--roi_center', '1', '--min_nvox', '1', '-f')
+                            '--roi_center', '1', '--min_nvox', '1', '-f'])
 
     assert (not ret.success)
 
@@ -68,33 +68,33 @@ def test_roi_radii_shape_parameter(script_runner, monkeypatch):
                                'spherical.bvals')
     in_bvec_sph = os.path.join(SCILPY_HOME, 'btensor_testdata',
                                'spherical.bvecs')
-    ret = script_runner.run('scil_frf_memsmt', 'wm_frf.txt',
+    ret = script_runner.run(['scil_frf_memsmt.py', 'wm_frf.txt',
                             'gm_frf.txt', 'csf_frf.txt', '--in_dwis',
                             in_dwi_lin, in_dwi_plan, in_dwi_sph, '--in_bvals',
                             in_bval_lin, in_bval_plan, in_bval_sph,
                             '--in_bvecs', in_bvec_lin, in_bvec_plan,
                             in_bvec_sph, '--in_bdeltas', '1', '-0.5', '0',
-                            '--roi_radii', '37', '--min_nvox', '1', '-f')
+                            '--roi_radii', '37', '--min_nvox', '1', '-f'])
     assert ret.success
 
-    ret = script_runner.run('scil_frf_memsmt', 'wm_frf.txt',
+    ret = script_runner.run(['scil_frf_memsmt.py', 'wm_frf.txt',
                             'gm_frf.txt', 'csf_frf.txt', '--in_dwis',
                             in_dwi_lin, in_dwi_plan, in_dwi_sph, '--in_bvals',
                             in_bval_lin, in_bval_plan, in_bval_sph,
                             '--in_bvecs', in_bvec_lin, in_bvec_plan,
                             in_bvec_sph, '--in_bdeltas', '1', '-0.5', '0',
                             '--roi_radii', '37', '37', '37',
-                            '--min_nvox', '1', '-f')
+                            '--min_nvox', '1', '-f'])
     assert ret.success
 
-    ret = script_runner.run('scil_frf_memsmt', 'wm_frf.txt',
+    ret = script_runner.run(['scil_frf_memsmt.py', 'wm_frf.txt',
                             'gm_frf.txt', 'csf_frf.txt', '--in_dwis',
                             in_dwi_lin, in_dwi_plan, in_dwi_sph, '--in_bvals',
                             in_bval_lin, in_bval_plan, in_bval_sph,
                             '--in_bvecs', in_bvec_lin, in_bvec_plan,
                             in_bvec_sph, '--in_bdeltas', '1', '-0.5', '0',
                             '--roi_radii', '37', '37', '37', '37', '37',
-                            '--min_nvox', '1', '-f')
+                            '--min_nvox', '1', '-f'])
 
     assert (not ret.success)
 
@@ -114,19 +114,19 @@ def test_inputs_check(script_runner, monkeypatch):
     in_bvec_plan = os.path.join(SCILPY_HOME, 'btensor_testdata',
                                 'planar.bvecs')
 
-    ret = script_runner.run('scil_frf_memsmt', 'wm_frf.txt',
+    ret = script_runner.run(['scil_frf_memsmt.py', 'wm_frf.txt',
                             'gm_frf.txt', 'csf_frf.txt', '--in_dwis',
                             in_dwi_lin, in_dwi_plan, '--in_bvals',
                             in_bval_lin, '--in_bvecs', in_bvec_lin,
-                            '--in_bdeltas', '1', '--min_nvox', '1', '-f')
+                            '--in_bdeltas', '1', '--min_nvox', '1', '-f'])
     assert (not ret.success)
 
-    ret = script_runner.run('scil_frf_memsmt', 'wm_frf.txt',
+    ret = script_runner.run(['scil_frf_memsmt.py', 'wm_frf.txt',
                             'gm_frf.txt', 'csf_frf.txt', '--in_dwis',
                             in_dwi_lin, in_dwi_plan, '--in_bvals',
                             in_bval_lin, in_bval_plan, '--in_bvecs',
                             in_bvec_lin, in_bvec_plan, '--in_bdeltas',
-                            '1', '-0.5', '0', '--min_nvox', '1', '-f')
+                            '1', '-0.5', '0', '--min_nvox', '1', '-f'])
     assert (not ret.success)
 
 
@@ -150,13 +150,13 @@ def test_outputs_precision(script_runner, monkeypatch):
                                'spherical.bvals')
     in_bvec_sph = os.path.join(SCILPY_HOME, 'btensor_testdata',
                                'spherical.bvecs')
-    ret = script_runner.run('scil_frf_memsmt', 'wm_frf.txt',
+    ret = script_runner.run(['scil_frf_memsmt.py', 'wm_frf.txt',
                             'gm_frf.txt', 'csf_frf.txt', '--in_dwis',
                             in_dwi_lin, in_dwi_plan, in_dwi_sph, '--in_bvals',
                             in_bval_lin, in_bval_plan, in_bval_sph,
                             '--in_bvecs', in_bvec_lin, in_bvec_plan,
                             in_bvec_sph, '--in_bdeltas', '1', '-0.5', '0',
-                            '--min_nvox', '1', '--precision', '4', '-f')
+                            '--min_nvox', '1', '--precision', '4', '-f'])
 
     assert ret.success
 
@@ -186,11 +186,11 @@ def test_execution_processing(script_runner, monkeypatch):
                                'spherical.bvals')
     in_bvec_sph = os.path.join(SCILPY_HOME, 'btensor_testdata',
                                'spherical.bvecs')
-    ret = script_runner.run('scil_frf_memsmt', 'wm_frf.txt',
+    ret = script_runner.run(['scil_frf_memsmt.py', 'wm_frf.txt',
                             'gm_frf.txt', 'csf_frf.txt', '--in_dwis',
                             in_dwi_lin, in_dwi_plan, in_dwi_sph, '--in_bvals',
                             in_bval_lin, in_bval_plan, in_bval_sph,
                             '--in_bvecs', in_bvec_lin, in_bvec_plan,
                             in_bvec_sph, '--in_bdeltas', '1', '-0.5', '0',
-                            '--min_nvox', '1', '-f')
+                            '--min_nvox', '1', '-f'])
     assert ret.success

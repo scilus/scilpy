@@ -13,6 +13,7 @@ import xml.etree.ElementTree as ET
 import nibabel as nib
 import numpy as np
 from dipy.data import SPHERE_FILES
+from dipy.io.stateful_tractogram import Space, Origin
 from dipy.io.utils import is_header_compatible
 from scipy.io import loadmat
 import six
@@ -307,6 +308,11 @@ def add_bbox_arg(parser):
                              'streamlines).')
 
 
+def add_vtk_legacy_arg(parser):
+    parser.add_argument('--legacy_vtk_format', action='store_true',
+                        help='Save the VTK file in the legacy format.')
+
+
 def add_sh_basis_args(parser, mandatory=False, input_output=False):
     """
     Add spherical harmonics (SH) bases argument. For more information about
@@ -525,14 +531,14 @@ def add_volume_screenshot_args(parser, input_name, mandatory=True,
     cmap_parsing_group.add_argument(f"--{input_name}_cmap_name",
                                     default=default_cmap,
                                     help=f"Colormap name for the {descriptor} "
-                                         f"image data. [%(default)s]")
+                                    f"image data. [%(default)s]")
 
     opacity_parsing_group.add_argument(f"--{input_name}_opacity",
                                        type=ranged_type(float, 0., 1.),
                                        default=default_alpha,
                                        help=f"Opacity value for the "
-                                            f"{descriptor} image data. "
-                                            f"[%(default)s]")
+                                       f"{descriptor} image data. "
+                                       f"[%(default)s]")
 
 
 def add_default_screenshot_args(parser, slice_ids_mandatory=True,

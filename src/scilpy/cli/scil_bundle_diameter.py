@@ -74,7 +74,10 @@ def _build_arg_parser():
     p2 = p.add_argument_group(title='Visualization options')
     p3 = p2.add_mutually_exclusive_group()
     p3.add_argument('--show_rendering', action='store_true',
-                    help='Display VTK window (optional).')
+                    help='Display VTK window (optional).\n'
+                         '(Note. This option is not verified by tests. If '
+                         'you encounter any bug, \nplease report it to our '
+                         'team.)')
     p3.add_argument('--save_rendering', metavar='OUT_FOLDER',
                     help='Save VTK render in the specified folder (optional)')
     p2.add_argument('--wireframe', action='store_true',

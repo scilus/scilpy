@@ -13,7 +13,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_bundle_diameter', '--help')
+    ret = script_runner.run(['scil_bundle_diameter.py', '--help'])
     assert ret.success
 
 
@@ -22,6 +22,7 @@ def test_execution_tractometry(script_runner, monkeypatch):
     in_bundle = os.path.join(SCILPY_HOME, 'tractometry', 'IFGWM.trk')
     in_labels = os.path.join(SCILPY_HOME, 'tractometry',
                              'IFGWM_labels_map.nii.gz')
-    ret = script_runner.run('scil_bundle_diameter', in_bundle, in_labels,
-                            '--wireframe', '--fitting_func', 'lin_up')
+    ret = script_runner.run(['scil_bundle_diameter.py', in_bundle, in_labels,
+                            '--wireframe', '--fitting_func', 'lin_up',
+                            '--save_rendering', tmp_dir.name])
     assert ret.success

@@ -13,7 +13,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_viz_volume_histogram', '--help')
+    ret = script_runner.run(['scil_viz_volume_histogram.py', '--help'])
     assert ret.success
 
 
@@ -23,6 +23,6 @@ def test_execution_processing(script_runner, monkeypatch):
                          'fa.nii.gz')
     in_mask = os.path.join(SCILPY_HOME, 'processing',
                            'seed.nii.gz')
-    ret = script_runner.run('scil_viz_volume_histogram', in_fa, in_mask,
-                            '20', 'histogram.png')
+    ret = script_runner.run(['scil_viz_volume_histogram.py', in_fa, in_mask,
+                            '20', 'histogram.png'])
     assert ret.success

@@ -13,18 +13,18 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_volume_crop', '--help')
+    ret = script_runner.run(['scil_volume_crop.py', '--help'])
     assert ret.success
 
 
 def test_execution_processing(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_dwi = os.path.join(SCILPY_HOME, 'processing', 'dwi.nii.gz')
-    ret = script_runner.run('scil_volume_crop', in_dwi, 'dwi_crop.nii.gz',
-                            '--output_bbox', 'bbox.json')
+    ret = script_runner.run(['scil_volume_crop.py', in_dwi, 'dwi_crop.nii.gz',
+                            '--output_bbox', 'bbox.json'])
     assert ret.success
 
     # Then try to load back the same box
-    ret = script_runner.run('scil_volume_crop', in_dwi, 'dwi_crop2.nii.gz',
-                            '--input_bbox', 'bbox.json')
+    ret = script_runner.run(['scil_volume_crop.py', in_dwi, 'dwi_crop2.nii.gz',
+                            '--input_bbox', 'bbox.json'])
     assert ret.success

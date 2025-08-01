@@ -13,7 +13,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_surface_apply_transform', '--help')
+    ret = script_runner.run(['scil_surface_apply_transform.py', '--help'])
     assert ret.success
 
 
@@ -23,6 +23,6 @@ def test_execution_surface_vtk_fib(script_runner, monkeypatch):
                            'lhpialt.vtk')
     in_aff = os.path.join(SCILPY_HOME, 'surface_vtk_fib',
                           'affine.txt')
-    ret = script_runner.run('scil_surface_apply_transform', in_surf,
-                            in_aff, 'lhpialt_lin.vtk', '--inverse')
+    ret = script_runner.run(['scil_surface_apply_transform.py', in_surf,
+                            in_aff, 'lhpialt_lin.vtk', '--inverse'])
     assert ret.success

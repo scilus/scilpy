@@ -31,6 +31,8 @@ def screenshot_volume(img, orientation, slice_ids, size, labelmap=None):
         Slice indices.
     size : array-like
         Size of the screenshot image (pixels).
+    labelmap: str, vtkLookupTable, optional
+        Either a vtk lookup table or a matplotlib colormap name.
 
     Returns
     -------
@@ -157,7 +159,7 @@ def compose_image(img_scene, img_size, slice_number, *, corner_position=(0, 0),
         Labelmap scene data.
     labelmap_alpha : float
         Alpha value for labelmap overlay in range [0, 1].
-    overlays_scene : np.ndarray, optional
+    overlays_scene : list[np.ndarray], optional
         Overlays scene data.
     overlays_alpha : float
         Alpha value for the overlays in range [0, 1].

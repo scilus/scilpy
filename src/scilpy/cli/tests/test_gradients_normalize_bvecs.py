@@ -13,8 +13,8 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_gradients_normalize_bvecs',
-                            '--help')
+    ret = script_runner.run(['scil_gradients_normalize_bvecs.py',
+                            '--help'])
     assert ret.success
 
 
@@ -22,6 +22,6 @@ def test_execution_processing_fsl(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_bvec = os.path.join(SCILPY_HOME, 'processing',
                            '1000.bvec')
-    ret = script_runner.run('scil_gradients_normalize_bvecs',
-                            in_bvec, '1000_norm.bvec')
+    ret = script_runner.run(['scil_gradients_normalize_bvecs.py',
+                            in_bvec, '1000_norm.bvec'])
     assert ret.success

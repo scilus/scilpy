@@ -13,9 +13,9 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run(
-        'scil_stats_group_comparison',
-        '--help')
+    ret = script_runner.run([
+        'scil_stats_group_comparison.py',
+        '--help'])
     assert ret.success
 
 
@@ -25,11 +25,11 @@ def test_execution_bundles(script_runner, monkeypatch):
     in_participants = os.path.join(SCILPY_HOME, 'stats/group',
                                    'meanstd_all.json')
 
-    ret = script_runner.run('scil_stats_group_comparison',
+    ret = script_runner.run(['scil_stats_group_comparison.py',
                             in_participants, in_json, 'Group',
                             '-b', 'AF_L',
                             '-m', 'FIT_FW',
                             '--va', 'mean',
-                            '--gg')
+                            '--gg'])
 
     assert ret.success

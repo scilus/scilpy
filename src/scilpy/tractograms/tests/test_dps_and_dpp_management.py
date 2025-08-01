@@ -70,7 +70,7 @@ def test_add_data_as_color_dpp():
 
 def test_convert_dps_to_dpp():
     fake_sft = _get_small_sft()
-    fake_sft.data_per_streamline['my_dps'] = [5, 6]
+    fake_sft.data_per_streamline['my_dps'] = np.array([5, 6])
 
     # Converting
     fake_sft = convert_dps_to_dpp(fake_sft, 'my_dps')
@@ -78,7 +78,7 @@ def test_convert_dps_to_dpp():
     assert list(fake_sft.data_per_point.keys()) == ['my_dps']
 
     # Add again, will fail. Allow overwrite.
-    fake_sft.data_per_streamline['my_dps'] = [5, 6]
+    fake_sft.data_per_streamline['my_dps'] = np.array([5, 6])
     failed = False
     try:
         _ = convert_dps_to_dpp(fake_sft, 'my_dps')
@@ -183,6 +183,7 @@ def test_perform_operation_on_dpp():
     # Option 'endpoints only':
     dpp = perform_operation_on_dpp('max', fake_sft, 'my_dpp',
                                    endpoints_only=True)
+    fake_sft.data_per_point['my_dpp2'] = dpp
     assert nan_array_equal(dpp[0].squeeze(), [1.0, np.nan, 1])
     assert nan_array_equal(dpp[1].squeeze(), [2.0, np.nan, 2])
 

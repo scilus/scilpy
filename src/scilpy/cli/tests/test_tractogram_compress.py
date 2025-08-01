@@ -13,7 +13,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_tractogram_compress', '--help')
+    ret = script_runner.run(['scil_tractogram_compress.py', '--help'])
     assert ret.success
 
 
@@ -21,6 +21,6 @@ def test_execution_surface_vtk_fib(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_fib = os.path.join(SCILPY_HOME, 'surface_vtk_fib',
                           'gyri_fanning.trk')
-    ret = script_runner.run('scil_tractogram_compress', in_fib,
-                            'gyri_fanning_c.trk', '-e', '0.1')
+    ret = script_runner.run(['scil_tractogram_compress.py', in_fib,
+                            'gyri_fanning_c.trk', '-e', '0.1'])
     assert ret.success

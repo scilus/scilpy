@@ -13,7 +13,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_volume_stats_in_ROI', '--help')
+    ret = script_runner.run(['scil_volume_stats_in_ROI.py', '--help'])
     assert ret.success
 
 
@@ -25,28 +25,28 @@ def test_execution_tractometry(script_runner, monkeypatch):
                           'mni_masked.nii.gz')
 
     # Test with a single ROI input
-    ret = script_runner.run('scil_volume_stats_in_ROI',
-                            in_roi, '--metrics', in_ref)
+    ret = script_runner.run(['scil_volume_stats_in_ROI.py',
+                            in_roi, '--metrics', in_ref])
     assert ret.success
 
     # Test with multiple ROIs input
-    ret = script_runner.run('scil_volume_stats_in_ROI',
-                            in_roi, in_roi, in_roi, '--metrics', in_ref)
+    ret = script_runner.run(['scil_volume_stats_in_ROI.py',
+                            in_roi, in_roi, in_roi, '--metrics', in_ref])
     assert ret.success
 
     # Test with multiple metric input
-    ret = script_runner.run('scil_volume_stats_in_ROI',
-                            in_roi, '--metrics', in_ref, in_ref, in_ref)
+    ret = script_runner.run(['scil_volume_stats_in_ROI.py',
+                            in_roi, '--metrics', in_ref, in_ref, in_ref])
     assert ret.success
 
     # Test with multiple metric and ROIs input
-    ret = script_runner.run('scil_volume_stats_in_ROI',
-                            in_roi, in_roi, '--metrics', in_ref, in_ref)
+    ret = script_runner.run(['scil_volume_stats_in_ROI.py',
+                            in_roi, in_roi, '--metrics', in_ref, in_ref])
     assert ret.success
 
     # Test with a metric folder
     metrics_dir = os.path.join(SCILPY_HOME, 'plot')
     in_roi = os.path.join(SCILPY_HOME, 'plot', 'mask_wm.nii.gz')
-    ret = script_runner.run('scil_volume_stats_in_ROI',
-                            in_roi, '--metrics_dir', metrics_dir)
+    ret = script_runner.run(['scil_volume_stats_in_ROI.py',
+                            in_roi, '--metrics_dir', metrics_dir])
     assert ret.success

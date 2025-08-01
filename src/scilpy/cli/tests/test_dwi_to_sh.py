@@ -13,7 +13,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_dwi_to_sh', '--help')
+    ret = script_runner.run(['scil_dwi_to_sh.py', '--help'])
     assert ret.success
 
 
@@ -25,12 +25,12 @@ def test_execution_processing(script_runner, monkeypatch):
                            '3000.bval')
     in_bvec = os.path.join(SCILPY_HOME, 'processing',
                            '3000.bvec')
-    ret = script_runner.run('scil_dwi_to_sh', in_dwi, in_bval,
-                            in_bvec, 'sh_1000.nii.gz')
+    ret = script_runner.run(['scil_dwi_to_sh.py', in_dwi, in_bval,
+                            in_bvec, 'sh_1000.nii.gz'])
     assert ret.success
 
     # Test wrong b0. Current minimal b-value is 5.
-    ret = script_runner.run('scil_dwi_to_sh', in_dwi, in_bval,
+    ret = script_runner.run(['scil_dwi_to_sh.py', in_dwi, in_bval,
                             in_bvec, 'sh_1000.nii.gz', '--b0_threshold', '1',
-                            '-f')
+                            '-f'])
     assert not ret.success

@@ -14,7 +14,7 @@ from scilpy.viz.screenshot import compose_image
 
 def plot_each_shell(ms, centroids, plot_sym_vecs=True, use_sphere=True,
                     same_color=False, rad=0.025, opacity=1.0, ofile=None,
-                    ores=(300, 300), titles=None):
+                    ores=(300, 300), titles=None, silent=False):
     """
     Plot each shell
 
@@ -35,11 +35,14 @@ def plot_each_shell(ms, centroids, plot_sym_vecs=True, use_sphere=True,
     opacity: float
         opacity for the shells
     ofile: str
-        output filename
+        output filename. If not set, no output will be saved.
     ores: tuple
         resolution of the output png
     titles: list of str
         titles for the windows, one per shell
+    silent: bool
+        If True, skips interactive visualization. In that case, titles will
+        not be added to the window.
     """
 
     _colors = generate_n_colors(len(ms))
@@ -69,19 +72,20 @@ def plot_each_shell(ms, centroids, plot_sym_vecs=True, use_sphere=True,
         if plot_sym_vecs:
             pts_actor = actor.point(-shell, _colors[i], point_radius=rad)
             scene.add(pts_actor)
-        if titles is not None:
-            if len(titles) == len(ms):
-                window.show(scene, title=titles[i])
-            elif isinstance(titles, str):
-                window.show(scene, title=titles)
-            elif len(titles) == 1:
-                window.show(scene, title=titles[0])
+        if not silent:
+            if titles is not None:
+                if len(titles) == len(ms):
+                    window.show(scene, title=titles[i])
+                elif isinstance(titles, str):
+                    window.show(scene, title=titles)
+                elif len(titles) == 1:
+                    window.show(scene, title=titles[0])
+                else:
+                    logging.warning('No title could be added to the windows '
+                                    'since the given format is incorrect.')
+                    window.show(scene)
             else:
-                logging.warning('No title could be added to the windows since '
-                                'the given format is incorrect.')
                 window.show(scene)
-        else:
-            window.show(scene)
 
         if ofile:
             filename = ofile + '_shell_' + str(int(centroids[i])) + '.png'
@@ -94,7 +98,7 @@ def plot_each_shell(ms, centroids, plot_sym_vecs=True, use_sphere=True,
 
 def plot_proj_shell(ms, use_sym=True, use_sphere=True, same_color=False,
                     rad=0.025, opacity=1.0, ofile=None, ores=(300, 300),
-                    title=None):
+                    title=None, silent=None):
     """
     Plot each shell
 
@@ -113,11 +117,14 @@ def plot_proj_shell(ms, use_sym=True, use_sphere=True, same_color=False,
     opacity: float
         opacity for the shells
     ofile: str
-        output filename
+        output filename.  If not set, no output will be saved.
     ores: tuple
         resolution of the output png
     title: str
         title for the window
+    silent: bool
+        If True, skips interactive visualization. Useful for debugging.
+        In that case, titles will not be added to the window.
     """
 
     _colors = generate_n_colors(len(ms))
@@ -146,10 +153,12 @@ def plot_proj_shell(ms, use_sym=True, use_sphere=True, same_color=False,
         if use_sym:
             pts_actor = actor.point(-shell, _colors[i], point_radius=rad)
             scene.add(pts_actor)
-    if title is not None:
-        window.show(scene, title=title)
-    else:
-        window.show(scene)
+    if not silent:
+        if title is not None:
+            window.show(scene, title=title)
+        else:
+            window.show(scene)
+
     if ofile:
         filename = ofile + '.png'
         # Legacy. When this snapshotting gets updated to align with the
@@ -177,7 +186,7 @@ def build_ms_from_shell_idx(bvecs, shell_idx):
     """
 
     S = len(set(shell_idx))
-    if (-1 in set(shell_idx)):
+    if -1 in set(shell_idx):
         S -= 1
 
     ms = []
