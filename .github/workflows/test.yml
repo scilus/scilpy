@@ -19,7 +19,7 @@ env:
 
 jobs:
   test:
-    runs-on: scilus-runners
+    runs-on: scilus-bigmem-runners
     if: github.repository == 'scilus/scilpy'
 
     steps:
@@ -94,7 +94,7 @@ jobs:
           cache: 'pip'
 
       - name: Install pycoverage
-        run: pip install coverage
+        run: uv pip install coverage
 
       - name: Download test results and coverage
         uses: actions/download-artifact@v4
