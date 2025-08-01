@@ -67,7 +67,7 @@ from scilpy.io.utils import (add_processes_arg, add_sphere_arg,
                              load_matrix_in_any_format)
 from scilpy.image.volume_space_management import DataVolume
 from scilpy.tracking.propagator import ODFPropagator
-from scilpy.tracking.rap import RAPContinue
+from scilpy.tracking.rap import RAPContinue, RAPGraph
 from scilpy.tracking.seed import SeedGenerator, CustomSeedsDispenser
 from scilpy.tracking.tracker import Tracker
 from scilpy.tracking.utils import (add_mandatory_options_tracking,
@@ -160,6 +160,14 @@ def _build_arg_parser():
                         help="Region-Adaptive Propagation tractography method." \
                         "To use option quack, you must install Quacktography "
                         " [%(default)s]")
+    track_g.add_argument('--reps', type=int, default=2,
+                         help='Number of repetitions for the RAP method. '
+                             'Default: 2. This is only used for the quack '
+                             'method, not for continue.')
+    track_g.add_argument('--alpha', type=float, default=1.5,
+                         help='Alpha parameter for the RAP method. '
+                              'Default: 1.5. This is only used for the quack '
+                              'method, not for continue.')
 
     m_g = p.add_argument_group('Memory options')
     add_processes_arg(m_g)
@@ -293,6 +301,10 @@ def main():
     if args.rap_method == "continue":
         rap = RAPContinue(rap_mask, propagator, max_nbr_pts,
                           step_size=vox_step_size)
+    elif args.rap_method == "quack":
+        rap = RAPGraph(rap_mask, propagator, max_nbr_pts, fodf=dataset, reps=args.reps,
+                       alpha=args.alpha)
+
     else:
         rap = None
 
