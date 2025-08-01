@@ -63,6 +63,10 @@ class RAPContinue(RAP):
 class RAPGraph(RAP):
     def __init__(self, mask_rap, propagator, max_nbr_pts, fodf, reps, alpha):
         """
+        RAPGraph class for the quantum Graph solution for a region.
+
+        Parameters
+        ----------
         fodf: DataVolume
             The FODF volume used to compute the RAP.
         reps: int
