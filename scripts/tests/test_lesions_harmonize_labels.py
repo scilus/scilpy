@@ -19,7 +19,7 @@ def test_help_option(script_runner):
 def test_harmonize_label(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     t1 = os.path.join(SCILPY_HOME, 'lesions', 'S001_T1_lesions_labels.nii.gz')
-                                 '*_lesions_labels.nii.gz')
+    t2 = os.path.join(SCILPY_HOME, 'lesions', 'S001_T2_lesions_labels.nii.gz')
     ret = script_runner.run(['scil_lesions_harmonize_labels.py',
                              original_data, 'test', '--max_adjacency',
                              '5.0', '--min_voxel_overlap', '1', '-f'])
