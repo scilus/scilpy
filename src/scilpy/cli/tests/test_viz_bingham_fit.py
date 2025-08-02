@@ -12,7 +12,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run(['scil_viz_bingham_fit.py', '--help'])
+    ret = script_runner.run(['scil_viz_bingham_fit', '--help'])
     assert ret.success
 
 
@@ -21,7 +21,7 @@ def test_silent_without_output(script_runner, monkeypatch):
 
     in_dummy = os.path.join(SCILPY_HOME, 'processing', 'fodf_bingham.nii.gz')
     out = os.path.join(tmp_dir.name, 'test_bingham.png')
-    ret = script_runner.run(['scil_viz_bingham_fit.py', in_dummy,
+    ret = script_runner.run(['scil_viz_bingham_fit', in_dummy,
                             '--silent', '--output', out])
 
     assert ret.success

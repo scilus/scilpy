@@ -3,6 +3,6 @@
 
 def test_help_option(script_runner):
     ret = script_runner.run([
-        'scil_bundle_mean_fixel_mrds_metric.py', '--help'])
+        'scil_bundle_mean_fixel_mrds_metric', '--help'])
 
     assert ret.success

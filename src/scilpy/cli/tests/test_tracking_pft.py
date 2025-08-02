@@ -13,7 +13,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run(['scil_tracking_pft.py',
+    ret = script_runner.run(['scil_tracking_pft',
                             '--help'])
     assert ret.success
 
@@ -28,7 +28,7 @@ def test_execution_tracking(script_runner, monkeypatch):
                               'map_include.nii.gz')
     in_exclude = os.path.join(SCILPY_HOME, 'tracking',
                               'map_exclude.nii.gz')
-    ret = script_runner.run(['scil_tracking_pft.py', in_fodf,
+    ret = script_runner.run(['scil_tracking_pft', in_fodf,
                             in_interface, in_include, in_exclude,
                             'pft.trk', '--nt', '1000', '--compress', '0.1',
                             '--sh_basis', 'descoteaux07', '--min_length', '20',

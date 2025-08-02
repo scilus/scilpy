@@ -12,7 +12,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run(['scil_viz_fodf.py', '--help'])
+    ret = script_runner.run(['scil_viz_fodf', '--help'])
     assert ret.success
 
 
@@ -20,7 +20,7 @@ def test_silent_without_output(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_fodf = os.path.join(SCILPY_HOME, 'processing', 'fodf.nii.gz')
 
-    ret = script_runner.run(['scil_viz_fodf.py', in_fodf, '--silent'])
+    ret = script_runner.run(['scil_viz_fodf', in_fodf, '--silent'])
 
     # Should say that requires an output with --silent mode
     assert (not ret.success)
@@ -33,7 +33,7 @@ def test_run(script_runner, monkeypatch):
     # No variance file in our test data, but faking it with the fodf file.
     in_variance = os.path.join(SCILPY_HOME, 'processing', 'fodf.nii.gz')
     out_name = os.path.join(tmp_dir.name, 'out.png')
-    ret = script_runner.run(['scil_viz_fodf.py', in_fodf, '--silent',
+    ret = script_runner.run(['scil_viz_fodf', in_fodf, '--silent',
                             '--in_transparency_mask', in_mask,
                             '--mask', in_mask,
                             '--variance', in_variance,
@@ -49,7 +49,7 @@ def test_run_sphsubdivide(script_runner, monkeypatch):
 
     # Note. Cannot add --sph_subdivide to the test above, causes a memory
     # crash. Without the variance, lighter.
-    ret = script_runner.run(['scil_viz_fodf.py', in_fodf, '--silent',
+    ret = script_runner.run(['scil_viz_fodf', in_fodf, '--silent',
                             '--mask', in_mask,
                             '--sph_subdivide', '2',
                             '--sphere', 'repulsion100',

@@ -13,7 +13,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run(['scil_fodf_ssst.py', '--help'])
+    ret = script_runner.run(['scil_fodf_ssst', '--help'])
     assert ret.success
 
 
@@ -27,13 +27,13 @@ def test_execution_processing(script_runner, monkeypatch):
                            '3000.bvec')
     in_frf = os.path.join(SCILPY_HOME, 'processing',
                           'frf.txt')
-    ret = script_runner.run(['scil_fodf_ssst.py', in_dwi, in_bval,
+    ret = script_runner.run(['scil_fodf_ssst', in_dwi, in_bval,
                             in_bvec, in_frf, 'fodf.nii.gz', '--sh_order', '4',
                             '--sh_basis', 'tournier07', '--processes', '1'])
     assert ret.success
 
     # Test wrong b0. Current minimal b-value is 5.
-    ret = script_runner.run(['scil_fodf_ssst.py', in_dwi, in_bval,
+    ret = script_runner.run(['scil_fodf_ssst', in_dwi, in_bval,
                             in_bvec, in_frf, 'fodf.nii.gz', '--sh_order', '4',
                             '--sh_basis', 'tournier07', '--processes', '1',
                             '--b0_threshold', '1', '-f'])

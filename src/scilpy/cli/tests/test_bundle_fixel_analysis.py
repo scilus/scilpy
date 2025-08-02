@@ -12,7 +12,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run(['scil_bundle_fixel_analysis.py', '--help'])
+    ret = script_runner.run(['scil_bundle_fixel_analysis', '--help'])
     assert ret.success
 
 
@@ -22,7 +22,7 @@ def test_default_parameters(script_runner, monkeypatch):
     in_bundle = os.path.join(SCILPY_HOME, 'commit_amico', 'tracking.trk')
 
     # Using multiprocessing in this test, single in following tests.
-    ret = script_runner.run(['scil_bundle_fixel_analysis.py', in_peaks,
+    ret = script_runner.run(['scil_bundle_fixel_analysis', in_peaks,
                             '--in_bundles', in_bundle,
                             '--processes', '4', '-f'])
     assert ret.success
@@ -33,7 +33,7 @@ def test_all_parameters(script_runner, monkeypatch):
     in_peaks = os.path.join(SCILPY_HOME, 'commit_amico', 'peaks.nii.gz')
     in_bundle = os.path.join(SCILPY_HOME, 'commit_amico', 'tracking.trk')
 
-    ret = script_runner.run(['scil_bundle_fixel_analysis.py', in_peaks,
+    ret = script_runner.run(['scil_bundle_fixel_analysis', in_peaks,
                             '--in_bundles', in_bundle,
                             '--in_bundles_names', 'test',
                             '--abs_thr', '5',
@@ -50,7 +50,7 @@ def test_multiple_norm(script_runner, monkeypatch):
     in_peaks = os.path.join(SCILPY_HOME, 'commit_amico', 'peaks.nii.gz')
     in_bundle = os.path.join(SCILPY_HOME, 'commit_amico', 'tracking.trk')
 
-    ret = script_runner.run(['scil_bundle_fixel_analysis.py', in_peaks,
+    ret = script_runner.run(['scil_bundle_fixel_analysis', in_peaks,
                             '--in_bundles', in_bundle,
                             '--in_bundles_names', 'test',
                             '--abs_thr', '5',

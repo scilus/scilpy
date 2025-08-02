@@ -13,7 +13,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run(['scil_fodf_to_bingham.py',
+    ret = script_runner.run(['scil_fodf_to_bingham',
                             '--help'])
     assert ret.success
 
@@ -22,7 +22,7 @@ def test_execution_processing(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_fodf = os.path.join(SCILPY_HOME, 'processing',
                            'fodf_descoteaux07.nii.gz')
-    ret = script_runner.run(['scil_fodf_to_bingham.py',
+    ret = script_runner.run(['scil_fodf_to_bingham',
                             in_fodf, 'bingham.nii.gz',
                             '--max_lobes', '1',
                             '--at', '0.0',
@@ -39,7 +39,7 @@ def test_execution_processing_mask(script_runner, monkeypatch):
                            'fodf_descoteaux07.nii.gz')
     in_mask = os.path.join(SCILPY_HOME, 'processing',
                            'seed.nii.gz')
-    ret = script_runner.run(['scil_fodf_to_bingham.py',
+    ret = script_runner.run(['scil_fodf_to_bingham',
                             in_fodf, 'bingham.nii.gz',
                             '--max_lobes', '1',
                             '--at', '0.0',

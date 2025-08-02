@@ -17,7 +17,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run(['scil_sh_to_aodf.py', '--help'])
+    ret = script_runner.run(['scil_sh_to_aodf', '--help'])
     assert ret.success
 
 
@@ -28,7 +28,7 @@ def test_help_option(script_runner):
 def test_asym_basis_output_gpu(script_runner, in_fodf, expected_fodf, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
 
-    ret = script_runner.run(['scil_sh_to_aodf.py',
+    ret = script_runner.run(['scil_sh_to_aodf',
                             in_fodf, 'out_fodf1.nii.gz',
                             '--sphere', 'repulsion100',
                              '--sigma_align', '0.8',
@@ -64,7 +64,7 @@ def test_asym_basis_output_gpu(script_runner, in_fodf, expected_fodf, monkeypatc
 def test_asym_basis_output(script_runner, in_fodf, expected_fodf, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
 
-    ret = script_runner.run(['scil_sh_to_aodf.py',
+    ret = script_runner.run(['scil_sh_to_aodf',
                             in_fodf, 'out_fodf1.nii.gz',
                             '--sphere', 'repulsion100',
                              '--sigma_align', '0.8',
@@ -91,7 +91,7 @@ def test_asym_basis_output(script_runner, in_fodf, expected_fodf, monkeypatch):
 def test_asym_input(script_runner, in_fodf, expected_fodf, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
 
-    ret = script_runner.run(['scil_sh_to_aodf.py',
+    ret = script_runner.run(['scil_sh_to_aodf',
                             in_fodf, 'out_fodf1.nii.gz',
                             '--sphere', 'repulsion100',
                              '--sigma_align', '0.8',
@@ -117,7 +117,7 @@ def test_asym_input(script_runner, in_fodf, expected_fodf, monkeypatch):
 def test_cosine_method(script_runner, in_fodf, out_fodf, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
 
-    ret = script_runner.run(['scil_sh_to_aodf.py',
+    ret = script_runner.run(['scil_sh_to_aodf',
                             in_fodf, 'out_fodf1.nii.gz',
                             '--sphere', 'repulsion100',
                              '--method', 'cosine', '-f',

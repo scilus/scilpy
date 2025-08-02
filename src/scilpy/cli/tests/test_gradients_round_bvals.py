@@ -13,7 +13,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run(['scil_gradients_round_bvals.py',
+    ret = script_runner.run(['scil_gradients_round_bvals',
                             '--help'])
     assert ret.success
 
@@ -21,7 +21,7 @@ def test_help_option(script_runner):
 def test_execution_processing(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_bval = os.path.join(SCILPY_HOME, 'processing', '1000.bval')
-    ret = script_runner.run(['scil_gradients_round_bvals.py',
+    ret = script_runner.run(['scil_gradients_round_bvals',
                             in_bval, '0', '1000', '1000_resample.b', "20",
                             "-v"])
     assert ret.success

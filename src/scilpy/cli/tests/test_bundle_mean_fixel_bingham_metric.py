@@ -14,7 +14,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 def test_help_option(script_runner):
     ret = script_runner.run([
-        'scil_bundle_mean_fixel_bingham_metric.py', '--help'])
+        'scil_bundle_mean_fixel_bingham_metric', '--help'])
 
     assert ret.success
 
@@ -26,7 +26,7 @@ def test_execution_processing(script_runner, monkeypatch):
     in_bundles = os.path.join(SCILPY_HOME, 'processing', 'tracking.trk')
 
     ret = script_runner.run([
-        'scil_bundle_mean_fixel_bingham_metric.py',
+        'scil_bundle_mean_fixel_bingham_metric',
         in_bundles, in_bingham, in_metric,
         'fixel_mean_fd.nii.gz', '--length_weighting'])
 

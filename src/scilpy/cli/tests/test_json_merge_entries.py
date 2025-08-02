@@ -13,7 +13,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run(['scil_json_merge_entries.py', '--help'])
+    ret = script_runner.run(['scil_json_merge_entries', '--help'])
     assert ret.success
 
 
@@ -23,7 +23,7 @@ def test_execution_tractometry(script_runner, monkeypatch):
                            'length_stats_1.json')
     in_json_2 = os.path.join(SCILPY_HOME, 'tractometry',
                            'length_stats_2.json')
-    ret = script_runner.run(['scil_json_merge_entries.py', in_json_1,
+    ret = script_runner.run(['scil_json_merge_entries', in_json_1,
                             in_json_2, 'merge.json', '--keep_separate'])
 
     assert ret.success

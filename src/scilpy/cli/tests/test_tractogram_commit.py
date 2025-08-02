@@ -20,7 +20,7 @@ in_peaks = os.path.join(SCILPY_HOME, 'commit_amico', 'peaks.nii.gz')
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run(['scil_tractogram_commit.py', '--help'])
+    ret = script_runner.run(['scil_tractogram_commit', '--help'])
     assert ret.success
 
 
@@ -29,7 +29,7 @@ def test_execution_commit_amico(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
 
     ret = script_runner.run([
-        'scil_tractogram_commit.py', in_tracking, in_dwi, in_bval, in_bvec,
+        'scil_tractogram_commit', in_tracking, in_dwi, in_bval, in_bvec,
         'results_bzs/', '--tol', '30', '--nbr_dir', '500',
         '--nbr_iter', '500', '--in_peaks', in_peaks,
         '--in_tracking_mask', in_mask,
@@ -45,7 +45,7 @@ def test_execution_commit2(script_runner, monkeypatch):
 
     # TODO Add a HDF5 in our test data that could be used here.
     ret = script_runner.run([
-        'scil_tractogram_commit.py', in_tracking, in_dwi, in_bval, in_bvec,
+        'scil_tractogram_commit', in_tracking, in_dwi, in_bval, in_bvec,
         'results_bzs/', '--tol', '30', '--nbr_dir', '500',
         '--nbr_iter', '500', '--in_peaks', in_peaks,
         '--in_tracking_mask', in_mask,

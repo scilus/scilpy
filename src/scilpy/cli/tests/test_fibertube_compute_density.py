@@ -38,14 +38,14 @@ def init_data():
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run(['scil_fibertube_compute_density.py', '--help'])
+    ret = script_runner.run(['scil_fibertube_compute_density', '--help'])
     assert ret.success
 
 
 def test_execution_density(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     init_data()
-    ret = script_runner.run(['scil_fibertube_compute_density.py',
+    ret = script_runner.run(['scil_fibertube_compute_density',
                             'fibertubes.trk',
                             '--out_density_map', 'density_map.nii.gz',
                             '--out_density_measures',
@@ -57,7 +57,7 @@ def test_execution_density(script_runner, monkeypatch):
 def test_execution_collisions(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     init_data()
-    ret = script_runner.run(['scil_fibertube_compute_density.py',
+    ret = script_runner.run(['scil_fibertube_compute_density',
                             'fibertubes.trk',
                             '--out_collision_map', 'collision_map.nii.gz',
                             '--out_collision_measures',

@@ -13,7 +13,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run(['scil_tractogram_apply_transform.py', '--help'])
+    ret = script_runner.run(['scil_tractogram_apply_transform', '--help'])
     assert ret.success
 
 
@@ -24,7 +24,7 @@ def test_execution_inverse(script_runner, monkeypatch):
     in_aff = os.path.join(SCILPY_HOME, 'bst', 'output0GenericAffine.mat')
     in_warp = os.path.join(SCILPY_HOME, 'bst', 'output1InverseWarp.nii.gz')
 
-    ret = script_runner.run(['scil_tractogram_apply_transform.py',
+    ret = script_runner.run(['scil_tractogram_apply_transform',
                             in_model, in_fa, in_aff, 'rpt_m_warp.trk',
                             '--inverse', '--in_deformation', in_warp,
                             '--cut'])

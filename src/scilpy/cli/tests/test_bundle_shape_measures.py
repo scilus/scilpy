@@ -13,7 +13,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run(['scil_bundle_shape_measures.py', '--help'])
+    ret = script_runner.run(['scil_bundle_shape_measures', '--help'])
     assert ret.success
 
 
@@ -23,7 +23,7 @@ def test_execution_bundles(script_runner, monkeypatch):
     in_2 = os.path.join(SCILPY_HOME, 'bundles', 'voting_results',
                         'bundle_0.trk')
     in_ref = os.path.join(SCILPY_HOME, 'bundles', 'bundle_all_1mm.nii.gz')
-    ret = script_runner.run(['scil_bundle_shape_measures.py',
+    ret = script_runner.run(['scil_bundle_shape_measures',
                             in_1, in_2, '--out_json', 'AF_L_measures.json',
                             '--reference', in_ref, '--processes', '1'])
     assert ret.success

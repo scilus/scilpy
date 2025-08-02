@@ -14,7 +14,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run(['scil_NODDI_maps.py', '--help'])
+    ret = script_runner.run(['scil_NODDI_maps', '--help'])
     assert ret.success
 
 
@@ -28,7 +28,7 @@ def test_execution_commit_amico(script_runner, monkeypatch):
                            'dwi.bvec')
     mask = os.path.join(SCILPY_HOME, 'commit_amico',
                         'mask.nii.gz')
-    ret = script_runner.run(['scil_NODDI_maps.py', in_dwi,
+    ret = script_runner.run(['scil_NODDI_maps', in_dwi,
                             in_bval, in_bvec, '--mask', mask,
                             '--out_dir', 'noddi', '--tol', '30',
                             '--para_diff', '0.0017', '--iso_diff', '0.003',
@@ -45,7 +45,7 @@ def test_single_shell_fail(script_runner, monkeypatch):
                            '1000.bval')
     in_bvec = os.path.join(SCILPY_HOME, 'processing',
                            '1000.bvec')
-    ret = script_runner.run(['scil_NODDI_maps.py', in_dwi,
+    ret = script_runner.run(['scil_NODDI_maps', in_dwi,
                             in_bval, in_bvec,
                             '--out_dir', 'noddi', '--tol', '30',
                             '--para_diff', '0.0017', '--iso_diff', '0.003',

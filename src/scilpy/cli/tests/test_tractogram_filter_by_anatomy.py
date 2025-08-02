@@ -13,7 +13,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run(['scil_tractogram_filter_by_anatomy.py',
+    ret = script_runner.run(['scil_tractogram_filter_by_anatomy',
                             '--help'])
     assert ret.success
 
@@ -24,7 +24,7 @@ def test_execution_filtering_all_options(script_runner, monkeypatch):
                                  'tractogram_filter_ana.trk')
     in_wmparc = os.path.join(SCILPY_HOME, 'anatomical_filtering',
                              'wmparc_filter_ana.nii.gz')
-    ret = script_runner.run(['scil_tractogram_filter_by_anatomy.py',
+    ret = script_runner.run(['scil_tractogram_filter_by_anatomy',
                             in_tractogram, in_wmparc,
                             os.path.expanduser(tmp_dir.name),
                             '--minL', '40', '--maxL', '200', '--angle', '300',
@@ -43,7 +43,7 @@ def test_execution_filtering_rejected(script_runner, monkeypatch):
                                  'tractogram_filter_ana.trk')
     in_wmparc = os.path.join(SCILPY_HOME, 'anatomical_filtering',
                              'wmparc_filter_ana.nii.gz')
-    ret = script_runner.run(['scil_tractogram_filter_by_anatomy.py',
+    ret = script_runner.run(['scil_tractogram_filter_by_anatomy',
                             in_tractogram, in_wmparc,
                             os.path.expanduser(tmp_dir.name),
                             '--minL', '40', '--maxL', '200', '--angle', '300',
@@ -61,7 +61,7 @@ def test_execution_filtering_save_intermediate(script_runner, monkeypatch):
                                  'tractogram_filter_ana.trk')
     in_wmparc = os.path.join(SCILPY_HOME, 'anatomical_filtering',
                              'wmparc_filter_ana.nii.gz')
-    ret = script_runner.run(['scil_tractogram_filter_by_anatomy.py',
+    ret = script_runner.run(['scil_tractogram_filter_by_anatomy',
                             in_tractogram, in_wmparc,
                             os.path.expanduser(tmp_dir.name),
                             '--minL', '40', '--maxL', '200', '--angle', '300',

@@ -3,5 +3,5 @@
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_viz_tractogram_seeds', '--help')
+    ret = script_runner.run(['scil_viz_tractogram_seeds', '--help'])
     assert ret.success

@@ -14,7 +14,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 def test_help_option(script_runner):
     ret = script_runner.run([
-        'scil_connectivity_compute_simple_matrix.py', '--help'])
+        'scil_connectivity_compute_simple_matrix', '--help'])
     assert ret.success
 
 
@@ -25,7 +25,7 @@ def test_script(script_runner, monkeypatch):
     in_sft = os.path.join(SCILPY_HOME, 'tractometry', 'IFGWM.trk')
 
     ret = script_runner.run([
-        'scil_connectivity_compute_simple_matrix.py', in_sft, in_labels,
+        'scil_connectivity_compute_simple_matrix', in_sft, in_labels,
         'out_matrix.npy', 'out_labels.txt', '--hide_labels', '10',
         '--percentage', '--hide_fig', '--out_fig', 'matrices.png'])
     assert ret.success

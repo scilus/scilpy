@@ -3,5 +3,5 @@
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run(['scil_freewater_priors.py', '--help'])
+    ret = script_runner.run(['scil_freewater_priors', '--help'])
     assert ret.success

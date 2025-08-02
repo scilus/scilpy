@@ -57,14 +57,14 @@ def init_data():
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run(['scil_fibertube_score_tractogram.py', '--help'])
+    ret = script_runner.run(['scil_fibertube_score_tractogram', '--help'])
     assert ret.success
 
 
 def test_execution(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     init_data()
-    ret = script_runner.run(['scil_fibertube_score_tractogram.py',
+    ret = script_runner.run(['scil_fibertube_score_tractogram',
                             'fibertubes.trk', 'tracking.trk', 'config.json',
                             'metrics.json', '--save_error_tractogram', '-f'])
     assert ret.success

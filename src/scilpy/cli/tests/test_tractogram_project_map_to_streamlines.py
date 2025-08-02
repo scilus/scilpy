@@ -18,14 +18,14 @@ in_4d_map = os.path.join(SCILPY_HOME, 'tracking', 'peaks.nii.gz')
 
 def test_help_option(script_runner):
     ret = script_runner.run([
-            'scil_tractogram_project_map_to_streamlines.py', '--help'])
+            'scil_tractogram_project_map_to_streamlines', '--help'])
     assert ret.success
 
 
 def test_execution_3D_map(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
 
-    ret = script_runner.run(['scil_tractogram_project_map_to_streamlines.py',
+    ret = script_runner.run(['scil_tractogram_project_map_to_streamlines',
                             in_tracto_1, 't1_on_streamlines.trk',
                             '--in_maps', in_3d_map,
                             '--out_dpp_name', 't1'])
@@ -35,7 +35,7 @@ def test_execution_3D_map(script_runner, monkeypatch):
 def test_execution_4D_map(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
 
-    ret = script_runner.run(['scil_tractogram_project_map_to_streamlines.py',
+    ret = script_runner.run(['scil_tractogram_project_map_to_streamlines',
                             in_tracto_1, 'rgb_on_streamlines.trk',
                             '--in_maps', in_4d_map,
                             '--out_dpp_name', 'rgb'])
@@ -45,7 +45,7 @@ def test_execution_4D_map(script_runner, monkeypatch):
 def test_execution_3D_map_endpoints_only(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
 
-    ret = script_runner.run(['scil_tractogram_project_map_to_streamlines.py',
+    ret = script_runner.run(['scil_tractogram_project_map_to_streamlines',
                             in_tracto_1,
                             't1_on_streamlines_endpoints.trk',
                             '--in_maps', in_3d_map,
@@ -57,7 +57,7 @@ def test_execution_3D_map_endpoints_only(script_runner, monkeypatch):
 def test_execution_4D_map_endpoints_only(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
 
-    ret = script_runner.run(['scil_tractogram_project_map_to_streamlines.py',
+    ret = script_runner.run(['scil_tractogram_project_map_to_streamlines',
                             in_tracto_1,
                             'rgb_on_streamlines_endpoints.trk',
                             '--in_maps', in_4d_map,
@@ -69,7 +69,7 @@ def test_execution_4D_map_endpoints_only(script_runner, monkeypatch):
 def test_execution_3D_map_trilinear(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
 
-    ret = script_runner.run(['scil_tractogram_project_map_to_streamlines.py',
+    ret = script_runner.run(['scil_tractogram_project_map_to_streamlines',
                             in_tracto_1,
                             't1_on_streamlines_trilinear.trk',
                             '--in_maps', in_3d_map,

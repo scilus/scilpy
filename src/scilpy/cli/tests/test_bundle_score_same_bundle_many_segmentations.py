@@ -14,7 +14,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 def test_help_option(script_runner):
     ret = script_runner.run([
-        'scil_bundle_score_same_bundle_many_segmentations.py', '--help'])
+        'scil_bundle_score_same_bundle_many_segmentations', '--help'])
     assert ret.success
 
 
@@ -28,7 +28,7 @@ def test_execution_bundles(script_runner, monkeypatch):
     in_model = os.path.join(SCILPY_HOME, 'bundles', 'fibercup_atlas',
                             'subj_1', 'bundle_0.trk')
     ret = script_runner.run([
-        'scil_bundle_score_same_bundle_many_segmentations.py',
+        'scil_bundle_score_same_bundle_many_segmentations',
         in_1, in_2, 'AF_L_binary.json', '--streamlines_measures', in_model,
         in_tractogram, '--processes', '1', '--reference', in_ref])
     assert ret.success

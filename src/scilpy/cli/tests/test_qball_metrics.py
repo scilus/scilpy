@@ -12,7 +12,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run(['scil_qball_metrics.py', '--help'])
+    ret = script_runner.run(['scil_qball_metrics', '--help'])
     assert ret.success
 
 
@@ -24,7 +24,7 @@ def test_execution_processing(script_runner, monkeypatch):
                            '1000.bval')
     in_bvec = os.path.join(SCILPY_HOME, 'processing',
                            '1000.bvec')
-    ret = script_runner.run(['scil_qball_metrics.py', in_dwi,
+    ret = script_runner.run(['scil_qball_metrics', in_dwi,
                             in_bval, in_bvec])
     assert ret.success
 
@@ -37,12 +37,12 @@ def test_execution_not_all(script_runner, monkeypatch):
                            '1000.bval')
     in_bvec = os.path.join(SCILPY_HOME, 'processing',
                            '1000.bvec')
-    ret = script_runner.run(['scil_qball_metrics.py', in_dwi,
+    ret = script_runner.run(['scil_qball_metrics', in_dwi,
                             in_bval, in_bvec, "--not_all", "--sh", "2.nii.gz"])
     assert ret.success
 
     # Test wrong b0. Current minimal b-val is 5.
-    ret = script_runner.run(['scil_qball_metrics.py', in_dwi,
+    ret = script_runner.run(['scil_qball_metrics', in_dwi,
                             in_bval, in_bvec, "--not_all", "--sh", "2.nii.gz",
                             '--b0_threshold', '1', '-f'])
     assert not ret.success

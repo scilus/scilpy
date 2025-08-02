@@ -14,7 +14,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run(['scil_tractogram_dpp_math.py', '--help'])
+    ret = script_runner.run(['scil_tractogram_dpp_math', '--help'])
     assert ret.success
 
 
@@ -26,12 +26,12 @@ def test_execution_tractogram_point_math_mean_3D_defaults(script_runner,
     t1_on_bundle = 't1_on_streamlines.trk'
 
     # Create some dpp. Could have test data with dpp instead.
-    script_runner.run(['scil_tractogram_project_map_to_streamlines.py',
+    script_runner.run(['scil_tractogram_project_map_to_streamlines',
                       in_bundle, t1_on_bundle, '--in_maps', in_t1,
                       '--out_dpp_name', 't1'])
 
     # Test dps mode
-    ret = script_runner.run(['scil_tractogram_dpp_math.py',
+    ret = script_runner.run(['scil_tractogram_dpp_math',
                             'mean', t1_on_bundle, 't1_mean_on_streamlines.trk',
                             '--mode', 'dps', '--in_dpp_name', 't1',
                             '--out_keys', 't1_mean'])
@@ -39,7 +39,7 @@ def test_execution_tractogram_point_math_mean_3D_defaults(script_runner,
     assert ret.success
 
     # Test dpp mode
-    ret = script_runner.run(['scil_tractogram_dpp_math.py',
+    ret = script_runner.run(['scil_tractogram_dpp_math',
                             'mean', t1_on_bundle,
                             't1_mean_on_streamlines2.trk',
                             '--mode', 'dpp', '--in_dpp_name', 't1',
@@ -55,12 +55,12 @@ def test_execution_tractogram_point_math_mean_4D_correlation(script_runner,
     in_fodf = os.path.join(SCILPY_HOME, 'tracking', 'fodf.nii.gz')
     fodf_on_bundle = 'fodf_on_streamlines.trk'
 
-    script_runner.run(['scil_tractogram_project_map_to_streamlines.py',
+    script_runner.run(['scil_tractogram_project_map_to_streamlines',
                       in_bundle, fodf_on_bundle,
                       '--in_maps', in_fodf, in_fodf,
                       '--out_dpp_name', 'fodf', 'fodf2'])
 
-    ret = script_runner.run(['scil_tractogram_dpp_math.py',
+    ret = script_runner.run(['scil_tractogram_dpp_math',
                             'correlation', fodf_on_bundle,
                             'fodf_correlation_on_streamlines.trk',
                             '--mode', 'dps', '--endpoints_only',

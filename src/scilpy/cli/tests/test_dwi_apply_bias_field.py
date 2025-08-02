@@ -13,7 +13,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run(['scil_dwi_apply_bias_field.py', '--help'])
+    ret = script_runner.run(['scil_dwi_apply_bias_field', '--help'])
     assert ret.success
 
 
@@ -23,6 +23,6 @@ def test_execution_processing(script_runner, monkeypatch):
                           'dwi_crop.nii.gz')
     in_bias = os.path.join(SCILPY_HOME, 'processing',
                            'bias_field_b0.nii.gz')
-    ret = script_runner.run(['scil_dwi_apply_bias_field.py', in_dwi,
+    ret = script_runner.run(['scil_dwi_apply_bias_field', in_dwi,
                             in_bias, 'dwi_crop_n4.nii.gz'])
     assert ret.success

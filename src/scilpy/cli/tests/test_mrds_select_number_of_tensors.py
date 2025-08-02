@@ -13,7 +13,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run(['scil_mrds_select_number_of_tensors.py', '--help'])
+    ret = script_runner.run(['scil_mrds_select_number_of_tensors', '--help'])
     assert ret.success
 
 
@@ -23,7 +23,7 @@ def test_execution_mrds(script_runner, monkeypatch):
     in_nufo = os.path.join(SCILPY_HOME,
                            'mrds', 'sub-01_nufo.nii.gz')
     # no option
-    ret = script_runner.run(['scil_mrds_select_number_of_tensors.py',
+    ret = script_runner.run(['scil_mrds_select_number_of_tensors',
                             SCILPY_HOME + '/mrds/sub-01',
                             in_nufo,
                             '-f'])
@@ -38,7 +38,7 @@ def test_execution_mrds_w_mask(script_runner, monkeypatch):
     in_mask = os.path.join(SCILPY_HOME, 'mrds',
                            'sub-01_mask.nii.gz')
 
-    ret = script_runner.run(['scil_mrds_select_number_of_tensors.py',
+    ret = script_runner.run(['scil_mrds_select_number_of_tensors',
                             SCILPY_HOME + '/mrds/sub-01',
                             in_nufo,
                             '--mask', in_mask,

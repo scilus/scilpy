@@ -3,5 +3,5 @@
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_viz_gradients_screenshot', '--help')
+    ret = script_runner.run(['scil_viz_gradients_screenshot', '--help'])
     assert ret.success

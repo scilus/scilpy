@@ -13,7 +13,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run(['scil_tractogram_compute_TODI.py', '--help'])
+    ret = script_runner.run(['scil_tractogram_compute_TODI', '--help'])
     assert ret.success
 
 
@@ -22,7 +22,7 @@ def test_execution_bst(script_runner, monkeypatch):
     in_bundle = os.path.join(SCILPY_HOME, 'bst', 'rpt_m_warp.trk')
     in_mask = os.path.join(SCILPY_HOME, 'bst', 'mask.nii.gz')
 
-    ret = script_runner.run(['scil_tractogram_compute_TODI.py', in_bundle,
+    ret = script_runner.run(['scil_tractogram_compute_TODI', in_bundle,
                             '--mask', in_mask,
                             '--out_mask', 'todi_mask.nii.gz',
                             '--out_tdi', 'tdi.nii.gz',
@@ -37,7 +37,7 @@ def test_execution_bst(script_runner, monkeypatch):
 def test_execution_asym(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_bundle = os.path.join(SCILPY_HOME, 'bst', 'rpt_m_warp.trk')
-    ret = script_runner.run(['scil_tractogram_compute_TODI.py', in_bundle,
+    ret = script_runner.run(['scil_tractogram_compute_TODI', in_bundle,
                             '--out_todi_sh', 'atodi_sh_8.nii.gz',
                             '--asymmetric', '--n_steps', '2'])
 

@@ -13,7 +13,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run(['scil_connectivity_math.py', '--help'])
+    ret = script_runner.run(['scil_connectivity_math', '--help'])
     assert ret.success
 
 
@@ -23,7 +23,7 @@ def test_execution_connectivity_div(script_runner, monkeypatch):
                          'sc.npy')
     in_vol = os.path.join(SCILPY_HOME, 'connectivity',
                           'vol.npy')
-    ret = script_runner.run(['scil_connectivity_math.py', 'division',
+    ret = script_runner.run(['scil_connectivity_math', 'division',
                             in_sc, in_vol, 'sc_norm_vol.npy'])
     assert ret.success
 
@@ -32,7 +32,7 @@ def test_execution_connectivity_add(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_sc = os.path.join(SCILPY_HOME, 'connectivity',
                          'sc.npy')
-    ret = script_runner.run(['scil_connectivity_math.py', 'addition',
+    ret = script_runner.run(['scil_connectivity_math', 'addition',
                             in_sc, '10', 'sc_add_10.npy'])
     assert ret.success
 
@@ -41,6 +41,6 @@ def test_execution_connectivity_lower_threshold(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_sc = os.path.join(SCILPY_HOME, 'connectivity',
                          'sc.npy')
-    ret = script_runner.run(['scil_connectivity_math.py', 'lower_threshold',
+    ret = script_runner.run(['scil_connectivity_math', 'lower_threshold',
                             in_sc, '5', 'sc_lower_threshold.npy'])
     assert ret.success

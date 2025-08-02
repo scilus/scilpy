@@ -13,14 +13,14 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run(['scil_bundle_reject_outliers.py', '--help'])
+    ret = script_runner.run(['scil_bundle_reject_outliers', '--help'])
     assert ret.success
 
 
 def test_execution_filtering(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_bundle = os.path.join(SCILPY_HOME, 'filtering', 'bundle_all_1mm.trk')
-    ret = script_runner.run(['scil_bundle_reject_outliers.py', in_bundle,
+    ret = script_runner.run(['scil_bundle_reject_outliers', in_bundle,
                             'inliers.trk', '--alpha', '0.6',
                             '--remaining_bundle', 'outliers.trk',
                             '--display_counts', '--indent', '4',

@@ -13,7 +13,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run(['scil_tractogram_compute_density_map.py',
+    ret = script_runner.run(['scil_tractogram_compute_density_map',
                             '--help'])
     assert ret.success
 
@@ -21,7 +21,7 @@ def test_help_option(script_runner):
 def test_execution_others(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_bundle = os.path.join(SCILPY_HOME, 'others', 'IFGWM.trk')
-    ret = script_runner.run(['scil_tractogram_compute_density_map.py',
+    ret = script_runner.run(['scil_tractogram_compute_density_map',
                             in_bundle, 'binary.nii.gz', '--endpoints_only'])
     assert ret.success
 
@@ -29,6 +29,6 @@ def test_execution_others(script_runner, monkeypatch):
 def test_execution_tractometry(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_bundle = os.path.join(SCILPY_HOME, 'tractometry', 'IFGWM.trk')
-    ret = script_runner.run(['scil_tractogram_compute_density_map.py',
+    ret = script_runner.run(['scil_tractogram_compute_density_map',
                             in_bundle, 'IFGWM.nii.gz', '--binary'])
     assert ret.success
