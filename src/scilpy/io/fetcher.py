@@ -64,7 +64,7 @@ def get_testing_files_dict():
     }
 
 
-def fetch_data(files_dict, keys=None):
+def fetch_data(files_dict, keys=None, verbose=True):
     """
     Fetch data. Typical use would be with gdown.
     But with too many data accesses, downloaded become denied.
@@ -86,8 +86,9 @@ def fetch_data(files_dict, keys=None):
         CURR_URL = DVC_URL + "/" + url_md5[:2] + "/" + url_md5[2:]
         if not os.path.isdir(full_path_no_ext):
             if ext == '.zip' and not os.path.isdir(full_path_no_ext):
-                logging.warning('Downloading and extracting {} from url {} to '
-                                '{}'.format(f, CURR_URL, SCILPY_HOME))
+                if verbose:
+                    logging.warning('Downloading and extracting {} from url {} to '
+                                    '{}'.format(f, CURR_URL, SCILPY_HOME))
 
                 # Robust method to Virus/Size check from GDrive
                 download_file_from_google_drive(CURR_URL, full_path)
