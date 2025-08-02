@@ -6,21 +6,14 @@ import pathlib
 import re
 import subprocess
 
-
 from tqdm import tqdm
+import nltk
+from nltk.stem import PorterStemmer
 
 from scilpy import SCILPY_HOME
 
 SPACING_LEN = 80
 
-try:
-    import nltk
-    from nltk.stem import PorterStemmer
-    nltk.download('punkt', quiet=True)
-    nltk.download('wordnet', quiet=True)
-except ImportError:
-    raise ImportError("You must install the 'nltk' package to use this script."
-                      "Please run 'pip install nltk'.")
 stemmer = PorterStemmer()
 
 # Path to the JSON file containing script information and keywords
