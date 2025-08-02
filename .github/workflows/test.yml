@@ -100,7 +100,9 @@ jobs:
           cache: 'pip'
 
       - name: Install pycoverage
-        run: uv pip install coverage
+        run: |
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          uv pip install coverage
 
       - name: Download test results and coverage
         uses: actions/download-artifact@v4
