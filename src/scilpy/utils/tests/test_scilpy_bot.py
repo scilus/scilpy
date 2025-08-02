@@ -7,15 +7,7 @@ from scilpy.utils.scilpy_bot import (
     _extract_keywords_and_phrases, _calculate_score
 )
 
-try:
-    import nltk
-    nltk.download('punkt_tab', quiet=True)
-    nltk.download('wordnet', quiet=True)
-    have_nltk = True
-except ImportError:
-    have_nltk = False
-
-
+have_nltk = True
 
 
 @pytest.mark.skipif(not have_nltk, reason="Requires NLTK")
