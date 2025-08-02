@@ -24,11 +24,11 @@ component_management:
     - component_id: scilpy_scripts
       name: Scripts
       paths:
-        - scripts/
+        - src/scilpy/cli/
     - component_id: scilpy_library
       name: Library
       paths:
-        - scilpy/
+        - src/scilpy/
 
 comment:
   layout: "condensed_header, diff, components"
