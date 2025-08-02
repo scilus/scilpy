@@ -102,7 +102,7 @@ jobs:
       - name: Install pycoverage
         run: |
           curl -LsSf https://astral.sh/uv/install.sh | sh
-          uv pip install coverage
+          uv pip install --system coverage
 
       - name: Download test results and coverage
         uses: actions/download-artifact@v4
