@@ -357,7 +357,8 @@ def main():
 
             if len(cut_sft):
                 tmp_data = ndi.map_coordinates(
-                    map, cut_sft.streamlines._data.T - 0.5, order=0)
+                    map, cut_sft.streamlines._data.T - 0.5, order=0,
+                    mode='nearest')
 
                 if basename == 'labels':
                     max_val = args.nb_pts
