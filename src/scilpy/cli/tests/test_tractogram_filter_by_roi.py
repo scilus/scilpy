@@ -16,6 +16,7 @@ in_tractogram = os.path.join(SCILPY_HOME, 'filtering',
                              'bundle_all_1mm_inliers.trk')
 in_roi = os.path.join(SCILPY_HOME, 'filtering', 'mask.nii.gz')
 in_bdo = os.path.join(SCILPY_HOME, 'filtering', 'sc.bdo')
+in_labels = os.path.join(SCILPY_HOME, 'filtering', 'labels.nii.gz')
 
 
 def test_help_option(script_runner):
@@ -53,9 +54,9 @@ def test_execution_filtering_list(script_runner, monkeypatch):
     # Write a list of options
     filelist = 'my_filelist.txt'
     with open(filelist, 'w') as f:
-        f.write('drawn_roi {} any include\n'.format(in_roi))
-        f.write('bdo {} "any" "include"\n'.format(in_bdo))
-        f.write("bdo {} 'any' include".format(in_bdo))
+        f.write('atlas_roi {} "1:2 3:4" any include\n'.format(in_labels))
+        f.write('bdo {} any include\n'.format(in_bdo))
+        f.write("bdo {} any include".format(in_bdo))
 
     ret = script_runner.run(['scil_tractogram_filter_by_roi', in_tractogram,
                              'bundle_3.trk', '--display_counts',

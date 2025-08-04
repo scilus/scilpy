@@ -11,6 +11,7 @@ omit =
     src/scilpy/cli/tests/*.py
     src/scilpy/cli/tests/**/*.py
     src/scilpy/cli/scil_data_download.py
+    src/scilpy/io/deprecator.py
 
 [report]
 skip_empty = True
