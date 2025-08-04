@@ -22,6 +22,6 @@ def test_execution_tractometry(script_runner, monkeypatch):
     in_json = os.path.join(SCILPY_HOME, 'tractometry',
                            'length_stats_1.json')
     ret = script_runner.run(['scil_json_convert_entries_to_xlsx', in_json,
-                            'length_stats.xlsx'])
+                             'length_stats.xlsx'])
 
     assert ret.success

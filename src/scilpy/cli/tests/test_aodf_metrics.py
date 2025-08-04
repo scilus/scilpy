@@ -73,5 +73,5 @@ def test_execution_symmetric_input(script_runner, monkeypatch):
     ret = script_runner.run(['scil_aodf_metrics', in_fodf,
                              '--sphere', 'repulsion100', '--not_all',
                              '--nufid', 'nufid.nii.gz',
-                             '--processes', '4'])
+                             '--processes', '4', '-f'])
     assert ret.success

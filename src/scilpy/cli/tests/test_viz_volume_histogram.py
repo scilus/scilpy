@@ -24,5 +24,5 @@ def test_execution_processing(script_runner, monkeypatch):
     in_mask = os.path.join(SCILPY_HOME, 'processing',
                            'seed.nii.gz')
     ret = script_runner.run(['scil_viz_volume_histogram', in_fa, in_mask,
-                            '20', 'histogram.png'])
+                             '20', 'histogram.png'])
     assert ret.success

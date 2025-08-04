@@ -22,5 +22,5 @@ def test_execution_processing(script_runner, monkeypatch):
     in_ad = os.path.join(SCILPY_HOME, 'processing',
                          'ad.nii.gz')
     ret = script_runner.run(['scil_volume_remove_outliers_ransac', in_ad,
-                            'ad_ransanc.nii.gz'])
+                             'ad_ransanc.nii.gz'])
     assert ret.success

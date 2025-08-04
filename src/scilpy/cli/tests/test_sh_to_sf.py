@@ -25,11 +25,11 @@ def test_execution_in_sphere(script_runner, monkeypatch):
 
     # Required: either --sphere or --in_bvec. Here, --sphere
     ret = script_runner.run(['scil_sh_to_sf', in_sh,
-                            'sf_724.nii.gz', '--in_bval',
-                            in_bval, '--in_b0', in_b0, '--out_bval',
-                            'sf_724.bval', '--out_bvec', 'sf_724.bvec',
-                            '--sphere', 'symmetric724', '--dtype', 'float32',
-                            '--processes', '1'])
+                             'sf_724.nii.gz', '--in_bval',
+                             in_bval, '--in_b0', in_b0, '--out_bval',
+                             'sf_724.bval', '--out_bvec', 'sf_724.bvec',
+                             '--sphere', 'symmetric724', '--dtype', 'float32',
+                             '--processes', '1'])
     assert ret.success
 
 
@@ -41,19 +41,19 @@ def test_execution_in_bvec(script_runner, monkeypatch):
 
     # --in_bvec: in_bval is required.
     ret = script_runner.run(['scil_sh_to_sf', in_sh,
-                            'sf_724.nii.gz', '--in_bval', in_bval,
-                            '--out_bval', 'sf_724.bval',
-                            '--out_bvec', 'sf_724.bvec',
-                            '--in_bvec', in_bvec, '--dtype', 'float32', '-f',
-                            '--processes', '1'])
+                             'sf_724.nii.gz', '--in_bval', in_bval,
+                             '--out_bval', 'sf_724.bval',
+                             '--out_bvec', 'sf_724.bvec',
+                             '--in_bvec', in_bvec, '--dtype', 'float32', '-f',
+                             '--processes', '1'])
     assert ret.success
 
     # Test that fails if no bvals is given.
     ret = script_runner.run(['scil_sh_to_sf', in_sh,
-                            'sf_724.nii.gz',
-                            '--out_bvec', 'sf_724.bvec',
-                            '--in_bvec', in_bvec, '--dtype', 'float32', '-f',
-                            '--processes', '1'])
+                             'sf_724.nii.gz',
+                             '--out_bvec', 'sf_724.bvec',
+                             '--in_bvec', in_bvec, '--dtype', 'float32', '-f',
+                             '--processes', '1'])
     assert not ret.success
 
 
@@ -65,8 +65,8 @@ def test_execution_no_bval(script_runner, monkeypatch):
     # --sphere but no --bval
     # Testing multiprocessing option
     ret = script_runner.run(['scil_sh_to_sf', in_sh,
-                            'sf_724.nii.gz', '--in_b0', in_b0,
-                            '--out_bvec', 'sf_724.bvec', '--b0_scaling',
-                            '--sphere', 'symmetric724', '--dtype', 'float32',
-                            '-f', '--processes', '4'])
+                             'sf_724.nii.gz', '--in_b0', in_b0,
+                             '--out_bvec', 'sf_724.bvec', '--b0_scaling',
+                             '--sphere', 'symmetric724', '--dtype', 'float32',
+                             '-f', '--processes', '4'])
     assert ret.success

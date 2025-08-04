@@ -26,8 +26,8 @@ def test_execution_processing_concatenate(script_runner, monkeypatch):
     in_bvec = os.path.join(SCILPY_HOME, 'processing',
                            'dwi.bvec')
     ret = script_runner.run(['scil_dwi_concatenate', 'dwi_concat.nii.gz',
-                            'concat.bval', 'concat.bvec',
-                            '--in_dwi', in_dwi, in_dwi,
-                            '--in_bvals', in_bval, in_bval,
-                            '--in_bvecs', in_bvec, in_bvec])
+                             'concat.bval', 'concat.bvec',
+                             '--in_dwi', in_dwi, in_dwi,
+                             '--in_bvals', in_bval, in_bval,
+                             '--in_bvecs', in_bvec, in_bvec])
     assert ret.success

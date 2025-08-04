@@ -22,6 +22,6 @@ def test_execution_bundles(script_runner, monkeypatch):
     in_tractogram = os.path.join(SCILPY_HOME, 'bundles',
                                  'bundle_all_1mm.trk')
     ret = script_runner.run(['scil_tractogram_remove_invalid',
-                            in_tractogram, 'bundle_all_1mm.trk', '--cut',
-                            '--remove_overlapping', '--remove_single', '-f'])
+                             in_tractogram, 'bundle_all_1mm.trk', '--cut',
+                             '--remove_overlapping', '--remove_single', '-f'])
     assert ret.success

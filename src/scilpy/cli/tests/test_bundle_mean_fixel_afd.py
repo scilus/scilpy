@@ -23,6 +23,7 @@ def test_execution_processing(script_runner, monkeypatch):
     in_fodf = os.path.join(SCILPY_HOME, 'processing',
                            'fodf_descoteaux07.nii.gz')
     ret = script_runner.run(['scil_bundle_mean_fixel_afd', in_tracking,
-                            in_fodf, 'afd_test.nii.gz',
-                            '--sh_basis', 'descoteaux07', '--length_weighting'])
+                             in_fodf, 'afd_test.nii.gz',
+                             '--sh_basis', 'descoteaux07',
+                             '--length_weighting'])
     assert ret.success

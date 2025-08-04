@@ -22,9 +22,9 @@ def test_execution_filtering(script_runner, monkeypatch):
     in_bundle = os.path.join(SCILPY_HOME, 'filtering',
                              'bundle_4_filtered.trk')
     ret = script_runner.run(['scil_tractogram_detect_loops',
-                            in_bundle, 'bundle_4_filtered_no_loops.trk',
-                            '--looping_tractogram',
-                            'bundle_4_filtered_loops.trk',
-                            '--angle', '270', '--qb', '4',
-                            '--processes', '1', '--display_counts'])
+                             in_bundle, 'bundle_4_filtered_no_loops.trk',
+                             '--looping_tractogram',
+                             'bundle_4_filtered_loops.trk',
+                             '--angle', '270', '--qb', '4',
+                             '--processes', '1', '--display_counts'])
     assert ret.success

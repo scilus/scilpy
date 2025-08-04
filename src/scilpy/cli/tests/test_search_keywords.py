@@ -8,7 +8,8 @@ def test_help_option(script_runner):
 
 
 def test_search_category(script_runner):
-    ret = script_runner.run(['scil_search_keywords', '--search_category', 'sh'])
+    ret = script_runner.run(['scil_search_keywords',
+                             '--search_category', 'sh'])
     assert 'Available objects:' in ret.stdout
 
 

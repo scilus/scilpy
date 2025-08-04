@@ -23,15 +23,15 @@ def test_execution_atlas(script_runner, monkeypatch):
     in_atlas = os.path.join(SCILPY_HOME, 'atlas',
                             'atlas_freesurfer_v2.nii.gz')
     ret = script_runner.run(['scil_surface_create',
-                            '--in_labels', in_atlas,
-                            'surface.vtk',
-                            '--list_indices', '2024:2035 1024',
-                            '--fill',
-                            '--smooth', '1',
-                            '--erosion', '1',
-                            '--dilation', '1',
-                            '--opening', '1',
-                            '--closing', '1', '-f'])
+                             '--in_labels', in_atlas,
+                             'surface.vtk',
+                             '--list_indices', '2024:2035 1024',
+                             '--fill',
+                             '--smooth', '1',
+                             '--erosion', '1',
+                             '--dilation', '1',
+                             '--opening', '1',
+                             '--closing', '1', '-f'])
     assert ret.success
 
 
@@ -40,16 +40,16 @@ def test_execution_atlas_each_index(script_runner, monkeypatch):
     in_atlas = os.path.join(SCILPY_HOME, 'atlas',
                             'atlas_freesurfer_v2.nii.gz')
     ret = script_runner.run(['scil_surface_create',
-                            '--in_labels', in_atlas,
-                            'surface.vtk',
-                            '--each_index',
-                            '--fill',
-                            '--smooth', '1',
-                            '--erosion', '1',
-                            '--dilation', '1',
-                            '--opening', '1',
-                            '--closing', '1',
-                            '--vtk2vox', '-f'])
+                             '--in_labels', in_atlas,
+                             'surface.vtk',
+                             '--each_index',
+                             '--fill',
+                             '--smooth', '1',
+                             '--erosion', '1',
+                             '--dilation', '1',
+                             '--opening', '1',
+                             '--closing', '1',
+                             '--vtk2vox', '-f'])
     assert ret.success
 
 
@@ -58,14 +58,14 @@ def test_execution_atlas_no_index(script_runner, monkeypatch):
     in_atlas = os.path.join(SCILPY_HOME, 'atlas',
                             'atlas_freesurfer_v2.nii.gz')
     ret = script_runner.run(['scil_surface_create',
-                            '--in_labels', in_atlas,
-                            'surface.vtk',
-                            '--fill',
-                            '--smooth', '1',
-                            '--erosion', '1',
-                            '--dilation', '1',
-                            '--opening', '1',
-                            '--closing', '1', '-f'])
+                             '--in_labels', in_atlas,
+                             'surface.vtk',
+                             '--fill',
+                             '--smooth', '1',
+                             '--erosion', '1',
+                             '--dilation', '1',
+                             '--opening', '1',
+                             '--closing', '1', '-f'])
     assert ret.success
 
 
@@ -74,8 +74,8 @@ def test_execution_mask(script_runner, monkeypatch):
     in_mask = os.path.join(SCILPY_HOME, 'atlas',
                            'brainstem_bin.nii.gz')
     ret = script_runner.run(['scil_surface_create',
-                            '--in_mask', in_mask,
-                            'surface.vtk', '-f'])
+                             '--in_mask', in_mask,
+                             'surface.vtk', '-f'])
     assert ret.success
 
 
@@ -84,7 +84,7 @@ def test_execution_volume(script_runner, monkeypatch):
     in_t1 = os.path.join(SCILPY_HOME, 'others',
                          't1.nii.gz')
     ret = script_runner.run(['scil_surface_create',
-                            '--in_volume', in_t1,
-                            '--value', '0.2',
-                            'surface.vtk', '-f'])
+                             '--in_volume', in_t1,
+                             '--value', '0.2',
+                             'surface.vtk', '-f'])
     assert ret.success

@@ -22,9 +22,9 @@ def test_screenshot(script_runner, monkeypatch):
     in_fa = os.path.join(SCILPY_HOME, 'bst', 'fa.nii.gz')
     in_mask = os.path.join(SCILPY_HOME, 'bst', 'mask.nii.gz')
     ret = script_runner.run(["scil_viz_volume_screenshot", in_fa, 'fa.png',
-                            '--slices', '50',
-                            '--display_slice_number', '--display_lr',
-                            '--overlays', in_mask,
-                            '--overlays_as_contours',
-                            '--volume_cmap_name', 'viridis'])
+                             '--slices', '50',
+                             '--display_slice_number', '--display_lr',
+                             '--overlays', in_mask,
+                             '--overlays_as_contours',
+                             '--volume_cmap_name', 'viridis'])
     assert ret.success

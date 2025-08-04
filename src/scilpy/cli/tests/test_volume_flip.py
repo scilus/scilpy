@@ -22,5 +22,5 @@ def test_execution_surface_vtk_fib(script_runner, monkeypatch):
     in_fa = os.path.join(SCILPY_HOME, 'surface_vtk_fib',
                          'fa.nii.gz')
     ret = script_runner.run(['scil_volume_flip', in_fa, 'fa_flip.nii.gz',
-                            'x'])
+                             'x'])
     assert ret.success

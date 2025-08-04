@@ -23,7 +23,7 @@ def test_execution_bst(script_runner, monkeypatch):
     in_fodf = os.path.join(SCILPY_HOME, 'bst', 'fodf.nii.gz')
     in_mask = os.path.join(SCILPY_HOME, 'bst', 'mask.nii.gz')
     ret = script_runner.run(['scil_bundle_generate_priors',
-                            in_bundle, in_fodf, in_mask,
-                            '--todi_sigma', '1', '--out_prefix', 'rpt_m',
-                            '--sh_basis', 'descoteaux07'])
+                             in_bundle, in_fodf, in_mask,
+                             '--todi_sigma', '1', '--out_prefix', 'rpt_m',
+                             '--sh_basis', 'descoteaux07'])
     assert ret.success

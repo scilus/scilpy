@@ -27,5 +27,5 @@ def test_execution_tracking(script_runner, monkeypatch):
     in_csf = os.path.join(SCILPY_HOME, 'tracking',
                           'map_csf.nii.gz')
     ret = script_runner.run(['scil_tracking_pft_maps',
-                            in_wm, in_gm, in_csf])
+                             in_wm, in_gm, in_csf])
     assert ret.success

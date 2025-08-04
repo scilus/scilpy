@@ -14,7 +14,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 def test_help_option(script_runner):
     ret = script_runner.run(['scil_tractogram_filter_by_anatomy',
-                            '--help'])
+                             '--help'])
     assert ret.success
 
 
@@ -25,9 +25,9 @@ def test_execution_filtering_all_options(script_runner, monkeypatch):
     in_wmparc = os.path.join(SCILPY_HOME, 'anatomical_filtering',
                              'wmparc_filter_ana.nii.gz')
     ret = script_runner.run(['scil_tractogram_filter_by_anatomy',
-                            in_tractogram, in_wmparc,
-                            os.path.expanduser(tmp_dir.name),
-                            '--minL', '40', '--maxL', '200', '--angle', '300',
+                             in_tractogram, in_wmparc,
+                             os.path.expanduser(tmp_dir.name),
+                             '--minL', '40', '--maxL', '200', '--angle', '300',
                              '--processes', '1', '--save_volumes',
                              '--dilate_ctx', '2',
                              '--save_intermediate_tractograms',
@@ -44,9 +44,9 @@ def test_execution_filtering_rejected(script_runner, monkeypatch):
     in_wmparc = os.path.join(SCILPY_HOME, 'anatomical_filtering',
                              'wmparc_filter_ana.nii.gz')
     ret = script_runner.run(['scil_tractogram_filter_by_anatomy',
-                            in_tractogram, in_wmparc,
-                            os.path.expanduser(tmp_dir.name),
-                            '--minL', '40', '--maxL', '200', '--angle', '300',
+                             in_tractogram, in_wmparc,
+                             os.path.expanduser(tmp_dir.name),
+                             '--minL', '40', '--maxL', '200', '--angle', '300',
                              '--processes', '1', '--save_volumes',
                              '--dilate_ctx', '2',
                              '--save_counts',
@@ -62,9 +62,9 @@ def test_execution_filtering_save_intermediate(script_runner, monkeypatch):
     in_wmparc = os.path.join(SCILPY_HOME, 'anatomical_filtering',
                              'wmparc_filter_ana.nii.gz')
     ret = script_runner.run(['scil_tractogram_filter_by_anatomy',
-                            in_tractogram, in_wmparc,
-                            os.path.expanduser(tmp_dir.name),
-                            '--minL', '40', '--maxL', '200', '--angle', '300',
+                             in_tractogram, in_wmparc,
+                             os.path.expanduser(tmp_dir.name),
+                             '--minL', '40', '--maxL', '200', '--angle', '300',
                              '--processes', '1', '--save_volumes',
                              '--dilate_ctx', '2',
                              '--save_intermediate_tractograms',

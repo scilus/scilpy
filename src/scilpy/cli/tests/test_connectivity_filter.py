@@ -24,7 +24,7 @@ def test_execution_connectivity(script_runner, monkeypatch):
     in_sim = os.path.join(SCILPY_HOME, 'connectivity',
                           'len.npy')
     ret = script_runner.run(['scil_connectivity_filter', 'mask.npy',
-                            '--greater_than', in_sc, '5', '1',
-                            '--greater_than', in_sim, '0', '1',
-                            '--keep_condition_count'])
+                             '--greater_than', in_sc, '5', '1',
+                             '--greater_than', in_sim, '0', '1',
+                             '--keep_condition_count'])
     assert ret.success

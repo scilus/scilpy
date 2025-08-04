@@ -22,6 +22,6 @@ def test_execution_atlas(script_runner, monkeypatch):
     in_atlas = os.path.join(SCILPY_HOME, 'atlas',
                             'atlas_freesurfer_v2.nii.gz')
     ret = script_runner.run(['scil_labels_remove', in_atlas,
-                            'atlas_freesurfer_v2_no_brainstem.nii.gz',
-                            '-i', '173', '174', '175'])
+                             'atlas_freesurfer_v2_no_brainstem.nii.gz',
+                             '-i', '173', '174', '175'])
     assert ret.success

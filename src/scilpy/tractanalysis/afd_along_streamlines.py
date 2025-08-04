@@ -3,7 +3,7 @@
 from dipy.data import get_sphere
 from dipy.reconst.shm import sh_to_sf_matrix, sph_harm_ind_list
 import numpy as np
-from scipy.special import lpn
+from scipy.special import legendre_p_all
 
 from scilpy.reconst.utils import find_order_from_nb_coeff
 from scilpy.tractanalysis.voxel_boundary_intersection import\
@@ -87,7 +87,7 @@ def afd_and_rd_sums_along_streamlines(sft, fodf, fodf_basis,
     sphere = get_sphere(name='repulsion724')
     b_matrix, _ = sh_to_sf_matrix(sphere, order, fodf_basis, legacy=is_legacy)
     _, n = sph_harm_ind_list(order)
-    legendre0_at_n = lpn(order, 0)[0][n]
+    legendre0_at_n = legendre_p_all(order, 0)[0][n]
     sphere_norm = np.linalg.norm(sphere.vertices)
 
     afd_sum_map = np.zeros(shape=fodf_data.shape[:-1])

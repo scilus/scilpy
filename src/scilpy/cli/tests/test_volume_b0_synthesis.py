@@ -46,7 +46,7 @@ def test_synthesis(script_runner, monkeypatch):
                  'b0_mask.nii.gz')
 
         ret = script_runner.run(['scil_volume_b0_synthesis',
-                                in_t1, 't1_mask.nii.gz',
-                                in_b0, 'b0_mask.nii.gz',
-                                'b0_synthesized.nii.gz', '-v'])
+                                 in_t1, 't1_mask.nii.gz',
+                                 in_b0, 'b0_mask.nii.gz',
+                                 'b0_synthesized.nii.gz', '-v'])
         assert ret.success

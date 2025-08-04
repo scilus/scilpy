@@ -22,6 +22,6 @@ def test_execution_tractometry(script_runner, monkeypatch):
     in_bundle = os.path.join(SCILPY_HOME, 'tractometry',
                              'IFGWM_uni_c.trk')
     ret = script_runner.run(['scil_tractogram_resample_nb_points',
-                            in_bundle, 'IFGWM_uni_c_10.trk',
-                            '--nb_pts_per_streamline', '10'])
+                             in_bundle, 'IFGWM_uni_c_10.trk',
+                             '--nb_pts_per_streamline', '10'])
     assert ret.success

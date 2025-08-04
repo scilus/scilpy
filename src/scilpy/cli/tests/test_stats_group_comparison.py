@@ -26,10 +26,10 @@ def test_execution_bundles(script_runner, monkeypatch):
                                    'meanstd_all.json')
 
     ret = script_runner.run(['scil_stats_group_comparison',
-                            in_participants, in_json, 'Group',
-                            '-b', 'AF_L',
-                            '-m', 'FIT_FW',
-                            '--va', 'mean',
-                            '--gg'])
+                             in_participants, in_json, 'Group',
+                             '-b', 'AF_L',
+                             '-m', 'FIT_FW',
+                             '--va', 'mean',
+                             '--gg'])
 
     assert ret.success

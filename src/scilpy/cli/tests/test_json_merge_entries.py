@@ -20,10 +20,10 @@ def test_help_option(script_runner):
 def test_execution_tractometry(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_json_1 = os.path.join(SCILPY_HOME, 'tractometry',
-                           'length_stats_1.json')
+                             'length_stats_1.json')
     in_json_2 = os.path.join(SCILPY_HOME, 'tractometry',
-                           'length_stats_2.json')
+                             'length_stats_2.json')
     ret = script_runner.run(['scil_json_merge_entries', in_json_1,
-                            in_json_2, 'merge.json', '--keep_separate'])
+                             in_json_2, 'merge.json', '--keep_separate'])
 
     assert ret.success

@@ -25,9 +25,9 @@ def test_execution_tractometry_euclidian(script_runner, monkeypatch):
     in_centroid = os.path.join(SCILPY_HOME, 'tractometry',
                                'IFGWM_uni_c_10.trk')
     ret = script_runner.run(['scil_bundle_label_map',
-                            in_bundle, in_centroid,
-                            'results_euc/',
-                            '--colormap', 'viridis'])
+                             in_bundle, in_centroid,
+                             'results_euc/',
+                             '--colormap', 'viridis'])
     assert ret.success
 
 
@@ -38,8 +38,8 @@ def test_execution_tractometry_hyperplane(script_runner, monkeypatch):
     in_centroid = os.path.join(SCILPY_HOME, 'tractometry',
                                'IFGWM_uni_c_10.trk')
     ret = script_runner.run(['scil_bundle_label_map',
-                            in_bundle, in_centroid,
-                            'results_man/',
-                            '--colormap', 'viridis',
-                            '--hyperplane', '--use_manhattan'])
+                             in_bundle, in_centroid,
+                             'results_man/',
+                             '--colormap', 'viridis',
+                             '--hyperplane', '--use_manhattan'])
     assert ret.success

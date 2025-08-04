@@ -24,9 +24,7 @@ def test_execution_mrds_all_metrics(script_runner, monkeypatch):
                             'mrds', 'sub-01_MRDS_eigenvalues.nii.gz')
 
     # no option
-    ret = script_runner.run(['scil_mrds_metrics',
-                            in_evals,
-                            '-f'])
+    ret = script_runner.run(['scil_mrds_metrics', in_evals, '-f'])
     assert ret.success
 
 
@@ -39,12 +37,12 @@ def test_execution_mrds_not_all_metrics(script_runner, monkeypatch):
                            'mrds', 'sub-01_mask.nii.gz')
     # no option
     ret = script_runner.run(['scil_mrds_metrics',
-                            in_evals,
-                            '--mask', in_mask,
-                            '--not_all',
-                            '--fa', 'sub-01_MRDS_FA.nii.gz',
-                            '--ad', 'sub-01_MRDS_AD.nii.gz',
-                            '--rd', 'sub-01_MRDS_RD.nii.gz',
-                            '--md', 'sub-01_MRDS_MD.nii.gz',
-                            '-f'])
+                             in_evals,
+                             '--mask', in_mask,
+                             '--not_all',
+                             '--fa', 'sub-01_MRDS_FA.nii.gz',
+                             '--ad', 'sub-01_MRDS_AD.nii.gz',
+                             '--rd', 'sub-01_MRDS_RD.nii.gz',
+                             '--md', 'sub-01_MRDS_MD.nii.gz',
+                             '-f'])
     assert ret.success

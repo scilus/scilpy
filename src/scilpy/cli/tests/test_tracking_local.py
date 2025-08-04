@@ -27,9 +27,9 @@ def test_execution_tracking_fodf_prob(script_runner, monkeypatch):
     in_mask = os.path.join(SCILPY_HOME, 'tracking', 'seeding_mask.nii.gz')
 
     ret = script_runner.run(['scil_tracking_local', in_fodf,
-                            in_mask, in_mask, 'local_prob.trk', '--nt', '100',
-                            '--compress', '0.1', '--sh_basis', 'descoteaux07',
-                            '--min_length', '20', '--max_length', '200'])
+                             in_mask, in_mask, 'local_prob.trk', '--nt', '100',
+                             '--compress', '0.1', '--sh_basis', 'descoteaux07',
+                             '--min_length', '20', '--max_length', '200'])
     assert ret.success
 
 
@@ -39,10 +39,10 @@ def test_execution_tracking_fodf_det(script_runner, monkeypatch):
     in_mask = os.path.join(SCILPY_HOME, 'tracking', 'seeding_mask.nii.gz')
 
     ret = script_runner.run(['scil_tracking_local', in_fodf,
-                            in_mask, in_mask, 'local_det.trk', '--nt', '100',
-                            '--compress', '0.1', '--sh_basis', 'descoteaux07',
-                            '--min_length', '20', '--max_length', '200',
-                            '--algo', 'det'])
+                             in_mask, in_mask, 'local_det.trk', '--nt', '100',
+                             '--compress', '0.1', '--sh_basis', 'descoteaux07',
+                             '--min_length', '20', '--max_length', '200',
+                             '--algo', 'det'])
     assert ret.success
 
 
@@ -52,10 +52,10 @@ def test_execution_tracking_ptt(script_runner, monkeypatch):
     in_mask = os.path.join(SCILPY_HOME, 'tracking', 'seeding_mask.nii.gz')
 
     ret = script_runner.run(['scil_tracking_local', in_fodf,
-                            in_mask, in_mask, 'local_ptt.trk', '--nt', '100',
-                            '--compress', '0.1', '--sh_basis', 'descoteaux07',
-                            '--min_length', '20', '--max_length', '200',
-                            '--algo', 'ptt', '-f'])
+                             in_mask, in_mask, 'local_ptt.trk', '--nt', '100',
+                             '--compress', '0.1', '--sh_basis', 'descoteaux07',
+                             '--min_length', '20', '--max_length', '200',
+                             '--algo', 'ptt', '-f'])
     assert ret.success
 
 
@@ -65,11 +65,11 @@ def test_execution_sphere_subdivide(script_runner, monkeypatch):
     in_mask = os.path.join(SCILPY_HOME, 'tracking', 'seeding_mask.nii.gz')
 
     ret = script_runner.run(['scil_tracking_local', in_fodf,
-                            in_mask, in_mask, 'local_sphere.trk',
-                            '--nt', '100',
-                            '--compress', '0.1', '--sh_basis', 'descoteaux07',
-                            '--min_length', '20', '--max_length', '200',
-                            '--sub_sphere', '2'])
+                             in_mask, in_mask, 'local_sphere.trk',
+                             '--nt', '100',
+                             '--compress', '0.1', '--sh_basis', 'descoteaux07',
+                             '--min_length', '20', '--max_length', '200',
+                             '--sub_sphere', '2'])
     assert ret.success
 
 
@@ -79,9 +79,9 @@ def test_execution_sphere_gpu(script_runner, monkeypatch):
     in_mask = os.path.join(SCILPY_HOME, 'tracking', 'seeding_mask.nii.gz')
 
     ret = script_runner.run(['scil_tracking_local', in_fodf,
-                            in_mask, in_mask, 'sphere_gpu.trk',
-                            '--use_gpu', '--sphere', 'symmetric362',
-                            '--npv', '1'])
+                             in_mask, in_mask, 'sphere_gpu.trk',
+                             '--use_gpu', '--sphere', 'symmetric362',
+                             '--npv', '1'])
 
     assert not ret.success
 
@@ -92,8 +92,8 @@ def test_sh_interp_without_gpu(script_runner, monkeypatch):
     in_mask = os.path.join(SCILPY_HOME, 'tracking', 'seeding_mask.nii.gz')
 
     ret = script_runner.run(['scil_tracking_local', in_fodf,
-                            in_mask, in_mask, 'nearest_interp.trk',
-                            '--sh_interp', 'nearest', '--nt', '100'])
+                             in_mask, in_mask, 'nearest_interp.trk',
+                             '--sh_interp', 'nearest', '--nt', '100'])
 
     assert not ret.success
 
@@ -104,8 +104,8 @@ def test_forward_without_gpu(script_runner, monkeypatch):
     in_mask = os.path.join(SCILPY_HOME, 'tracking', 'seeding_mask.nii.gz')
 
     ret = script_runner.run(['scil_tracking_local', in_fodf,
-                            in_mask, in_mask, 'fwd_only.trk',
-                            '--forward_only', '--nt', '100'])
+                             in_mask, in_mask, 'fwd_only.trk',
+                             '--forward_only', '--nt', '100'])
 
     assert not ret.success
 
@@ -116,8 +116,8 @@ def test_batch_size_without_gpu(script_runner, monkeypatch):
     in_mask = os.path.join(SCILPY_HOME, 'tracking', 'seeding_mask.nii.gz')
 
     ret = script_runner.run(['scil_tracking_local', in_fodf,
-                            in_mask, in_mask, 'batch.trk',
-                            '--batch_size', 100])
+                             in_mask, in_mask, 'batch.trk',
+                             '--batch_size', 100])
 
     assert not ret.success
 
@@ -128,8 +128,8 @@ def test_algo_with_gpu(script_runner, monkeypatch):
     in_mask = os.path.join(SCILPY_HOME, 'tracking', 'seeding_mask.nii.gz')
 
     ret = script_runner.run(['scil_tracking_local', in_fodf,
-                            in_mask, in_mask, 'gpu_det.trk', '--algo',
-                            'det', '--use_gpu', '--nt', '100'])
+                             in_mask, in_mask, 'gpu_det.trk', '--algo',
+                             'det', '--use_gpu', '--nt', '100'])
 
     assert not ret.success
 
@@ -140,9 +140,9 @@ def test_execution_tracking_fodf_no_compression(script_runner, monkeypatch):
     in_mask = os.path.join(SCILPY_HOME, 'tracking', 'seeding_mask.nii.gz')
 
     ret = script_runner.run(['scil_tracking_local', in_fodf,
-                            in_mask, in_mask, 'local_prob2.trk',
-                            '--nt', '100', '--sh_basis', 'descoteaux07',
-                            '--max_length', '200'])
+                             in_mask, in_mask, 'local_prob2.trk',
+                             '--nt', '100', '--sh_basis', 'descoteaux07',
+                             '--max_length', '200'])
 
     assert ret.success
 
@@ -152,10 +152,10 @@ def test_execution_tracking_peaks(script_runner, monkeypatch):
     in_peaks = os.path.join(SCILPY_HOME, 'tracking', 'peaks.nii.gz')
     in_mask = os.path.join(SCILPY_HOME, 'tracking', 'seeding_mask.nii.gz')
     ret = script_runner.run(['scil_tracking_local', in_peaks,
-                            in_mask, in_mask, 'local_eudx.trk', '--nt', '100',
-                            '--compress', '0.1', '--sh_basis', 'descoteaux07',
-                            '--min_length', '20', '--max_length', '200',
-                            '--algo', 'eudx'])
+                             in_mask, in_mask, 'local_eudx.trk', '--nt', '100',
+                             '--compress', '0.1', '--sh_basis', 'descoteaux07',
+                             '--min_length', '20', '--max_length', '200',
+                             '--algo', 'eudx'])
     assert ret.success
 
 
@@ -165,10 +165,11 @@ def test_execution_tracking_fodf_prob_pmf_mapping(script_runner, monkeypatch):
     in_mask = os.path.join(SCILPY_HOME, 'tracking', 'seeding_mask.nii.gz')
 
     ret = script_runner.run(['scil_tracking_local', in_fodf,
-                            in_mask, in_mask, 'local_prob3.trk', '--nt', '100',
-                            '--compress', '0.1', '--sh_basis', 'descoteaux07',
-                            '--min_length', '20', '--max_length', '200',
-                            '--sh_to_pmf', '-v'])
+                             in_mask, in_mask, 'local_prob3.trk',
+                             '--nt', '100',
+                             '--compress', '0.1', '--sh_basis', 'descoteaux07',
+                             '--min_length', '20', '--max_length', '200',
+                             '--sh_to_pmf', '-v'])
     assert ret.success
 
 
@@ -178,11 +179,11 @@ def test_execution_tracking_ptt_with_probe(script_runner, monkeypatch):
     in_mask = os.path.join(SCILPY_HOME, 'tracking', 'seeding_mask.nii.gz')
 
     ret = script_runner.run(['scil_tracking_local', in_fodf,
-                            in_mask, in_mask, 'local_ptt.trk', '--nt', '100',
-                            '--compress', '0.1', '--sh_basis', 'descoteaux07',
-                            '--min_length', '20', '--max_length', '200',
-                            '--sh_to_pmf', '-v', '--probe_length', '2',
-                            '--probe_quality', '5', '--algo', 'ptt', '-f'])
+                             in_mask, in_mask, 'local_ptt.trk', '--nt', '100',
+                             '--compress', '0.1', '--sh_basis', 'descoteaux07',
+                             '--min_length', '20', '--max_length', '200',
+                             '--sh_to_pmf', '-v', '--probe_length', '2',
+                             '--probe_quality', '5', '--algo', 'ptt', '-f'])
     assert ret.success
 
 
@@ -196,8 +197,8 @@ def test_execution_tracking_fodf_custom_seeds(script_runner, monkeypatch):
     np.save(in_custom_seeds, custom_seeds)
 
     ret = script_runner.run(['scil_tracking_local', in_fodf,
-                            in_mask, in_mask, 'local_prob4.trk',
-                            '--in_custom_seeds', in_custom_seeds,
-                            '--compress', '0.1', '--sh_basis', 'descoteaux07',
-                            '--min_length', '20', '--max_length', '200'])
+                             in_mask, in_mask, 'local_prob4.trk',
+                             '--in_custom_seeds', in_custom_seeds,
+                             '--compress', '0.1', '--sh_basis', 'descoteaux07',
+                             '--min_length', '20', '--max_length', '200'])
     assert ret.success

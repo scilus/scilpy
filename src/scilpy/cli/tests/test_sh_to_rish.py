@@ -20,6 +20,6 @@ def test_help_option(script_runner):
 def test_execution_processing(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_sh = os.path.join(SCILPY_HOME, 'processing',
-                          'sh.nii.gz')
+                         'sh.nii.gz')
     ret = script_runner.run(['scil_sh_to_rish', in_sh, 'rish.nii.gz'])
     assert ret.success

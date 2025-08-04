@@ -24,9 +24,9 @@ def test_execution_processing(script_runner, monkeypatch):
     out_trk = 'ushape.trk'
     remaining_trk = 'remaining.trk'
     ret = script_runner.run(['scil_tractogram_extract_ushape',
-                            in_trk, out_trk,
-                            '--minU', '0.5',
-                            '--maxU', '1',
-                            '--remaining_tractogram', remaining_trk,
-                            '--display_counts'])
+                             in_trk, out_trk,
+                             '--minU', '0.5',
+                             '--maxU', '1',
+                             '--remaining_tractogram', remaining_trk,
+                             '--display_counts'])
     assert ret.success

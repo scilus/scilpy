@@ -24,16 +24,16 @@ def test_help_option(script_runner):
 def test_execution_bundles_skip(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     ret = script_runner.run(['scil_tractogram_pairwise_comparison',
-                            in_1, in_2, '--out_dir', tmp_dir.name,
-                            '--reference', in_ref,
-                            '--skip_streamlines_distance'])
+                             in_1, in_2, '--out_dir', tmp_dir.name,
+                             '--reference', in_ref,
+                             '--skip_streamlines_distance'])
     assert ret.success
 
 
 def test_execution_bundles(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     ret = script_runner.run(['scil_tractogram_pairwise_comparison',
-                            in_1, in_2, '--out_dir', tmp_dir.name,
-                            '--reference', in_ref, '-f',
-                            '--skip_streamlines_distance'])
+                             in_1, in_2, '--out_dir', tmp_dir.name,
+                             '--reference', in_ref, '-f',
+                             '--skip_streamlines_distance'])
     assert ret.success

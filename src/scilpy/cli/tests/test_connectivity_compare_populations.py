@@ -24,6 +24,6 @@ def test_execution_connectivity(script_runner, monkeypatch):
     in_2 = os.path.join(SCILPY_HOME, 'connectivity', 'sc_norm.npy')
     in_mask = os.path.join(SCILPY_HOME, 'connectivity', 'mask.npy')
     ret = script_runner.run(['scil_connectivity_compare_populations',
-                            'pval.npy', '--in_g1', in_1, '--in_g2', in_2,
-                            '--filtering_mask', in_mask])
+                             'pval.npy', '--in_g1', in_1, '--in_g2', in_2,
+                             '--filtering_mask', in_mask])
     assert ret.success

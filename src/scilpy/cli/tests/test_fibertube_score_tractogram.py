@@ -65,6 +65,6 @@ def test_execution(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     init_data()
     ret = script_runner.run(['scil_fibertube_score_tractogram',
-                            'fibertubes.trk', 'tracking.trk', 'config.json',
-                            'metrics.json', '--save_error_tractogram', '-f'])
+                             'fibertubes.trk', 'tracking.trk', 'config.json',
+                             'metrics.json', '--save_error_tractogram', '-f'])
     assert ret.success

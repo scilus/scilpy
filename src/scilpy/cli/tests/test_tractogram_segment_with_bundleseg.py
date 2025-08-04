@@ -35,8 +35,8 @@ def test_execution_bundles(script_runner, monkeypatch):
         json.dump(tmp_config, outfile)
 
     ret = script_runner.run(['scil_tractogram_segment_with_bundleseg',
-                            in_tractogram, 'config.json',
-                            in_models,
-                            in_aff, '--inverse',
-                            '--processes', '1', '-v', 'WARNING'])
+                             in_tractogram, 'config.json',
+                             in_models,
+                             in_aff, '--inverse',
+                             '--processes', '1', '-v', 'WARNING'])
     assert ret.success

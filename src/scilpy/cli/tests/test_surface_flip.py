@@ -24,5 +24,5 @@ def test_execution_surface_vtk_fib(script_runner, monkeypatch):
     in_surf = os.path.join(SCILPY_HOME, 'surface_vtk_fib',
                            'lhpialt.vtk')
     ret = script_runner.run(['scil_surface_flip', in_surf, 'rhpialt.vtk',
-                            'x'])
+                             'x'])
     assert ret.success

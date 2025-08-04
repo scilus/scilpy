@@ -26,7 +26,7 @@ def test_execution_tracking(script_runner, monkeypatch):
     in_mask = os.path.join(SCILPY_HOME, 'tracking',
                            'seeding_mask.nii.gz')
     ret = script_runner.run(['scil_tracking_pft_maps_edit',
-                            in_include, in_exclude, in_mask,
-                            'map_include_corr.nii.gz',
-                            'map_exclude_corr.nii.gz'])
+                             in_include, in_exclude, in_mask,
+                             'map_include_corr.nii.gz',
+                             'map_exclude_corr.nii.gz'])
     assert ret.success

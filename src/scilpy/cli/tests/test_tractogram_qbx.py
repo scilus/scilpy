@@ -22,5 +22,5 @@ def test_execution_filtering(script_runner, monkeypatch):
     in_bundle = os.path.join(SCILPY_HOME, 'filtering',
                              'bundle_all_1mm.trk')
     ret = script_runner.run(['scil_tractogram_qbx', in_bundle, '12',
-                            'clusters/', '--out_centroids', 'centroids.trk'])
+                             'clusters/', '--out_centroids', 'centroids.trk'])
     assert ret.success

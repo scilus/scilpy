@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 
 import os
-import json
 import tempfile
 import numpy as np
 import nibabel as nib
@@ -46,11 +45,11 @@ def test_execution_density(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     init_data()
     ret = script_runner.run(['scil_fibertube_compute_density',
-                            'fibertubes.trk',
-                            '--out_density_map', 'density_map.nii.gz',
-                            '--out_density_measures',
-                            'density_measures.json',
-                            '-f'])
+                             'fibertubes.trk',
+                             '--out_density_map', 'density_map.nii.gz',
+                             '--out_density_measures',
+                             'density_measures.json',
+                             '-f'])
     assert ret.success
 
 
@@ -58,9 +57,9 @@ def test_execution_collisions(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     init_data()
     ret = script_runner.run(['scil_fibertube_compute_density',
-                            'fibertubes.trk',
-                            '--out_collision_map', 'collision_map.nii.gz',
-                            '--out_collision_measures',
-                            'collision_measures.json',
-                            '-f'])
+                             'fibertubes.trk',
+                             '--out_collision_map', 'collision_map.nii.gz',
+                             '--out_collision_measures',
+                             'collision_measures.json',
+                             '-f'])
     assert ret.success

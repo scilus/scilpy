@@ -25,14 +25,14 @@ def test_execution_normal(script_runner, monkeypatch):
                            '1000.bvec')
 
     ret = script_runner.run(['scil_gradients_validate_sampling', in_bval,
-                            in_bvec])
+                             in_bvec])
     assert ret.success
 
 
 def test_execution_mrtrix(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_b = os.path.join(SCILPY_HOME, 'processing',
-                           '1000.b')
+                        '1000.b')
 
     ret = script_runner.run(['scil_gradients_validate_sampling', in_b])
     assert ret.success

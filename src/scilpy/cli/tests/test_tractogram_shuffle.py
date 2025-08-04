@@ -21,5 +21,5 @@ def test_execution_tracking(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_tracto = os.path.join(SCILPY_HOME, 'tracking', 'union.trk')
     ret = script_runner.run(['scil_tractogram_shuffle', in_tracto,
-                            'union_shuffle.trk'])
+                             'union_shuffle.trk'])
     assert ret.success

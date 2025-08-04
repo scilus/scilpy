@@ -24,12 +24,12 @@ def test_execution_downsample(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
 
     ret = script_runner.run(['scil_tractogram_resample', in_tracto,
-                            '500', 'union_shuffle_sub_downsampled.trk'])
+                             '500', 'union_shuffle_sub_downsampled.trk'])
     assert ret.success
 
     ret = script_runner.run(['scil_tractogram_resample', in_tracto,
-                            '200', 'union_shuffle_sub_downsampled.trk',
-                            '-f', '--downsample_per_cluster'])
+                             '200', 'union_shuffle_sub_downsampled.trk',
+                             '-f', '--downsample_per_cluster'])
     assert ret.success
 
 
@@ -38,8 +38,8 @@ def test_execution_upsample_noise(script_runner, monkeypatch):
 
     # point-wise only
     ret = script_runner.run(['scil_tractogram_resample', in_tracto,
-                            '2000', 'union_shuffle_sub_upsampled.trk', '-f',
-                            '--point_wise_std', '0.5'])
+                             '2000', 'union_shuffle_sub_upsampled.trk', '-f',
+                             '--point_wise_std', '0.5'])
     assert ret.success
 
 
@@ -48,12 +48,12 @@ def test_execution_upsample_ptt(script_runner, monkeypatch):
 
     # ptt only
     ret = script_runner.run(['scil_tractogram_resample', in_tracto,
-                            '500', 'union_shuffle_sub_upsampled.trk', '-f',
-                            '--tube_radius', '5'])
+                             '500', 'union_shuffle_sub_upsampled.trk', '-f',
+                             '--tube_radius', '5'])
     assert ret.success
 
     # both upsampling methods
     ret = script_runner.run(['scil_tractogram_resample', in_tracto,
-                            '500', 'union_shuffle_sub_upsampled.trk', '-f',
-                            '--point_wise_std', '10', '--tube_radius', '5'])
+                             '500', 'union_shuffle_sub_upsampled.trk', '-f',
+                             '--point_wise_std', '10', '--tube_radius', '5'])
     assert ret.success

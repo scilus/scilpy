@@ -17,7 +17,7 @@ in_bundle = os.path.join(SCILPY_HOME, 'tractometry', 'IFGWM.trk')
 
 def test_help_option(script_runner):
     ret = script_runner.run(['scil_tractogram_assign_uniform_color',
-                            '--help'])
+                             '--help'])
     assert ret.success
 
 
@@ -25,8 +25,8 @@ def test_execution_fill(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
 
     ret = script_runner.run(['scil_tractogram_assign_uniform_color',
-                            in_bundle, '--fill_color', '0x000000',
-                            '--out_tractogram', 'colored.trk', '-f'])
+                             in_bundle, '--fill_color', '0x000000',
+                             '--out_tractogram', 'colored.trk', '-f'])
     assert ret.success
 
 
@@ -40,9 +40,10 @@ def test_execution_dict(script_runner, monkeypatch):
         json.dump(my_dict, f)
 
     ret = script_runner.run(['scil_tractogram_assign_uniform_color',
-                            in_bundle, '--dict_colors', json_file,
-                            '--out_suffix', 'colored', '-f'])
+                             in_bundle, '--dict_colors', json_file,
+                             '--out_suffix', 'colored', '-f'])
     assert ret.success
+
 
 def test_execution_dict_new_color(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
@@ -55,7 +56,7 @@ def test_execution_dict_new_color(script_runner, monkeypatch):
 
     shutil.copy2(in_bundle, 'dummy.trk')
     ret = script_runner.run(['scil_tractogram_assign_uniform_color',
-                            in_bundle, "dummy.trk",
-                            '--dict_colors', json_file,
-                            '--out_suffix', 'colored', '-f'])
+                             in_bundle, "dummy.trk",
+                             '--dict_colors', json_file,
+                             '--out_suffix', 'colored', '-f'])
     assert ret.success

@@ -21,5 +21,5 @@ def test_execution_tractometry(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_bundle = os.path.join(SCILPY_HOME, 'tractometry', 'IFGWM_uni.trk')
     ret = script_runner.run(['scil_bundle_compute_centroid',
-                            in_bundle, 'IFGWM_uni_c.trk'])
+                             in_bundle, 'IFGWM_uni_c.trk'])
     assert ret.success

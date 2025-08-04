@@ -26,6 +26,6 @@ def test_execution_bundles(script_runner, monkeypatch):
     in_ref = os.path.join(SCILPY_HOME, 'bundles',
                           'bundle_all_1mm.nii.gz')
     ret = script_runner.run(['scil_tractogram_register', in_moving,
-                            in_static, '--only_rigid',
-                            '--moving_tractogram_ref', in_ref])
+                             in_static, '--only_rigid',
+                             '--moving_tractogram_ref', in_ref])
     assert ret.success

@@ -27,7 +27,7 @@ def test_execution_compute_OLO(script_runner, monkeypatch):
     in_labels_list = os.path.join(SCILPY_HOME, 'connectivity',
                                   'labels_list.txt')
     ret = script_runner.run(['scil_connectivity_reorder_rois', in_sc,
-                            '--optimal_leaf_ordering', 'OLO.txt',
+                             '--optimal_leaf_ordering', 'OLO.txt',
                              '--out_dir', os.path.expanduser(tmp_dir.name),
                              '--labels_list', in_labels_list, '-f'])
     assert ret.success
@@ -40,8 +40,8 @@ def test_execution_apply_ordering(script_runner, monkeypatch):
     in_labels_list = os.path.join(SCILPY_HOME, 'connectivity',
                                   'labels_list.txt')
     ret = script_runner.run(['scil_connectivity_reorder_rois', in_sc,
-                            '--in_ordering', in_txt,
+                             '--in_ordering', in_txt,
                              '--out_suffix', '_sc_reo',
                              '--out_dir', os.path.expanduser(tmp_dir.name),
-                            '--labels_list', in_labels_list, '-f'])
+                             '--labels_list', in_labels_list, '-f'])
     assert ret.success

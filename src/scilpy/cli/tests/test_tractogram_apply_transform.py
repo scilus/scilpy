@@ -25,7 +25,7 @@ def test_execution_inverse(script_runner, monkeypatch):
     in_warp = os.path.join(SCILPY_HOME, 'bst', 'output1InverseWarp.nii.gz')
 
     ret = script_runner.run(['scil_tractogram_apply_transform',
-                            in_model, in_fa, in_aff, 'rpt_m_warp.trk',
-                            '--inverse', '--in_deformation', in_warp,
-                            '--cut'])
+                             in_model, in_fa, in_aff, 'rpt_m_warp.trk',
+                             '--inverse', '--in_deformation', in_warp,
+                             '--cut'])
     assert ret.success

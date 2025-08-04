@@ -14,7 +14,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 def test_help_option(script_runner):
     ret = script_runner.run(['scil_gradients_convert',
-                            '--help'])
+                             '--help'])
     assert ret.success
 
 
@@ -25,8 +25,8 @@ def test_execution_processing_fsl(script_runner, monkeypatch):
     in_bvec = os.path.join(SCILPY_HOME, 'processing',
                            '1000.bvec')
     ret = script_runner.run(['scil_gradients_convert',
-                            '--input_fsl',
-                            in_bval, in_bvec, '1000'])
+                             '--input_fsl',
+                             in_bval, in_bvec, '1000'])
     assert ret.success
 
 
@@ -35,8 +35,8 @@ def test_execution_processing_mrtrix(script_runner, monkeypatch):
     in_encoding = os.path.join(SCILPY_HOME, 'processing',
                                '1000.b')
     ret = script_runner.run(['scil_gradients_convert',
-                            '--input_mrtrix',
-                            in_encoding, '1000'])
+                             '--input_mrtrix',
+                             in_encoding, '1000'])
     assert ret.success
 
 
@@ -47,8 +47,8 @@ def test_name_validation_mrtrix(script_runner, monkeypatch):
     in_bvec = os.path.join(SCILPY_HOME, 'processing',
                            '1000.bvec')
     ret = script_runner.run(['scil_gradients_convert',
-                            '--input_fsl',
-                            in_bval, in_bvec, '1000_test.b'])
+                             '--input_fsl',
+                             in_bval, in_bvec, '1000_test.b'])
     assert ret.success
 
     wrong_path = os.path.join(tmp_dir.name, '1000_test.b.b')
@@ -63,8 +63,8 @@ def test_name_validation_fsl_bval(script_runner, monkeypatch):
     in_encoding = os.path.join(SCILPY_HOME, 'processing',
                                '1000.b')
     ret = script_runner.run(['scil_gradients_convert',
-                            '--input_mrtrix',
-                            in_encoding, '1000_test.bval'])
+                             '--input_mrtrix',
+                             in_encoding, '1000_test.bval'])
     assert ret.success
 
     wrong_path_bval = os.path.join(tmp_dir.name, '1000_test.bval.bval')
@@ -83,8 +83,8 @@ def test_name_validation_fsl_bvec(script_runner, monkeypatch):
     in_encoding = os.path.join(SCILPY_HOME, 'processing',
                                '1000.b')
     ret = script_runner.run(['scil_gradients_convert',
-                            '--input_mrtrix',
-                            in_encoding, '1000_test.bvec'])
+                             '--input_mrtrix',
+                             in_encoding, '1000_test.bvec'])
     assert ret.success
 
     wrong_path_bval = os.path.join(tmp_dir.name, '1000_test.bvec.bval')

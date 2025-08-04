@@ -36,7 +36,7 @@ def test_outputs_precision(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_frf = os.path.join(SCILPY_HOME, 'commit_amico', 'wm_frf.txt')
     ret = script_runner.run(['scil_frf_mean', in_frf, in_frf, 'mfrfp.txt',
-                            '--precision', '4'])
+                             '--precision', '4'])
     assert ret.success
 
     expected = [
@@ -45,8 +45,8 @@ def test_outputs_precision(script_runner, monkeypatch):
         "0.0009 0.0003 0.0003 3076.7249"
     ]
     with open('mfrfp.txt', 'r') as result:
-            for i, line in enumerate(result.readlines()):
-                assert line.strip("\n") == expected[i]          
+        for i, line in enumerate(result.readlines()):
+            assert line.strip("\n") == expected[i]
 
 
 def test_execution_processing_bad_input(script_runner, monkeypatch):

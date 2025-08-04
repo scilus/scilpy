@@ -24,6 +24,6 @@ def test_execution_atlas(script_runner, monkeypatch):
     in_json = os.path.join(SCILPY_HOME, 'atlas',
                            'atlas_freesurfer_v2_LUT.json')
     ret = script_runner.run(['scil_labels_split_volume_from_lut', in_atlas,
-                            '--out_prefix', 'brainstem',
-                            '--custom_lut', in_json])
+                             '--out_prefix', 'brainstem',
+                             '--custom_lut', in_json])
     assert ret.success

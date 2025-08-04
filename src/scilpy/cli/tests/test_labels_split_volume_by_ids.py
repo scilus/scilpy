@@ -22,5 +22,5 @@ def test_execution_atlas(script_runner, monkeypatch):
     in_atlas = os.path.join(SCILPY_HOME, 'atlas',
                             'atlas_freesurfer_v2.nii.gz')
     ret = script_runner.run(['scil_labels_split_volume_by_ids', in_atlas,
-                            '--out_prefix', 'brainstem', '-r', '173', '175'])
+                             '--out_prefix', 'brainstem', '-r', '173', '175'])
     assert ret.success

@@ -28,5 +28,6 @@ def test_execution_connectivity(script_runner, monkeypatch):
         in_atlas, 'decompose.h5', '--min_length', '20', '--max_length', '200',
         '--outlier_threshold', '0.5', '--loop_max_angle', '330',
         '--curv_qb_distance', '10', '--processes', '1', '-v', 'DEBUG',
-        '--save_final', '--out_dir', os.path.join(tmp_dir.name, 'out_bundles')])
+        '--save_final', '--out_dir',
+        os.path.join(tmp_dir.name, 'out_bundles')])
     assert ret.success

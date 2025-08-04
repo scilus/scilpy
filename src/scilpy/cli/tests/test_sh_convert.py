@@ -22,6 +22,6 @@ def test_execution_processing(script_runner, monkeypatch):
     in_fodf = os.path.join(SCILPY_HOME, 'processing',
                            'fodf.nii.gz')
     ret = script_runner.run(['scil_sh_convert', in_fodf,
-                            'fodf_descoteaux07.nii.gz', 'tournier07',
-                            'descoteaux07_legacy', '--processes', '1'])
+                             'fodf_descoteaux07.nii.gz', 'tournier07',
+                             'descoteaux07_legacy', '--processes', '1'])
     assert ret.success

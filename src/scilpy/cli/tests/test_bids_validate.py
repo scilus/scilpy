@@ -51,7 +51,8 @@ def generate_image_packet(
     metadata = generate_fake_metadata_json(
         intended_for, phase_dir, readout, **kwargs)
     if metadata:
-        with open(os.path.join(directory, "{}.json".format(prefix)), "w+") as f:
+        with open(os.path.join(directory, "{}.json".format(prefix)),
+                  "w+") as f:
             json.dump(metadata, f)
 
 

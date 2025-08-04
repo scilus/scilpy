@@ -26,6 +26,6 @@ def test_execution_connectivity(script_runner, monkeypatch):
     in_labels_list = os.path.join(SCILPY_HOME, 'connectivity',
                                   'labels_list.txt')
     ret = script_runner.run(['scil_connectivity_normalize', in_sc,
-                            'sc_norm.npy', '--length', in_len,
-                            '--parcel_volume', in_atlas, in_labels_list])
+                             'sc_norm.npy', '--length', in_len,
+                             '--parcel_volume', in_atlas, in_labels_list])
     assert ret.success

@@ -15,7 +15,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 def test_help_option(script_runner):
     ret = script_runner.run(['scil_tractogram_filter_by_length',
-                            '--help'])
+                             '--help'])
     assert ret.success
 
 
@@ -27,8 +27,8 @@ def test_execution_filtering(script_runner, monkeypatch):
     in_bundle = os.path.join(SCILPY_HOME, 'filtering',
                              'bundle_4.trk')
     ret = script_runner.run(['scil_tractogram_filter_by_length',
-                            in_bundle,  'bundle_4_filtered.trk',
-                            '--minL', '125', '--maxL', '130'])
+                             in_bundle,  'bundle_4_filtered.trk',
+                             '--minL', '125', '--maxL', '130'])
 
     sft = load_tractogram('bundle_4_filtered.trk', 'same')
     assert len(sft) == 52
@@ -41,9 +41,9 @@ def test_rejected_filtering(script_runner, monkeypatch):
     in_bundle = os.path.join(SCILPY_HOME, 'filtering',
                              'bundle_all_1mm.trk')
     ret = script_runner.run(['scil_tractogram_filter_by_length',
-                            in_bundle,  'bundle_all_1mm_filtered.trk',
-                            '--minL', '125', '--maxL', '130',
-                            '--out_rejected', 'bundle_all_1mm_rejected.trk'])
+                             in_bundle,  'bundle_all_1mm_filtered.trk',
+                             '--minL', '125', '--maxL', '130',
+                             '--out_rejected', 'bundle_all_1mm_rejected.trk'])
     assert ret.success
     assert os.path.exists('bundle_all_1mm_rejected.trk')
     assert os.path.exists('bundle_all_1mm_rejected.trk')
@@ -60,9 +60,9 @@ def test_rejected_filtering_no_rejection(script_runner, monkeypatch):
     in_bundle = os.path.join(SCILPY_HOME, 'filtering',
                              'bundle_4.trk')
     ret = script_runner.run(['scil_tractogram_filter_by_length',
-                            in_bundle,  'bundle_4_filtered_no_rejection.trk',
-                            '--minL', '125', '--maxL', '130',
-                            '--out_rejected', 'bundle_4_rejected.trk'])
+                             in_bundle,  'bundle_4_filtered_no_rejection.trk',
+                             '--minL', '125', '--maxL', '130',
+                             '--out_rejected', 'bundle_4_rejected.trk'])
     assert ret.success
 
     # File should be created even though there are no rejected streamlines

@@ -22,15 +22,15 @@ def test_execution_tracking(script_runner, monkeypatch):
     in_tracto = os.path.join(SCILPY_HOME, 'tracking',
                              'local.trk')
     ret = script_runner.run(['scil_tractogram_split', in_tracto,
-                            'local_split', '--nb_chunks', '3', '-f'])
+                             'local_split', '--nb_chunks', '3', '-f'])
     assert ret.success
 
     ret = script_runner.run(['scil_tractogram_split', in_tracto,
-                            'local_split', '--nb_chunks', '3', '-f',
-                            '--split_per_cluster'])
+                             'local_split', '--nb_chunks', '3', '-f',
+                             '--split_per_cluster'])
     assert ret.success
 
     ret = script_runner.run(['scil_tractogram_split', in_tracto,
-                            'local_split', '--nb_chunks', '3', '-f',
-                            '--do_not_randomize'])
+                             'local_split', '--nb_chunks', '3', '-f',
+                             '--do_not_randomize'])
     assert ret.success

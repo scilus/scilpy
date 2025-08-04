@@ -25,11 +25,11 @@ def test_execution_connectivity(script_runner, monkeypatch):
     in_avg = os.path.join(SCILPY_HOME, 'connectivity', 'avg_density_maps/')
     in_afd = os.path.join(SCILPY_HOME, 'connectivity', 'afd_max.nii.gz')
     ret = script_runner.run(['scil_connectivity_compute_matrices', in_h5,
-                            in_atlas, '--volume', 'vol.npy',
-                            '--streamline_count', 'sc.npy',
-                            '--length', 'len.npy',
-                            '--similarity', in_avg, 'sim.npy',
-                            '--metrics', in_afd, 'afd_max.npy',
-                            '--density_weighting', '--no_self_connection',
-                            '--processes', '1'])
+                             in_atlas, '--volume', 'vol.npy',
+                             '--streamline_count', 'sc.npy',
+                             '--length', 'len.npy',
+                             '--similarity', in_avg, 'sim.npy',
+                             '--metrics', in_afd, 'afd_max.npy',
+                             '--density_weighting', '--no_self_connection',
+                             '--processes', '1'])
     assert ret.success

@@ -26,9 +26,9 @@ def test_execution_bst(script_runner, monkeypatch):
     in_aff = os.path.join(SCILPY_HOME, 'bst',
                           'output0GenericAffine.mat')
     ret = script_runner.run(['scil_volume_apply_transform',
-                            in_model, in_fa, in_aff,
-                            'template_lin.nii.gz', '--inverse',
-                            '-f'])
+                             in_model, in_fa, in_aff,
+                             'template_lin.nii.gz', '--inverse',
+                             '-f'])
     assert ret.success
 
 
@@ -41,9 +41,9 @@ def test_execution_interp_nearest(script_runner, monkeypatch):
     in_aff = os.path.join(SCILPY_HOME, 'bst',
                           'output0GenericAffine.mat')
     ret = script_runner.run(['scil_volume_apply_transform',
-                            in_model, in_fa, in_aff,
-                            'template_lin.nii.gz', '--inverse',
-                            '--interp', 'nearest', '-f'])
+                             in_model, in_fa, in_aff,
+                             'template_lin.nii.gz', '--inverse',
+                             '--interp', 'nearest', '-f'])
     assert ret.success
 
 
@@ -56,7 +56,7 @@ def test_execution_interp_lin(script_runner, monkeypatch):
     in_aff = os.path.join(SCILPY_HOME, 'bst',
                           'output0GenericAffine.mat')
     ret = script_runner.run(['scil_volume_apply_transform',
-                            in_model, in_fa, in_aff,
-                            'template_lin.nii.gz', '--inverse',
-                            '--interp', 'linear', '-f'])
+                             in_model, in_fa, in_aff,
+                             'template_lin.nii.gz', '--inverse',
+                             '--interp', 'linear', '-f'])
     assert ret.success

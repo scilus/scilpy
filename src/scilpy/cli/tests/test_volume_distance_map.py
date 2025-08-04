@@ -28,8 +28,8 @@ def test_execution(script_runner, monkeypatch):
                              'streamline_and_mask_operations',
                              'bundle_4_center.nii.gz')
     ret = script_runner.run(['scil_volume_distance_map',
-                            in_mask_1, in_mask_2,
-                            'distance_map.nii.gz'])
+                             in_mask_1, in_mask_2,
+                             'distance_map.nii.gz'])
 
     img = nib.load('distance_map.nii.gz')
     data = img.get_fdata()

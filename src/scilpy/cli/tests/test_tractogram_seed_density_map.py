@@ -21,5 +21,5 @@ def test_execution_processing(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_tracking = os.path.join(SCILPY_HOME, 'processing', 'tracking.trk')
     ret = script_runner.run(['scil_tractogram_seed_density_map', in_tracking,
-                            'seeds_density.nii.gz'])
+                             'seeds_density.nii.gz'])
     assert ret.success

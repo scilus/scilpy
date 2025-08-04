@@ -29,8 +29,9 @@ def test_execution_tracking(script_runner, monkeypatch):
     in_exclude = os.path.join(SCILPY_HOME, 'tracking',
                               'map_exclude.nii.gz')
     ret = script_runner.run(['scil_tracking_pft', in_fodf,
-                            in_interface, in_include, in_exclude,
-                            'pft.trk', '--nt', '1000', '--compress', '0.1',
-                            '--sh_basis', 'descoteaux07', '--min_length', '20',
-                            '--max_length', '200'])
+                             in_interface, in_include, in_exclude,
+                             'pft.trk', '--nt', '1000', '--compress', '0.1',
+                             '--sh_basis', 'descoteaux07',
+                             '--min_length', '20',
+                             '--max_length', '200'])
     assert ret.success

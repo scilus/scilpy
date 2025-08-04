@@ -26,9 +26,9 @@ def test_execution_3D_map(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
 
     ret = script_runner.run(['scil_tractogram_project_map_to_streamlines',
-                            in_tracto_1, 't1_on_streamlines.trk',
-                            '--in_maps', in_3d_map,
-                            '--out_dpp_name', 't1'])
+                             in_tracto_1, 't1_on_streamlines.trk',
+                             '--in_maps', in_3d_map,
+                             '--out_dpp_name', 't1'])
     assert ret.success
 
 
@@ -36,9 +36,9 @@ def test_execution_4D_map(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
 
     ret = script_runner.run(['scil_tractogram_project_map_to_streamlines',
-                            in_tracto_1, 'rgb_on_streamlines.trk',
-                            '--in_maps', in_4d_map,
-                            '--out_dpp_name', 'rgb'])
+                             in_tracto_1, 'rgb_on_streamlines.trk',
+                             '--in_maps', in_4d_map,
+                             '--out_dpp_name', 'rgb'])
     assert ret.success
 
 
@@ -46,11 +46,11 @@ def test_execution_3D_map_endpoints_only(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
 
     ret = script_runner.run(['scil_tractogram_project_map_to_streamlines',
-                            in_tracto_1,
-                            't1_on_streamlines_endpoints.trk',
-                            '--in_maps', in_3d_map,
-                            '--out_dpp_name', 't1',
-                            '--endpoints_only'])
+                             in_tracto_1,
+                             't1_on_streamlines_endpoints.trk',
+                             '--in_maps', in_3d_map,
+                             '--out_dpp_name', 't1',
+                             '--endpoints_only'])
     assert ret.success
 
 
@@ -58,11 +58,11 @@ def test_execution_4D_map_endpoints_only(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
 
     ret = script_runner.run(['scil_tractogram_project_map_to_streamlines',
-                            in_tracto_1,
-                            'rgb_on_streamlines_endpoints.trk',
-                            '--in_maps', in_4d_map,
-                            '--out_dpp_name', 'rgb',
-                            '--endpoints_only'])
+                             in_tracto_1,
+                             'rgb_on_streamlines_endpoints.trk',
+                             '--in_maps', in_4d_map,
+                             '--out_dpp_name', 'rgb',
+                             '--endpoints_only'])
     assert ret.success
 
 
@@ -70,9 +70,9 @@ def test_execution_3D_map_trilinear(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
 
     ret = script_runner.run(['scil_tractogram_project_map_to_streamlines',
-                            in_tracto_1,
-                            't1_on_streamlines_trilinear.trk',
-                            '--in_maps', in_3d_map,
-                            '--out_dpp_name', 't1',
-                            '--trilinear'])
+                             in_tracto_1,
+                             't1_on_streamlines_trilinear.trk',
+                             '--in_maps', in_3d_map,
+                             '--out_dpp_name', 't1',
+                             '--trilinear'])
     assert ret.success

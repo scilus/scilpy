@@ -27,12 +27,12 @@ def test_execution_processing(script_runner, monkeypatch):
     mask = os.path.join(SCILPY_HOME, 'commit_amico', 'mask.nii.gz')
 
     ret = script_runner.run(['scil_fodf_msmt', in_dwi, in_bval,
-                            in_bvec, in_wm_frf, in_gm_frf, in_csf_frf,
-                            '--mask', mask,
-                            '--wm_out_fODF', 'wm_fodf.nii.gz',
-                            '--gm_out_fODF', 'gm_fodf.nii.gz',
-                            '--csf_out_fODF', 'csf_fodf.nii.gz',
-                            '--vf', 'vf.nii.gz', '--sh_order', '4',
-                            '--sh_basis', 'tournier07',
-                            '--processes', '1', '-f'])
+                             in_bvec, in_wm_frf, in_gm_frf, in_csf_frf,
+                             '--mask', mask,
+                             '--wm_out_fODF', 'wm_fodf.nii.gz',
+                             '--gm_out_fODF', 'gm_fodf.nii.gz',
+                             '--csf_out_fODF', 'csf_fodf.nii.gz',
+                             '--vf', 'vf.nii.gz', '--sh_order', '4',
+                             '--sh_basis', 'tournier07',
+                             '--processes', '1', '-f'])
     assert ret.success

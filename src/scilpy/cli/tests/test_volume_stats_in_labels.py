@@ -23,18 +23,18 @@ def test_execution(script_runner, monkeypatch):
 
     # Test with a single metric
     ret = script_runner.run(['scil_volume_stats_in_labels',
-                            in_atlas, atlas_lut, "--metrics", in_metric])
+                             in_atlas, atlas_lut, "--metrics", in_metric])
     assert ret.success
 
     # Test with multiple metrics
     ret = script_runner.run(['scil_volume_stats_in_labels',
-                            in_atlas, atlas_lut, "--metrics",
-                            in_metric, in_metric, in_metric])
+                             in_atlas, atlas_lut, "--metrics",
+                             in_metric, in_metric, in_metric])
     assert ret.success
 
     # Test with a metric folder
     metrics_dir = os.path.join(SCILPY_HOME, 'plot')
     ret = script_runner.run(['scil_volume_stats_in_labels',
-                            in_atlas, atlas_lut, "--metrics_dir",
-                            metrics_dir])
+                             in_atlas, atlas_lut, "--metrics_dir",
+                             metrics_dir])
     assert ret.success

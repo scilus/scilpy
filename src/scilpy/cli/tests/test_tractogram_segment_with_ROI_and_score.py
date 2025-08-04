@@ -36,7 +36,7 @@ def test_score_bundles(script_runner, monkeypatch):
         json.dump(json_contents, f)
 
     ret = script_runner.run(['scil_tractogram_segment_with_ROI_and_score',
-                            in_tractogram, "config_file.json",
-                            'scoring_tractogram/', '--no_empty',
-                            '--use_gt_masks_as_all_masks'])
+                             in_tractogram, "config_file.json",
+                             'scoring_tractogram/', '--no_empty',
+                             '--use_gt_masks_as_all_masks'])
     assert ret.success

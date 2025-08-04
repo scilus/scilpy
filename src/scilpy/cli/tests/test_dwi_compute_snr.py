@@ -30,7 +30,7 @@ def test_snr(script_runner, monkeypatch):
                               'small_roi_gm_mask.nii.gz')
 
     ret = script_runner.run(['scil_dwi_compute_snr', in_dwi,
-                            in_bval, in_bvec, in_mask,
-                            '--noise_mask', noise_mask,
-                            '--b0_thr', '10'])
+                             in_bval, in_bvec, in_mask,
+                             '--noise_mask', noise_mask,
+                             '--b0_thr', '10'])
     assert ret.success

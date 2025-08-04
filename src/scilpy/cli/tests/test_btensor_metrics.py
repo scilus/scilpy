@@ -34,20 +34,21 @@ def test_nb_btensors_check(script_runner, monkeypatch):
                       'fa.nii.gz')
 
     ret = script_runner.run(['scil_btensor_metrics', '--in_dwis',
-                            in_dwi_lin, '--in_bvals', in_bval_lin,
-                            '--in_bvecs', in_bvec_lin, '--in_bdeltas', '1',
-                            '--fa', fa, '--do_weight_bvals',
-                            '--do_weight_pa', '--do_multiple_s0',
-                            '--processes', '1', '-f'])
+                             in_dwi_lin, '--in_bvals', in_bval_lin,
+                             '--in_bvecs', in_bvec_lin, '--in_bdeltas', '1',
+                             '--fa', fa, '--do_weight_bvals',
+                             '--do_weight_pa', '--do_multiple_s0',
+                             '--processes', '1', '-f'])
     assert (not ret.success)
 
     ret = script_runner.run(['scil_btensor_metrics', '--in_dwis',
-                            in_dwi_lin, in_dwi_plan, '--in_bvals', in_bval_lin,
-                            in_bval_plan, '--in_bvecs', in_bvec_lin,
-                            in_bvec_plan, '--in_bdeltas', '1', '1',
-                            '--fa', fa, '--do_weight_bvals',
-                            '--do_weight_pa', '--do_multiple_s0',
-                            '--processes', '1', '-f'])
+                             in_dwi_lin, in_dwi_plan,
+                             '--in_bvals', in_bval_lin,
+                             in_bval_plan, '--in_bvecs', in_bvec_lin,
+                             in_bvec_plan, '--in_bdeltas', '1', '1',
+                             '--fa', fa, '--do_weight_bvals',
+                             '--do_weight_pa', '--do_multiple_s0',
+                             '--processes', '1', '-f'])
     assert (not ret.success)
 
 
@@ -69,29 +70,30 @@ def test_inputs_check(script_runner, monkeypatch):
                       'fa.nii.gz')
 
     ret = script_runner.run(['scil_btensor_metrics', '--in_dwis',
-                            in_dwi_lin, in_dwi_plan, '--in_bvals', in_bval_lin,
-                            '--in_bvecs', in_bvec_lin, '--in_bdeltas', '1',
-                            '--fa', fa, '--do_weight_bvals',
-                            '--do_weight_pa', '--do_multiple_s0',
-                            '--processes', '1', '-f'])
+                             in_dwi_lin, in_dwi_plan,
+                             '--in_bvals', in_bval_lin,
+                             '--in_bvecs', in_bvec_lin, '--in_bdeltas', '1',
+                             '--fa', fa, '--do_weight_bvals',
+                             '--do_weight_pa', '--do_multiple_s0',
+                             '--processes', '1', '-f'])
     assert (not ret.success)
 
     ret = script_runner.run(['scil_btensor_metrics', '--in_dwis',
-                            in_dwi_lin, in_dwi_plan, '--in_bvals',
-                            in_bval_lin, in_bval_plan, '--in_bvecs',
-                            in_bvec_lin, in_bvec_plan, '--in_bdeltas', '1',
-                            '-0.5', '0', '--fa', fa, '--do_weight_bvals',
-                            '--do_weight_pa', '--do_multiple_s0',
-                            '--processes', '1', '-f'])
+                             in_dwi_lin, in_dwi_plan, '--in_bvals',
+                             in_bval_lin, in_bval_plan, '--in_bvecs',
+                             in_bvec_lin, in_bvec_plan, '--in_bdeltas', '1',
+                             '-0.5', '0', '--fa', fa, '--do_weight_bvals',
+                             '--do_weight_pa', '--do_multiple_s0',
+                             '--processes', '1', '-f'])
     assert (not ret.success)
 
     ret = script_runner.run(['scil_btensor_metrics', '--in_dwis',
-                            in_dwi_lin, in_dwi_plan, '--in_bvals',
-                            in_bval_lin, in_bval_plan, '--in_bvecs',
-                            in_bvec_lin, in_bvec_plan, '--in_bdeltas', '1',
-                            '-0.5', '--op', fa, '--do_weight_bvals',
-                            '--do_weight_pa', '--do_multiple_s0',
-                            '--processes', '1', '-f'])
+                             in_dwi_lin, in_dwi_plan, '--in_bvals',
+                             in_bval_lin, in_bval_plan, '--in_bvecs',
+                             in_bvec_lin, in_bvec_plan, '--in_bdeltas', '1',
+                             '-0.5', '--op', fa, '--do_weight_bvals',
+                             '--do_weight_pa', '--do_multiple_s0',
+                             '--processes', '1', '-f'])
     assert (not ret.success)
 
 
@@ -119,11 +121,11 @@ def test_execution_processing(script_runner, monkeypatch):
                       'fa.nii.gz')
 
     ret = script_runner.run(['scil_btensor_metrics', '--in_dwis',
-                            in_dwi_lin, in_dwi_plan, in_dwi_sph,
-                            '--in_bvals', in_bval_lin, in_bval_plan,
-                            in_bval_sph, '--in_bvecs', in_bvec_lin,
-                            in_bvec_plan, in_bvec_sph, '--in_bdeltas',
-                            '1', '-0.5', '0', '--fa', fa, '--do_weight_bvals',
-                            '--do_weight_pa', '--do_multiple_s0',
-                            '--processes', '1', '-f'])
+                             in_dwi_lin, in_dwi_plan, in_dwi_sph,
+                             '--in_bvals', in_bval_lin, in_bval_plan,
+                             in_bval_sph, '--in_bvecs', in_bvec_lin,
+                             in_bvec_plan, in_bvec_sph, '--in_bdeltas',
+                             '1', '-0.5', '0', '--fa', fa, '--do_weight_bvals',
+                             '--do_weight_pa', '--do_multiple_s0',
+                             '--processes', '1', '-f'])
     assert (ret.success)

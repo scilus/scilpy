@@ -20,16 +20,19 @@ def test_help_option(script_runner):
 def test_execution_processing(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_dwi = os.path.join(SCILPY_HOME, 'processing',
-                          'dwi_crop.nii.gz')
+                          'dwi.nii.gz')
     in_bval = os.path.join(SCILPY_HOME, 'processing',
                            'dwi.bval')
     in_bvec = os.path.join(SCILPY_HOME, 'processing',
                            'dwi.bvec')
+    in_mask = os.path.join(SCILPY_HOME, 'processing',
+                           'small_roi_gm_mask.nii.gz')
     ret = script_runner.run(['scil_dki_metrics', in_dwi,
-                            in_bval, in_bvec, '--not_all',
-                            '--dki_fa', 'dki_fa.nii.gz',
-                            '--dki_md', 'dki_md.nii.gz',
-                            '--dki_rd', 'dki_rd.nii.gz',
-                            '--dki_ad', 'dki_ad.nii.gz',
-                            '--dki_residual', 'dki_res.nii.gz'])
+                             in_bval, in_bvec, '--not_all',
+                             '--dki_fa', 'dki_fa.nii.gz',
+                             '--dki_md', 'dki_md.nii.gz',
+                             '--dki_rd', 'dki_rd.nii.gz',
+                             '--dki_ad', 'dki_ad.nii.gz',
+                             '--dki_residual', 'dki_res.nii.gz',
+                             '--mask', in_mask])
     assert ret.success

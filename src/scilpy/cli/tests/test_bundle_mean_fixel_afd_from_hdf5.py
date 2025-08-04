@@ -23,7 +23,8 @@ def test_execution_connectivity(script_runner, monkeypatch):
     in_h5 = os.path.join(SCILPY_HOME, 'connectivity', 'decompose.h5')
     in_fodf = os.path.join(SCILPY_HOME, 'connectivity', 'fodf.nii.gz')
     ret = script_runner.run(['scil_bundle_mean_fixel_afd_from_hdf5',
-                            in_h5, in_fodf, 'decompose_afd.nii.gz',
-                            '--length_weighting', '--sh_basis', 'descoteaux07',
-                            '--processes', '1'])
+                             in_h5, in_fodf, 'decompose_afd.nii.gz',
+                             '--length_weighting',
+                             '--sh_basis', 'descoteaux07',
+                             '--processes', '1'])
     assert ret.success

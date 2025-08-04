@@ -22,5 +22,5 @@ def test_execution_surface_vtk_fib(script_runner, monkeypatch):
     in_surf = os.path.join(SCILPY_HOME, 'surface_vtk_fib',
                            'lhpialt.vtk')
     ret = script_runner.run(['scil_surface_smooth', in_surf,
-                            'lhpialt_smooth.vtk', '-n', '5', '-s', '1'])
+                             'lhpialt_smooth.vtk', '-n', '5', '-s', '1'])
     assert ret.success

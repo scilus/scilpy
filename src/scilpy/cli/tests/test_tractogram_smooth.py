@@ -22,6 +22,7 @@ def test_execution_tracking(script_runner, monkeypatch):
     in_tracto = os.path.join(SCILPY_HOME, 'tracking',
                              'union_shuffle_sub.trk')
     ret = script_runner.run(['scil_tractogram_smooth', in_tracto,
-                            'union_shuffle_sub_smooth.trk', '--gaussian', '10',
-                            '--compress', '0.05'])
+                             'union_shuffle_sub_smooth.trk',
+                             '--gaussian', '10',
+                             '--compress', '0.05'])
     assert ret.success

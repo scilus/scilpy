@@ -23,10 +23,10 @@ def test_execution_atlas(script_runner, monkeypatch):
                               'atlas_freesurfer_v2.nii.gz')
     in_brainstem = os.path.join(SCILPY_HOME, 'atlas', 'brainstem.nii.gz')
     ret = script_runner.run(['scil_labels_combine',
-                            'atlas_freesurfer_v2_single_brainstem.nii.gz',
-                            '--volume_ids', in_atlas_1, '8', '47', '251',
-                            '252', '253', '254', '1022', '1024', '2022',
-                            '2024', '--volume_ids', in_brainstem, '16'])
+                             'atlas_freesurfer_v2_single_brainstem.nii.gz',
+                             '--volume_ids', in_atlas_1, '8', '47', '251',
+                             '252', '253', '254', '1022', '1024', '2022',
+                             '2024', '--volume_ids', in_brainstem, '16'])
     assert ret.success
 
 
@@ -36,9 +36,9 @@ def test_execution_atlas_merge(script_runner, monkeypatch):
                               'atlas_freesurfer_v2.nii.gz')
     in_brainstem = os.path.join(SCILPY_HOME, 'atlas', 'brainstem.nii.gz')
     ret = script_runner.run(['scil_labels_combine',
-                            'atlas_freesurfer_v2_merge_brainstem.nii.gz',
-                            '--volume_ids', in_atlas_1, '8', '47', '251',
-                            '252', '253', '254', '1022', '1024', '2022',
-                            '2024', '--volume_ids', in_brainstem, '16',
-                            '--merge_groups'])
+                             'atlas_freesurfer_v2_merge_brainstem.nii.gz',
+                             '--volume_ids', in_atlas_1, '8', '47', '251',
+                             '252', '253', '254', '1022', '1024', '2022',
+                             '2024', '--volume_ids', in_brainstem, '16',
+                             '--merge_groups'])
     assert ret.success

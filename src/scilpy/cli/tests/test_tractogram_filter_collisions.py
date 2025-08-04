@@ -45,8 +45,8 @@ def test_execution_filtering(script_runner, monkeypatch):
     np.savetxt('diameters.txt', diameters)
 
     ret = script_runner.run(['scil_tractogram_filter_collisions',
-                            'tractogram.trk', 'diameters.txt', 'clean.trk',
-                            '-f'])
+                             'tractogram.trk', 'diameters.txt', 'clean.trk',
+                             '-f'])
     assert ret.success
 
 
@@ -58,8 +58,8 @@ def test_execution_filtering_out_colliding_prefix(script_runner, monkeypatch):
     np.savetxt('diameters.txt', diameters)
 
     ret = script_runner.run(['scil_tractogram_filter_collisions',
-                            'tractogram.trk', 'diameters.txt', 'clean.trk',
-                            '--out_colliding_prefix', 'tractogram', '-f'])
+                             'tractogram.trk', 'diameters.txt', 'clean.trk',
+                             '--out_colliding_prefix', 'tractogram', '-f'])
     assert ret.success
 
 
@@ -71,8 +71,8 @@ def test_execution_filtering_single_diameter(script_runner, monkeypatch):
     np.savetxt('diameters.txt', diameters)
 
     ret = script_runner.run(['scil_tractogram_filter_collisions',
-                            'tractogram.trk', 'diameters.txt', 'clean.trk',
-                            '-f'])
+                             'tractogram.trk', 'diameters.txt', 'clean.trk',
+                             '-f'])
     assert ret.success
 
 
@@ -84,8 +84,8 @@ def test_execution_filtering_no_shuffle(script_runner, monkeypatch):
     np.savetxt('diameters.txt', diameters)
 
     ret = script_runner.run(['scil_tractogram_filter_collisions',
-                            'tractogram.trk', 'diameters.txt', 'clean.trk',
-                            '--disable_shuffling', '-f'])
+                             'tractogram.trk', 'diameters.txt', 'clean.trk',
+                             '--disable_shuffling', '-f'])
     assert ret.success
 
 
@@ -97,8 +97,8 @@ def test_execution_filtering_min_distance(script_runner, monkeypatch):
     np.savetxt('diameters.txt', diameters)
 
     ret = script_runner.run(['scil_tractogram_filter_collisions',
-                            'tractogram.trk', 'diameters.txt', 'clean.trk',
-                            '--min_distance', '5', '-f'])
+                             'tractogram.trk', 'diameters.txt', 'clean.trk',
+                             '--min_distance', '5', '-f'])
     assert ret.success
 
 
@@ -111,8 +111,8 @@ def test_execution_filtering_metrics(script_runner, monkeypatch):
     np.savetxt('diameters.txt', diameters)
 
     ret = script_runner.run(['scil_tractogram_filter_collisions',
-                            'tractogram.trk', 'diameters.txt', 'clean.trk',
-                            '--out_metrics', 'metrics.json', '-f'])
+                             'tractogram.trk', 'diameters.txt', 'clean.trk',
+                             '--out_metrics', 'metrics.json', '-f'])
     assert ret.success
 
 
@@ -125,6 +125,6 @@ def test_execution_rotation_matrix(script_runner, monkeypatch):
     np.savetxt('diameters.txt', diameters)
 
     ret = script_runner.run(['scil_tractogram_filter_collisions',
-                            'tractogram.trk', 'diameters.txt', 'clean.trk',
-                            '--out_rotation_matrix', 'rotation.mat', '-f'])
+                             'tractogram.trk', 'diameters.txt', 'clean.trk',
+                             '--out_rotation_matrix', 'rotation.mat', '-f'])
     assert ret.success

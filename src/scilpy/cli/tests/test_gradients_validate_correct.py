@@ -28,11 +28,12 @@ def test_execution_processing_dti_peaks(script_runner, monkeypatch):
 
     # generate the peaks file and fa map we'll use to test our script
     script_runner.run(['scil_dti_metrics', in_dwi, in_bval, in_bvec,
-                      '--not_all', '--fa', 'fa.nii.gz',
-                      '--evecs', 'evecs.nii.gz'])
+                       '--not_all', '--fa', 'fa.nii.gz',
+                       '--evecs', 'evecs.nii.gz'])
     # test the actual script
     ret = script_runner.run(['scil_gradients_validate_correct', in_bvec,
-                            'evecs_v1.nii.gz', 'fa.nii.gz', 'bvec_corr', '-v'])
+                             'evecs_v1.nii.gz', 'fa.nii.gz',
+                             'bvec_corr', '-v'])
     assert ret.success
 
 
@@ -47,5 +48,5 @@ def test_execution_processing_fodf_peaks(script_runner, monkeypatch):
 
     # test the actual script
     ret = script_runner.run(['scil_gradients_validate_correct', in_bvec,
-                            in_peaks, in_fa, 'bvec_corr_fodf', '-v'])
+                             in_peaks, in_fa, 'bvec_corr_fodf', '-v'])
     assert ret.success

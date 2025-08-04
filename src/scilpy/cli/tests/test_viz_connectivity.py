@@ -24,8 +24,9 @@ def test_execution_connectivity(script_runner, monkeypatch):
     in_labels_list = os.path.join(SCILPY_HOME, 'connectivity',
                                   'labels_list.txt')
     ret = script_runner.run(['scil_viz_connectivity', in_sc,
-                            'sc_norm.png', '--log', '--display_legend',
-                            '--labels_list', in_labels_list,
-                            '--histogram', 'hist.png', '--nb_bins', '50',
-                            '--exclude_zeros', '--chord_chart', 'sc_chord.png'])
+                             'sc_norm.png', '--log', '--display_legend',
+                             '--labels_list', in_labels_list,
+                             '--histogram', 'hist.png', '--nb_bins', '50',
+                             '--exclude_zeros', '--chord_chart',
+                             'sc_chord.png'])
     assert ret.success

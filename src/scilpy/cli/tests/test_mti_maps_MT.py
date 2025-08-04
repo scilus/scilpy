@@ -67,15 +67,15 @@ def test_execution_MT_no_option(script_runner, monkeypatch):
 
     # no option
     ret = script_runner.run(['scil_mti_maps_MT', tmp_dir.name,
-                            '--mask', in_mask,
-                            '--in_mtoff_pd', in_e1_mtoff, in_e2_mtoff,
-                            in_e3_mtoff, in_e4_mtoff, in_e5_mtoff,
-                            '--in_positive', in_e1_mton, in_e2_mton,
-                            in_e3_mton, in_e4_mton, in_e5_mton,
-                            '--in_mtoff_t1', in_e1_t1w, in_e2_t1w, in_e3_t1w,
-                            in_e4_t1w, in_e5_t1w,
-                            '--in_jsons', in_mtoff_json, in_t1w_json,
-                            '-f'])
+                             '--mask', in_mask,
+                             '--in_mtoff_pd', in_e1_mtoff, in_e2_mtoff,
+                             in_e3_mtoff, in_e4_mtoff, in_e5_mtoff,
+                             '--in_positive', in_e1_mton, in_e2_mton,
+                             in_e3_mton, in_e4_mton, in_e5_mton,
+                             '--in_mtoff_t1', in_e1_t1w, in_e2_t1w, in_e3_t1w,
+                             in_e4_t1w, in_e5_t1w,
+                             '--in_jsons', in_mtoff_json, in_t1w_json,
+                             '-f'])
     assert ret.success
 
 
@@ -84,16 +84,16 @@ def test_execution_MT_prefix(script_runner, monkeypatch):
 
     # --out_prefix
     ret = script_runner.run(['scil_mti_maps_MT', tmp_dir.name,
-                            '--mask', in_mask,
-                            '--in_mtoff_pd', in_e1_mtoff, in_e2_mtoff,
-                            in_e3_mtoff, in_e4_mtoff, in_e5_mtoff,
-                            '--in_positive', in_e1_mton, in_e2_mton,
-                            in_e3_mton, in_e4_mton, in_e5_mton,
-                            '--in_mtoff_t1', in_e1_t1w, in_e2_t1w, in_e3_t1w,
-                            in_e4_t1w, in_e5_t1w,
-                            '--in_jsons', in_mtoff_json, in_t1w_json,
-                            '--out_prefix', 'sub_01',
-                            '-f'])
+                             '--mask', in_mask,
+                             '--in_mtoff_pd', in_e1_mtoff, in_e2_mtoff,
+                             in_e3_mtoff, in_e4_mtoff, in_e5_mtoff,
+                             '--in_positive', in_e1_mton, in_e2_mton,
+                             in_e3_mton, in_e4_mton, in_e5_mton,
+                             '--in_mtoff_t1', in_e1_t1w, in_e2_t1w, in_e3_t1w,
+                             in_e4_t1w, in_e5_t1w,
+                             '--in_jsons', in_mtoff_json, in_t1w_json,
+                             '--out_prefix', 'sub_01',
+                             '-f'])
     assert ret.success
 
 
@@ -102,16 +102,16 @@ def test_execution_MT_extended(script_runner, monkeypatch):
 
     # --extended
     ret = script_runner.run(['scil_mti_maps_MT', tmp_dir.name,
-                            '--mask', in_mask,
-                            '--in_mtoff_pd', in_e1_mtoff, in_e2_mtoff,
-                            in_e3_mtoff, in_e4_mtoff, in_e5_mtoff,
-                            '--in_positive', in_e1_mton, in_e2_mton,
-                            in_e3_mton, in_e4_mton, in_e5_mton,
-                            '--in_mtoff_t1', in_e1_t1w, in_e2_t1w, in_e3_t1w,
-                            in_e4_t1w, in_e5_t1w,
-                            '--in_jsons', in_mtoff_json, in_t1w_json,
-                            '--extended',
-                            '-f'])
+                             '--mask', in_mask,
+                             '--in_mtoff_pd', in_e1_mtoff, in_e2_mtoff,
+                             in_e3_mtoff, in_e4_mtoff, in_e5_mtoff,
+                             '--in_positive', in_e1_mton, in_e2_mton,
+                             in_e3_mton, in_e4_mton, in_e5_mton,
+                             '--in_mtoff_t1', in_e1_t1w, in_e2_t1w, in_e3_t1w,
+                             in_e4_t1w, in_e5_t1w,
+                             '--in_jsons', in_mtoff_json, in_t1w_json,
+                             '--extended',
+                             '-f'])
     assert ret.success
 
 
@@ -120,16 +120,16 @@ def test_execution_MT_filtering(script_runner, monkeypatch):
 
     # --filtering
     ret = script_runner.run(['scil_mti_maps_MT', tmp_dir.name,
-                            '--mask', in_mask,
-                            '--in_mtoff_pd', in_e1_mtoff, in_e2_mtoff,
-                            in_e3_mtoff, in_e4_mtoff, in_e5_mtoff,
-                            '--in_positive', in_e1_mton, in_e2_mton,
-                            in_e3_mton, in_e4_mton, in_e5_mton,
-                            '--in_mtoff_t1', in_e1_t1w, in_e2_t1w, in_e3_t1w,
-                            in_e4_t1w, in_e5_t1w,
-                            '--in_jsons', in_mtoff_json, in_t1w_json,
-                            '--filtering',
-                            '-f'])
+                             '--mask', in_mask,
+                             '--in_mtoff_pd', in_e1_mtoff, in_e2_mtoff,
+                             in_e3_mtoff, in_e4_mtoff, in_e5_mtoff,
+                             '--in_positive', in_e1_mton, in_e2_mton,
+                             in_e3_mton, in_e4_mton, in_e5_mton,
+                             '--in_mtoff_t1', in_e1_t1w, in_e2_t1w, in_e3_t1w,
+                             in_e4_t1w, in_e5_t1w,
+                             '--in_jsons', in_mtoff_json, in_t1w_json,
+                             '--filtering',
+                             '-f'])
     assert ret.success
 
 
@@ -144,20 +144,20 @@ def test_execution_MT_B1_map(script_runner, monkeypatch):
 
     # --in_B1_map
     ret = script_runner.run(['scil_mti_maps_MT', tmp_dir.name,
-                            '--mask', in_mask,
-                            '--in_mtoff_pd', in_e1_mtoff, in_e2_mtoff,
-                            in_e3_mtoff, in_e4_mtoff, in_e5_mtoff,
-                            '--in_positive', in_e1_mton, in_e2_mton,
-                            in_e3_mton, in_e4_mton, in_e5_mton,
-                            '--in_negative', in_e1_mton, in_e2_mton,
-                            in_e3_mton, in_e4_mton, in_e5_mton,
-                            '--in_mtoff_t1', in_e1_t1w, in_e2_t1w, in_e3_t1w,
-                            in_e4_t1w, in_e5_t1w,
-                            '--in_jsons', in_mtoff_json, in_t1w_json,
-                            '--in_B1_map', out_b1_map,
-                            '--B1_correction_method', 'empiric',
-                            '--out_prefix', 'sub-01',
-                            '-f'])
+                             '--mask', in_mask,
+                             '--in_mtoff_pd', in_e1_mtoff, in_e2_mtoff,
+                             in_e3_mtoff, in_e4_mtoff, in_e5_mtoff,
+                             '--in_positive', in_e1_mton, in_e2_mton,
+                             in_e3_mton, in_e4_mton, in_e5_mton,
+                             '--in_negative', in_e1_mton, in_e2_mton,
+                             in_e3_mton, in_e4_mton, in_e5_mton,
+                             '--in_mtoff_t1', in_e1_t1w, in_e2_t1w, in_e3_t1w,
+                             in_e4_t1w, in_e5_t1w,
+                             '--in_jsons', in_mtoff_json, in_t1w_json,
+                             '--in_B1_map', out_b1_map,
+                             '--B1_correction_method', 'empiric',
+                             '--out_prefix', 'sub-01',
+                             '-f'])
     assert ret.success
 
 
@@ -166,17 +166,17 @@ def test_execution_MT_wrong_echoes(script_runner, monkeypatch):
 
     # Wrong number of echoes for negative
     ret = script_runner.run(['scil_mti_maps_MT', tmp_dir.name,
-                            '--mask', in_mask,
-                            '--in_mtoff_pd', in_e1_mtoff, in_e2_mtoff,
-                            in_e3_mtoff, in_e4_mtoff, in_e5_mtoff,
-                            '--in_positive', in_e1_mton, in_e2_mton,
-                            in_e3_mton, in_e4_mton, in_e5_mton,
-                            '--in_negative', in_e1_mton, in_e2_mton,
-                            in_e3_mton, in_e4_mton,
-                            '--in_mtoff_t1', in_e1_t1w, in_e2_t1w, in_e3_t1w,
-                            in_e4_t1w, in_e5_t1w,
-                            '--in_jsons', in_mtoff_json, in_t1w_json,
-                            '-f'])
+                             '--mask', in_mask,
+                             '--in_mtoff_pd', in_e1_mtoff, in_e2_mtoff,
+                             in_e3_mtoff, in_e4_mtoff, in_e5_mtoff,
+                             '--in_positive', in_e1_mton, in_e2_mton,
+                             in_e3_mton, in_e4_mton, in_e5_mton,
+                             '--in_negative', in_e1_mton, in_e2_mton,
+                             in_e3_mton, in_e4_mton,
+                             '--in_mtoff_t1', in_e1_t1w, in_e2_t1w, in_e3_t1w,
+                             in_e4_t1w, in_e5_t1w,
+                             '--in_jsons', in_mtoff_json, in_t1w_json,
+                             '-f'])
     assert (not ret.success)
 
 
@@ -185,13 +185,13 @@ def test_execution_MT_single_echoe(script_runner, monkeypatch):
 
     # Single echoe
     ret = script_runner.run(['scil_mti_maps_MT', tmp_dir.name,
-                            '--mask', in_mask,
-                            '--in_mtoff_pd', in_e1_mtoff,
-                            '--in_positive', in_e1_mton,
-                            '--in_negative', in_e1_mton,
-                            '--in_mtoff_t1', in_e1_t1w,
-                            '--in_jsons', in_mtoff_json, in_t1w_json,
-                            '-f'])
+                             '--mask', in_mask,
+                             '--in_mtoff_pd', in_e1_mtoff,
+                             '--in_positive', in_e1_mton,
+                             '--in_negative', in_e1_mton,
+                             '--in_mtoff_t1', in_e1_t1w,
+                             '--in_jsons', in_mtoff_json, in_t1w_json,
+                             '-f'])
     assert ret.success
 
 
@@ -206,14 +206,14 @@ def test_execution_MT_B1_not_T1(script_runner, monkeypatch):
 
     # B1 no T1 should raise warning.
     ret = script_runner.run(['scil_mti_maps_MT', tmp_dir.name,
-                            '--mask', in_mask,
-                            '--in_mtoff_pd', in_e1_mtoff,
-                            '--in_positive', in_e1_mton,
-                            '--in_negative', in_e1_mton,
-                            '--in_jsons', in_mtoff_json, in_t1w_json,
-                            '--in_B1_map', out_b1_map,
-                            '--B1_correction_method', 'empiric',
-                            '-f'])
+                             '--mask', in_mask,
+                             '--in_mtoff_pd', in_e1_mtoff,
+                             '--in_positive', in_e1_mton,
+                             '--in_negative', in_e1_mton,
+                             '--in_jsons', in_mtoff_json, in_t1w_json,
+                             '--in_B1_map', out_b1_map,
+                             '--B1_correction_method', 'empiric',
+                             '-f'])
     assert ret.success
 
 
@@ -228,15 +228,15 @@ def test_execution_MT_B1_no_fit(script_runner, monkeypatch):
 
     # B1 model_based but no fit values
     ret = script_runner.run(['scil_mti_maps_MT', tmp_dir.name,
-                            '--mask', in_mask,
-                            '--in_mtoff_pd', in_e1_mtoff,
-                            '--in_positive', in_e1_mton,
-                            '--in_negative', in_e1_mton,
-                            '--in_mtoff_t1', in_e1_t1w,
-                            '--in_jsons', in_mtoff_json, in_t1w_json,
-                            '--in_B1_map', out_b1_map,
-                            '--B1_correction_method', 'model_based',
-                            '-f'])
+                             '--mask', in_mask,
+                             '--in_mtoff_pd', in_e1_mtoff,
+                             '--in_positive', in_e1_mton,
+                             '--in_negative', in_e1_mton,
+                             '--in_mtoff_t1', in_e1_t1w,
+                             '--in_jsons', in_mtoff_json, in_t1w_json,
+                             '--in_B1_map', out_b1_map,
+                             '--B1_correction_method', 'model_based',
+                             '-f'])
     assert (not ret.success)
 
 
@@ -245,11 +245,11 @@ def test_execution_MT_acq_params(script_runner, monkeypatch):
 
     # Acquisition parameters
     ret = script_runner.run(['scil_mti_maps_MT', tmp_dir.name,
-                            '--mask', in_mask,
-                            '--in_mtoff_pd', in_e1_mtoff,
-                            '--in_positive', in_e1_mton,
-                            '--in_negative', in_e1_mton,
-                            '--in_mtoff_t1', in_e1_t1w,
-                            '--in_acq_parameters', "15", "15", "0.1", "0.1",
-                            '-f'])
+                             '--mask', in_mask,
+                             '--in_mtoff_pd', in_e1_mtoff,
+                             '--in_positive', in_e1_mton,
+                             '--in_negative', in_e1_mton,
+                             '--in_mtoff_t1', in_e1_t1w,
+                             '--in_acq_parameters', "15", "15", "0.1", "0.1",
+                             '-f'])
     assert ret.success

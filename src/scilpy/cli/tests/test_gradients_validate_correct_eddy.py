@@ -23,19 +23,20 @@ def test_execution_extract_half(script_runner, monkeypatch):
     in_bvec = os.path.join(SCILPY_HOME, 'processing', 'dwi.bvec')
     in_bval = os.path.join(SCILPY_HOME, 'processing', 'dwi.bval')
     ret = script_runner.run(['scil_gradients_validate_correct_eddy',
-                            in_bvec, in_bval, "32",
-                            'out.bvec',
-                            'out.bval',
-                            '-f'])
+                             in_bvec, in_bval, "32",
+                             'out.bvec',
+                             'out.bval',
+                             '-f'])
     assert ret.success
+
 
 def test_execution_extract_total(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_bvec = os.path.join(SCILPY_HOME, 'processing', 'dwi.bvec')
     in_bval = os.path.join(SCILPY_HOME, 'processing', 'dwi.bval')
     ret = script_runner.run(['scil_gradients_validate_correct_eddy',
-                            in_bvec, in_bval, "64",
-                            'out.bvec',
-                            'out.bval',
-                            '-f'])
+                             in_bvec, in_bval, "64",
+                             'out.bvec',
+                             'out.bval',
+                             '-f'])
     assert ret.success

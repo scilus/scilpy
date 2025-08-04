@@ -24,6 +24,6 @@ def test_execution_atlas(script_runner, monkeypatch):
     in_atlas = os.path.join(SCILPY_HOME, 'atlas',
                             'atlas_freesurfer_v2_single_brainstem.nii.gz')
     ret = script_runner.run(['scil_lesions_generate_nawm', in_atlas,
-                            'nawm.nii.gz', '--nb_ring', '3',
-                            '--ring_thickness', '2'])
+                             'nawm.nii.gz', '--nb_ring', '3',
+                             '--ring_thickness', '2'])
     assert ret.success

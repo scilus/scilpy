@@ -34,10 +34,10 @@ def test_run(script_runner, monkeypatch):
     in_variance = os.path.join(SCILPY_HOME, 'processing', 'fodf.nii.gz')
     out_name = os.path.join(tmp_dir.name, 'out.png')
     ret = script_runner.run(['scil_viz_fodf', in_fodf, '--silent',
-                            '--in_transparency_mask', in_mask,
-                            '--mask', in_mask,
-                            '--variance', in_variance,
-                            '--output', out_name])
+                             '--in_transparency_mask', in_mask,
+                             '--mask', in_mask,
+                             '--variance', in_variance,
+                             '--output', out_name])
     assert ret.success
 
 
@@ -50,9 +50,9 @@ def test_run_sphsubdivide(script_runner, monkeypatch):
     # Note. Cannot add --sph_subdivide to the test above, causes a memory
     # crash. Without the variance, lighter.
     ret = script_runner.run(['scil_viz_fodf', in_fodf, '--silent',
-                            '--mask', in_mask,
-                            '--sph_subdivide', '2',
-                            '--sphere', 'repulsion100',
-                            '--output', out_name])
+                             '--mask', in_mask,
+                             '--sph_subdivide', '2',
+                             '--sphere', 'repulsion100',
+                             '--output', out_name])
 
     assert ret.success
