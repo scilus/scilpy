@@ -75,7 +75,11 @@ class RAPGraph(RAP):
             Initial paramater to search the cost landscape.
         """
         super().__init__(mask_rap, propagator, max_nbr_pts)
-        from quactography.scripts.quac_matrix_adj_build import quack_rap
+        try:
+            from quactography.scripts.quac_matrix_adj_build import quack_rap
+        except ImportError:
+            raise ImportError("quactography is not installed. "
+                              "Please install it to use RAPGraph.")
 
         self.fodf = fodf
         self.reps = reps
@@ -83,11 +87,11 @@ class RAPGraph(RAP):
 
 
     def rap_multistep_propagate(self, line, prev_direction):
-        seg, prev_dir, is_line_valid = (quack_rap(self.mask_rap, self.fodf, line[-1],
+        seg, prev_dir, is_line_valid = quack_rap(self.mask_rap, self.fodf, line[-1],
                                                   reps = self.reps,
                                                   alpha = self.alpha, 
                                                   prev_direction = prev_direction,
                                                   theta = self.propagator.theta,
-                                                  threshold = self.propagator.sf_threshold,))
+                                                  threshold = self.propagator.sf_threshold)
         line.extend(seg)
         return line, prev_dir, is_line_valid

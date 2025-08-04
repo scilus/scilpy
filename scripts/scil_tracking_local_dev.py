@@ -156,9 +156,11 @@ def _build_arg_parser():
                         'Region-Adaptive Propagation tractography will start within '
                         'this mask.')
     track_g.add_argument('--rap_method', default='None',
-                        choices=['None', 'continue', ['quack']],
+                        choices=['None', 'continue', 'quack'],
                         help="Region-Adaptive Propagation tractography method." \
-                        "To use option quack, you must install Quacktography "
+                        "To use option quack, you must install Quacktography " \
+                        "continue : goes straight in the RAP mask, " \
+                        "quack : uses a graph solution by quantum approach. " \
                         " [%(default)s]")
     track_g.add_argument('--reps', type=int, default=2,
                          help='Number of repetitions for the RAP method. '
