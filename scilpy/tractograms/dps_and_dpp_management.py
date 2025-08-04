@@ -60,8 +60,9 @@ def add_data_as_color_dpp(sft, cmap, data, clip_outliers=False, min_range=None,
         data = np.hstack(data)
 
     values, lbound, ubound = clip_and_normalize_data_for_cmap(
-        data, clip_outliers, min_range, max_range,
-        min_cmap, max_cmap, log, LUT)
+        data, clip_outliers=clip_outliers,
+        min_range=min_range, max_range=max_range,
+        min_cmap=min_cmap, max_cmap=max_cmap, log=log, LUT=LUT)
 
     # Important: values are in float after clip_and_normalize.
     color = np.asarray(cmap(values)[:, 0:3]) * 255

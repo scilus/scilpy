@@ -59,7 +59,9 @@ def _build_arg_parser():
                    default=[0, 0, 0], type=parser_color_type,
                    help='RBG values [0, 255] of the color of the background.'
                    '\n[Default: %(default)s]')
-
+    p.add_argument('--silent', action='store_true',
+                   help="If set, runs the script but does not display the "
+                        "window. For debugging purposes.")
     add_verbose_arg(p)
 
     return p
@@ -114,9 +116,10 @@ def main():
         scene.add(line_actor)
 
     # Showtime !
-    showm = window.ShowManager(scene, reset_camera=True)
-    showm.initialize()
-    showm.start()
+    if not args.silent:
+        showm = window.ShowManager(scene, reset_camera=True)
+        showm.initialize()
+        showm.start()
 
 
 if __name__ == '__main__':
