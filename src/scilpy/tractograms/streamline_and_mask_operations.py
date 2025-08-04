@@ -3,7 +3,7 @@ from enum import Enum
 from multiprocessing import Pool
 
 import numpy as np
-from dipy.io.stateful_tractogram import StatefulTractogram, Space, Origin
+from dipy.io.stateful_tractogram import StatefulTractogram
 
 from nibabel.streamlines import ArraySequence
 
@@ -328,7 +328,7 @@ def cut_streamlines_with_mask(sft, mask,
 
     new_sft = StatefulTractogram.from_sft(
         new_strmls, sft)
-    
+
     # Put back the original space and origin
     new_sft.to_space(orig_space)
     new_sft.to_origin(orig_origin)
@@ -600,9 +600,9 @@ def _intersects_two_rois(roi_data_1, roi_data_2, strl_indices,
 
     # Find all the points of the streamline that are in the ROIs
     roi_data_1_intersect = map_coordinates(
-        roi_data_1, strl_indices.T, order=0, mode='constant', cval=0)
+        roi_data_1, strl_indices.T, order=0, mode='nearest')
     roi_data_2_intersect = map_coordinates(
-        roi_data_2, strl_indices.T, order=0, mode='constant', cval=0)
+        roi_data_2, strl_indices.T, order=0, mode='nearest')
 
     # Get the indices of the voxels intersecting with the ROIs
     in_strl_indices = np.argwhere(roi_data_1_intersect).squeeze(-1)

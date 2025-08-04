@@ -50,7 +50,6 @@ import argparse
 import logging
 
 from dipy.io.streamline import save_tractogram
-from fury import colormap
 import nibabel as nib
 import numpy as np
 import matplotlib.pyplot as plt
@@ -214,7 +213,8 @@ def main():
                              'but got {}'.format(expected_shape, len(data)))
         else:  # args.from_anatomy:
             data = nib.load(args.from_anatomy).get_fdata()
-            data = map_coordinates(data, concat_points, order=0)
+            data = map_coordinates(data, concat_points, order=0,
+                                   mode='nearest')
     elif args.along_profile:
         data = get_streamlines_as_linspaces(sft)
         data = np.hstack(data)
