@@ -31,7 +31,7 @@ jobs:
         run: echo "python-version=$(head -1 .python-version)" >> $GITHUB_OUTPUT
 
       - name: Set up Python for Scilpy
-        uses: actions/setup-python@v5.0.0
+        uses: actions/setup-python@v5.6.0
         with:
           python-version: ${{ steps.python-selector.outputs.python-version }}
           cache: 'pip'
