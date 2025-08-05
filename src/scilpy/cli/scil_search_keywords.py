@@ -107,8 +107,7 @@ def main():
 
     # keywords are single words. Phrases are composed keywords
     keywords, phrases = _extract_keywords_and_phrases(args.expressions)
-
-    with open(VOCAB_FILE_PATH, 'r') as f:
+    with open(VOCAB_FILE_PATH, 'r', encoding="utf-8") as f:
         vocab_data = json.load(f)
 
     # If synonyms are enabled, extend the search to include synonyms
