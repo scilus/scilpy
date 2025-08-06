@@ -36,9 +36,9 @@ jobs:
           python-version: ${{ steps.python-selector.outputs.python-version }}
           activate-environment: true
           enable-cache: true
+
       - name: Install non-python dependencies
         run: |
-          curl -LsSf https://astral.sh/uv/install.sh | sh
           sudo apt-get update
           sudo apt-get install -y \
             build-essential \
@@ -47,7 +47,9 @@ jobs:
             libblas-dev \
             liblapack-dev \
             libfreetype6-dev \
-            libdrm-dev
+            libdrm-dev \
+            libgl1-mesa-dev \
+            libosmesa6-dev
 
       - name: stdlib checkout
         if: ${{ !contains(steps.python-selector.outputs.python-version, '3.12') }}
