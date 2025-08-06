@@ -30,12 +30,12 @@ jobs:
         id: python-selector
         run: echo "python-version=$(head -1 .python-version)" >> $GITHUB_OUTPUT
 
-      - name: Set up Python for Scilpy
-        uses: actions/setup-python@v5.6.0
+      - name: Set up Python and uv for Scilpy
+        uses: actions/setup-uv@v6.4.6
         with:
           python-version: ${{ steps.python-selector.outputs.python-version }}
-          cache: 'pip'
-
+          activate-environment: true
+          enable-cache: true
       - name: Install non-python dependencies
         run: |
           curl -LsSf https://astral.sh/uv/install.sh | sh
@@ -56,8 +56,6 @@ jobs:
 
       - name: Install Scilpy
         run: |
-          uv venv ~/.venvs/scilpy --python=${{ steps.python-selector.outputs.python-version }}
-          source ~/.venvs/scilpy/bin/activate
           uv pip install --upgrade pip wheel
           uv pip install --upgrade "setuptools<71.0.0" 
           uv pip install -e .
@@ -69,7 +67,6 @@ jobs:
       - name: Run tests
         run: |
           export C_INCLUDE_PATH=$pythonLocation/include/python${{ steps.python-selector.outputs.python-version }}:$C_INCLUDE_PATH
-          source ~/.venvs/scilpy/bin/activate
           scil_data_download
           uv run --active pytest --cov-report term-missing:skip-covered
 
@@ -93,27 +90,16 @@ jobs:
       - name: Checkout repository at merge
         uses: actions/checkout@v4
 
-      - name: Set up Python for codecov upload
-        uses: actions/setup-python@v5.0.0
-        with:
-          python-version: '3.10'
-          cache: 'pip'
-
-      - name: Install pycoverage
-        run: pip install coverage
-
       - name: Download test results and coverage
         uses: actions/download-artifact@v4
         with:
           name: test-coverage-${{ github.run_id }}
 
       - name: Upload coverage reports to Codecov
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5.4.3
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           flags: unittests
           name: scilpy-unittests-${{ github.run_id }}-${{ github.run_attempt }}
           verbose: true
           fail_ci_if_error: true
-          plugin: pycoverage
-

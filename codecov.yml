@@ -28,7 +28,7 @@ component_management:
     - component_id: scilpy_library
       name: Library
       paths:
-        - src/scilpy/
+        - "^src/scilpy/(?!cli)/.*$"
 
 comment:
   layout: "condensed_header, diff, components"
