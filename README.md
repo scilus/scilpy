@@ -20,9 +20,11 @@ sudo add-apt-repository ppa:deadsnakes/ppa
 sudo apt-get install python3.12 python3.12-dev python3.12-venv python3.12-tk
 ```
 
+:warning: We highly suggest to install uv to speedup scilpy installation: https://docs.astral.sh/uv/getting-started/installation/
+
 Make sure your pip is up-to-date before trying to install:
 ```
-pip install --upgrade pip
+uv pip install --upgrade pip
 ```
 
 The library's structure is mostly aligned on that of [DIPY].
@@ -35,10 +37,7 @@ We highly encourage to install scilpy in a virtual environnement. Once done and 
 # If you are using Python3.10 or Python3.11, export this variable before installing
 export SETUPTOOLS_USE_DISTUTILS=stdlib
 
-# If you don't want to install legacy scripts
-export SCILPY_LEGACY='False'
-
-pip install scilpy # For the most recent release from PyPi
+uv pip install scilpy # For the most recent release from PyPi
 ```
 
 ## Install scilpy as a developer
@@ -47,17 +46,10 @@ pip install scilpy # For the most recent release from PyPi
 # If you are using Python3.10 or Python3.11, export this variable before installing
 export SETUPTOOLS_USE_DISTUTILS=stdlib
 
-# If you don't want to install legacy scripts
-export SCILPY_LEGACY='False'
-pip install -e . # Install from source code (for development)
+uv pip install -e . # Install from source code (for development)
 ```
 
 ## EXTRAS
-
-Then, without the legacy scripts, if you want to use pytest, use:
-```
-pytest --ignore=scripts/legacy
-```
 
 On Linux, most likely you will have to install libraries for COMMIT/AMICO
 ```
