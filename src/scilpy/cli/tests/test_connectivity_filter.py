@@ -25,6 +25,24 @@ def test_execution_connectivity(script_runner, monkeypatch):
                           'len.npy')
     ret = script_runner.run(['scil_connectivity_filter', 'mask.npy',
                              '--greater_than', in_sc, '5', '1',
-                             '--greater_than', in_sim, '0', '1',
+                             '--lower_than', in_sim, '0', '1',
                              '--keep_condition_count'])
+    assert ret.success
+
+
+def test_execution_connectivity_error(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
+    ret = script_runner.run(['scil_connectivity_filter', 'mask.npy'])
+    assert not ret.success
+
+
+def test_execution_connectivity_inverse(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
+    in_sc = os.path.join(SCILPY_HOME, 'connectivity',
+                         'sc.npy')
+    in_sim = os.path.join(SCILPY_HOME, 'connectivity',
+                          'len.npy')
+    ret = script_runner.run(['scil_connectivity_filter', 'mask.npy',
+                             '--greater_than', in_sc, '5', '1',
+                             '--greater_than', in_sim, '0', '1'])
     assert ret.success
