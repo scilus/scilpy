@@ -61,10 +61,37 @@ class RAPContinue(RAP):
 
 
 class RAPGraph(RAP):
-    def __init__(self, mask_rap, propagator, max_nbr_pts, neighboorhood_size):
+    def __init__(self, mask_rap, propagator, max_nbr_pts, fodf, reps, alpha):
+        """
+        RAPGraph class for the quantum Graph solution for a region.
+
+        Parameters
+        ----------
+        fodf: DataVolume
+            The FODF volume used to compute the RAP.
+        reps: int
+            Number of repetitions used in the quantum circuit.
+        alpha: float
+            Initial paramater to search the cost landscape.
+        """
         super().__init__(mask_rap, propagator, max_nbr_pts)
-        self.neighboorhood_size = neighboorhood_size
+        try:
+            from quactography.scripts.quac_matrix_adj_build import quack_rap
+        except ImportError:
+            raise ImportError("quactography is not installed. "
+                              "Please install it to use RAPGraph.")
+
+        self.fodf = fodf
+        self.reps = reps
+        self.alpha = alpha
 
 
     def rap_multistep_propagate(self, line, prev_direction):
-        raise NotImplementedError
+        seg, prev_dir, is_line_valid = quack_rap(self.mask_rap, self.fodf, line[-1],
+                                                  reps = self.reps,
+                                                  alpha = self.alpha, 
+                                                  prev_direction = prev_direction,
+                                                  theta = self.propagator.theta,
+                                                  threshold = self.propagator.sf_threshold)
+        line.extend(seg)
+        return line, prev_dir, is_line_valid
