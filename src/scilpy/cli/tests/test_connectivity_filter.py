@@ -44,5 +44,5 @@ def test_execution_connectivity_inverse(script_runner, monkeypatch):
                           'len.npy')
     ret = script_runner.run(['scil_connectivity_filter', 'mask.npy',
                              '--greater_than', in_sc, '5', '1',
-                             '--greater_than', in_sim, '0', '1'])
+                             '--greater_than', in_sim, '0', '1', '-f'])
     assert ret.success
