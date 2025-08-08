@@ -35,6 +35,8 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_headers_compatible)
 from scilpy.reconst.utils import find_order_from_nb_coeff
 from scilpy.tractanalysis.todi import TrackOrientationDensityImaging
+from scilpy.tractograms.streamline_and_mask_operations import \
+    get_endpoints_density_map
 from scilpy.version import version_string
 
 
@@ -164,13 +166,7 @@ def main():
     nib.save(nib.Nifti1Image(sub_mask_3d.astype(
         np.uint8), img_mask.affine), out_todi_mask)
 
-    endpoints_mask = np.zeros(img_mask.shape, dtype=np.uint8)
-    sft.to_corner()
-    sft.streamlines._data = sft.streamlines._data.astype(np.uint16)
-    for streamline in sft.streamlines:
-        endpoints_mask[tuple(streamline[0])] = 1
-        endpoints_mask[tuple(streamline[-1])] = 1
-
+    endpoints_mask = get_endpoints_density_map(sft)
     nib.save(nib.Nifti1Image(endpoints_mask * mask_data,
                              img_mask.affine), out_endpoints_mask)
 

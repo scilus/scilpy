@@ -2,15 +2,16 @@
 # -*- coding: utf-8 -*-
 
 """
-Computes the endpoints map of a bundle. The endpoints map is a count of
-the number of streamlines that start or end in each voxel.
-
-Hint: Helps to estimate the cortical area covered by the bundle (assuming
-streamlines start/end in the cortex).
+Computes the endpoints maps of a bundle (head and tail). The endpoints maps are
+a count of the number of streamlines that start or end in each voxel.
 
 Note: If the streamlines are not ordered, the head/tail are random and not
-really two coherent groups. Use the following script to order streamlines:
-scil_bundle_uniformize_endpoints.py
+really two coherent groups.
+    - To get a single endpoint map of all endpoints, without grouping the head
+    and tail, use
+        >> scil_tractogram_compute_density_map --endpoints_only
+    - To order streamlines so that they start and end in the same regions, use
+        >> scil_bundle_uniformize_endpoints
 
 Formerly: scil_compute_endpoints_map.py
 """

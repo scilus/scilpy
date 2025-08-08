@@ -23,6 +23,7 @@ class CuttingStyle(Enum):
     TRIM_ENDPOINTS = 2
 
 
+
 def get_endpoints_density_map(sft, point_to_select=1, to_millimeters=False):
     """
     Compute an endpoints density map, supports selecting more than one points
@@ -45,10 +46,25 @@ def get_endpoints_density_map(sft, point_to_select=1, to_millimeters=False):
     np.ndarray: A np.ndarray where voxel values represent the density of
         endpoints.
     """
+    if point_to_select == 1 and to_millimeters is False:
+        # Very basic: selection of endpoints directly.
+        # Uses nearest neighbor interpolation. If sft is in vox space, corner
+        # origin, that's simply using the floor, or, even faster, casting to
+        # int.
+        endpoints_mask = np.zeros(sft.dimensions, dtype=np.uint8)
+        sft.to_vox()
+        sft.to_corner()
+        sft.streamlines._data = sft.streamlines._data.astype(np.uint16)
+        for streamline in sft.streamlines:
+            endpoints_mask[tuple(streamline[0])] = 1
+            endpoints_mask[tuple(streamline[-1])] = 1
+        return endpoints_mask
+    else:
 
-    endpoints_map_head, endpoints_map_tail = \
-        get_head_tail_density_maps(sft, point_to_select, to_millimeters)
-    return endpoints_map_head + endpoints_map_tail
+        # For more complex options, using head + tail
+        endpoints_map_head, endpoints_map_tail = \
+            get_head_tail_density_maps(sft, point_to_select, to_millimeters)
+        return endpoints_map_head + endpoints_map_tail
 
 
 def get_head_tail_density_maps(sft, point_to_select=1, to_millimeters=False,
