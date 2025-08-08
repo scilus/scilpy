@@ -14,7 +14,7 @@ from sklearn.cluster import KMeans
 
 from scilpy.maths.utils import fit_circle_planar
 from scilpy.tractograms.streamline_and_mask_operations import \
-    get_endpoints_density_map, get_head_tail_density_maps
+    get_endpoints_density_map
 from scilpy.tractograms.streamline_operations import \
     resample_streamlines_num_points, get_streamlines_bounding_box
 

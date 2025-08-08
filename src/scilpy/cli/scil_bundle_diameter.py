@@ -38,7 +38,6 @@ import os
 from fury import actor
 import nibabel as nib
 import numpy as np
-from scipy.ndimage import map_coordinates, gaussian_filter
 
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_json_args,
@@ -49,8 +48,7 @@ from scilpy.io.utils import (add_json_args,
                              assert_inputs_exist,
                              assert_output_dirs_exist_and_empty,
                              parser_color_type)
-from scilpy.tractanalysis.bundle_operations import _project_to_cross_section, \
-    compute_bundle_diameter
+from scilpy.tractanalysis.bundle_operations import compute_bundle_diameter
 from scilpy.viz.backends.fury import (create_interactive_window,
                                       create_scene,
                                       snapshot_scenes)
