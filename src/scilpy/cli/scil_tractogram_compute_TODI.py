@@ -12,8 +12,8 @@ or SH representation, based on streamlines' segments.
 Formerly: scil_compute_todi.py
 ------------------------------------------------------------------------------------
 Reference:
-[1] Dhollander T, Emsell L, Van Hecke W, Maes F, Sunaert S, Suetens P. 
-    Track orientation density imaging (TODI) and track orientation distribution (TOD) 
+[1] Dhollander T, Emsell L, Van Hecke W, Maes F, Sunaert S, Suetens P.
+    Track orientation density imaging (TODI) and track orientation distribution (TOD)
     based tractography. NeuroImage. 2014 Jul 1;94:312-36.
 ------------------------------------------------------------------------------------
 """

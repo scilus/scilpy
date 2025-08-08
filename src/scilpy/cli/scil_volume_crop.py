@@ -23,7 +23,6 @@ Formerly: scil_crop_volume.py
 
 import argparse
 import logging
-import pickle
 
 import nibabel as nib
 import numpy as np

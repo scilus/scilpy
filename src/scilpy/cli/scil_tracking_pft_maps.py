@@ -13,8 +13,8 @@ biases. Neuroimage.
 Formerly: scil_compute_maps_for_particle_filter_tracking.py
 -----------------------------------------------------------------------------
 Reference:
-[1] Girard, G., Whittingstall K., Deriche, R., and Descoteaux, M. (2014). 
-    Towards quantitative connectivity analysis: reducing tractographybiases. 
+[1] Girard, G., Whittingstall K., Deriche, R., and Descoteaux, M. (2014).
+    Towards quantitative connectivity analysis: reducing tractographybiases.
     Neuroimage.
 -----------------------------------------------------------------------------
 """

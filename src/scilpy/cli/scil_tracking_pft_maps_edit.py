@@ -26,15 +26,15 @@ def _build_arg_parser():
                                 epilog=version_string)
 
     p.add_argument('map_include',
-                        help='PFT map include.')
+                   help='PFT map include.')
     p.add_argument('map_exclude',
-                        help='PFT map exclude.')
+                   help='PFT map exclude.')
     p.add_argument('additional_mask',
-                        help='Allow PFT tracking in this mask.')
+                   help='Allow PFT tracking in this mask.')
     p.add_argument('map_include_corr',
-                        help='Corrected PFT map include output file name.')
+                   help='Corrected PFT map include output file name.')
     p.add_argument('map_exclude_corr',
-                        help='Corrected PFT map exclude output file name.')
+                   help='Corrected PFT map exclude output file name.')
 
     add_verbose_arg(p)
     add_overwrite_arg(p)
@@ -52,7 +52,7 @@ def main():
     assert_outputs_exist(parser, args, [args.map_include_corr,
                                         args.map_exclude_corr])
     assert_headers_compatible(parser, [args.map_include, args.map_exclude,
-                                 args.additional_mask])
+                              args.additional_mask])
 
     map_inc = nib.load(args.map_include)
     map_inc_data = map_inc.get_fdata(dtype=np.float32)

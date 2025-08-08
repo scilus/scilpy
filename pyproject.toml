@@ -85,6 +85,11 @@ include-package-data = true
 [tool.setuptools.package-data]
 "scilpy.data" = ["src/scilpy/data"]
 
+[dependency-groups]
+dev = [
+    "pytest>=8.3.5",
+]
+
 [project.scripts]
 scil_aodf_metrics  = "scilpy.cli.scil_aodf_metrics:main"
 scil_bids_validate  = "scilpy.cli.scil_bids_validate:main"

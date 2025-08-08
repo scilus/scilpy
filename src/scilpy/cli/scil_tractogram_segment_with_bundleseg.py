@@ -36,7 +36,7 @@ Formerly: scil_recognize_multi_bundles.py
 ------------------------------------------------------------------------------------------
 Reference:
 [1] St-Onge, Etienne, Kurt G. Schilling, and Francois Rheault."BundleSeg: A versatile,
-    reliable and reproducible approach to white matter bundle segmentation." International 
+    reliable and reproducible approach to white matter bundle segmentation." International
     Workshop on Computational Diffusion MRI. Cham: Springer Nature Switzerland (2023)
 ------------------------------------------------------------------------------------------
 """

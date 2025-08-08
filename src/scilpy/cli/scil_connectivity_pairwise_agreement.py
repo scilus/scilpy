@@ -18,11 +18,9 @@ Formerly: scil_evaluate_connectivity_pairwaise_agreement_measures.py
 """
 
 import argparse
-import itertools
 import json
 import logging
 
-import numpy as np
 
 from scilpy.io.utils import (add_json_args,
                              add_verbose_arg,
@@ -31,7 +29,6 @@ from scilpy.io.utils import (add_json_args,
                              assert_outputs_exist,
                              load_matrix_in_any_format)
 from scilpy.stats.matrix_stats import pairwise_agreement
-from scilpy.tractanalysis.reproducibility_measures import compute_dice_voxel
 from scilpy.version import version_string
 
 

@@ -54,6 +54,7 @@ from scilpy.io.utils import (add_overwrite_arg, add_verbose_arg,
                              save_matrix_in_any_format, assert_inputs_exist)
 from scilpy.version import version_string
 
+
 def _build_arg_parser():
     p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawTextHelpFormatter,
@@ -141,9 +142,9 @@ def main():
         filter_mask = _filter(input_list, 'lower')
         output_mask[filter_mask] += 1
 
-    for input_list in args.lower_than:
+    for input_list in args.greater_than:
         condition_counter += 1
-        filter_mask = _filter(input_list, 'gteater')
+        filter_mask = _filter(input_list, 'greater')
         output_mask[filter_mask] += 1
 
     if not args.keep_condition_count:

@@ -35,7 +35,6 @@ import logging
 import os
 
 import nibabel as nib
-import numpy as np
 
 from scilpy.io.streamlines import (load_dpp_files_as_dpp,
                                    load_dps_files_as_dps,

@@ -78,18 +78,18 @@ import argparse
 import logging
 import numpy as np
 
-from scilpy.tractograms.intersection_finder import IntersectionFinder
-from dipy.io.stateful_tractogram import StatefulTractogram
 from dipy.io.streamline import save_tractogram
+
 from scilpy.io.streamlines import load_tractogram_with_reference
-from scilpy.tractanalysis.fibertube_scoring import (min_external_distance,
-                                                    max_voxels,
-                                                    max_voxel_rotated)
 from scilpy.io.utils import (assert_inputs_exist,
                              assert_outputs_exist,
                              add_overwrite_arg,
                              add_verbose_arg,
                              add_json_args)
+from scilpy.tractanalysis.fibertube_scoring import (min_external_distance,
+                                                    max_voxels,
+                                                    max_voxel_rotated)
+from scilpy.tractograms.intersection_finder import IntersectionFinder
 from scilpy.version import version_string
 
 
