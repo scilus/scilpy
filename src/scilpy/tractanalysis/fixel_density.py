@@ -108,7 +108,7 @@ def fixel_density(peaks, bundles, dps_key=None, max_theta=45,
     return fixel_density
 
 
-def maps_to_masks(maps, abs_thr, rel_thr, norm, nb_bundles):
+def fixel_maps_to_masks(maps, abs_thr, rel_thr, norm, nb_bundles):
     """Compute the fixel density masks from fixel density maps.
 
     Parameters
