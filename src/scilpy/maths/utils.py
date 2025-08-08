@@ -68,7 +68,7 @@ def _rodrigues_rot(pts, n0, n1):
     return pts_rot
 
 
-def _fit_circle_planar(pts, dist_w):
+def fit_circle_planar(pts, dist_w):
     """
     Fitting plane by SVD for the mean-centered data.
 

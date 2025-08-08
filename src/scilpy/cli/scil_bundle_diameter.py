@@ -49,7 +49,8 @@ from scilpy.io.utils import (add_json_args,
                              assert_inputs_exist,
                              assert_output_dirs_exist_and_empty,
                              parser_color_type)
-from scilpy.tractanalysis.bundle_operations import project_to_cross_section
+from scilpy.tractanalysis.bundle_operations import _project_to_cross_section, \
+    compute_bundle_diameter
 from scilpy.viz.backends.fury import (create_interactive_window,
                                       create_scene,
                                       snapshot_scenes)
@@ -67,7 +68,8 @@ def _build_arg_parser():
     p.add_argument('in_bundles', nargs='+',
                    help='List of tractography files.')
     p.add_argument('in_labels', nargs='+',
-                   help='List of labels maps that match the bundles.')
+                   help='List of labels maps that match the bundles, with '
+                        'each section as a different label.')
 
     p.add_argument('--fitting_func', choices=['lin_up', 'lin_down', 'exp',
                                               'inv', 'log'],
@@ -114,7 +116,7 @@ def _build_arg_parser():
     return p
 
 
-def snapshot(scene, win_dims, output_filename):
+def _snapshot(scene, win_dims, output_filename):
     # Legacy. When this snapshotting gets updated to align with the
     # viz module, snapshot_scenes should be called directly
     snapshot = next(snapshot_scenes([scene], win_dims))
@@ -122,10 +124,31 @@ def snapshot(scene, win_dims, output_filename):
     img.save(output_filename)
 
 
+def _prepare_bundle_view(args, sft, data_labels, centroid_smooth, radius,
+                         error, pts_labels):
+    tube_actor = create_tube_with_radii(
+        centroid_smooth, radius, error,
+        wireframe=args.wireframe,
+        error_coloring=args.error_coloring)
+    # TODO : move streamline actor to fury backend
+    cmap = get_lookup_table('jet')
+    coloring = cmap(pts_labels / np.max(pts_labels))[:, 0:3]
+    streamlines_actor = actor.streamtube(sft.streamlines,
+                                         linewidth=args.width,
+                                         opacity=args.opacity,
+                                         colors=coloring)
+
+    slice_actor = actor.slicer(data_labels, np.eye(4))
+    slice_actor.opacity(0.0)
+    return tube_actor, streamlines_actor, slice_actor
+
+
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
+
+    ## Verifications
 
     # The number of labels maps must be equal to the number of bundles
     tmp = args.in_bundles + args.in_labels
@@ -140,88 +163,35 @@ def main():
     assert_headers_compatible(parser, args.in_bundles + args.in_labels,
                               reference=args.reference)
 
-    stats = {}
-    num_digits_labels = 3
-    actor_list = []
     spatial_shape = nib.load(args.in_labels[0]).shape[:3]
+
+    ## Processing
+    # Most loading will be done inside the loop
+    stats = {}
+    actor_list = []
     for i, filename in enumerate(args.in_bundles):
+        bundle_name, _ = os.path.splitext(os.path.basename(filename))
+        logging.info("Computing data for bundle {}".format(filename))
+
+        # Loading bundle and associated labels
         sft = load_tractogram_with_reference(parser, args, filename)
         sft.to_vox()
         sft.to_corner()
         img_labels = nib.load(args.in_labels[i])
-
         data_labels = img_labels.get_fdata()
-        bundle_name, _ = os.path.splitext(os.path.basename(filename))
-        unique_labels = np.unique(data_labels)[1:].astype(int)
 
-        # Empty bundle should at least return a json
-        if not len(sft):
-            tmp_dict = {}
-            for label in unique_labels:
-                tmp_dict['{}'.format(label).zfill(num_digits_labels)] \
-                    = {'mean': 0.0, 'std': 0.0}
-            stats[bundle_name] = {'diameter': tmp_dict}
-            continue
-
-        counter = 0
-        labels_dict = {label: ([], []) for label in unique_labels}
-        pts_labels = map_coordinates(data_labels,
-                                     sft.streamlines._data.T-0.5,
-                                     order=0, mode='nearest')
-        # For each label, all positions and directions are needed to get
-        # a tube estimation per label.
-        for streamline in sft.streamlines:
-            direction = np.gradient(streamline, axis=0).tolist()
-            curr_labels = pts_labels[counter:counter+len(streamline)].tolist()
-
-            for i, label in enumerate(curr_labels):
-                if label > 0:
-                    labels_dict[label][0].append(streamline[i])
-                    labels_dict[label][1].append(direction[i])
-
-            counter += len(streamline)
-
-        centroid = np.zeros((len(unique_labels), 3))
-        radius = np.zeros((len(unique_labels), 1))
-        error = np.zeros((len(unique_labels), 1))
-        for key in unique_labels:
-            key = int(key)
-            c, d, e = project_to_cross_section(labels_dict[key][0],
-                                               labels_dict[key][1],
-                                               args.fitting_func)
-            centroid[key-1], radius[key-1], error[key-1] = c, d, e
-
-        # Spatial smoothing to avoid degenerate estimation
-        centroid_smooth = gaussian_filter(centroid, sigma=[1, 0],
-                                          mode='nearest')
-        centroid_smooth[::len(centroid)-1] = centroid[::len(centroid)-1]
-        radius = gaussian_filter(radius, sigma=1, mode='nearest')
-        error = gaussian_filter(error, sigma=1, mode='nearest')
-
-        tmp_dict = {}
-        for label in unique_labels:
-            tmp_dict['{}'.format(label).zfill(num_digits_labels)] \
-                = {'mean': float(radius[label-1][0])*2,
-                   'std': float(error[label-1][0])}
-        stats[bundle_name] = {'diameter': tmp_dict}
+        # Main computing
+        (bundle_dict, centroid_smooth, radius, error,
+         pts_labels) = compute_bundle_diameter(
+            sft, data_labels, args.fitting_func)
+        stats[bundle_name] = {'diameter': bundle_dict}
 
         if args.show_rendering or args.save_rendering:
-            tube_actor = create_tube_with_radii(
-                centroid_smooth, radius, error,
-                wireframe=args.wireframe,
-                error_coloring=args.error_coloring)
+            tube_actor, streamlines_actor, slice_actor = \
+                _prepare_bundle_view(args, sft, data_labels, centroid_smooth,
+                                     radius, error, pts_labels)
             actor_list.append(tube_actor)
-            # TODO : move streamline actor to fury backend
-            cmap = get_lookup_table('jet')
-            coloring = cmap(pts_labels / np.max(pts_labels))[:, 0:3]
-            streamlines_actor = actor.streamtube(sft.streamlines,
-                                                 linewidth=args.width,
-                                                 opacity=args.opacity,
-                                                 colors=coloring)
             actor_list.append(streamlines_actor)
-
-            slice_actor = actor.slicer(data_labels, np.eye(4))
-            slice_actor.opacity(0.0)
             actor_list.append(slice_actor)
 
     scene = create_scene(actor_list, "axial",
@@ -235,35 +205,35 @@ def main():
     elif args.save_rendering:
         # TODO : transform screenshotting to abide with viz module
         scene.reset_camera()
-        snapshot(scene, args.win_dims,
-                 os.path.join(args.save_rendering, 'superior.png'))
+        _snapshot(scene, args.win_dims,
+                  os.path.join(args.save_rendering, 'superior.png'))
 
         scene.pitch(180)
         scene.reset_camera()
-        snapshot(scene, args.win_dims,
-                 os.path.join(args.save_rendering, 'inferior.png'))
+        _snapshot(scene, args.win_dims,
+                  os.path.join(args.save_rendering, 'inferior.png'))
 
         scene.pitch(90)
         scene.set_camera(view_up=(0, 0, 1))
         scene.reset_camera()
-        snapshot(scene, args.win_dims,
-                 os.path.join(args.save_rendering, 'posterior.png'))
+        _snapshot(scene, args.win_dims,
+                  os.path.join(args.save_rendering, 'posterior.png'))
 
         scene.pitch(180)
         scene.set_camera(view_up=(0, 0, 1))
         scene.reset_camera()
-        snapshot(scene, args.win_dims,
-                 os.path.join(args.save_rendering, 'anterior.png'))
+        _snapshot(scene, args.win_dims,
+                  os.path.join(args.save_rendering, 'anterior.png'))
 
         scene.yaw(90)
         scene.reset_camera()
-        snapshot(scene, args.win_dims,
-                 os.path.join(args.save_rendering, 'right.png'))
+        _snapshot(scene, args.win_dims,
+                  os.path.join(args.save_rendering, 'right.png'))
 
         scene.yaw(180)
         scene.reset_camera()
-        snapshot(scene, args.win_dims,
-                 os.path.join(args.save_rendering, 'left.png'))
+        _snapshot(scene, args.win_dims,
+                  os.path.join(args.save_rendering, 'left.png'))
 
     print(json.dumps(stats, indent=args.indent, sort_keys=args.sort_keys))
 
