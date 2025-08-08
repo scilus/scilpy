@@ -41,8 +41,8 @@ def main():
     assert_inputs_exist(parser, args.in_bvec)
     assert_outputs_exist(parser, args, args.out_bvec)
 
-    bvecs = np.loadtxt(args.in_bvec)
-    np.savetxt(args.out_bvec, normalize_bvecs(bvecs))
+    bvecs = np.loadtxt(args.in_bvec).T
+    np.savetxt(args.out_bvec, normalize_bvecs(bvecs).T)
 
 
 if __name__ == "__main__":
