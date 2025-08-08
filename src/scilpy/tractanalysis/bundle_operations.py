@@ -3,18 +3,25 @@
 from itertools import count, takewhile
 import logging
 
+from dipy.io.stateful_tractogram import StatefulTractogram
 from dipy.segment.clustering import QuickBundles
 from dipy.segment.featurespeed import ResampleFeature
 from dipy.segment.metric import AveragePointwiseEuclideanMetric
 import numpy as np
 from dipy.tracking.streamlinespeed import set_number_of_points
+from scipy.ndimage import map_coordinates, gaussian_filter
+from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
+from scipy.sparse import dok_matrix
 from scipy.spatial import cKDTree
 from sklearn.cluster import KMeans
 
+from scilpy.maths.utils import fit_circle_planar
 from scilpy.tractograms.streamline_and_mask_operations import \
     get_endpoints_density_map
 from scilpy.tractograms.streamline_operations import \
     resample_streamlines_num_points, get_streamlines_bounding_box
+from scilpy.tractograms.tractogram_operations import union_robust, \
+    intersection_robust
 
 
 def get_streamlines_centroid(streamlines, nb_points):
@@ -342,3 +349,164 @@ def remove_outliers_qb(streamlines, threshold, nb_points=12, nb_samplings=30,
     outliers_ids, inliers_ids = prune(streamlines, threshold, summary)
 
     return outliers_ids, inliers_ids
+
+
+def _project_to_cross_section(positions, directions, dist_w=None):
+    """
+    Project all points to a plane perpendicular to the centroid.
+
+    Parameters
+    ----------
+    positions: list[np.ndarray]
+        The streamlines.
+    directions: list[np.ndarray]
+        The directions between each segment, for each streamline.
+    dist_w: str
+        One of ['lin_up', 'lin_down', 'exp', 'inv', 'log'], or None
+
+    """
+    u_directions = np.average(directions, axis=0)
+    u_directions /= np.linalg.norm(u_directions)
+    barycenter = np.average(positions, axis=0)
+    vector = positions - barycenter
+
+    dist = np.zeros((len(vector)))
+    proj_positions = np.zeros((len(vector), 3))
+    for i in range(len(vector)):
+        dist[i] = np.dot(vector[i], u_directions)
+        proj_positions[i] = positions[i] - dist[i]*u_directions
+
+    # With all points on a fixed plane, estimate a circle
+    center, radius = fit_circle_planar(proj_positions, dist_w)
+    dist = np.linalg.norm(proj_positions - center, axis=1)
+    error = np.average(np.sqrt((dist - radius)**2))
+
+    return center, radius, error
+
+
+def compute_bundle_diameter(sft, data_labels, fitting_func):
+    """
+    Compute the bundle diameter, in each section.
+
+    Parameters
+    ----------
+    sft: StatefulTractogram
+        The bundle.
+    data_labels: np.ndarray
+        The labels maps, with one label per section of the bundle.
+    fitting_func: str
+        One of ['lin_up', 'lin_down', 'exp', 'inv', 'log'], or None.
+
+    Returns
+    -------
+    bundle_dict: dict
+        The bundle diameter per section, where keys are the sections' labels,
+        and bundle_dict[label1] = {'mean': the_mean, 'std': the_std}
+        (STD is in fact an error measure, NOT the standard deviation).
+    centroid_smooth: np.ndarray
+        The centroids per section. size [nb_labels, 3]
+    radius: np.ndarray
+        The radius per section. size [nb_labels, ]
+    error: np.ndarray
+        The error (std) per section. size [nb_labels, ]
+    pts_labels: list[list]
+        The labels associated with each streamline.
+    """
+    num_digits_labels = 3
+
+    # Counting labels
+    unique_labels = np.unique(data_labels)[1:].astype(int)
+    if len(unique_labels) <= 5:
+        logging.warning("Less than 5 unique labels detected. High risk of "
+                        "bad fit.")
+
+    # Empty bundle should at least return a json
+    if not len(sft):
+        bundle_dict = {}
+        for label in unique_labels:
+            bundle_dict['{}'.format(label).zfill(num_digits_labels)] \
+                = {'mean': 0.0, 'std': 0.0}
+        return bundle_dict, None
+
+    counter = 0
+    labels_dict = {label: ([], []) for label in unique_labels}
+    pts_labels = map_coordinates(data_labels,
+                                 sft.streamlines._data.T - 0.5,
+                                 order=0, mode='nearest')
+
+    # For each label, all positions and directions are needed to get
+    # a tube estimation per label.
+    for streamline in sft.streamlines:
+        direction = np.gradient(streamline, axis=0).tolist()
+        curr_labels = pts_labels[counter:counter + len(streamline)].tolist()
+
+        for i, label in enumerate(curr_labels):
+            if label > 0:
+                labels_dict[label][0].append(streamline[i])
+                labels_dict[label][1].append(direction[i])
+
+        counter += len(streamline)
+
+    # Compute the centroid per section
+    centroid = np.zeros((len(unique_labels), 3))
+    radius = np.zeros((len(unique_labels), 1))
+    error = np.zeros((len(unique_labels), 1))
+    for key in unique_labels:
+        key = int(key)
+        c, d, e = _project_to_cross_section(labels_dict[key][0],
+                                            labels_dict[key][1],
+                                            fitting_func)
+        centroid[key - 1], radius[key - 1], error[key - 1] = c, d, e
+
+    # Spatial smoothing to avoid degenerated estimation
+    centroid_smooth = gaussian_filter(centroid, sigma=[1, 0],
+                                      mode='nearest')
+    centroid_smooth[::len(centroid) - 1] = centroid[::len(centroid) - 1]
+    radius = gaussian_filter(radius, sigma=1, mode='nearest')
+    error = gaussian_filter(error, sigma=1, mode='nearest')
+
+    bundle_dict = {}
+    for label in unique_labels:
+        bundle_dict['{}'.format(label).zfill(num_digits_labels)] \
+            = {'mean': float(radius[label - 1][0]) * 2,
+               'std': float(error[label - 1][0])}
+    return bundle_dict, centroid_smooth, radius, error, pts_labels
+
+
+def filter_by_occurrence(sft_list, vol_dim, ratio_voxels = 0.5,
+                         ratio_streamlines = 0.5):
+    nb_bundles = len(sft_list)
+
+    fusion_streamlines = []
+    for sft in sft_list:
+        fusion_streamlines.append(sft.streamlines)
+    fusion_streamlines, _ = union_robust(sft_list)
+
+    volume = np.zeros(vol_dim)
+    streamlines_vote = dok_matrix((len(fusion_streamlines), nb_bundles))
+
+    for i in range(nb_bundles):
+        # Add an occurrence to voxels touched by this bundle.
+        binary = compute_tract_counts_map(sft_list[i].streamlines, vol_dim)
+        volume[binary > 0] += 1
+
+        # Remember streamlines in this bundle from the fusion streamlines
+        if ratio_streamlines is not None:
+            _, indices = intersection_robust([fusion_streamlines,
+                                              sft_list[i].streamlines])
+            streamlines_vote[list(indices), [i]] += 1
+
+    # Create a tractogram with streamlines well represented
+    new_sft = None
+    if ratio_streamlines is not None:
+        ratio_value = int(ratio_streamlines * nb_bundles)
+        real_indices = np.where(np.sum(streamlines_vote,
+                                       axis=1) >= ratio_value)[0]
+        new_sft = StatefulTractogram.from_sft(fusion_streamlines[real_indices],
+                                              sft_list[0])
+
+    # Create a volume with voxels well represented
+    volume[volume < int(ratio_voxels * nb_bundles)] = 0
+    volume[volume > 0] = 1
+
+    return volume, new_sft

@@ -6,6 +6,12 @@ Generation of priors and enhanced-FOD from an example/template bundle.
 The bundle must have been cleaned thorougly before use. The E-FOD can then
 be used for bundle-specific tractography, but not for FOD metrics.
 
+List of outputs:
+     - {out_dir}/{prefix}efod.nii.gz: the enhanced FOD
+     - {out_dir}/{prefix}priors.nii.gz: the generated priors
+     - {out_dir}/{prefix}todi_mask.nii.gz: the generated TODI mask
+     - {out_dir}/{prefix}endpoints_mask.nii.gz: the endpoints mask
+
 Formerly: scil_generate_priors_from_bundle.py
 -----------------------------------------------------------------------------
 Reference:
@@ -34,7 +40,9 @@ from scilpy.io.utils import (add_overwrite_arg,
                              parse_sh_basis_arg,
                              assert_headers_compatible)
 from scilpy.reconst.utils import find_order_from_nb_coeff
-from scilpy.tractanalysis.todi import TrackOrientationDensityImaging
+from scilpy.tractograms.streamline_and_mask_operations import \
+    get_endpoints_density_map
+from scilpy.tractanalysis.todi import get_sf_from_todi
 from scilpy.version import version_string
 
 
@@ -77,6 +85,7 @@ def main():
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
+    # Checks
     required = [args.in_bundle, args.in_fodf, args.in_mask]
     assert_inputs_exist(parser, required, args.reference)
     assert_headers_compatible(parser, required, reference=args.reference)
@@ -97,6 +106,7 @@ def main():
     required = [out_efod, out_priors, out_todi_mask, out_endpoints_mask]
     assert_outputs_exist(parser, args, required)
 
+    # Loading
     img_sh = nib.load(args.in_fodf)
     sh_shape = img_sh.shape
     sh_order = find_order_from_nb_coeff(sh_shape)
@@ -109,24 +119,13 @@ def main():
     if len(sft.streamlines) < 1:
         raise ValueError('The input bundle contains no streamline.')
 
+    # Main computation
+
     # Compute TODI from streamlines
-    with TrackOrientationDensityImaging(img_mask.shape,
-                                        'repulsion724') as todi_obj:
-        todi_obj.compute_todi(sft.streamlines, length_weights=True)
-        todi_obj.smooth_todi_dir()
-        todi_obj.smooth_todi_spatial(sigma=args.todi_sigma)
+    todi_sf, sub_mask_3d = get_sf_from_todi(sft, mask_data, args.todi_sigma,
+                                            args.sf_threshold)
 
-        # Fancy masking of 1d indices to limit spatial dilation to WM
-        sub_mask_3d = np.logical_and(
-            mask_data, todi_obj.reshape_to_3d(todi_obj.get_mask()))
-        sub_mask_1d = sub_mask_3d.flatten()[todi_obj.get_mask()]
-        todi_sf = todi_obj.get_todi()[sub_mask_1d] ** 2
-
-    # The priors should always be between 0 and 1
-    # A minimum threshold is set to prevent misaligned FOD from disappearing
-    todi_sf /= np.max(todi_sf, axis=-1, keepdims=True)
-    todi_sf[todi_sf < args.sf_threshold] = args.sf_threshold
-
+    # SF to SH
     # Memory friendly saving, as soon as possible saving then delete
     priors_3d = np.zeros(sh_shape)
     sphere = get_sphere(name='repulsion724')
@@ -137,6 +136,7 @@ def main():
     nib.save(nib.Nifti1Image(priors_3d, img_mask.affine), out_priors)
     del priors_3d
 
+    # Back to SF
     input_sh_3d = img_sh.get_fdata(dtype=np.float32)
     input_sf_1d = sh_to_sf(input_sh_3d[sub_mask_3d],
                            sphere, sh_order_max=sh_order,
@@ -153,6 +153,7 @@ def main():
         input_max_value[mult_positive_mask] / \
         mult_max_value[mult_positive_mask]
 
+    # And back to SH
     # Memory friendly saving
     input_sh_3d[sub_mask_3d] = sf_to_sh(mult_sf_1d, sphere,
                                         sh_order_max=sh_order,
@@ -161,16 +162,11 @@ def main():
     nib.save(nib.Nifti1Image(input_sh_3d, img_mask.affine), out_efod)
     del input_sh_3d
 
-    nib.save(nib.Nifti1Image(sub_mask_3d.astype(
-        np.uint8), img_mask.affine), out_todi_mask)
+    nib.save(nib.Nifti1Image(sub_mask_3d.astype(np.uint8), img_mask.affine),
+             out_todi_mask)
 
-    endpoints_mask = np.zeros(img_mask.shape, dtype=np.uint8)
-    sft.to_corner()
-    sft.streamlines._data = sft.streamlines._data.astype(np.uint16)
-    for streamline in sft.streamlines:
-        endpoints_mask[tuple(streamline[0])] = 1
-        endpoints_mask[tuple(streamline[-1])] = 1
-
+    # Endpoints
+    endpoints_mask = get_endpoints_density_map(sft)
     nib.save(nib.Nifti1Image(endpoints_mask * mask_data,
                              img_mask.affine), out_endpoints_mask)
 
