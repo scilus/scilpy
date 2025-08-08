@@ -30,7 +30,7 @@ References:
     Where and How Asymmetry Occurs in the White Matter." bioRxiv. 2022 Jan 1;
     2022.12.18.520881. doi: https://doi.org/10.1101/2022.12.18.520881
 
-[2] S. Cetin Karayumak, E. Özarslan, and G. Unal,"Asymmetric Orientation 
+[2] S. Cetin Karayumak, E. Özarslan, and G. Unal,"Asymmetric Orientation
     Distribution Functions (AODFs) revealing intravoxel geometry in diffusion MRI"
     Magnetic Resonance Imaging, vol. 49, pp. 145-158, Jun. 2018,
     doi: https://doi.org/10.1016/j.mri.2018.03.006.

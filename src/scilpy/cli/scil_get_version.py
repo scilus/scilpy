@@ -78,7 +78,7 @@ def main():
             git_text = f.read().split()
             branch = git_text[2].replace("'", "")
             origin = ''
-            if len(git_text) > 4 :
+            if len(git_text) > 4:
                 origin = git_text[4]
 
     print('Your Scilpy directory is: {}'.format(_bold(repo_dir)))

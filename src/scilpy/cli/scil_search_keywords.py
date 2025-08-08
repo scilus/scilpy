@@ -67,6 +67,7 @@ from scilpy.io.utils import add_verbose_arg
 from scilpy.version import version_string
 from scilpy import SCILPY_HOME
 
+
 def _build_arg_parser():
     p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawTextHelpFormatter,
