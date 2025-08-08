@@ -153,7 +153,6 @@ def main():
         sft_list.append(tmp_sft)
 
     if np.all([len(sft) == 0 for sft in sft_list]):
-        if np.all([len(sft) == 0 for sft in sft_list]):
         if args.save_empty:
             logging.info("All input tractograms are empty. Saving empty file.")
             save_tractogram(sft_list[0], args.out_tractogram,
