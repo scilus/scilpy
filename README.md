@@ -29,7 +29,7 @@ The library is now built for Python 3.9/3.10 and 3.11. Please, be sure to create
 If none of these versions are installed on your computer, we suggest you to install python3.10:
 ```
 sudo add-apt-repository ppa:deadsnakes/ppa
-sudo apt-get install python3.12 python3.12-dev python3.12-venv python3.12-minimal python3.12-tk
+sudo apt-get install python3.12 python3.12-dev python3.12-venv python3.12-tk
 ```
 
 Make sure your pip is up-to-date before trying to install:
@@ -39,19 +39,34 @@ pip install --upgrade pip
 
 The library's structure is mostly aligned on that of [DIPY].
 
-The library and scripts can be installed locally by using:
+We highly encourage to install scilpy in a virtual environnement. Once done and you're in your virtual environnement, the library and scripts can be installed locally by running these commands:
+
+## Install scilpy as a user
+
 ```
+# If you are using Python3.10 or Python3.11, export this variable before installing
 export SETUPTOOLS_USE_DISTUTILS=stdlib
-pip install -e .
-```
 
-If you don't want to install legacy scripts:
-```
+# If you don't want to install legacy scripts
 export SCILPY_LEGACY='False'
-pip install -e .
+
+pip install scilpy # For the most recent release from PyPi
 ```
 
-(Then, without the legacy scripts, if you want to use pytest, use:)
+## Install scilpy as a developer
+
+```
+# If you are using Python3.10 or Python3.11, export this variable before installing
+export SETUPTOOLS_USE_DISTUTILS=stdlib
+
+# If you don't want to install legacy scripts
+export SCILPY_LEGACY='False'
+pip install -e . # Install from source code (for development)
+```
+
+## EXTRAS
+
+Then, without the legacy scripts, if you want to use pytest, use:
 ```
 pytest --ignore=scripts/legacy
 ```

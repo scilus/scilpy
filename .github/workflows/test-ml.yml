@@ -33,11 +33,12 @@ jobs:
         id: python-selector
         run: echo "python-version=$(head -1 .python-version)" >> $GITHUB_OUTPUT
 
-      - name: Set up Python for Scilpy
-        uses: actions/setup-python@v5.0.0
+      - name: Set up Python and uv for Scilpy
+        uses: astral-sh/setup-uv@v6.4.3
         with:
           python-version: ${{ steps.python-selector.outputs.python-version }}
-          cache: 'pip'
+          activate-environment: true
+          enable-cache: true
 
       - name: Install non-python dependencies
         run: |
@@ -49,20 +50,32 @@ jobs:
             libblas-dev \
             liblapack-dev \
             libfreetype6-dev \
-            libdrm-dev
+            libdrm-dev \
+            libgl1-mesa-dev \
+            libosmesa6-dev
+
+      - name: stdlib checkout
+        if: ${{ !contains(steps.python-selector.outputs.python-version, '3.12') }}
+        run: |
+          echo "SETUPTOOLS_USE_DISTUTILS=stdlib" >> "$GITHUB_ENV"
 
       - name: Install Scilpy
         run: |
-          export SETUPTOOLS_USE_DISTUTILS=stdlib
-          python -m pip install --upgrade pip wheel
-          python -m pip install --upgrade "setuptools<71.0.0" 
-          python -m pip install -e .
-          python -m pip install torch==2.2.1 torchvision==0.17.1
+          uv pip install --upgrade pip wheel
+          uv pip install --upgrade "setuptools<71.0.0" 
+          uv pip install -e .
+          # TODO: to adapt once Scilpy passes to VTK 9.4.0, which selects OSMesa at runtime
+          # https://discourse.vtk.org/t/status-update-runtime-opengl-render-window-selection-in-vtk/14583
+          VTK_VERSION=$(cat pyproject.toml | grep 'vtk==' | sed 's/vtk==//g' | sed 's/\"//g' )
+          uv pip install --extra-index-url https://wheels.vtk.org vtk-osmesa==$VTK_VERSION
+          uv pip install pytest-xdist pytest-cov
+          uv pip install torch==2.2.1 torchvision==0.17.1
 
       - name: Run ML tests
         run: |
           export C_INCLUDE_PATH=$pythonLocation/include/python${{ steps.python-selector.outputs.python-version }}:$C_INCLUDE_PATH
-          pytest -m ml --ml --cov-report term-missing:skip-covered
+          scil_data_download
+          uv run pytest -m ml --ml --cov-report term-missing:skip-covered
 
       - name: Save test results and coverage
         uses: actions/upload-artifact@v4

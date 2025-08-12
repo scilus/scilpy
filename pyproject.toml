@@ -1,9 +1,282 @@
-# Minimal build configuration at detailed here:
-# https://github.com/pypa/pip/issues/11457
-
 [build-system]
 requires = [
     "setuptools >= 64",
+    "setuptools_scm[toml]",
     "Cython==3.0.*",
-    "numpy==1.25.*"
+    "numpy==1.26.*"
 ]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "scilpy"
+version = "2.2.0"
+description = "Scilpy: diffusion MRI tools and utilities"
+authors = [{ name = "SCIL Team" }]
+readme = "README.md"
+requires-python = ">=3.10, <3.13"
+license-files = ["LICENSE"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Intended Audience :: Science/Research",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Topic :: Scientific/Engineering"
+]
+dependencies = [
+"bctpy==0.6.*",
+"bids-validator==1.14.*",
+"bz2file==0.98",
+"coloredlogs==15.0.*",
+"cvxpy==1.6.*",
+"cycler==0.12.*",
+"deepdiff==8.1.*",
+"dipy==1.12.*",
+"dmri-amico==2.1.*",
+"dmri-commit==2.3.*",
+"docopt==0.6.*",
+"dvc==3.59.*",
+"formulaic==0.5.*",
+"fury==0.12.*",
+"future==1.0.*",
+"GitPython==3.1.*",
+"h5py==3.12.*",
+"joblib==1.4.*",
+"kiwisolver==1.4.*",
+"matplotlib==3.10.*",
+"nibabel==5.3.*",
+"nilearn==0.11.*",
+"nltk==3.9.*",
+"numba==0.61.*",
+"numba-kdtree==0.4.*",
+"numpy==1.26.*",
+"openpyxl==3.1.*",
+"packaging==24.*",
+"pybids==0.18.*",
+"PyMCubes==0.1.*",
+"pyparsing==3.2.*",
+"PySocks==1.7.*",
+"pytest==8.3.*",
+"pytest-xdist==3.8.*",
+"pytest-console-scripts==1.4.*",
+"pytest-cov==6.0.*",
+"pytest-html==4.1.*",
+"pytest-metadata==3.1.*",
+"pytest-mock==3.14.*",
+"python-dateutil==2.9.*",
+"pytz==2024.2",
+"requests==2.32.*",
+"scikit-image==0.25.*",
+"scikit-learn==1.6.*",
+"scipy==1.15.*",
+"six==1.17.*",
+"statsmodels==0.14.*",
+"trimeshpy==0.0.*",
+"vtk==9.3.*"
+]
+
+[project.optional-dependencies]
+dev = ["pytest", "ipython"]
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+include-package-data = true
+
+[tool.setuptools.package-data]
+"scilpy.data" = ["src/scilpy/data"]
+
+[project.scripts]
+scil_aodf_metrics  = "scilpy.cli.scil_aodf_metrics:main"
+scil_bids_validate  = "scilpy.cli.scil_bids_validate:main"
+scil_bingham_metrics  = "scilpy.cli.scil_bingham_metrics:main"
+scil_btensor_metrics  = "scilpy.cli.scil_btensor_metrics:main"
+scil_bundle_alter_to_target_dice  = "scilpy.cli.scil_bundle_alter_to_target_dice:main"
+scil_bundle_clean_qbx_clusters  = "scilpy.cli.scil_bundle_clean_qbx_clusters:main"
+scil_bundle_compute_centroid  = "scilpy.cli.scil_bundle_compute_centroid:main"
+scil_bundle_compute_endpoints_map  = "scilpy.cli.scil_bundle_compute_endpoints_map:main"
+scil_bundle_diameter  = "scilpy.cli.scil_bundle_diameter:main"
+scil_bundle_explore_bundleseg  = "scilpy.cli.scil_bundle_explore_bundleseg:main"
+scil_bundle_filter_by_occurence  = "scilpy.cli.scil_bundle_filter_by_occurence:main"
+scil_bundle_fixel_analysis  = "scilpy.cli.scil_bundle_fixel_analysis:main"
+scil_bundle_generate_priors  = "scilpy.cli.scil_bundle_generate_priors:main"
+scil_bundle_label_map  = "scilpy.cli.scil_bundle_label_map:main"
+scil_bundle_mean_fixel_afd_from_hdf5  = "scilpy.cli.scil_bundle_mean_fixel_afd_from_hdf5:main"
+scil_bundle_mean_fixel_afd  = "scilpy.cli.scil_bundle_mean_fixel_afd:main"
+scil_bundle_mean_fixel_bingham_metric  = "scilpy.cli.scil_bundle_mean_fixel_bingham_metric:main"
+scil_bundle_mean_fixel_mrds_metric  = "scilpy.cli.scil_bundle_mean_fixel_mrds_metric:main"
+scil_bundle_mean_std  = "scilpy.cli.scil_bundle_mean_std:main"
+scil_bundle_pairwise_comparison  = "scilpy.cli.scil_bundle_pairwise_comparison:main"
+scil_bundle_reject_outliers  = "scilpy.cli.scil_bundle_reject_outliers:main"
+scil_bundle_score_many_bundles_one_tractogram  = "scilpy.cli.scil_bundle_score_many_bundles_one_tractogram:main"
+scil_bundle_score_same_bundle_many_segmentations  = "scilpy.cli.scil_bundle_score_same_bundle_many_segmentations:main"
+scil_bundle_shape_measures  = "scilpy.cli.scil_bundle_shape_measures:main"
+scil_bundle_uniformize_endpoints  = "scilpy.cli.scil_bundle_uniformize_endpoints:main"
+scil_bundle_volume_per_label  = "scilpy.cli.scil_bundle_volume_per_label:main"
+scil_connectivity_compare_populations  = "scilpy.cli.scil_connectivity_compare_populations:main"
+scil_connectivity_compute_matrices  = "scilpy.cli.scil_connectivity_compute_matrices:main"
+scil_connectivity_compute_pca  = "scilpy.cli.scil_connectivity_compute_pca:main"
+scil_connectivity_compute_simple_matrix  = "scilpy.cli.scil_connectivity_compute_simple_matrix:main"
+scil_connectivity_filter  = "scilpy.cli.scil_connectivity_filter:main"
+scil_connectivity_graph_measures  = "scilpy.cli.scil_connectivity_graph_measures:main"
+scil_connectivity_hdf5_average_density_map  = "scilpy.cli.scil_connectivity_hdf5_average_density_map:main"
+scil_connectivity_math  = "scilpy.cli.scil_connectivity_math:main"
+scil_connectivity_normalize  = "scilpy.cli.scil_connectivity_normalize:main"
+scil_connectivity_pairwise_agreement  = "scilpy.cli.scil_connectivity_pairwise_agreement:main"
+scil_connectivity_print_filenames  = "scilpy.cli.scil_connectivity_print_filenames:main"
+scil_connectivity_reorder_rois  = "scilpy.cli.scil_connectivity_reorder_rois:main"
+scil_data_download  = "scilpy.cli.scil_data_download:main"
+scil_denoising_nlmeans  = "scilpy.cli.scil_denoising_nlmeans:main"
+scil_dki_metrics  = "scilpy.cli.scil_dki_metrics:main"
+scil_dti_convert_tensors  = "scilpy.cli.scil_dti_convert_tensors:main"
+scil_dti_metrics  = "scilpy.cli.scil_dti_metrics:main"
+scil_dwi_apply_bias_field  = "scilpy.cli.scil_dwi_apply_bias_field:main"
+scil_dwi_compute_snr  = "scilpy.cli.scil_dwi_compute_snr:main"
+scil_dwi_concatenate  = "scilpy.cli.scil_dwi_concatenate:main"
+scil_dwi_convert_FDF  = "scilpy.cli.scil_dwi_convert_FDF:main"
+scil_dwi_detect_volume_outliers  = "scilpy.cli.scil_dwi_detect_volume_outliers:main"
+scil_dwi_extract_b0  = "scilpy.cli.scil_dwi_extract_b0:main"
+scil_dwi_extract_shell  = "scilpy.cli.scil_dwi_extract_shell:main"
+scil_dwi_powder_average  = "scilpy.cli.scil_dwi_powder_average:main"
+scil_dwi_prepare_eddy_command  = "scilpy.cli.scil_dwi_prepare_eddy_command:main"
+scil_dwi_prepare_topup_command  = "scilpy.cli.scil_dwi_prepare_topup_command:main"
+scil_dwi_reorder_philips  = "scilpy.cli.scil_dwi_reorder_philips:main"
+scil_dwi_split_by_indices  = "scilpy.cli.scil_dwi_split_by_indices:main"
+scil_dwi_to_sh  = "scilpy.cli.scil_dwi_to_sh:main"
+scil_fibertube_compute_density  = "scilpy.cli.scil_fibertube_compute_density:main"
+scil_fibertube_score_tractogram  = "scilpy.cli.scil_fibertube_score_tractogram:main"
+scil_fibertube_tracking  = "scilpy.cli.scil_fibertube_tracking:main"
+scil_fodf_bundleparc  = "scilpy.cli.scil_fodf_bundleparc:main"
+scil_fodf_max_in_ventricles  = "scilpy.cli.scil_fodf_max_in_ventricles:main"
+scil_fodf_memsmt  = "scilpy.cli.scil_fodf_memsmt:main"
+scil_fodf_metrics  = "scilpy.cli.scil_fodf_metrics:main"
+scil_fodf_msmt  = "scilpy.cli.scil_fodf_msmt:main"
+scil_fodf_ssst  = "scilpy.cli.scil_fodf_ssst:main"
+scil_fodf_to_bingham  = "scilpy.cli.scil_fodf_to_bingham:main"
+scil_freewater_maps  = "scilpy.cli.scil_freewater_maps:main"
+scil_freewater_priors  = "scilpy.cli.scil_freewater_priors:main"
+scil_frf_mean  = "scilpy.cli.scil_frf_mean:main"
+scil_frf_memsmt  = "scilpy.cli.scil_frf_memsmt:main"
+scil_frf_msmt  = "scilpy.cli.scil_frf_msmt:main"
+scil_frf_set_diffusivities  = "scilpy.cli.scil_frf_set_diffusivities:main"
+scil_frf_ssst  = "scilpy.cli.scil_frf_ssst:main"
+scil_get_version  = "scilpy.cli.scil_get_version:main"
+scil_gradients_apply_transform  = "scilpy.cli.scil_gradients_apply_transform:main"
+scil_gradients_convert  = "scilpy.cli.scil_gradients_convert:main"
+scil_gradients_generate_sampling  = "scilpy.cli.scil_gradients_generate_sampling:main"
+scil_gradients_modify_axes  = "scilpy.cli.scil_gradients_modify_axes:main"
+scil_gradients_normalize_bvecs  = "scilpy.cli.scil_gradients_normalize_bvecs:main"
+scil_gradients_round_bvals  = "scilpy.cli.scil_gradients_round_bvals:main"
+scil_gradients_validate_correct_eddy  = "scilpy.cli.scil_gradients_validate_correct_eddy:main"
+scil_gradients_validate_correct  = "scilpy.cli.scil_gradients_validate_correct:main"
+scil_gradients_validate_sampling  = "scilpy.cli.scil_gradients_validate_sampling:main"
+scil_header_print_info  = "scilpy.cli.scil_header_print_info:main"
+scil_header_validate_compatibility  = "scilpy.cli.scil_header_validate_compatibility:main"
+scil_json_convert_entries_to_xlsx  = "scilpy.cli.scil_json_convert_entries_to_xlsx:main"
+scil_json_harmonize_entries  = "scilpy.cli.scil_json_harmonize_entries:main"
+scil_json_merge_entries  = "scilpy.cli.scil_json_merge_entries:main"
+scil_labels_combine  = "scilpy.cli.scil_labels_combine:main"
+scil_labels_dilate  = "scilpy.cli.scil_labels_dilate:main"
+scil_labels_from_mask  = "scilpy.cli.scil_labels_from_mask:main"
+scil_labels_remove  = "scilpy.cli.scil_labels_remove:main"
+scil_labels_split_volume_by_ids  = "scilpy.cli.scil_labels_split_volume_by_ids:main"
+scil_labels_split_volume_from_lut  = "scilpy.cli.scil_labels_split_volume_from_lut:main"
+scil_lesions_generate_nawm  = "scilpy.cli.scil_lesions_generate_nawm:main"
+scil_lesions_harmonize_labels = "scilpy.cli.scil_lesions_harmonize_labels:main"
+scil_lesions_info  = "scilpy.cli.scil_lesions_info:main"
+scil_mrds_metrics  = "scilpy.cli.scil_mrds_metrics:main"
+scil_mrds_select_number_of_tensors  = "scilpy.cli.scil_mrds_select_number_of_tensors:main"
+scil_mti_adjust_B1_header  = "scilpy.cli.scil_mti_adjust_B1_header:main"
+scil_mti_maps_ihMT  = "scilpy.cli.scil_mti_maps_ihMT:main"
+scil_mti_maps_MT  = "scilpy.cli.scil_mti_maps_MT:main"
+scil_NODDI_maps  = "scilpy.cli.scil_NODDI_maps:main"
+scil_NODDI_priors  = "scilpy.cli.scil_NODDI_priors:main"
+scil_plot_stats_per_point  = "scilpy.cli.scil_plot_stats_per_point:main"
+scil_qball_metrics  = "scilpy.cli.scil_qball_metrics:main"
+scil_rgb_convert  = "scilpy.cli.scil_rgb_convert:main"
+scil_search_keywords  = "scilpy.cli.scil_search_keywords:main"
+scil_sh_convert  = "scilpy.cli.scil_sh_convert:main"
+scil_sh_fusion  = "scilpy.cli.scil_sh_fusion:main"
+scil_sh_to_aodf  = "scilpy.cli.scil_sh_to_aodf:main"
+scil_sh_to_rish  = "scilpy.cli.scil_sh_to_rish:main"
+scil_sh_to_sf  = "scilpy.cli.scil_sh_to_sf:main"
+scil_stats_group_comparison  = "scilpy.cli.scil_stats_group_comparison:main"
+scil_surface_apply_transform  = "scilpy.cli.scil_surface_apply_transform:main"
+scil_surface_convert  = "scilpy.cli.scil_surface_convert:main"
+scil_surface_create  = "scilpy.cli.scil_surface_create:main"
+scil_surface_flip  = "scilpy.cli.scil_surface_flip:main"
+scil_surface_smooth  = "scilpy.cli.scil_surface_smooth:main"
+scil_tracking_local_dev  = "scilpy.cli.scil_tracking_local_dev:main"
+scil_tracking_local  = "scilpy.cli.scil_tracking_local:main"
+scil_tracking_pft_maps_edit  = "scilpy.cli.scil_tracking_pft_maps_edit:main"
+scil_tracking_pft_maps  = "scilpy.cli.scil_tracking_pft_maps:main"
+scil_tracking_pft  = "scilpy.cli.scil_tracking_pft:main"
+scil_tractogram_apply_transform  = "scilpy.cli.scil_tractogram_apply_transform:main"
+scil_tractogram_apply_transform_to_hdf5  = "scilpy.cli.scil_tractogram_apply_transform_to_hdf5:main"
+scil_tractogram_assign_custom_color  = "scilpy.cli.scil_tractogram_assign_custom_color:main"
+scil_tractogram_assign_uniform_color  = "scilpy.cli.scil_tractogram_assign_uniform_color:main"
+scil_tractogram_commit  = "scilpy.cli.scil_tractogram_commit:main"
+scil_tractogram_compress  = "scilpy.cli.scil_tractogram_compress:main"
+scil_tractogram_compute_density_map  = "scilpy.cli.scil_tractogram_compute_density_map:main"
+scil_tractogram_compute_TODI  = "scilpy.cli.scil_tractogram_compute_TODI:main"
+scil_tractogram_convert_hdf5_to_trk  = "scilpy.cli.scil_tractogram_convert_hdf5_to_trk:main"
+scil_tractogram_convert  = "scilpy.cli.scil_tractogram_convert:main"
+scil_tractogram_convert_trk_to_hdf5  = "scilpy.cli.scil_tractogram_convert_trk_to_hdf5:main"
+scil_tractogram_count_streamlines  = "scilpy.cli.scil_tractogram_count_streamlines:main"
+scil_tractogram_cut_streamlines  = "scilpy.cli.scil_tractogram_cut_streamlines:main"
+scil_tractogram_detect_loops  = "scilpy.cli.scil_tractogram_detect_loops:main"
+scil_tractogram_dpp_math  = "scilpy.cli.scil_tractogram_dpp_math:main"
+scil_tractogram_dps_math  = "scilpy.cli.scil_tractogram_dps_math:main"
+scil_tractogram_extract_ushape  = "scilpy.cli.scil_tractogram_extract_ushape:main"
+scil_tractogram_filter_by_anatomy  = "scilpy.cli.scil_tractogram_filter_by_anatomy:main"
+scil_tractogram_filter_by_length  = "scilpy.cli.scil_tractogram_filter_by_length:main"
+scil_tractogram_filter_by_orientation  = "scilpy.cli.scil_tractogram_filter_by_orientation:main"
+scil_tractogram_filter_by_roi  = "scilpy.cli.scil_tractogram_filter_by_roi:main"
+scil_tractogram_filter_collisions  = "scilpy.cli.scil_tractogram_filter_collisions:main"
+scil_tractogram_flip  = "scilpy.cli.scil_tractogram_flip:main"
+scil_tractogram_math  = "scilpy.cli.scil_tractogram_math:main"
+scil_tractogram_pairwise_comparison  = "scilpy.cli.scil_tractogram_pairwise_comparison:main"
+scil_tractogram_print_info  = "scilpy.cli.scil_tractogram_print_info:main"
+scil_tractogram_project_map_to_streamlines  = "scilpy.cli.scil_tractogram_project_map_to_streamlines:main"
+scil_tractogram_project_streamlines_to_map  = "scilpy.cli.scil_tractogram_project_streamlines_to_map:main"
+scil_tractogram_qbx  = "scilpy.cli.scil_tractogram_qbx:main"
+scil_tractogram_register  = "scilpy.cli.scil_tractogram_register:main"
+scil_tractogram_remove_invalid  = "scilpy.cli.scil_tractogram_remove_invalid:main"
+scil_tractogram_resample_nb_points  = "scilpy.cli.scil_tractogram_resample_nb_points:main"
+scil_tractogram_resample  = "scilpy.cli.scil_tractogram_resample:main"
+scil_tractogram_seed_density_map  = "scilpy.cli.scil_tractogram_seed_density_map:main"
+scil_tractogram_segment_connections_from_labels  = "scilpy.cli.scil_tractogram_segment_connections_from_labels:main"
+scil_tractogram_segment_with_bundleseg  = "scilpy.cli.scil_tractogram_segment_with_bundleseg:main"
+scil_tractogram_segment_with_recobundles  = "scilpy.cli.scil_tractogram_segment_with_recobundles:main"
+scil_tractogram_segment_with_ROI_and_score  = "scilpy.cli.scil_tractogram_segment_with_ROI_and_score:main"
+scil_tractogram_shuffle  = "scilpy.cli.scil_tractogram_shuffle:main"
+scil_tractogram_smooth  = "scilpy.cli.scil_tractogram_smooth:main"
+scil_tractogram_split  = "scilpy.cli.scil_tractogram_split:main"
+scil_viz_bingham_fit  = "scilpy.cli.scil_viz_bingham_fit:main"
+scil_viz_bundle  = "scilpy.cli.scil_viz_bundle:main"
+scil_viz_bundle_screenshot_mni  = "scilpy.cli.scil_viz_bundle_screenshot_mni:main"
+scil_viz_bundle_screenshot_mosaic  = "scilpy.cli.scil_viz_bundle_screenshot_mosaic:main"
+scil_viz_connectivity  = "scilpy.cli.scil_viz_connectivity:main"
+scil_viz_dti_screenshot  = "scilpy.cli.scil_viz_dti_screenshot:main"
+scil_viz_fodf  = "scilpy.cli.scil_viz_fodf:main"
+scil_viz_gradients_screenshot  = "scilpy.cli.scil_viz_gradients_screenshot:main"
+scil_viz_tractogram_collisions  = "scilpy.cli.scil_viz_tractogram_collisions:main"
+scil_viz_tractogram_seeds_3d  = "scilpy.cli.scil_viz_tractogram_seeds_3d:main"
+scil_viz_tractogram_seeds  = "scilpy.cli.scil_viz_tractogram_seeds:main"
+scil_viz_volume_histogram  = "scilpy.cli.scil_viz_volume_histogram:main"
+scil_viz_volume_scatterplot  = "scilpy.cli.scil_viz_volume_scatterplot:main"
+scil_viz_volume_screenshot_mosaic  = "scilpy.cli.scil_viz_volume_screenshot_mosaic:main"
+scil_viz_volume_screenshot  = "scilpy.cli.scil_viz_volume_screenshot:main"
+scil_volume_apply_transform  = "scilpy.cli.scil_volume_apply_transform:main"
+scil_volume_b0_synthesis  = "scilpy.cli.scil_volume_b0_synthesis:main"
+scil_volume_count_non_zero_voxels  = "scilpy.cli.scil_volume_count_non_zero_voxels:main"
+scil_volume_crop  = "scilpy.cli.scil_volume_crop:main"
+scil_volume_distance_map  = "scilpy.cli.scil_volume_distance_map:main"
+scil_volume_flip  = "scilpy.cli.scil_volume_flip:main"
+scil_volume_math  = "scilpy.cli.scil_volume_math:main"
+scil_volume_pairwise_comparison  = "scilpy.cli.scil_volume_pairwise_comparison:main"
+scil_volume_remove_outliers_ransac  = "scilpy.cli.scil_volume_remove_outliers_ransac:main"
+scil_volume_resample  = "scilpy.cli.scil_volume_resample:main"
+scil_volume_reshape  = "scilpy.cli.scil_volume_reshape:main"
+scil_volume_reslice_to_reference  = "scilpy.cli.scil_volume_reslice_to_reference:main"
+scil_volume_stats_in_labels  = "scilpy.cli.scil_volume_stats_in_labels:main"
+scil_volume_stats_in_ROI  = "scilpy.cli.scil_volume_stats_in_ROI:main"
