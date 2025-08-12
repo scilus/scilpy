@@ -304,7 +304,7 @@ def main():
         rap = RAPContinue(rap_mask, propagator, max_nbr_pts,
                           step_size=vox_step_size)
     elif args.rap_method == "quack":
-        rap = RAPGraph(rap_mask, propagator, max_nbr_pts, fodf=dataset, reps=args.reps,
+        rap = RAPGraph(rap_mask, rap_img, propagator, max_nbr_pts, fodf=odf_sh_img, reps=args.reps,
                        alpha=args.alpha)
 
     else:
