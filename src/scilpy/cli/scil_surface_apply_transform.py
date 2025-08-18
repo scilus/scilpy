@@ -28,7 +28,7 @@ Reference:
 import argparse
 import logging
 
-from dipy.io.surface import save_surface, load_surface
+from dipy.io.surface import save_surface
 import nibabel as nib
 
 from scilpy.io.surfaces import load_surface_with_reference
@@ -86,10 +86,8 @@ def main():
     convert_stateful_str_to_enum(args)
 
     # Load data
-    sfs = load_surface(args.in_moving_surface, 'freesurfer_t1.nii.gz',
-                       from_space=args.source_space,
-                       from_origin=args.source_origin)
-    
+    sfs = load_surface_with_reference(parser, args, args.in_moving_surface)
+
     img = nib.load(args.in_target_reference)
     transfo = load_matrix_in_any_format(args.in_transfo)
 

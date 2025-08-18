@@ -23,9 +23,9 @@ def test_execution_surface_vtk_fib(script_runner, monkeypatch):
                           'gyri_fanning.trk')
     in_fa = os.path.join(SCILPY_HOME, 'surface_vtk_fib',
                          'fa.nii.gz')
-    script_runner.run('scil_tractogram_convert.py', in_trk,
+    script_runner.run('scil_tractogram_convert', in_trk,
                       'gyri_fanning.vtk', '--reference', in_fa)
-    ret = script_runner.run('scil_tractogram_flip.py', 'gyri_fanning.vtk',
+    ret = script_runner.run(['scil_tractogram_flip', 'gyri_fanning.vtk',
                             'gyri_fanning_flipped.vtk', '--reference', in_fa,
-                            'x')
+                            'x'])
     assert ret.success
