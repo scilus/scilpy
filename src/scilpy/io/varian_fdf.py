@@ -142,7 +142,7 @@ def read_file(file_path):
                 # Extracts units in quotes.
                 # ex: 'char  *abscissa[] = {"cm", "cm"}' returns
                 # ["cm", "cm"]
-                m = re.findall('\"[a-z]{2}\"', line.rstrip())
+                m = re.findall(r'\"[a-z]{2}\"', line.rstrip())
 
                 unit = m[0].strip('"')
 

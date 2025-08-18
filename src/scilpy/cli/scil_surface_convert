@@ -21,9 +21,8 @@ import argparse
 import logging
 import os
 
-from dipy.io.surface import save_surface
+from dipy.io.surface import load_surface, save_surface
 
-from scilpy.io.surfaces import load_surface_with_reference
 from scilpy.io.utils import (add_vtk_legacy_arg,
                              add_overwrite_arg,
                              add_surface_spatial_arg,
@@ -79,6 +78,18 @@ def main():
     assert_outputs_exist(parser, args, args.out_surface)
     convert_stateful_str_to_enum(args)
 
+    _, ext = os.path.splitext(args.in_surface)
+    # FreeSurfer surfaces have no extension, verify if the input has one of the
+    # many supported extensions, otherwise it is (likely) a FreeSurfer surface
+    if ext not in ['.vtk', '.vtp', '.fib', '.ply', '.stl', '.xml', '.obj']:
+        if args.reference is None:
+            parser.error('The reference image is required for FreeSurfer '
+                         'surfaces.')
+
+        if args.source_space or args.source_origin:
+            print('The source space and source origin can not be changed for '
+                  'FreeSurfer surfaces. Will be ignored.')
+
     _, ext = os.path.splitext(args.out_surface)
     if ext not in ['.vtk', '.vtp', '.fib', '.ply', '.stl', '.xml', '.obj']:
         if args.destination_space or args.destination_origin:
@@ -86,7 +97,9 @@ def main():
                          'not be changed for FreeSurfer surfaces')
 
     # Dipy takes care of Freesurfer surfaces (ignore space and origin if any)
-    sfs = load_surface_with_reference(parser, args, args.in_surface)
+    sfs = load_surface(args.in_surface, args.reference,
+                       from_space=args.source_space,
+                       from_origin=args.source_origin)
 
     # The ref will be either None or a valid path or both None
     save_surface(sfs, args.out_surface, to_space=args.destination_space,

@@ -154,6 +154,7 @@ def test_trim_streamline_in_mask():
     sft.to_vox()
     sft.to_corner()
 
+    sft.streamlines._data = sft.streamlines._data.astype(np.float32)
     indices, points_to_idx = streamlines_to_voxel_coordinates(
         sft.streamlines,
         return_mapping=True
@@ -210,6 +211,7 @@ def test_trim_streamline_in_mask_keep_longest():
     sft.to_vox()
     sft.to_corner()
 
+    sft.streamlines._data = sft.streamlines._data.astype(np.float32)
     indices, points_to_idx = streamlines_to_voxel_coordinates(
         sft.streamlines,
         return_mapping=True
@@ -263,6 +265,7 @@ def test_trim_streamline_endpoints_in_mask():
     sft.to_vox()
     sft.to_corner()
 
+    sft.streamlines._data = sft.streamlines._data.astype(np.float32)
     indices, points_to_idx = streamlines_to_voxel_coordinates(
         sft.streamlines,
         return_mapping=True
@@ -408,7 +411,8 @@ def test_compute_streamline_segment():
         nb_clusters=2
     )
 
-    (indices, points_to_idx) = streamlines_to_voxel_coordinates(
+    one_sft.streamlines._data = one_sft.streamlines._data.astype(np.float32)
+    indices, points_to_idx = streamlines_to_voxel_coordinates(
         one_sft.streamlines,
         return_mapping=True
     )
@@ -422,12 +426,12 @@ def test_compute_streamline_segment():
     # If the streamline intersects both ROIs
     if in_strl_idx is not None and out_strl_idx is not None:
         points_to_indices = points_to_idx[0]
-        # Compute the new streamline by keeping only the segment between
-        # the two ROIs
-        res = compute_streamline_segment(one_sft.streamlines[0],
-                                         strl_indices,
-                                         in_strl_idx, out_strl_idx,
-                                         points_to_indices)
+    # Compute the new streamline by keeping only the segment between
+    # the two ROIs
+    res = compute_streamline_segment(one_sft.streamlines[0],
+                                     strl_indices,
+                                     in_strl_idx, out_strl_idx,
+                                     points_to_indices)
 
     # Streamline should be shorter than the original
     assert len(res) < len(one_sft.streamlines[0])

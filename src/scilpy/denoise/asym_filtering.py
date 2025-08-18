@@ -104,7 +104,7 @@ def unified_filtering(sh_data, sh_order, sh_basis, is_legacy, full_basis,
     nx_filter = _unified_filter_build_nx(filter_shape, sigma_spatial,
                                          sigma_align, sphere, exclude_center)
 
-    B = sh_to_sf_matrix(sphere, sh_order, sh_basis, full_basis,
+    B = sh_to_sf_matrix(sphere, sh_order_max=sh_order, basis_type=sh_basis, full_basis=full_basis,
                         legacy=is_legacy, return_inv=False)
     _, B_inv = sh_to_sf_matrix(sphere, sh_order, sh_basis, True,
                                legacy=is_legacy, return_inv=True)

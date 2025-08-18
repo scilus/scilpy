@@ -28,14 +28,18 @@ Reference:
 import argparse
 import logging
 
+from dipy.io.surface import save_surface
 import nibabel as nib
-from trimeshpy.io import load_mesh_from_file
-from trimeshpy.vtk_util import save_polydata
 
+from scilpy.io.surfaces import load_surface_with_reference
 from scilpy.io.utils import (add_overwrite_arg,
+                             add_reference_arg,
+                             add_surface_spatial_arg,
                              add_verbose_arg,
+                             add_vtk_legacy_arg,
                              assert_inputs_exist,
                              assert_outputs_exist,
+                             convert_stateful_str_to_enum,
                              load_matrix_in_any_format)
 from scilpy.surfaces.surface_operations import apply_transform
 from scilpy.version import version_string
@@ -48,6 +52,8 @@ def _build_arg_parser():
 
     p.add_argument('in_moving_surface',
                    help='Input surface (.vtk).')
+    p.add_argument('in_target_reference',
+                   help='Input target reference surface (.vtk).')
     p.add_argument('in_transfo',
                    help='Path of the file containing the 4x4 \n'
                         'transformation, matrix (.txt, .npy or .mat).')
@@ -60,12 +66,15 @@ def _build_arg_parser():
     g.add_argument('--in_deformation', metavar='file',
                    help='Path to the file containing a deformation field.')
 
+    add_vtk_legacy_arg(p)
+    add_surface_spatial_arg(p)
+    add_reference_arg(p)
     add_verbose_arg(p)
     add_overwrite_arg(p)
 
     return p
 
-
+import numpy as np
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
@@ -74,22 +83,26 @@ def main():
     assert_inputs_exist(parser, [args.in_moving_surface, args.in_transfo],
                         args.in_deformation)
     assert_outputs_exist(parser, args, args.out_surface)
+    convert_stateful_str_to_enum(args)
 
-    # Load mesh
-    mesh = load_mesh_from_file(args.in_moving_surface)
+    # Load data
+    sfs = load_surface_with_reference(parser, args, args.in_moving_surface)
 
-    # Load transformation
+    img = nib.load(args.in_target_reference)
     transfo = load_matrix_in_any_format(args.in_transfo)
 
     deformation_data = None
     if args.in_deformation is not None:
         deformation_data = nib.load(args.in_deformation)
 
-    mesh = apply_transform(mesh, transfo, deformation_data,
+    out_sfs = apply_transform(sfs, transfo, img, deformation_data,
                            inverse=args.inverse)
 
     # Save mesh
-    save_polydata(mesh.__polydata__, args.out_surface, legacy_vtk_format=True)
+    save_surface(out_sfs, args.out_surface,
+                 to_space=args.destination_space,
+                 to_origin=args.destination_origin,
+                 legacy_vtk_format=args.legacy_vtk_format)
 
 
 if __name__ == "__main__":

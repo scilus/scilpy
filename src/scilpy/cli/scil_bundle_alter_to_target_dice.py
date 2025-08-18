@@ -142,7 +142,7 @@ def main():
     elif args.transform:
         altered_sft, matrix = transform_streamlines_alter(sft, args.min_dice,
                                                           epsilon=args.epsilon)
-
+    print(altered_sft.streamlines._data.dtype)
     # Some operations could have generated invalid streamlines
     altered_sft, _ = cut_invalid_streamlines(altered_sft)
     altered_sft = filter_streamlines_by_nb_points(altered_sft, min_nb_points=2)

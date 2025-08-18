@@ -31,7 +31,7 @@ dependencies = [
 "cvxpy==1.6.*",
 "cycler==0.12.*",
 "deepdiff==8.1.*",
-"dipy==1.11.*",
+"dipy==1.12.*",
 "dmri-amico==2.1.*",
 "dmri-commit==2.3.*",
 "docopt==0.6.*",
