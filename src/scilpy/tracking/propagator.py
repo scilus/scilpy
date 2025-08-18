@@ -427,12 +427,12 @@ class ODFPropagator(PropagatorOnSphere):
         # Interpolation:
         sh = self.datavolume.get_value_at_coordinate(
             *pos, space=self.space, origin=self.origin)
-        sf = np.dot(self.B.T, sh).reshape((-1, 1))
+        sf = np.dot(self.B.T, sh)
 
         sf_max = np.max(sf)
         if sf_max > 0:
             sf /= sf_max
-        return sf
+        return np.squeeze(sf)
 
     def prepare_forward(self, seeding_pos, random_generator):
         """
