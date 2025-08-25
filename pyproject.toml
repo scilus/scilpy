@@ -9,7 +9,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "scilpy"
-version = "2.2.0"
+version = "2.2.0rc1"
 description = "Scilpy: diffusion MRI tools and utilities"
 authors = [{ name = "SCIL Team" }]
 readme = "README.md"
