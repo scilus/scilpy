@@ -57,10 +57,10 @@ def get_endpoints_density_map(sft, point_to_select=1, to_millimeters=False,
         endpoints_mask = np.zeros(sft.dimensions, dtype=int)
         sft.to_vox()
         sft.to_corner()
-        sft.streamlines._data = sft.streamlines._data.astype(np.int16)
+        sft.streamlines._data = sft.streamlines._data
         for streamline in sft.streamlines:
-            endpoints_mask[tuple(streamline[0])] += 1
-            endpoints_mask[tuple(streamline[-1])] += 1
+            endpoints_mask[tuple(streamline[0].astype(np.int16))] += 1
+            endpoints_mask[tuple(streamline[-1].astype(np.int16))] += 1
         mask=endpoints_mask
     else:
 
