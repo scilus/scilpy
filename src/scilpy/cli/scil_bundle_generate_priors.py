@@ -61,8 +61,13 @@ def _build_arg_parser():
     p.add_argument('--sf_threshold', default=0.2, type=float,
                    help='Relative threshold for sf masking (0.0-1.0).')
     p.add_argument('--out_prefix', default='',
-                   help='Add a prefix to all output filename, \n'
-                        'default is no prefix.')
+                   help='Add a prefix to all output filenames, default is no '
+                        'prefix.\n'
+                        'The generated files are: \n'
+                        '- efod: the enhanced FOD\n'
+                        '- priors\n'
+                        '- todi_mask\n'
+                        '- endpoints_mask: a binary mask.')
     p.add_argument('--out_dir', default='./',
                    help='Output directory for all generated files,\n'
                         'default is current directory.')
@@ -166,7 +171,7 @@ def main():
     nib.save(nib.Nifti1Image(sub_mask_3d.astype(
         np.uint8), img_mask.affine), out_todi_mask)
 
-    endpoints_mask = get_endpoints_density_map(sft)
+    endpoints_mask = get_endpoints_density_map(sft, binary=True)
     nib.save(nib.Nifti1Image(endpoints_mask * mask_data,
                              img_mask.affine), out_endpoints_mask)
 
