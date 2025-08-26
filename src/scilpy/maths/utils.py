@@ -18,8 +18,12 @@ def _fit_circle_2d(x, y, dist_w):
 
     Returns
     -------
-    fit: (np.ndarray, np.ndarray)
-        Fitted circle coordinates (x_coordinates, y_coordinates).
+    x_c: np.ndarray
+        Fitted circle coordinates (x_coordinates)
+    y_c: np.ndarray
+        Fitted circle coordinates (y_coordinates)
+    r: float
+        The radius of the circle.
     """
     if dist_w is None:
         dist_w = np.ones(len(x))
@@ -42,6 +46,20 @@ def _rodrigues_rot(pts, n0, n1):
     - Rotate given points based on a starting and ending vector
     - Axis k and angle of rotation theta given by vectors n0,n1
     P_rot = P*cos(theta) + (k x P)*sin(theta) + k*<k,P>*(1-cos(theta))
+
+    Parameters
+    ----------
+    pts: np.ndarray
+        The coordinates of the points.
+    n0: np.ndarray
+        The starting vector.
+    n1: np.ndarray
+        The ending vector.
+
+    Returns
+    -------
+    pts_rot: np.ndarray
+        The rotated coordinates of the points.
 
     References
     ----------
@@ -70,7 +88,7 @@ def _rodrigues_rot(pts, n0, n1):
 
 def fit_circle_planar(pts, dist_w):
     """
-    Fitting plane by SVD for the mean-centered data.
+    Fitting a plane by SVD for the mean-centered data.
 
     Parameters
     ----------
@@ -78,6 +96,13 @@ def fit_circle_planar(pts, dist_w):
         The coordinates.
     dist_w: str
         One of ['lin_up', 'lin_down', 'exp', 'inv', 'log'].
+
+    Returns
+    -------
+    pts_recentered: np.ndarray
+        The fitted coordinates.
+    radius: float
+        The radius of the circle.
     """
     pts_mean = pts.mean(axis=0)
     pts_centered = pts - pts_mean

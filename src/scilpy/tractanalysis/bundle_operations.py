@@ -359,6 +359,14 @@ def _project_to_cross_section(positions, directions, dist_w=None):
     dist_w: str
         One of ['lin_up', 'lin_down', 'exp', 'inv', 'log'], or None
 
+    Returns
+    -------
+    center: ndarray
+        The coordinates of the center of the plane.
+    radius: float
+        The radius of the points on the plane.
+    error: float
+        The mean squared error.
     """
     u_directions = np.average(directions, axis=0)
     u_directions /= np.linalg.norm(u_directions)
@@ -403,7 +411,7 @@ def compute_bundle_diameter(sft, data_labels, fitting_func):
     radius: np.ndarray
         The radius per section. size [nb_labels, ]
     error: np.ndarray
-        The error (std) per section. size [nb_labels, ]
+        The error (mean squared error) per section. size [nb_labels, ]
     pts_labels: list[list]
         The labels associated with each streamline.
     """
