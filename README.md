@@ -22,7 +22,7 @@ sudo apt-get install python3.12 python3.12-dev python3.12-venv python3.12-tk
 
 :warning: We highly suggest to install uv to speedup scilpy installation: https://docs.astral.sh/uv/getting-started/installation/
 
-:point_up: BUT, if you don't want to use uv, you can remove it from the next commands before running them.
+:point_up: BUT, if you don't want to use uv, scilpy can still be installed by omitting the uv from all the installation command lines below.
 
 Make sure your pip is up-to-date before trying to install:
 ```
