@@ -67,7 +67,7 @@ def get_endpoints_density_map(sft, point_to_select=1, to_millimeters=False,
         # For more complex options, using head + tail
         endpoints_map_head, endpoints_map_tail = \
             get_head_tail_density_maps(sft, point_to_select, to_millimeters)
-        mask=endpoints_map_head + endpoints_map_tail
+        mask = endpoints_map_head + endpoints_map_tail
 
     if binary:
         mask = mask.astype(bool)
