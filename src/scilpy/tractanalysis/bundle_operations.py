@@ -10,8 +10,6 @@ from dipy.segment.metric import AveragePointwiseEuclideanMetric
 import numpy as np
 from dipy.tracking.streamlinespeed import set_number_of_points
 from scipy.ndimage import map_coordinates, gaussian_filter
-from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
-from scipy.sparse import dok_matrix
 from scipy.spatial import cKDTree
 from sklearn.cluster import KMeans
 
@@ -20,8 +18,6 @@ from scilpy.tractograms.streamline_and_mask_operations import \
     get_endpoints_density_map
 from scilpy.tractograms.streamline_operations import \
     resample_streamlines_num_points, get_streamlines_bounding_box
-from scilpy.tractograms.tractogram_operations import union_robust, \
-    intersection_robust
 
 
 def get_streamlines_centroid(streamlines, nb_points):
@@ -479,42 +475,3 @@ def compute_bundle_diameter(sft, data_labels, fitting_func):
             = {'mean': float(radius[label - 1][0]) * 2,
                'std': float(error[label - 1][0])}
     return bundle_dict, centroid_smooth, radius, error, pts_labels
-
-
-def filter_by_occurrence(sft_list, vol_dim, ratio_voxels = 0.5,
-                         ratio_streamlines = 0.5):
-    nb_bundles = len(sft_list)
-
-    fusion_streamlines = []
-    for sft in sft_list:
-        fusion_streamlines.append(sft.streamlines)
-    fusion_streamlines, _ = union_robust(sft_list)
-
-    volume = np.zeros(vol_dim)
-    streamlines_vote = dok_matrix((len(fusion_streamlines), nb_bundles))
-
-    for i in range(nb_bundles):
-        # Add an occurrence to voxels touched by this bundle.
-        binary = compute_tract_counts_map(sft_list[i].streamlines, vol_dim)
-        volume[binary > 0] += 1
-
-        # Remember streamlines in this bundle from the fusion streamlines
-        if ratio_streamlines is not None:
-            _, indices = intersection_robust([fusion_streamlines,
-                                              sft_list[i].streamlines])
-            streamlines_vote[list(indices), [i]] += 1
-
-    # Create a tractogram with streamlines well represented
-    new_sft = None
-    if ratio_streamlines is not None:
-        ratio_value = int(ratio_streamlines * nb_bundles)
-        real_indices = np.where(np.sum(streamlines_vote,
-                                       axis=1) >= ratio_value)[0]
-        new_sft = StatefulTractogram.from_sft(fusion_streamlines[real_indices],
-                                              sft_list[0])
-
-    # Create a volume with voxels well represented
-    volume[volume < int(ratio_voxels * nb_bundles)] = 0
-    volume[volume > 0] = 1
-
-    return volume, new_sft

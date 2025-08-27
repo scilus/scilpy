@@ -27,7 +27,7 @@ from scilpy.io.utils import (add_overwrite_arg, add_reference_arg,
                              assert_outputs_exist, assert_headers_compatible,
                              ranged_type)
 
-from scilpy.tractanalysis.bundle_operations import filter_by_occurrence
+from scilpy.tractanalysis.multi_bundle_operations import filter_by_occurrence
 from scilpy.version import version_string
 
 
