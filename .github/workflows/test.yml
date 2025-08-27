@@ -70,6 +70,7 @@ jobs:
         run: |
           export C_INCLUDE_PATH=$pythonLocation/include/python${{ steps.python-selector.outputs.python-version }}:$C_INCLUDE_PATH
           scil_data_download
+          scil_search_keywords test
           uv run --active pytest --cov-report term-missing:skip-covered
 
       - name: Save test results and coverage
