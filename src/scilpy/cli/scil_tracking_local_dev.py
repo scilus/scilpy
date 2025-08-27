@@ -153,12 +153,12 @@ def _build_arg_parser():
 
     track_g.add_argument('--rap_mask', default=None,
                          help='Region-Adaptive Propagation mask (.nii.gz).\n'
-                        'Region-Adaptive Propagation tractography will start within '
-                        'this mask.')
+                              'Region-Adaptive Propagation tractography will start within '
+                              'this mask.')
     track_g.add_argument('--rap_method', default='None',
-                        choices=['None', 'continue'],
-                        help="Region-Adaptive Propagation tractography method "
-                        " [%(default)s]")
+                         choices=['None', 'continue'],
+                         help="Region-Adaptive Propagation tractography method "
+                              " [%(default)s]")
 
     m_g = p.add_argument_group('Memory options')
     add_processes_arg(m_g)

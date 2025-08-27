@@ -22,5 +22,8 @@ def test_execution_lesion(script_runner, monkeypatch):
     t1 = os.path.join(SCILPY_HOME, 'lesions', 'S001_T1_lesions_labels.nii.gz')
     t2 = os.path.join(SCILPY_HOME, 'lesions', 'S001_T2_lesions_labels.nii.gz')
     ret = script_runner.run(['scil_lesions_info', t1,
-                             '--bundle_labels_map', t2, 'out.json'])
+                             '--bundle_labels_map', t2,
+                             '--out_lesion_stats', 'lesions_stats.json',
+                             '--out_lesion_atlas', 'lesions_atlas.nii.gz',
+                             'out.json'])
     assert ret.success

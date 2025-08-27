@@ -28,8 +28,8 @@ All the input nifti files must be in isotropic resolution.
 Formerly: scil_compute_pft.py
 -----------------------------------------------------------------------------
 Reference:
-[1] Girard, G., Whittingstall K., Deriche, R., and Descoteaux, M. (2014). 
-    Towards quantitative connectivity analysis: reducing tractographybiases. 
+[1] Girard, G., Whittingstall K., Deriche, R., and Descoteaux, M. (2014).
+    Towards quantitative connectivity analysis: reducing tractographybiases.
     Neuroimage.
 -----------------------------------------------------------------------------
 """

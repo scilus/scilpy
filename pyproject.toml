@@ -9,7 +9,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "scilpy"
-version = "2.2.0"
+version = "2.2.0rc1"
 description = "Scilpy: diffusion MRI tools and utilities"
 authors = [{ name = "SCIL Team" }]
 readme = "README.md"
@@ -84,6 +84,11 @@ include-package-data = true
 
 [tool.setuptools.package-data]
 "scilpy.data" = ["src/scilpy/data"]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3.5",
+]
 
 [project.scripts]
 scil_aodf_metrics  = "scilpy.cli.scil_aodf_metrics:main"

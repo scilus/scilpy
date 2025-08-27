@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 Computes the information from the input metrics for each cortical region
-(corresponding to an atlas). If more than one metric are provided, statistics are 
+(corresponding to an atlas). If more than one metric are provided, statistics are
 computed separately for each.
 
 Hint: For instance, this script could be useful if you have a seed map from a

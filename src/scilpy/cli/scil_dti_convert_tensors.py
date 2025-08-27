@@ -37,7 +37,7 @@ def _build_arg_parser():
                    choices=supported_tensor_formats,
                    help='Output format. Choices: {}'
                    .format(supported_tensor_formats))
-    
+
     add_verbose_arg(p)
     add_overwrite_arg(p)
 

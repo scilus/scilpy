@@ -63,9 +63,11 @@ from scilpy.utils.scilpy_bot import (
     _split_first_sentence, _highlight_keywords
 )
 from scilpy.utils.scilpy_bot import SPACING_LEN, VOCAB_FILE_PATH
-from scilpy.io.utils import add_verbose_arg
+from scilpy.io.utils import (add_processes_arg, add_verbose_arg,
+                             validate_nbr_processes)
 from scilpy.version import version_string
 from scilpy import SCILPY_HOME
+
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(description=__doc__,
@@ -84,6 +86,7 @@ def _build_arg_parser():
     p.add_argument('--regenerate_help_files', action='store_true',
                    help='Regenerate help files for all scripts.')
 
+    add_processes_arg(p)
     add_verbose_arg(p)
 
     return p
@@ -92,10 +95,21 @@ def _build_arg_parser():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
+
+    nbr_cpu = validate_nbr_processes(parser, args)
+
     if args.verbose == "WARNING":
         logging.getLogger().setLevel(logging.INFO)
     else:
         logging.getLogger().setLevel(logging.getLevelName(args.verbose))
+
+    hidden_dir = pathlib.Path(SCILPY_HOME) / ".hidden"
+
+    if args.regenerate_help_files:
+        shutil.rmtree(hidden_dir, ignore_errors=True)
+        hidden_dir.mkdir()
+        _generate_help_files(nbr_cpu)
+        return
 
     selected_object = None
     if args.search_category:
@@ -130,11 +144,6 @@ def main():
     phrase_mapping = {stem: orig for orig,
                       stem in zip(phrases, stemmed_phrases)}
 
-    hidden_dir = pathlib.Path(SCILPY_HOME) / ".hidden"
-
-    if args.regenerate_help_files:
-        shutil.rmtree(hidden_dir)
-
     if not hidden_dir.exists():
         hidden_dir.mkdir()
         logging.info('This is your first time running this script. '
@@ -157,7 +166,8 @@ def main():
             filename=script_name)
 
         scores_per_script = update_matches_and_scores(scores_per_script,
-                                                      script_name, score_details)
+                                                      script_name,
+                                                      score_details)
 
     # Search in additional keywords in the vocabulary file
     for script in vocab_data['scripts']:
