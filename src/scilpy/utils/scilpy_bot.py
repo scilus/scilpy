@@ -2,6 +2,8 @@
 import ast
 from colorama import Fore, Style
 from importlib.resources import files
+import itertools
+import multiprocessing
 import pathlib
 import re
 import subprocess
@@ -185,7 +187,27 @@ def _stem_phrase(phrase):
     return ' '.join([_stem_word(word) for word in words])
 
 
-def _generate_help_files():
+def _generate_help_file(args):
+    """
+    Generate help file for each script
+    """
+
+    script = args[0]
+    hidden_dir = args[1]
+    help_file = hidden_dir / f'{script.name}.help'
+
+    # Check if help file already exists
+    if help_file.exists():
+        return
+    # Run the script with --h and capture the output
+    result = subprocess.run(['python', script, '--h'],
+                            capture_output=True, text=True)
+    # Save the output to the hidden file
+    with open(help_file, 'w') as f:
+        f.write(result.stdout)
+
+
+def _generate_help_files(nbr_cpu=1):
     """
     This function iterates over all Python scripts in the 'scripts' directory,
     runs each script with the '--h' flag to generate help text,
@@ -219,20 +241,11 @@ def _generate_help_files():
         print("All help files are already generated.")
         return
 
-    # Iterate over all scripts and generate help files
-    for script in tqdm(scripts_to_regenerate):
-        help_file = hidden_dir / f'{script.name}.help'
-        # Check if help file already exists
-        if help_file.exists():
-            continue
-
-        # Run the script with --h and capture the output
-        result = subprocess.run(['python', script, '--h'],
-                                capture_output=True, text=True)
-
-        # Save the output to the hidden file
-        with open(help_file, 'w') as f:
-            f.write(result.stdout)
+    with multiprocessing.Pool(processes=nbr_cpu) as pool:
+        _ = list(tqdm(pool.imap(_generate_help_file,
+                                zip(scripts_to_regenerate,
+                                    itertools.repeat(hidden_dir))),
+                      total=len(scripts_to_regenerate)))
 
 
 def _highlight_keywords(text, all_expressions):
