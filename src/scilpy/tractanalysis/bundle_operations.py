@@ -9,6 +9,8 @@ from dipy.segment.metric import AveragePointwiseEuclideanMetric
 import numpy as np
 from dipy.tracking.streamlinespeed import set_number_of_points
 from scipy.ndimage import map_coordinates, gaussian_filter
+
+from scipy.ndimage import label as ndi_label
 from scipy.spatial import cKDTree
 from sklearn.cluster import KMeans
 
@@ -161,6 +163,51 @@ def uniformize_bundle_sft_using_mask(sft, mask, swap=False):
 
     sft.to_space(old_space)
     sft.to_origin(old_origin)
+
+
+def keep_main_blob_from_bundle_map(bundle_density_map, min_ratio=0.9):
+    """
+    Keep the biggest blob of continuous voxels for a bundle. The density map is
+    the bundle's density map, which probably contains holes from previous
+    processing steps, which split the bundle mask into blobs.
+
+    Parameters
+    ----------
+    bundle_density_map: np.ndarray
+        A density map.
+    min_ratio: float
+        Threshold on the expected ratio of voxels included in the main blob.
+        Ex: if the ratio is 0.5, your "main blob" only contains half of the
+        bundle.
+        Default: 0.9. This is arbitrary, but we generally want a vast majority
+        of the voxels to be contiguous.
+
+    Returns
+    -------
+    bundle_density_map: np.ndarray
+        The map with no isolated voxels.
+    is_ok: bool
+        True if the main blob really contains a majority of voxels, else False.
+    nb_blobs: int
+        Number of blobs found.
+    """
+    # A bundle must be contiguous, we can't have isolated voxels.
+    bundle_disjoint, _ = ndi_label(bundle_density_map)
+    unique, count = np.unique(bundle_disjoint, return_counts=True)
+
+    nb_blobs = len(unique)
+
+    # Keep main blob
+    val = unique[np.argmax(count[1:])+1]
+    bundle_density_map[bundle_disjoint != val] = 0
+
+    # Check if the main blob really contains a majority of voxels.
+    is_ok = True
+    ratio = count[1] / np.sum(count[1:])
+    if ratio < min_ratio:
+        is_ok = False
+
+    return bundle_density_map, is_ok, nb_blobs
 
 
 def detect_ushape(sft, minU, maxU):

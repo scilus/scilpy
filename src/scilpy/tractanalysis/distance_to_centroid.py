@@ -14,6 +14,8 @@ from scipy.spatial import KDTree
 from scipy.spatial.distance import pdist, squareform
 from sklearn.svm import SVC
 
+from scilpy.tractanalysis.bundle_operations import \
+    keep_main_blob_from_bundle_map
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
 from scilpy.tractograms.streamline_operations import \
     resample_streamlines_num_points, resample_streamlines_step_size
@@ -412,8 +414,8 @@ def correct_labels_jump(labels_map, streamlines, nb_pts):
     return labels_map * modified_binary_mask
 
 
-def subdivide_bundles(sft, sft_centroid, binary_mask, nb_pts,
-                      method='centerline', fix_jumps=True):
+def subdivide_bundle(sft, sft_centroid, binary_mask, nb_pts,
+                     method='centerline', fix_jumps=True):
     """
     Function to divide a bundle into multiple section along its length.
     The resulting labels map is based on the binary_mask, but the streamlines
@@ -432,7 +434,7 @@ def subdivide_bundles(sft, sft_centroid, binary_mask, nb_pts,
     ----------
     sft (StatefulTractogram):
         Represent the streamlines to be subdivided, streamlines representation
-        is useful fro the fix_jump parameter.
+        is useful for the fix_jump parameter.
     sft_centroid (StatefulTractogram):
         Centroids used as a reference for subdivision.
     binary_mask (ndarray):
@@ -558,5 +560,54 @@ def subdivide_bundles(sft, sft_centroid, binary_mask, nb_pts,
                                          nb_pts)
         logging.debug('Corrected labels jump in '
                       f'{round(time.time() - timer, 3)} seconds')
+
+    return labels_map
+
+
+def subdivide_bundle_with_quality_check(sft, sft_centroid, binary_mask,
+                                        method, nb_pts, alternate_mask=None):
+    """
+    Try calling subdivide_bundle with basic options. If this results in a
+    weird bundle map with broken mask, then try again with adjusted options.
+
+    Parameters
+    ----------
+    sft: StatefulTractogram
+        The bundle
+    sft_centroid: StatefulTractogram
+        The centroid
+    binary_mask: np.ndarray
+        The binary mask of your bundle
+    method: str
+        'centerline' or 'hyperplane'
+    nb_pts: int
+        Number of subdivision along streamlines' length
+    alternate_mask: np.ndarray
+        Larger binary mask to use in case the result is not perfect.
+    """
+
+    # Main call to subdivide_bundle.
+    labels_map = subdivide_bundle(sft, sft_centroid, binary_mask,
+                                  nb_pts, method=method)
+
+    # We trimmed the streamlines due to looping labels, so we have a new binary
+    # mask
+    binary_mask = np.zeros(labels_map.shape, dtype=np.uint8)
+    binary_mask[labels_map > 0] = 1
+
+    # We need to count blobs again, as the labels could be not contiguous
+    _, is_ok, nb_blobs = keep_main_blob_from_bundle_map(binary_mask)
+
+    # If not ok, it is a weird bundle, so we recompute the labels using the
+    # centerline method.
+    if nb_blobs > 2 and not is_ok:
+        if alternate_mask is None:
+            alternate_mask = binary_mask
+        labels_map = subdivide_bundle(sft, sft_centroid, alternate_mask,
+                                      nb_pts, method='centerline',
+                                      fix_jumps=False)
+        logging.warning('Warning: Some labels were not contiguous. '
+                        'Recomputing labels with centerline method and new '
+                        'options.')
 
     return labels_map
