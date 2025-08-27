@@ -106,7 +106,7 @@ def main():
     hidden_dir = pathlib.Path(SCILPY_HOME) / ".hidden"
 
     if args.regenerate_help_files:
-        shutil.rmtree(hidden_dir)
+        shutil.rmtree(hidden_dir, ignore_errors=True)
         hidden_dir.mkdir()
         _generate_help_files(nbr_cpu)
         return
