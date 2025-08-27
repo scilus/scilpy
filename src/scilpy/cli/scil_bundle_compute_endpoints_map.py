@@ -2,15 +2,16 @@
 # -*- coding: utf-8 -*-
 
 """
-Computes the endpoint map of a bundle. The endpoint map is simply a count of
-the number of streamlines that start or end in each voxel.
+Computes the endpoints maps of a bundle (head and tail). The endpoints maps are
+a count of the number of streamlines that start or end in each voxel.
 
-The idea is to estimate the cortical area affected by the bundle (assuming
-streamlines start/end in the cortex).
-
-Note: If the streamlines are not ordered the head/tail are random and not
-really two coherent groups. Use the following script to order streamlines:
-scil_tractogram_uniformize_endpoints.py
+Note: If the streamlines are not ordered, the head/tail are random and not
+really two coherent groups.
+    - To get a single endpoint map of all endpoints, without grouping the head
+    and tail, use
+        >> scil_tractogram_compute_density_map --endpoints_only
+    - To order streamlines so that they start and end in the same regions, use
+        >> scil_bundle_uniformize_endpoints
 
 Formerly: scil_compute_endpoints_map.py
 """
@@ -57,9 +58,12 @@ def _build_arg_parser():
                    help="Save outputs as a binary mask instead of a heat map.")
 
     distance_g = p.add_argument_group(title='Distance options')
-    distance_g.add_argument('--distance', type=int, default=1,
-                            help="Distance to consider at the extremities "
-                            "of the streamlines. [%(default)s]")
+    distance_g.add_argument(
+        '--distance', type=int, default=1,
+        help="Distance to consider at the extremities of the streamlines. \n"
+             "Ex: if --unit is points, a value of 1 means that the first and "
+             "last \npoints of the streamlines only are considered."
+             "[%(default)s]")
     distance_g.add_argument('--unit', type=str, choices=['points', 'mm'],
                             default='points',
                             help='Unit of the distance. [%(default)s]')
@@ -75,63 +79,44 @@ def _build_arg_parser():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
-    swap = args.swap
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
+    # Verificatons
     assert_inputs_exist(parser, args.in_bundle, args.reference)
     assert_outputs_exist(parser, args, [args.endpoints_map_head,
                                         args.endpoints_map_tail])
 
+    # Loading
     sft = load_tractogram_with_reference(parser, args, args.in_bundle)
-    sft.to_vox()
-    sft.to_corner()
     if len(sft.streamlines) == 0:
         logging.warning('Empty bundle file {}. Skipping'.format(args.bundle))
         return
 
-    transfo, *_ = sft.space_attributes
-
-    head_name = args.endpoints_map_head
-    tail_name = args.endpoints_map_tail
-
-    # Swap head and tail if necessary
-    if swap:
-        head_name = args.endpoints_map_tail
-        tail_name = args.endpoints_map_head
-
-    # Distance and unit to consider at the extremities of the streamlines
-    nb_points = args.distance
+    # Processing
     to_mm = args.unit == 'mm'
+    endpoints_map_head, endpoints_map_tail = get_head_tail_density_maps(
+        sft, point_to_select=args.distance, to_millimeters=to_mm,
+        binary=args.binary, swap=args.swap)
 
-    # Compute the density maps
-    endpoints_map_head, endpoints_map_tail = \
-        get_head_tail_density_maps(sft, nb_points, to_millimeters=to_mm)
+    # Saving
+    transfo, *_ = sft.space_attributes
+    nib.save(nib.Nifti1Image(endpoints_map_head, transfo),
+             args.endpoints_map_head)
+    nib.save(nib.Nifti1Image(endpoints_map_tail, transfo),
+             args.endpoints_map_tail)
 
-    # Convert streamline density to binary mask
-    if args.binary:
-        endpoints_map_head = (endpoints_map_head > 0).astype(np.int16)
-        endpoints_map_tail = (endpoints_map_tail > 0).astype(np.int16)
-
-    nib.save(nib.Nifti1Image(endpoints_map_head, transfo), head_name)
-    nib.save(nib.Nifti1Image(endpoints_map_tail, transfo), tail_name)
-
+    # Printing statistics
     bundle_name, _ = os.path.splitext(os.path.basename(args.in_bundle))
-    bundle_name_head = bundle_name + '_head'
-    bundle_name_tail = bundle_name + '_tail'
-
-    if swap:
-        bundle_name_head = bundle_name + '_tail'
-        bundle_name_tail = bundle_name + '_head'
-
     stats = {
-        bundle_name_head: {
+        bundle_name + '_head': {
             'count': np.count_nonzero(endpoints_map_head)
         },
-        bundle_name_tail: {
+        bundle_name + '_tail': {
             'count': np.count_nonzero(endpoints_map_tail)
         }
     }
 
+    logging.info("{}".format(json.dumps(stats, indent=4)))
     with open(args.out_json, 'w') as outfile:
         json.dump(stats, outfile,
                   indent=args.indent, sort_keys=args.sort_keys)
