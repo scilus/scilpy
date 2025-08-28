@@ -18,7 +18,7 @@ cvx, have_cvxpy, _ = optional_package("cvxpy")
 def get_ventricles_max_fodf(data, fa, md, zoom, sh_basis,
                             fa_threshold, md_threshold, mask=None,
                             small_dims=False, is_legacy=True,
-                            return_median=False):
+                            use_median=False):
     """
     Compute mean maximal fodf value in ventricules. Given heuristics thresholds
     on FA and MD values, finds the voxels of the ventricules or CSF and
@@ -58,8 +58,8 @@ def get_ventricles_max_fodf(data, fa, md, zoom, sh_basis,
         data has small dimensions.
     is_legacy : bool, optional
         Whether the SH basis is in its legacy form.
-    return_median : bool, optional
-        If set, returns the median value instead of the mean.
+    use_median : bool, optional
+        If set, uses the median value instead of the mean.
 
     Returns
     -------
@@ -134,7 +134,7 @@ def get_ventricles_max_fodf(data, fa, md, zoom, sh_basis,
 
     logging.info('Average max fodf value: {}'.format(np.mean(list_of_max)))
     logging.info('Median max fodf value: {}'.format(np.median(list_of_max)))
-    if return_median:
+    if use_median:
         return np.median(list_of_max), out_mask
     else:
         return np.mean(list_of_max), out_mask
