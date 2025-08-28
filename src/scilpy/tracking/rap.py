@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
+from scilpy.tracking.utils import TrackingDirection
+
 
 
 class RAP:
@@ -88,9 +90,10 @@ class RAPGraph(RAP):
             from quactography.solver.rap_tracking import quack_rap
         except ImportError:
             raise ImportError("quactography is not installed. "
-                              "Please install it to use RAPGraph.")
+                              "Please install it to use RAPGraph.\n"
+                              "Add: Follow instructions here: https://github.com/scilus/quactography")
         
-        prev_dir = np.array(prev_direction).round().astype(int)
+        prev_dir = np.array(prev_direction)
         seg, prev_dir, is_line_valid = quack_rap(self.rap_img, self.fodf, line[-1].round().astype(int),
                                                   reps = self.reps,
                                                   alpha = self.alpha, 
@@ -98,4 +101,6 @@ class RAPGraph(RAP):
                                                   theta = self.propagator.theta,
                                                   threshold = self.propagator.sf_threshold)
         line.extend(seg)
-        return line, prev_dir, is_line_valid
+        last_dir = TrackingDirection(prev_direction)
+        
+        return line, last_dir, is_line_valid
