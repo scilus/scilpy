@@ -102,9 +102,19 @@ def main():
     ref_img = None
     if args.ref:
         ref_img = nib.load(args.ref)
+        
         # Must not verify that headers are compatible. But can verify that, at
-        # least, the last columns of their affines are compatible.
-        if not np.array_equal(img.affine[:, -1], ref_img.affine[:, -1]):
+        # least, the first columns of their affines are compatible.
+        img_zoom_invert = []
+        ref_zoom_invert = []
+        for index, zoom in enumerate(img.header.get_zooms()):
+            img_zoom_invert.append(1/img.header.get_zooms()[index])
+            ref_zoom_invert.append(1/ref_img.header.get_zooms()[index])
+
+        img_affine = np.dot(img.affine[:3, :3], img_zoom_invert)
+        ref_affine = np.dot(ref_img.affine[:3, :3], ref_zoom_invert)
+
+        if not np.allclose(img_affine, ref_affine):
             parser.error("The --ref image should have the same affine as the "
                          "input image (but with a different sampling).")
 
