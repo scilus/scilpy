@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 import logging
 
+from multiprocessing import Pool
+
 from dipy.denoise.noise_estimate import piesno
 import numpy as np
 
@@ -60,14 +62,14 @@ def I2C2(
     id=None,
     visit=None,
     symmetric=False,
-    trun=False,
+    truncate=False,
     twoway=True,
     demean=True
 ):
     """
     Compute the Image Intraclass Correlation Coefficient (I2C2).
 
-    This is a NumPy-only implementation of I2C2 (Shou et al., 2013).
+    This is a numpy re-implementation of I2C2[1] (Shou et al., 2013)[2].
     It quantifies the reliability of repeated imaging measurements.
 
     Parameters
@@ -88,7 +90,7 @@ def I2C2(
         If False, use method-of-moments estimator.
         If True, use pairwise symmetric sum estimator.
 
-    trun : bool, default=False
+    truncate : bool, default=False
         If True, truncate negative I2C2 values to 0.
 
     twoway : bool, default=True
@@ -111,7 +113,8 @@ def I2C2(
 
     References
     ----------
-    Shou, H.; Eloyan, A.; Lee, S.; Zipunnikov, V.; Crainiceanu, A.N.;
+    [1]: https://github.com/muschellij2/I2C2
+    [2]: Shou, H.; Eloyan, A.; Lee, S.; Zipunnikov, V.; Crainiceanu, A.N.;
     Nebel, N.B.; Caffo, B.; Lindquist, M.A.; Crainiceanu, C.M. (2013).
     "Quantifying the reliability of image replication studies:
     the image intraclass correlation coefficient (I2C2)."
@@ -188,7 +191,7 @@ def I2C2(
     # Step 4: Compute I2C2
     # -----------------------------------------------------------
     lam = trKx / (trKx + trKu)
-    if trun:
+    if truncate:
         lam = max(lam, 0)
 
     # -----------------------------------------------------------
@@ -197,3 +200,101 @@ def I2C2(
     result = {"lambda": lam}
 
     return result
+
+
+def _single_resample(args):
+    y, id, visit, symmetric, truncate, twoway, demean = args
+
+    # Resample subjects with replacement
+    unique_subj = np.unique(id)
+    n_subj = unique_subj.shape[0]
+
+    masks = []
+    for _ in range(n_subj):
+        subj = np.random.choice(unique_subj)
+        mask = (id == subj)
+        masks.extend(mask)
+
+    # Perform logical OR to combine masks
+    masks = np.array(masks).reshape(n_subj, -1)
+    resampled_indices = np.sum(masks, axis=0).astype(bool)
+
+    # Create resampled dataset
+    y_res = y[resampled_indices, :]
+    id_res = id[resampled_indices]
+    visit_res = visit[resampled_indices]
+
+    # Change subject IDs to be consecutive integers
+    unique_resubj = np.unique(id_res)
+    id_map = {old_id: new_id for new_id, old_id in enumerate(unique_resubj)}
+    id_res = np.array([id_map[old_id] for old_id in id_res])
+
+    # Compute I2C2
+    return I2C2(y_res, id=id_res, visit=visit_res,
+                symmetric=symmetric, truncate=truncate,
+                twoway=twoway, demean=demean)['lambda']
+
+
+def I2C2_mcCI(y, id, visit, R=100, seed=None, ci=0.95, processes=1,
+              symmetric=False, truncate=False, twoway=True, demean=True):
+    """
+    Compute bootstrap confidence interval for I2C2 using Monte Carlo resampling.
+
+    Parameters
+    ----------
+    y : ndarray (n, p)
+        Input data matrix (observations × features).
+    id : ndarray (n,)
+        Subject identifiers for each observation.
+    visit : ndarray (n,)
+        Visit labels for each observation.
+    R : int, default=100
+        Number of bootstrap replications.
+    seed : int or None
+        Random seed for reproducibility.
+    ci : float, default=0.95
+        Confidence level (e.g., 0.95 for a 95% CI).
+    mc_cores : int, default=1
+        Number of parallel processes to use.
+    symmetric: bool, default=False
+        If False, use method-of-moments estimator.
+        If True, use pairwise symmetric sum estimator.
+    truncate : bool, default=False
+        If True, truncate negative I2C2 values to 0.
+    twoway : bool, default=True
+        If True, subtract both global and visit-specific means.
+    demean : bool, default=True
+        If True, demean data before I2C2 computation.
+
+    Returns
+    -------
+    dict with keys:
+        'lambdas' : ndarray of shape (R,)
+            Bootstrap I2C2 estimates.
+        'ci_lower' : float
+            Lower bound of the confidence interval.
+        'ci_upper' : float
+            Upper bound of the confidence interval.
+    """
+
+    lamb = I2C2(y, id=id, visit=visit,
+                symmetric=symmetric, truncate=truncate,
+                twoway=twoway, demean=demean)['lambda']
+
+    if seed is not None:
+        np.random.seed(seed)
+    args = (y, id, visit, symmetric, truncate, twoway, demean)
+    # Parallel or serial execution
+    if processes > 1:
+        with Pool(processes) as pool:
+            lambdas = np.array(pool.map(_single_resample,
+                                        [args for r in range(R)]))
+    else:
+        lambdas = np.array([_single_resample(args) for r in range(R)])
+
+    # Compute CI bounds
+    alpha = (1 - ci) / 2
+    ci_lower = np.quantile(lambdas, alpha)
+    ci_upper = np.quantile(lambdas, 1 - alpha)
+
+    return {'lambda': lamb, 'ci_lower': ci_lower, 'ci_upper': ci_upper}

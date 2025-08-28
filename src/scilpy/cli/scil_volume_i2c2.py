@@ -1,12 +1,13 @@
 """ Compute the Image Intra-class Correlation Coefficient (I2C2)^[1] for a series of subjects, each with multiple images (e.g., test-retest scans). The I2C2 is a measure of reliability that quantifies the proportion of variance in the images.
 
-Each subject should have, for each timepoint, a metric image (e.g., FA, MD, etc.) and a ROI or label image. The I2C2 is computed within the ROI/labels. The output is a JSON file containing the I2C2 value and its confidence interval for each ROI/label.
+This script can compare multiple subjects each with a different number of timepoints. Each subject should have, for each timepoint, a metric image (e.g., FA, MD, etc.) and a ROI or label image. The I2C2 is computed within the ROI/labels. The output is a JSON file containing the I2C2 value and its confidence interval for each ROI/label.
 
-Example usage:
+Example usage (for 2 subjects, one with 2 visits, the other with 3 visits, using the CC as ROI and FA as metric):
 
-    scil_volume_i2c2.py i2c2.json --subject metric1.nii.gz roi1.nii.gz metric2.nii.gz roi2.nii.gz \
-            --subject metric1.nii.gz roi1.nii.gz metric2.nii.gz roi2.nii.gz \
-            --subject ...
+    scil_volume_i2c2.py i2c2.json --subject sub-1_ses-1__fa.nii.gz sub-1_ses-1__CC.nii.gz sub-1_ses-2__fa.nii.gz sub-1_ses-2__CC.nii.gz \
+            --subject  sub-2_ses-1__fa.nii.gz sub-2_ses-1__CC.nii.gz sub-2_ses-2__fa.nii.gz sub-2_ses-2__CC.nii.gz sub-2_ses-3__fa.nii.gz sub-2_ses-3__CC.nii.gz
+
+    As shown above, the --subject argument should be followed by pairs of metric and ROI files for each visit. Multiple --subject arguments can be provided for different subjects.
 
 References:
     [1]: Shou, H., et al. (2013). Quantifying the reliability of image replication studies: the image intraclass correlation coefficient (I2C2). Cognitive, Affective, & Behavioral Neuroscience, 13(4), 714-724. https://doi.org/10.3758/s13415-013-0196-0
@@ -20,9 +21,11 @@ import logging
 import nibabel as nib
 import numpy as np
 
-from scilpy.image.volume_metrics import I2C2
-from scilpy.io.utils import (add_json_args, add_overwrite_arg, add_verbose_arg,
-                             assert_inputs_exist, assert_headers_compatible)
+from scilpy.image.volume_metrics import I2C2, I2C2_mcCI
+from scilpy.io.utils import (add_json_args, add_overwrite_arg,
+                             add_processes_arg,
+                             add_verbose_arg, assert_inputs_exist,
+                             assert_headers_compatible)
 from scilpy.version import version_string
 
 
@@ -103,6 +106,9 @@ def _build_arg_parser():
 
     p.add_argument('out',
                    help='Path to the output JSON file to store I2C2 results.')
+    p.add_argument('--ci', type=float, default=None,
+                   help='Confidence interval level (e.g., 95 for 95%% CI). '
+                        'Default: no confidence interval computed.')
     p.add_argument('--subject', nargs='+', action='append', required=True,
                    help='Subject ID followed by pairs of metric and ROI files')
     p.add_argument('--symmetric', action='store_true',
@@ -116,9 +122,14 @@ def _build_arg_parser():
                         'both global and visit-specific means).')
     p.add_argument('--no-demean', action='store_false', dest='demean',
                    help='Do not demean data (default: demean data).')
+    p.add_argument('--seed', default=None, type=int,
+                   help='Set random seed for reproducibility when computing '
+                        'confidence intervals.')
+
     add_json_args(p)
-    add_verbose_arg(p)
     add_overwrite_arg(p)
+    add_processes_arg(p)
+    add_verbose_arg(p)
 
     return p
 
@@ -145,14 +156,23 @@ def main():
     # Compute I2C2
     all_results = {}
     for data, ids, visits, label in load_data(subjects):
-        i2c2_results = I2C2(data, ids, visits,
-                            symmetric=args.symmetric,
-                            trun=args.truncate,
-                            twoway=args.twoway,
-                            demean=args.demean)
+        if args.ci is not None:
+            i2c2_results = I2C2_mcCI(data, ids, visits,
+                                     seed=args.seed,
+                                     ci=args.ci,
+                                     processes=args.nbr_processes,
+                                     symmetric=args.symmetric,
+                                     truncate=args.truncate,
+                                     twoway=args.twoway,
+                                     demean=args.demean)
+        else:
+            i2c2_results = I2C2(data, ids, visits,
+                                symmetric=args.symmetric,
+                                trun=args.truncate,
+                                twoway=args.twoway,
+                                demean=args.demean)
         all_results[f'{label}'] = i2c2_results
     print(all_results)
-
     with open(args.out, 'w') as f:
         json.dump(all_results, f, indent=4)
 
