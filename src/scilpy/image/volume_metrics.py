@@ -72,6 +72,11 @@ def I2C2(
     This is a numpy re-implementation of I2C2[1] (Shou et al., 2013)[2].
     It quantifies the reliability of repeated imaging measurements.
 
+    Directly adapted from:
+        https://github.com/muschellij2/I2C2/blob/master/R/I2C2_orig.R
+
+    translated by ChatGPT, then further adapted.
+
     Parameters
     ----------
     y : ndarray of shape (n, p)
@@ -185,14 +190,20 @@ def I2C2(
         trKw = (
             np.sum(W ** 2) * n - np.sum((n * Wdd) ** 2) - trKu * (k2 - n)
         ) / (n ** 2 - k2)
-        trKx = trKw - trKu
+
+    trKx = trKw - trKu  # between-subject var
 
     # -----------------------------------------------------------
     # Step 4: Compute I2C2
     # -----------------------------------------------------------
-    lam = trKx / (trKx + trKu)
-    if truncate:
-        lam = max(lam, 0)
+
+    # Check if trKx + trKu is zero to avoid division by zero
+    if trKx + trKu == 0:
+        lam = 1.0
+    else:
+        lam = trKx / (trKx + trKu)
+        if truncate:
+            lam = max(lam, 0)
 
     # -----------------------------------------------------------
     # Step 5: Return results
@@ -238,7 +249,8 @@ def _single_resample(args):
 def I2C2_mcCI(y, id, visit, R=100, seed=None, ci=0.95, processes=1,
               symmetric=False, truncate=False, twoway=True, demean=True):
     """
-    Compute bootstrap confidence interval for I2C2 using Monte Carlo resampling.
+    Compute bootstrap confidence interval for I2C2 using Monte Carlo resampling
+    Also returns the original I2C2 estimate.
 
     Parameters
     ----------

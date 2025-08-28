@@ -25,6 +25,7 @@ from scilpy.image.volume_metrics import I2C2, I2C2_mcCI
 from scilpy.io.utils import (add_json_args, add_overwrite_arg,
                              add_processes_arg,
                              add_verbose_arg, assert_inputs_exist,
+                             assert_outputs_exist,
                              assert_headers_compatible)
 from scilpy.version import version_string
 
@@ -139,12 +140,19 @@ def main():
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
+    assert_outputs_exist(parser, args, args.out)
+
     # For every subject, verify that we have pairs of metric and ROI files.
     # Verify that all files exist and that headers are compatible.
     subjects = []
     for subject in args.subject:
         metric_files = subject[0::2]
         roi_files = subject[1::2]
+
+        # Assert that each subject has atleast two timepoints
+        if len(metric_files) < 2 or len(roi_files) < 2:
+            parser.error('Each subject must have at least two timepoints.')
+
         assert_inputs_exist(parser, metric_files + roi_files)
 
         metrics_rois = list(zip(metric_files, roi_files))
@@ -168,11 +176,11 @@ def main():
         else:
             i2c2_results = I2C2(data, ids, visits,
                                 symmetric=args.symmetric,
-                                trun=args.truncate,
+                                truncate=args.truncate,
                                 twoway=args.twoway,
                                 demean=args.demean)
         all_results[f'{label}'] = i2c2_results
-    print(all_results)
+
     with open(args.out, 'w') as f:
         json.dump(all_results, f, indent=4)
 
