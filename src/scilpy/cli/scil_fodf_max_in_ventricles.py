@@ -65,6 +65,9 @@ def _build_arg_parser():
                    help='If set, takes the full range of data to search the '
                         'max fodf amplitude \nin ventricles. Useful when the '
                         'data has small dimensions.')
+    p.add_argument('--return_median',  action='store_true',
+                   help='If set, returns the median value instead of the '
+                        'mean.')
 
     add_sh_basis_args(p)
     add_verbose_arg(p)
@@ -103,7 +106,8 @@ def main():
                                               args.md_threshold,
                                               mask=mask,
                                               small_dims=args.small_dims,
-                                              is_legacy=is_legacy)
+                                              is_legacy=is_legacy,
+                                              return_median=args.return_median)
 
     if args.mask_output:
         img = nib.Nifti1Image(np.array(out_mask, 'float32'),  img_fODFs.affine)

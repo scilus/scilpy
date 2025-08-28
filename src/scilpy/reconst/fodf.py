@@ -17,7 +17,8 @@ cvx, have_cvxpy, _ = optional_package("cvxpy")
 
 def get_ventricles_max_fodf(data, fa, md, zoom, sh_basis,
                             fa_threshold, md_threshold, mask=None,
-                            small_dims=False, is_legacy=True):
+                            small_dims=False, is_legacy=True,
+                            return_median=False):
     """
     Compute mean maximal fodf value in ventricules. Given heuristics thresholds
     on FA and MD values, finds the voxels of the ventricules or CSF and
@@ -57,6 +58,8 @@ def get_ventricles_max_fodf(data, fa, md, zoom, sh_basis,
         data has small dimensions.
     is_legacy : bool, optional
         Whether the SH basis is in its legacy form.
+    return_median : bool, optional
+        If set, returns the median value instead of the mean.
 
     Returns
     -------
@@ -108,7 +111,7 @@ def get_ventricles_max_fodf(data, fa, md, zoom, sh_basis,
                            int(data.shape[2]/2) + radius))
 
     # Ok. Now find ventricle voxels.
-    sum_of_max = 0
+    list_of_max = []
     count = 0
     for i in all_i:
         for j in all_j:
@@ -119,7 +122,7 @@ def get_ventricles_max_fodf(data, fa, md, zoom, sh_basis,
                         and md[i, j, k] > md_threshold \
                             and mask[i, j, k] == 1:
                     sf = np.dot(data[i, j, k], b_matrix)
-                    sum_of_max += sf.max()
+                    list_of_max.append(sf.max())
                     count += 1
                     out_mask[i, j, k] = 1
 
@@ -129,8 +132,12 @@ def get_ventricles_max_fodf(data, fa, md, zoom, sh_basis,
                         'and/or md thresholds')
         return 0, out_mask
 
-    logging.info('Average max fodf value: {}'.format(sum_of_max / count))
-    return sum_of_max / count, out_mask
+    logging.info('Average max fodf value: {}'.format(np.mean(list_of_max)))
+    logging.info('Median max fodf value: {}'.format(np.median(list_of_max)))
+    if return_median:
+        return np.median(list_of_max), out_mask
+    else:
+        return np.mean(list_of_max), out_mask
 
 
 def _fit_from_model_parallel(args):
