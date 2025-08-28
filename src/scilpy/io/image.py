@@ -9,6 +9,36 @@ import os
 from scilpy.utils import is_float
 
 
+def load_nifti_reorient(file_path, return_flip_vector=False):
+    vol = nib.load(file_path)
+
+    # Compute the image orientation (axis codes)
+    axcodes = nib.orientations.aff2axcodes(vol.affine)
+    target = ('R', 'A', 'S')
+    flip_vector = [1 if axcodes[i] == target[i] else -1 for i in range(3)]
+
+    ras_order = [[i, flip_vector[i]] for i in range(0, 3)]
+    filename = vol.get_filename()
+    vol = vol.as_reoriented(ras_order)
+    vol.set_filename(filename)
+
+    if return_flip_vector:
+        return vol, flip_vector
+    return vol
+
+
+def nifti_reorient(img, flip_vector):
+    original_order = [[i, flip_vector[i]] for i in range(0, 3)]
+    img = img.as_reoriented(original_order)
+    return img
+
+
+def save_nifti_reorient(img, flip_vector, file_path):
+    original_order = [[i, flip_vector[i]] for i in range(0, 3)]
+    img = img.as_reoriented(original_order)
+    nib.save(img, file_path)
+
+
 def load_img(arg):
     if is_float(arg):
         img = float(arg)

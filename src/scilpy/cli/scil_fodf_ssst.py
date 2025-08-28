@@ -22,7 +22,7 @@ import numpy as np
 from scilpy.gradients.bvec_bval_tools import (check_b0_threshold,
                                               normalize_bvecs,
                                               is_normalized_bvecs)
-from scilpy.io.image import get_data_as_mask
+from scilpy.io.image import get_data_as_mask, load_nifti_reorient, save_nifti_reorient
 from scilpy.io.utils import (add_b0_thresh_arg, add_overwrite_arg,
                              add_processes_arg, add_sh_basis_args,
                              add_skip_b0_check_arg, add_verbose_arg,
@@ -79,12 +79,14 @@ def main():
 
     # Loading data
     full_frf = np.loadtxt(args.frf_file)
-    vol = nib.load(args.in_dwi)
+    vol, flip_vector = load_nifti_reorient(args.in_dwi, return_flip_vector=True)
     data = vol.get_fdata(dtype=np.float32)
+
+    # Loading bvals and bvecs and flipping signs for RAS orientation
     bvals, bvecs = read_bvals_bvecs(args.in_bval, args.in_bvec)
 
     # Checking mask
-    mask = get_data_as_mask(nib.load(args.mask),
+    mask = get_data_as_mask(load_nifti_reorient(args.mask),
                             dtype=bool) if args.mask else None
 
     sh_order = args.sh_order
@@ -136,9 +138,10 @@ def main():
                                  is_input_legacy=True,
                                  is_output_legacy=is_legacy,
                                  nbr_processes=args.nbr_processes)
-    nib.save(nib.Nifti1Image(shm_coeff.astype(np.float32),
+    out_img = nib.Nifti1Image(shm_coeff.astype(np.float32),
                              affine=vol.affine,
-                             header=vol.header), args.out_fODF)
+                             header=vol.header)
+    save_nifti_reorient(out_img, flip_vector, args.out_fODF)
 
 
 if __name__ == "__main__":

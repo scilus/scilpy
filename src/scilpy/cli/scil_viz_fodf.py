@@ -35,7 +35,7 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_outputs_exist,
                              parse_sh_basis_arg,
                              assert_headers_compatible)
-from scilpy.io.image import assert_same_resolution, get_data_as_mask
+from scilpy.io.image import assert_same_resolution, get_data_as_mask, load_nifti_reorient
 from scilpy.utils.spatial import RAS_AXES_NAMES
 from scilpy.version import version_string
 from scilpy.viz.backends.fury import (create_interactive_window,
@@ -220,7 +220,7 @@ def _get_data_from_inputs(args):
     Load data given by args. Perform checks to ensure dimensions agree
     between the data for mask, background, peaks and fODF.
     """
-    fodf = nib.load(args.in_fodf).get_fdata(dtype=np.float32)
+    fodf = load_nifti_reorient(args.in_fodf).get_fdata(dtype=np.float32)
 
     # Optional:
     bg = None
@@ -231,16 +231,16 @@ def _get_data_from_inputs(args):
     variance = None
     if args.background:
         assert_same_resolution([args.background, args.in_fodf])
-        bg = nib.load(args.background).get_fdata()
+        bg = load_nifti_reorient(args.background).get_fdata()
     if args.in_transparency_mask:
         transparency_mask = get_data_as_mask(
-            nib.load(args.in_transparency_mask), dtype=bool)
+            load_nifti_reorient(args.in_transparency_mask), dtype=bool)
     if args.mask:
         assert_same_resolution([args.mask, args.in_fodf])
-        mask = get_data_as_mask(nib.load(args.mask), dtype=bool)
+        mask = get_data_as_mask(load_nifti_reorient(args.mask), dtype=bool)
     if args.peaks:
         assert_same_resolution([args.peaks, args.in_fodf])
-        peaks = nib.load(args.peaks).get_fdata()
+        peaks = load_nifti_reorient(args.peaks).get_fdata()
         if len(peaks.shape) == 4:
             last_dim = peaks.shape[-1]
             if last_dim % 3 == 0:
@@ -253,10 +253,10 @@ def _get_data_from_inputs(args):
         if args.peaks_values:
             assert_same_resolution([args.peaks_values, args.in_fodf])
             peak_vals =\
-                nib.load(args.peaks_values).get_fdata()
+                load_nifti_reorient(args.peaks_values).get_fdata()
     if args.variance:
         assert_same_resolution([args.variance, args.in_fodf])
-        variance = nib.load(args.variance).get_fdata(dtype=np.float32)
+        variance = load_nifti_reorient(args.variance).get_fdata(dtype=np.float32)
         if len(variance.shape) == 3:
             variance = np.reshape(variance, variance.shape + (1,))
         if variance.shape != fodf.shape:
