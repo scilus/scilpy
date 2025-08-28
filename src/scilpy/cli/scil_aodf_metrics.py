@@ -35,7 +35,7 @@ References:
     Magnetic Resonance Imaging, vol. 49, pp. 145-158, Jun. 2018,
     doi: https://doi.org/10.1016/j.mri.2018.03.006.
 
-[3] C. Poirier, E. St-Onge, and M. Descoteaux, "Investigating the Occurence of
+[3] C. Poirier, E. St-Onge, and M. Descoteaux, "Investigating the Occurrence of
     Asymmetric Patterns in White Matter Fiber Orientation Distribution Functions"
     [Abstract], In: Proc. Intl. Soc. Mag. Reson. Med. 29 (2021), 2021 May 15-20,
     Vancouver, BC, Abstract number 0865.
