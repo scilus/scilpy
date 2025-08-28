@@ -26,7 +26,7 @@ from scilpy.io.utils import (add_json_args, add_overwrite_arg, add_verbose_arg,
 from scilpy.version import version_string
 
 
-def load_data(subjects, label):
+def load_data(subjects):
     """ Load and mask data from metric and ROI files for all subjects and
     visits. Need to load every ROI first to compute the union of all ROIs
     to ensure consistent voxels across subjects/visits.
@@ -48,42 +48,52 @@ def load_data(subjects, label):
     visit : ndarray of shape (n_samples,)
         Visit labels corresponding to each observation.
     """
+    all_masks = []
+    labels = set()
 
-    all_data = []
-    all_ids = []
-    all_visits = []
-    all_rois = []
-
-    # First pass: load all ROIs to compute union
+    # First pass: load all ROIs to get all labels
     for subject_idx, metrics_rois in enumerate(subjects):
-        for visit_idx, (metric_file, roi_file) in enumerate(metrics_rois):
+        for visit_idx, (_, roi_file) in enumerate(metrics_rois):
             roi_img = nib.load(roi_file)
             roi_data = roi_img.get_fdata()
-            all_rois.append(roi_data == label)
-    union_roi = (np.sum(all_rois, axis=0) > 0).astype(np.uint8)
+            all_masks.append(roi_data)
+            labels.update(np.unique(roi_data).astype(int)[1:])
 
-    # Second pass: load metric data and apply union ROI mask
-    for subject_idx, metrics_rois in enumerate(subjects):
-        subject_id = subject_idx
-        for visit_idx, (metric_file, roi_file) in enumerate(metrics_rois):
-            visit_label = visit_idx
+    labels = sorted(labels)
 
-            metric_img = nib.load(metric_file)
-            metric_data = metric_img.get_fdata()
+    # For each label, compute union ROI and load metric data
+    for label in labels:
 
-            if metric_data.shape != union_roi.shape:
-                raise ValueError(f"Metric image {metric_file} and ROI image "
-                                 "{roi_file} have different shapes.")
+        all_ids = []
+        all_visits = []
+        all_data = []
+        all_rois = []
 
-            masked_data = metric_data[union_roi > 0].flatten()
-            all_data.append(masked_data)
-            all_ids.append(subject_id)
-            all_visits.append(visit_label)
+        # Create union ROI mask for the current label
+        for mask in all_masks:
+            all_rois.append((mask == label).astype(np.uint8))
+        all_rois = np.array(all_rois)
+        union_roi = (np.sum(all_rois, axis=0) > 0).astype(np.uint8)
 
-    y = np.asarray(all_data)
-    id = np.array(all_ids)
-    visit = np.array(all_visits)
-    return y, id, visit
+        # Load metric data and apply union ROI mask
+        for subject_idx, metrics_rois in enumerate(subjects):
+            subject_id = subject_idx
+            for visit_idx, (metric_file, _) in enumerate(metrics_rois):
+                visit_label = visit_idx
+
+                metric_img = nib.load(metric_file)
+                metric_data = metric_img.get_fdata()
+
+                # Flatten and mask data
+                masked_data = metric_data[union_roi > 0].flatten()
+                all_data.append(masked_data)
+                all_ids.append(subject_id)
+                all_visits.append(visit_label)
+
+        y = np.asarray(all_data)
+        id = np.array(all_ids)
+        visit = np.array(all_visits)
+        yield y, id, visit, label
 
 
 def _build_arg_parser():
@@ -127,7 +137,6 @@ def main():
         assert_inputs_exist(parser, metric_files + roi_files)
 
         metrics_rois = list(zip(metric_files, roi_files))
-
         subjects.append(metrics_rois)
 
         for m, r in metrics_rois:
@@ -135,14 +144,13 @@ def main():
 
     # Compute I2C2
     all_results = {}
-    for i in range(1, 10):
-        data, ids, visits = load_data(subjects, label=i)
+    for data, ids, visits, label in load_data(subjects):
         i2c2_results = I2C2(data, ids, visits,
                             symmetric=args.symmetric,
                             trun=args.truncate,
                             twoway=args.twoway,
                             demean=args.demean)
-        all_results[f'{i}'] = i2c2_results
+        all_results[f'{label}'] = i2c2_results
     print(all_results)
 
     with open(args.out, 'w') as f:

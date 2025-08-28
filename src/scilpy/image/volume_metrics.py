@@ -119,11 +119,7 @@ def I2C2(
     """
 
     # Ensure y is a numeric numpy array
-    y = np.asarray(y, dtype=float)
     n, p = y.shape
-
-    if id is None or visit is None:
-        raise ValueError("You must provide both `id` and `visit` vectors.")
 
     # -----------------------------------------------------------
     # Step 1: Demeaning (remove mean effects if requested)
@@ -134,7 +130,6 @@ def I2C2(
         resd = y - mu
 
         if twoway:
-            visit = np.asarray(visit)
             unique_visits = np.unique(visit)
             eta = np.zeros((len(unique_visits), p))
 
