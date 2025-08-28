@@ -45,7 +45,7 @@ def _build_arg_parser():
     p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawTextHelpFormatter,
                                 epilog=version_string)
-    
+
     p.add_argument('in_bundle',
                    help='Path of the bundle file.')
     p.add_argument('in_pdds',

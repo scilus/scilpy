@@ -98,7 +98,7 @@ def main():
     if args.verbose == "WARNING":
         f = io.StringIO()
         redirected_stdout = redirect_stdout(f)
-        redirect_stdout_c() 
+        redirect_stdout_c()
     else:
         logging.getLogger().setLevel(logging.getLevelName(args.verbose))
         redirected_stdout = redirect_stdout(sys.stdout)
