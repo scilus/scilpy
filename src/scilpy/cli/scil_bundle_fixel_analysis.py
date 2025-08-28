@@ -215,10 +215,17 @@ def main():
     out_dir = args.out_dir
     prefix = args.prefix
     suffix = args.suffix
-    if not args.suffix.endswith('.nii.gz'):
-        suffix += '.nii.gz'
 
-    # Set names for saving
+    # Set names
+    if suffix.endswith('.nii.gz'):
+        # The LUT output is a txt file. Removing it
+        suffix = suffix[:-7]
+    lut_filename = os.path.join(
+        out_dir, "{}bundles_LUT{}.txt".format(prefix, suffix))
+
+    # Other outputs are nifti files
+    suffix += '.nii.gz'
+
     fd_map_name = os.path.join(out_dir, prefix + "fixel_density_map")
     fd_mask_name = os.path.join(out_dir, prefix + "fixel_density_mask")
     vd_map_name = os.path.join(out_dir, prefix + "voxel_density_map")
@@ -359,8 +366,7 @@ def main():
     # Save bundles lookup table to know the order of the bundles
     bundles_idx = np.arange(0, len(bundles_names), 1)
     lookup_table = np.array([bundles_names, bundles_idx])
-    np.savetxt("{}{}bundles_LUT{}.txt".format(out_dir, prefix, suffix),
-               lookup_table, fmt='%s')
+    np.savetxt(lut_filename, lookup_table, fmt='%s')
 
 
 if __name__ == "__main__":
