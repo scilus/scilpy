@@ -94,7 +94,7 @@ def main():
     affine, vol_dim, _, _ = get_reference_info(args.reference)
 
     # Processing
-    volume = filter_by_occurrence(
+    volume, _ = filter_by_occurrence(
         sft_list, vol_dim, ratio_voxels=args.ratio_voxels,
         ratio_streamlines=args.ratio_streamlines)
     nib.save(nib.Nifti1Image(volume.astype(np.uint8), affine),

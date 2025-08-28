@@ -17,9 +17,9 @@ def filter_by_occurrence(sft_list, vol_dim, ratio_voxels = 0.5,
     Parameters
     ----------
     sft_list : list[StatefulTractogram]
-        The bundles
+        The bundles.
     vol_dim : int, int, int
-        The dimension of the volume
+        The dimension of the volume.
     ratio_voxels : float, optional
         The threshold on the ratio of bundles that must contain a voxel for it
         to be kept.
@@ -39,7 +39,8 @@ def filter_by_occurrence(sft_list, vol_dim, ratio_voxels = 0.5,
     fusion_streamlines = []
     for sft in sft_list:
         fusion_streamlines.append(sft.streamlines)
-    fusion_streamlines, _ = union_robust(sft_list)
+
+    fusion_streamlines, _ = union_robust(fusion_streamlines)
 
     volume = np.zeros(vol_dim)
     streamlines_vote = dok_matrix((len(fusion_streamlines), nb_bundles))

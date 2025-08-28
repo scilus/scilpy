@@ -240,7 +240,7 @@ def main():
     else:
         logging.info("Extracting bundles names.")
         bundles_names = []
-        for bundle in args.bundles:
+        for bundle in args.in_bundles:
             bundles_names.append(Path(bundle).name.split(".")[0])
 
     ### Load the data
@@ -257,7 +257,7 @@ def main():
 
     # Compute fixel density (FD) maps and masks
     logging.info("Computing fixel density for all bundles.")
-    fd_maps_original = fixel_density(peaks, args.bundles, args.dps_key,
+    fd_maps_original = fixel_density(peaks, args.in_bundles, args.dps_key,
                                      args.max_theta,
                                      nbr_processes=args.nbr_processes)
 
