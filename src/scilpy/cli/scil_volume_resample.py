@@ -107,7 +107,7 @@ def main():
         # least, the first columns of their affines are compatible.
         img_zoom_invert = []
         ref_zoom_invert = []
-        for index, zoom in enumerate(img.header.get_zooms()):
+        for index in range(len(img.header.get_zooms())):
             img_zoom_invert.append(1/img.header.get_zooms()[index])
             ref_zoom_invert.append(1/ref_img.header.get_zooms()[index])
 
