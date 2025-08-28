@@ -141,6 +141,11 @@ def fixel_maps_to_masks(maps, abs_thr, rel_thr, norm, nb_bundles):
     # Normalizing the density maps per voxel or fixel
     fixel_sum = np.sum(maps, axis=-1)
     voxel_sum = np.sum(fixel_sum, axis=-1)
+
+    # Preventing division by 0
+    voxel_sum[voxel_sum == 0] = 1
+    fixel_sum[fixel_sum == 0] = 1
+
     for i in range(nb_bundles):
         if norm == "voxel":
             maps[..., 0, i] /= voxel_sum

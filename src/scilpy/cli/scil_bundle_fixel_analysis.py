@@ -244,6 +244,7 @@ def main():
             bundles_names.append(Path(bundle).name.split(".")[0])
 
     ### Load the data
+    # The bundles will be loaded in the loop below
     logging.info("Loading data.")
     peaks_img = nib.load(args.in_peaks)
     peaks = peaks_img.get_fdata()
