@@ -112,22 +112,20 @@ def get_ventricles_max_fodf(data, fa, md, zoom, sh_basis,
 
     # Ok. Now find ventricle voxels.
     list_of_max = []
-    count = 0
     for i in all_i:
         for j in all_j:
             for k in all_k:
-                if count > max_number_of_voxels - 1:
+                if len(list_of_max) > max_number_of_voxels - 1:
                     continue
                 if fa[i, j, k] < fa_threshold \
                         and md[i, j, k] > md_threshold \
                             and mask[i, j, k] == 1:
                     sf = np.dot(data[i, j, k], b_matrix)
                     list_of_max.append(sf.max())
-                    count += 1
                     out_mask[i, j, k] = 1
 
-    logging.info('Number of voxels detected: {}'.format(count))
-    if count == 0:
+    logging.info('Number of voxels detected: {}'.format(len(list_of_max)))
+    if len(list_of_max) == 0:
         logging.warning('No voxels found for evaluation! Change your fa '
                         'and/or md thresholds')
         return 0, out_mask
