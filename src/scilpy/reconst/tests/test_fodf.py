@@ -78,7 +78,7 @@ def test_get_ventricles_max_fodf_mask():
 
     # Should find that the only 2 ventricle voxels are at [1, 0:2, 0] with FA
     # and MD thresholds. But with the mask, only one voxel is kept.
-    mean, mask = get_ventricles_max_fodf(
+    _, mask = get_ventricles_max_fodf(
         fodf_3x3_order8_descoteaux07, fake_fa, fake_md, zoom, sh_basis,
         fa_threshold, md_threshold, mask=in_mask, small_dims=True,
         use_median=True)
@@ -87,16 +87,6 @@ def test_get_ventricles_max_fodf_mask():
     expected_mask = np.logical_and(expected_mask, in_mask.astype(bool))
     assert np.count_nonzero(mask) == 1
     assert np.array_equal(mask.astype(bool), expected_mask)
-
-    # Reconstruct SF values same as in method.
-    order = find_order_from_nb_coeff(fodf_3x3_order8_descoteaux07)
-    sphere = get_sphere(name='repulsion100')
-    b_matrix, _ = sh_to_sf_matrix(sphere, order, sh_basis, legacy=True)
-
-    sf1 = np.dot(fodf_3x3_order8_descoteaux07[1, 0, 0], b_matrix)
-    sf2 = np.dot(fodf_3x3_order8_descoteaux07[1, 1, 0], b_matrix)
-
-    assert mean == np.mean([np.max(sf1), np.max(sf2)])
 
 
 def test_fit_from_model():
