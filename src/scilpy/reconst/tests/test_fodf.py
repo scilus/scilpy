@@ -80,7 +80,7 @@ def test_get_ventricles_max_fodf_mask():
     # and MD thresholds. But with the mask, only one voxel is kept.
     mean, mask = get_ventricles_max_fodf(
         fodf_3x3_order8_descoteaux07, fake_fa, fake_md, zoom, sh_basis,
-        fa_threshold, md_threshold, in_mask=in_mask, small_dims=True,
+        fa_threshold, md_threshold, mask=in_mask, small_dims=True,
         use_median=True)
 
     expected_mask = np.logical_and(~fake_fa.astype(bool), fake_md)
