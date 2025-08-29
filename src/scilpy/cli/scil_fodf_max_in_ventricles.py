@@ -2,8 +2,8 @@
 # -*- coding: utf-8 -*-
 
 """
-Script to compute the maximum fODF in the ventricles. The ventricules are
-estimated from an MD and FA threshold.
+Script to compute the average maximum fODF in the ventricles. The ventricules
+are estimated from an MD and FA threshold.
 
 This allows to clip the noise of fODF using an absolute thresold.
 
@@ -23,6 +23,7 @@ import logging
 import nibabel as nib
 import numpy as np
 
+from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_overwrite_arg,
                              add_sh_basis_args, add_verbose_arg,
                              assert_inputs_exist, assert_outputs_exist,
@@ -50,6 +51,10 @@ def _build_arg_parser():
                    help='Minimal threshold of MD in mm2/s (voxels above that '
                         'threshold are \nconsidered for '
                         'evaluation. [%(default)s]).')
+    p.add_argument('--in_mask',
+                   help='Path to a binary mask. Only the data inside the '
+                        'mask will be used \nfor evaluation. Useful if the '
+                        'FA and MD thresholds are not good enough.')
     p.add_argument('--max_value_output',  metavar='file',
                    help='Output path for the text file containing the value. '
                         'If not set the \nfile will not be saved.')
@@ -60,6 +65,9 @@ def _build_arg_parser():
                    help='If set, takes the full range of data to search the '
                         'max fodf amplitude \nin ventricles. Useful when the '
                         'data has small dimensions.')
+    p.add_argument('--use_median',  action='store_true',
+                   help='If set, use the median value instead of the '
+                        'mean.')
 
     add_sh_basis_args(p)
     add_verbose_arg(p)
@@ -88,15 +96,21 @@ def main():
     img_md = nib.load(args.in_md)
     md = img_md.get_fdata(dtype=np.float32)
 
+    mask = get_data_as_mask(nib.load(args.in_mask),
+                            dtype=bool) if args.in_mask else None
+
     sh_basis, is_legacy = parse_sh_basis_arg(args)
 
-    value, mask = get_ventricles_max_fodf(fodf, fa, md, zoom, sh_basis,
-                                          args.fa_threshold, args.md_threshold,
-                                          small_dims=args.small_dims,
-                                          is_legacy=is_legacy)
+    value, out_mask = get_ventricles_max_fodf(fodf, fa, md, zoom, sh_basis,
+                                              args.fa_threshold,
+                                              args.md_threshold,
+                                              mask=mask,
+                                              small_dims=args.small_dims,
+                                              is_legacy=is_legacy,
+                                              use_median=args.use_median)
 
     if args.mask_output:
-        img = nib.Nifti1Image(np.array(mask, 'float32'),  img_fODFs.affine)
+        img = nib.Nifti1Image(np.array(out_mask, 'float32'),  img_fODFs.affine)
         nib.save(img, args.mask_output)
 
     if args.max_value_output:
