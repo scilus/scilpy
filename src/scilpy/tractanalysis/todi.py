@@ -395,3 +395,40 @@ class TrackOrientationDensityImaging(object):
         # Necessary for a 'with' statement to scrap a todi_object after
         # the scope of operation in the script scil_bundle_generate_priors.py
         pass
+
+
+def get_sf_from_todi(sft, mask, todi_sigma, sf_threshold):
+    """
+    ???? Explanation of required steps?
+    """
+    with TrackOrientationDensityImaging(mask.shape,
+                                        'repulsion724') as todi_obj:
+        todi_obj.compute_todi(sft.streamlines, length_weights=True)
+        todi_obj.smooth_todi_dir()
+        todi_obj.smooth_todi_spatial(sigma=todi_sigma)
+
+        # Fancy masking of 1d indices to limit spatial dilation to WM
+        sub_mask_3d = np.logical_and(
+            mask, todi_obj.reshape_to_3d(todi_obj.get_mask()))
+        sub_mask_1d = sub_mask_3d.flatten()[todi_obj.get_mask()]
+        todi_sf = todi_obj.get_todi()[sub_mask_1d] ** 2
+
+    # The priors should always be between 0 and 1
+    # A minimum threshold is set to prevent misaligned FOD from disappearing
+    todi_sf /= np.max(todi_sf, axis=-1, keepdims=True)
+    todi_sf[todi_sf < sf_threshold] = sf_threshold
+
+    return todi_sf, sub_mask_3d
+
+
+def get_sh_from_todi(sft, mask):
+    """
+    ???? Explanation of required steps?
+    """
+    with TrackOrientationDensityImaging(mask.shape,
+                                        'repulsion724') as todi_obj:
+        todi_obj.compute_todi(deepcopy(sft.streamlines), length_weights=True)
+        todi_obj.mask_todi(mask)
+        sh_data = todi_obj.get_sh('descoteaux07', 8)
+        sh_data = todi_obj.reshape_to_3d(sh_data)
+    return sh_data

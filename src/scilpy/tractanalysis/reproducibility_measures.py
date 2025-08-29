@@ -19,7 +19,8 @@ from sklearn.neighbors import KDTree
 from tqdm import tqdm
 
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
-from scilpy.tractanalysis.todi import TrackOrientationDensityImaging
+from scilpy.tractanalysis.todi import TrackOrientationDensityImaging, \
+    get_sh_from_todi
 from scilpy.tractograms.streamline_operations import generate_matched_points
 from scilpy.tractograms.tractogram_operations import (difference_robust,
                                                       intersection_robust,
@@ -675,19 +676,11 @@ def tractogram_pairwise_comparison(sft_one, sft_two, mask, nbr_cpu=1,
 
     logging.info('Computing TODI from tractogram #1...')
     global sh_data_1, sh_data_2
-    todi_obj = TrackOrientationDensityImaging(dimensions, 'repulsion724')
-    todi_obj.compute_todi(deepcopy(sft_1.streamlines), length_weights=True)
-    todi_obj.mask_todi(mask)
-    sh_data_1 = todi_obj.get_sh('descoteaux07', 8)
-    sh_data_1 = todi_obj.reshape_to_3d(sh_data_1)
+    sh_data_1 = get_sh_from_todi(sft_1, mask)
     sft_1.to_center()
 
     logging.info('Computing TODI from tractogram #2...')
-    todi_obj = TrackOrientationDensityImaging(dimensions, 'repulsion724')
-    todi_obj.compute_todi(deepcopy(sft_2.streamlines), length_weights=True)
-    todi_obj.mask_todi(mask)
-    sh_data_2 = todi_obj.get_sh('descoteaux07', 8)
-    sh_data_2 = todi_obj.reshape_to_3d(sh_data_2)
+    sh_data_2 = get_sh_from_todi(sft_2, mask)
     sft_2.to_center()
 
     global B
