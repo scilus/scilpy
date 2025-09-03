@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-Script to compute the average maximum fODF in the ventricles. The ventricules
+Script to compute the mean/median maximum fODF in the ventricles. The ventricules
 are estimated from an MD and FA threshold.
 
 This allows to clip the noise of fODF using an absolute thresold.
