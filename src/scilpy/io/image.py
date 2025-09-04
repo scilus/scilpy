@@ -34,8 +34,8 @@ def load_img(arg):
 
     if not sum_float.is_integer():
         logging.warning('Image {} has an integer type but contains '
-                        'non-integer values. Loading, computation and saving '
-                        'will be done as float. Anything forced integer dtype '
+                        'non-integer values. Loading, computating and saving '
+                        'will be done as float. Using an integer dtype '
                         'will lead to data loss.'.format(arg))
         dtype = np.float64
         img.header.set_data_dtype(dtype)
