@@ -4,7 +4,7 @@ This script can compare multiple subjects each with a different number of timepo
 
 Example usage (for 2 subjects, one with 2 visits, the other with 3 visits, using the CC as ROI and FA as metric):
 
-    scil_volume_icc_cv.py icc_cv.json --subject sub-1_ses-1__fa.nii.gz sub-1_ses-1__CC.nii.gz sub-1_ses-2__fa.nii.gz sub-1_ses-2__CC.nii.gz \
+    scil_volume_icc_cv icc_cv.json --subject sub-1_ses-1__fa.nii.gz sub-1_ses-1__CC.nii.gz sub-1_ses-2__fa.nii.gz sub-1_ses-2__CC.nii.gz \
             --subject  sub-2_ses-1__fa.nii.gz sub-2_ses-1__CC.nii.gz sub-2_ses-2__fa.nii.gz sub-2_ses-2__CC.nii.gz sub-2_ses-3__fa.nii.gz sub-2_ses-3__CC.nii.gz
 
     As shown above, the --subject argument should be followed by pairs of metric and ROI files for each visit. Multiple --subject arguments can be provided for different subjects.
