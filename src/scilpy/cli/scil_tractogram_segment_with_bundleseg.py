@@ -2,7 +2,9 @@
 # -*- coding: utf-8 -*-
 
 """
-Compute BundleSeg & supports multi-atlas & multi-parameters (RBx-like).
+Compute BundleSeg & supports multi-atlas & multi-parameters. This is similar to
+what our previous RecobundlesX (RBx) script could do, but BundleSeg is better
+and more efficient.
 
 For a single bundle segmentation, see the lighter version:
 >>> scil_tractogram_segment_with_recobundles.py
@@ -19,7 +21,9 @@ runs. Each folder is considered like an atlas and bundles inside will initiate
 more BundleSeg executions. The more atlases you have, the more robust the
 recognition will be.
 
-Example data and usage available at: https://zenodo.org/record/7950602
+Example data and usage available at: https://zenodo.org/records/10103446
+If you want to use previous versions in the zenodo record, you may also need
+previous versions of scilpy.
 
 For CPU usage, it can be variable (advanced CPU vs. basic CPU):
     On personal computer: 4 CPU per subject and then it is better to parallelize
@@ -91,18 +95,18 @@ def _build_arg_parser():
                    help='Streamlines will only be considered for saving if\n'
                         'recognized often enough.\n'
                         'The ratio is a value between 0 and 1. Ex: If you '
-                        'have 5 input model directories and a '
-                        'minimal_vote_ratio of 0.5, you will need at least 3 '
-                        'votes. [%(default)s]')
+                        'have 5 input model \ndirectories and a '
+                        'minimal_vote_ratio of 0.5, you will need at least \n'
+                        '3 votes. [%(default)s]')
 
     g = p.add_argument_group(title='Exploration mode')
     p2 = g.add_mutually_exclusive_group()
     p2.add_argument('--exploration_mode', action='store_true',
                     help='Use higher pruning threshold, but optimal filtering '
-                    'can be explored using scil_bundle_explore_bundleseg.py')
+                    'can be explored using \nscil_bundle_explore_bundleseg.py')
     p2.add_argument('--modify_distance_thr', type=float, default=0.0,
                     help='Increase or decrease the distance threshold for '
-                         'pruning for all bundles in the configuration '
+                         'pruning for all bundles \nin the configuration '
                          '[%(default)s]')
 
     p.add_argument('--seed', type=int, default=0,
