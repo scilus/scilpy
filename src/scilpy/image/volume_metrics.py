@@ -4,6 +4,7 @@ import logging
 import numpy as np
 import nibabel as nib
 import pandas as pd
+import statsmodels.api as sm
 
 from multiprocessing import Pool
 
@@ -316,7 +317,7 @@ def I2C2_mcCI(y, id, visit, R=100, seed=None, ci=0.95, processes=1,
     return {'lambda': lamb, 'ci_lower': ci_lower, 'ci_upper': ci_upper}
 
 
-def _compute_icc_lme(data: pd.DataFrame, roi: str):
+def _compute_icc_lme(data: pd.DataFrame, twoway: bool = False):
     """
     Compute ICC using a linear mixed-effects model
     Model: value ~ 1 + (1 | subject)
@@ -324,7 +325,16 @@ def _compute_icc_lme(data: pd.DataFrame, roi: str):
 
     # Mixed model with random intercept for subject
     # Raises a lot of warnings, can be ignored
-    model = MixedLM(data["data"], np.ones(len(data)), groups=data["id"])
+    if twoway:
+        # Two-way mixed effects model, removing session-specific means
+        # Add session as fixed effect
+        X = sm.add_constant(pd.get_dummies(
+            data["session"], drop_first=True, dtype=float))
+    else:
+        # One-way random effects model
+        X = np.ones((data.shape[0], 1))
+
+    model = MixedLM(data["values"], X, groups=data["subject"])
     result = model.fit(maxiter=500, reml=True, full_output=True)
 
     logging.debug(result.summary())
@@ -342,15 +352,15 @@ def _compute_cv(data: pd.DataFrame):
     Compute mean within-subject coefficient of variation for a given ROI.
     """
     cvs = []
-    for subj, group in data.groupby("id"):
-        vals = group["data"].values
+    for subj, group in data.groupby("subject"):
+        vals = group["values"].values
         if vals.mean() != 0 and len(vals) > 1:
             cv = vals.std(ddof=1) / vals.mean()
             cvs.append(cv)
     return np.mean(cvs) if cvs else np.nan
 
 
-def ICC_CV(subjects, label):
+def ICC_CV(subjects, label, twoway=False):
     """
     Compute the Coefficient of Variation (CV) and Intraclass Correlation
     Coefficient (ICC) for a set of subjects with repeated measurements.
@@ -368,6 +378,9 @@ def ICC_CV(subjects, label):
         Each subject must have at least two timepoints.
     label : int
         The ROI label to compute metrics for.
+    twoway : bool, default=False
+        If True, use two-way mixed effects model for ICC calculation.
+        Default is one-way random effects model.
 
     Returns
     -------
@@ -379,10 +392,11 @@ def ICC_CV(subjects, label):
 
     all_data = []
     all_ids = []
+    all_ses = []
 
     # Load metric data and apply union ROI mask
     for sub_id, metrics_rois in enumerate(subjects):
-        for metric_file, roi_file in metrics_rois:
+        for ses_id, (metric_file, roi_file) in enumerate(metrics_rois):
 
             metric_img = nib.load(metric_file)
             metric_data = metric_img.get_fdata()
@@ -398,14 +412,20 @@ def ICC_CV(subjects, label):
                 mean = 0
 
             all_data.append(mean)
-            all_ids.append(sub_id)
+            all_ids.append(sub_id + 1)
+            all_ses.append(ses_id + 1)
 
     # Convert to a pandas DataFrame for easier manipulation
-    df = pd.DataFrame({'id': all_ids, 'data': all_data})
+    df = pd.DataFrame({'subject': all_ids, 'values': all_data,
+                       'session': all_ses})
+
+    df['values'] = df['values'].astype(float)
+    df['subject'] = df['subject'].astype(float)
+    df['session'] = df['session'].astype(float)
 
     # Compute CV
     cv = _compute_cv(df)
     # Compute ICC
-    icc = _compute_icc_lme(df, label)
+    icc = _compute_icc_lme(df, twoway=twoway)
 
     return {'CV': cv, 'ICC': icc}

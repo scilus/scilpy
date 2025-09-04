@@ -13,7 +13,7 @@ Example usage (for 2 subjects, one with 2 visits, the other with 3 visits, using
 
 References:
     [1]: Shou, H., et al. (2013). Quantifying the reliability of image replication studies: the image intraclass correlation coefficient (I2C2). Cognitive, Affective, & Behavioral Neuroscience, 13(4), 714-724. https://doi.org/10.3758/s13415-013-0196-0
-    """  # noqa: E501
+"""  # noqa: E501
 
 
 import argparse
@@ -163,6 +163,10 @@ def main():
     for subject in args.subject:
         metric_files = subject[0::2]
         roi_files = subject[1::2]
+
+        if len(metric_files) != len(roi_files):
+            parser.error('Each subject must have the same number of metric '
+                         'and ROI/labels files.')
 
         # Assert that each subject has atleast two timepoints
         if len(metric_files) < 2 or len(roi_files) < 2:

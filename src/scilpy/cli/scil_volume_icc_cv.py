@@ -1,3 +1,15 @@
+""" Compute ICC and CV for each label in the provided ROIs across multiple subjects and visits. ICC and CV are computed on the mean value within each ROI.
+
+This script can compare multiple subjects each with a different number of timepoints. Each subject should have, for each timepoint, a metric image (e.g., FA, MD, etc.) and a ROI or label image. ICC and CV are computed within the ROI/labels. The output is a JSON file containing the ICC and CV for each ROI/label.
+
+Example usage (for 2 subjects, one with 2 visits, the other with 3 visits, using the CC as ROI and FA as metric):
+
+    scil_volume_icc_cv.py icc_cv.json --subject sub-1_ses-1__fa.nii.gz sub-1_ses-1__CC.nii.gz sub-1_ses-2__fa.nii.gz sub-1_ses-2__CC.nii.gz \
+            --subject  sub-2_ses-1__fa.nii.gz sub-2_ses-1__CC.nii.gz sub-2_ses-2__fa.nii.gz sub-2_ses-2__CC.nii.gz sub-2_ses-3__fa.nii.gz sub-2_ses-3__CC.nii.gz
+
+    As shown above, the --subject argument should be followed by pairs of metric and ROI files for each visit. Multiple --subject arguments can be provided for different subjects.
+    """  # noqa: E501
+
 import argparse
 import json
 import logging
@@ -14,31 +26,24 @@ from scilpy.io.utils import (add_json_args, add_overwrite_arg,
 from scilpy.version import version_string
 
 
-def _compute_icc_cv_labels(subjects):
+def _compute_icc_cv_labels(subjects, twoway):
     """ Load and mask data from metric and ROI files for all subjects and
-    visits. Need to load every ROI first to compute the union of all ROIs
-    to ensure consistent voxels across subjects/visits.
+    visits. 
 
     Parameters
     ----------
     subjects : list of list of tuples
         Each element corresponds to a subject and contains a list of tuples.
         Each tuple contains (metric_file, roi_file) for a visit.
-    mask_type : {'union', 'majority'}, optional
-        Type of mask to use when combining ROIs across subjects and visits.
-        'union' creates a mask that includes all voxels present in any ROI.
-        'majority' creates a mask that includes voxels present in more than
-        half of the ROIs. Default is 'union'.
+    twoway : bool
+        If True, use two-way mixed effects model for ICC calculation.
+        Default is one-way random effects model.
 
     Returns
     -------
-    y : ndarray of shape (n_samples, n_features)
-        Data matrix where each row corresponds to one observation
-        (subject × visit) and each column is a voxel/feature within the ROI.
-    id : ndarray of shape (n_samples,)
-        Subject IDs corresponding to each observation.
-    visit : ndarray of shape (n_samples,)
-        Visit labels corresponding to each observation.
+    generator of (icc_cv, label) tuples
+        icc_cv is a dict with keys 'ICC' and 'CV' containing the computed
+        values for the given label.
     """
     all_masks = []
     labels = set()
@@ -56,7 +61,7 @@ def _compute_icc_cv_labels(subjects):
     # For each label, compute union ROI and load metric data
     for label in labels:
 
-        icc_cv = ICC_CV(subjects, label)
+        icc_cv = ICC_CV(subjects, label, twoway=twoway)
 
         yield icc_cv, label
 
@@ -70,6 +75,9 @@ def _build_arg_parser():
                    help='Path to the output JSON file to store I2C2 results.')
     p.add_argument('--subject', nargs='+', action='append', required=True,
                    help='Subject ID followed by pairs of metric and ROI files')
+    p.add_argument('--twoway', action='store_true',
+                   help='Use two-way mixed effects model for ICC calculation. '
+                   'Default is one-way random effects model.')
 
     add_json_args(p)
     add_overwrite_arg(p)
@@ -93,6 +101,10 @@ def main():
         metric_files = subject[0::2]
         roi_files = subject[1::2]
 
+        if len(metric_files) != len(roi_files):
+            parser.error('Each subject must have the same number of metric '
+                         'and ROI/labels files.')
+
         # Assert that each subject has atleast two timepoints
         if len(metric_files) < 2 or len(roi_files) < 2:
             parser.error('Each subject must have at least two timepoints.')
@@ -105,9 +117,18 @@ def main():
         for m, r in metrics_rois:
             assert_headers_compatible(parser, [m, r])
 
-    # Compute I2C2
+    # If twoway is specified, ensure that each subject has the same number
+    # of visits
+    if args.twoway:
+        n_visits = len(subjects[0])
+        for metrics_rois in subjects:
+            if len(metrics_rois) != n_visits:
+                parser.error('When using --twoway, all subjects must have '
+                             'the same number of visits.')
+
+    # Compute ICC and CV for each label
     all_results = {}
-    for icc_cv, label in _compute_icc_cv_labels(subjects):
+    for icc_cv, label in _compute_icc_cv_labels(subjects, args.twoway):
 
         all_results[f'{label}'] = icc_cv
 
