@@ -35,7 +35,7 @@ MCT, TCT = 4, 12
 
 class VotingScheme(object):
     def __init__(self, config, atlas_directory, transformation,
-                 output_directory, minimal_vote_ratio=0.5):
+                 output_directory, minimal_vote_ratio=0.5, save_empty=True):
         """
         Parameters
         ----------
@@ -51,12 +51,12 @@ class VotingScheme(object):
         minimal_vote_ratio : float
             Value for the vote ratio for a streamline to be considered.
             (0 < minimal_vote_ratio < 1)
-        multi_parameters : int
-            Number of runs BundleSeg will performed.
-            Enough parameter choices must be provided.
+        save_empty : bool
+            If true, will save empty tractograms. [True]
         """
         self.config = config
         self.minimal_vote_ratio = minimal_vote_ratio
+        self.save_empty = save_empty
 
         # Scripts parameters
         if isinstance(atlas_directory, list):
@@ -167,8 +167,18 @@ class VotingScheme(object):
             (0 < minimal_vote < 1)
         extension : str
             Extension for file saving (TRK or TCK).
+
+        Returns
+        -------
+        nb_files: int
+            Number of files that were saved (i.e. if self.save_empty is False,
+            number of non-empty bundles)
+        nb_streamlines: int
+            Total number of streamlines that were recognized in a bundle.
         """
         results_dict = {}
+        count_files = 0
+        count_streamlines = 0
         for bundle_id in range(len(bundle_names)):
             streamlines_id = self._find_max_in_sparse_matrix(
                 bundle_id,
@@ -179,6 +189,14 @@ class VotingScheme(object):
 
             logger.info(f'{bundle_names[bundle_id]} final recognition got '
                         f'{len(streamlines_id)} streamlines')
+
+            if len(streamlines_id) == 0 and not self.save_empty:
+                logger.debug("Empty file not saved.")
+                continue
+
+            # Else, save file.
+            count_files += 1
+            count_streamlines += len(streamlines_id)
 
             # All models of the same bundle have the same basename
             basename = os.path.splitext(bundle_names[bundle_id])[0]
@@ -207,6 +225,7 @@ class VotingScheme(object):
         out_logfile = os.path.join(self.output_directory, 'results.json')
         with open(out_logfile, 'w') as outfile:
             json.dump(results_dict, outfile)
+        return count_files, count_streamlines
 
     def __call__(self, input_tractograms_path, nbr_processes=1, seed=None,
                  reference=None):
@@ -321,17 +340,25 @@ class VotingScheme(object):
         _, ext = os.path.splitext(input_tractograms_path[0])
 
         save_timer = time()
-        self._save_recognized_bundles(tmp_memmap_filenames,
-                                      reference,
-                                      bundle_names,
-                                      bundles_wise_vote,
-                                      bundles_wise_score,
-                                      minimum_vote, ext)
+        nb_files, nb_streamlines = self._save_recognized_bundles(
+            tmp_memmap_filenames, reference, bundle_names,
+            bundles_wise_vote, bundles_wise_score, minimum_vote, ext)
         tmp_dir.cleanup()
 
-        logger.info(f'Saving of {len(bundle_names)} files in '
-                    f'{self.output_directory} took '
-                    f'{get_duration(save_timer)} sec.')
+        if self.save_empty:
+            logger.info(f'Saving of {len(bundle_names)} files in '
+                        f'{self.output_directory} took '
+                        f'{get_duration(save_timer)} sec.')
+        else:
+            logger.info(f'Saving {nb_files} non-empty files out of '
+                        f'{len(bundle_names)} bundles '
+                        f'in {self.output_directory} took '
+                        f'{get_duration(save_timer)} sec.')
+
+        nb_invalid = len_wb_streamlines - nb_streamlines
+        logger.info(f"In total, {nb_streamlines} streamlines were recognized "
+                    f"in a bundle, and {nb_invalid} streamlines were "
+                    f"discarded.")
 
 
 def single_recognize_parallel(args):
