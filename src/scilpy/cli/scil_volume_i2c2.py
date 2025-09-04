@@ -1,5 +1,7 @@
 """ Compute the Image Intra-class Correlation Coefficient (I2C2)^[1] for a series of subjects, each with multiple images (e.g., test-retest scans). The I2C2 is a measure of reliability that quantifies the proportion of variance in the images.
 
+** WARNING **: This script requires that all ROI/labels and images be aligned in the same space (e.g., MNI space) and have the same dimensions.
+
 This script can compare multiple subjects each with a different number of timepoints. Each subject should have, for each timepoint, a metric image (e.g., FA, MD, etc.) and a ROI or label image. The I2C2 is computed within the ROI/labels. The output is a JSON file containing the I2C2 value and its confidence interval for each ROI/label.
 
 Example usage (for 2 subjects, one with 2 visits, the other with 3 visits, using the CC as ROI and FA as metric):
@@ -30,7 +32,7 @@ from scilpy.io.utils import (add_json_args, add_overwrite_arg,
 from scilpy.version import version_string
 
 
-def load_data(subjects):
+def load_data(subjects, mask_type='union'):
     """ Load and mask data from metric and ROI files for all subjects and
     visits. Need to load every ROI first to compute the union of all ROIs
     to ensure consistent voxels across subjects/visits.
@@ -40,8 +42,12 @@ def load_data(subjects):
     subjects : list of list of tuples
         Each element corresponds to a subject and contains a list of tuples.
         Each tuple contains (metric_file, roi_file) for a visit.
-    label : int
-        The label value in the ROI image to use for masking.
+    mask_type : {'union', 'majority'}, optional
+        Type of mask to use when combining ROIs across subjects and visits.
+        'union' creates a mask that includes all voxels present in any ROI.
+        'majority' creates a mask that includes voxels present in more than
+        half of the ROIs. Default is 'union'.
+
     Returns
     -------
     y : ndarray of shape (n_samples, n_features)
@@ -73,26 +79,30 @@ def load_data(subjects):
         all_data = []
         all_rois = []
 
-        # Create union ROI mask for the current label
         for mask in all_masks:
             all_rois.append((mask == label).astype(np.uint8))
         all_rois = np.array(all_rois)
-        union_roi = (np.sum(all_rois, axis=0) > 0).astype(np.uint8)
+
+        # Create union ROI mask for the current label
+        roi = (np.sum(all_rois, axis=0) > 0).astype(np.uint8)
+        prob = np.sum(all_rois, axis=0) / all_rois.shape[0]
 
         # Load metric data and apply union ROI mask
-        for subject_idx, metrics_rois in enumerate(subjects):
-            subject_id = subject_idx
-            for visit_idx, (metric_file, _) in enumerate(metrics_rois):
-                visit_label = visit_idx
+        for subject_id, metrics_rois in enumerate(subjects):
+            for visit_id, (metric_file, roi_file) in enumerate(metrics_rois):
 
                 metric_img = nib.load(metric_file)
                 metric_data = metric_img.get_fdata()
 
+                roi_img = nib.load(roi_file)
+                roi_data = roi_img.get_fdata()
+
                 # Flatten and mask data
-                masked_data = metric_data[union_roi > 0].flatten()
-                all_data.append(masked_data)
+                data = (metric_data[roi > 0] * prob[roi > 0]).flatten()
+
+                all_data.append(data)
                 all_ids.append(subject_id)
-                all_visits.append(visit_label)
+                all_visits.append(visit_id)
 
         y = np.asarray(all_data)
         id = np.array(all_ids)
@@ -107,6 +117,11 @@ def _build_arg_parser():
 
     p.add_argument('out',
                    help='Path to the output JSON file to store I2C2 results.')
+    p.add_argument('--mask', type=str, default='union',
+                   choices=['union', 'majority'],
+                   help='Whether to performy a majority vote on the ROI masks '
+                        'or a union. Options are "majority" or "union .'
+                        ' Default: [%(default)s].')
     p.add_argument('--ci', type=float, default=None,
                    help='Confidence interval level (e.g., 95 for 95%% CI). '
                         'Default: no confidence interval computed.')
@@ -164,7 +179,10 @@ def main():
     # Compute I2C2
     all_results = {}
     for data, ids, visits, label in load_data(subjects):
+        # For each label, compute I2C2
         if args.ci is not None:
+            # Compute I2C2 and confidence interval using Monte Carlo
+            # permutations
             i2c2_results = I2C2_mcCI(data, ids, visits,
                                      seed=args.seed,
                                      ci=args.ci,
@@ -174,11 +192,13 @@ def main():
                                      twoway=args.twoway,
                                      demean=args.demean)
         else:
+            # Compute I2C2 without confidence interval
             i2c2_results = I2C2(data, ids, visits,
                                 symmetric=args.symmetric,
                                 truncate=args.truncate,
                                 twoway=args.twoway,
                                 demean=args.demean)
+
         all_results[f'{label}'] = i2c2_results
 
     with open(args.out, 'w') as f:

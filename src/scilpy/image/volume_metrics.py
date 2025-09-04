@@ -1,10 +1,14 @@
 # -*- coding: utf-8 -*-
 import logging
 
+import numpy as np
+import nibabel as nib
+import pandas as pd
+
 from multiprocessing import Pool
 
 from dipy.denoise.noise_estimate import piesno
-import numpy as np
+from statsmodels.regression.mixed_linear_model import MixedLM
 
 
 def estimate_piesno_sigma(data, number_coils=0):
@@ -162,7 +166,7 @@ def I2C2(
     # Step 2: Compute subject-specific statistics
     # -----------------------------------------------------------
     unique_ids, counts = np.unique(id, return_counts=True)
-    I = len(unique_ids)
+    I = len(unique_ids)  # noqa E741
     J = counts             # number of visits per subject
     k2 = np.sum(J ** 2)    # used in symmetric formula
     Wdd = np.mean(W, axis=0)  # global mean of W
@@ -310,3 +314,98 @@ def I2C2_mcCI(y, id, visit, R=100, seed=None, ci=0.95, processes=1,
     ci_upper = np.quantile(lambdas, 1 - alpha)
 
     return {'lambda': lamb, 'ci_lower': ci_lower, 'ci_upper': ci_upper}
+
+
+def _compute_icc_lme(data: pd.DataFrame, roi: str):
+    """
+    Compute ICC using a linear mixed-effects model
+    Model: value ~ 1 + (1 | subject)
+    """
+
+    # Mixed model with random intercept for subject
+    # Raises a lot of warnings, can be ignored
+    model = MixedLM(data["data"], np.ones(len(data)), groups=data["id"])
+    result = model.fit(maxiter=500, reml=True, full_output=True)
+
+    logging.debug(result.summary())
+
+    # Variance components
+    var_subject = result.cov_re.iloc[0, 0]  # between-subject variance
+    var_resid = result.scale  # residual (within-subject) variance
+
+    icc = var_subject / (var_subject + var_resid)
+    return icc
+
+
+def _compute_cv(data: pd.DataFrame):
+    """
+    Compute mean within-subject coefficient of variation for a given ROI.
+    """
+    cvs = []
+    for subj, group in data.groupby("id"):
+        vals = group["data"].values
+        if vals.mean() != 0 and len(vals) > 1:
+            cv = vals.std(ddof=1) / vals.mean()
+            cvs.append(cv)
+    return np.mean(cvs) if cvs else np.nan
+
+
+def ICC_CV(subjects, label):
+    """
+    Compute the Coefficient of Variation (CV) and Intraclass Correlation
+    Coefficient (ICC) for a set of subjects with repeated measurements.
+
+    The ICC and CV are computed for a specific ROI label across all subjects
+    for the mean metric values within that ROI.
+
+    Parameters
+    ----------
+    subjects : list of list of 2-tuples
+        Each subject is represented as a list of (metric_file, roi_file) tuples
+        Example: [[(metric1_s1, roi1_s1), (metric2_s1, roi2_s1)],  # Subject 1
+                  [(metric1_s2, roi1_s2), (metric2_s2, roi2_s2)],  # Subject 2
+                  ...]
+        Each subject must have at least two timepoints.
+    label : int
+        The ROI label to compute metrics for.
+
+    Returns
+    -------
+    results : dict
+        Dictionary with keys as ROI labels and values as another dict with:
+        - 'CV': Coefficient of Variation
+        - 'ICC': Intraclass Correlation Coefficient
+    """
+
+    all_data = []
+    all_ids = []
+
+    # Load metric data and apply union ROI mask
+    for sub_id, metrics_rois in enumerate(subjects):
+        for metric_file, roi_file in metrics_rois:
+
+            metric_img = nib.load(metric_file)
+            metric_data = metric_img.get_fdata()
+
+            roi_img = nib.load(roi_file)
+            roi_data = roi_img.get_fdata()
+
+            # Flatten and mask data
+            data = metric_data[roi_data == label]
+            if data.size > 0:
+                mean = data.mean() * 100  # Scale to avoid numerical issues
+            else:
+                mean = 0
+
+            all_data.append(mean)
+            all_ids.append(sub_id)
+
+    # Convert to a pandas DataFrame for easier manipulation
+    df = pd.DataFrame({'id': all_ids, 'data': all_data})
+
+    # Compute CV
+    cv = _compute_cv(df)
+    # Compute ICC
+    icc = _compute_icc_lme(df, label)
+
+    return {'CV': cv, 'ICC': icc}
