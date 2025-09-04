@@ -29,6 +29,16 @@ def load_img(arg):
             raise ValueError('{} has {} dimensions, not valid.'.format(
                 arg, len(shape)))
 
+    data_as_float = img.get_fdata()
+    sum_float = float(np.sum(data_as_float))
+
+    if not sum_float.is_integer():
+        logging.warning('Image {} has an integer type but contains '
+                        'non-integer values. Loading, computation and saving '
+                        'will be done as float. Anything forced integer dtype '
+                        'will lead to data loss.'.format(arg))
+        dtype = np.float64
+        img.header.set_data_dtype(dtype)
     return img, dtype
 
 
