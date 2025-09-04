@@ -15,7 +15,7 @@ operation, in which case a .tck input tractogram is accepted.
 
 Usage examples:
     > scil_tractogram_dps_math.py tractogram.trk import "bundle_ids"
-        --in_dps_file my_bundle_ids.txt
+        --in_dps_file my_bundle_ids.txt --out_tractogram tractogram_ids.trk
     > scil_tractogram_dps_math.py tractogram.trk export "seeds"
         --out_dps_file seeds.npy
 """
