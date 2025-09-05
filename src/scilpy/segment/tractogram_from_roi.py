@@ -96,6 +96,8 @@ def compute_masks_from_bundles(gt_files, parser, args, inverse_mask=False):
 
         gt_bundle_masks.append(gt_mask)
 
+    args.reference = save_ref
+
     return gt_bundle_masks
 
 
