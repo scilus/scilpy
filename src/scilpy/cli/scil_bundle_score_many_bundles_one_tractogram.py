@@ -118,15 +118,16 @@ def _build_arg_parser():
                         "your invalid bundles here.")
     p.add_argument("--wpc", metavar="WPC/",
                    help="To include the percentage of wrong path streamlines "
-                        "for each valid bundle, add the path to your WPC "
+                        "for each valid bundle, \nadd the path to your WPC "
                         "bundles here.")
     p.add_argument("--json_prefix", metavar='p', default='',
                    help="Prefix of the output json file. Ex: 'study_x_'.\n"
-                        "Suffix will be results.json. File will be saved "
-                        "inside your directory.\n")
+                        "Suffix will be results.json. If the prefix does not "
+                        "contain a directory, \nfile will be saved inside "
+                        "your root directory.")
     p.add_argument("--part2_ROI_segmentation", action="store_true",
                    help="If set, configure everything to be used as part 2 of "
-                        "script scil_tractogram_segment_with_ROI_and_score.")
+                        "script \nscil_tractogram_segment_with_ROI_and_score.")
 
     g = p.add_argument_group("Additions to gt_config")
     g.add_argument("--gt_dir", metavar='DIR',
@@ -168,7 +169,9 @@ def load_and_verify_everything(parser, args):
                              [args.ib, args.wpc])
 
     # Outputs:
-    args.json_prefix = os.path.join(args.root_dir, args.json_prefix)
+    _path, _name = os.path.split(args.json_prefix)
+    if _path == '':
+        args.json_prefix = os.path.join(args.root_dir, args.json_prefix)
     json_output = args.json_prefix + 'results.json'
     assert_outputs_exist(parser, args, json_output)
 
