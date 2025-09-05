@@ -1,16 +1,20 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+import pytest
 
-def test_help_option(script_runner):
-    ret = script_runner.run(['scil_search_keywords', '--help'])
-    assert ret.success
+pytestmark = pytest.mark.xdist_group("serial")
 
 
 def test_generate_option(script_runner):
     ret = script_runner.run(['scil_search_keywords', 'test',
                              '--regenerate_help_files',
                              '--processes', '4'])
+    assert ret.success
+
+
+def test_help_option(script_runner):
+    ret = script_runner.run(['scil_search_keywords', '--help'])
     assert ret.success
 
 
