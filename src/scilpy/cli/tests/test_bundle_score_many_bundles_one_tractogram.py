@@ -43,6 +43,7 @@ def test_score_bundles(script_runner, monkeypatch):
         json.dump(json_contents, f)
 
     ret = script_runner.run(['scil_bundle_score_many_bundles_one_tractogram',
-                            "config_file.json", "./", '--no_bbox_check'])
+                            "config_file.json", "./", '--no_bbox_check',
+                             '--part2_ROI_segmentation'])
 
     assert ret.success
