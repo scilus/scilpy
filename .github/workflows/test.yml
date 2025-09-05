@@ -59,7 +59,7 @@ jobs:
       - name: Get CPU Cores
         id: get_cores
         run: |
-          echo "NB_CPU=$(nproc)"
+          NB_CPU=$(nproc)
           echo "CPU_CORES=$((NB_CPU - 1))" >> $GITHUB_ENV
 
       - name: Install Scilpy
