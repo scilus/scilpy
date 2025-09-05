@@ -314,6 +314,8 @@ def reconstruct_streamlines_from_memmap(memmap_filenames, indices=None,
         Tuple of 3 filepath to numpy memmap (data, offsets, lengths).
     indices : list
         List of int representing the indices to reconstruct.
+    strs_dtype: type
+        Data type for streamlines.
 
     Returns
     -------

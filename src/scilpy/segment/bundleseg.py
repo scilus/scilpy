@@ -142,7 +142,8 @@ class BundleSeg(object):
 
         len_centroids = len(self.model_centroids)
         if len_centroids > 1000:
-            logger.warning(f'Model {identifier} simplified at threshold '
+            logger.warning(f'More than 1000 centroids. '
+                           f'Model {identifier} simplified at threshold '
                            f'{model_clust_thr}mm with {len_centroids} centroids')
 
     def _reduce_search_space(self, neighbors_reduction_thr=18):
@@ -270,7 +271,7 @@ class BundleSeg(object):
         # Neighbors can be refined since the search space is smaller
         t0 = time()
         neighb_streamlines = reconstruct_streamlines_from_memmap(
-            self.memmap_filenames, self.neighb_indices, strs_dtype=np.float16)
+            self.memmap_filenames, self.neighb_indices)
 
         # Typically the neighbors is bigger than the model, so we flip the
         # FSS to be more memory efficient
