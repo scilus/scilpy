@@ -358,10 +358,8 @@ class VotingScheme(object):
                         f'in {self.output_directory} took '
                         f'{get_duration(save_timer)} sec.')
 
-        nb_invalid = len_wb_streamlines - nb_streamlines
-        logger.info(f"In total, {nb_streamlines} streamlines were recognized "
-                    f"in a bundle, and {nb_invalid} streamlines were "
-                    f"discarded.")
+        logger.info(f"In total, recognized bundles include {nb_streamlines} "
+                    f"streamlines (some streamlines could be included twice).")
 
 
 def single_recognize_parallel(args):
