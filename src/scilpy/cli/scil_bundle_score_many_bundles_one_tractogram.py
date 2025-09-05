@@ -174,9 +174,9 @@ def load_and_verify_everything(parser, args):
 
     # Read the config file
     bundle_names, gt_masks_files = read_config_file(args)
-    all_vb_files = glob.glob(args.VB_folder + '/*')
 
     # Check that all bundles are associated to a unique VB
+    all_vb_files = glob.glob(args.VB_folder + '/*')
     ordered_vb_files = []
     for bname in bundle_names:
         vb_files = [filename for filename in all_vb_files if bname in filename]
@@ -184,14 +184,15 @@ def load_and_verify_everything(parser, args):
             parser.error("The bundle name {} was found in more than one valid "
                          "bundles: {}".format(bname, vb_files))
         if len(vb_files) == 0:
-            logging.warning("The bundle {} was not found in the VB folder."
-                            .format(bname))
+            logging.info("The bundle {} was not found in the name of any "
+                            "file inside the VB folder {}. Score will be 0."
+                            .format(bname, args.VB_folder))
             ordered_vb_files.append(None)
         else:
             ordered_vb_files.append(vb_files[0])
 
     # Not checking here IB and WPC files.
-    assert_headers_compatible(parser, ordered_vb_files + gt_masks_files,
+    assert_headers_compatible(parser, gt_masks_files, ordered_vb_files,
                               reference=args.reference)
 
     # ----------------------
