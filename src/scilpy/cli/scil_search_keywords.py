@@ -158,7 +158,7 @@ def main():
     for script in sorted(hidden_dir.glob(f'scil_{selected_object}*.help')):
         script_name = script.stem
 
-        with open(script, 'r') as f:
+        with open(script, 'r', encoding='utf-8') as f:
             search_text = f.read()
 
         score_details = _calculate_score(
