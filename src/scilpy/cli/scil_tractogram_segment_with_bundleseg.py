@@ -103,7 +103,7 @@ def _build_arg_parser():
     p2 = g.add_mutually_exclusive_group()
     p2.add_argument('--exploration_mode', action='store_true',
                     help='Use higher pruning threshold, but optimal filtering '
-                    'can be explored using \nscil_bundle_explore_bundleseg.py')
+                    'can be explored using \nscil_bundle_explore_bundleseg')
     p2.add_argument('--modify_distance_thr', type=float, default=0.0,
                     help='Increase or decrease the distance threshold for '
                          'pruning for all bundles \nin the configuration '
