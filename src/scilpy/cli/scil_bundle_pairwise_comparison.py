@@ -13,6 +13,9 @@ For the streamline representation, the computed similarity measures are:
     bundle_adjacency_streamlines, dice_streamlines, streamlines_count_overlap,
     streamlines_count_overreach
 
+See also scil_bundle_score_many_bundles_one_tractogram or
+scil_bundle_score_same_bundle_many_segmentations.
+
 If you have volumes associated to your bundles, the following script could be
 of interest for you: scil_volume_pairwise_comparison
 
