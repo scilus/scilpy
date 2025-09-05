@@ -51,14 +51,14 @@ def _build_arg_parser():
                    help='Minimal threshold of MD in mm2/s (voxels above that '
                         'threshold are \nconsidered for '
                         'evaluation. [%(default)s]).')
-    p.add_argument('--in_mask',
+    p.add_argument('--in_mask', metavar='file',
                    help='Path to a binary mask. Only the data inside the '
                         'mask will be used \nfor evaluation. Useful if the '
                         'FA and MD thresholds are not good enough.')
     p.add_argument('--max_value_output',  metavar='file',
                    help='Output path for the text file containing the value. '
                         'If not set the \nfile will not be saved.')
-    p.add_argument('--mask_output',  metavar='file',
+    p.add_argument('--out_mask',  metavar='file',
                    help='Output path for the ventricule mask. If not set, '
                         'the mask \nwill not be saved.')
     p.add_argument('--small_dims',  action='store_true',
@@ -81,9 +81,10 @@ def main():
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
-    assert_inputs_exist(parser, [args.in_fodfs, args.in_fa, args.in_md])
+    assert_inputs_exist(parser, [args.in_fodfs, args.in_fa, args.in_md],
+                        optional=args.in_mask)
     assert_outputs_exist(parser, args, [],
-                         [args.max_value_output, args.mask_output])
+                         [args.max_value_output, args.out_mask])
 
     # Load input image
     img_fODFs = nib.load(args.in_fodfs)
@@ -109,9 +110,9 @@ def main():
                                               is_legacy=is_legacy,
                                               use_median=args.use_median)
 
-    if args.mask_output:
+    if args.out_mask:
         img = nib.Nifti1Image(np.array(out_mask, 'float32'),  img_fODFs.affine)
-        nib.save(img, args.mask_output)
+        nib.save(img, args.out_mask)
 
     if args.max_value_output:
         text_file = open(args.max_value_output, "w")
