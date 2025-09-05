@@ -168,10 +168,10 @@ def split_labels(labels_volume, label_indices):
     """
     split_data = []
     for label in label_indices:
-        label_occurences = np.where(labels_volume == int(label))
-        if len(label_occurences) != 0:
+        label_occurrences = np.where(labels_volume == int(label))
+        if len(label_occurrences) != 0:
             split_label = np.zeros(labels_volume.shape, dtype=np.uint16)
-            split_label[label_occurences] = label
+            split_label[label_occurrences] = label
             split_data.append(split_label)
         else:
             logging.info("Label {} not present in the image.".format(label))

@@ -13,7 +13,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run(['scil_bundle_filter_by_occurence', '--help'])
+    ret = script_runner.run(['scil_bundle_filter_by_occurrence', '--help'])
     assert ret.success
 
 
@@ -25,7 +25,7 @@ def test_execution(script_runner, monkeypatch):
                         'bundle_4_filtered_no_loops.trk')
 
     prefix = 'test_voting_'
-    ret = script_runner.run(['scil_bundle_filter_by_occurence', in_1, in_2,
+    ret = script_runner.run(['scil_bundle_filter_by_occurrence', in_1, in_2,
                             in_3, prefix, '--ratio_streamlines', '0.5',
                             '--ratio_voxels', '0.5'])
     assert ret.success
