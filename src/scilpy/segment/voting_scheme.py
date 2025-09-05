@@ -10,11 +10,10 @@ import os
 from time import time
 import warnings
 
-from dipy.io.streamline import save_tractogram
-from dipy.io.stateful_tractogram import StatefulTractogram, Space
+from dipy.io.streamline import save_tractogram, load_tractogram
+from dipy.io.stateful_tractogram import StatefulTractogram, Space, Origin
 from dipy.segment.clustering import qbx_and_merge
 from dipy.tracking.streamline import transform_streamlines
-import nibabel as nib
 from nibabel.streamlines.array_sequence import ArraySequence
 import numpy as np
 
@@ -201,12 +200,13 @@ class VotingScheme(object):
             # All models of the same bundle have the same basename
             basename = os.path.splitext(bundle_names[bundle_id])[0]
             streamlines = reconstruct_streamlines_from_memmap(
-                memmap_filenames, streamlines_id,
-                strs_dtype=np.float16)
+                memmap_filenames, streamlines_id)
             if len(streamlines) != len(streamlines_id):
                 raise ValueError('Number of streamlines is not equal to the '
                                  'number of streamlines indices')
-            new_sft = StatefulTractogram(streamlines, reference, Space.RASMM)
+            new_sft = StatefulTractogram(streamlines, reference,
+                                         space=Space.RASMM,
+                                         origin=Origin.NIFTI)
 
             if len(new_sft):
                 _, indices_to_keep = new_sft.remove_invalid_streamlines()
@@ -248,19 +248,21 @@ class VotingScheme(object):
 
         wb_streamlines = ArraySequence()
         for in_tractogram in input_tractograms_path:
-            wb_streamlines.extend(
-                nib.streamlines.load(in_tractogram).streamlines)
+            sft = load_tractogram(in_tractogram, reference,
+                                  to_space=Space.RASMM, to_origin=Origin.NIFTI)
+            wb_streamlines.extend(sft.streamlines)
         len_wb_streamlines = len(wb_streamlines)
 
         logger.debug(f'Tractogram {input_tractograms_path} with '
                      f'{len_wb_streamlines} streamlines '
-                     f'is loaded in {get_duration(load_timer)} seconds')
+                     f'was loaded in {get_duration(load_timer)} seconds')
 
         total_timer = time()
         # Each type of bundle is processed separately
         model_bundles_dict, bundle_names, bundle_count = \
             self._load_bundles_dictionary()
 
+        # Calling Dipy's QuickbundlesX to separate into smaller clusters
         thresholds = [45, 35, 25, TCT]
         rng = np.random.RandomState(seed)
         cluster_timer = time()
@@ -270,6 +272,7 @@ class VotingScheme(object):
                                         nb_pts=12, rng=rng,
                                         verbose=False)
 
+        # Remembering the indices of streamlines associated to each cluster
         clusters_indices = []
         for cluster in cluster_map.clusters:
             clusters_indices.append(cluster.indices)
@@ -281,8 +284,7 @@ class VotingScheme(object):
                     f'{get_duration(cluster_timer)}sec. gave '
                     f'{len(cluster_map.centroids)} centroids')
 
-        tmp_dir, tmp_memmap_filenames = streamlines_to_memmap(wb_streamlines,
-                                                              'float16')
+        tmp_dir, tmp_memmap_filenames = streamlines_to_memmap(wb_streamlines)
 
         # Memory cleanup (before multiprocessing)
         cluster_map.refdata = None
@@ -295,6 +297,7 @@ class VotingScheme(object):
         gc.collect()
         # End of memory cleanup
 
+        # Running BundleSeg on clusters
         bsg = BundleSeg(tmp_memmap_filenames, self.transformation,
                         clusters_indices, centroids)
 
@@ -382,8 +385,6 @@ def single_recognize(args):
         Initialize BundleSeg object with QBx ClusterMap as values
     model_filepath : str
         Path to the model bundle file
-    model_bundle: ArraySequence
-        Model bundle.
     bundle_pruning_thr : float
         Threshold for pruning the model bundle
     bundle_names : list
@@ -407,8 +408,10 @@ def single_recognize(args):
     bundle_names = args[3]
     np.random.seed(args[4][0])
 
-    model_bundle = nib.streamlines.load(model_filepath).streamlines
-    model_bundle = transform_streamlines(model_bundle,
+    # Bundles should be .trk files.
+    model_sft = load_tractogram(model_filepath, reference='same',
+                                to_space=Space.RASMM, to_origin=Origin.NIFTI)
+    model_bundle = transform_streamlines(model_sft.streamlines,
                                          bsg.transformation)
 
     # Use for logging and finding the bundle_id
@@ -424,7 +427,7 @@ def single_recognize(args):
                             slr_transform_type=slr_transform_type,
                             identifier=shorter_tag)
     recognized_indices, recognized_scores = results
-    del model_bundle._data, model_bundle
+    del model_bundle._data, model_bundle, model_sft
 
     logger.info(f'Model {shorter_tag} recognized {len(recognized_indices)} '
                 'streamlines')

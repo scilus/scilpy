@@ -83,7 +83,7 @@ def _build_arg_parser():
     p.add_argument('in_directory',
                    help='Path of parent folder of models directories.\n'
                         'Each folder inside will be considered as a '
-                        'different atlas.')
+                        'different atlas. Bundles should be .trk files.')
     p.add_argument('in_transfo',
                    help='Path for the transformation to model space '
                         '(.txt, .npy or .mat).')
