@@ -26,5 +26,7 @@ def test_execution_processing(script_runner, monkeypatch):
     in_md = os.path.join(SCILPY_HOME, 'processing',
                          'md.nii.gz')
     ret = script_runner.run(['scil_fodf_max_in_ventricles', in_fodf,
-                            in_fa, in_md, '--sh_basis', 'tournier07'])
+                            in_fa, in_md, '--sh_basis', 'tournier07',
+                            '--out_mask', 'mask.nii.gz',
+                            '--max_value_output', 'max_value.txt'])
     assert ret.success

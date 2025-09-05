@@ -16,8 +16,9 @@ cvx, have_cvxpy, _ = optional_package("cvxpy")
 
 
 def get_ventricles_max_fodf(data, fa, md, zoom, sh_basis,
-                            fa_threshold, md_threshold,
-                            small_dims=False, is_legacy=True):
+                            fa_threshold, md_threshold, mask=None,
+                            small_dims=False, is_legacy=True,
+                            use_median=False):
     """
     Compute mean maximal fodf value in ventricules. Given heuristics thresholds
     on FA and MD values, finds the voxels of the ventricules or CSF and
@@ -41,18 +42,24 @@ def get_ventricles_max_fodf(data, fa, md, zoom, sh_basis,
         2x2x2 = 8 mm3.
     sh_basis: str
         Either 'tournier07' or 'descoteaux07'
-    small_dims: bool
-        If set, takes the full range of data to search the max fodf amplitude
-        in ventricles, rather than a window center in the data. Useful when the
-        data has small dimensions.
     fa_threshold: float
         Maximal threshold of FA (voxels under that threshold are considered
         for evaluation). Suggested value: 0.1.
     md_threshold: float
         Minimal threshold of MD in mm2/s (voxels above that threshold are
         considered for evaluation). Suggested value: 0.003.
+    mask : ndarray, optional
+        3D mask with shape (X,Y,Z)
+        Binary mask. Only the data inside the mask will be used for
+        evaluation. Useful if the FA and MD thresholds are not good enough.
+    small_dims: bool
+        If set, takes the full range of data to search the max fodf amplitude
+        in ventricles, rather than a window center in the data. Useful when the
+        data has small dimensions.
     is_legacy : bool, optional
         Whether the SH basis is in its legacy form.
+    use_median : bool, optional
+        If set, uses the median value instead of the mean.
 
     Returns
     -------
@@ -63,7 +70,10 @@ def get_ventricles_max_fodf(data, fa, md, zoom, sh_basis,
     order = find_order_from_nb_coeff(data)
     sphere = get_sphere(name='repulsion100')
     b_matrix, _ = sh_to_sf_matrix(sphere, order, sh_basis, legacy=is_legacy)
-    mask = np.zeros(data.shape[:-1])
+    out_mask = np.zeros(data.shape[:-1])
+
+    if mask is None:
+        mask = np.ones(data.shape[:-1])
 
     # 1000 works well at 2x2x2 = 8 mm3
     # Hence, we multiply by the volume of a voxel
@@ -101,28 +111,31 @@ def get_ventricles_max_fodf(data, fa, md, zoom, sh_basis,
                            int(data.shape[2]/2) + radius))
 
     # Ok. Now find ventricle voxels.
-    sum_of_max = 0
-    count = 0
+    list_of_max = []
     for i in all_i:
         for j in all_j:
             for k in all_k:
-                if count > max_number_of_voxels - 1:
+                if len(list_of_max) > max_number_of_voxels - 1:
                     continue
                 if fa[i, j, k] < fa_threshold \
-                        and md[i, j, k] > md_threshold:
+                        and md[i, j, k] > md_threshold \
+                            and mask[i, j, k] == 1:
                     sf = np.dot(data[i, j, k], b_matrix)
-                    sum_of_max += sf.max()
-                    count += 1
-                    mask[i, j, k] = 1
+                    list_of_max.append(sf.max())
+                    out_mask[i, j, k] = 1
 
-    logging.info('Number of voxels detected: {}'.format(count))
-    if count == 0:
+    logging.info('Number of voxels detected: {}'.format(len(list_of_max)))
+    if len(list_of_max) == 0:
         logging.warning('No voxels found for evaluation! Change your fa '
                         'and/or md thresholds')
-        return 0, mask
+        return 0, out_mask
 
-    logging.info('Average max fodf value: {}'.format(sum_of_max / count))
-    return sum_of_max / count, mask
+    logging.info('Average max fodf value: {}'.format(np.mean(list_of_max)))
+    logging.info('Median max fodf value: {}'.format(np.median(list_of_max)))
+    if use_median:
+        return np.median(list_of_max), out_mask
+    else:
+        return np.mean(list_of_max), out_mask
 
 
 def _fit_from_model_parallel(args):
