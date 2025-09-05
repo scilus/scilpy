@@ -10,8 +10,11 @@ Ex: It was used for the ISMRM 2015 Challenge scoring.
 See also scil_bundle_score_same_bundle_many_segmentations.py to score many
 versions of a same bundle, compared to ONE ground truth / gold standard.
 
-This script is the second part of script scil_score_tractogram, which also
-segments the wholebrain tractogram into bundles first.
+See also scil_bundle_pairwise_comparison to score any pair of bundle.
+
+This script is the second part of script
+scil_tractogram_segment_with_ROI_and_score, which also segments the wholebrain
+tractogram into bundles first.
 
 Here we suppose that the bundles are already segmented and saved as follows:
     main_dir/
