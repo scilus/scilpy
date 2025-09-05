@@ -29,6 +29,7 @@ def test_score_bundles(script_runner, monkeypatch):
     json_contents = {
         "bundle1": fake_path,
         "bundle2": fake_path,
+        "bundle3": fake_path, # missing VB bundle. Should give score 0.
     }
     with open(os.path.join("config_file.json"), "w") as f:
         json.dump(json_contents, f)
