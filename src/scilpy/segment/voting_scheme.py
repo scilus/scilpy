@@ -11,15 +11,13 @@ from time import time
 import warnings
 
 from dipy.io.streamline import save_tractogram, load_tractogram
-from dipy.io.stateful_tractogram import StatefulTractogram, Space
 from dipy.segment.clustering import qbx_and_merge
 from dipy.tracking.streamline import transform_streamlines
 import nibabel as nib
 from nibabel.streamlines.array_sequence import ArraySequence
 import numpy as np
 
-from scilpy.io.streamlines import streamlines_to_memmap, \
-    reconstruct_streamlines_from_memmap
+from scilpy.io.streamlines import streamlines_to_memmap
 from scilpy.segment.bundleseg import BundleSeg
 from scilpy.utils import get_duration
 
@@ -241,7 +239,7 @@ class VotingScheme(object):
                 results_dict[basename] = curr_results_dict
             sft_len += len(sft)
 
-        # Once everything is done, save all bundles, at the moment only 
+        # Once everything is done, save all bundles, at the moment only
         # the bundles are held in memory (typically 1/10th of the tractogram)
         for basename in results_sft:
             sft = results_sft[basename]
