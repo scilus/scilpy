@@ -175,6 +175,9 @@ class VotingScheme(object):
         results_dict = {}
         results_sft = {}
         sft_len = 0
+
+        # To avoid load all inputs tractograms to slice them, reload each
+        # one after the other and keep track of the indices/streamlines only
         for in_tractogram in input_tractograms_path:
             sft = load_tractogram(in_tractogram, reference)
 
@@ -190,20 +193,25 @@ class VotingScheme(object):
                     if len(streamlines_id) == 0:
                         streamlines_id = np.array([], dtype=np.uint32)
                     logger.info(f'{bundle_names[bundle_id]} final recognition got '
-                            f'{len(streamlines_id)} streamlines')
+                                f'{len(streamlines_id)} streamlines')
                 else:
-                    streamlines_id = np.array(results_dict[basename]['indices'])
+                    streamlines_id = np.array(
+                        results_dict[basename]['indices'])
 
+                # Need to make sure the indices are valid for this sft
                 if len(sft) and len(streamlines_id):
                     _, indices_to_keep = sft.remove_invalid_streamlines()
-                    indices_to_keep = np.array(indices_to_keep, dtype=np.uint32) + sft_len
+                    indices_to_keep = np.array(
+                        indices_to_keep, dtype=np.uint32) + sft_len
                     curr_ids = np.intersect1d(streamlines_id, indices_to_keep,
                                               assume_unique=True)
+                    # Convert back to local indices (for this sft)
                     curr_ids = curr_ids[curr_ids >= sft_len]
                     curr_ids = curr_ids[curr_ids < sft_len + len(sft)]
                 else:
                     curr_ids = np.array([], dtype=np.uint32)
 
+                # If the user asked to ignore metadata, remove it (simpler)
                 new_sft = sft[curr_ids - sft_len]
                 if self.ignore_metadata:
                     new_sft.data_per_point = {}
@@ -213,12 +221,14 @@ class VotingScheme(object):
                     try:
                         results_sft[basename] += new_sft
                     except ValueError:
-                        logger.warning(f"Could not merge SFT for {basename}, "
-                                       f"try --ignore_metadata.")
+                        # This error message will be raisoned if the
+                        # DPP and DPS are not the same across (+= operator)
+                        raise ValueError(f"Could not merge SFT for {basename}, "
+                                         f"try --ignore_metadata.")
                 else:
                     results_sft[basename] = new_sft
 
-                
+                # Populate the results dictionary (will be saved as json)
                 curr_results_dict = {}
                 curr_results_dict['indices'] = streamlines_id.tolist()
 
@@ -231,10 +241,12 @@ class VotingScheme(object):
                 results_dict[basename] = curr_results_dict
             sft_len += len(sft)
 
+        # Once everything is done, save all bundles, at the moment only 
+        # the bundles are held in memory (typically 1/10th of the tractogram)
         for basename in results_sft:
             sft = results_sft[basename]
             save_tractogram(sft, os.path.join(self.output_directory,
-                                        basename + extension))
+                                              basename + extension))
 
         out_logfile = os.path.join(self.output_directory, 'results.json')
         with open(out_logfile, 'w') as outfile:
