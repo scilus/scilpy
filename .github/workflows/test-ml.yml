@@ -20,10 +20,11 @@ concurrency:
 env:
   MPLBACKEND: agg
   OPENBLAS_NUM_THREADS: 1
+  PYTEST_XDIST_AUTO_NUM_WORKERS: 8
 
 jobs:
   test-ml:
-    runs-on: scilus-runners
+    runs-on: scilus-large
     if: github.repository == 'scilus/scilpy'
     steps:
       - name: Checkout repository at merge
