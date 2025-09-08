@@ -99,6 +99,10 @@ def _build_arg_parser():
                         'minimal_vote_ratio of 0.5, you will need at least \n'
                         '3 votes. [%(default)s]')
 
+    p.add_argument('--ignore_metadata', action='store_true',
+                   help='Ignore metadata in the tractogram if present. This will '
+                        'only \nconsider the geometry of the streamlines for saving.')
+
     g = p.add_argument_group(title='Exploration mode')
     p2 = g.add_mutually_exclusive_group()
     p2.add_argument('--exploration_mode', action='store_true',
@@ -183,7 +187,8 @@ def main():
 
     voting = VotingScheme(config, in_models_directories,
                           transfo, args.out_dir,
-                          minimal_vote_ratio=args.minimal_vote_ratio)
+                          minimal_vote_ratio=args.minimal_vote_ratio,
+                          ignore_metadata=args.ignore_metadata)
 
     voting(args.in_tractograms, nbr_processes=args.nbr_processes,
            seed=args.seed, reference=args.reference)

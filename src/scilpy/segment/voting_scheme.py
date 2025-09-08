@@ -35,7 +35,8 @@ MCT, TCT = 4, 12
 
 class VotingScheme(object):
     def __init__(self, config, atlas_directory, transformation,
-                 output_directory, minimal_vote_ratio=0.5):
+                 output_directory, minimal_vote_ratio=0.5,
+                 ignore_metadata=False):
         """
         Parameters
         ----------
@@ -51,12 +52,13 @@ class VotingScheme(object):
         minimal_vote_ratio : float
             Value for the vote ratio for a streamline to be considered.
             (0 < minimal_vote_ratio < 1)
-        multi_parameters : int
-            Number of runs BundleSeg will performed.
-            Enough parameter choices must be provided.
+        ignore_metadata : bool
+            If True, ignore metadata in the tractogram if present. This will
+            only \nconsider the geometry of the streamlines for saving.
         """
         self.config = config
         self.minimal_vote_ratio = minimal_vote_ratio
+        self.ignore_metadata = ignore_metadata
 
         # Scripts parameters
         if isinstance(atlas_directory, list):
@@ -169,6 +171,7 @@ class VotingScheme(object):
             Extension for file saving (TRK or TCK).
         """
         results_dict = {}
+        results_sft = {}
         sft_len = 0
         for in_tractogram in input_tractograms_path:
             sft = load_tractogram(in_tractogram, reference)
@@ -199,8 +202,14 @@ class VotingScheme(object):
                     curr_ids = np.array([], dtype=np.uint32)
 
                 new_sft = sft[curr_ids - sft_len]
-                save_tractogram(new_sft, os.path.join(self.output_directory,
-                                                    basename + extension))
+                if self.ignore_metadata:
+                    new_sft = new_sft.data_per_point = {}
+                    new_sft = new_sft.data_per_streamline = {}
+
+                if basename in results_sft:
+                    results_sft[basename] += new_sft
+                else:
+                    results_sft[basename] = new_sft
 
                 curr_results_dict = {}
                 curr_results_dict['indices'] = streamlines_id.tolist()
@@ -210,6 +219,11 @@ class VotingScheme(object):
                 curr_results_dict['scores'] = scores.tolist()
                 results_dict[basename] = curr_results_dict
             sft_len += len(sft)
+
+        for basename in results_sft:
+            sft = results_sft[basename]
+            save_tractogram(sft, os.path.join(self.output_directory,
+                                        basename + extension))
 
         out_logfile = os.path.join(self.output_directory, 'results.json')
         with open(out_logfile, 'w') as outfile:
