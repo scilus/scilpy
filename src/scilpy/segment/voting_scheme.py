@@ -185,7 +185,7 @@ class VotingScheme(object):
                         minimum_vote[bundle_id],
                         bundles_wise_vote)
                     if streamlines_id.ndim == 0:
-                        continue
+                        streamlines_id = np.array([], dtype=np.uint32)
                     logger.info(f'{bundle_names[bundle_id]} final recognition got '
                             f'{len(streamlines_id)} streamlines')
                 else:
@@ -211,11 +211,15 @@ class VotingScheme(object):
                 else:
                     results_sft[basename] = new_sft
 
+                
                 curr_results_dict = {}
                 curr_results_dict['indices'] = streamlines_id.tolist()
 
-                scores = bundles_wise_score[bundle_id,
-                                            streamlines_id].flatten()
+                if len(streamlines_id) > 0:
+                    scores = bundles_wise_score[bundle_id,
+                                                streamlines_id].flatten()
+                else:
+                    scores = np.array([], dtype=np.float16)
                 curr_results_dict['scores'] = scores.tolist()
                 results_dict[basename] = curr_results_dict
             sft_len += len(sft)
