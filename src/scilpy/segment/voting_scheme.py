@@ -178,7 +178,9 @@ class VotingScheme(object):
         # one after the other and keep track of the indices/streamlines only
         for in_tractogram in input_tractograms_path:
             sft = load_tractogram(in_tractogram, reference)
-
+            _, indices_to_keep = sft.remove_invalid_streamlines()
+            indices_to_keep = np.array(
+                indices_to_keep, dtype=np.uint32) + sft_len
             for bundle_id in range(len(bundle_names)):
                 # All models of the same bundle have the same basename
                 basename = os.path.splitext(bundle_names[bundle_id])[0]
@@ -198,9 +200,6 @@ class VotingScheme(object):
 
                 # Need to make sure the indices are valid for this sft
                 if len(sft) and len(streamlines_id):
-                    _, indices_to_keep = sft.remove_invalid_streamlines()
-                    indices_to_keep = np.array(
-                        indices_to_keep, dtype=np.uint32) + sft_len
                     curr_ids = np.intersect1d(streamlines_id, indices_to_keep,
                                               assume_unique=True)
                     # Convert back to local indices (for this sft)
