@@ -10,7 +10,7 @@ import os
 from time import time
 import warnings
 
-from dipy.io.streamline import save_tractogram
+from dipy.io.streamline import save_tractogram, load_tractogram
 from dipy.io.stateful_tractogram import StatefulTractogram, Space
 from dipy.segment.clustering import qbx_and_merge
 from dipy.tracking.streamline import transform_streamlines
@@ -142,7 +142,7 @@ class VotingScheme(object):
 
         return np.squeeze(streamlines_ids)
 
-    def _save_recognized_bundles(self, memmap_filenames, reference,
+    def _save_recognized_bundles(self, input_tractograms_path, reference,
                                  bundle_names,
                                  bundles_wise_vote, bundles_wise_score,
                                  minimum_vote, extension):
@@ -151,8 +151,8 @@ class VotingScheme(object):
 
         Parameters
         ----------
-        memmap_filenames : list
-            List of filenames for the memmap files.
+        input_tractograms_path : list
+            List of input tractograms path used to reload the streamlines.
         reference : str
             Reference file for the header.
         bundle_names : list
@@ -169,40 +169,47 @@ class VotingScheme(object):
             Extension for file saving (TRK or TCK).
         """
         results_dict = {}
-        for bundle_id in range(len(bundle_names)):
-            streamlines_id = self._find_max_in_sparse_matrix(
-                bundle_id,
-                minimum_vote[bundle_id],
-                bundles_wise_vote)
-            if streamlines_id.ndim == 0:
-                continue
+        sft_len = 0
+        for in_tractogram in input_tractograms_path:
+            sft = load_tractogram(in_tractogram, reference)
 
-            logger.info(f'{bundle_names[bundle_id]} final recognition got '
-                        f'{len(streamlines_id)} streamlines')
+            for bundle_id in range(len(bundle_names)):
+                # All models of the same bundle have the same basename
+                basename = os.path.splitext(bundle_names[bundle_id])[0]
+                if basename not in results_dict:
+                    streamlines_id = self._find_max_in_sparse_matrix(
+                        bundle_id,
+                        minimum_vote[bundle_id],
+                        bundles_wise_vote)
+                    if streamlines_id.ndim == 0:
+                        continue
+                    logger.info(f'{bundle_names[bundle_id]} final recognition got '
+                            f'{len(streamlines_id)} streamlines')
+                else:
+                    streamlines_id = np.array(results_dict[basename]['indices'])
 
-            # All models of the same bundle have the same basename
-            basename = os.path.splitext(bundle_names[bundle_id])[0]
-            streamlines = reconstruct_streamlines_from_memmap(
-                memmap_filenames, streamlines_id,
-                strs_dtype=np.float16)
-            if len(streamlines) != len(streamlines_id):
-                raise ValueError('Number of streamlines is not equal to the '
-                                 'number of streamlines indices')
-            new_sft = StatefulTractogram(streamlines, reference, Space.RASMM)
+                if len(sft) and len(streamlines_id):
+                    _, indices_to_keep = sft.remove_invalid_streamlines()
+                    indices_to_keep = np.array(indices_to_keep, dtype=np.uint32) + sft_len
+                    curr_ids = np.intersect1d(streamlines_id, indices_to_keep,
+                                              assume_unique=True)
+                    curr_ids = curr_ids[curr_ids >= sft_len]
+                    curr_ids = curr_ids[curr_ids < sft_len + len(sft)]
+                else:
+                    curr_ids = np.array([], dtype=np.uint32)
 
-            if len(new_sft):
-                _, indices_to_keep = new_sft.remove_invalid_streamlines()
-                streamlines_id = streamlines_id[indices_to_keep]
-            save_tractogram(new_sft, os.path.join(self.output_directory,
-                                                  basename + extension))
+                new_sft = sft[curr_ids - sft_len]
+                save_tractogram(new_sft, os.path.join(self.output_directory,
+                                                    basename + extension))
 
-            curr_results_dict = {}
-            curr_results_dict['indices'] = streamlines_id.tolist()
+                curr_results_dict = {}
+                curr_results_dict['indices'] = streamlines_id.tolist()
 
-            scores = bundles_wise_score[bundle_id,
-                                        streamlines_id].flatten()
-            curr_results_dict['scores'] = scores.tolist()
-            results_dict[basename] = curr_results_dict
+                scores = bundles_wise_score[bundle_id,
+                                            streamlines_id].flatten()
+                curr_results_dict['scores'] = scores.tolist()
+                results_dict[basename] = curr_results_dict
+            sft_len += len(sft)
 
         out_logfile = os.path.join(self.output_directory, 'results.json')
         with open(out_logfile, 'w') as outfile:
@@ -277,7 +284,7 @@ class VotingScheme(object):
         # End of memory cleanup
 
         bsg = BundleSeg(tmp_memmap_filenames, self.transformation,
-                        clusters_indices, centroids)
+                        clusters_indices, centroids, rng=rng)
 
         # Update all BundleSeg initialisation into a single dictionnary
         with Manager() as manager:
@@ -287,7 +294,7 @@ class VotingScheme(object):
                 single_recognize,
                 zip(repeat(bsg), model_bundles_dict.keys(),
                     model_bundles_dict.values(),
-                    repeat(bundle_names), repeat([seed])))
+                    repeat(bundle_names)))
             pool.close()
             pool.join()
 
@@ -321,7 +328,7 @@ class VotingScheme(object):
         _, ext = os.path.splitext(input_tractograms_path[0])
 
         save_timer = time()
-        self._save_recognized_bundles(tmp_memmap_filenames,
+        self._save_recognized_bundles(input_tractograms_path,
                                       reference,
                                       bundle_names,
                                       bundles_wise_vote,
@@ -340,9 +347,8 @@ def single_recognize_parallel(args):
     model_filepath = args[1]
     bundle_pruning_thr, model_bundle = args[2]
     bundle_names = args[3]
-    seed = args[4]
     return single_recognize(rbx, model_filepath, model_bundle,
-                            bundle_pruning_thr, bundle_names, seed)
+                            bundle_pruning_thr, bundle_names)
 
 
 def single_recognize(args):
@@ -378,7 +384,6 @@ def single_recognize(args):
     model_filepath = args[1]
     bundle_pruning_thr = args[2]
     bundle_names = args[3]
-    np.random.seed(args[4][0])
 
     model_bundle = nib.streamlines.load(model_filepath).streamlines
     model_bundle = transform_streamlines(model_bundle,
