@@ -16,6 +16,7 @@ concurrency:
 env:
   MPLBACKEND: agg
   OPENBLAS_NUM_THREADS: 1
+  PYTEST_XDIST_AUTO_NUM_WORKERS: 8
 
 jobs:
   test:
