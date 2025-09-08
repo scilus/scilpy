@@ -1,13 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Script to compute the mean/median maximum fODF in the ventricles. The
 ventricules are estimated from an MD and FA threshold.
 
 This allows to clip the noise of fODF using an absolute thresold.
 
-Formerly: scil_compute_fodf_max_in_ventricles.py
 --------------------------------------------------------------------------
 Reference:
 [1] Dell'Acqua, Flavio, et al. "Can spherical deconvolution provide more

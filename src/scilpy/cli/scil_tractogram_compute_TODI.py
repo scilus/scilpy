@@ -9,7 +9,6 @@ compressed streamlines).
 This script can afterwards output a Track Density Image (TDI) or a TODI with SF
 or SH representation, based on streamlines' segments.
 
-Formerly: scil_compute_todi.py
 ------------------------------------------------------------------------------------
 Reference:
 [1] Dhollander T, Emsell L, Van Hecke W, Maes F, Sunaert S, Suetens P.

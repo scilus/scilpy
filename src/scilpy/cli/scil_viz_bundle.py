@@ -1,20 +1,19 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Visualize bundles.
 
 Example usages:
 
 # Visualize streamlines as tubes, each bundle with a different color
->>> scil_viz_bundle.py path_to_bundles/ --shape tube --random_coloring 1337
+>>> scil_viz_bundle path_to_bundles/ --shape tube --random_coloring 1337
 
 # Visualize a tractogram with each streamlines drawn as lines, colored with
 # their local orientation, but only load 1 in 10 streamlines
->>> scil_viz_bundle.py tractogram.trk --shape line --subsample 10
+>>> scil_viz_bundle tractogram.trk --shape line --subsample 10
 
 # Visualize CSTs as large tubes and color them from a list of colors in a file
->>> scil_viz_bundle.py path_to_bundles/CST_* --width 0.5
+>>> scil_viz_bundle path_to_bundles/CST_* --width 0.5
     --color_dict colors.json
 """
 

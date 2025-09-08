@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Extracts the DWI volumes that are on specific b-value shells. Many shells
 can be extracted at once by specifying multiple b-values. The extracted
@@ -15,7 +14,6 @@ Files that are too large to be loaded in memory can still be processed by
 setting the --block-size argument. A block size of X means that X DWI volumes
 are loaded at a time for processing.
 
-Formerly: scil_extract_dwi_shell.py
 """
 
 import argparse

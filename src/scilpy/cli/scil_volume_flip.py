@@ -2,8 +2,6 @@
 
 """
 Flip the volume according to the specified axis.
-
-Formerly: scil_flip_volume.py
 """
 
 import argparse

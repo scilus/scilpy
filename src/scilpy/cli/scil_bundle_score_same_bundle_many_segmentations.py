@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 This script is intended to score many versions of a same bundle, compared to
 ONE ground truth / gold standard.
 
-See also scil_bundle_score_many_bundles_one_tractogram.py to score all bundles
+See also scil_bundle_score_many_bundles_one_tractogram to score all bundles
 from a single tractogram by comparing each valid bundle to its ground truth.
 
 All tractograms must be in the same space (aligned to one reference).
@@ -26,7 +25,6 @@ The computed binary classification measures are:
 sensitivity, specificity, precision, accuracy, dice, kappa, youden for both
 the streamline and voxel representation (if provided).
 
-Formerly: scil_evaluate_bundles_binary_classification_measures.py
 """
 
 import argparse

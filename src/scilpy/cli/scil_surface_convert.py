@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Script to convert surface formats
 
@@ -8,15 +7,15 @@ Supported formats:
     ".vtk", ".vtp", ".ply", ".stl", ".xml", ".obj"
     and FreeSurfer surfaces
 
-> scil_surface_convert.py surf.vtk converted_surf.ply
+> scil_surface_convert surf.vtk converted_surf.ply
 
-Formerly: scil_convert_surface.py
 -----------------------------------------------------------------
 Reference:
 [1] St-Onge, E., Daducci, A., Girard, G. and Descoteaux, M. 2018.
     Surface-enhanced tractography (SET). NeuroImage.
 -----------------------------------------------------------------
 """
+
 import argparse
 import logging
 import os

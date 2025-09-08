@@ -117,7 +117,7 @@ def _build_arg_parser():
     p.add_argument('in_peaks',
                    help='Path of the peaks. The peaks are expected to be '
                         'given as unit directions. \nTo get these from fODF '
-                        'or SH data, use the script scil_fodf_metrics.py '
+                        'or SH data, use the script scil_fodf_metrics '
                         '\nwith the abs_peaks_and_values option.')
 
     p.add_argument('--in_bundles', nargs='+', required=True,

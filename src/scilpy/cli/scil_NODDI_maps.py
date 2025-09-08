@@ -1,11 +1,9 @@
 #! /usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Compute NODDI [1] maps using AMICO.
 Multi-shell DWI necessary.
 
-Formerly: scil_compute_NODDI.py
 ---------------------------------------------------------------
 Reference:
 [1] Zhang H, Schneider T, Wheeler-Kingshott CA, Alexander DC.

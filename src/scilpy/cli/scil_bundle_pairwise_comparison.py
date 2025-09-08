@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Evaluate pairwise similarity measures of bundles.
 All tractograms must be in the same space (aligned to one reference).
@@ -15,9 +14,8 @@ For the streamline representation, the computed similarity measures are:
     streamlines_count_overreach
 
 If you have volumes associated to your bundles, the following script could be
-of interest for you: scil_volume_pairwise_comparison.py
+of interest for you: scil_volume_pairwise_comparison
 
-Formerly: scil_evaluate_bundles_pairwise_agreement_measures.py
 """
 
 import argparse

@@ -1,12 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Generation of priors and enhanced-FOD from an example/template bundle.
 The bundle must have been cleaned thorougly before use. The E-FOD can then
 be used for bundle-specific tractography, but not for FOD metrics.
 
-Formerly: scil_generate_priors_from_bundle.py
 -----------------------------------------------------------------------------
 Reference:
 [1] Rheault, Francois, et al. "Bundle-specific tractography with incorporated

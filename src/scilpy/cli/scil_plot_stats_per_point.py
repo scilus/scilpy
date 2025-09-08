@@ -1,13 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Plot all mean/std per point for a subject or population json file from
 tractometry-flow.
 WARNING: For population, the displayed STDs is only showing the variation
 of the means. It does not account intra-subject STDs.
-
-Formerly: scil_plot_mean_std_per_point.py
 """
 
 import argparse
@@ -33,7 +30,7 @@ def _build_arg_parser():
     p.add_argument('in_json',
                    help='JSON file containing the mean/std per point. For '
                         'example, can be created using '
-                        'scil_bundle_mean_std.py.')
+                        'scil_bundle_mean_std.')
     p.add_argument('out_dir',
                    help='Output directory.')
 

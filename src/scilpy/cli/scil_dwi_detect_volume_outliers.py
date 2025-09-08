@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 This script simply finds the 3 closest angular neighbors of each direction
 (per shell) and compute the voxel-wise correlation.

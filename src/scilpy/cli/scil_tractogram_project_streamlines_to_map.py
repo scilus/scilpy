@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Projects metrics onto the underlying voxels of a streamlines. This script can
 project data from data_per_point (dpp) or data_per_streamline (dps) to maps.
@@ -9,7 +8,7 @@ You choose to project data from all points of the streamlines, or from the
 endpoints only. The idea then is to visualize the cortical areas affected by
 metrics (assuming streamlines start/end in the cortex).
 
-See also scil_tractogram_project_map_to_streamlines.py for the reverse action.
+See also scil_tractogram_project_map_to_streamlines for the reverse action.
 
 How to the data is loaded:
     - From dps: uses the same value for each point of the streamline.
@@ -27,7 +26,7 @@ How the data is projected to a map:
     B. Using the endpoints only.
 
 For more complex operations than the average per streamline, see
-scil_tractogram_dpp_math.py.
+scil_tractogram_dpp_math.
 """
 
 import argparse

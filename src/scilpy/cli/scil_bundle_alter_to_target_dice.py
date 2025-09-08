@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-
 """
 This script is used to alter a bundle while keeping it similar enough to the
 original version (keeping the dice coefficient above a given threshold).

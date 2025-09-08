@@ -7,7 +7,7 @@ This script is intended to score all bundles from a single tractogram. Each
 valid bundle is compared to its ground truth.
 Ex: It was used for the ISMRM 2015 Challenge scoring.
 
-See also scil_bundle_score_same_bundle_many_segmentations.py to score many
+See also scil_bundle_score_same_bundle_many_segmentations to score many
 versions of a same bundle, compared to ONE ground truth / gold standard.
 
 This script is the second part of script scil_score_tractogram, which also
@@ -37,8 +37,8 @@ Exemple config file:
   }
 }
 
-Formerly: scil_score_bundles.py
 """
+
 import argparse
 import glob
 import json

@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Compose a mosaic of screenshots of the given image volume slices along the
 requested axis. The provided transparency mask (e.g. a brain mask volume) is
@@ -18,23 +17,23 @@ The screenshots are overlapped according to the given factors.
 The mosaic supports either horizontal, vertical or matrix arrangements.
 
 Example:
->>> scil_viz_volume_screenshot_mosaic.py 1 8 t1.nii.gz brain_mask.nii.gz
+>>> scil_viz_volume_screenshot_mosaic 1 8 t1.nii.gz brain_mask.nii.gz
     mosaic_overlap_t1_axial.png 30 40 50 60 70 80 90 100
 
->>> scil_viz_volume_screenshot_mosaic.py 2 4 t1.nii.gz brain_mask.nii.gz
+>>> scil_viz_volume_screenshot_mosaic 2 4 t1.nii.gz brain_mask.nii.gz
     mosaic_overlap_t1_axial_plasma_cmap.png 30 40 50 60 70 80 90 100
     --overlap_factor 0.6 0.5 --volume_cmap_name plasma
 
->>> scil_viz_volume_screenshot_mosaic.py 2 4 tissues.nii.gz brain_mask.nii.gz
+>>> scil_viz_volume_screenshot_mosaic 2 4 tissues.nii.gz brain_mask.nii.gz
     mosaic_overlap_tissues_axial_plasma_cmap.png 30 40 50 60 70 80 90 100
     --volume_cmap_name plasma
 
->>> scil_viz_volume_screenshot_mosaic.py 2 4 t1.nii.gz brain_mask.nii.gz
+>>> scil_viz_volume_screenshot_mosaic 2 4 t1.nii.gz brain_mask.nii.gz
     mosaic_overlap_t1_sagittal_tissue_viridis_cmap.png
     30 40 50 60 70 80 90 100 --axis sagittal
     --labelmap tissue_map.nii.gz --labelmap_cmap_name viridis
 
->>> scil_viz_volume_screenshot_mosaic.py 2 4 t1.nii.gz brain_mask.nii.gz
+>>> scil_viz_volume_screenshot_mosaic 2 4 t1.nii.gz brain_mask.nii.gz
     mosaic_overlap_t1_sagittal_tissue_contours.png
     30 40 50 60 70 80 90 100 --axis sagittal
     --overlays wm_mask.nii.gz gm_mask.nii.gz csf_mask.nii.gz
