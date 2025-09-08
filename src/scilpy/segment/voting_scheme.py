@@ -142,7 +142,7 @@ class VotingScheme(object):
         streamlines_ids = np.argwhere(bundles_wise_vote[bundle_id] >= min_vote)
         streamlines_ids = np.asarray(streamlines_ids, dtype=np.uint32)
 
-        return np.squeeze(streamlines_ids)
+        return streamlines_ids.reshape((-1,))
 
     def _save_recognized_bundles(self, input_tractograms_path, reference,
                                  bundle_names,
@@ -150,6 +150,8 @@ class VotingScheme(object):
                                  minimum_vote, extension):
         """
         Will save multiple TRK/TCK file and results.json (contains indices)
+        To preserve DPS and DPP but preserve memory, will reload each input
+        tractogram.
 
         Parameters
         ----------
@@ -184,7 +186,8 @@ class VotingScheme(object):
                         bundle_id,
                         minimum_vote[bundle_id],
                         bundles_wise_vote)
-                    if streamlines_id.ndim == 0:
+
+                    if len(streamlines_id) == 0:
                         streamlines_id = np.array([], dtype=np.uint32)
                     logger.info(f'{bundle_names[bundle_id]} final recognition got '
                             f'{len(streamlines_id)} streamlines')
@@ -203,11 +206,15 @@ class VotingScheme(object):
 
                 new_sft = sft[curr_ids - sft_len]
                 if self.ignore_metadata:
-                    new_sft = new_sft.data_per_point = {}
-                    new_sft = new_sft.data_per_streamline = {}
+                    new_sft.data_per_point = {}
+                    new_sft.data_per_streamline = {}
 
                 if basename in results_sft:
-                    results_sft[basename] += new_sft
+                    try:
+                        results_sft[basename] += new_sft
+                    except ValueError:
+                        logger.warning(f"Could not merge SFT for {basename}, "
+                                       f"try --ignore_metadata.")
                 else:
                     results_sft[basename] = new_sft
 
