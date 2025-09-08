@@ -1,6 +1,5 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
-
 """
 Script to compute microstructure metrics using the DIVIDE method. In order to
 operate, the script needs at leats two different types of b-tensor encodings.
