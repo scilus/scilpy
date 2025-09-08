@@ -23,7 +23,7 @@ env:
 
 jobs:
   test-ml:
-    runs-on: scilus-runners
+    runs-on: scilus-large
     if: github.repository == 'scilus/scilpy'
     steps:
       - name: Checkout repository at merge

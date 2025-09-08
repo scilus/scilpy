@@ -19,7 +19,7 @@ env:
 
 jobs:
   test:
-    runs-on: scilus-bigmem-runners
+    runs-on: scilus-large
     if: github.repository == 'scilus/scilpy'
 
     steps:
