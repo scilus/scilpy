@@ -13,8 +13,12 @@ from scilpy.tractanalysis.voxel_boundary_intersection import\
 def afd_map_along_streamlines(sft, fodf, fodf_basis, length_weighting,
                               is_legacy=True):
     """
-    Compute the mean Apparent Fiber Density (AFD) and mean Radial fODF
+    Compute the mean Apparent Fiber Density (AFD) [1] and mean Radial fODF
     (radfODF) maps along a bundle.
+
+    [1] Raffelt et. al (2012). Apparent fibre density: a novel measure for the
+    analysis of diffusion-weighted magnetic resonance images.
+    Neuroimage, 59(4), 3976-3994.
 
     Parameters
     ----------
@@ -27,6 +31,8 @@ def afd_map_along_streamlines(sft, fodf, fodf_basis, length_weighting,
         Has to be descoteaux07 or tournier07
     length_weighting : bool
         If set, will weigh the AFD values according to segment lengths
+    is_legacy : bool
+        If true, uses legacy basis.
 
     Returns
     -------
@@ -37,9 +43,9 @@ def afd_map_along_streamlines(sft, fodf, fodf_basis, length_weighting,
     """
 
     afd_sum, rd_sum, weights = \
-        afd_and_rd_sums_along_streamlines(sft, fodf, fodf_basis,
-                                          length_weighting,
-                                          is_legacy=is_legacy)
+        _afd_and_rd_sums_along_streamlines(sft, fodf, fodf_basis,
+                                           length_weighting,
+                                           is_legacy=is_legacy)
 
     non_zeros = np.nonzero(afd_sum)
     weights_nz = weights[non_zeros]
@@ -49,8 +55,8 @@ def afd_map_along_streamlines(sft, fodf, fodf_basis, length_weighting,
     return afd_sum, rd_sum
 
 
-def afd_and_rd_sums_along_streamlines(sft, fodf, fodf_basis,
-                                      length_weighting, is_legacy=True):
+def _afd_and_rd_sums_along_streamlines(sft, fodf, fodf_basis,
+                                       length_weighting, is_legacy=True):
     """
     Compute the mean Apparent Fiber Density (AFD) and
     mean Radial fODF (radfODF) maps along a bundle.
@@ -67,7 +73,7 @@ def afd_and_rd_sums_along_streamlines(sft, fodf, fodf_basis,
     length_weighting : bool
         If set, will weigh the AFD values according to segment lengths.
     is_legacy : bool, optional
-        Whether or not the SH basis is in its legacy form.
+        Whether the SH basis is in its legacy form.
 
     Returns
     -------
@@ -89,42 +95,46 @@ def afd_and_rd_sums_along_streamlines(sft, fodf, fodf_basis,
     _, n = sph_harm_ind_list(order)
     legendre0_at_n = legendre_p_all(order, 0)[0][n]
     sphere_norm = np.linalg.norm(sphere.vertices)
+    p_matrix = np.eye(fodf_data.shape[3]) * legendre0_at_n
 
+    # Initializing
     afd_sum_map = np.zeros(shape=fodf_data.shape[:-1])
     rd_sum_map = np.zeros(shape=fodf_data.shape[:-1])
     weight_map = np.zeros(shape=fodf_data.shape[:-1])
 
-    p_matrix = np.eye(fodf_data.shape[3]) * legendre0_at_n
     all_split_streamlines =\
         subdivide_streamlines_at_voxel_faces(sft.streamlines)
     for split_streamlines in all_split_streamlines:
+        # Get the direction of each segment
         segments = split_streamlines[1:] - split_streamlines[:-1]
         seg_lengths = np.linalg.norm(segments, axis=1)
 
-        # Remove points where the segment is zero.
+        # Remove segments of length zero.
         # This removes numpy warnings of division by zero.
         non_zero_lengths = np.nonzero(seg_lengths)[0]
         segments = segments[non_zero_lengths]
         seg_lengths = seg_lengths[non_zero_lengths]
 
+        # Find closest point on sphere
         test = np.dot(segments, sphere.vertices.T)
         test2 = (test.T / (seg_lengths * sphere_norm)).T
         angles = np.arccos(test2)
         sorted_angles = np.argsort(angles, axis=1)
         closest_vertex_indices = sorted_angles[:, 0]
 
-        # Those starting points are used for the segment vox_idx computations
-        strl_start = split_streamlines[non_zero_lengths]
-        vox_indices = (strl_start + (0.5 * segments)).astype(int)
+        # Get the middle voxel of each segment
+        # (They are already cut per voxel, so the middle voxel is probably the
+        # same as the start voxel.)
+        seg_starts = split_streamlines[non_zero_lengths]
+        vox_indices = (seg_starts + (0.5 * segments)).astype(int)
 
         normalization_weights = np.ones_like(seg_lengths)
         if length_weighting:
             normalization_weights = seg_lengths / \
                 np.linalg.norm(fodf.header.get_zooms()[:3])
 
-        for vox_idx, closest_vertex_index, norm_weight in zip(vox_indices,
-                                                              closest_vertex_indices,
-                                                              normalization_weights):
+        for vox_idx, closest_vertex_index, norm_weight in zip(
+                vox_indices, closest_vertex_indices, normalization_weights):
             vox_idx = tuple(vox_idx)
             b_at_idx = b_matrix.T[closest_vertex_index]
             fodf_at_index = fodf_data[vox_idx]
