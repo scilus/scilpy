@@ -47,15 +47,14 @@ def closest_match_to_centroid(bundle_pts, centroid_pts, nb_pts):
     """
     # A kdtree is used to find the nearest euclidian neighbors between
     # all voxels (bundle) and the streamline (centroid)
+    if len(centroid_pts) != nb_pts:
+        raise ValueError('The number of points in the centroid_pts must be '
+                         'equal to nb_pts')
     tree = KDTree(centroid_pts, copy_data=True)
     _, labels = tree.query(bundle_pts, k=1)
+    labels += 1
 
-    # No matter how many points are in the centroids, labels will be between
-    # 1 and nb_pts
-    labels = (labels / np.max(labels) * (nb_pts - 1)) + 1
-
-    return labels.astype(np.uint16)
-
+    return labels
 
 def associate_labels(target_sft, min_label=1, max_label=20):
     """
@@ -470,6 +469,7 @@ def subdivide_bundles(sft, sft_centroid, binary_mask, nb_pts,
     labels = closest_match_to_centroid(indices,
                                        sft_centroid[0].streamlines._data,
                                        nb_pts=nb_pts)
+
     logging.debug('Computed labels using the euclidian method '
                   f'in {round(time.time() - timer, 3)} seconds')
 
