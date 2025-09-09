@@ -4,7 +4,7 @@ from typing import Iterable
 
 import nibabel as nib
 import numpy as np
-from nibabel.streamlines import TrkFile
+from nibabel.streamlines import TrkFile, TckFile
 from nibabel.streamlines.tractogram import LazyTractogram, TractogramItem
 from tqdm import tqdm
 
