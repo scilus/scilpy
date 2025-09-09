@@ -285,8 +285,12 @@ def peaks_from_sh(shm_coeff, sphere, mask=None, relative_peak_threshold=0.5,
 
     Returns
     -------
-    tuple of np.ndarray
-        peak_dirs, peak_values, peak_indices
+    peak_dirs: np.ndarray
+        Shape: [x, y, z, npeaks * 3]
+    peak_values: np.ndarray
+        Shape: [x, y, z, npeaks]
+    peak_indices: np.ndarray
+        Shape: [x, y, z, npeaks]
     """
     sh_order = order_from_ncoef(shm_coeff.shape[-1],
                                 full_basis=full_basis)
