@@ -1,13 +1,12 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Performs an operation on a list of matrices. The supported operations are
 listed below.
 
 Some operations such as multiplication or addition accept float value as
 parameters instead of matrices.
-> scil_connectivity_math.py multiplication mat.npy 10 mult_10.npy
+> scil_connectivity_math multiplication mat.npy 10 mult_10.npy
 """
 
 import argparse

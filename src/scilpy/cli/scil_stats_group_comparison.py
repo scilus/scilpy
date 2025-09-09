@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Run group comparison statistics on metrics from tractometry
 1) Separate the sample given a particular variable (group_by) into groups
@@ -32,8 +31,6 @@ https://en.wikipedia.org/wiki/Kruskal%E2%80%93Wallis_one-way_analysis_of_varianc
    2, test the group difference two by two.
 
 6) Generate the result for all metrics and bundles
-
-Formerly: scil_group_comparison.py
 """
 
 import argparse

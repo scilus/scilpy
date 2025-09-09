@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Register DWI to a template for screenshots.
 The templates are on http://www.bic.mni.mcgill.ca/ServicesAtlases/ICBM152NLin2009

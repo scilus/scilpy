@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Script to denoise a dataset with the Non-Local Means algorithm (from Dipy's
 package).
@@ -44,10 +43,8 @@ through adaptive denoising. Medical image analysis, 32, 115-130.
 [4] Koay CG, Ozarslan E and Pierpaoli C. "Probabilistic Identification and
 Estimation of Noise (PIESNO): A self-consistent approach and its applications
 in MRI." Journal of Magnetic Resonance 2009; 199: 94-103.
-
-Formerly: scil_run_nlmeans.py
-
 """
+
 import argparse
 import logging
 import warnings

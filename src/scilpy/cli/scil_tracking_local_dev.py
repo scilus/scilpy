@@ -1,6 +1,5 @@
 #! /usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Local streamline HARDI tractography using scilpy-only methods -- no dipy (i.e
 no cython). The goal of this is to have a python-only version that can be
@@ -8,7 +7,7 @@ modified more easily by our team when testing new algorithms and parameters,
 and that can be used as parent classes in sub-projects of our lab such as in
 dwi_ml.
 
-WARNING. MUCH SLOWER THAN scil_tracking_local.py. We recommand using multi-
+WARNING. MUCH SLOWER THAN scil_tracking_local. We recommand using multi-
 processing with option --nb_processes.
 
 Similar to scil_tracking_local:
@@ -38,7 +37,6 @@ A few notes on Runge-Kutta integration.
     2. As a rule of thumb, doubling the rk_order will double the computation
        time in the worst case.
 
-Formerly: scil_compute_local_tracking_dev.py
 -------------------------------------------------------------------------------
 Reference:
 [1] Girard, G., Whittingstall K., Deriche, R., and Descoteaux, M. (2014).
@@ -46,6 +44,7 @@ Reference:
     Neuroimage, 98, 266-278.
 -------------------------------------------------------------------------------
 """
+
 import argparse
 import logging
 import time

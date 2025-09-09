@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Convex Optimization Modeling for Microstructure Informed Tractography (COMMIT)
 estimates, globally, how a given tractogram explains the DWI in terms of signal
@@ -56,7 +55,7 @@ that have non-zero weight and that contribute to explain the DWI signal.
 Streamlines with 0 weight are essentially not necessary according to COMMIT.
 
 COMMIT2 is available only for HDF5 data from
-scil_tractogram_segment_connections_from_labels.py and
+scil_tractogram_segment_connections_from_labels and
 with the --ball_stick option. Use the --commit2 option to activite it, slightly
 longer computation time. This wrapper offers a simplify way to call COMMIT,
 but does not allow to use (or fine-tune) every parameter. If you want to use
@@ -70,7 +69,6 @@ When tunning parameters, such as --iso_diff, --para_diff, --perp_diff or
     - Inspect the (N)RMSE map and look for peaks or anomalies
     - Compare the density map before and after (essential tractogram)
 
-Formerly: scil_run_commit.py
 --------------------------------------------------------------------------------
 References:
 [1] Daducci, Alessandro, et al. "COMMIT: convex optimization modeling for

@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Crop a volume using a given or an automatically computed bounding box. If a
 previously computed bounding box file is given, the cropping will be applied
@@ -12,13 +11,11 @@ other types of images that haven't been masked.
 
 To:
     - interpolate/reslice to an arbitrary voxel size, use
-      scil_volume_resample.py.
+      scil_volume_resample.
     - pad or crop the volume to match the desired shape, use
-      scil_volume_reshape.py.
+      scil_volume_reshape.
     - reshape a volume to match the resolution of another, use
-      scil_volume_reslice_to_reference.py.
-
-Formerly: scil_crop_volume.py
+      scil_volume_reslice_to_reference.
 """
 
 import argparse

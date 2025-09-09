@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """ This script will harmonize a json file by adding missing keys and values
 that differs between the different layers of the dictionary.
 
@@ -11,8 +10,6 @@ The most common use case is when specific subjects have missing bundles
 which will cause a panda array to be incomplete, and thus crash. Finding out
 the union of all bundles/metrics/lesions will allow to create a complete json
 (but with NaN for missing values).
-
-Formerly: scil_harmonize_json.py
 """
 
 import argparse

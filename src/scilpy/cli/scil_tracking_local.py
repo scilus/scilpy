@@ -1,6 +1,5 @@
 #! /usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Local streamline HARDI tractography.
 The tracking direction is chosen in the aperture cone defined by the
@@ -22,7 +21,7 @@ Algo 'ptt': select the propagation direction using Parallel-Transport
 Tractography (PTT) framework, see [2] for more details.
 
 NOTE: eudx can be used with pre-computed peaks from fodf as well as
-evecs_v1.nii.gz from scil_dti_metrics.py (experimental).
+evecs_v1.nii.gz from scil_dti_metrics (experimental).
 
 NOTE: If tracking with PTT, the step-size should be smaller than usual,
 i.e 0.1-0.2mm or lower. The maximum angle between segments (theta) should
@@ -45,7 +44,6 @@ implementations:
 
 All the input nifti files must be in isotropic resolution.
 
-Formerly: scil_compute_local_tracking.py
 --------------------------------------------------------------------------------
 References:
 [1] Garyfallidis, E. (2012). Towards an accurate brain tractography

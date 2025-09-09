@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Search through all SCILPY scripts and their docstrings to find matches for the
 provided keywords.
@@ -26,12 +25,12 @@ Keywords Highlighting:
 red.
 
 Examples:
-- scil_search_keywords.py tractogram filtering
-- scil_search_keywords.py "Spherical Harmonics"
-- scil_search_keywords.py --no_synonyms "Spherical Harmonics"
-- scil_search_keywords.py --search_category tractogram
-- scil_search_keywords.py -v sh
-- scil_search_keywords.py -v DEBUG sh
+- scil_search_keywords tractogram filtering
+- scil_search_keywords "Spherical Harmonics"
+- scil_search_keywords --no_synonyms "Spherical Harmonics"
+- scil_search_keywords --search_category tractogram
+- scil_search_keywords -v sh
+- scil_search_keywords -v DEBUG sh
 """
 
 # TODO harmonize variable names
@@ -158,7 +157,7 @@ def main():
     for script in sorted(hidden_dir.glob(f'scil_{selected_object}*.help')):
         script_name = script.stem
 
-        with open(script, 'r') as f:
+        with open(script, 'r', encoding='utf-8') as f:
             search_text = f.read()
 
         score_details = _calculate_score(

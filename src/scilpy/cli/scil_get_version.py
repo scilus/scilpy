@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Give you information about your current scilpy installation.
 This is useful for non-developers to give you the information

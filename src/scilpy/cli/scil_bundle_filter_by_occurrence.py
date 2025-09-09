@@ -9,10 +9,7 @@ bundles of a given population.
 If streamlines originate from the same tractogram (ex, to compare various
 bundle clustering techniques), streamline-wise vote is available to find the
 streamlines most often included in the bundle (use --ratio_streamlines).
-
-Formerly: scil_perform_majority_vote.py
 """
-
 
 import argparse
 import logging

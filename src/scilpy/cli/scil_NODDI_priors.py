@@ -1,11 +1,9 @@
 #! /usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Compute the axial (para_diff), radial (perp_diff), and mean (iso_diff)
 diffusivity priors for NODDI.
 
-Formerly: scil_compute_NODDI_priors.py
 ---------------------------------------------------------------
 Reference:
 [1] Zhang H, Schneider T, Wheeler-Kingshott CA, Alexander DC.

@@ -23,7 +23,6 @@ perfectly symmetric signal and 1 to a perfectly anti-symmetric signal. It is
 given as the ratio of the L2-norm of odd SH coefficients on the L2-norm of all
 SH coefficients.
 
-Formerly: scil_compute_asym_odf_metrics.py
 --------------------------------------------------------------------------------
 References:
 [1] C. Poirier and M. Descoteaux, "Filtering Methods for Asymmetric ODFs:
@@ -41,7 +40,6 @@ References:
     Vancouver, BC, Abstract number 0865.
 ---------------------------------------------------------------------------------
 """
-
 
 import argparse
 import logging
@@ -96,7 +94,7 @@ def _build_arg_parser():
                         'value should be set to\napproximately 1.5 to 2 times '
                         'the maximum fODF amplitude in isotropic voxels\n'
                         '(ie. ventricles).\n'
-                        'Use scil_fodf_max_in_ventricles.py to find the '
+                        'Use scil_fodf_max_in_ventricles to find the '
                         'maximal value.\n'
                         'See [Dell\'Acqua et al HBM 2013] [%(default)s].')
     p.add_argument('--rt', dest='r_threshold', type=float, default='0.1',
