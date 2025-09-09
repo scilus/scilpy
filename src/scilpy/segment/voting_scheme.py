@@ -35,7 +35,7 @@ MCT, TCT = 4, 12
 
 class VotingScheme(object):
     def __init__(self, config, atlas_directory, transformation,
-                 output_directory, minimal_vote_ratio=0.5):
+                 output_directory, minimal_vote_ratio=0.5, save_empty=False):
         """
         Parameters
         ----------
@@ -51,12 +51,12 @@ class VotingScheme(object):
         minimal_vote_ratio : float
             Value for the vote ratio for a streamline to be considered.
             (0 < minimal_vote_ratio < 1)
-        multi_parameters : int
-            Number of runs BundleSeg will performed.
-            Enough parameter choices must be provided.
+        save_empty : bool
+            If True, will save empty files for bundles that were not recognized.
         """
         self.config = config
         self.minimal_vote_ratio = minimal_vote_ratio
+        self.save_empty = save_empty
 
         # Scripts parameters
         if isinstance(atlas_directory, list):
@@ -199,8 +199,9 @@ class VotingScheme(object):
                     curr_ids = np.array([], dtype=np.uint32)
 
                 new_sft = sft[curr_ids - sft_len]
-                save_tractogram(new_sft, os.path.join(self.output_directory,
-                                                    basename + extension))
+                if not len(new_sft) == 0 or self.save_empty:
+                    save_tractogram(new_sft, os.path.join(self.output_directory,
+                                                        basename + extension))
 
                 curr_results_dict = {}
                 curr_results_dict['indices'] = streamlines_id.tolist()
