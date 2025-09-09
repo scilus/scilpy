@@ -38,7 +38,8 @@ def test_execution_bundles(script_runner, monkeypatch):
                              in_tractogram, 'config.json',
                              in_models,
                              in_aff, '--inverse',
-                             '--processes', '1', '-v', 'WARNING'])
+                             '--processes', '1', '-v', 'WARNING',
+                             '--out_dir', 'single/'])
     assert ret.success
 
 
@@ -63,5 +64,6 @@ def test_execution_bundles_metadata_multiple_format(script_runner, monkeypatch):
                             in_models,
                             in_aff, '--inverse', '--reference', reference,
                             '--ignore_metadata', '--processes', '1',
-                            '--save_empty', '-v', 'WARNING'])
+                            '--save_empty', '-v', 'WARNING',
+                            '--out_dir', 'multiple/'])
     assert ret.success
