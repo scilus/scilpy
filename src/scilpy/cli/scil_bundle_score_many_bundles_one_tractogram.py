@@ -39,7 +39,7 @@ Config file
 -----------
 The config file needs to be a json containing a dict of the ground-truth
 bundles as keys. The value for each bundle is itself a dictionnary with the
-path to reference bundles. The refernce names must be included in the
+path to reference bundles. The reference names must be included in the
 segmented bundles' names. Ex: VB_folder/segmented_CC_subjX.trk.
 
 Example config file:
@@ -61,7 +61,7 @@ Then, we suppose that the bundles are already segmented and saved as follows:
         segmented_WPC/*_wpc.trk  (optional)
         IS.trk  OR  NC.trk  (if segmented_IB is present)
 Use option --part2_ROI_segmentation, and, as main input folder, give the
-args.root_dir instead of the VB_folder. We will automatically set VB_folder, --is,
+root_dir instead of the VB_folder. We will automatically set VB_folder, --is,
 --vb and --wpc to follow this organization. Also, use the same config file as
 in scil_tractogram_segment_with_ROI_and_score:
 {
@@ -103,7 +103,9 @@ def _build_arg_parser():
                    help=".json config file configured as specified above.")
     p.add_argument("VB_folder",
                    help="Directory containing all bundles to be scored.\n"
-                        "(Ex: Output directory for scil_score_tractogram).\n"
+                        "(Ex: Output directory from "
+                        "scil_tractogram_segment_with_ROI_and_score \nor "
+                        "from scil_tractogram_semgnet_with_bundleseg).\n"
                         "It is expected to contain a file IS.trk and \n"
                         "files segmented_VB/*_VS.trk, with, possibly, files \n"
                         "segmented_WPC/*_wpc.trk and segmented_IC/")
@@ -111,7 +113,7 @@ def _build_arg_parser():
     p.add_argument("--invalid", metavar="IS.trk",
                    help="To include the percentage of invalid streamlines "
                         "include your \ninvalid streamlines here (or "
-                        "no-connection streamlines)")
+                        "no-connection streamlines).")
     p.add_argument("--ib", metavar="IB/",
                    help="To include the percentage of invalid streamlines in "
                         "each segmented invalid \nbundle, add the path to "
@@ -290,7 +292,7 @@ def read_config_file(args):
             for bundle in bundles:
                 bundle_config = config[bundle]
                 if 'gt_mask' not in bundle_config:
-                    raise ValueError("Tracometry cannot be computed if no "
+                    raise ValueError("Tractometry cannot be computed if no "
                                      "gt_mask is given.")
                 if args.gt_dir:
                     gt_masks.append(os.path.join(args.gt_dir,
