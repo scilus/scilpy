@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Normalize a connectivity matrix coming from
-scil_tractogram_segment_connections_from_labels.py.
+scil_tractogram_segment_connections_from_labels.
 
 3 categories of normalization are available, with options for each. You may
 choose any number of non-mutually exclusive options:
@@ -34,7 +33,7 @@ choose any number of non-mutually exclusive options:
  - log_10: Apply a base 10 logarithm to all edges weight
 
 The volume and length matrices should come from the
-scil_tractogram_segment_connections_from_labels.py script.
+scil_tractogram_segment_connections_from_labels script.
 
 A review of the types of normalization is available in:
 Colon-Perez, Luis M., et al. "Dimensionless, scale-invariant, edge weight
@@ -43,7 +42,6 @@ metric for the study of complex structural networks." PLOS one 10.7 (2015).
 However, the proposed weighting of edge presented in this publication is not
 implemented.
 
-Formerly: scil_normalize_connectivity.py
 """
 
 import argparse
@@ -147,7 +145,7 @@ def main():
     # Node-wise computation are necessary for this type of normalize
     # Parcel volume and surface normalization require the atlas
     # This script should be used directly after
-    # scil_tractogram_segment_connections_from_labels.py
+    # scil_tractogram_segment_connections_from_labels
     if args.parcel_volume or args.parcel_surface:
         atlas_img = nib.load(atlas_filepath)
         labels_list = np.loadtxt(labels_filepath)

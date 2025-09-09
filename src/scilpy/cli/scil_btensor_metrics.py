@@ -1,6 +1,5 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
-
 """
 Script to compute microstructure metrics using the DIVIDE method. In order to
 operate, the script needs at leats two different types of b-tensor encodings.
@@ -23,7 +22,7 @@ If --not_all is set, only the files specified explicitly by the flags
 will be output. The order parameter can also be computed from the uFA and a
 precomputed FA, using separate input parameters.
 
->>> scil_btensor_metrics.py --in_dwis LTE.nii.gz PTE.nii.gz STE.nii.gz
+>>> scil_btensor_metrics --in_dwis LTE.nii.gz PTE.nii.gz STE.nii.gz
     --in_bvals LTE.bval PTE.bval STE.bval --in_bvecs LTE.bvec PTE.bvec STE.bvec
     --in_bdeltas 1 -0.5 0 --mask mask.nii.gz
 
@@ -36,8 +35,6 @@ João P. de Almeida Martins, Samo Lasic, Carl-Fredrik Westin,
 and Daniel Topgaard. An open-source framework for analysis of multidimensional
 diffusion MRI data implemented in MATLAB.
 Proc. Intl. Soc. Mag. Reson. Med. (26), Paris, France, 2018.
-
-Formerly: scil_compute_divide.py
 """
 
 import argparse

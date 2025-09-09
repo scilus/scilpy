@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Removal of streamlines that are out of the volume bounding box. In voxel space,
 no negative coordinate and no above volume dimension coordinate are possible.
@@ -8,8 +7,6 @@ Any streamline that do not respect these two conditions is removed.
 
 The --cut_invalid option will cut streamlines so that their longest segment are
 within the bounding box instead of removing them.
-
-Formerly: scil_remove_invalid_streamlines.py
 """
 
 import argparse

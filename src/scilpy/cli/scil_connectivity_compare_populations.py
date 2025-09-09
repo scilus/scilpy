@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Performs a statistical comparison between connectivity matrices for populations
 g1 and g2, using a t-test.
 
 The inputs are any connectivity matrix, that can be obtained with
-scil_connectivity_compute_matrices.py, used separately on the two populations.
+scil_connectivity_compute_matrices, used separately on the two populations.
 All input matrices must have the same shape (NxN).
 
 The output is a matrix of the same size as the input connectivity matrices,
@@ -14,7 +13,7 @@ with p-values at each connection (edge).
 
 For example, if you have streamline count weighted matrices for a MCI and a
 control group, and you want to investiguate differences in their connectomes:
-   >>> scil_connectivity_compare_populations.py pval.npy
+   >>> scil_connectivity_compare_populations pval.npy
            --g1 MCI/*_sc.npy --g2 CTL/*_sc.npy
 
 Options:
@@ -27,7 +26,6 @@ statistical tests, useful when using --fdr or --bonferroni.
 of observations (subjects). They must be listed in the right order using --g1
 and --g2.
 
-Formerly: scil_compare_connectivity.py
 ----------------------------------------------------------------------------
 References:
 [1] Rubinov, Mikail, and Olaf Sporns. "Complex network measures of brain

@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Script to compute signal to noise ratio (SNR) in a region of interest (ROI)
 of a DWI volume.
@@ -26,7 +25,6 @@ See refs [1, 2] that describe the noise map acquisition.
 [2] Reymbaut, et al (2021). Magic DIAMOND...
     https://doi.org/10.1016/j.media.2021.101988
 
-Formerly: scil_snr_in_roi.py
 """
 
 import argparse

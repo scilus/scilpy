@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Generate multi-shell gradient sampling with various processing options. Helps
 accelerate gradients, optimize duty cycle and avoid artefacts.
@@ -10,7 +9,6 @@ flipped to maximize spread for eddy current correction, b0s are interleaved at
 equal spacing and the non-b0 samples are finally shuffled to minimize the total
 diffusion gradient amplitude over a few TR.
 
-Formerly: scil_generate_gradient_sampling.py
 -------------------------------------------------------------------------------
 Reference:
 [1] Emmanuel Caruyer, Christophe Lenglet, Guillermo Sapiro,

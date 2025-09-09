@@ -1,14 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Convert a SH file between the two of the following basis choices:
 'descoteaux07', 'descoteaux07_legacy', 'tournier07' or 'tournier07_legacy'.
 Using the sh_basis argument, both the input and the output SH bases must be
 given, in the order. For more information about the bases, see
 https://docs.dipy.org/stable/theory/sh_basis.html.
-
-Formerly: scil_convert_sh_basis.py
 """
 
 import argparse

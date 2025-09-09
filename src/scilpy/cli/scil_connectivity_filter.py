@@ -1,16 +1,15 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Script to facilitate filtering of connectivity matrices.
 The same could be achieved through a complex sequence of
-scil_connectivity_math.py.
+scil_connectivity_math.
 
 Can be used with any connectivity matrix from
-scil_connectivity_compute_matrices.py.
+scil_connectivity_compute_matrices.
 
 For example, a filtering as performed in [1] would be:
-scil_connectivity_filter.py out_mask.npy
+scil_connectivity_filter out_mask.npy
     --greater_than */sc.npy 1 0.90
     --lower_than */sim.npy 2 0.90
     --greater_than */len.npy 40 0.90 -v;
@@ -31,9 +30,8 @@ This script performs an intersection of all conditions, meaning that all
 conditions must be met in order to not be filtered.
 
 If the user wants to manually handle the requirements, --keep_condition_count
-can be used and manually binarized using scil_connectivity_math.py
+can be used and manually binarized using scil_connectivity_math
 
-Formerly: scil_filter_connectivity.py
 ----------------------------------------------------------------------------
 Reference:
 [1] Sidhu, J. (2022). Inter-lobar Connectivity of the Frontal Lobe Association

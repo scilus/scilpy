@@ -1,13 +1,12 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Script to apply a transform to a surface (FreeSurfer or VTK supported),
 using output from ANTs registration tools (i.e. vtk_transfo.txt, output1InverseWarp.nii.gz).
 
 Example usage from T1 to b0 using ANTs transforms:
 > ConvertTransformFile 3 output0GenericAffine.mat vtk_transfo.txt --hm
-> scil_surface_apply_transform.py lh_white_lps.vtk vtk_transfo.txt lh_white_b0.vtk\\
+> scil_surface_apply_transform lh_white_lps.vtk vtk_transfo.txt lh_white_b0.vtk\\
     --in_deformation output1InverseWarp.nii.gz --inverse
 
 Important: The input surface needs to be in *T1 world LPS* coordinates
@@ -17,7 +16,6 @@ The script will use the linear affine first and then the warp image.
 The resulting surface will be in *b0 world LPS* coordinates
 (aligned over the b0 in MI-Brain).
 
-Formerly: scil_apply_transform_to_surface.py.
 -------------------------------------------------------------------
 Reference:
 [1] St-Onge, E., Daducci, A., Girard, G. and Descoteaux, M. 2018.

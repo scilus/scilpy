@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Script to filter streamlines based on their distance traveled in a specific
 dimension (x, y, or z).
@@ -16,12 +15,10 @@ Note: we consider that x, y, z are the coordinates of the streamlines; we
 do not verify if they are aligned with the brain's orientation.
 
 See also:
-    - scil_tractogram_detect_loops.py
-    - scil_tractogram_filter_by_anatomy.py
-    - scil_tractogram_filter_by_length.py
-    - scil_tractogram_filter_by_roi.py
-
-Formerly: scil_filter_streamlines_by_orientation.py
+    - scil_tractogram_detect_loops
+    - scil_tractogram_filter_by_anatomy
+    - scil_tractogram_filter_by_length
+    - scil_tractogram_filter_by_roi
 """
 
 import argparse

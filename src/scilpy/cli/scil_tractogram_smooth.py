@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 This script will smooth the streamlines, usually to remove the 'wiggles' in
 probabilistic tracking.
@@ -21,8 +20,6 @@ WARNING:
 - too low of a sigma (e.g: 1) with a lot of control points (e.g: 15)
 will create crazy streamlines that could end up out of the bounding box.
 - data_per_point will be lost.
-
-Formerly: scil_smooth_streamlines.py
 """
 
 import argparse

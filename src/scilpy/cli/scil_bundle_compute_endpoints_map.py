@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Computes the endpoints maps of a bundle (head and tail). The endpoints maps are
 a count of the number of streamlines that start or end in each voxel.
@@ -12,8 +11,6 @@ really two coherent groups.
         >> scil_tractogram_compute_density_map --endpoints_only
     - To order streamlines so that they start and end in the same regions, use
         >> scil_bundle_uniformize_endpoints
-
-Formerly: scil_compute_endpoints_map.py
 """
 
 import argparse

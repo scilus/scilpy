@@ -1,16 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
 """
 This script will output informations about lesion load in bundle(s).
 The input lesion file is a labeled volume (.nii.gz) where each lesion is
 represented by a unique label. To label a lesion file use
-scil_labels_from_mask.py
+scil_labels_from_mask.
 
 Then, the second input can either be streamlines, binary bundle mask, or a
 bundle voxel label map.
-
-Formerly: scil_analyse_lesions_load.py
 """
 
 import argparse

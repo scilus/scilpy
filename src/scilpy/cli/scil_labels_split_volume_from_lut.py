@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Split a label image into multiple images where the name of the output images
 is taken from a lookup table (ex: left-lateral-occipital.nii.gz,
@@ -8,8 +7,6 @@ right-thalamus.nii.gz, ...). Only the labels included in the lookup table
 are extracted.
 
 IMPORTANT: your label image must be of an integer type.
-
-Formerly: scil_split_volume_by_labels.py
 """
 
 import argparse

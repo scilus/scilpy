@@ -1,20 +1,19 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Compute BundleSeg & supports multi-atlas & multi-parameters. This is similar to
 what our previous RecobundlesX (RBx) script could do, but BundleSeg is better
 and more efficient.
 
 For a single bundle segmentation, see the lighter version:
->>> scil_tractogram_segment_with_recobundles.py
+>>> scil_tractogram_segment_with_recobundles
 
 Hints:
 - The model needs to be cleaned and lightweight.
 - The transform should come from ANTs: (using the --inverse flag)
   >>> AntsRegistrationSyNQuick.sh -d 3 -m MODEL_REF -f SUBJ_REF
   If you are not sure about the transformation 'direction' you can try
-scil_tractogram_segment_with_recobundles.py. See its documentation for
+scil_tractogram_segment_with_recobundles. See its documentation for
 explanation on how to verify the direction.
 - The number of folders inside 'models_directories' will increase the number of
 runs. Each folder is considered like an atlas and bundles inside will initiate
@@ -36,7 +35,6 @@ For RAM usage, it is recommanded to use this heuristic:
 This is important because many instances of data structures are initialized
 in parallel and can lead to a RAM overflow.
 
-Formerly: scil_recognize_multi_bundles.py
 ------------------------------------------------------------------------------------------
 Reference:
 [1] St-Onge, Etienne, Kurt G. Schilling, and Francois Rheault."BundleSeg: A versatile,

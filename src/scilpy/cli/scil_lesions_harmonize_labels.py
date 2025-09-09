@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 This script harmonizes labels across a set of lesion files represented in
 NIfTI format. It ensures that labels are consistent across multiple input
@@ -11,7 +10,7 @@ The script works iteratively, so the multiple inputs should be in chronological
 order (and changing the order affects the output). All images should be
 co-registered.
 
-To obtain labels from binary mask use scil_labels_from_mask.py
+To obtain labels from binary mask use scil_labels_from_mask.
 
 WARNING: this script requires all files to have all lesions segmented.
 If your data only show new lesions at each timepoints (common in manual

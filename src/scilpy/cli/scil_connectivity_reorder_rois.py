@@ -1,9 +1,8 @@
 #! /usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Re-order one or many connectivity matrices' rows and columns. The connectivity
-matrices can come, for instance, from scil_connectivity_computes_matrices.py
+matrices can come, for instance, from scil_connectivity_computes_matrices.
 
 To state the new order, use a text file with the following formatting:
 The first row are the new x order and the second row the new y order, using
@@ -13,9 +12,9 @@ square (supports unequal number of x and y).
 The values refer to the coordinates (starting at 0) in the matrix, but if the
 --labels_list parameter is used, the values will refer to the label which will
 be converted to the appropriate coordinates. This file must be the same as the
-one provided to the scil_tractogram_segment_connections_from_labels.py.
+one provided to the scil_tractogram_segment_connections_from_labels.
 
-To subsequently use scil_viz_connectivity.py with a lookup table, you
+To subsequently use scil_viz_connectivity with a lookup table, you
 must use a label-based reording json and use --labels_list.
 
 You can also use the Optimal Leaf Ordering (OLO) algorithm to transform a
@@ -23,7 +22,6 @@ sparse matrix into an ordering that reduces the matrix bandwidth. The output
 file can then be re-used with --in_ordering. Only one input can be used with
 this option, we recommand an average streamline count or volume matrix.
 
-Formerly: scil_reorder_connectivity.py
 -----------------------------------------------------------------------------
 Reference:
 [1] Rubinov, Mikail, and Olaf Sporns. "Complex network measures of brain

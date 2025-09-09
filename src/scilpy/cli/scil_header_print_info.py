@@ -1,11 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Print the raw header from the provided file or only the specified keys.
 Support trk, nii and mgz files.
-
-Formerly: scil_print_header.py
 """
 
 import argparse

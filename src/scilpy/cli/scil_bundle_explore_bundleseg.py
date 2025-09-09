@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 BundleSeg output visualization tool.
 
@@ -11,7 +10,7 @@ It includes tools to slice images, filter streamlines, and interactively
 visualize bundles and a reference image.
 
 This script is intended to be used after running BundleSeg:
-    scil_tractogram_segment_with_bundleseg.py
+    scil_tractogram_segment_with_bundleseg
 To explore thresholds the option --exploration_mode must be used to segment
 using a much higher distance threshold.
 """

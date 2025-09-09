@@ -1,22 +1,20 @@
 #! /usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Output the list of filenames using the coordinates from a binary connectivity
 matrix. Typically used to move around files that are considered valid after
-the scil_connectivity_filter.py script.
+the scil_connectivity_filter script.
 
 Example:
 # Keep connections with more than 1000 streamlines for 100% of a population
-scil_connectivity_filter.py filtering_mask.npy
+scil_connectivity_filter filtering_mask.npy
     --greater_than */streamlines_count.npy 1000 1.0
-scil_connectivity_print_filenames.py filtering_mask.npy
+scil_connectivity_print_filenames filtering_mask.npy
     labels_list.txt pass.txt
 for file in $(cat pass.txt);
     do mv ${SOMEWHERE}/${FILE} ${SOMEWHERE_ELSE}/;
 done
 
-Formerly: scil_print_connectivity_filenames.py
 """
 
 import argparse
@@ -39,7 +37,7 @@ def _build_arg_parser():
 
     p.add_argument('in_matrix',
                    help='Binary matrix in numpy (.npy) format.\n'
-                        'Typically from scil_connectivity_filter.py')
+                        'Typically from scil_connectivity_filter')
     p.add_argument('labels_list',
                    help='List saved by the decomposition script.')
     p.add_argument('out_txt',
@@ -67,7 +65,7 @@ def main():
         in_label = labels_list[pos_1]
         out_label = labels_list[pos_2]
 
-        # scil_tractogram_segment_connections_from_labels.py only save the
+        # scil_tractogram_segment_connections_from_labels only save the
         # lower triangular files
         if out_label < in_label:
             continue

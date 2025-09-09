@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Script to smooth a surface with a Laplacian blur.
 
@@ -12,7 +11,6 @@ Smoothing time = step_size * nb_steps
     moderate amount of smoothing [step_size 10, nb_steps 100]
     large amount of smoothing [step_size 100, nb_steps 1000]
 
-Formerly: scil_smooth_surface.py
 -----------------------------------------------------------------
 Reference:
 [1] St-Onge, E., Daducci, A., Girard, G. and Descoteaux, M. 2018.

@@ -1,11 +1,9 @@
 #! /usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Compute Free Water maps [1] using the AMICO framework [2].
 This script supports both single and multi-shell data.
 
-Formerly: scil_compute_freewater.py
 ----------------------------------------------------------
 References:
 [1] Pasternak 0, Sochen N, Gur Y, Intrator N, Assaf Y.
@@ -15,6 +13,7 @@ References:
     via convex optimization (AMICO) from diffusion MRI data.
     Neuroimage 105 (2015) 32-44.
 ----------------------------------------------------------
+
 """
 
 import argparse

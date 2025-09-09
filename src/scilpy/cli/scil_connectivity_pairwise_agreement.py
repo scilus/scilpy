@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Evaluate pair-wise similarity measures of connectivity matrices.
 
@@ -14,7 +13,6 @@ If more than two matrices are given in input, the similarity measures will be
 computed for each pair. Alternatively, you can compare all matrices to a
 single reference, using --single_compare.
 
-Formerly: scil_evaluate_connectivity_pairwaise_agreement_measures.py
 """
 
 import argparse

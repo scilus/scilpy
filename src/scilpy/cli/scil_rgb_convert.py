@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Converts a RGB image encoded as a 4D image to a RGB image encoded as
 a 3D image, or vice versa.
@@ -17,8 +16,6 @@ Output
 -Case 1: 3D image, in Trackvis format where each voxel contains a
          tuple of 3 elements, one for each value (uint8).
 -Case 2: 4D image where the 4th dimension contains 3 values (uint8).
-
-Formerly: scil_convert_rgb.py
 """
 
 import argparse

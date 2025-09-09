@@ -1,6 +1,5 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
-
 """
 Script to compute Multishell Multi-tissue Constrained Spherical Deconvolution
 ODFs.
@@ -16,7 +15,6 @@ Based on B. Jeurissen et al., Multi-tissue constrained spherical
 deconvolution for improved analysis of multi-shell diffusion
 MRI data. Neuroimage (2014)
 
-Formerly: scil_compute_msmt_fodf.py
 """
 
 import argparse
