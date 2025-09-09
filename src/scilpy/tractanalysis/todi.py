@@ -397,12 +397,44 @@ class TrackOrientationDensityImaging(object):
         pass
 
 
-def get_sf_from_todi(sft, mask, todi_sigma, sf_threshold):
+def get_sf_from_todi(sft, mask, todi_sigma, sf_threshold,
+                     sphere='repulsion724'):
     """
-    ???? Explanation of required steps?
+    Track Orientation Density Imaging (TODI) [1], provides information about
+    the voxel-wise orientation distribution of streamlines. This can be
+    represented by a sphere for each voxel where the radii are weigthed to
+    represent how aligned streamlines in each specific direction.
+
+    Here the sphere is represented as spherical harmonics. See also
+    get_sf_from_todi.
+
+    [1] Dhollander, Thijs, et al. "Track orientation density imaging (TODI) and
+    track orientation distribution (TOD) based tractography."
+    NeuroImage 94 (2014): 312-336.
+
+    Parameters
+    ----------
+    sft: StatefulTractogram
+        The tractogram
+    mask: np.ndarray
+        A binary mask.
+    todi_sigma: int
+        Smooth the orientation histogram. A value between 0 and 5.
+    sf_threshold: float
+        Relative threshold for sf masking (0.0-1.0).
+    sphere: str
+        The name of the sphere.
+
+    Returns
+    -------
+    sf_data: np.ndarray
+        The track orientation distribution per voxel.
+        Shape: n x s, where n in the number of voxels in the final mask
+        (sub_mask_3d), and s is the number of points on the sphere.
+    sub_mask_3d: np.ndarray
+        The final mask, from both the input mask and sf_threshold.
     """
-    with TrackOrientationDensityImaging(mask.shape,
-                                        'repulsion724') as todi_obj:
+    with TrackOrientationDensityImaging(mask.shape, sphere) as todi_obj:
         todi_obj.compute_todi(sft.streamlines, length_weights=True)
         todi_obj.smooth_todi_dir()
         todi_obj.smooth_todi_spatial(sigma=todi_sigma)
@@ -423,7 +455,29 @@ def get_sf_from_todi(sft, mask, todi_sigma, sf_threshold):
 
 def get_sh_from_todi(sft, mask):
     """
-    ???? Explanation of required steps?
+    Track Orientation Density Imaging (TODI) [1], provides information about
+    the voxel-wise orientation distribution of streamlines. This can be
+    represented by a sphere for each voxel where the radii are weigthed to
+    represent how aligned streamlines in each specific direction.
+
+    Here the sphere is represented as spherical harmonics. See also
+    get_sf_from_todi. See also dipy.reconst.shm.sf_to_sh, sh_to_sf.
+
+    [1] Dhollander, Thijs, et al. "Track orientation density imaging (TODI) and
+    track orientation distribution (TOD) based tractography."
+    NeuroImage 94 (2014): 312-336.
+
+    Parameters
+    ----------
+    sft: StatefulTractogram
+        The tractogram
+    mask: np.ndarray
+        A binary mask.
+
+    Returns
+    -------
+    sh_data: np.ndarray
+        The track orientation distribution per voxel.
     """
     with TrackOrientationDensityImaging(mask.shape,
                                         'repulsion724') as todi_obj:
