@@ -16,10 +16,11 @@ concurrency:
 env:
   MPLBACKEND: agg
   OPENBLAS_NUM_THREADS: 1
+  PYTEST_XDIST_AUTO_NUM_WORKERS: 8
 
 jobs:
   test:
-    runs-on: scilus-bigmem-runners
+    runs-on: scilus-large
     if: github.repository == 'scilus/scilpy'
 
     steps:
@@ -56,12 +57,6 @@ jobs:
         run: |
           echo "SETUPTOOLS_USE_DISTUTILS=stdlib" >> "$GITHUB_ENV"
 
-      - name: Get CPU Cores
-        id: get_cores
-        run: |
-          NB_CPU=$(nproc)
-          echo "CPU_CORES=$((NB_CPU - 1))" >> $GITHUB_ENV
-
       - name: Install Scilpy
         run: |
           uv pip install --upgrade pip wheel
@@ -76,8 +71,8 @@ jobs:
         run: |
           export C_INCLUDE_PATH=$pythonLocation/include/python${{ steps.python-selector.outputs.python-version }}:$C_INCLUDE_PATH
           scil_data_download
-          scil_search_keywords test --regenerate_help_files --processes ${{ env.CPU_CORES }}
-          uv run --active pytest --cov-report term-missing:skip-covered -n  ${{ env.CPU_CORES }} --dist=loadgroup
+          scil_search_keywords test --regenerate_help_files --processes 8
+          uv run --active pytest --cov-report term-missing:skip-covered --dist=loadgroup
 
       - name: Save test results and coverage
         uses: actions/upload-artifact@v4
