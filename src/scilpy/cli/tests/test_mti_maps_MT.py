@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import os
+import pytest
 import tempfile
 
 from scilpy import SCILPY_HOME
@@ -57,11 +58,13 @@ in_b1_map = os.path.join(SCILPY_HOME, 'MT', 'sub-001_run-01_B1map.nii.gz')
 in_b1_json = os.path.join(SCILPY_HOME, 'MT', 'sub-001_run-01_B1map.json')
 
 
+@pytest.mark.smoke
 def test_help_option(script_runner):
     ret = script_runner.run(['scil_mti_maps_MT', '--help'])
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution_MT_no_option(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
 
@@ -79,6 +82,7 @@ def test_execution_MT_no_option(script_runner, monkeypatch):
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution_MT_prefix(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
 
@@ -97,6 +101,7 @@ def test_execution_MT_prefix(script_runner, monkeypatch):
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution_MT_extended(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
 
@@ -115,6 +120,7 @@ def test_execution_MT_extended(script_runner, monkeypatch):
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution_MT_filtering(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
 
@@ -133,6 +139,7 @@ def test_execution_MT_filtering(script_runner, monkeypatch):
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution_MT_B1_map(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
 
@@ -161,6 +168,7 @@ def test_execution_MT_B1_map(script_runner, monkeypatch):
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution_MT_wrong_echoes(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
 
@@ -180,6 +188,7 @@ def test_execution_MT_wrong_echoes(script_runner, monkeypatch):
     assert (not ret.success)
 
 
+@pytest.mark.smoke
 def test_execution_MT_single_echoe(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
 
@@ -195,6 +204,7 @@ def test_execution_MT_single_echoe(script_runner, monkeypatch):
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution_MT_B1_not_T1(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
 
@@ -217,6 +227,7 @@ def test_execution_MT_B1_not_T1(script_runner, monkeypatch):
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution_MT_B1_no_fit(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
 
@@ -240,6 +251,7 @@ def test_execution_MT_B1_no_fit(script_runner, monkeypatch):
     assert (not ret.success)
 
 
+@pytest.mark.smoke
 def test_execution_MT_acq_params(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
 

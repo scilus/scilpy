@@ -60,19 +60,26 @@ jobs:
       - name: Install Scilpy
         run: |
           uv pip install --upgrade pip wheel
-          uv pip install --upgrade "setuptools<71.0.0" 
+          uv pip install --upgrade "setuptools<71.0.0"
           uv pip install -e .
           # TODO: to adapt once Scilpy passes to VTK 9.4.0, which selects OSMesa at runtime
           # https://discourse.vtk.org/t/status-update-runtime-opengl-render-window-selection-in-vtk/14583
           VTK_VERSION=$(cat pyproject.toml | grep 'vtk==' | sed 's/vtk==//g' | sed 's/\"//g' )
           uv pip install --extra-index-url https://wheels.vtk.org vtk-osmesa==$VTK_VERSION
           uv pip install pytest-xdist pytest-cov
+
       - name: Run tests
         run: |
           export C_INCLUDE_PATH=$pythonLocation/include/python${{ steps.python-selector.outputs.python-version }}:$C_INCLUDE_PATH
           scil_data_download
           scil_search_keywords test --regenerate_help_files --processes 8
-          uv run --active pytest --cov-report term-missing:skip-covered --dist=loadgroup
+          uv run --active pytest -m "Unit tests" term-missing:skip-covered --cov-report=html:htmlcov_unit --cov-report=xml:coverage_unit.xml --dist=loadgroup
+          uv run --active pytest -m "Smoke tests" term-missing:skip-covered --cov-report=html:htmlcov_smoke --cov-report=xml:coverage_smoke.xml --dist=loadgroup
+
+      - name: Combine coverage
+        run: |
+          uv run --active coverage combine
+          uv run --active coverage xml -o coverage_combined.xml
 
       - name: Save test results and coverage
         uses: actions/upload-artifact@v4
@@ -83,6 +90,11 @@ jobs:
           include-hidden-files: true
           path: |
             .coverage
+            coverage_unit.xml
+            coverage_smoke.xml
+            coverage_combined.xml
+            htmlcov_unit/
+            htmlcov_smoke/
             .test_reports/
 
   coverage:
@@ -103,7 +115,28 @@ jobs:
         uses: codecov/codecov-action@v5.4.3
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
+          files: coverage_unit.xml
           flags: unittests
           name: scilpy-unittests-${{ github.run_id }}-${{ github.run_attempt }}
+          verbose: true
+          fail_ci_if_error: true
+
+      - name: Upload smoke test coverage to Codecov
+        uses: codecov/codecov-action@v5.4.3
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: coverage_smoke.xml
+          flags: smoketests
+          name: scilpy-smoketests-${{ github.run_id }}-${{ github.run_attempt }}
+          verbose: true
+          fail_ci_if_error: true
+
+      - name: Upload combined coverage to Codecov
+        uses: codecov/codecov-action@v5.4.3
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: coverage_combined.xml
+          flags: unittests,smoketests
+          name: scilpy-combined-${{ github.run_id }}-${{ github.run_attempt }}
           verbose: true
           fail_ci_if_error: true

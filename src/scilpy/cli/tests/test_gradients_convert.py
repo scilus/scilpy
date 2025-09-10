@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import os
+import pytest
 import tempfile
 
 from scilpy import SCILPY_HOME
@@ -12,12 +13,14 @@ fetch_data(get_testing_files_dict(), keys=['processing.zip'])
 tmp_dir = tempfile.TemporaryDirectory()
 
 
+@pytest.mark.smoke
 def test_help_option(script_runner):
     ret = script_runner.run(['scil_gradients_convert',
                              '--help'])
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution_processing_fsl(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_bval = os.path.join(SCILPY_HOME, 'processing',
@@ -30,6 +33,7 @@ def test_execution_processing_fsl(script_runner, monkeypatch):
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution_processing_mrtrix(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_encoding = os.path.join(SCILPY_HOME, 'processing',
@@ -40,6 +44,7 @@ def test_execution_processing_mrtrix(script_runner, monkeypatch):
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_name_validation_mrtrix(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_bval = os.path.join(SCILPY_HOME, 'processing',
@@ -58,6 +63,7 @@ def test_name_validation_mrtrix(script_runner, monkeypatch):
     assert os.path.isfile(right_path)
 
 
+@pytest.mark.smoke
 def test_name_validation_fsl_bval(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_encoding = os.path.join(SCILPY_HOME, 'processing',
@@ -78,6 +84,7 @@ def test_name_validation_fsl_bval(script_runner, monkeypatch):
     assert os.path.isfile(right_path_bvec)
 
 
+@pytest.mark.smoke
 def test_name_validation_fsl_bvec(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_encoding = os.path.join(SCILPY_HOME, 'processing',

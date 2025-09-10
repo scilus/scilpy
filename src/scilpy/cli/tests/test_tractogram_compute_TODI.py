@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import os
+import pytest
 import tempfile
 
 from scilpy import SCILPY_HOME
@@ -12,11 +13,13 @@ fetch_data(get_testing_files_dict(), keys=['bst.zip'])
 tmp_dir = tempfile.TemporaryDirectory()
 
 
+@pytest.mark.smoke
 def test_help_option(script_runner):
     ret = script_runner.run(['scil_tractogram_compute_TODI', '--help'])
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution_bst(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_bundle = os.path.join(SCILPY_HOME, 'bst', 'rpt_m_warp.trk')
@@ -34,6 +37,7 @@ def test_execution_bst(script_runner, monkeypatch):
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution_asym(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_bundle = os.path.join(SCILPY_HOME, 'bst', 'rpt_m_warp.trk')

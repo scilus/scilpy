@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import os
+import pytest
 import tempfile
 
 from scilpy.io.dvc import pull_test_case_package
@@ -11,11 +12,13 @@ test_data_root = pull_test_case_package("aodf")
 tmp_dir = tempfile.TemporaryDirectory()
 
 
+@pytest.mark.smoke
 def test_help_option(script_runner):
     ret = script_runner.run(['scil_aodf_metrics', '--help'])
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution(script_runner, monkeypatch):
 
     # toDo: Add --mask.
@@ -30,6 +33,7 @@ def test_execution(script_runner, monkeypatch):
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_assert_not_all(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_fodf = os.path.join(
@@ -40,6 +44,7 @@ def test_assert_not_all(script_runner, monkeypatch):
     assert not ret.success
 
 
+@pytest.mark.smoke
 def test_execution_not_all(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_fodf = os.path.join(
@@ -53,6 +58,7 @@ def test_execution_not_all(script_runner, monkeypatch):
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_assert_symmetric_input(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_fodf = os.path.join(
@@ -65,6 +71,7 @@ def test_assert_symmetric_input(script_runner, monkeypatch):
     assert not ret.success
 
 
+@pytest.mark.smoke
 def test_execution_symmetric_input(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_fodf = os.path.join(

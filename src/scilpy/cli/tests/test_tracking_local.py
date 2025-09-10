@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import os
+import pytest
 import tempfile
 import numpy as np
 
@@ -13,11 +14,13 @@ fetch_data(get_testing_files_dict(), keys=['tracking.zip'])
 tmp_dir = tempfile.TemporaryDirectory()
 
 
+@pytest.mark.smoke
 def test_help_option(script_runner):
     ret = script_runner.run(['scil_tracking_local', '--help'])
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution_tracking_fodf_prob(script_runner, monkeypatch):
     # Our tests use -nt 100.
     # Our testing seeding mask has 125 286 voxels, this would be long.
@@ -33,6 +36,7 @@ def test_execution_tracking_fodf_prob(script_runner, monkeypatch):
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution_tracking_fodf_det(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_fodf = os.path.join(SCILPY_HOME, 'tracking', 'fodf.nii.gz')
@@ -46,6 +50,7 @@ def test_execution_tracking_fodf_det(script_runner, monkeypatch):
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution_tracking_ptt(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_fodf = os.path.join(SCILPY_HOME, 'tracking', 'fodf.nii.gz')
@@ -59,6 +64,7 @@ def test_execution_tracking_ptt(script_runner, monkeypatch):
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution_sphere_subdivide(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_fodf = os.path.join(SCILPY_HOME, 'tracking', 'fodf.nii.gz')
@@ -73,6 +79,7 @@ def test_execution_sphere_subdivide(script_runner, monkeypatch):
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution_sphere_gpu(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_fodf = os.path.join(SCILPY_HOME, 'tracking', 'fodf.nii.gz')
@@ -86,6 +93,7 @@ def test_execution_sphere_gpu(script_runner, monkeypatch):
     assert not ret.success
 
 
+@pytest.mark.smoke
 def test_sh_interp_without_gpu(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_fodf = os.path.join(SCILPY_HOME, 'tracking', 'fodf.nii.gz')
@@ -98,6 +106,7 @@ def test_sh_interp_without_gpu(script_runner, monkeypatch):
     assert not ret.success
 
 
+@pytest.mark.smoke
 def test_forward_without_gpu(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_fodf = os.path.join(SCILPY_HOME, 'tracking', 'fodf.nii.gz')
@@ -110,6 +119,7 @@ def test_forward_without_gpu(script_runner, monkeypatch):
     assert not ret.success
 
 
+@pytest.mark.smoke
 def test_batch_size_without_gpu(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_fodf = os.path.join(SCILPY_HOME, 'tracking', 'fodf.nii.gz')
@@ -122,6 +132,7 @@ def test_batch_size_without_gpu(script_runner, monkeypatch):
     assert not ret.success
 
 
+@pytest.mark.smoke
 def test_algo_with_gpu(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_fodf = os.path.join(SCILPY_HOME, 'tracking', 'fodf.nii.gz')
@@ -134,6 +145,7 @@ def test_algo_with_gpu(script_runner, monkeypatch):
     assert not ret.success
 
 
+@pytest.mark.smoke
 def test_execution_tracking_fodf_no_compression(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_fodf = os.path.join(SCILPY_HOME, 'tracking', 'fodf.nii.gz')
@@ -147,6 +159,7 @@ def test_execution_tracking_fodf_no_compression(script_runner, monkeypatch):
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution_tracking_peaks(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_peaks = os.path.join(SCILPY_HOME, 'tracking', 'peaks.nii.gz')
@@ -159,6 +172,7 @@ def test_execution_tracking_peaks(script_runner, monkeypatch):
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution_tracking_fodf_prob_pmf_mapping(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_fodf = os.path.join(SCILPY_HOME, 'tracking', 'fodf.nii.gz')
@@ -173,6 +187,7 @@ def test_execution_tracking_fodf_prob_pmf_mapping(script_runner, monkeypatch):
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution_tracking_ptt_with_probe(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_fodf = os.path.join(SCILPY_HOME, 'tracking', 'fodf.nii.gz')
@@ -187,6 +202,7 @@ def test_execution_tracking_ptt_with_probe(script_runner, monkeypatch):
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution_tracking_fodf_custom_seeds(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_fodf = os.path.join(SCILPY_HOME, 'tracking', 'fodf.nii.gz')

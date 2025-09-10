@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import os
+import pytest
 import tempfile
 
 from scilpy import SCILPY_HOME
@@ -12,11 +13,13 @@ fetch_data(get_testing_files_dict(), keys='surface_vtk_fib.zip')
 tmp_dir = tempfile.TemporaryDirectory()
 
 
+@pytest.mark.smoke
 def test_help_option(script_runner):
     ret = script_runner.run(['scil_surface_flip', '--help'])
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution_surface_vtk_fib(script_runner, monkeypatch):
     # Weird behavior, flip around the origin in RASMM rather than the center of
     # the volume in VOX

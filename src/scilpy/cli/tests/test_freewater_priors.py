@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 
+@pytest.mark.smoke
 def test_help_option(script_runner):
     ret = script_runner.run(['scil_freewater_priors', '--help'])
     assert ret.success

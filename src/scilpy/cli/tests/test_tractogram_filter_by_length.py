@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import os
+import pytest
 import tempfile
 
 from scilpy import SCILPY_HOME
@@ -13,12 +14,14 @@ fetch_data(get_testing_files_dict(), keys=['filtering.zip'])
 tmp_dir = tempfile.TemporaryDirectory()
 
 
+@pytest.mark.smoke
 def test_help_option(script_runner):
     ret = script_runner.run(['scil_tractogram_filter_by_length',
                              '--help'])
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution_filtering(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     # Effectively, this doesn't filter anything, since bundle_4.trk has
@@ -36,6 +39,7 @@ def test_execution_filtering(script_runner, monkeypatch):
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_rejected_filtering(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_bundle = os.path.join(SCILPY_HOME, 'filtering',
@@ -55,6 +59,7 @@ def test_rejected_filtering(script_runner, monkeypatch):
     assert len(rejected_sft) == 2824
 
 
+@pytest.mark.smoke
 def test_rejected_filtering_no_rejection(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_bundle = os.path.join(SCILPY_HOME, 'filtering',

@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import os
+import pytest
 import tempfile
 import numpy as np
 import nibabel as nib
@@ -37,11 +38,13 @@ def init_data():
     save_tractogram(sft, 'tractogram.trk', True)
 
 
+@pytest.mark.smoke
 def test_help_option(script_runner):
     ret = script_runner.run(['scil_fibertube_tracking', '--help'])
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     init_data()
@@ -51,6 +54,7 @@ def test_execution(script_runner, monkeypatch):
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution_rk(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     init_data()
@@ -60,6 +64,7 @@ def test_execution_rk(script_runner, monkeypatch):
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution_config(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     init_data()
@@ -72,6 +77,7 @@ def test_execution_config(script_runner, monkeypatch):
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution_seeding(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     init_data()
@@ -84,6 +90,7 @@ def test_execution_seeding(script_runner, monkeypatch):
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution_FTODF(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     init_data()
@@ -93,6 +100,7 @@ def test_execution_FTODF(script_runner, monkeypatch):
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution_FTODF_rk(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     init_data()
@@ -102,6 +110,7 @@ def test_execution_FTODF_rk(script_runner, monkeypatch):
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution_FTODF_config(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     init_data()
@@ -114,6 +123,7 @@ def test_execution_FTODF_config(script_runner, monkeypatch):
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution_FTODF_seeding(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     init_data()
@@ -126,6 +136,7 @@ def test_execution_FTODF_seeding(script_runner, monkeypatch):
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution_FTODF_sphere(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     init_data()
@@ -141,6 +152,7 @@ def test_execution_FTODF_sphere(script_runner, monkeypatch):
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution_FTODF_det(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     init_data()

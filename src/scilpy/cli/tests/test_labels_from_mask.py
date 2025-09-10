@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import os
+import pytest
 import tempfile
 
 from scilpy import SCILPY_HOME
@@ -12,11 +13,13 @@ fetch_data(get_testing_files_dict(), keys=['tractograms.zip'])
 tmp_dir = tempfile.TemporaryDirectory()
 
 
+@pytest.mark.smoke
 def test_help_option(script_runner):
     ret = script_runner.run(['scil_labels_from_mask', '--help'])
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_mask = os.path.join(SCILPY_HOME, 'tractograms',
@@ -28,6 +31,7 @@ def test_execution(script_runner, monkeypatch):
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution_labels(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_mask = os.path.join(SCILPY_HOME, 'tractograms',
@@ -39,6 +43,7 @@ def test_execution_labels(script_runner, monkeypatch):
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution_background(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_mask = os.path.join(SCILPY_HOME, 'tractograms',
@@ -50,6 +55,7 @@ def test_execution_background(script_runner, monkeypatch):
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution_error(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_mask = os.path.join(SCILPY_HOME, 'tractograms',
@@ -61,6 +67,7 @@ def test_execution_error(script_runner, monkeypatch):
     assert not ret.success
 
 
+@pytest.mark.smoke
 def test_execution_warning(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_mask = os.path.join(SCILPY_HOME, 'tractograms',
@@ -73,6 +80,7 @@ def test_execution_warning(script_runner, monkeypatch):
     assert ret.stderr  # Check if there is a warning message
 
 
+@pytest.mark.smoke
 def test_execution_background_warning(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_mask = os.path.join(SCILPY_HOME, 'tractograms',

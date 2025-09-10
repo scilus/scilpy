@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import os
+import pytest
 import tempfile
 
 from scilpy import SCILPY_HOME
@@ -12,12 +13,14 @@ fetch_data(get_testing_files_dict(), keys=['bundles.zip'])
 tmp_dir = tempfile.TemporaryDirectory()
 
 
+@pytest.mark.smoke
 def test_help_option(script_runner):
     ret = script_runner.run(['scil_tractogram_segment_with_recobundles',
                              '--help'])
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution_bundles(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_tractogram = os.path.join(SCILPY_HOME, 'bundles', 'bundle_all_1mm.trk')

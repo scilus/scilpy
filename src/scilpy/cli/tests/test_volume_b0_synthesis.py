@@ -23,11 +23,13 @@ fetch_data(get_testing_files_dict(), keys=['others.zip', 'processing.zip'])
 tmp_dir = tempfile.TemporaryDirectory()
 
 
+@pytest.mark.smoke
 def test_help_option(script_runner):
     ret = script_runner.run(['scil_volume_b0_synthesis', '--help'])
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_synthesis(script_runner, monkeypatch):
     if have_tensorflow:
         monkeypatch.chdir(os.path.expanduser(tmp_dir.name))

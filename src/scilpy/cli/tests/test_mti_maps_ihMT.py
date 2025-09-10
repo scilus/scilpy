@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import os
+import pytest
 import tempfile
 
 from scilpy import SCILPY_HOME
@@ -66,11 +67,13 @@ in_b1_map = os.path.join(SCILPY_HOME, 'ihMT', 'B1map.nii.gz')
 in_b1_json = os.path.join(SCILPY_HOME, 'MT', 'sub-001_run-01_B1map.json')
 
 
+@pytest.mark.smoke
 def test_help_option(script_runner):
     ret = script_runner.run(['scil_mti_maps_ihMT', '--help'])
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution_ihMT_no_option(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
 
@@ -93,6 +96,7 @@ def test_execution_ihMT_no_option(script_runner, monkeypatch):
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution_ihMT_prefix(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
 
@@ -118,6 +122,7 @@ def test_execution_ihMT_prefix(script_runner, monkeypatch):
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution_ihMT_extended(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
 
@@ -143,6 +148,7 @@ def test_execution_ihMT_extended(script_runner, monkeypatch):
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution_ihMT_filtering(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
 
@@ -167,6 +173,7 @@ def test_execution_ihMT_filtering(script_runner, monkeypatch):
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution_ihMT_B1_map(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
 
@@ -197,6 +204,7 @@ def test_execution_ihMT_B1_map(script_runner, monkeypatch):
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution_ihMT_B1_no_T1(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
 
@@ -224,6 +232,7 @@ def test_execution_ihMT_B1_no_T1(script_runner, monkeypatch):
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution_ihMT_wrong_echoes(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
 
@@ -244,6 +253,7 @@ def test_execution_ihMT_wrong_echoes(script_runner, monkeypatch):
     assert (not ret.success)
 
 
+@pytest.mark.smoke
 def test_execution_ihMT_B1_no_fit(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
 
@@ -274,6 +284,7 @@ def test_execution_ihMT_B1_no_fit(script_runner, monkeypatch):
     assert (not ret.success)
 
 
+@pytest.mark.smoke
 def test_execution_ihMT_single_echo(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
 
@@ -291,6 +302,7 @@ def test_execution_ihMT_single_echo(script_runner, monkeypatch):
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution_ihMT_acq_params(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
 

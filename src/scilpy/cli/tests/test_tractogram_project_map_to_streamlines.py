@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import os
+import pytest
 import tempfile
 
 from scilpy import SCILPY_HOME
@@ -16,12 +17,14 @@ in_3d_map = os.path.join(SCILPY_HOME, 'tracking', 'fa.nii.gz')
 in_4d_map = os.path.join(SCILPY_HOME, 'tracking', 'peaks.nii.gz')
 
 
+@pytest.mark.smoke
 def test_help_option(script_runner):
     ret = script_runner.run([
             'scil_tractogram_project_map_to_streamlines', '--help'])
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution_3D_map(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
 
@@ -32,6 +35,7 @@ def test_execution_3D_map(script_runner, monkeypatch):
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution_4D_map(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
 
@@ -42,6 +46,7 @@ def test_execution_4D_map(script_runner, monkeypatch):
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution_3D_map_endpoints_only(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
 
@@ -54,6 +59,7 @@ def test_execution_3D_map_endpoints_only(script_runner, monkeypatch):
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution_4D_map_endpoints_only(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
 
@@ -66,6 +72,7 @@ def test_execution_4D_map_endpoints_only(script_runner, monkeypatch):
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution_3D_map_trilinear(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
 

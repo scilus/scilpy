@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import os
+import pytest
 import tempfile
 
 import nibabel as nib
@@ -14,11 +15,13 @@ fetch_data(get_testing_files_dict(), keys=['tractograms.zip'])
 tmp_dir = tempfile.TemporaryDirectory()
 
 
+@pytest.mark.smoke
 def test_help_option(script_runner):
     ret = script_runner.run(['scil_volume_distance_map', '--help'])
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_mask_1 = os.path.join(SCILPY_HOME, 'tractograms',

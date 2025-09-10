@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import os
+import pytest
 import tempfile
 
 from scilpy import SCILPY_HOME
@@ -12,11 +13,13 @@ fetch_data(get_testing_files_dict(), keys=['processing.zip'])
 tmp_dir = tempfile.TemporaryDirectory()
 
 
+@pytest.mark.smoke
 def test_help_option(script_runner):
     ret = script_runner.run(['scil_sh_to_sf', '--help'])
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution_in_sphere(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_sh = os.path.join(SCILPY_HOME, 'processing', 'sh_1000.nii.gz')
@@ -33,6 +36,7 @@ def test_execution_in_sphere(script_runner, monkeypatch):
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution_in_bvec(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_sh = os.path.join(SCILPY_HOME, 'processing', 'sh_1000.nii.gz')
@@ -57,6 +61,7 @@ def test_execution_in_bvec(script_runner, monkeypatch):
     assert not ret.success
 
 
+@pytest.mark.smoke
 def test_execution_no_bval(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_sh = os.path.join(SCILPY_HOME, 'processing', 'sh_1000.nii.gz')

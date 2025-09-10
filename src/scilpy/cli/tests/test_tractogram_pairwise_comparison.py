@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import os
+import pytest
 import tempfile
 
 from scilpy import SCILPY_HOME
@@ -15,12 +16,14 @@ in_2 = os.path.join(SCILPY_HOME, 'bundles', 'voting_results', 'bundle_0.trk')
 in_ref = os.path.join(SCILPY_HOME, 'bundles', 'bundle_all_1mm.nii.gz')
 
 
+@pytest.mark.smoke
 def test_help_option(script_runner):
     ret = script_runner.run([
         'scil_tractogram_pairwise_comparison', '--help'])
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution_bundles_skip(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     ret = script_runner.run(['scil_tractogram_pairwise_comparison',
@@ -30,6 +33,7 @@ def test_execution_bundles_skip(script_runner, monkeypatch):
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution_bundles(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     ret = script_runner.run(['scil_tractogram_pairwise_comparison',

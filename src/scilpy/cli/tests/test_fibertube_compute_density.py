@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import os
+import pytest
 import tempfile
 import numpy as np
 import nibabel as nib
@@ -36,11 +37,13 @@ def init_data():
     save_tractogram(sft_fibertubes, 'fibertubes.trk', True)
 
 
+@pytest.mark.smoke
 def test_help_option(script_runner):
     ret = script_runner.run(['scil_fibertube_compute_density', '--help'])
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution_density(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     init_data()
@@ -53,6 +56,7 @@ def test_execution_density(script_runner, monkeypatch):
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution_collisions(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     init_data()

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 import os
+import pytest
 
 from scilpy import SCILPY_HOME
 from scilpy.io.fetcher import fetch_data, get_testing_files_dict
@@ -8,11 +9,13 @@ from scilpy.io.fetcher import fetch_data, get_testing_files_dict
 fetch_data(get_testing_files_dict(), keys=['processing.zip'])
 
 
+@pytest.mark.smoke
 def test_help_option(script_runner):
     ret = script_runner.run(['scil_viz_tractogram_seeds', '--help'])
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_run_option(script_runner):
     seed_map = os.path.join(SCILPY_HOME, 'processing', 'fa.nii.gz')
 

@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import os
+import pytest
 import tempfile
 
 from scilpy import SCILPY_HOME
@@ -13,11 +14,13 @@ tmp_dir = tempfile.TemporaryDirectory()
 trk_path = os.path.join(SCILPY_HOME, 'others')
 
 
+@pytest.mark.smoke
 def test_help_option(script_runner):
     ret = script_runner.run(['scil_tractogram_math', '--help'])
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution_lazy_concatenate_no_color(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_tracto_1 = os.path.join(trk_path, 'fibercup_bundles.trk')
@@ -28,6 +31,7 @@ def test_execution_lazy_concatenate_no_color(script_runner, monkeypatch):
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution_lazy_concatenate_mix(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_tracto_1 = os.path.join(trk_path, 'fibercup_bundles_color.trk')
@@ -38,6 +42,7 @@ def test_execution_lazy_concatenate_mix(script_runner, monkeypatch):
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution_union_no_color(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_tracto_1 = os.path.join(trk_path, 'fibercup_bundles.trk')
@@ -47,6 +52,7 @@ def test_execution_union_no_color(script_runner, monkeypatch):
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution_intersection_no_color(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_tracto_1 = os.path.join(trk_path, 'fibercup_bundles.trk')
@@ -56,6 +62,7 @@ def test_execution_intersection_no_color(script_runner, monkeypatch):
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution_difference_no_color(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_tracto_1 = os.path.join(trk_path, 'fibercup_bundles.trk')
@@ -65,6 +72,7 @@ def test_execution_difference_no_color(script_runner, monkeypatch):
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution_concatenate_no_color(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_tracto_1 = os.path.join(trk_path, 'fibercup_bundles.trk')
@@ -74,6 +82,7 @@ def test_execution_concatenate_no_color(script_runner, monkeypatch):
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution_union_no_color_robust(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_tracto_1 = os.path.join(trk_path, 'fibercup_bundles.trk')
@@ -84,6 +93,7 @@ def test_execution_union_no_color_robust(script_runner, monkeypatch):
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution_intersection_no_color_robust(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_tracto_1 = os.path.join(trk_path, 'fibercup_bundles.trk')
@@ -94,6 +104,7 @@ def test_execution_intersection_no_color_robust(script_runner, monkeypatch):
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution_difference_no_color_robust(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_tracto_1 = os.path.join(trk_path, 'fibercup_bundles.trk')
@@ -104,6 +115,7 @@ def test_execution_difference_no_color_robust(script_runner, monkeypatch):
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution_union_color(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_tracto_1 = os.path.join(trk_path, 'fibercup_bundles_color.trk')
@@ -113,6 +125,7 @@ def test_execution_union_color(script_runner, monkeypatch):
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution_intersection_color(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_tracto_1 = os.path.join(trk_path, 'fibercup_bundles_color.trk')
@@ -123,6 +136,7 @@ def test_execution_intersection_color(script_runner, monkeypatch):
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution_difference_color(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_tracto_1 = os.path.join(trk_path, 'fibercup_bundles_color.trk')
@@ -133,6 +147,7 @@ def test_execution_difference_color(script_runner, monkeypatch):
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution_concatenate_color(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_tracto_1 = os.path.join(trk_path, 'fibercup_bundles_color.trk')
@@ -143,6 +158,7 @@ def test_execution_concatenate_color(script_runner, monkeypatch):
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution_union_mix(script_runner, monkeypatch):
     # This is intentionally failing
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
@@ -153,6 +169,7 @@ def test_execution_union_mix(script_runner, monkeypatch):
     assert not ret.success
 
 
+@pytest.mark.smoke
 def test_execution_intersection_mix_fake(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_tracto_1 = os.path.join(trk_path, 'fibercup_bundles_color.trk')
@@ -163,6 +180,7 @@ def test_execution_intersection_mix_fake(script_runner, monkeypatch):
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution_difference_empty_result(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_tracto_1 = os.path.join(trk_path, 'fibercup_bundle_0.trk')
@@ -174,6 +192,7 @@ def test_execution_difference_empty_result(script_runner, monkeypatch):
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution_difference_empty_input_1(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_tracto_1 = os.path.join(trk_path, 'empty.trk')
@@ -185,6 +204,7 @@ def test_execution_difference_empty_input_1(script_runner, monkeypatch):
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution_difference_empty_input_2(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_tracto_1 = os.path.join(trk_path, 'fibercup_bundle_0_color.trk')

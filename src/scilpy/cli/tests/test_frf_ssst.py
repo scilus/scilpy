@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import os
+import pytest
 import tempfile
 
 from scilpy import SCILPY_HOME
@@ -15,11 +16,13 @@ in_bval = os.path.join(SCILPY_HOME, 'processing', 'dwi.bval')
 in_bvec = os.path.join(SCILPY_HOME, 'processing', 'dwi.bvec')
 
 
+@pytest.mark.smoke
 def test_help_option(script_runner):
     ret = script_runner.run(['scil_frf_ssst', '--help'])
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_roi_center_parameter(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     ret = script_runner.run(['scil_frf_ssst', in_dwi,
@@ -41,6 +44,7 @@ def test_roi_center_parameter(script_runner, monkeypatch):
     assert not ret.success
 
 
+@pytest.mark.smoke
 def test_roi_radii_shape_parameter(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     ret = script_runner.run(['scil_frf_ssst', in_dwi,
@@ -60,6 +64,7 @@ def test_roi_radii_shape_parameter(script_runner, monkeypatch):
     assert (not ret.success)
 
 
+@pytest.mark.smoke
 def test_outputs_precision(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     ret = script_runner.run(['scil_frf_ssst', in_dwi,
@@ -72,6 +77,7 @@ def test_outputs_precision(script_runner, monkeypatch):
             assert len(item.split(".")[1]) == 4
 
 
+@pytest.mark.smoke
 def test_execution_processing(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     ret = script_runner.run(['scil_frf_ssst', in_dwi,

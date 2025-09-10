@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import os
+import pytest
 import json
 import tempfile
 import numpy as np
@@ -56,11 +57,13 @@ def init_data():
         json.dump(config, file, indent=True)
 
 
+@pytest.mark.smoke
 def test_help_option(script_runner):
     ret = script_runner.run(['scil_fibertube_score_tractogram', '--help'])
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     init_data()
