@@ -10,6 +10,13 @@ from scilpy.utils import is_float
 
 
 def load_img(arg):
+    """
+    Function to create the variable for scil_volume_math main function.
+    It can be a float or an image and if image it checks if it contains
+    integer values and its declared data type is integer or if it is containing
+    float values but declared as integer, in which case a warning is raised.
+    Parameters
+    """
     if is_float(arg):
         img = float(arg)
         dtype = np.float64
