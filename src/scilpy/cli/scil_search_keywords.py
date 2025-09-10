@@ -137,7 +137,7 @@ def main():
     stemmed_phrases = list(set([_stem_phrase(phrase) for phrase in phrases]))
 
     # Create a mapping of stemmed to original keywords
-    # This will be needed to display the occurence of the keywords
+    # This will be needed to display the occurrence of the keywords
     keyword_mapping = {stem: orig for orig,
                        stem in zip(keywords, stemmed_keywords)}
     phrase_mapping = {stem: orig for orig,
