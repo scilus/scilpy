@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Split a tractogram into multiple files, 2 options available :
 Split into X files, or split into files of Y streamlines.
@@ -10,9 +9,8 @@ Optionally, you can split streamlines...
     - sequentially (the first n/nb_chunks streamlines in the first chunk and so
      on).
     - randomly, but per Quickbundles clusters.
-
-Formerly: scil_split_tractogram.py
 """
+
 import argparse
 import logging
 import os

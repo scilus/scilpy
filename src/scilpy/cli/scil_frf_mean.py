@@ -1,15 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Compute the mean Fiber Response Function from a set of individually
 computed Response Functions.
 
-The FRF files are obtained from scil_frf_ssst.py, scil_frf_msmt.py in the
-case of multi-shell data or scil_frf_memsmt.py in the case of multi-encoding
+The FRF files are obtained from scil_frf_ssst, scil_frf_msmt in the
+case of multi-shell data or scil_frf_memsmt in the case of multi-encoding
 multi-shell data.
 
-Formerly: scil_compute_mean_frf.py
 """
 
 import argparse

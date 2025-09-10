@@ -1,18 +1,17 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Evaluate pair-wise similarity measures of masks and atlas.
 All volumes must be co-registered in the same space.
 
 Support multiple input volume. The following command will compare all
 combinations of the input volumes (1-2, 1-3, 2-3):
-  scil_volume_pairwise_comparison.py mask1.nii.gz mask2.nii.gz \
+  scil_volume_pairwise_comparison mask1.nii.gz mask2.nii.gz \
     mask3.nii.gz out.json
 
 The following command will compare all input of the input volumes to a single
 volume (1-ref, 2-ref, 3-ref):
-  scil_volume_pairwise_comparison.py mask1.nii.gz mask2.nii.gz \
+  scil_volume_pairwise_comparison mask1.nii.gz mask2.nii.gz \
     mask3.nii.gz out.json --single_compare ref.nii.gz
 
 This can work for BET mask, WMPARC, bundle label maps. The datatype of the
@@ -24,9 +23,8 @@ value present in the input volumes there will be an entry under the measure.
 (i.e. a binary mask will have one entries for each measure, 1).
 
 If you have streamlines to compare, the following script could be
-of interest for you: scil_bundle_pairwise_comparison.py
+of interest for you: scil_bundle_pairwise_comparison
 """
-
 
 import argparse
 import itertools

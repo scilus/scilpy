@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Performs an operation on a list of images. The supported operations are
 listed below.
@@ -10,9 +9,7 @@ hundred images.
 
 Some operations such as multiplication or addition accept float value as
 parameters instead of images.
-> scil_volume_math.py multiplication img.nii.gz 10 mult_10.nii.gz
-
-Formerly: scil_image_math.py
+> scil_volume_math multiplication img.nii.gz 10 mult_10.nii.gz
 """
 
 import argparse

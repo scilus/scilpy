@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Compute the RISH (Rotationally Invariant Spherical Harmonics) features of an SH
 signal [1].
@@ -13,7 +12,6 @@ any SH order.
 
 Each RISH feature will be saved as a separate file.
 
-Formerly: scil_compute_rish_from_sh.py
 -----------------------------------------------------------------------
 Reference:
 [1] Mirzaalian, Hengameh, et al. "Harmonizing diffusion MRI data across
@@ -21,6 +19,7 @@ Reference:
     https://scholar.harvard.edu/files/hengameh/files/miccai2015.pdf
 -----------------------------------------------------------------------
 """
+
 import argparse
 import logging
 

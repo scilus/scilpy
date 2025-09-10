@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Visualize seeds as 3D points, with heatmaps corresponding to seed density
 
 Example usages:
 
->>> scil_viz_tractogram_seeds_3d.py seeds.nii.gz --tractogram tractogram.trk
+>>> scil_viz_tractogram_seeds_3d seeds.nii.gz --tractogram tractogram.trk
 """
 
 import argparse

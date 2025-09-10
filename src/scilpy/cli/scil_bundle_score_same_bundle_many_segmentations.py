@@ -1,15 +1,27 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 This script is intended to score many versions of a same bundle, compared to
 ONE ground truth / gold standard.
 
-See also scil_bundle_score_many_bundles_one_tractogram.py to score all bundles
-from a single tractogram by comparing each valid bundle to its ground truth.
-
 All tractograms must be in the same space (aligned to one reference).
-The measures can be applied to a voxel-wise or streamline-wise representation.
+
+Our bundle tractometry analysis scripts
+---------------------------------------
+- scil_bundle_pairwise_comparison:
+    - can compare any pair (any combo) from the input list.
+    - can compare the input list against a single file (--single_compare)
+- scil_bundle_score_many_bundles_one_tractogram:
+    - scores files against their individual ground truth.
+- scil_bundle_score_same_bundle_many_segmentations:
+    - compare many versions of a single bundle.
+* If you have volumes associated to your bundles, the following script could be
+of interest for you: scil_volume_pairwise_comparison
+
+Computed metrics
+----------------
+In this script, metrics can be based on the coverage masks of the bundles
+(voxel-wise) or directly on the streamlines:
 
 A gold standard must be provided for the desired representation.
 A gold standard would be a segmentation from an expert or a group of experts.
@@ -26,7 +38,6 @@ The computed binary classification measures are:
 sensitivity, specificity, precision, accuracy, dice, kappa, youden for both
 the streamline and voxel representation (if provided).
 
-Formerly: scil_evaluate_bundles_binary_classification_measures.py
 """
 
 import argparse

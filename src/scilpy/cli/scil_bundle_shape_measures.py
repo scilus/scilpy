@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Evaluate basic measurements of bundle(s).
 
@@ -8,12 +7,12 @@ The computed measures are:
     - volume_info: volume, volume_endpoints
     - streamlines_info: streamlines_count, avg_length (in mm or in number of
       point), average step size, min_length, max_length.
-      ** You may also get this information with scil_tractogram_print_info.py.
+      ** You may also get this information with scil_tractogram_print_info.
     - shape_info: span, curl, diameter, elongation, surface area,
       irregularity, end surface area, radius, end surface irregularity,
       mean_curvature, fractal dimension.
       ** The diameter, here, is a simple estimation using volume / length.
-      For a more complex calculation, see scil_bundle_diameter.py.
+      For a more complex calculation, see scil_bundle_diameter.
 
 With more than one bundle, the measures are averaged over bundles. All
 tractograms must be in the same space.
@@ -31,8 +30,6 @@ These measures include volume and surface area.
 The fractal dimension is dependent on the voxel size and the number of voxels.
 If data comparison is performed, the bundles MUST be in same resolution.
 
-Formerly: scil_compute_bundle_volume.py or
-scil_evaluate_bundles_individual_measures.py
 ------------------------------------------------------------------------------
 Reference:
 [1] Fang-Cheng Yeh. 2020.

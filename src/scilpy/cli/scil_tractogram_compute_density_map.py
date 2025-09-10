@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Compute a density map from a streamlines file. Can be binary.
 
@@ -9,9 +8,8 @@ This script correctly handles compressed streamlines.
 To get only a map of the endpoints, use option --endpoints_only. To get a
 separate map for the head and tail, see
 >> scil_bundle_compute_endpoints_map
-
-Formerly: scil_compute_streamlines_density_map.py
 """
+
 import argparse
 import logging
 
@@ -50,7 +48,7 @@ def _build_arg_parser():
     p.add_argument('--endpoints_only', action='store_true',
                    help='If set, will only use the endpoints.\n'
                         'To get a head and a tail maps, see '
-                        'scil_bundle_compute_endpoints_map.py.')
+                        'scil_bundle_compute_endpoints_map.')
     add_reference_arg(p)
     add_verbose_arg(p)
     add_overwrite_arg(p)

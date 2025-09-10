@@ -88,7 +88,7 @@ forget to activate your scilpy environment first.
 
 ::
 
-   scil_tractogram_resample_nb_points.py centerlines.trk centerlines_resampled.trk --step_size 0.2 -f
+   scil_tractogram_resample_nb_points centerlines.trk centerlines_resampled.trk --step_size 0.2 -f
 
 Next, we want to filter out intersecting fibertubes (collisions), to
 make the data anatomically plausible and ensure that there exists a
@@ -98,11 +98,11 @@ volume.
 .. image:: https://github.com/user-attachments/assets/d9b0519b-c1e3-4de0-8529-92aa92041ce2
    :alt: Fibertube intersection visualized in 3D
 
-This is accomplished using ``scil_tractogram_filter_collisions.py``.
+This is accomplished using ``scil_tractogram_filter_collisions``.
 
 ::
 
-   scil_tractogram_filter_collisions.py centerlines_resampled.trk diameters.txt fibertubes.trk --save_colliding --out_metrics metrics.json -v -f
+   scil_tractogram_filter_collisions centerlines_resampled.trk diameters.txt fibertubes.trk --save_colliding --out_metrics metrics.json -v -f
 
 After 3-5 minutes, you should get something like:
 
@@ -122,7 +122,7 @@ output tractogram. This is why we named it "fibertubes.trk".
 If you wish to know how many fibertubes are left after filtering, you
 can run the following command:
 
-``scil_tractogram_print_info.py fibertubes.trk``
+``scil_tractogram_print_info fibertubes.trk``
 
 Visualising collisions
 ----------------------
@@ -131,7 +131,7 @@ By calling:
 
 ::
 
-   scil_viz_tractogram_collisions.py centerlines_resampled_invalid.trk --in_tractogram_obstacle centerlines_resampled_obstacle.trk --ref_tractogram centerlines.trk
+   scil_viz_tractogram_collisions centerlines_resampled_invalid.trk --in_tractogram_obstacle centerlines_resampled_obstacle.trk --ref_tractogram centerlines.trk
 
 You are able to see exactly which streamline has been filtered
 ("invalid" - In red) as well as the streamlines they collided with
@@ -164,7 +164,7 @@ different file:
 
 -  ``rotation_matrix``: 4D transformation matrix containing the rotation to be
    applied on the tractogram to align max_voxel_rotated with the coordinate
-   system. (see scil_tractogram_apply_transform.py).
+   system. (see scil_tractogram_apply_transform).
 
 
 .. image:: https://github.com/user-attachments/assets/43cebcbe-e3b1-4ca0-999e-e042db8aa937
@@ -181,7 +181,7 @@ Performing fibertube tracking
 -----------------------------
 
 We're finally at the tracking phase! Using the script
-``scil_fibertube_tracking.py``, you are able to track without relying on
+``scil_fibertube_tracking``, you are able to track without relying on
 a discretized grid of directions or fODFs. Instead, you will be
 propagating a streamline through fibertubes and controlling the
 resolution by using a ``blur_radius``. The way it works is as follows:
@@ -237,19 +237,19 @@ than one fibertubes will intersect the ``blur_radius`` sphere and
 introduce partial volume effect.
 
 The interface of the script is very similar to
-``scil_tracking_local_dev.py``, but simplified and with a ``blur_radius``
+``scil_tracking_local_dev``, but simplified and with a ``blur_radius``
 option. Let us do:
 
 ::
 
-   scil_fibertube_tracking.py fibertubes.trk tracking.trk --blur_radius 0.1 --step_size 0.1 --nb_fibertubes 3 --out_config tracking_config.json --processes 4 -v -f
+   scil_fibertube_tracking fibertubes.trk tracking.trk --blur_radius 0.1 --step_size 0.1 --nb_fibertubes 3 --out_config tracking_config.json --processes 4 -v -f
 
 This should take a minute or two and will produce 15 streamlines.
 
 Reconstruction analysis
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-By using the ``scil_fibertube_score_tractogram.py`` script, you are able
+By using the ``scil_fibertube_score_tractogram`` script, you are able
 to obtain measures on the quality of the fibertube tracking that was
 performed.
 
@@ -310,7 +310,7 @@ To score the produced tractogram, we run:
 
 ::
 
-   scil_fibertube_score_tractogram.py fibertubes.trk tracking.trk tracking_config.json reconstruction_metrics.json -f
+   scil_fibertube_score_tractogram fibertubes.trk tracking.trk tracking_config.json reconstruction_metrics.json -f
 
 giving us the following output in ``reconstruction_metrics.json``:
 

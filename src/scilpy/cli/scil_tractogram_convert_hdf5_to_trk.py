@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Save connections of a hdf5 created with
->> scil_tractogram_segment_connections_from_labels.py.
+>> scil_tractogram_segment_connections_from_labels.
 
 Useful for quality control and visual inspections.
 
@@ -21,8 +20,6 @@ out_dir/
     |-- LABEL1_LABEL2.trk
     |-- [...]
     |-- LABEL90_LABEL90.trk
-
-Formerly: scil_save_connections_from_hdf5.py
 """
 
 import argparse

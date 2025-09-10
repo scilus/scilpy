@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
 """
 Cut streamlines using a binary mask or two labels.
 
@@ -39,9 +38,7 @@ will be extended so they reach the boundary of the mask or the two labels,
 therefore won't be equal to the input streamlines.
 
 To generate a label map from a binary mask, you can use the following command:
-    scil_labels_from_mask.py
-
-Formerly: scil_cut_streamlines.py
+    scil_labels_from_mask
 """
 
 import argparse

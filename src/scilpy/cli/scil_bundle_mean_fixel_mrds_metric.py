@@ -1,13 +1,12 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Given a bundle and MRDS metrics, compute the fixel-specific
 metrics at each voxel intersected by the bundle. Intersected voxels are
 found by computing the intersection between the voxel grid and each streamline
 in the input tractogram.
 
-This script behaves like scil_bundle_mean_fixel_afd.py for fODFs,
+This script behaves like scil_bundle_mean_fixel_afd for fODFs,
 but here for MRDS metrics. These latest distributions add the unique
 possibility to capture fixel-based fractional anisotropy (fixel-FA), mean
 diffusivity (fixel-MD), radial diffusivity (fixel-RD) and
@@ -19,7 +18,7 @@ There are as many values per voxel as there are fixels extracted. The
 values chosen for a given voxel is the one belonging to the lobe better aligned
 with the current streamline segment.
 
-Input files come from scil_mrds_metrics.py command.
+Input files come from scil_mrds_metrics command.
 
 Output metrics will be named: [prefix]_mrds_[metric_name].nii.gz
 

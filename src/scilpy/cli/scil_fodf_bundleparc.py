@@ -10,12 +10,12 @@ Inputs are presumed to come from Tractoflow and must be BET and cropped. fODFs m
 Model weights will be downloaded the first time the script is run, which will require an internet connection at runtime. Otherwise they can be manually downloaded from zenodo [1] and by specifying --checkpoint.
 
 Example usage:
-    $ scil_fodf_bundleparc.py fodf.nii.gz --out_prefix sub-001__
+    $ scil_fodf_bundleparc fodf.nii.gz --out_prefix sub-001__
 
 Example output:
     sub-001__AF_left.nii.gz, sub-001__AF_right.nii.gz, ..., sub-001__UF_right.nii.gz
 
-The output can be further processed with scil_bundle_mean_std.py to compute statistics for each bundle.
+The output can be further processed with scil_bundle_mean_std to compute statistics for each bundle.
 
 The default value of 50 for --min_blob_size was found empirically on adult brains at a resolution of 1mm^3. The best value for your dataset may differ.
 

@@ -1,23 +1,33 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Evaluate pairwise similarity measures of bundles.
 All tractograms must be in the same space (aligned to one reference).
 
-For the voxel representation, the computed similarity measures are:
+Our bundle tractometry analysis scripts
+---------------------------------------
+- scil_bundle_pairwise_comparison:
+    - can compare any pair (any combo) from the input list.
+    - can compare the input list against a single file (--single_compare)
+- scil_bundle_score_many_bundles_one_tractogram:
+    - scores files against their individual ground truth.
+- scil_bundle_score_same_bundle_many_segmentations:
+    - compare many versions of a single bundle.
+* If you have volumes associated to your bundles, the following script could be
+of interest for you: scil_volume_pairwise_comparison
+
+Computed metrics
+----------------
+In this script, metrics can be based on the coverage masks of the bundles or
+directly on the streamlines:
+- For the voxel representation, the computed similarity measures are:
     bundle_adjacency_voxels, dice_voxels, w_dice_voxels, density_correlation
     volume_overlap, volume_overreach
 The same measures are also evaluated for the endpoints.
 
-For the streamline representation, the computed similarity measures are:
+- For the streamline representation, the computed similarity measures are:
     bundle_adjacency_streamlines, dice_streamlines, streamlines_count_overlap,
     streamlines_count_overreach
-
-If you have volumes associated to your bundles, the following script could be
-of interest for you: scil_volume_pairwise_comparison.py
-
-Formerly: scil_evaluate_bundles_pairwise_agreement_measures.py
 """
 
 import argparse

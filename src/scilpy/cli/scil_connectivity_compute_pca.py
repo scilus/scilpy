@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
 """
 Script to compute PCA analysis on a set of connectivity matrices. The output is
 all significant principal components in a connectivity matrix format.
@@ -19,7 +18,7 @@ or ref [3] for an introduction to PCA).
 The script can take directly as input a connectoflow output folder. Simply use
 the --input_connectoflow flag. Else, the script expects a single folder
 containing all matrices for all subjects. Those matrices can be obtained, for
-instance, by scil_connectivity_compute_matrices.py.
+instance, by scil_connectivity_compute_matrices.
 Example: Default input
         [in_folder]
         |--- sub-01_ad.npy
@@ -43,7 +42,7 @@ do
 done
 
 EXAMPLE USAGE:
-scil_connectivity_compute_pca.py input_folder/ output_folder/
+scil_connectivity_compute_pca input_folder/ output_folder/
     --metrics ad fa md rd [...] --list_ids list_ids.txt
 
 -------------------------------------------------------------------------------

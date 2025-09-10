@@ -1,12 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Apply bias field correction to DWI. This script doesn't compute the bias
 field itself. It ONLY applies an existing bias field. Please use the ANTs
 N4BiasFieldCorrection executable to compute the bias field.
 
-Formerly: scil_apply_bias_field_on_dwi.py
 """
 
 import argparse

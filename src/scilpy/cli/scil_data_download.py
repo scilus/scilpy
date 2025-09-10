@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Download data for tests
 """
+
 import tqdm
 
 import nltk

@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Register bundle to a template for screenshots using a reference.
 The template can be any MNI152 (any resolution, cropped or not)

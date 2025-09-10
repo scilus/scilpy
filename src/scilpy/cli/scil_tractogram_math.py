@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Performs an operation on a list of streamline files. The supported
 operations are:
@@ -36,8 +35,6 @@ are kept in the output will be preserved. This requires that all input files
 share the same type of metadata. If this is not the case, use the option
 --no_metadata to strip the metadata from the output. Or --fake_metadata to
 initialize dummy metadata in the file missing them.
-
-Formerly: scil_streamlines_math.py
 """
 
 import argparse
@@ -160,7 +157,7 @@ def main():
         else:
             logging.info("All input tractograms are empty. Not saving results.")
             logging.warning("All tractogram files are empty! Nothing to do. "
-                        "Exiting, without saving results.")
+                            "Exiting, without saving results.")
         return
 
     # Processing

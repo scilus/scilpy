@@ -1,10 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Shuffle the ordering of streamlines.
-
-Formerly: scil_shuffle_streamlines.py
 """
 
 import argparse

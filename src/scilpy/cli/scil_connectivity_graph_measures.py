@@ -1,15 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Evaluate graph theory measures from connectivity matrices.
 A length-weighted and a streamline count-weighted matrix are required since
 some measures require one or the other.
 
 This script evaluates the measures one subject at the time. To generate a
-population dictionary (similarly to other scil_connectivity_*.py scripts), use
+population dictionary (similarly to other scil_connectivity_* scripts), use
 the --append_json option as well as using the same output filename.
->>> for i in hcp/*/; do scil_connectivity_graph_measures.py ${i}/sc_prob.npy
+>>> for i in hcp/*/; do scil_connectivity_graph_measures ${i}/sc_prob.npy
     ${i}/len_prob.npy hcp_prob.json --append_json --avg_node_wise; done
 
 Some measures output one value per node, the default behavior is to list
@@ -27,7 +26,6 @@ For more details about the measures, please refer to
 This script is under the GNU GPLv3 license, for more detail please refer to
 https://www.gnu.org/licenses/gpl-3.0.en.html
 
-Formerly: scil_evaluate_connectivity_graph_measures.py
 ----------------------------------------------------------------------------
 Reference:
 [1] Rubinov, Mikail, and Olaf Sporns. "Complex network measures of brain

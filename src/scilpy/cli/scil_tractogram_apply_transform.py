@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Transform a tractogram using an affine/rigid transformation and nonlinear
 deformation (optional).
@@ -13,7 +12,7 @@ the bounding box), and thus three strategies are available:
 1) Do nothing, may crash at saving if invalid streamlines are present.
    [This is the default]
 2) --keep_invalid, save invalid streamlines. Leave it to the user to run
-    scil_tractogram_remove_invalid.py if needed.
+    scil_tractogram_remove_invalid if needed.
 3) --remove_invalid, automatically remove invalid streamlines before saving.
     Should not remove more than a few streamlines. Typically, the streamlines
     that are rejected are the ones reaching the limits of the brain, ex, near
@@ -25,18 +24,16 @@ Example:
 To apply a transformation from ANTs to a tractogram, if the ANTs command was
 MOVING->REFERENCE...
 1) To apply the original transformation:
-scil_tractogram_apply_transform.py ${MOVING_FILE} ${REFERENCE_FILE}
+scil_tractogram_apply_transform${MOVING_FILE} ${REFERENCE_FILE}
                                    0GenericAffine.mat ${OUTPUT_NAME}
                                    --inverse
                                    --in_deformation 1InverseWarp.nii.gz
 
 2) To apply the inverse transformation, i.e. REFERENCE->MOVING:
-scil_tractogram_apply_transform.py ${MOVING_FILE} ${REFERENCE_FILE}
+scil_tractogram_apply_transform${MOVING_FILE} ${REFERENCE_FILE}
                                    0GenericAffine.mat ${OUTPUT_NAME}
                                    --in_deformation 1Warp.nii.gz
                                    --reverse_operation
-
-Formerly: scil_apply_transform_to_tractogram.py
 """
 
 import argparse
