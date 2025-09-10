@@ -105,7 +105,7 @@ def _build_arg_parser():
                    help="Directory containing all bundles to be scored.\n"
                         "(Ex: Output directory from "
                         "scil_tractogram_segment_with_ROI_and_score \nor "
-                        "from scil_tractogram_semgnet_with_bundleseg).\n"
+                        "from scil_tractogram_segment_with_bundleseg).\n"
                         "It is expected to contain a file IS.trk and \n"
                         "files segmented_VB/*_VS.trk, with, possibly, files \n"
                         "segmented_WPC/*_wpc.trk and segmented_IC/")
