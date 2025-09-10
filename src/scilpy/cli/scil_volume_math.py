@@ -96,7 +96,8 @@ def main():
                 not is_header_compatible(ref_img, input_arg):
             parser.error('Inputs do not have a compatible header.')
         img, dtype = load_img(input_arg)
-        args.data_type = img.header.get_data_dtype() if args.data_type is None else args.data_type
+        if not isinstance(img, float):
+            args.data_type = img.header.get_data_dtype() if args.data_type is None else args.data_type
 
         if isinstance(img, nib.Nifti1Image) and \
             dtype != ref_img.get_data_dtype() and \
