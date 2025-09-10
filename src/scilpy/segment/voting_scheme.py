@@ -373,8 +373,9 @@ class VotingScheme(object):
                                       bundles_wise_score,
                                       minimum_vote, ext)
         tmp_dir.cleanup()
-
-        logger.info(f'Saving of {len(bundle_names)} files in '
+        saved_bundles = [f for f in os.listdir(self.output_directory)
+                         if os.path.splitext(f)[1] in ['.trk', '.tck']]
+        logger.info(f'Saving of {len(saved_bundles)} files in '
                     f'{self.output_directory} took '
                     f'{get_duration(save_timer)} sec.')
 
