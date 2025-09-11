@@ -65,8 +65,8 @@ def _build_arg_parser():
         description=__doc__ + '\n' + IMPORT_ERROR_MSG,
         formatter_class=RawTextHelpFormatter)
 
-    parser.add_argument('in_volume',
-                        help='Input. fODF volume in nifti format. ')
+    parser.add_argument('in_fodf',
+                        help='Input fODF volume in nifti format. ')
     parser.add_argument('--out_prefix', default='',
                         help='Output file prefix. Default is nothing. ')
     parser.add_argument('--out_folder', default='bundleparc',
@@ -85,7 +85,8 @@ def _build_arg_parser():
                              'will be downloaded.')
     parcel_group = parser.add_mutually_exclusive_group()
     parcel_group.add_argument('--nb_pts', type=int, default=10,
-                              help='Number of divisions per bundle. ')
+                              help='Number of divisions per bundle. Default is'
+                                   ' [%(default)s].')
     parcel_group.add_argument('--mm', type=float,
                               help='If set, bundles will be split in sections '
                                    'roughly X mm wide.')
@@ -111,7 +112,7 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, [args.in_volume], [])
+    assert_inputs_exist(parser, [args.in_fodf], [])
     assert_output_dirs_exist_and_empty(parser, args, args.out_folder,
                                        create_dir=True)
 
@@ -124,7 +125,7 @@ def main():
     # Load the model
     model = get_model(args.checkpoint, device, {'pretrained': True})
 
-    fodf_in = nib.load(args.in_volume)
+    fodf_in = nib.load(args.in_fodf)
     X, Y, Z, C = fodf_in.get_fdata(dtype=np.float32).shape
 
     # TODO in future release: infer these from model
