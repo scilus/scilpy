@@ -19,7 +19,7 @@ The output can be further processed with scil_bundle_mean_std to compute statist
 
 The default value of 50 for --min_blob_size was found empirically on adult brains at a resolution of 1mm^3. The best value for your dataset may differ.
 
-This script requires a GPU with ~6GB of available memory. If you use half-precision (float16) inference, you may be able to run it with ~3GB of GPU memory available. Otherwise, install the CPU version of PyTorch.
+This script requires a GPU with ~6GB of available memory. If you use half-precision (float16) inference, you may be able to run it with ~3GB of GPU memory available. Otherwise, install the CPU version of PyTorch. Execution on MacOS is not supported for now.
 
 Parts of the implementation are based on or lifted from:
     SAM-Med3D: https://github.com/uni-medical/SAM-Med3D
