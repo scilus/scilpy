@@ -75,7 +75,8 @@ def _build_arg_parser():
                                 epilog=version_string)
 
     p.add_argument('in_tractograms', nargs='+',
-                   help='Input tractogram filename (.trk or .tck).')
+                   help='Input tractogram filenames (.trk or .tck).\n'
+                        'Must have compatible headers if .trk.')
     p.add_argument('in_config_file',
                    help='Path of the config file (.json)')
     p.add_argument('in_directory',
@@ -88,6 +89,9 @@ def _build_arg_parser():
 
     p.add_argument('--out_dir', default='voting_results',
                    help='Path for the output directory [%(default)s].')
+    p.add_argument('--save_empty', action='store_true',
+                   help='Save empty files for bundles that were not '
+                        'recognized.')
     p.add_argument('--minimal_vote_ratio',
                    type=ranged_type(float, 0, 1), default=0.5,
                    help='Streamlines will only be considered for saving if\n'
@@ -96,6 +100,10 @@ def _build_arg_parser():
                         'have 5 input model \ndirectories and a '
                         'minimal_vote_ratio of 0.5, you will need at least \n'
                         '3 votes. [%(default)s]')
+
+    p.add_argument('--ignore_metadata', action='store_true',
+                   help='Ignore metadata in the tractogram if present. This will '
+                        'only \nconsider the geometry of the streamlines for saving.')
 
     g = p.add_argument_group(title='Exploration mode')
     p2 = g.add_mutually_exclusive_group()
@@ -181,7 +189,9 @@ def main():
 
     voting = VotingScheme(config, in_models_directories,
                           transfo, args.out_dir,
-                          minimal_vote_ratio=args.minimal_vote_ratio)
+                          minimal_vote_ratio=args.minimal_vote_ratio,
+                          save_empty=args.save_empty,
+                          ignore_metadata=args.ignore_metadata)
 
     voting(args.in_tractograms, nbr_processes=args.nbr_processes,
            seed=args.seed, reference=args.reference)
