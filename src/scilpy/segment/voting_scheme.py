@@ -221,7 +221,7 @@ class VotingScheme(object):
                     try:
                         results_sft[basename] += new_sft
                     except ValueError:
-                        # This error message will be raisoned if the
+                        # This error message will be raised if the
                         # DPP and DPS are not the same across (+= operator)
                         raise ValueError(f"Could not merge SFT for {basename}, "
                                          f"try --ignore_metadata.")
