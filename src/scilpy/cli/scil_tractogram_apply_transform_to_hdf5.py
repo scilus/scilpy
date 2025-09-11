@@ -1,19 +1,16 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Transform tractogram(s) contained in the hdf5 output from a connectivity
 script, using an affine/rigid transformation and nonlinear deformation
 (optional).
 
-See scil_tractogram_apply_transform.py to apply directly to a tractogram.
+See scil_tractogram_apply_transformto apply directly to a tractogram.
 
 For more information on how to use the registration script, follow this link:
 https://scilpy.readthedocs.io/en/latest/documentation/tractogram_registration.html
 
-Or use >> scil_tractogram_apply_transform.py --help
-
-Formerly: scil_apply_transform_to_hdf5.py
+Or use >> scil_tractogram_apply_transform--help
 """
 
 import argparse

@@ -1,8 +1,7 @@
 #! /usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
-Synonym for scil_NODDI_priors.py
+Synonym for scil_NODDI_priors
 """
 
 from scilpy.cli.scil_NODDI_priors import main as noddi_priors_main

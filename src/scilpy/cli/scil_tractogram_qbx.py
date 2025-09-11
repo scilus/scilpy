@@ -1,22 +1,21 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Compute clusters using QuickBundlesX and save them separately.
 We cannot know the number of clusters in advance.
 
-Quickbundles:
-Garyfallidis, E. et al. (2012). Quickbundles, a method for tractography
+----------------------------------------------------------------------------------
+References Quickbundles[1] QuickbundlesX [2] :
+
+[1] Garyfallidis, E. et al. (2012). Quickbundles, a method for tractography
 simplification. Frontiers in neuroscience, 6, 175.
 
-QuickbundlesX:
-Garyfallidis, E. et al. (2016) QuickBundlesX: sequential clustering of millions
+[2] Garyfallidis, E. et al. (2016) QuickBundlesX: sequential clustering of millions
 of streamlines in multiple levels of detail at record execution time. 24th
 International Society of Magnetic Resonance in Medicine (ISMRM).
 
 "QuickBundlesX shows a remarkable 20+X speedup over its predecessor"
-
-Formerly: scil_compute_qbx.py
+----------------------------------------------------------------------------------
 """
 
 import argparse

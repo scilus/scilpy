@@ -1,11 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Return the number of streamlines in a tractogram. Only support trk and tck in
 order to support the lazy loading from nibabel.
-
-Formerly: scil_count_streamlines.py
 """
 
 import argparse

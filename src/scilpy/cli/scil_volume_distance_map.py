@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Compute distance map between two binary masks. The distance map is the
 Euclidean distance from each voxel of the first mask to the closest
@@ -10,7 +9,7 @@ Slowest scenarios are 1) two very large masks that are far appart or 2) a very
 small mask completely inside a very large mask (around 20-30 seconds).
 
 Take this command as an example:
-  scil_volume_distance_map.py brain_mask.nii.gz AF_L.nii.gz \
+  scil_volume_distance_map brain_mask.nii.gz AF_L.nii.gz \
     AF_L_to_brain_mask.nii.gz
 
 We have a brain mask and a bundle, the second is 100% inside the first.

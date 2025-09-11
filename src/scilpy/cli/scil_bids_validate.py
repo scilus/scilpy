@@ -1,6 +1,5 @@
 #! /usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Create a json file from a BIDS dataset detailling all info
 needed for tractoflow
@@ -15,8 +14,6 @@ The metadata need to be uniform across all participants/sessions/runs
 
 Mandatory entity: IntendedFor
 Sensitive entities: PhaseEncodingDirection, TotalReadoutTime, direction
-
-Formerly: scil_validate_bids.py
 """
 
 import os

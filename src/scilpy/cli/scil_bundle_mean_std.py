@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Compute mean and std for each metric.
 
@@ -9,13 +8,11 @@ Compute mean and std for each metric.
 - Option --per_point: For all streamlines points in the bundle for each metric
   combination, along the bundle, i.e. for each point.
   **To create label_map and distance_map, see
-  scil_bundle_label_map.py
+  scil_bundle_label_map
 
 Density weighting modifies the contribution of voxel with lower/higher
 streamline count to reduce influence of spurious streamlines.
 
-Formerly: scil_compute_bundle_mean_std_per_point.py or
-scil_compute_bundle_mean_std.py
 """
 
 import argparse

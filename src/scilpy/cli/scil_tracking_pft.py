@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Local streamline HARDI tractography including Particle Filtering tracking.
 
@@ -8,7 +7,7 @@ WARNING: This script DOES NOT support asymetric FODF input (aFODF).
 
 The tracking is done inside partial volume estimation maps and uses the
 particle filtering tractography (PFT) algorithm. See
-scil_tracking_pft_maps.py to generate PFT required maps.
+scil_tracking_pft_maps to generate PFT required maps.
 
 Streamlines longer than min_length and shorter than max_length are kept.
 The tracking direction is chosen in the aperture cone defined by the
@@ -25,7 +24,6 @@ deterministic algorithm and 0.2mm for probabilitic algorithm.
 
 All the input nifti files must be in isotropic resolution.
 
-Formerly: scil_compute_pft.py
 -----------------------------------------------------------------------------
 Reference:
 [1] Girard, G., Whittingstall K., Deriche, R., and Descoteaux, M. (2014).

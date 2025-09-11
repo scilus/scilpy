@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Compute the mean Apparent Fiber Density (AFD) and mean Radial fODF (radfODF)
 maps along a bundle.
@@ -10,7 +9,6 @@ of the bundle provided, averaged at every voxel.
 
 Please use a bundle file rather than a whole tractogram.
 
-Formerly: scil_compute_fixel_afd_from_bundles.py
 -----------------------------------------------------------------------------
 Reference:
 [1] Raffelt, D., Tournier, JD., Rose, S., Ridgway, GR., Henderson, R.,

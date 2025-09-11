@@ -1,10 +1,9 @@
 #! /usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Script to display a connectivity matrix and adjust the desired visualization.
-Made to work with scil_tractogram_segment_connections_from_labels.py and
-scil_connectivity_reorder_rois.py.
+Made to work with scil_tractogram_segment_connections_from_labels and
+scil_connectivity_reorder_rois.
 
 This script can either display the axis labels as:
 - Coordinates (0..N)
@@ -14,7 +13,7 @@ Examples of labels_list.txt and lookup_table.json can be found in the
 freesurfer_flow output (https://github.com/scilus/freesurfer_flow)
 
 If the matrix was made from a bigger matrix using
-scil_connectivity_reorder_rois.py, provide the text file(s), using
+scil_connectivity_reorder_rois, provide the text file(s), using
 --labels_list and/or --reorder_txt.
 
 The chord chart is always displaying parting in the order they are defined

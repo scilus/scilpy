@@ -1,16 +1,15 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Script to estimate the diameter of bundle(s) along their length.
-See also scil_bundle_shape_measures.py, which prints a quick estimate of
+See also scil_bundle_shape_measures, which prints a quick estimate of
 the diameter (volume / length). The computation here is more complex and done
 for each section of the bundle.
 
 The script expects:
-- bundles with coherent endpoints from scil_tractogram_uniformize_endpoints.py
+- bundles with coherent endpoints from scil_bundle_uniformize_endpoints
 - labels maps of the bundle's sections, with around 5-50 points,
-  from scil_bundle_label_map.py
+  from scil_bundle_label_map
     - <5 is not enough, high risk of bad fit
     - >50 is too much, high risk of bad fit
 - bundles that are close to a tube
@@ -26,8 +25,6 @@ Since the estimation and fit quality is not always intuitive for some bundles
 and the tube with varying diameter is not easy to color/visualize,
 the script comes with its own VTK rendering to allow exploration of the data.
 (optional).
-
-Formerly: scil_estimate_bundles_diameter.py
 """
 
 import argparse

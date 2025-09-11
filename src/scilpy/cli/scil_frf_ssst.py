@@ -1,17 +1,16 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Compute a single Fiber Response Function from a DWI.
 
 A DTI fit is made, and voxels containing a single fiber population are
 found using a threshold on the FA.
 
-Formerly: scil_compute_ssst_frf.py
 ----------------------------------------------------------------------
 Reference:
 [1] Tournier et al. NeuroImage 2007
 ----------------------------------------------------------------------
+
 """
 
 import argparse

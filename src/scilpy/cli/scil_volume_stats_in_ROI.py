@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Compute the statistics (mean, std) of scalar maps, which can represent
 diffusion metrics, in ROIs. Prints the results.

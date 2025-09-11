@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Wrapper for SyNb0 available in Dipy, to run it on a single subject.
 Requires Skull-Strip b0 and t1w images as input, the script will normalize the

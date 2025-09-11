@@ -1,13 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Transform Nifti (.nii.gz) using an affine/rigid transformation.
 
 For more information on how to use the registration script, follow this link:
 https://scilpy.readthedocs.io/en/latest/documentation/tractogram_registration.html
-
-Formerly: scil_apply_transform_to_image.py.
 """
 
 import argparse

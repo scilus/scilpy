@@ -15,9 +15,9 @@ tractograms, with the new segmentation criteria suggested in [2].
 
 See also
 --------
-    - scil_tractogram_segment_with_bundleseg.py
-    - scil_tractogram_segment_connections_from_labels.py
-    - scil_bundle_score_many_bundles_one_tractogram.py: You may use this script
+    - scil_tractogram_segment_with_bundleseg
+    - scil_tractogram_segment_connections_from_labels
+    - scil_bundle_score_many_bundles_one_tractogram: You may use this script
     to score again the segmented bundles.
 
 Outputs
@@ -79,6 +79,7 @@ Example config file:
     "endpoints": "PATH/file1.nii.gz"
   }
 }
+
 ---------------------------------------------------------------------------------
 References:
 [1] Côté, M.-A., et al. (2013). Tractometer: Towards Validation of Tractography
@@ -89,6 +90,7 @@ References:
     Scientific Reports, 13:2347 (2023). Online Enhanced PDF, or Download PDF.
 ---------------------------------------------------------------------------------
 """
+
 import argparse
 import json
 import itertools
