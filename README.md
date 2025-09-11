@@ -14,47 +14,44 @@
 **Scilpy** mainly comprises tools and utilities to quickly work with diffusion MRI. Most of the tools are based
 on or are wrappers of the [DIPY] library, and most of them will eventually be migrated to [DIPY]. Those tools implement the recommended workflows and parameters used in the lab.
 
-## Install scilpy as a user
-
-We highly encourage to install scilpy in a virtual environnement. Once done and you're in your virtual environnement you can run this command:
-
-```
-export SETUPTOOLS_USE_DISTUTILS=stdlib
-pip install scilpy
-```
-
-## Install scilpy as a developer
-
-The library is now built for Python 3.9/3.10 and 3.11. Please, be sure to create a virtual environnement. 
-If none of these versions are installed on your computer, we suggest you to install python3.10:
+The library is now built for Python 3.12 so be sure to create a virtual environnement for Python 3.12. If this version is not installed on your computer:
 ```
 sudo add-apt-repository ppa:deadsnakes/ppa
-sudo apt-get install python3.10 python3.10-dev python3.10-venv python3.10-minimal python3.10-tk
+sudo apt-get install python3.12 python3.12-dev python3.12-venv python3.12-tk
 ```
+
+:warning: We highly suggest to install uv to speedup scilpy installation: https://docs.astral.sh/uv/getting-started/installation/
+
+:point_up: BUT, if you don't want to use uv, scilpy can still be installed by omitting the uv from all the installation command lines below.
 
 Make sure your pip is up-to-date before trying to install:
 ```
-pip install --upgrade pip
+uv pip install --upgrade pip
 ```
 
 The library's structure is mostly aligned on that of [DIPY].
 
-The library and scripts can be installed locally by using:
+We highly encourage to install scilpy in a virtual environnement. Once done and you're in your virtual environnement, the library and scripts can be installed locally by running these commands:
+
+## Install scilpy as a user
+
 ```
+# If you are using Python3.10 or Python3.11, export this variable before installing
 export SETUPTOOLS_USE_DISTUTILS=stdlib
-pip install -e .
+
+uv pip install scilpy # For the most recent release from PyPi
 ```
 
-If you don't want to install legacy scripts:
+## Install scilpy as a developer
+
 ```
-export SCILPY_LEGACY='False'
-pip install -e .
+# If you are using Python3.10 or Python3.11, export this variable before installing
+export SETUPTOOLS_USE_DISTUTILS=stdlib
+
+uv pip install -e . # Install from source code (for development)
 ```
 
-(Then, without the legacy scripts, if you want to use pytest, use:)
-```
-pytest --ignore=scripts/legacy
-```
+## EXTRAS
 
 On Linux, most likely you will have to install libraries for COMMIT/AMICO
 ```

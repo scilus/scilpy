@@ -2,17 +2,16 @@
 branch = True
 concurrency = multiprocessing
 data_file = .coverage
-source_pkgs =
-    scilpy
-    scripts
+source = src
 relative_files = True
 omit =
-    scripts/tests/*.py
-    scilpy/tests/**/*.py
-    scilpy/**/tests/*.py
-    scilpy/**/tests/**/*.py
-    scripts/tests/*.py
-    scripts/tests/**/*.py
+    src/scilpy/tests/**/*.py
+    src/scilpy/**/tests/*.py
+    src/scilpy/**/tests/**/*.py
+    src/scilpy/cli/tests/*.py
+    src/scilpy/cli/tests/**/*.py
+    src/scilpy/cli/scil_data_download.py
+    src/scilpy/io/deprecator.py
 
 [report]
 skip_empty = True

@@ -4,9 +4,9 @@ Instructions for estimation of bundle diameter
 Script to estimate the diameter of bundle(s) along their length.
 The script expects:
 
-- bundles with coherent endpoints from scil_uniformize_streamlines_endpoints.py
+- bundles with coherent endpoints from scil_bundle_uniformize_endpoints
 
-- labels maps with around 5-50 points scil_compute_bundle_voxel_label_map.py
+- labels maps with around 5-50 points scil_bundle_label_map
     - <5 is not enough, high risk of bad fit
 
     - >50 is too much, high risk of bad fit
