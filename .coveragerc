@@ -4,7 +4,6 @@ concurrency = multiprocessing
 data_file = .coverage
 source = src
 relative_files = True
-parallel = true
 omit =
     src/scilpy/tests/**/*.py
     src/scilpy/**/tests/*.py
