@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import os
+import pytest
 import tempfile
 
 from scilpy import SCILPY_HOME
@@ -14,11 +15,13 @@ fetch_data(get_testing_files_dict(), keys=[
 tmp_dir = tempfile.TemporaryDirectory()
 
 
+@pytest.mark.smoke
 def test_help_option(script_runner):
     ret = script_runner.run(['scil_volume_pairwise_comparison', '--help'])
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_label_comparison(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_atlas = os.path.join(SCILPY_HOME, 'atlas',
@@ -31,6 +34,7 @@ def test_label_comparison(script_runner, monkeypatch):
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_binary_comparison(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_bin_1 = os.path.join(SCILPY_HOME, 'tractograms',
@@ -45,6 +49,7 @@ def test_binary_comparison(script_runner, monkeypatch):
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_multiple_compare(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_bin_1 = os.path.join(SCILPY_HOME, 'tractograms',
@@ -63,6 +68,7 @@ def test_multiple_compare(script_runner, monkeypatch):
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_single_compare(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_bin_1 = os.path.join(SCILPY_HOME, 'tractograms',
@@ -82,6 +88,7 @@ def test_single_compare(script_runner, monkeypatch):
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_ratio_compare(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_bin_1 = os.path.join(SCILPY_HOME, 'tractograms',
@@ -102,6 +109,7 @@ def test_ratio_compare(script_runner, monkeypatch):
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_labels_to_mask_compare(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_atlas = os.path.join(SCILPY_HOME, 'atlas',

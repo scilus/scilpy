@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import os
+import pytest
 import tempfile
 
 from scilpy import SCILPY_HOME
@@ -12,12 +13,14 @@ fetch_data(get_testing_files_dict(), keys=['connectivity.zip'])
 tmp_dir = tempfile.TemporaryDirectory()
 
 
+@pytest.mark.smoke
 def test_help_option(script_runner):
     ret = script_runner.run([
         'scil_tractogram_segment_connections_from_labels', '--help'])
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution_connectivity(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_bundle = os.path.join(SCILPY_HOME, 'connectivity', 'bundle_all_1mm.trk')

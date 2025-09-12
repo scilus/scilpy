@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import os
+import pytest
 import numpy as np
 import tempfile
 
@@ -13,12 +14,14 @@ fetch_data(get_testing_files_dict(), keys=['processing.zip'])
 tmp_dir = tempfile.TemporaryDirectory()
 
 
+@pytest.mark.smoke
 def test_help_option(script_runner):
     ret = script_runner.run(['scil_gradients_normalize_bvecs',
                             '--help'])
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution_processing_fsl(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_bvec = os.path.join(SCILPY_HOME, 'processing',
@@ -28,6 +31,7 @@ def test_execution_processing_fsl(script_runner, monkeypatch):
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_normalization_axis_is_right(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     bvec = [

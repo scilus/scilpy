@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import os
+import pytest
 import tempfile
 
 from scilpy import SCILPY_HOME
@@ -12,12 +13,14 @@ fetch_data(get_testing_files_dict(), keys=['connectivity.zip'])
 tmp_dir = tempfile.TemporaryDirectory()
 
 
+@pytest.mark.smoke
 def test_help_option(script_runner):
     ret = script_runner.run(['scil_connectivity_hdf5_average_density_map',
                             '--help'])
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution_connectivity(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_h5 = os.path.join(SCILPY_HOME, 'connectivity', 'decompose.h5')
@@ -27,6 +30,7 @@ def test_execution_connectivity(script_runner, monkeypatch):
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution_connectivity_(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_h5_1 = os.path.join(SCILPY_HOME, 'connectivity', 'decompose.h5')

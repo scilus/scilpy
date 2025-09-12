@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import os
+import pytest
 import tempfile
 
 from scilpy import SCILPY_HOME
@@ -12,12 +13,14 @@ fetch_data(get_testing_files_dict(), keys=['bundles.zip'])
 tmp_dir = tempfile.TemporaryDirectory()
 
 
+@pytest.mark.smoke
 def test_help_option(script_runner):
     ret = script_runner.run([
         'scil_bundle_pairwise_comparison', '--help'])
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution_bundles(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_1 = os.path.join(SCILPY_HOME, 'bundles', 'bundle_0_reco.tck')
@@ -32,6 +35,7 @@ def test_execution_bundles(script_runner, monkeypatch):
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_single(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_1 = os.path.join(SCILPY_HOME, 'bundles', 'bundle_0_reco.tck')
@@ -47,6 +51,7 @@ def test_single(script_runner, monkeypatch):
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_no_overlap(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_1 = os.path.join(SCILPY_HOME, 'bundles', 'bundle_0_reco.tck')
@@ -62,6 +67,7 @@ def test_no_overlap(script_runner, monkeypatch):
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_ratio(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_1 = os.path.join(SCILPY_HOME, 'bundles', 'bundle_0_reco.tck')
@@ -78,6 +84,7 @@ def test_ratio(script_runner, monkeypatch):
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_ratio_fail(script_runner, monkeypatch):
     """ Test ratio without single_compare argument.
     The test should fail.

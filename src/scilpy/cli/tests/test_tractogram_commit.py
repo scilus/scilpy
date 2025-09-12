@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import os
+import pytest
 import tempfile
 
 from scilpy import SCILPY_HOME
@@ -19,11 +20,13 @@ in_mask = os.path.join(SCILPY_HOME, 'commit_amico', 'mask.nii.gz')
 in_peaks = os.path.join(SCILPY_HOME, 'commit_amico', 'peaks.nii.gz')
 
 
+@pytest.mark.smoke
 def test_help_option(script_runner):
     ret = script_runner.run(['scil_tractogram_commit', '--help'])
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution_commit_amico(script_runner, monkeypatch):
     tmp_dir = tempfile.TemporaryDirectory()
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
@@ -39,6 +42,7 @@ def test_execution_commit_amico(script_runner, monkeypatch):
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution_commit2(script_runner, monkeypatch):
     tmp_dir = tempfile.TemporaryDirectory()
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))

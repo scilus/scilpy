@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import os
+import pytest
 import tempfile
 
 from scilpy import SCILPY_HOME
@@ -12,11 +13,13 @@ fetch_data(get_testing_files_dict(), keys=['atlas.zip'])
 tmp_dir = tempfile.TemporaryDirectory()
 
 
+@pytest.mark.smoke
 def test_help_option(script_runner):
     ret = script_runner.run(['scil_volume_math', '--help'])
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution_add(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_img_1 = os.path.join(SCILPY_HOME, 'atlas',
@@ -30,6 +33,7 @@ def test_execution_add(script_runner, monkeypatch):
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution_low_thresh(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_img = os.path.join(SCILPY_HOME, 'atlas', 'brainstem.nii.gz')
@@ -38,6 +42,7 @@ def test_execution_low_thresh(script_runner, monkeypatch):
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution_low_mult(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_img = os.path.join(SCILPY_HOME, 'atlas', 'brainstem_bin.nii.gz')
@@ -46,6 +51,7 @@ def test_execution_low_mult(script_runner, monkeypatch):
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution_concatenate(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_img_1 = os.path.join(SCILPY_HOME, 'atlas', 'ids', '10.nii.gz')
@@ -60,6 +66,7 @@ def test_execution_concatenate(script_runner, monkeypatch):
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution_concatenate_4D(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_img_1 = os.path.join(SCILPY_HOME, 'atlas', 'ids', '10.nii.gz')

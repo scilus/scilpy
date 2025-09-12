@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import os
+import pytest
 import tempfile
 
 from scilpy import SCILPY_HOME
@@ -14,11 +15,13 @@ in_img = os.path.join(SCILPY_HOME, 'others', 'fa.nii.gz')
 # fa.nii.gz has a size of 111x133x109
 
 
+@pytest.mark.smoke
 def test_help_option(script_runner):
     ret = script_runner.run(['scil_volume_reshape', '--help'])
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution_crop(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     ret = script_runner.run(['scil_volume_reshape', in_img,
@@ -27,6 +30,7 @@ def test_execution_crop(script_runner, monkeypatch):
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution_pad(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     ret = script_runner.run(['scil_volume_reshape', in_img,
@@ -35,6 +39,7 @@ def test_execution_pad(script_runner, monkeypatch):
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution_full_size(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     ret = script_runner.run(['scil_volume_reshape', in_img,
@@ -43,6 +48,7 @@ def test_execution_full_size(script_runner, monkeypatch):
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution_dtype(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     ret = script_runner.run(['scil_volume_reshape', in_img,
@@ -52,6 +58,7 @@ def test_execution_dtype(script_runner, monkeypatch):
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution_ref(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     ref = os.path.join(SCILPY_HOME, 'others', 'fa_resample.nii.gz')
