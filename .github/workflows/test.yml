@@ -72,14 +72,14 @@ jobs:
         run: |
           export C_INCLUDE_PATH=$pythonLocation/include/python${{ steps.python-selector.outputs.python-version }}:$C_INCLUDE_PATH
           scil_data_download
-          uv run --active pytest -m "Unit tests" term-missing:skip-covered --cov-report=html:htmlcov_unit --cov-report=xml:coverage_unit.xml --dist=loadgroup --ignore=src/scilpy/cli
+          uv run --active pytest -m unit --cov-report=html:htmlcov_unit --cov-report=xml:coverage_unit.xml --dist=loadgroup --ignore=src/scilpy/cli
 
       - name: Run smoke tests
         run: |
           export C_INCLUDE_PATH=$pythonLocation/include/python${{ steps.python-selector.outputs.python-version }}:$C_INCLUDE_PATH
           scil_data_download
           scil_search_keywords test --regenerate_help_files --processes 8
-          uv run --active pytest -m "Smoke tests" term-missing:skip-covered --cov-report=html:htmlcov_smoke --cov-report=xml:coverage_smoke.xml --dist=loadgroup
+          uv run --active pytest -m smoke --cov-report=html:htmlcov_smoke --cov-report=xml:coverage_smoke.xml --dist=loadgroup
 
       - name: Combine coverage
         run: |
