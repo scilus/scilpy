@@ -718,7 +718,7 @@ def compare_volume_wrapper(data_1, data_2, voxel_size=1, ratio=False,
         Size of the voxel in mm.
     ratio: bool
         If true, the measures are normalized by the total number of voxels
-        in the first volume.
+        in the second volume.
     adjency_no_overlap: bool
         If true, exclude overlapping voxels (0mm) from the computation.
     labels_to_mask: bool
@@ -769,7 +769,7 @@ def compare_volume_wrapper(data_1, data_2, voxel_size=1, ratio=False,
             binary_1 + binary_2) - volume_overlap)
 
         if ratio:
-            count = np.count_nonzero(binary_1)
+            count = np.count_nonzero(binary_2)
             volume_overlap /= count
             volume_overreach /= count
 
