@@ -72,7 +72,7 @@ jobs:
         run: |
           export C_INCLUDE_PATH=$pythonLocation/include/python${{ steps.python-selector.outputs.python-version }}:$C_INCLUDE_PATH
           scil_data_download
-          uv run --active pytest -m unit --cov-report=html:htmlcov_unit --cov-report=xml:coverage_unit.xml --dist=loadgroup --ignore=src/scilpy/cli
+          uv run --active pytest -m "not smoke" --cov-report=html:htmlcov_unit --cov-report=xml:coverage_unit.xml --dist=loadgroup --ignore=src/scilpy/cli
 
       - name: Run smoke tests
         run: |
