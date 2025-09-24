@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import os
+import pytest
 import tempfile
 import numpy as np
 import nibabel as nib
@@ -32,11 +33,13 @@ def init_data():
     save_tractogram(sft, 'tractogram.trk', True)
 
 
+@pytest.mark.smoke
 def test_help_option(script_runner):
     ret = script_runner.run(['scil_tractogram_filter_collisions', '--help'])
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution_filtering(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     init_data()
@@ -50,6 +53,7 @@ def test_execution_filtering(script_runner, monkeypatch):
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution_filtering_out_colliding_prefix(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     init_data()
@@ -63,6 +67,7 @@ def test_execution_filtering_out_colliding_prefix(script_runner, monkeypatch):
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution_filtering_single_diameter(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     init_data()
@@ -76,6 +81,7 @@ def test_execution_filtering_single_diameter(script_runner, monkeypatch):
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution_filtering_no_shuffle(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     init_data()
@@ -89,6 +95,7 @@ def test_execution_filtering_no_shuffle(script_runner, monkeypatch):
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution_filtering_min_distance(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     init_data()
@@ -102,6 +109,7 @@ def test_execution_filtering_min_distance(script_runner, monkeypatch):
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution_filtering_metrics(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     init_data()
@@ -116,6 +124,7 @@ def test_execution_filtering_metrics(script_runner, monkeypatch):
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution_rotation_matrix(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     init_data()

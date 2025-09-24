@@ -6,6 +6,7 @@ import pytest
 pytestmark = pytest.mark.xdist_group("serial")
 
 
+@pytest.mark.smoke
 def test_generate_option(script_runner):
     ret = script_runner.run(['scil_search_keywords', 'test',
                              '--regenerate_help_files',
@@ -13,22 +14,26 @@ def test_generate_option(script_runner):
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_help_option(script_runner):
     ret = script_runner.run(['scil_search_keywords', '--help'])
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_search_category(script_runner):
     ret = script_runner.run(['scil_search_keywords',
                              '--search_category', 'sh'])
     assert 'Available objects:' in ret.stdout
 
 
+@pytest.mark.smoke
 def test_no_synonyms(script_runner):
     ret = script_runner.run(['scil_search_keywords', 'sh', '--no_synonyms'])
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_not_found(script_runner):
     ret = script_runner.run(['scil_search_keywords', 'toto'])
     assert ret.success

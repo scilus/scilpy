@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import os
+import pytest
 import tempfile
 
 from scilpy import SCILPY_HOME
@@ -12,6 +13,7 @@ fetch_data(get_testing_files_dict(), keys=['stats.zip'])
 tmp_dir = tempfile.TemporaryDirectory()
 
 
+@pytest.mark.smoke
 def test_help_option(script_runner):
     ret = script_runner.run([
         'scil_stats_group_comparison',
@@ -19,6 +21,7 @@ def test_help_option(script_runner):
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution_bundles(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_json = os.path.join(SCILPY_HOME, 'stats/group', 'participants.tsv')

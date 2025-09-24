@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import os
+import pytest
 import tempfile
 
 from scilpy import SCILPY_HOME
@@ -15,11 +16,13 @@ tmp_dir = tempfile.TemporaryDirectory()
 in_tracto = os.path.join(SCILPY_HOME, 'tracking', 'union_shuffle_sub.trk')
 
 
+@pytest.mark.smoke
 def test_help_option(script_runner):
     ret = script_runner.run(['scil_tractogram_resample', '--help'])
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution_downsample(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
 
@@ -33,6 +36,7 @@ def test_execution_downsample(script_runner, monkeypatch):
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution_upsample_noise(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
 
@@ -43,6 +47,7 @@ def test_execution_upsample_noise(script_runner, monkeypatch):
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution_upsample_ptt(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
 

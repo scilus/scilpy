@@ -328,6 +328,7 @@ def compare_jsons(json_output, test_dir):
     return sorted(test_json.items()) == sorted(result.items())
 
 
+@pytest.mark.smoke
 def test_help_option(script_runner):
     ret = script_runner.run(['scil_bids_validate', '--help'])
     assert ret.success
@@ -338,6 +339,7 @@ def test_help_option(script_runner):
     [(False, 'test_real_dwi_epi.json'),
      (True, 'test_complex_dwi_epi.json')]
 )
+@pytest.mark.smoke
 def test_bids_epi(tmpdir, script_runner, dwi_is_complex, json_output):
 
     test_dir = generate_fake_bids_structure(
@@ -363,6 +365,7 @@ def test_bids_epi(tmpdir, script_runner, dwi_is_complex, json_output):
     [(False, False, 'test_real_dwi_real_sbref.json'),
      (True, True, 'test_complex_dwi_complex_sbref.json')]
 )
+@pytest.mark.smoke
 def test_bids_sbref(
         tmpdir, script_runner, dwi_is_complex, sbref_is_complex, json_output):
     test_dir = generate_fake_bids_structure(
@@ -390,6 +393,7 @@ def test_bids_sbref(
     [(False, False, 'test_real_dwi_real_rev_dwi.json'),
      (True, True, 'test_complex_dwi_complex_rev_dwi.json')]
 )
+@pytest.mark.smoke
 def test_bids_rev_dwi(
         tmpdir, script_runner, dwi_is_complex, rev_is_complex, json_output):
     test_dir = generate_fake_bids_structure(
@@ -416,6 +420,7 @@ def test_bids_rev_dwi(
     [(False, False, 'test_real_dwi_real_rev_dwi_sbref.json'),
      (True, True, 'test_complex_dwi_complex_rev_dwi_sbref.json')]
 )
+@pytest.mark.smoke
 def test_bids_rev_dwi_sbref(
         tmpdir, script_runner, dwi_is_complex, rev_is_complex, json_output):
     test_dir = generate_fake_bids_structure(

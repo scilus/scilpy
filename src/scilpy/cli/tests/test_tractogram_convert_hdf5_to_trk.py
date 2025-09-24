@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 import glob
 import os
+import pytest
 import tempfile
 
 from scilpy import SCILPY_HOME
@@ -13,11 +14,13 @@ tmp_dir = tempfile.TemporaryDirectory()
 in_h5 = os.path.join(SCILPY_HOME, 'connectivity', 'decompose.h5')
 
 
+@pytest.mark.smoke
 def test_help_option(script_runner):
     ret = script_runner.run(['scil_tractogram_convert_hdf5_to_trk', '--help'])
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution_all_keys(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     ret = script_runner.run(['scil_tractogram_convert_hdf5_to_trk',
@@ -29,6 +32,7 @@ def test_execution_all_keys(script_runner, monkeypatch):
     assert len(out_files) == 7
 
 
+@pytest.mark.smoke
 def test_execution_edge_keys(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     ret = script_runner.run(['scil_tractogram_convert_hdf5_to_trk',
@@ -41,6 +45,7 @@ def test_execution_edge_keys(script_runner, monkeypatch):
     assert len(out_files) == 2
 
 
+@pytest.mark.smoke
 def test_execution_node_keys(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     ret = script_runner.run(['scil_tractogram_convert_hdf5_to_trk',
@@ -52,6 +57,7 @@ def test_execution_node_keys(script_runner, monkeypatch):
     assert len(out_files) == 3
 
 
+@pytest.mark.smoke
 def test_execution_save_empty(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
 

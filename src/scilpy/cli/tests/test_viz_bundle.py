@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+import pytest
+
 
 # If they already exist, this only takes 5 seconds (check md5sum)
 # fetch_data(get_testing_files_dict(), keys=['bundles.zip'])
 # tmp_dir = tempfile.TemporaryDirectory()
 
 
+@pytest.mark.smoke
 def test_help_option(script_runner):
     ret = script_runner.run(['scil_viz_bundle', '--help'])
     assert ret.success

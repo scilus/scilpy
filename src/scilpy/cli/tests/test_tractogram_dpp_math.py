@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import os
+import pytest
 import tempfile
 
 from scilpy import SCILPY_HOME
@@ -13,11 +14,13 @@ fetch_data(get_testing_files_dict(), keys=['tracking.zip'])
 tmp_dir = tempfile.TemporaryDirectory()
 
 
+@pytest.mark.smoke
 def test_help_option(script_runner):
     ret = script_runner.run(['scil_tractogram_dpp_math', '--help'])
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution_tractogram_point_math_mean_3D_defaults(script_runner,
                                                           monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
@@ -47,6 +50,7 @@ def test_execution_tractogram_point_math_mean_3D_defaults(script_runner,
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution_tractogram_point_math_mean_4D_correlation(script_runner,
                                                              monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))

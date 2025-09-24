@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 import json
 import os
+import pytest
 import shutil
 import tempfile
 
@@ -15,12 +16,14 @@ tmp_dir = tempfile.TemporaryDirectory()
 in_bundle = os.path.join(SCILPY_HOME, 'tractometry', 'IFGWM.trk')
 
 
+@pytest.mark.smoke
 def test_help_option(script_runner):
     ret = script_runner.run(['scil_tractogram_assign_uniform_color',
                              '--help'])
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution_fill(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
 
@@ -30,6 +33,7 @@ def test_execution_fill(script_runner, monkeypatch):
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution_dict(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
 
@@ -45,6 +49,7 @@ def test_execution_dict(script_runner, monkeypatch):
     assert ret.success
 
 
+@pytest.mark.smoke
 def test_execution_dict_new_color(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
 
