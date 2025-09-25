@@ -808,7 +808,7 @@ def compare_volume_wrapper(data_1, data_2, voxel_size=1, ratio=False,
         # If computing ratio, voxel size does not make sense
         if ratio:
             voxel_size = 1.
-        print(volume_overreach, voxel_size)
+
         measures = [bundle_adjacency_voxel,
                     dice_vox, hausdorff_vox * voxel_size,
                     volume_overlap * voxel_size,
