@@ -286,7 +286,7 @@ def main():
     args.nb_pts = len(sft_centroid.streamlines[0]) if args.nb_pts is None \
         else args.nb_pts
     labels_map = subdivide_bundles(concat_sft, sft_centroid, binary_mask,
-                                   args.nb_pts, method=method)
+                                   args.nb_pts, method=method, fix_jumps=False)
 
     # We trim the streamlines due to looping labels, so we have a new binary
     # mask

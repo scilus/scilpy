@@ -22,6 +22,9 @@ For each measure, an entry in the json file will be created and for each unique
 value present in the input volumes there will be an entry under the measure.
 (i.e. a binary mask will have one entries for each measure, 1).
 
+If you specify --single_compare, the script will compute the overreach wrt
+the reference volume and not both.
+
 If you have streamlines to compare, the following script could be
 of interest for you: scil_bundle_pairwise_comparison
 """
@@ -68,7 +71,7 @@ def _build_arg_parser():
                    help='Compare inputs to this single file.')
     p.add_argument('--ratio', action='store_true',
                    help='Compute overlap and overreach as a ratio over the '
-                        'reference volume rather than volume.\n'
+                        'reference volume rather than as an absolute.\n'
                         'Can only be used if also using --single_compare`.')
     p.add_argument('--labels_to_mask', action='store_true',
                    help='Allows for comparison between labels and single '
@@ -86,9 +89,11 @@ def _build_arg_parser():
 def compute_all_measures(args):
     filename_1 = args[0][0]
     filename_2 = args[0][1]
+
     adjency_no_overlap = args[1]
     ratio = args[2]
     labels_to_mask = args[3]
+    one_sided = args[4]
 
     img_1, dtype_1 = load_img(filename_1)
 
@@ -110,7 +115,7 @@ def compute_all_measures(args):
     logging.info(f"Comparing {filename_1} and {filename_2}")
     dict_measures = compare_volume_wrapper(data_1, data_2, voxel_size,
                                            ratio, adjency_no_overlap,
-                                           labels_to_mask)
+                                           labels_to_mask, one_sided=one_sided)
     return dict_measures
 
 
@@ -152,14 +157,16 @@ def main():
                 curr_tuple,
                 args.ignore_zeros_in_BA,
                 args.ratio,
-                args.labels_to_mask]))
+                args.labels_to_mask,
+                args.single_compare is not None]))
     else:
         all_measures_dict = pool.map(
             compute_all_measures,
             zip(comb_dict_keys,
                 itertools.repeat(args.ignore_zeros_in_BA),
                 itertools.repeat(args.ratio),
-                itertools.repeat(args.labels_to_mask)))
+                itertools.repeat(args.labels_to_mask),
+                itertools.repeat(args.single_compare is not None)))
         pool.close()
         pool.join()
 

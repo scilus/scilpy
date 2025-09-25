@@ -540,14 +540,14 @@ def subdivide_bundles(sft, sft_centroid, binary_mask, nb_pts,
         labels_map[tuple(missing_indices.T)] = \
             labels_map[tuple(valid_indices[nn_indices].T)]
 
+        logging.debug('Computed labels using the hyperplane method '
+                      f'in {round(time.time() - timer, 3)} seconds')
+
     if endpoints_extended:
         labels_map[labels_map == nb_pts] = nb_pts - 1
         labels_map[labels_map == 1] = 2
         labels_map[labels_map > 0] -= 1
         nb_pts -= 2
-
-    logging.debug('Computed labels using the hyperplane method '
-                  f'in {round(time.time() - timer, 3)} seconds')
 
     # Correct the labels jump to prevent discontinuities
     if fix_jumps:
