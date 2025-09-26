@@ -769,12 +769,12 @@ def generate_matched_points(sft):
     Generates an array where each element i is set to the index of the
     streamline to which it belongs
 
-    Parameters:
+    Parameters
     -----------
     sft : StatefulTractogram
         The stateful tractogram containing the streamlines.
 
-    Returns:
+    Returns
     --------
     matched_points : ndarray
         An array where each element is set to the index of the streamline
