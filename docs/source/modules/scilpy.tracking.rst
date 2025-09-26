@@ -1,10 +1,26 @@
 scilpy.tracking package
 =======================
 
+scilpy.tracking.fibertube\_utils module
+------------------------------------------------------
+
+.. automodule:: scilpy.tracking.fibertube_utils
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 scilpy.tracking.propagator module
 ------------------------------------------------------
 
 .. automodule:: scilpy.tracking.propagator
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+scilpy.tracking.rap module
+------------------------------------------------------
+
+.. automodule:: scilpy.tracking.rap
    :members:
    :undoc-members:
    :show-inheritance:
