@@ -183,7 +183,7 @@ def _parse_acquisition_parameters(args):
     """
     rep_times = None
     flip_angles = None
-    if args.in_acq_Parameters:
+    if args.in_acq_parameters:
         flip_angles = np.asarray(args.in_acq_parameters[:2]) * np.pi / 180.
         rep_times = np.asarray(args.in_acq_parameters[2:]) * 1000
         if rep_times[0] > 10000 or rep_times[1] > 10000:
