@@ -11,7 +11,7 @@ build:
   apt_packages:
     - libblas-dev
     - liblapack-dev
-    - python3.12-distutils
+    - python3-distutils
   tools:
     python: "3.12"
   jobs:
