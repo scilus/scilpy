@@ -7,3 +7,4 @@ This section covers reconstruction methods in scilpy.
    :maxdepth: 1
 
    btensor_scripts
+   from_raw_data_to_tractogram
