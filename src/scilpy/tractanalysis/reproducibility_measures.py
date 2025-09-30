@@ -196,7 +196,7 @@ def compute_bundle_adjacency_streamlines(bundle_1, bundle_2, non_overlap=False,
     Distance between matched paired is averaged for the final results.
     References
     ----------
-    .. [Garyfallidis15] Garyfallidis et al. Robust and efficient linear
+    [1] Garyfallidis et al. Robust and efficient linear
         registration of white-matter fascicles in the space of streamlines,
         Neuroimage, 2015.
     Parameters
