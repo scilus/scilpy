@@ -91,15 +91,18 @@ fODF reconstruction
 
 fODFs require the compuation of a response function [Descoteaux07]_. We will use the `ssst` algorithm from :ref:`scil_frf_ssst` to compute a **s**\ ingle-**s**\ hell **s**\ ingle-**t**\ issue response function from the b=1000 shell we extracted earlier. We will also use the brain mask and a white matter mask to constrain the selection of voxels used for the estimation.
 ::
+
     scil_frf_ssst dwi_b1000.nii.gz dwi_b1000.bval dwi_b1000.bvec frf.txt --mask brainmask.nii.gz --mask_wm wm_mask.nii.gz
 
 We can then compute the fODF using :ref:`scil_fodf_ssst`. We will use the same shell and brain mask as before, and the response function we just computed. We will use the default `descoteaux07_legacy` spherical harmonics basis, which is commonly used in scilpy. The `tournier07` basis is also available and is compatible with MrTrix3 tools. Finally, as we have fewer than 45 directions, we will use a lower spherical harmonics order of 6.
 ::
+
     scil_fodf_ssst dwi_b1000.nii.gz dwi_b1000.bval dwi_b1000.bvec frf.txt fodf.nii.gz --mask brainmask.nii.gz --sh_order 6
 
-As opposed to DTI fitting, the script :ref:`scil_fodf_ssst` only produces the fODF volume. We can compute various useful metrics from the fODF using :ref:`scil_fodf_metrics`. 
+As opposed to DTI fitting, the script :ref:`scil_fodf_ssst` only produces the fODF volume. We can compute various useful metrics from the fODF using :ref:`scil_fodf_metrics`. We will again use the brain mask to constrain computation. As the script also produces an rgb msp, we will use the `-f` flag and overwrite the previous `rgb.nii.gz` file.
 ::
-    scil_fodf_metrics fodf.nii.gz
+
+    scil_fodf_metrics fodf.nii.gz --mask brainmask.nii.gz -f
 
 This will produce several files, including:
 
@@ -107,21 +110,25 @@ This will produce several files, including:
 * `afd_sum.nii.gz`: Sum of the apparent fiber density (AFD) across all fiber orientations
 * `peaks.nii.gz`: fODF maxima directions
 
+For more information on fodf reconstruction, see :ref:`ssst_fodf` and :ref:`msmt_fodf`.
+
 fODF Tractography
 ------------------
 
-Tractography on fODFs can be performed using either probabilistic (`--algo prob`) or deterministic (`--algo det`) algorithms in :ref:`scil_tracking_local`. We will use the same white matter mask for seeding and constraining tracking. We will generate 20,000 seeds and only keep streamlines with lengths between 20 and 200 mm, and apply a compression factor of 0.1 to reduce file size.
+Tractography on fODFs can be performed using either probabilistic (`--algo prob`) or deterministic (`--algo det`) algorithms in :ref:`scil_tracking_local`. We will use the same white matter mask for seeding and constraining tracking. We will generate 200,000 seeds and only keep streamlines with lengths between 20 and 200 mm, and apply a compression factor of 0.1 to reduce file size.
 ::
     
-    scil_tracking_local fodf.nii.gz ../data/wm_mask.nii.gz ../data/wm_mask.nii.gz prob_tractogram.tck --algo prob --nt 20000 --min_length 20 --max_length 200 --compress 0.1
+    scil_tracking_local fodf.nii.gz wm_mask.nii.gz wm_mask.nii.gz prob_tractogram.trk --algo prob --nt 200000 --min_length 20 --max_length 200 --compress 0.1
 
-scil_tracking_local fodf.nii.gz ../data/wm_mask.nii.gz ../data/wm_mask.nii.gz det_tractogram.tck --algo det --nt 250000 --min_length 20 --max_length 200 --sh_basis tournier07 --compress 0.1
+The output tractogram (`prob_tractogram.trk`) can be visualized with :ref:`scil_viz_bundle` and should look something like this:
 
-scil_tractogram_filter_by_anatomy prob_tractogram.tck ../data/wmparc.nii.gz cleaned/ --angle 300 --dilate_ctx 1 --reference fa.nii.gz
-mv cleaned/prob_tractogram_filtered.tck prob_tractogram_filtered.tck && rm -r cleaned/
+.. image:: ../../_static/prob_tractogram.png
+   :scale: 20%
 
-scil_tractogram_filter_by_anatomy det_tractogram.tck ../data/wmparc.nii.gz cleaned/ --angle 300 --dilate_ctx 1 --reference fa.nii.gz
-mv cleaned/det_tractogram_filtered.tck det_tractogram_filtered.tck && rm -r cleaned/
+You have now gone from raw diffusion data to both DTI and fODF-based tractograms using scilpy!
+
+References:
+----------------------
 
 .. [EUDX] Garyfallidis, E. (2013). Towards an accurate brain tractography (Doctoral dissertation, University of Cambridge).
 .. [Descoteaux07] Descoteaux, M., Angelino, E., Fitzgibbons, S., & Deriche, R. (2007). Regularized, fast, and robust analytical q-ball imaging. Magnetic Resonance in Medicine: An Official Journal of the International Society for Magnetic Resonance in Medicine, 58(3), 497-510.
