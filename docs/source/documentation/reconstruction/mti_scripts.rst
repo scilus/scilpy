@@ -14,7 +14,7 @@ The inhomogeneous Magnetization Transfer (ihMT) enhances this effect by using
 alternating positive and negative frequency saturation pulses, improving 
 specificity to myelin.
 
-.. image:: ihmt_explanation.png
+.. image:: ../../_static/ihmt_explanation.png
    :alt: How does ihMT work?
 
 Play the video for more details on how MT sequence acquisition and parameter 
@@ -36,7 +36,7 @@ Computed indices include:
 +-----------------------------------------+-----------------------------------------------+
 | **MTR**: Magnetization Transfer Ratio   | **MTsat**: Magnetization Transfer Saturation  |
 +=========================================+===============================================+
-| .. image:: MTR.gif                      | .. image:: MTsat.gif                          |
+| .. image:: ../../_static/scil_MTR.gif   | .. image:: ../../_static/MTsat.gif            |
 |    :width: 200                          |    :width: 200                                |
 +-----------------------------------------+-----------------------------------------------+
 
@@ -45,7 +45,7 @@ Computed indices include:
 +--------------------------------------------------------+---------------------------------------------------------------+
 | **ihMTR**: Inhomogeneous Magnetization Transfer Ratio  | **ihMTsat**: Inhomogeneous Magnetization Transfer Saturation  |
 +========================================================+===============================================================+
-| .. image:: ihMTR.gif                                   | .. image:: ihMTsat.gif                                        |
+| .. image:: ../../_static/ihMTR.gif                     | .. image:: ../../_static/ihMTsat.gif                          |
 |    :width: 200                                         |    :width: 200                                                |
 +--------------------------------------------------------+---------------------------------------------------------------+
 
@@ -62,7 +62,7 @@ Before running the script:
   `dcm2bids <https://github.com/cbedetti/Dcm2Bids#install>`__.
 
 
-  .. code-block:: bash
+.. code-block:: bash
     
     dcm2bids -d DICOM_folder -p id_subject -c config.json -o sub-id
 
@@ -82,21 +82,21 @@ Example of input data for one subject:
   ::
        ├── sub-001
           │
-          ├── anat
-          │   ├── sub-001_T1w.json
-          │   ├── sub-001_T1w.nii.gz
-          │   ├── sub-001_acq-pos_ihmt.json
-          │   ├── sub-001_acq-pos_ihmt.nii.gz
-          │   ├── sub-001_acq-neg_ihmt.json
-          │   ├── sub-001_acq-neg_ihmt.nii.gz
-          │   ├── sub-001_acq-altnp_ihmt.json
-          │   ├── sub-001_acq-altnp_ihmt.nii.gz
-          │   ├── sub-001_acq-altpn_ihmt.json
-          │   ├── sub-001_acq-altpn_ihmt.nii.gz
-          │   ├── sub-001_acq-mtoff_ihmt.json (optional)
-          │   ├── sub-001_acq-mtoff_ihmt.nii.gz (optional)
-          │   ├── sub-001_acq-T1w_ihmt.json
-              └── sub-001_acq-T1w_ihmt.nii.gz
+          ├── anat
+          │   ├── sub-001_T1w.json
+          │   ├── sub-001_T1w.nii.gz
+          │   ├── sub-001_acq-pos_ihmt.json
+          │   ├── sub-001_acq-pos_ihmt.nii.gz
+          │   ├── sub-001_acq-neg_ihmt.json
+          │   ├── sub-001_acq-neg_ihmt.nii.gz
+          │   ├── sub-001_acq-altnp_ihmt.json
+          │   ├── sub-001_acq-altnp_ihmt.nii.gz
+          │   ├── sub-001_acq-altpn_ihmt.json
+          │   ├── sub-001_acq-altpn_ihmt.nii.gz
+          │   ├── sub-001_acq-mtoff_ihmt.json (optional)
+          │   ├── sub-001_acq-mtoff_ihmt.nii.gz (optional)
+          │   ├── sub-001_acq-T1w_ihmt.json
+              └── sub-001_acq-T1w_ihmt.nii.gz
           
 
 Basic Usage
@@ -105,6 +105,7 @@ Basic Usage
 Minimal command example::
 
 .. code-block:: bash
+
    scil_mti_maps_ihMT output_directory/ \
        --in_altnp path/to/*altnp.nii.gz \
        --in_altpn path/to/*altpn.nii.gz \
