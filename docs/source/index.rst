@@ -12,6 +12,8 @@ Welcome to the scilpy documentation!
     :maxdepth: 1
     :caption: Reconstruction
 
+    documentation/reconstruction/ssst_fodf
+    documentation/reconstruction/msmt_fodf
     documentation/reconstruction/btensor_scripts
 
 .. toctree::
