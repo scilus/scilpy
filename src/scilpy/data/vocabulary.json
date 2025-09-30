@@ -1187,6 +1187,11 @@
       "computational diffusion mri"
     ],
     [
+      "freewater",
+      "free water",
+      "fw"
+    ],
+    [
       "cdsi",
       "classical diffusion spectrum imaging model"
     ],
@@ -1252,7 +1257,7 @@
     ],
     [
       "dmri",
-      "diffusion magnetic resonance imaging",
+      "diffusion magnetic resonance imaging"
     ],
     [
       "dnc",
@@ -1272,7 +1277,7 @@
     ],
     [
       "dti",
-      "diffusion tensor imaging",
+      "diffusion tensor imaging"
     ],
     [
       "dw-mri",
@@ -1538,6 +1543,10 @@
     [
       "popt",
       "parieto-occipital pontine tract"
+    ],
+    [
+      "mti",
+      "magnetization transfer imaging"
     ],
     [
       "pve",
