@@ -67,17 +67,17 @@ Before running the script:
     dcm2bids -d DICOM_folder -p id_subject -c config.json -o sub-id
 
 
-Required contrasts:
+- Required contrasts:
 
-  1. **altnp** – dual alternating negative/positive frequency images
-  2. **altpn** – dual alternating positive/negative frequency images
-  3. **negative** – single negative frequency images
-  4. **positive** – single positive frequency images
-  5. **mtoff_PD** – proton density unsaturated reference
-  6. **mtoff_T1** *(optional)* – T1-weighted unsaturated reference (required for saturation maps)
+1. **altnp** – dual alternating negative/positive frequency images
+2. **altpn** – dual alternating positive/negative frequency images
+3. **negative** – single negative frequency images
+4. **positive** – single positive frequency images
+5. **mtoff_PD** – proton density unsaturated reference
+6. **mtoff_T1** *(optional)* – T1-weighted unsaturated reference (required for saturation maps)
 
 
-Example of input data for one subject: 
+- Example of input data for one subject: 
 
 .. code-block:: text
 
@@ -152,11 +152,11 @@ Acquisition Parameters
 To compute MTsat and ihMTsat, acquisition parameters are required. 
 They can be provided in **two ways**:
 
-**Option A – From JSON files**::
+**Option A – From JSON files**:
 
    --in_jsons path/to/mtoffPD.json path/to/mtoffT1.json
 
-**Option B – Manual entry**::
+**Option B – Manual entry**:
 
    --in_acq_parameters PD_flipAngle T1_flipAngle PD_TR T1_TR
 
@@ -169,11 +169,11 @@ B1+ Field Correction (Optional)
 
 The script allows correction for B1 inhomogeneity.
 
-**Empiric method**::
+**Empiric method**:
 
    --in_B1_map path/to/B1map.nii.gz --B1_correction_method empiric
 
-**Model-based method**::
+**Model-based method**:
 
    --in_B1_map path/to/B1map.nii.gz \
    --B1_correction_method model_based \
