@@ -175,15 +175,13 @@ class VotingScheme(object):
         """
         results_dict = {}
         results_sft = {}
-        sft_len = 0
+        tot_sft_len = 0
 
         # To avoid load all inputs tractograms to slice them, reload each
         # one after the other and keep track of the indices/streamlines only
         for in_tractogram in input_tractograms_path:
             sft = load_tractogram(in_tractogram, reference)
-            _, indices_to_keep = sft.remove_invalid_streamlines()
-            indices_to_keep = np.array(
-                indices_to_keep, dtype=np.uint32) + sft_len
+            curr_sft_len = len(sft)
             for bundle_id in range(len(bundle_names)):
                 # All models of the same bundle have the same basename
                 basename = os.path.splitext(bundle_names[bundle_id])[0]
@@ -203,16 +201,12 @@ class VotingScheme(object):
 
                 # Need to make sure the indices are valid for this sft
                 if len(sft) and len(streamlines_id):
-                    curr_ids = np.intersect1d(streamlines_id, indices_to_keep,
-                                              assume_unique=True)
                     # Convert back to local indices (for this sft)
-                    curr_ids = curr_ids[curr_ids >= sft_len]
-                    curr_ids = curr_ids[curr_ids < sft_len + len(sft)]
-                else:
-                    curr_ids = np.array([], dtype=np.uint32)
+                    streamlines_id = streamlines_id[streamlines_id >= tot_sft_len]
+                    streamlines_id = streamlines_id[streamlines_id < tot_sft_len + curr_sft_len]
 
                 # If the user asked to ignore metadata, remove it (simpler)
-                new_sft = sft[curr_ids - sft_len]
+                new_sft = sft[streamlines_id - tot_sft_len]
                 if self.ignore_metadata:
                     new_sft.data_per_point = {}
                     new_sft.data_per_streamline = {}
@@ -239,13 +233,14 @@ class VotingScheme(object):
                     scores = np.array([], dtype=np.float16)
                 curr_results_dict['scores'] = scores.tolist()
                 results_dict[basename] = curr_results_dict
-            sft_len += len(sft)
+            tot_sft_len += len(sft)
 
         # Once everything is done, save all bundles, at the moment only
         # the bundles are held in memory (typically 1/10th of the tractogram)
         for basename in results_sft:
             sft = results_sft[basename]
             if len(sft) > 0 or self.save_empty:
+                sft.remove_invalid_streamlines()
                 save_tractogram(sft, os.path.join(self.output_directory,
                                                 basename + extension))
 
