@@ -24,7 +24,6 @@ Preparing data for this tutorial
 ********************************
 
 Let's download data, you can find it here: ?. The organization, for each subject, is:
-:
 
 .. code-block:: bash
 
