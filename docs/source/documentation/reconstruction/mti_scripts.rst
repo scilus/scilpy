@@ -1,0 +1,289 @@
+Generating Myelin Indices Maps using Magnetization Transfer Imaging (MTI)
+===============================================================================
+
+Magnetization Transfer (MT) imaging is an MRI technique that measures interactions 
+between :
+
+- **Bound protons** (associated with macromolecules like myelin)
+- **Free water protons** (aqueous pool)
+
+When saturation pulses are applied at off-resonance frequencies, 
+the MRI signal from bound protons decreases. This attenuation depends on the 
+macromolecular content of tissue, making MT imaging sensitive to myelin content. 
+The inhomogeneous Magnetization Transfer (ihMT) enhances this effect by using 
+alternating positive and negative frequency saturation pulses, improving 
+specificity to myelin.
+
+.. image:: ihmt_explanation.png
+   :alt: How does ihMT work?
+
+Play the video for more details on how MT sequence acquisition and parameter 
+calculation work.
+
+.. video:: MT_WhatIsIt.mp4
+
+
+The ``scil_mti_maps_ihMT`` script computes **four myelin indices maps** from Magnetization Transfer (MT)
+and inhomogeneous Magnetization Transfer (ihMT) images. These maps provide valuable information
+about **myelin content** in brain white matter.
+
+
+Computed indices include:
+-------------------------
+
+**Magnetization Transfer maps**
+
++-----------------------------------------+-----------------------------------------------+
+| **MTR**: Magnetization Transfer Ratio   | **MTsat**: Magnetization Transfer Saturation  |
++=========================================+===============================================+
+| .. image:: MTR.gif                      | .. image:: MTsat.gif                          |
+|    :width: 200                          |    :width: 200                                |
++-----------------------------------------+-----------------------------------------------+
+
+**Inhomogeneous Magnetization Transfer maps**
+
++--------------------------------------------------------+---------------------------------------------------------------+
+| **ihMTR**: Inhomogeneous Magnetization Transfer Ratio  | **ihMTsat**: Inhomogeneous Magnetization Transfer Saturation  |
++========================================================+===============================================================+
+| .. image:: ihMTR.gif                                   | .. image:: ihMTsat.gif                                        |
+|    :width: 200                                         |    :width: 200                                                |
++--------------------------------------------------------+---------------------------------------------------------------+
+
+
+Preparing the Input Data
+-------------------------
+
+Before running the script:
+
+- Convert DICOMs → NIfTI with ``dcm2niix`` using this specific version :
+  `v1.0.20200331 <https://github.com/rordenlab/dcm2niix/releases/tag/v1.0.20200331>`__.
+
+  To convert our DICOM data folder to the compatible BIDS structure, we used
+  `dcm2bids <https://github.com/cbedetti/Dcm2Bids#install>`__.
+
+
+  .. code-block:: bash
+    
+    dcm2bids -d DICOM_folder -p id_subject -c config.json -o sub-id
+
+
+Required contrasts:
+
+  1. **altnp** – dual alternating negative/positive frequency images
+  2. **altpn** – dual alternating positive/negative frequency images
+  3. **negative** – single negative frequency images
+  4. **positive** – single positive frequency images
+  5. **mtoff_PD** – proton density unsaturated reference
+  6. **mtoff_T1** *(optional)* – T1-weighted unsaturated reference (required for saturation maps)
+
+
+Example of input data for one subject: 
+
+  ::
+       ├── sub-001
+          │
+          ├── anat
+          │   ├── sub-001_T1w.json
+          │   ├── sub-001_T1w.nii.gz
+          │   ├── sub-001_acq-pos_ihmt.json
+          │   ├── sub-001_acq-pos_ihmt.nii.gz
+          │   ├── sub-001_acq-neg_ihmt.json
+          │   ├── sub-001_acq-neg_ihmt.nii.gz
+          │   ├── sub-001_acq-altnp_ihmt.json
+          │   ├── sub-001_acq-altnp_ihmt.nii.gz
+          │   ├── sub-001_acq-altpn_ihmt.json
+          │   ├── sub-001_acq-altpn_ihmt.nii.gz
+          │   ├── sub-001_acq-mtoff_ihmt.json (optional)
+          │   ├── sub-001_acq-mtoff_ihmt.nii.gz (optional)
+          │   ├── sub-001_acq-T1w_ihmt.json
+              └── sub-001_acq-T1w_ihmt.nii.gz
+          
+
+Basic Usage
+-----------
+
+Minimal command example::
+
+.. code-block:: bash
+   scil_mti_maps_ihMT output_directory/ \
+       --in_altnp path/to/*altnp.nii.gz \
+       --in_altpn path/to/*altpn.nii.gz \
+       --in_negative path/to/*neg.nii.gz \
+       --in_positive path/to/*pos.nii.gz \
+       --in_mtoff_pd path/to/*mtoffPD.nii.gz \
+       --in_mtoff_t1 path/to/*mtoffT1.nii.gz \
+       --mask path/to/mask_bin.nii.gz \
+       --in_jsons path/to/mtoffPD.json path/to/mtoffT1.json
+
+- Replace ``*`` with the echo index if you want a **specific echo** instead of all echoes.
+- A binary **mask** must be aligned with all images.
+- Output maps are saved in ``output_directory/ihMT_native_maps/``.
+- Use ``--out_prefix`` to add a custom prefix to all output files.
+
+
+.. note::
+    In the event that multiple echoes have been acquired : 
+    All contrasts must have the **same number of echoes** and be **coregistered**.
+
+
+Understanding the Outputs
+------------------------
+
+The script generates two main folders:
+
+**ihMT_native_maps/**
+
+- ``MTR.nii.gz`` – Magnetization Transfer (MT) Ratio
+- ``ihMTR.nii.gz`` – Inhomogeneous Magnetization Transfer Ratio
+- ``MTsat.nii.gz`` – MT saturation (if mtoff_T1 as available)
+- ``ihMTsat.nii.gz`` – ihMT saturation (if mtoff_T1 available)
+
+**Complementary_maps/** *(if ``--extended`` is set)*
+
+- ``altnp.nii.gz``, ``altpn.nii.gz``, ``positive.nii.gz``, ``negative.nii.gz``
+- ``mtoff_PD.nii.gz``, ``mtoff_T1.nii.gz``
+- Derived maps: ``MTsat_d.nii.gz``, ``MTsat_sp.nii.gz``, ``MTsat_sn.nii.gz``, ``R1app.nii.gz``, ``B1_map.nii.gz``
+
+
+Acquisition Parameters
+----------------------
+
+To compute MTsat and ihMTsat, acquisition parameters are required. 
+They can be provided in **two ways**:
+
+**Option A – From JSON files**::
+
+   --in_jsons path/to/mtoffPD.json path/to/mtoffT1.json
+
+**Option B – Manual entry**::
+
+   --in_acq_parameters PD_flipAngle T1_flipAngle PD_TR T1_TR
+
+- Flip angles (in degrees)
+- Repetition times (in seconds)
+
+
+B1+ Field Correction (Optional)
+-------------------------------
+
+The script allows correction for B1 inhomogeneity.
+
+**Empiric method**::
+
+   --in_B1_map path/to/B1map.nii.gz --B1_correction_method empiric
+
+**Model-based method**::
+
+   --in_B1_map path/to/B1map.nii.gz \
+   --B1_correction_method model_based \
+   --B1_fitvalues pos_fit.mat neg_fit.mat dual_fit.mat \
+   --B1_nominal 100
+
+.. note::
+
+    Requires ``.mat`` files from `TardifLab/OptimizeIHMTimaging <https://github.com/TardifLab/OptimizeIHMTimaging/tree/master/b1Correction>`_.
+    The ``--B1_smooth_dims`` option applies additional smoothing.
+
+
+Additional Options
+------------------
+
+- ``--extended`` : Save intermediate maps in ``Complementary_maps/``
+- ``--filtering`` : Apply Gaussian filtering (not generally recommended)
+- ``-v`` : Verbosity level (``DEBUG``, ``INFO``, ``WARNING``)
+- ``-f`` : Force overwrite of existing outputs
+
+Example Workflow
+----------------
+
+1. Convert raw DICOMs → NIfTI with ``dcm2niix``
+2. Coregister all contrasts images with ``ANTs``
+3. Generate a binary brain mask
+4. Run the script with your data
+5. (Optional) Apply B1 correction
+
+
+Workflow available: ihmt_flow
+-----------------------------
+
+A complete automated workflow for ihMT processing is available at: `scilus/ihmt_flow <https://github.com/scilus/ihmt_flow>`_.
+
+The ``ihmt_flow`` pipelines wrap ``scil_mti_maps_ihMT`` together with
+preprocessing, registration, and correction steps. Using ``ihmt_flow`` is
+recommended if you want a ready-to-use workflow that ensures reproducibility
+and minimizes manual intervention. In addition, the pipeline register the MT images 
+generated in the DWI space using the output from Tractoflow (Register_T1, *t1_brain_on_b0.nii.gz).
+
+
+**Usage**::
+
+.. code-block:: bash
+
+    git clone https://github.com/scilus/ihmt_flow.git
+    nextflow run ihmt_flow/main.nf --input /path/to/data --output /path/to/results -profile singularity
+
+This workflow handles conversion, registration, and execution of the
+``scil_mti_maps_ihMT`` script automatically. Use this when you want a
+"turnkey" solution for ihMT processing. Use the script directly when you
+already have prepared and coregistered inputs.
+
+
+Similar Script: scil_mti_maps_MT
+--------------------------------
+For datasets where **only MT images** are available (without ihMT dual
+alternating contrasts), a simplified script is provided:
+``scil_mti_maps_MT``.
+
+This script computes **two myelin maps**:
+
+* **MTR.nii.gz** – Magnetization Transfer Ratio map
+* **MTsat.nii.gz** – Magnetization Transfer saturation map
+
+Optional outputs are available in a ``Complementary_maps`` folder, such as the
+individual positive/negative frequency images, unsaturated PD/T1 images, and
+intermediate MTsat computations.
+
+Usage
+^^^^^
+.. code-block:: bash
+
+    scil_mti_maps_MT path/to/output/directory \
+        --in_mtoff_pd path/to/echo*mtoff.nii.gz \
+        --in_positive path/to/echo*pos.nii.gz \
+        --in_negative path/to/echo*neg.nii.gz \
+        --in_mtoff_t1 path/to/echo*T1w.nii.gz \
+        --mask path/to/mask_bin.nii.gz \
+        --in_jsons path/to/echo*mtoff.json path/to/echo*T1w.json
+
+By default, all echoes are used. To use only one, replace ``*`` with the echo
+number.
+
+
+B1 Correction
+^^^^^^^^^^^^^
+Like the ihMT script, ``scil_mti_maps_MT`` supports B1+ field inhomogeneity
+correction, either empiric or model-based, using the options:
+
+* ``--in_B1_map`` to provide a B1 map
+* ``--B1_correction_method empiric`` or ``model_based``
+* ``--B1_fitvalues`` to provide external calibration files (1 or 2 .mat files)
+
+
+When to use each script
+-----------------------
+
+* Use **``scil_mti_maps_ihMT``** if you have ihMT acquisitions (dual alternating
+  contrasts, positive, negative, PD, T1). Produces 4 myelin maps.
+* Use **``scil_mti_maps_MT``** if you only have MT acquisitions (positive,
+  negative, PD, T1). Produces 2 myelin maps.
+
+Both scripts require coregistered inputs.
+
+
+References
+----------
+
+[1] Varma G. et al. *Journal of Magnetic Resonance*, 2015.  
+[2] Manning AP. et al. *Journal of Magnetic Resonance*, 2017.  
+[3] Helms G. et al. *Magnetic Resonance in Medicine*, 2008.  
+
