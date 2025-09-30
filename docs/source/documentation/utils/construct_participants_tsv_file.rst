@@ -1,5 +1,5 @@
 Instructions to write the tsv files "participants.tsv" for the script scil_stats_group_comparison
-===============================================================================================
+=================================================================================================
 
 The TSV file should follow the BIDS `specification <https://bids-specification.readthedocs.io/en/stable/03-modality-agnostic-files.html#participants-file>`_.
 

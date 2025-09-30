@@ -47,7 +47,8 @@ extensions = [
     'sphinx.ext.coverage',
     'sphinx.ext.napoleon',
     'sphinx.ext.viewcode',
-    'sphinx.ext.mathjax'
+    'sphinx.ext.mathjax',
+    'sphinx_code_tabs'
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -266,7 +267,6 @@ def setup(app):
                                     f.write(line)
 
                     m.write("    {}\n".format(name))
-
                     script = __import__(name)
 
                     script_rst = join(path_src, "scripts",

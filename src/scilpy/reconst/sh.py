@@ -290,8 +290,9 @@ def peaks_from_sh(shm_coeff, sphere, mask=None, relative_peak_threshold=0.5,
     """
     sh_order = order_from_ncoef(shm_coeff.shape[-1],
                                 full_basis=full_basis)
-    B, _ = sh_to_sf_matrix(sphere, sh_order, sh_basis_type,
-                           full_basis, legacy=is_legacy)
+    B, _ = sh_to_sf_matrix(sphere=sphere, sh_order=sh_order,
+                           basis_type=sh_basis_type,
+                           full_basis=full_basis, legacy=is_legacy)
 
     data_shape = shm_coeff.shape
     if mask is None:
@@ -442,7 +443,8 @@ def maps_from_sh(shm_coeff, peak_values, peak_indices, sphere,
         nufo_map, afd_max, afd_sum, rgb_map, gfa, qa
     """
     sh_order = order_from_ncoef(shm_coeff.shape[-1])
-    B, _ = sh_to_sf_matrix(sphere, sh_order, sh_basis_type)
+    B, _ = sh_to_sf_matrix(sphere=sphere, sh_order=sh_order,
+                           basis_type=sh_basis_type)
 
     data_shape = shm_coeff.shape
     if mask is None:
@@ -607,9 +609,11 @@ def convert_sh_basis(shm_coeff, sphere, mask=None,
         return shm_coeff
 
     sh_order = order_from_ncoef(shm_coeff.shape[-1])
-    B_in, _ = sh_to_sf_matrix(sphere, sh_order, input_basis,
+    B_in, _ = sh_to_sf_matrix(sphere=sphere, sh_order=sh_order,
+                              basis_type=input_basis,
                               legacy=is_input_legacy)
-    _, invB_out = sh_to_sf_matrix(sphere, sh_order, output_basis,
+    _, invB_out = sh_to_sf_matrix(sphere=sphere, sh_order=sh_order,
+                                  basis_type=output_basis,
                                   legacy=is_output_legacy)
 
     data_shape = shm_coeff.shape
