@@ -33,21 +33,26 @@ Computed indices include:
 
 **Magnetization Transfer maps**
 
-+-----------------------------------------+-----------------------------------------------+
-| **MTR**: Magnetization Transfer Ratio   | **MTsat**: Magnetization Transfer Saturation  |
-+=========================================+===============================================+
-| .. image:: ../../_static/scil_MTR.gif   | .. image:: ../../_static/scil_MTsat.gif       |
-|    :width: 200                          |    :width: 200                                |
-+-----------------------------------------+-----------------------------------------------+
++----------------------------------------+----------------------------------------------+
+| **MTR**: Magnetization Transfer Ratio  | **MTsat**: Magnetization Transfer Saturation |
++========================================+==============================================+
+| .. image:: ../../_static/scil_MTR.gif  | .. image:: ../../_static/scil_MTsat.gif      |
+| :width: 200                            | :width: 200                                  |
+| :align: center                         | :align: center                               |
++----------------------------------------+----------------------------------------------+
+
+
+
 
 **Inhomogeneous Magnetization Transfer maps**
 
-+--------------------------------------------------------+---------------------------------------------------------------+
-| **ihMTR**: Inhomogeneous Magnetization Transfer Ratio  | **ihMTsat**: Inhomogeneous Magnetization Transfer Saturation  |
-+========================================================+===============================================================+
-| .. image:: ../../_static/scil_ihMTR.gif                | .. image:: ../../_static/scil_ihMTsat.gif                     |
-|    :width: 200                                         |    :width: 200                                                |
-+--------------------------------------------------------+---------------------------------------------------------------+
++-------------------------------------------------------+--------------------------------------------------------------+
+| **ihMTR**: Inhomogeneous Magnetization Transfer Ratio | **ihMTsat**: Inhomogeneous Magnetization Transfer Saturation |
++=======================================================+==============================================================+
+| .. image:: ../../_static/scil_ihMTR.gif               | .. image:: ../../_static/scil_ihMTsat.gif                    |
+| :width: 200                                           | :width: 200                                                  |
+| :align: center                                        | :align: center                                               |
++-------------------------------------------------------+--------------------------------------------------------------+
 
 
 Preparing the Input Data
