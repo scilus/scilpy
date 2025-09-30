@@ -23,7 +23,7 @@ build:
     install:
       - uv pip install --upgrade pip wheel
       - uv pip install --upgrade "setuptools<71.0.0"
-      - uv pip install sphinx-rtd-theme==3.0.* mock==5.2.* sphinx_code_tabs
+      - uv pip install sphinx-rtd-theme==3.0.* mock==5.2.* sphinx_code_tabs==0.5.*
       - uv pip install -e .
 
 # Build documentation in the docs/ directory with Sphinx
