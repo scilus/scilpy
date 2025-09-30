@@ -786,7 +786,10 @@ def compare_volume_wrapper(data_1, data_2, voxel_size=1, ratio=False,
                 binary_1 + binary_2) - volume_overlap)
 
         if ratio:
-            count = np.count_nonzero(binary_1)
+            if one_sided:
+                count = np.count_nonzero(binary_2) # wrt reference
+            else:
+                count = np.count_nonzero(binary_1) # wrt first volume
             if count > 0:
                 volume_overlap /= count
                 volume_overreach /= count
