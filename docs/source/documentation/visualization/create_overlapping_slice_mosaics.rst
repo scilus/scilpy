@@ -3,7 +3,7 @@ Create overlapping slice mosaics
 
 Screenshots to a series of volume image slices that overlap according to a
 given factor and arranged into a mosaic can be created using the
-`scil_viz_volume_screenshot_mosaic` script. The script takes an input
+:ref:`scil_viz_volume_screenshot_mosaic` script. The script takes an input
 volume (e.g. a brain T1-weighted MRI volume, or a discrete tissue segmentation
 volume) and a mask (e.g. the brain mask volume), and generates a mosaic
 according to the requested layout (e.g. row-only, column-only, or matrix). The

@@ -98,7 +98,7 @@ volume.
 .. image:: https://github.com/user-attachments/assets/d9b0519b-c1e3-4de0-8529-92aa92041ce2
    :alt: Fibertube intersection visualized in 3D
 
-This is accomplished using ``scil_tractogram_filter_collisions``.
+This is accomplished using `:ref:`scil_tractogram_filter_collisions``.
 
 ::
 
@@ -122,7 +122,7 @@ output tractogram. This is why we named it "fibertubes.trk".
 If you wish to know how many fibertubes are left after filtering, you
 can run the following command:
 
-``scil_tractogram_print_info fibertubes.trk``
+:ref:`scil_tractogram_print_info fibertubes.trk`
 
 Visualising collisions
 ----------------------
@@ -181,7 +181,7 @@ Performing fibertube tracking
 -----------------------------
 
 We're finally at the tracking phase! Using the script
-``scil_fibertube_tracking``, you are able to track without relying on
+:ref:`scil_fibertube_tracking`, you are able to track without relying on
 a discretized grid of directions or fODFs. Instead, you will be
 propagating a streamline through fibertubes and controlling the
 resolution by using a ``blur_radius``. The way it works is as follows:
@@ -237,7 +237,7 @@ than one fibertubes will intersect the ``blur_radius`` sphere and
 introduce partial volume effect.
 
 The interface of the script is very similar to
-``scil_tracking_local_dev``, but simplified and with a ``blur_radius``
+:ref:`scil_tracking_local_dev`, but simplified and with a ``blur_radius``
 option. Let us do:
 
 ::
@@ -249,7 +249,7 @@ This should take a minute or two and will produce 15 streamlines.
 Reconstruction analysis
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-By using the ``scil_fibertube_score_tractogram`` script, you are able
+By using the :ref:`scil_fibertube_score_tractogram` script, you are able
 to obtain measures on the quality of the fibertube tracking that was
 performed.
 

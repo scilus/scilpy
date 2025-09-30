@@ -5,7 +5,7 @@ Creating a WM bundle population template
 
 Scilpy scripts enable users to create a WM bundle population template, such as described in figure 3 in our upcoming paper. Such a pipeline includes:
 
-1) segmenting the bundle of interest in each subject’s tractogram. The segmentation of bundles can be based on ROIs of inclusion / exclusion (`scil_tractogram_segment_with_ROI_and_score` or `scil_tractogram_filter_by_roi`) or based on the general shape of the streamlines (`scil_tractogram_segment_with_recobundles`, `scil_tractogram_segment_with_bundleseg`). See :ref:`page_tractogram_segmentation` for more information on this.
+1) segmenting the bundle of interest in each subject’s tractogram. The segmentation of bundles can be based on ROIs of inclusion / exclusion (:ref:`scil_tractogram_segment_with_ROI_and_score` or :ref:`scil_tractogram_filter_by_roi`) or based on the general shape of the streamlines (:ref:`scil_tractogram_segment_with_recobundles`, :ref:`scil_tractogram_segment_with_bundleseg`). See :ref:`page_tractogram_segmentation` for more information on this.
 
 2) registering the bundles to a reference space (e.g., MNI space) and analysing the inter-subject variability,
 
@@ -18,3 +18,11 @@ Then, registration can be performed (see :ref:`page_tractogram_registration`). T
 
 .. image:: ../../_static/scilpy_paper_figure3.png
    :alt: Figure 3 in upcoming paper.
+
+::
+
+    # 1) Use any tool as you want to obtain a gray matter (GM) segmentation of your volume
+    #    Ex: FSL.
+    (download wmparc.nii.gz)
+
+    # 2) Split your volume into binary masks associated to each label.

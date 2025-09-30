@@ -7,8 +7,8 @@ Use scilpy to build custom diffusion pipelines or apply ready-to-use scripts.
 The documentation is organized into the following sections: 
 
 1. **Getting started & installation** — how to install, set up environments, and run a basic example
-2. **Modules & API reference** — detailed descriptions of classes functions and modules
-3. **Scripts & workflows** — ready scripts for common tasks
+2. **Documentation & Tutorials** — ready scripts for common tasks
+3. **Modules & API reference** — detailed descriptions of classes functions and modules
 
 .. toctree::
    :maxdepth: 1
