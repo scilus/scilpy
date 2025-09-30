@@ -36,9 +36,10 @@ Computed indices include:
 +----------------------------------------+----------------------------------------------+
 | **MTR**: Magnetization Transfer Ratio  | **MTsat**: Magnetization Transfer Saturation |
 +========================================+==============================================+
-| .. image:: ../../_static/scil_MTR.gif  | .. image:: ../../_static/scil_MTsat.gif      |
-|    :width: 200                         |    :width: 200                               |
-|    :align: center                      |    :align: center                            |
+|| .. image:: ../../_static/scil_MTR.gif || .. image:: ../../_static/scil_MTsat.gif     |
+|| :width: 50%                           || :width: 50%                                 |
+|| :align: center                        || :align: center                              |
+|| :height: 200px                        || :height: 200px
 +----------------------------------------+----------------------------------------------+
 
 
