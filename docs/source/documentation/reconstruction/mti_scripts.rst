@@ -185,7 +185,6 @@ The script allows correction for B1 inhomogeneity.
     Requires ``.mat`` files from `TardifLab/OptimizeIHMTimaging <https://github.com/TardifLab/OptimizeIHMTimaging/tree/master/b1Correction>`_.
     The ``--B1_smooth_dims`` option applies additional smoothing.
 
-
 Additional Options
 ------------------
 
@@ -222,7 +221,6 @@ generated in the DWI space using the output from Tractoflow (Register_T1, *t1_br
     
     git clone https://github.com/scilus/ihmt_flow.git
     nextflow run ihmt_flow/main.nf --input /path/to/data --output /path/to/results -profile singularity
-
 
 This workflow handles conversion, registration, and execution of the
 ``scil_mti_maps_ihMT`` script automatically. Use this when you want a
