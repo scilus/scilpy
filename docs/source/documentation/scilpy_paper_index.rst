@@ -6,7 +6,7 @@ The following tutorials will help you reproduce the figures in our upcoming scil
 .. toctree::
    :maxdepth: 1
 
-    tractogram_manipulation/tractogram_math
-    bundle_analysis/create_population_template.rst
-    bundle_analysis/profilometry.rst
-    connectivity/connectivity
+   tractogram_manipulation/tractogram_math
+   bundle_analysis/create_population_template
+   bundle_analysis/profilometry
+   connectivity/connectivity
