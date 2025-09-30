@@ -105,8 +105,8 @@ Basic Usage
 Minimal command example::
 
 .. code-block:: bash
-  
-  scil_mti_maps_ihMT output_directory/ \
+    
+    scil_mti_maps_ihMT output_directory/ \
        --in_altnp path/to/*altnp.nii.gz \
        --in_altpn path/to/*altpn.nii.gz \
        --in_negative path/to/*neg.nii.gz \
@@ -219,9 +219,9 @@ generated in the DWI space using the output from Tractoflow (Register_T1, *t1_br
 **Usage**::
 
 .. code-block:: bash
-  
-  git clone https://github.com/scilus/ihmt_flow.git
-  nextflow run ihmt_flow/main.nf --input /path/to/data --output /path/to/results -profile singularity
+    
+    git clone https://github.com/scilus/ihmt_flow.git
+    nextflow run ihmt_flow/main.nf --input /path/to/data --output /path/to/results -profile singularity
 
 This workflow handles conversion, registration, and execution of the
 ``scil_mti_maps_ihMT`` script automatically. Use this when you want a
@@ -247,8 +247,8 @@ intermediate MTsat computations.
 Usage
 ^^^^^
 .. code-block:: bash
-  
-  scil_mti_maps_MT path/to/output/directory \
+    
+    scil_mti_maps_MT path/to/output/directory \
         --in_mtoff_pd path/to/echo*mtoff.nii.gz \
         --in_positive path/to/echo*pos.nii.gz \
         --in_negative path/to/echo*neg.nii.gz \
