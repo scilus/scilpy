@@ -106,15 +106,15 @@ Minimal command example::
 
 .. code-block:: bash
     
-    scil_mti_maps_ihMT output_directory/ \
-      --in_altnp path/to/*altnp.nii.gz \
-      --in_altpn path/to/*altpn.nii.gz \
-      --in_negative path/to/*neg.nii.gz \
-      --in_positive path/to/*pos.nii.gz \
-      --in_mtoff_pd path/to/*mtoffPD.nii.gz \
-      --in_mtoff_t1 path/to/*mtoffT1.nii.gz \
-      --mask path/to/mask_bin.nii.gz \
-      --in_jsons path/to/mtoffPD.json path/to/mtoffT1.json
+    scil_mti_maps_ihMT path/to/output/directory \
+        --in_altnp path/to/*altnp.nii.gz \
+        --in_altpn path/to/*altpn.nii.gz \
+        --in_negative path/to/*neg.nii.gz \
+        --in_positive path/to/echo*pos.nii.gz \
+        --in_mtoff_pd path/to/echo*mtoff.nii.gz \
+        --in_mtoff_t1 path/to/echo*T1w.nii.gz \
+        --mask path/to/mask_bin.nii.gz \
+        --in_jsons path/to/echo*mtoff.json path/to/echo*T1w.json
 
 - Replace ``*`` with the echo index if you want a **specific echo** instead of all echoes.
 - A binary **mask** must be aligned with all images.
@@ -223,6 +223,7 @@ generated in the DWI space using the output from Tractoflow (Register_T1, *t1_br
     git clone https://github.com/scilus/ihmt_flow.git
     nextflow run ihmt_flow/main.nf --input /path/to/data --output /path/to/results -profile singularity
 
+
 This workflow handles conversion, registration, and execution of the
 ``scil_mti_maps_ihMT`` script automatically. Use this when you want a
 "turnkey" solution for ihMT processing. Use the script directly when you
@@ -249,9 +250,9 @@ Usage
 .. code-block:: bash
     
     scil_mti_maps_MT path/to/output/directory \
-        --in_mtoff_pd path/to/echo*mtoff.nii.gz \
         --in_positive path/to/echo*pos.nii.gz \
         --in_negative path/to/echo*neg.nii.gz \
+        --in_mtoff_pd path/to/echo*mtoff.nii.gz \
         --in_mtoff_t1 path/to/echo*T1w.nii.gz \
         --mask path/to/mask_bin.nii.gz \
         --in_jsons path/to/echo*mtoff.json path/to/echo*T1w.json
