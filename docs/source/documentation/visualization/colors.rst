@@ -1,0 +1,4 @@
+Adding data_per_point to tractograms for visualization
+======================================================
+
+When using the .TRK format, additional information may be stored in memory for each streamline (`data_per_streamline` [dps]) or for each individual point (`data_per_point` [dpp]). It is possible, for instance, to store the seeding point of each streamline as dps during the tractography and use it later to create a map of all seeding points leading successfully to a streamline (`scil_tractogram_seed_density_map`). It is also possible to store a RGB color to each point as dpp, associated to the keyword ‘color’, which allows to visualise the tractogram as desired on a visualization software (example: Mi-Brain25 supports the `‘color’` keyword). Finally is it possible to perform more complex actions when analyzing some metrics of interest along the streamlines, as described in section 3.4.

@@ -1,5 +1,7 @@
-Instructions for streamlines registration/transformation
-========================================================
+.. _page_tractogram_registration:
+
+Tractogram registration
+=======================
 
 ::
 
