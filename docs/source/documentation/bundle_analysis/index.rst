@@ -7,3 +7,4 @@ This section covers bundle analysis methods in scilpy.
    :maxdepth: 1
 
    bundle_diameter_fitting_function
+   profilometry
