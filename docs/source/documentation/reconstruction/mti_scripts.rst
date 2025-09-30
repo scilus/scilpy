@@ -14,7 +14,7 @@ The inhomogeneous Magnetization Transfer (ihMT) enhances this effect by using
 alternating positive and negative frequency saturation pulses, improving 
 specificity to myelin.
 
-.. image:: ../../_static/ihmt_explanation.png
+.. image:: ../../_static/scil_ihmt_explanation.png
    :alt: How does ihMT work?
 
 Play the video for more details on how MT sequence acquisition and parameter 
