@@ -272,6 +272,7 @@ def setup(app):
                     script_rst = join(path_src, "scripts",
                                       "{}.rst".format(name))
                     with open(script_rst, "w") as s:
+                        s.write(".. _" + name  + ":\n\n")
                         s.write(i + "\n")
                         s.write("=" * len(i) + "\n\n")
                         help_text = script._build_arg_parser().format_help() \
