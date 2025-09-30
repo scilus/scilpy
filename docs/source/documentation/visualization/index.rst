@@ -7,3 +7,4 @@ This section covers visualization methods in scilpy.
    :maxdepth: 1
 
    create_overlapping_slice_mosaics
+   colors
