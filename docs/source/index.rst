@@ -1,57 +1,37 @@
 Welcome to the scilpy documentation!
 ======================================
 
-.. toctree::
-    :maxdepth: 1
-    :caption: Scilpy API
+scilpy is a comprehensive library that provides tools and scripts for processing, analyzing, and visualizing diffusion MRI and tractography data.
+It supports advanced features such as tensor- and multi-tensor modeling, streamline registration/transformations, bundle analysis, and more.
+Use scilpy to build custom diffusion pipelines or apply ready-to-use scripts.
+The documentation is organized into the following sections: 
 
-    modules/scilpy
-    scripts/modules
-
-.. toctree::
-    :maxdepth: 1
-    :caption: Reconstruction
-
-    documentation/reconstruction/ssst_fodf
-    documentation/reconstruction/msmt_fodf
-    documentation/reconstruction/btensor_scripts
+1. **Getting started & installation** — how to install, set up environments, and run a basic example
+2. **Modules & API reference** — detailed descriptions of classes functions and modules
+3. **Scripts & workflows** — ready scripts for common tasks
 
 .. toctree::
-    :maxdepth: 1
-    :caption: Volume manipulation
+   :maxdepth: 1
+   :caption: Getting started
+
+   documentation/getting_started
 
 .. toctree::
-    :maxdepth: 1
-    :caption: Tracking
+   :maxdepth: 1
+   :caption: Documentation & Tutorials
 
-    documentation/tracking/fibertube_tracking
-
-.. toctree::
-    :maxdepth: 1
-    :caption: Tractogram manipulation
-
-    documentation/tractogram_manipulation/tractogram_registration
-
-.. toctree::
-    :maxdepth: 1
-    :caption: Bundle analysis
-
-    documentation/bundle_analysis/bundle_diameter_fitting_function
+   documentation/reconstruction/index
+   documentation/tracking/index
+   documentation/tractogram_manipulation/index
+   documentation/bundle_analysis/index
+   documentation/connectivity/index
+   documentation/utils/index
+   documentation/visualization/index
+   documentation/scilpy_paper_index
 
 .. toctree::
-    :maxdepth: 1
-    :caption: Visualization
+   :maxdepth: 1
+   :caption: Modules and API reference
 
-    documentation/visualization/create_overlapping_slice_mosaics
-
-.. toctree::
-    :maxdepth: 1
-    :caption: Utils
-
-    documentation/utils/devcontainer
-    documentation/utils/construct_participants_tsv_file
-
-
-
-
-
+   modules/scilpy
+   scripts/modules

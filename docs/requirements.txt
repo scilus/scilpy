@@ -1,2 +1,3 @@
 sphinx-rtd-theme==3.0.*
+sphinx-code-tabs==0.5.*
 mock==5.2.*
