@@ -328,7 +328,7 @@ def _extract_vb_one_bundle(
     tail_filename: str
         Filename of the "tail" of the bundle.
     limits_length: list or None
-        Bundle's length parameters: [min max].
+        Bundle's length Parameters [min max].
     angle: int or None
         Bundle's max angle.
     orientation_length: list or None

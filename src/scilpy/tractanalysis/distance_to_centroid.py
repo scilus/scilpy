@@ -64,7 +64,7 @@ def associate_labels(target_sft, min_label=1, max_label=20):
 
     min and max labels are used in case there is a cut in the bundle.
 
-    Parameters:
+    Parameters
     ----------
     target_sft: StatefulTractogram
         The target SFT to label, streamlines can be in any space.
@@ -73,7 +73,7 @@ def associate_labels(target_sft, min_label=1, max_label=20):
     max_label: int
         Maximum label to use.
 
-    Returns:
+    Returns
     -------
     Array: np.uint16
         Labels for each point along the streamlines.
@@ -100,7 +100,7 @@ def find_medoid(points, max_points=10000):
     the sum of the distances to all other points. Unlike a barycenter, the
     medoid is guaranteed to be one of the points in the set.
 
-    Parameters:
+    Parameters
     ----------
     points: ndarray
         An array of 3D coordinates.
@@ -108,7 +108,7 @@ def find_medoid(points, max_points=10000):
         Maximum number of points to use for the computation (will randomly
         select points if the number of points is greater than max_points).
 
-    Returns:
+    Returns
     -------
         np.array:
             The 3D coordinates of the medoid.
@@ -129,7 +129,7 @@ def compute_labels_map_barycenters(labels_map, is_euclidian=False,
     Compute the barycenter for each label in a 3D NumPy array by maximizing
     the distance to the boundary.
 
-    Parameters:
+    Parameters
     ----------
     labels_map: (ndarray)
         The 3D array containing labels from 1-nb_pts.
@@ -143,7 +143,7 @@ def compute_labels_map_barycenters(labels_map, is_euclidian=False,
     nb_pts: int
         Number of points to use for computing barycenters.
 
-    Returns:
+    Returns
     -------
     ndarray:
         An array of size (nb_pts, 3) containing the barycenter
@@ -180,14 +180,14 @@ def masked_manhattan_distance(mask, target_positions):
     Compute the Manhattan distance from every position in a mask to a set of
     positions, without stepping out of the mask.
 
-    Parameters:
+    Parameters
     ----------
     mask (ndarray):
         A binary 3D array representing the mask.
     target_positions (list):
         A list of target positions within the mask.
 
-    Returns:
+    Returns
     -------
     ndarray:
         A 3D array of the same shape as the mask, containing the
@@ -230,7 +230,7 @@ def compute_distance_map(labels_map, binary_mask, nb_pts, use_manhattan=False):
     """
     Computes the distance map for each label in the labels_map.
 
-    Parameters:
+    Parameters
     ----------
     labels_map (numpy.ndarray):
         A 3D array representing the labels map.
@@ -241,7 +241,7 @@ def compute_distance_map(labels_map, binary_mask, nb_pts, use_manhattan=False):
     use_manhattan (bool):
         If True, use the Manhattan distance instead of the Euclidian distance.
 
-    Returns:
+    Returns
     -------
         numpy.ndarray: A 3D array representing the distance map.
     """
@@ -307,7 +307,7 @@ def correct_labels_jump(labels_map, streamlines, nb_pts):
     This avoid loops in the labels map and ensure that the labels are
     consistent along the streamlines.
 
-    Parameters:
+    Parameters
     ----------
     labels_map (ndarray):
         A 3D array representing the labels map.
@@ -316,7 +316,7 @@ def correct_labels_jump(labels_map, streamlines, nb_pts):
     nb_pts (int):
         Number of points to use for computing barycenters.
 
-    Returns:
+    Returns
     -------
     ndarray: A 3D array representing the corrected labels map.
     """
@@ -428,7 +428,7 @@ def subdivide_bundles(sft, sft_centroid, binary_mask, nb_pts,
     that the labels are correct. This method requires a centroid file that
     contains multiple streamlines.
 
-    Parameters:
+    Parameters
     ----------
     sft (StatefulTractogram):
         Represent the streamlines to be subdivided, streamlines representation
@@ -445,7 +445,7 @@ def subdivide_bundles(sft, sft_centroid, binary_mask, nb_pts,
         Run the correction for streamlines to reduce big transition along
         its length.
 
-    Returns:
+    Returns
     -------
     ndarray:
         A 3D array representing the labels map.

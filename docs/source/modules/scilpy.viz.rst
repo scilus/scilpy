@@ -1,26 +1,26 @@
 scilpy.viz package
 ==================
 
-scilpy.viz.chord\_chart module
+scilpy.viz.color module
 ------------------------------------------------------
 
-.. automodule:: scilpy.viz.chord_chart
+.. automodule:: scilpy.viz.color
    :members:
    :undoc-members:
    :show-inheritance:
 
-scilpy.viz.gradient\_sampling module
+scilpy.viz.gradients module
 ------------------------------------------------------
 
-.. automodule:: scilpy.viz.gradient_sampling
+.. automodule:: scilpy.viz.gradients
    :members:
    :undoc-members:
    :show-inheritance:
 
-scilpy.viz.scene\_utils module
+scilpy.viz.plot module
 ------------------------------------------------------
 
-.. automodule:: scilpy.viz.scene_utils
+.. automodule:: scilpy.viz.plot
    :members:
    :undoc-members:
    :show-inheritance:
@@ -29,6 +29,14 @@ scilpy.viz.screenshot module
 ------------------------------------------------------
 
 .. automodule:: scilpy.viz.screenshot
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+scilpy.viz.slice module
+------------------------------------------------------
+
+.. automodule:: scilpy.viz.slice
    :members:
    :undoc-members:
    :show-inheritance:

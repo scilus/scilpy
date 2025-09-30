@@ -1,18 +1,10 @@
 scilpy.segment package
 ======================
 
-scilpy.segment.models module
+scilpy.segment.bundleseg module
 ------------------------------------------------------
 
-.. automodule:: scilpy.segment.models
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-scilpy.segment.recobundlesx module
-------------------------------------------------------
-
-.. automodule:: scilpy.segment.recobundlesx
+.. automodule:: scilpy.segment.bundleseg
    :members:
    :undoc-members:
    :show-inheritance:
