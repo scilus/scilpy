@@ -215,7 +215,7 @@ and minimizes manual intervention. In addition, the pipeline register the MT ima
 generated in the DWI space using the output from Tractoflow (Register_T1, *t1_brain_on_b0.nii.gz).
 
 
-**Usage**::
+**Usage**:
 
 .. code-block:: bash
     
