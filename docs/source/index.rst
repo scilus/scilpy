@@ -13,6 +13,8 @@ Welcome to the scilpy documentation!
     :caption: Reconstruction
 
     documentation/reconstruction/btensor_scripts
+    documentation/reconstruction/qball_metrics
+    documentation/reconstruction/aodf_scripts
 
 .. toctree::
     :maxdepth: 1
