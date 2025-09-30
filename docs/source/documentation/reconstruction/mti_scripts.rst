@@ -79,30 +79,30 @@ Required contrasts:
 
 Example of input data for one subject: 
 
-  ::
-      ├── sub-001
-          │
-          ├── anat
-          │   ├── sub-001_T1w.json
-          │   ├── sub-001_T1w.nii.gz
-          │   ├── sub-001_acq-pos_ihmt.json
-          │   ├── sub-001_acq-pos_ihmt.nii.gz
-          │   ├── sub-001_acq-neg_ihmt.json
-          │   ├── sub-001_acq-neg_ihmt.nii.gz
-          │   ├── sub-001_acq-altnp_ihmt.json
-          │   ├── sub-001_acq-altnp_ihmt.nii.gz
-          │   ├── sub-001_acq-altpn_ihmt.json
-          │   ├── sub-001_acq-altpn_ihmt.nii.gz
-          │   ├── sub-001_acq-mtoff_ihmt.json (optional)
-          │   ├── sub-001_acq-mtoff_ihmt.nii.gz (optional)
-          │   ├── sub-001_acq-T1w_ihmt.json
+.. code-block:: text
+
+          sub-001
+          └── anat
+              ├── sub-001_T1w.json
+              ├── sub-001_T1w.nii.gz
+              ├── sub-001_acq-pos_ihmt.json
+              ├── sub-001_acq-pos_ihmt.nii.gz
+              ├── sub-001_acq-neg_ihmt.json
+              ├── sub-001_acq-neg_ihmt.nii.gz
+              ├── sub-001_acq-altnp_ihmt.json
+              ├── sub-001_acq-altnp_ihmt.nii.gz
+              ├── sub-001_acq-altpn_ihmt.json
+              ├── sub-001_acq-altpn_ihmt.nii.gz
+              ├── sub-001_acq-mtoff_ihmt.json (optional)
+              ├── sub-001_acq-mtoff_ihmt.nii.gz (optional)
+              ├── sub-001_acq-T1w_ihmt.json
               └── sub-001_acq-T1w_ihmt.nii.gz
           
 
 Basic Usage
 -----------
 
-Minimal command example::
+Minimal command example:
 
 .. code-block:: bash
     
