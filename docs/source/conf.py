@@ -274,7 +274,7 @@ def setup(app):
                     with open(script_rst, "w") as s:
                         s.write(".. _" + name  + ":\n\n")
                         s.write(name + "\n")
-                        s.write("=" * len(i) + "\n\n")
+                        s.write("=" * len(name) + "\n\n")
                         help_text = script._build_arg_parser().format_help() \
                             .replace("sphinx-build", i)
                         help_text.replace('.py', '')

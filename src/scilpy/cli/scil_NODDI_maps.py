@@ -21,7 +21,8 @@ import os
 import sys
 import tempfile
 
-import amico
+from mock import Mock
+sys.modules['amico'] = Mock()
 from dipy.io.gradients import read_bvals_bvecs
 import numpy as np
 

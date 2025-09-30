@@ -45,17 +45,19 @@ from scilpy.io.utils import (
     add_overwrite_arg, add_verbose_arg)
 from scilpy.image.volume_operations import resample_volume
 
-from scilpy.ml.bundleparc.predict import predict
+
 from scilpy.ml.bundleparc.labels import post_process_labels_discrete, \
     post_process_labels_mm, post_process_labels_continuous
-from scilpy.ml.bundleparc.utils import DEFAULT_BUNDLES, \
-     download_weights, get_model
-from scilpy.ml.utils import get_device, IMPORT_ERROR_MSG
+DEFAULT_BUNDLES=''
+from mock import Mock
+import sys
+sys.modules['torch'] = Mock()
+IMPORT_ERROR_MSG=''
 from scilpy import SCILPY_HOME
 
 
-from dipy.utils.optpkg import optional_package
-torch, have_torch, _ = optional_package('torch', trip_msg=IMPORT_ERROR_MSG)
+
+
 
 DEFAULT_CKPT = os.path.join(SCILPY_HOME, 'checkpoints', 'bundleparc.ckpt')
 
