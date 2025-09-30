@@ -36,7 +36,7 @@ Computed indices include:
 +-----------------------------------------+-----------------------------------------------+
 | **MTR**: Magnetization Transfer Ratio   | **MTsat**: Magnetization Transfer Saturation  |
 +=========================================+===============================================+
-| .. image:: ../../_static/scil_MTR.gif   | .. image:: ../../_static/MTsat.gif            |
+| .. image:: ../../_static/scil_MTR.gif   | .. image:: ../../_static/scil_MTsat.gif       |
 |    :width: 200                          |    :width: 200                                |
 +-----------------------------------------+-----------------------------------------------+
 
@@ -45,7 +45,7 @@ Computed indices include:
 +--------------------------------------------------------+---------------------------------------------------------------+
 | **ihMTR**: Inhomogeneous Magnetization Transfer Ratio  | **ihMTsat**: Inhomogeneous Magnetization Transfer Saturation  |
 +========================================================+===============================================================+
-| .. image:: ../../_static/ihMTR.gif                     | .. image:: ../../_static/ihMTsat.gif                          |
+| .. image:: ../../_static/scil_ihMTR.gif                | .. image:: ../../_static/scil_ihMTsat.gif                     |
 |    :width: 200                                         |    :width: 200                                                |
 +--------------------------------------------------------+---------------------------------------------------------------+
 
