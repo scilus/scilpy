@@ -7,3 +7,5 @@ This section covers reconstruction methods in scilpy.
    :maxdepth: 1
 
    btensor_scripts
+   aodf_scripts
+   qball_metrics
