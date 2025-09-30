@@ -90,10 +90,8 @@ import shutil
 import sys
 import tempfile
 
-from mock import Mock
-sys.modules['commit'] = Mock()
-from mock import Mock
-sys.modules['commit'] = Mock()
+import commit
+from commit import trk2dictionary
 
 from dipy.io.streamline import save_tractogram, load_tractogram
 from dipy.io.gradients import read_bvals_bvecs
