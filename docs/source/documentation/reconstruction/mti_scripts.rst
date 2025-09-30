@@ -80,7 +80,7 @@ Required contrasts:
 Example of input data for one subject: 
 
   ::
-       ├── sub-001
+      ├── sub-001
           │
           ├── anat
           │   ├── sub-001_T1w.json
@@ -107,14 +107,14 @@ Minimal command example::
 .. code-block:: bash
     
     scil_mti_maps_ihMT output_directory/ \
-       --in_altnp path/to/*altnp.nii.gz \
-       --in_altpn path/to/*altpn.nii.gz \
-       --in_negative path/to/*neg.nii.gz \
-       --in_positive path/to/*pos.nii.gz \
-       --in_mtoff_pd path/to/*mtoffPD.nii.gz \
-       --in_mtoff_t1 path/to/*mtoffT1.nii.gz \
-       --mask path/to/mask_bin.nii.gz \
-       --in_jsons path/to/mtoffPD.json path/to/mtoffT1.json
+      --in_altnp path/to/*altnp.nii.gz \
+      --in_altpn path/to/*altpn.nii.gz \
+      --in_negative path/to/*neg.nii.gz \
+      --in_positive path/to/*pos.nii.gz \
+      --in_mtoff_pd path/to/*mtoffPD.nii.gz \
+      --in_mtoff_t1 path/to/*mtoffT1.nii.gz \
+      --mask path/to/mask_bin.nii.gz \
+      --in_jsons path/to/mtoffPD.json path/to/mtoffT1.json
 
 - Replace ``*`` with the echo index if you want a **specific echo** instead of all echoes.
 - A binary **mask** must be aligned with all images.
