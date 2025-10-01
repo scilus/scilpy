@@ -32,4 +32,4 @@ component_management:
         - "!src/scilpy/cli/"
 
 comment:
-  layout: "condensed_header, diff, components"
+  layout: "condensed_header, diff, flags, components"
