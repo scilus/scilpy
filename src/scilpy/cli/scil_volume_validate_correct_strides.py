@@ -137,7 +137,7 @@ def main():
         nib.save(new_img, args.out_data)
 
     if args.validate_bvec:
-        logging.info('Validating b-vectors from fiber coherence index [1]...')
+        logging.info('Validating b-vectors from fiber coherence index...')
         data = img.get_fdata()
         bvals, bvecs = read_bvals_bvecs(args.in_bval, args.in_bvec)
         if not is_normalized_bvecs(bvecs):
@@ -167,20 +167,25 @@ def main():
                                                                       fa)
 
         best_t = transform[np.argmax(coherence)]
+        print(bvecs.T)
         if (best_t == np.eye(3)).all():
             logging.info('The b-vectors are already correct.')
             bvecs = bvecs
         else:
-            logging.warning('Applying correction to b-vectors.')
+            logging.warning('Applying correction to b-vectors.'
+                            'Transform is: \n{0}.'.format(best_t))
             bvecs = np.dot(bvecs, best_t)
         if correct:
             np.savetxt(args.out_bvec, bvecs.T, "%.8f")
+        print(bvecs.T)
 
     if args.in_bvec and not correct:
+        print(axes_to_flip)
         if not args.validate_bvec:
             _, bvecs = read_bvals_bvecs(None, args.in_bvec)
         bvecs = flip_gradient_sampling(bvecs.T, axes_to_flip, 'fsl')
         bvecs = swap_gradient_axis(bvecs, swapped_order, 'fsl')
+        print(bvecs)
         np.savetxt(args.out_bvec, bvecs, "%.8f")
 
 
