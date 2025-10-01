@@ -29,13 +29,19 @@ Reference:
 import argparse
 import logging
 
+from dipy.core.gradients import gradient_table
 from dipy.io.gradients import read_bvals_bvecs
+from dipy.reconst.dti import TensorModel, fractional_anisotropy
 import numpy as np
 import nibabel as nib
 
-from scilpy.gradients.bvec_bval_tools import (flip_gradient_sampling,
+from scilpy.gradients.bvec_bval_tools import (check_b0_threshold,
+                                              flip_gradient_sampling,
+                                              is_normalized_bvecs,
+                                              normalize_bvecs,
                                               swap_gradient_axis)
-from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
+from scilpy.io.utils import (add_b0_thresh_arg, add_overwrite_arg,
+                             add_skip_b0_check_arg, assert_inputs_exist,
                              assert_outputs_exist, add_verbose_arg)
 from scilpy.reconst.fiber_coherence import compute_coherence_table_for_transforms
 from scilpy.version import version_string
@@ -73,6 +79,8 @@ def _build_arg_parser():
                    help='Path to bval file. Must be provided if '
                         '--validate_bvecs is used.')
 
+    add_b0_thresh_arg(p)
+    add_skip_b0_check_arg(p, will_overwrite_with_min=True)
     add_verbose_arg(p)
     add_overwrite_arg(p)
     return p
@@ -97,39 +105,80 @@ def main():
     strides = nib.io_orientation(img.affine).astype(np.int8)
     strides = (strides[:, 0] + 1) * strides[:, 1]
     if np.array_equal(strides, [1, 2, 3]):
+        correct=True
         logging.warning('Input data already has the correct strides [1, 2, 3].'
-                        ' No correction needed and outputed. If you want to '
-                        'validate b-vectors, please use the script '
-                        'scil_gradients_validate_correct.')
-        return
+                        ' No correction on data needed and outputed.')
     else:
+        correct=False
         logging.warning('Input data has strides {}. '
                         'Correcting to [1, 2, 3].'.format(strides))
-    n = len(strides)
-    transform = [0]*n
-    for i, m in enumerate(strides):
-        axis = abs(m) - 1
-        sign = 1 if m > 0 else -1
-        transform[axis] = sign * (i+1)
+        n = len(strides)
+        transform = [0]*n
+        for i, m in enumerate(strides):
+            axis = abs(m) - 1
+            sign = 1 if m > 0 else -1
+            transform[axis] = sign * (i+1)
 
-    axes_to_flip = []
-    swapped_order = []
-    for next_axis in transform:
-        if next_axis in [1, 2, 3]:
-            swapped_order.append(next_axis - 1)
-        elif next_axis in [-1, -2, -3]:
-            axes_to_flip.append(abs(next_axis) - 1)
-            swapped_order.append(abs(next_axis) - 1)
+        axes_to_flip = []
+        swapped_order = []
+        for next_axis in transform:
+            if next_axis in [1, 2, 3]:
+                swapped_order.append(next_axis - 1)
+            elif next_axis in [-1, -2, -3]:
+                axes_to_flip.append(abs(next_axis) - 1)
+                swapped_order.append(abs(next_axis) - 1)
 
-    ornt = np.column_stack((np.array(swapped_order, dtype=np.int8),
-                            np.where(np.isin(range(n), axes_to_flip), -1, 1)))
+        ornt = np.column_stack((np.array(swapped_order, dtype=np.int8),
+                                np.where(np.isin(range(n), axes_to_flip),
+                                         -1, 1)))
 
-    new_img = img.as_reoriented(ornt)
-    nib.save(new_img, args.out_data)
+        new_img = img.as_reoriented(ornt)
+        nib.save(new_img, args.out_data)
 
-    if args.in_bvec and not args.validate_bvec:
-        _, bvecs = read_bvals_bvecs(None, args.in_bvec)
-        bvecs = flip_gradient_sampling(bvecs, axes_to_flip, 'fsl')
+    if args.validate_bvec:
+        logging.info('Validating b-vectors from fiber coherence index [1]...')
+        data = img.get_fdata()
+        bvals, bvecs = read_bvals_bvecs(args.in_bval, args.in_bvec)
+        if not is_normalized_bvecs(bvecs):
+            logging.warning('Your b-vectors do not seem normalized...')
+            bvecs = normalize_bvecs(bvecs)
+        args.b0_threshold = check_b0_threshold(bvals.min(),
+                                               b0_thr=args.b0_threshold,
+                                               skip_b0_check=args.skip_b0_check)
+        gtab = gradient_table(bvals, bvecs=bvecs,
+                              b0_threshold=args.b0_threshold)
+        tenmodel = TensorModel(gtab, fit_method='WLS',
+                               min_signal=np.min(data[data > 0]))
+
+        mask = np.zeros(data.shape[:3], dtype=bool)
+        interval_i = slice(data.shape[0]//2,
+                           data.shape[0]//2 + data.shape[0]//4)
+        interval_j = slice(data.shape[1]//2,
+                           data.shape[1]//2 + data.shape[1]//4)
+        interval_k = slice(data.shape[2]//2,
+                           data.shape[2]//2 + data.shape[2]//4)
+        mask[interval_i, interval_j, interval_k] = 1
+        tenfit = tenmodel.fit(data, mask=mask)
+        fa = fractional_anisotropy(tenfit.evals)
+        evecs = tenfit.evecs.astype(np.float32)[..., 0]
+        evecs[fa < 0.2] = 0
+        coherence, transform = compute_coherence_table_for_transforms(evecs, 
+                                                                      fa)
+
+        best_t = transform[np.argmax(coherence)]
+        if (best_t == np.eye(3)).all():
+            logging.info('The b-vectors are already correct.')
+            bvecs = bvecs
+        else:
+            logging.warning('Applying correction to b-vectors.')
+            bvecs = np.dot(bvecs, best_t)
+        if correct:
+            np.savetxt(args.out_bvec, bvecs.T, "%.8f")
+
+    if args.in_bvec and not correct:
+        if not args.validate_bvec:
+            _, bvecs = read_bvals_bvecs(None, args.in_bvec)
+        bvecs = flip_gradient_sampling(bvecs.T, axes_to_flip, 'fsl')
         bvecs = swap_gradient_axis(bvecs, swapped_order, 'fsl')
         np.savetxt(args.out_bvec, bvecs, "%.8f")
 
