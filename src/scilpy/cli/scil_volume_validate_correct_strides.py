@@ -15,7 +15,8 @@ Then, the b-vectors are permuted and sign flipped to match the new strides.
 A typical pipeline could be:
 >>> scil_volume_validate_correct_strides t1.nii.gz t1_restride.nii.gz
 >>> scil_volume_validate_correct_strides dwi.nii.gz dwi_restride.nii.gz
-    --in_bvec dwi.bvec --in_bval dwi.bval --out_bvec dwi_restride.bvec
+    --in_bvec dwi.bvec --out_bvec dwi_restride.bvec --validate_bvec
+    --in_bval dwi.bval
 
 ------------------------------------------------------------------------------
 Reference:
