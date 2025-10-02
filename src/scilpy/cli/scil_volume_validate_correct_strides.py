@@ -167,6 +167,10 @@ def main():
                                                                       fa)
 
         best_t = transform[np.argmax(coherence)]
+        for i, tr in enumerate(transform):
+            print(tr)
+            print(coherence[i])
+            print(" ")
         print(bvecs.T)
         if (best_t == np.eye(3)).all():
             logging.info('The b-vectors are already correct.')
