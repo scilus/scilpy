@@ -9,3 +9,4 @@ This section covers reconstruction methods in scilpy.
    ssst_fodf
    msmt-fodf
    btensor_scripts
+   from_raw_data_to_tractogram
