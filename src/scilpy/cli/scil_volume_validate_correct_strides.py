@@ -172,7 +172,6 @@ def main():
         best_t = transform[np.argmax(coherence)]
         if (best_t == np.eye(3)).all():
             logging.info('The b-vectors are aligned with the original data.')
-            bvecs = bvecs
         else:
             logging.warning('Applying correction to b-vectors.')
             logging.info('Transform is: \n{0}.'.format(best_t))
