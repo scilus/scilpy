@@ -167,29 +167,21 @@ def main():
                                                                       fa)
 
         best_t = transform[np.argmax(coherence)]
-        for i, tr in enumerate(transform):
-            print(tr)
-            print(coherence[i])
-            print(" ")
-        print(bvecs.T)
         if (best_t == np.eye(3)).all():
-            logging.info('The b-vectors are already correct.')
+            logging.info('The b-vectors are aligned with the original data.')
             bvecs = bvecs
         else:
-            logging.warning('Applying correction to b-vectors.'
-                            'Transform is: \n{0}.'.format(best_t))
+            logging.warning('Applying correction to b-vectors.')
+            logging.info('Transform is: \n{0}.'.format(best_t))
             bvecs = np.dot(bvecs, best_t)
-        if correct:
-            np.savetxt(args.out_bvec, bvecs.T, "%.8f")
-        print(bvecs.T)
+            if correct:
+                np.savetxt(args.out_bvec, bvecs.T, "%.8f")
 
     if args.in_bvec and not correct:
-        print(axes_to_flip)
         if not args.validate_bvec:
             _, bvecs = read_bvals_bvecs(None, args.in_bvec)
         bvecs = flip_gradient_sampling(bvecs.T, axes_to_flip, 'fsl')
         bvecs = swap_gradient_axis(bvecs, swapped_order, 'fsl')
-        print(bvecs)
         np.savetxt(args.out_bvec, bvecs, "%.8f")
 
 
