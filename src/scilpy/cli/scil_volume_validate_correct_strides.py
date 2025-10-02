@@ -139,6 +139,9 @@ def main():
     if args.validate_bvec:
         logging.info('Validating b-vectors from fiber coherence index...')
         data = img.get_fdata()
+        if len(data.shape) != 4:
+            parser.error('Input data must be DWI (4D) when --validate_bvec '
+                         'is set.')
         bvals, bvecs = read_bvals_bvecs(args.in_bval, args.in_bvec)
         if not is_normalized_bvecs(bvecs):
             logging.warning('Your b-vectors do not seem normalized...')
