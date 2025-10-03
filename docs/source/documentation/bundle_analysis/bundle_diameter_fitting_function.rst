@@ -1,5 +1,5 @@
-Instructions for estimation of bundle diameter
-========================================================
+Estimation of a bundle diameter
+===============================
 
 Script to estimate the diameter of bundle(s) along their length.
 The script expects:
