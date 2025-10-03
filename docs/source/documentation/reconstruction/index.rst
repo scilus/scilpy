@@ -11,3 +11,4 @@ This section covers reconstruction methods in scilpy.
    btensor_scripts
    aodf_scripts
    qball_metrics
+   mti_scripts
