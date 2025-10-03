@@ -18,4 +18,6 @@
     font-style: italic;
     display: block;   /* ensures it's on its own line */
     margin: 0.5em 0;
+    padding: 0.5em 0.5em;
+    font-weight: bold;
 }
