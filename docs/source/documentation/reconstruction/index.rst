@@ -10,3 +10,5 @@ This section covers reconstruction methods in scilpy.
    msmt-fodf
    btensor_scripts
    from_raw_data_to_tractogram
+   aodf_scripts
+   qball_metrics
