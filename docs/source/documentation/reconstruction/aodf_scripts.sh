@@ -11,22 +11,24 @@ set -euo pipefail  # Will fail on error
 in_folder=$1
 out_folder=$2
 
+# For now, let's use data in .scilpy
+scil_data_download
+mkdir $in_folder/aodf_data
+in_folder=$in_folder/aodf_data
+cp $HOME/.scilpy/processing/fa_thr.nii.gz $in_folder/brainmask.nii.gz
+cp $HOME/.scilpy/processing/fodf_descoteaux07.nii.gz $in_folder/fodf.nii.gz
+
 
 # ==============
 # Now let's run the tutorial
+# Running only the first option
 # ==============
 cd $out_folder
 
 echo "Creating the aodf"
 echo "*****************"
-
-# Option 1. Default options.
 scil_sh_to_aodf $in_folder/fodf.nii.gz afodf.nii.gz -v
-
-# Option 2. GPU. If you have access to GPU, instead, prefer these options:
-# scil_sh_to_aodf $in_folder/fodf.nii.gz afodf.nii.gz --use_opencl --device gpu -v
 
 echo "Computing metrics"
 echo "*****************"
-
 scil_aodf_metrics afodf.nii.gz --mask $in_folder/brainmask.nii.gz -v
