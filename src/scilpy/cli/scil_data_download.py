@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Download data for tests
+Download data for tests.
+This is used to download our internal tests into your home/.scilpy.
 """
+import argparse
 
 import tqdm
 
@@ -10,6 +12,7 @@ import nltk
 
 from scilpy.io.dvc import pull_test_case_package
 from scilpy.io.fetcher import fetch_data, get_testing_files_dict
+from scilpy.version import version_string
 
 LIST_ZIP_FILES = ["anatomical_filtering",
                   "atlas",
@@ -35,6 +38,12 @@ LIST_ZIP_FILES = ["anatomical_filtering",
 
 
 def main():
+
+    # No argument but adding the arg parser in case user wants to do --help.
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
+    p.parse_args()
 
     tqdm_bar = tqdm.tqdm(total=len(LIST_ZIP_FILES)+2,
                          desc="Download data test")
