@@ -1,5 +1,5 @@
-Getting started
-===============
+Getting ready for tutorials
+===========================
 
 Scilpy is the main library supporting research and development at the Sherbrooke Connectivity Imaging Lab (SCIL).
 

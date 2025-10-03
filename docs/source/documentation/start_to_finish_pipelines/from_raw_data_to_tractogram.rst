@@ -1,7 +1,16 @@
+.. _page_from_raw_to_tractogram:
+
 From raw diffusion to DTI, fODF, and tractogram
-======================================================
+===============================================
 
 scilpy provides a set of scripts to go from raw diffusion data to a full tractogram. This includes preprocessing, DTI fitting, fODF computation, and tractography.
+
+For an introduction to such a start-to-finish pipeline, you may read section 3.1. in our upcoming paper, describing figure 1:
+
+.. image:: ../../_static/scilpy_paper_figure1.png
+   :alt: Figure 1 in upcoming paper.
+
+
 
 First, make sure you have the required data. You will need:
 
