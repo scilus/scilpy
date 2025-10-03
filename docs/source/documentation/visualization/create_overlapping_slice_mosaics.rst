@@ -1,3 +1,5 @@
+.. _create_overlapping_slice_mosaics:
+
 Create overlapping slice mosaics
 ================================
 
