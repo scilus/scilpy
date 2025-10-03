@@ -1,5 +1,5 @@
 Generating Myelin Indices Maps using Magnetization Transfer Imaging (MTI)
-===============================================================================
+=========================================================================
 
 Magnetization Transfer (MT) imaging is an MRI technique that measures interactions
 between :

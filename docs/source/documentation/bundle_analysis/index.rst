@@ -10,3 +10,4 @@ This section covers bundle analysis methods in scilpy.
    bundle_diameter_fitting_function
    profilometry
    tractometry
+   create_population_template

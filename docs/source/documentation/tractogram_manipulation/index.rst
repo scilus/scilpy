@@ -6,5 +6,7 @@ This section covers tractogram manipulation methods in scilpy. Most of the funct
 .. toctree::
    :maxdepth: 1
 
+   using_trk_or_tck
    tractogram_registration
    tractogram_math
+   streamlines_math

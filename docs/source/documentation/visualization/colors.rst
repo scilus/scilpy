@@ -1,3 +1,5 @@
+.. _page_viz_colors:
+
 Adding data_per_point to tractograms for visualization
 ======================================================
 
