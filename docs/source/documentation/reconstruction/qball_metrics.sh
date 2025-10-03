@@ -14,7 +14,9 @@ out_folder=$2
 
 # For now, let's use data in .scilpy
 scil_data_download
-?
+cp -r $HOME/.scilpy/btensor_testdata $in_dir/
+in_dir=$in_dir/btensor_testdata/
+#       -----------------> I DON'T HAVE MASKS. FAILS.
 
 # ==============
 # Now let's run the tutorial

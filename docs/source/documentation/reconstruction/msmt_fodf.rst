@@ -1,8 +1,7 @@
 .. _msmt_fodf:
 
-Instructions to compute multi-shell multi-tissue fODF (msmt-fODF)
-=================================================================
-
+Multi-shell multi-tissue fODF (msmt-fODF)
+=========================================
 
 This tutorial explains how to compute multi-shell multi-tissue fiber orientation distribution functions (fODFs) using multi-shell multi-tissue constrained spherical deconvolution (msmt-CSD). If your data contains less than three b-values, you might want to consider using single-shell single-tissue CSD (ssst-CSD) instead. See the :ref:`ssst_fodf` instructions for that. The following instructions are specific to multi-shell and based on [multi-tissue_CSD]_.
 
@@ -14,8 +13,7 @@ This tutorial explains how to compute multi-shell multi-tissue fiber orientation
 
     # For now, let's use data in .scilpy
     scil_data_download
-    cp -r $HOME/.scilpy/btensor_testdata/ $in_dir/
-    in_dir=$in_dir/btensor_testdata/
+    ?
 
 
 The first step towards computing fODFs using constrained spherical deconvolution (CSD) is to compute the fiber response functions (FRFs) using :ref:`scil_frf_msmt`. This script should run fast (a few seconds on a full brain).
