@@ -11,3 +11,11 @@
 .strike {
   text-decoration: line-through;
 }
+
+.instruction {
+    color: #c9c9c9;
+    background-color: #2e8ece;
+    font-style: italic;
+    display: block;   /* ensures it's on its own line */
+    margin: 0.5em 0;
+}

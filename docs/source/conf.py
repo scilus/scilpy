@@ -103,6 +103,12 @@ html_css_files = [
     'my_style.css',  # overrides for width size
 ]
 
+# Add a role for pale gray instructions at the top of tutorials.
+rst_prolog = """
+.. role:: instruction
+   :class: instruction
+"""
+
 # Custom sidebar templates, must be a dictionary that maps document names
 # to template names.
 #

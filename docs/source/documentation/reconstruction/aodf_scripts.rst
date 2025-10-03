@@ -1,19 +1,28 @@
-Asymmetric orientation distribution functions
-=============================================
+Asymmetric orientation distribution functions (aodf)
+====================================================
 
 The usual symmetric orientation distribution function cannot accurately describe complex fiber configurations such as branching, fanning or bending fiber populations. To tackle this issue, we can estimate asymmetric orientation distribution functions AODF [Poirier and Descoteaux, Neuroimage, 2024]. AODF can be estimated from an input symmetric ODF image via the script :ref:`scil_sh_to_aodf`.
 
-To run the script, you need a symmetric ODF image (e.g. from Q-ball or CSD) and a mask to restrict the computation to relevant voxels. Although there is an automatic way to set the parameters, it is not yet implemented in scilpy. We recommend that you experiment with the parameters to find the best configuration for your data. You can run the command as follows:
+
+:instruction:`Instructions: To run the script, you need a symmetric ODF image (e.g. from Q-ball or CSD) and a mask to restrict the computation to relevant voxels. In the tutorial data, this is not yet available. For now, you can use this data:`
 
 ::
 
-    scil_sh_to_aodf fodf.nii.gz afodf.nii.gz
+    in_folder=where/you/downloaded/tutorial/data
+    scil_data_download
+    cp $HOME/.scilpy/fodf_filtering/fodf_descoteaux07_sub.nii.gz $in_folder/fodf.nii.gz
+
+Although there is an automatic way to set the parameters, it is not yet implemented in scilpy. We recommend that you experiment with the parameters to find the best configuration for your data. You can run the command as follows:
+
+::
+
+    scil_sh_to_aodf $in_folder/fodf.nii.gz afodf.nii.gz -v
 
 The default script runs a pure python implementation, which takes 3-5 hours to complete with the provided dataset. To speed up the execution, you should use OpenCL if you have a compatible GPU or CPU. Make sure you have `pyopencl` installed and a working OpenCL implementation. You can enable OpenCL acceleration by adding the `--use_opencl` flag to the command. You can also choose the device to use (CPU or GPU) with the `--device` option. Using a GPU will reduce the execution time to 1-2 minutes (on a Nvidia GeForce RTX 3080). For example, to use a GPU, you can run:
 
 ::
 
-    scil_sh_to_aodf fodf.nii.gz afodf.nii.gz --use_opencl --device gpu
+    scil_sh_to_aodf $in_folder/fodf.nii.gz afodf.nii.gz --use_opencl --device gpu -v
 
 The script will output the asymmetric ODF image (``afodf.nii.gz``) in the current directory. At the difference of a symmetric ODF image, which is represented using a symmetric spherical harmonics basis, the asymmetric ODF image is represented using a full spherical harmonics basis. Therefore, the output image will have more SH coefficients than the input image. For instance, for a maximum SH order of 8, the input image will have 45 coefficients per voxel, while the output image will have 81 coefficients per voxel.
 
@@ -21,7 +30,7 @@ From the estimated AODF, we can compute a bunch of metrics using the script :ref
 
 ::
 
-    scil_aodf_metrics afodf.nii.gz --mask brainmask.nii.gz
+    scil_aodf_metrics afodf.nii.gz --mask $in_folder/brainmask.nii.gz -v
 
 
 This script outputs the following metrics:
