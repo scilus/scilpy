@@ -63,4 +63,3 @@ This file contains:
         ├── sub-01__small_mask_csf.nii.gz
         ├── sub-01__small_mask_gm.nii.gz
         ├── sub-01__small_mask_wm.nii.gz
-
