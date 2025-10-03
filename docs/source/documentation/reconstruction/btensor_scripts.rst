@@ -13,7 +13,7 @@ The scripts for multi-encoding multi-shell multi-tissue CSD (memsmt-CSD) are bas
     # For now, let's use data in .scilpy
     scil_data_download
     cp -r $HOME/.scilpy/btensor_testdata/ $in_dir/
-    in_folder=$in_dir/btensor_testdata/
+    in_dir=$in_dir/btensor_testdata/
 
 
 If you want to do CSD with b-tensor data, you should start by computing the fiber response functions. This script should run fast (less than 5 minutes on a full brain).
@@ -49,3 +49,8 @@ If you want to do DIVIDE with b-tensor data, you should use the following comman
         --in_bdeltas 1 -0.5 0 --mask $in_dir/mask.nii.gz --fa $in_dir/fa.nii.gz --processes 8 -v
 
 .. [memst] P. Karan et al., Bridging the gap between constrained spherical deconvolution and diffusional variance decomposition via tensor-valued diffusion MRI. Medical Image Analysis (2022)
+
+
+:instruction:`You may download the complete bash script to run the whole tutorial in one step:`
+
+`The complete b-tensor scripts tutorial bash script <btensor_scripts.sh>`_.
