@@ -17,8 +17,8 @@ specificity to myelin.
 .. image:: ../../_static/scil_ihmt_explanation.png
    :alt: How does ihMT work?
 
-.. This does not work currently. Tried installing sphinxcontrib-video, but breaks other things in the doc.
-.. Play the video for more details on how MT sequence acquisition and parameter calculation work. video: MT_WhatIsIt.mp4
+Play the video for more details on how MT sequence acquisition and parameter calculation work (link will be added soon)
+.. ToDo: Add video on YouTube (MT_WhatIsIt.mp4)
 
 
 The ``scil_mti_maps_ihMT`` script computes **four myelin indices maps** from Magnetization Transfer (MT)
