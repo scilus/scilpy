@@ -7,12 +7,7 @@ between :
 - **Bound protons** (associated with macromolecules like myelin)
 - **Free water protons** (aqueous pool)
 
-When saturation pulses are applied at off-resonance frequencies, 
-the MRI signal from bound protons decreases. This attenuation depends on the 
-macromolecular content of tissue, making MT imaging sensitive to myelin content. 
-The inhomogeneous Magnetization Transfer (ihMT) enhances this effect by using 
-alternating positive and negative frequency saturation pulses, improving 
-specificity to myelin.
+When saturation pulses are applied at off-resonance frequencies, the MRI signal from bound protons decreases. This attenuation depends on the macromolecular content of tissue, making MT imaging sensitive to myelin content. The inhomogeneous Magnetization Transfer (ihMT) enhances this effect by using alternating positive and negative frequency saturation pulses, improving specificity to myelin.
 
 .. image:: ../../_static/scil_ihmt_explanation.png
    :alt: How does ihMT work?
@@ -21,9 +16,7 @@ Play the video for more details on how MT sequence acquisition and parameter cal
 .. ToDo: Add video on YouTube (MT_WhatIsIt.mp4)
 
 
-The ``scil_mti_maps_ihMT`` script computes **four myelin indices maps** from Magnetization Transfer (MT)
-and inhomogeneous Magnetization Transfer (ihMT) images. These maps provide valuable information
-about **myelin content** in brain white matter.
+The ``scil_mti_maps_ihMT`` script computes **four myelin indices maps** from Magnetization Transfer (MT) and inhomogeneous Magnetization Transfer (ihMT) images. These maps provide valuable information about **myelin content** in brain white matter.
 
 
 Computed indices include:
