@@ -4,7 +4,10 @@ Estimate Q-ball orientation distribution functions
 Q-ball, a timeless classic. When you cannot make assumptions about the nature of the fiber response function, e.g. for small animal or infant brains, the Q-ball model can be useful. The script :ref:`scil_qball_metrics` is available for computing Q-ball orientation distribution functions (ODF) and their derived metrics.
 
 
-:instruction:`To run the script, you need a DWI image with its corresponding b-values and b-vectors. Optionally, a mask can be provided to speed up the computation. The tutorial data is still in preparation, meanwhile you can use this: `
+Preparing data for this tutorial
+********************************
+
+To run the script, you need a DWI image with its corresponding b-values and b-vectors. Optionally, a mask can be provided to speed up the computation. The tutorial data is still in preparation, meanwhile you can use this: `
 
 .. code-block:: bash
 
@@ -13,6 +16,13 @@ Q-ball, a timeless classic. When you cannot make assumptions about the nature of
     # For now, let's use data in .scilpy
     scil_data_download
     ?
+
+.. tip::
+    You may download the complete bash script to run the whole tutorial in one step `here <../../_static/reconst/qball_metrics.sh>`_.
+
+
+Running Q-ball
+**************
 
 You can run the command as follows:
 
@@ -35,8 +45,3 @@ To skip some outputs, you can use the ``--not_all`` flag. For example, if you on
 
     scil_qball_metrics $in_dir/dwi.nii.gz $in_dir/dwi.bval $in_dir/dwi.bvec --mask $in_dir/brainmask.nii.gz \
         --not_all --gfa gfa.nii.gz --nufo nufo.nii.gz
-
-
-:instruction:`You may download the complete bash script to run the whole tutorial in one step:`
-
-`The complete Q-ball scripts tutorial bash script <qball_metrics.sh>`_.

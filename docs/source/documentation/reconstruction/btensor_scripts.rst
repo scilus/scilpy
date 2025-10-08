@@ -1,10 +1,12 @@
 Tensor-valued dMRI scripts (b-tensor)
 =====================================
 
-
 The scripts for multi-encoding multi-shell multi-tissue CSD (memsmt-CSD) are based on [memst]_. We recommend reading it to understand the scope of the memsmt-CSD problem.
 
-:instruction:`Instructions: To run lines below, you need a various volumes, b-vector information and masks. The tutorial data is still in preparation, meanwhile you can use this: `
+Preparing data for this tutorial
+********************************
+
+To run lines below, you need a various volumes, b-vector information and masks. The tutorial data is still in preparation, meanwhile you can use this: `
 
 .. code-block:: bash
 
@@ -15,6 +17,11 @@ The scripts for multi-encoding multi-shell multi-tissue CSD (memsmt-CSD) are bas
     cp -r $HOME/.scilpy/btensor_testdata/ $in_dir/
     in_dir=$in_dir/btensor_testdata/
 
+.. tip::
+    You may download the complete bash script to run the whole tutorial in one step `here <../../_static/reconst/btensor_scripts.sh>`_.
+
+1. Computing the frf
+********************
 
 If you want to do CSD with b-tensor data, you should start by computing the fiber response functions. This script should run fast (less than 5 minutes on a full brain).
 
@@ -28,6 +35,9 @@ If you want to do CSD with b-tensor data, you should start by computing the fibe
         --in_bdeltas 1 -0.5 0 --mask $in_dir/mask.nii.gz \
         --mask_wm $in_dir/wm_mask.nii.gz --mask_gm $in_dir/gm_mask.nii.gz \
         --mask_csf $in_dir/csf_mask.nii.gz -v
+
+2. Computing the fODF
+*********************
 
 Then, you should compute the fODFs and volume fractions. The following command will save a fODF file for each tissue and a volume fractions file. This script should run in about 1-2 hours for a full brain.
 
@@ -49,8 +59,3 @@ If you want to do DIVIDE with b-tensor data, you should use the following comman
         --in_bdeltas 1 -0.5 0 --mask $in_dir/mask.nii.gz --fa $in_dir/fa.nii.gz --processes 8 -v
 
 .. [memst] P. Karan et al., Bridging the gap between constrained spherical deconvolution and diffusional variance decomposition via tensor-valued diffusion MRI. Medical Image Analysis (2022)
-
-
-:instruction:`You may download the complete bash script to run the whole tutorial in one step:`
-
-`The complete b-tensor scripts tutorial bash script <btensor_scripts.sh>`_.

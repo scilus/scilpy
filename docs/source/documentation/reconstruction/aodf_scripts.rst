@@ -4,7 +4,10 @@ Asymmetric orientation distribution functions (aodf)
 The usual symmetric orientation distribution function cannot accurately describe complex fiber configurations such as branching, fanning or bending fiber populations. To tackle this issue, we can estimate asymmetric orientation distribution functions AODF [Poirier and Descoteaux, Neuroimage, 2024]. AODF can be estimated from an input symmetric ODF image via the script :ref:`scil_sh_to_aodf`.
 
 
-:instruction:`Instructions: To run lines below, you need a symmetric ODF image (e.g. from Q-ball or CSD) and a mask to restrict the computation to relevant voxels. The tutorial data is still in preparation, meanwhile you can use this: `
+Preparing data for this tutorial
+********************************
+
+To run lines below, you need a symmetric ODF image (e.g. from Q-ball or CSD) and a mask to restrict the computation to relevant voxels. The tutorial data is still in preparation, meanwhile you can use this:</p>
 
 .. code-block:: bash
 
@@ -16,6 +19,9 @@ The usual symmetric orientation distribution function cannot accurately describe
     in_dir=$in_dir/aodf_data
     cp $HOME/.scilpy/processing/fa_thr.nii.gz $in_dir/brainmask.nii.gz
     cp $HOME/.scilpy/processing/fodf_descoteaux07.nii.gz $in_dir/fodf.nii.gz
+
+.. tip::
+    You may download the complete bash script to run the whole tutorial in one step `here <../../_static/reconst/aodf_scripts.sh>`_.
 
 Creating the aodf
 *****************
@@ -54,7 +60,3 @@ This script outputs the following metrics:
 - Peak indices (``asym_peaks_indices.nii.gz``)
 
 Refer to the script ``--help`` for a description of these metrics. Like with the other ``metrics`` scripts, the flag ``--not_all`` can be used to skip some outputs and only compute the metrics of interest.
-
-:instruction:`You may download the complete bash script to run the whole tutorial in one step:`
-
-`The complete aodf scripts tutorial bash script <aodf_scripts.sh>`_.
