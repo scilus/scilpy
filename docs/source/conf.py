@@ -223,8 +223,15 @@ def setup(app):
             if not isdir(join(path_script, i)):
                 name, ext = i.split(".")
 
+                # We will want to run the --help (i.e. build the argparser) to
+                # show the help in the doc.
+                # In some cases, this fails if some modules are not installed.
+                # Temporarily replacing lines in file on disk to use mock.
+                # Unchanged script (saved in data) is then re-written on disk.
+
                 # To be safe, ignore fails
                 try:
+                    data = None
                     if i in commit_scripts:
                         with open(join(path_script, i), "r") as f:
                             data = f.readlines()
@@ -280,5 +287,12 @@ def setup(app):
                         help_text.replace('.py', '')
                         s.write("::\n\n\t")
                         s.write("\t".join(help_text.splitlines(True)))
+
+                    if data is not None:
+                        # We have changed data on disk. Re-writing initial text
+                        with open(join(path_script, i), "w") as f:
+                            for line in data:
+                                f.write(line)
+
                 except Exception as e:
                     print(e)
