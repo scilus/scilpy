@@ -198,11 +198,31 @@ def setup(app):
         shutil.rmtree(join(path_src, "scripts"))
     os.mkdir(join(path_src, "scripts"))
 
-    # Fake c files
+    # 1) Modules API documentation preparation.
+
+    # Adding fake c files
     for f in os.listdir(join(path_src, "fake_files")):
         shutil.copyfile(join(path_src, "fake_files", f),
                         join(module_path, "scilpy/tractanalysis/", f))
 
+    # Preparing a cleanup hook to delete these files later when the doc is
+    # finished building.
+    def cleanup_fake_files(app, exception):
+        """Delete fake C files after docs are built."""
+        for f in os.listdir(join(path_src, "fake_files")):
+            copied_file = join(module_path, "scilpy/tractanalysis/", f)
+            if os.path.exists(copied_file):
+                try:
+                    os.remove(copied_file)
+                except Exception as e:
+                    print(f"[cleanup] Could not remove {copied_file}: {e}")
+    app.connect('build-finished', cleanup_fake_files)
+
+    # 2) Scripts documentation
+    # We will want to run the --help (i.e. build the argparser) to show the
+    # help in the doc.  In some cases, this fails if some modules are not
+    # installed. Temporarily replacing lines in file on disk to use mock.
+    # Unchanged script (saved in "data" below) is then re-written on disk.
     commit_scripts = ["scil_tractogram_commit.py"]
     amico_scripts = ["scil_NODDI_maps.py",
                      "scil_freewater_maps.py"]
@@ -222,12 +242,6 @@ def setup(app):
                 continue
             if not isdir(join(path_script, i)):
                 name, ext = i.split(".")
-
-                # We will want to run the --help (i.e. build the argparser) to
-                # show the help in the doc.
-                # In some cases, this fails if some modules are not installed.
-                # Temporarily replacing lines in file on disk to use mock.
-                # Unchanged script (saved in data) is then re-written on disk.
 
                 # To be safe, ignore fails
                 try:
