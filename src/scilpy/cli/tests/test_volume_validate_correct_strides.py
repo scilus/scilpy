@@ -56,7 +56,7 @@ def test_execution_processing_validate_bvecs_v1(script_runner, monkeypatch):
     in_dwi = os.path.join(SCILPY_HOME, 'processing',
                           'dwi_crop_1000.nii.gz')
     in_bvec = os.path.join(SCILPY_HOME, 'processing',
-                           '1000_bad_strides.bvec')
+                           'dwi_crop_1000_bad_strides.bvec')
     in_bval = os.path.join(SCILPY_HOME, 'processing',
                            '1000.bval')
 
@@ -90,7 +90,7 @@ def test_execution_processing_validate_bvecs_v3(script_runner, monkeypatch):
     in_dwi = os.path.join(SCILPY_HOME, 'processing',
                           'nufo.nii.gz')
     in_bvec = os.path.join(SCILPY_HOME, 'processing',
-                           '1000_bad_strides.bvec')
+                           'dwi_crop_1000_bad_strides.bvec')
     in_bval = os.path.join(SCILPY_HOME, 'processing',
                            '1000.bval')
 
