@@ -3,7 +3,7 @@
 Multi-shell multi-tissue fODF (msmt-fODF)
 =========================================
 
-This tutorial explains how to compute multi-shell multi-tissue fiber orientation distribution functions (fODFs) using multi-shell multi-tissue constrained spherical deconvolution (msmt-CSD). If your data contains less than three b-values, you might want to consider using single-shell single-tissue CSD (ssst-CSD) instead. See the :ref:`ssst_fodf` instructions for that. The following instructions are specific to multi-shell and based on [multi-tissue_CSD]_.
+This tutorial explains how to compute multi-shell multi-tissue fiber orientation distribution functions (fODFs) using multi-shell multi-tissue constrained spherical deconvolution (msmt-CSD) [multitissueCSD]_. If your data contains less than three b-values, you might want to consider using single-shell single-tissue CSD (ssst-CSD) instead. See the :ref:`ssst_fodf` instructions for that. The following instructions are specific to multi-shell and based on [multi-tissue_CSD]_.
 
 
 Preparing data for this tutorial
@@ -20,7 +20,7 @@ To run lines below, you need a various volumes, b-vector information and masks. 
     ?
 
 .. tip::
-    You may download the complete bash script to run the whole tutorial in one step `here <../../_static/reconst/msmt_scripts.sh>`_.
+    You may download the complete bash script to run the whole tutorial in one step `here </_static/bash/reconst/msmt_scripts.sh>`_.
 
 1. Computing the frf
 ********************

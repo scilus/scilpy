@@ -18,7 +18,7 @@ To run lines below, you need a various volumes, b-vector information and masks. 
     in_dir=$in_dir/btensor_testdata/
 
 .. tip::
-    You may download the complete bash script to run the whole tutorial in one step `here <../../_static/reconst/btensor_scripts.sh>`_.
+    You may download the complete bash script to run the whole tutorial in one step `here </_static/bash/reconst/btensor_scripts.sh>`_.
 
 1. Computing the frf
 ********************

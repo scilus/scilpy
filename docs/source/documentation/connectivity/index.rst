@@ -1,5 +1,5 @@
-Connectivity
-============
+5. Connectivity
+===============
 
 This section connectivity analysis methods in scilpy (Connectomics)
 

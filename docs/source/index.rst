@@ -25,9 +25,9 @@ The documentation is organized into the following sections:
    documentation/tractogram_manipulation/index
    documentation/bundle_analysis/index
    documentation/connectivity/index
-   documentation/utils/index
-   documentation/visualization/index
    documentation/start_to_finish_pipelines/index
+   documentation/visualization/index
+   documentation/utils/index
    documentation/scilpy_paper_index
 
 .. toctree::

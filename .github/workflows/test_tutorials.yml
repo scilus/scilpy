@@ -70,7 +70,7 @@ jobs:
 
       - name: Run tests
         run: |
-          chmod +x tutorials/*.sh
+          chmod +x docs/source/_static/*/*.sh
           
           # Get data
           wget -O WB-common.zip https://scil.usherbrooke.ca/scil_test_data/dvc-store/files/md5/21/0b52975dc2b84d94426166e74245a3
@@ -79,7 +79,7 @@ jobs:
           here=`pwd`
           input_path=$here/WB-common
           
-          for script in docs/source/documentation/*/*.sh;
+          for script in docs/source/_static/*/*.sh;
           do
             tmpdir=$(mktemp -d)
             cd "$tmpdir"

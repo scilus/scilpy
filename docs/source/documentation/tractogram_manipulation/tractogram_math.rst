@@ -22,5 +22,5 @@ Examples (based on figure 2 in scilpy paper)
 
 Here is how to reproduce figure 2 in our upcoming paper.
 
-.. image:: ../../_static/scilpy_paper_figure2.png
+.. image:: /_static/images/scilpy_paper_figure2.png
    :alt: Figure 2 in upcoming paper.

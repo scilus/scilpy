@@ -21,7 +21,7 @@ To run lines below, you need a symmetric ODF image (e.g. from Q-ball or CSD) and
     cp $HOME/.scilpy/processing/fodf_descoteaux07.nii.gz $in_dir/fodf.nii.gz
 
 .. tip::
-    You may download the complete bash script to run the whole tutorial in one step `here <../../_static/reconst/aodf_scripts.sh>`_.
+    You may download the complete bash script to run the whole tutorial in one step `here </_static/bash/reconst/aodf_scripts.sh>`_.
 
 Creating the aodf
 *****************

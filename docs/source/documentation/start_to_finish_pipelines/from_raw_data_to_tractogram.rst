@@ -7,7 +7,7 @@ scilpy provides a set of scripts to go from raw diffusion data to a full tractog
 
 For an introduction to such a start-to-finish pipeline, you may read section 3.1. in our upcoming paper, describing figure 1:
 
-.. image:: ../../_static/scilpy_paper_figure1.png
+.. image:: /_static/images//scilpy_paper_figure1.png
    :alt: Figure 1 in upcoming paper.
 
 
@@ -29,7 +29,7 @@ We will then extract the b0 images from the DWI using :ref:`scil_dwi_extract_b0`
 
 This should produce a file named `b0_mean.nii.gz` which is the average of all b0 images. It should look like this:
 
-.. image:: ../../_static/b0_mean.png
+.. image:: /_static/images/b0_mean.png
    :scale: 20%
 
 (See :ref:`Create overlapping slice mosaics<create_overlapping_slice_mosaics>` for instructions on how to create such a screenshot.)
@@ -71,12 +71,12 @@ See :ref:`scil_dti_metrics` for a full list of outputs and more details.
 
 Here is an example FA map:
 
-.. image:: ../../_static/fa.png
+.. image:: /_static/images/fa.png
    :scale: 20%
 
 and an RGB map:
 
-.. image:: ../../_static/rgb.png
+.. image:: /_static/images/rgb.png
    :scale: 20%
 
 
@@ -91,7 +91,7 @@ Finally, we can do some basic deterministic tractography using the principal eig
 
 The output tractogram (`tractogram.trk`) can be visualized with :ref:`scil_viz_bundle` and should look something like this:
 
-.. image:: ../../_static/eudx_tractogram.png
+.. image:: /_static/images/eudx_tractogram.png
    :scale: 20%
 
 
@@ -137,7 +137,7 @@ Tractography on fODFs can be performed using either probabilistic (`--algo prob`
 
 The output tractogram (`prob_tractogram.trk`) can be visualized with :ref:`scil_viz_bundle` and should look something like this:
 
-.. image:: ../../_static/prob_tractogram.png
+.. image:: /_static/images/prob_tractogram.png
    :scale: 20%
 
 You have now gone from raw diffusion data to both DTI and fODF-based tractograms using scilpy!

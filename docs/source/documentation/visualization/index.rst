@@ -1,5 +1,5 @@
-Visualization
-==============
+7. Visualization
+================
 
 This section covers visualization methods in scilpy.
 

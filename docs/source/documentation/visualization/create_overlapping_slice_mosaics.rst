@@ -25,23 +25,23 @@ labelmap images to some given colors.
 
 A T1-weighted MRI in a row-only layout:
 
-.. image:: ../../_static/scil_screenshot_volume_mosaic_overlap_t1.png
+.. image:: /_static/images/scil_screenshot_volume_mosaic_overlap_t1.png
    :scale: 20%
 
 A T1-weighted MRI in matrix layout and with a colormap applied:
 
-.. image:: ../../_static/scil_screenshot_volume_mosaic_overlap_t1_matrix_cmap.png
+.. image:: /_static/images/scil_screenshot_volume_mosaic_overlap_t1_matrix_cmap.png
    :scale: 20%
 
 A labelmap image in matrix layout and with a colormap applied:
 
-.. image:: ../../_static/scil_screenshot_volume_mosaic_overlap_tissue_map.png
+.. image:: /_static/images/scil_screenshot_volume_mosaic_overlap_tissue_map.png
    :scale: 20%
 
 A T1-weighted MRI and an overlaid labelmap image in matrix layout and with a
 colormap applied:
 
-.. image:: ../../_static/scil_screenshot_volume_mosaic_overlap_t1_tisue_map.png
+.. image:: /_static/images/scil_screenshot_volume_mosaic_overlap_t1_tisue_map.png
    :scale: 20%
 
 The data used to generate these figures correspond to the ISMRM 2015

@@ -20,5 +20,5 @@ Examples
 Here is the list of commands to reproduce Figure 5 in our upcoming scilpy paper.
 
 
-.. image:: ../../_static/scilpy_paper_figure5.png
+.. image:: /_static/images/scilpy_paper_figure5.png
    :alt: Figure 5 in upcoming paper.

@@ -11,7 +11,7 @@ Preparing data for this tutorial
 ??
 
 .. tip::
-    You may download the complete bash script to run the whole tutorial in one step `here <../../_static/reconst/ssst_fodf.sh>`_.
+    You may download the complete bash script to run the whole tutorial in one step `here </_static/bash/reconst/ssst_fodf.sh>`_.
 
 
 1. Computing the frf

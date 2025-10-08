@@ -9,7 +9,7 @@ between :
 
 When saturation pulses are applied at off-resonance frequencies, the MRI signal from bound protons decreases. This attenuation depends on the macromolecular content of tissue, making MT imaging sensitive to myelin content. The inhomogeneous Magnetization Transfer (ihMT) enhances this effect by using alternating positive and negative frequency saturation pulses, improving specificity to myelin.
 
-.. image:: ../../_static/scil_ihmt_explanation.png
+.. image:: /_static/images/scil_ihmt_explanation.png
    :alt: How does ihMT work?
    :width: 75%
    :align: center
@@ -29,7 +29,7 @@ Computed indices include:
 +------------------------------------------+----------------------------------------------+
 | **MTR**: Magnetization Transfer Ratio    | **MTsat**: Magnetization Transfer Saturation |
 +==========================================+==============================================+
-| .. image:: /_static/reconst/scil_MTR.gif | .. image:: /_static/reconst/scil_MTsat.gif   |
+| .. image:: /_static/images/scil_MTR.gif  | .. image:: /_static/images/scil_MTsat.gif    |
 |    :width: 35%                           |    :width: 35%                               |
 |    :align: center                        |    :align: center                            |
 +------------------------------------------+----------------------------------------------+
@@ -40,7 +40,7 @@ Computed indices include:
 +-------------------------------------------------------+--------------------------------------------------------------+
 | **ihMTR**: Inhomogeneous Magnetization Transfer Ratio | **ihMTsat**: Inhomogeneous Magnetization Transfer Saturation |
 +=======================================================+==============================================================+
-| .. image:: /_static/reconst/scil_ihMTR.gif            | .. image:: /_static/reconst/scil_ihMTsat.gif                 |
+| .. image:: /_static/images/scil_ihMTR.gif             | .. image:: /_static/images/scil_ihMTsat.gif                  |
 |    :width: 35%                                        |    :width: 35%                                               |
 |    :align: center                                     |    :align: center                                            |
 +-------------------------------------------------------+--------------------------------------------------------------+
@@ -93,7 +93,7 @@ Note. If your data comes from a DICOM file, you may convert it to a nifti file:
     dcm2bids -d DICOM_folder -p id_subject -c config.json -o sub-id
 
 .. tip::
-    You may download the complete bash script to run the whole tutorial in one step `here <../../_static/reconst/mti_scripts.sh>`_.
+    You may download the complete bash script to run the whole tutorial in one step `here </_static/bash/reconst/mti_scripts.sh>`_.
 
 Basic Usage
 -----------
