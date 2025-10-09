@@ -7,6 +7,6 @@ This section covers bundle analysis methods in scilpy.
    :maxdepth: 1
 
    tractogram_segmentation
-   bundle_diameter_fitting_function
    profilometry
    tractometry
+   create_population_template

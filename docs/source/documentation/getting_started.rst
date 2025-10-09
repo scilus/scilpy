@@ -28,5 +28,18 @@ In order to follow the tutorials we highly encourage you to download this archiv
 .. code-block:: bash
 
     wget -O WB-common.zip https://scil.usherbrooke.ca/scil_test_data/dvc-store/files/md5/21/0b52975dc2b84d94426166e74245a3
+    # Unzip the file manually, or:
     unzip WB-common.zip
     rm WM-common.zip
+
+This file contains:
+
+.. code-block:: bash
+
+    ├── WB-common
+    │   ├── brainmask.nii.gz    # A binary mask of the whole brain
+    │   ├── dwi.bval            # The list of b-values
+    │   ├── dwi.bvec            # The list of b-vectors
+    │   ├── dwi.nii.gz          # The 4D dwi volume
+    │   ├── t1.nii.gz           # The 3D anatomical volume, T1-weighted
+    │   ├── wmparc.nii.gz       # The parcellation gray matter regions (from FreeSurfer)

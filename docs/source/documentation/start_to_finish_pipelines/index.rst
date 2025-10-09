@@ -1,5 +1,5 @@
-6. Start-to-finish pipelines
-============================
+Start-to-finish pipelines
+=========================
 
 Here are examples to help you create complete pipelines.
 
