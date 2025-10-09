@@ -104,11 +104,11 @@ def main():
     strides = (strides[:, 0] + 1) * strides[:, 1]
     # Check if the strides are correct ([1, 2, 3])
     if np.array_equal(strides, [1, 2, 3]):
-        correct=True
+        is_stride_correct=True
         logging.warning('Input data already has the correct strides [1, 2, 3].'
                         ' No correction on data needed and outputed.')
     else:
-        correct=False
+        is_stride_correct=False
         logging.warning('Input data has strides {}. '
                         'Correcting to [1, 2, 3].'.format(strides))
         # Compute the required transform to get to [1, 2, 3]
@@ -183,18 +183,21 @@ def main():
         else:
             logging.warning('Applying correction to b-vectors.')
             logging.info('Transform is: \n{0}.'.format(best_t))
-            bvecs = np.dot(bvecs, best_t)
+            valid_bvecs = np.dot(bvecs, best_t)
             # If the data strides were correct, save the bvecs now
-            if correct:
-                np.savetxt(args.out_bvec, bvecs.T, "%.8f")
+            if is_stride_correct:
+                np.savetxt(args.out_bvec, valid_bvecs.T, "%.8f")
 
     # Apply the permutation and sign flip to the bvecs and save them
-    if args.in_bvec and not correct:
+    if args.in_bvec and not is_stride_correct:
         if not args.validate_bvec:
             _, bvecs = read_bvals_bvecs(None, args.in_bvec)
-        bvecs = flip_gradient_sampling(bvecs.T, axes_to_flip, 'fsl')
-        bvecs = swap_gradient_axis(bvecs, swapped_order, 'fsl')
-        np.savetxt(args.out_bvec, bvecs, "%.8f")
+        else:
+            bvecs = valid_bvecs
+        flipped_bvecs = flip_gradient_sampling(bvecs.T, axes_to_flip, 'fsl')
+        swapped_flipped_bvecs = swap_gradient_axis(flipped_bvecs,
+                                                   swapped_order, 'fsl')
+        np.savetxt(args.out_bvec, swapped_flipped_bvecs, "%.8f")
 
 
 if __name__ == "__main__":
