@@ -16,6 +16,7 @@ out_folder=$2
 scil_data_download
 cp -r $HOME/.scilpy/btensor_testdata $in_dir/
 in_dir=$in_dir/btensor_testdata/
+
 #       -----------------> I DON'T HAVE MASKS. FAILS.
 
 # ==============
@@ -46,4 +47,4 @@ echo "*****************"
 scil_btensor_metrics --in_dwis $in_dir/dwi_linear.nii.gz $in_dir/dwi_planar.nii.gz $in_dir/dwi_spherical.nii.gz \
     --in_bvals $in_dir/linear.bvals $in_dir/planar.bval $in_dir/spherical.bvals \
     --in_bvecs $in_dir/linear.bvecs $in_dir/planar.bvecs $in_dir/dwi_spherical.bvecs \
-    --in_bdeltas 1 -0.5 0 --fa $in_dir/fa.nii.gz --processes 8 -v # --mask $in_dir/mask.nii.gz
+    --in_bdeltas 1 -0.5 0 --fa $in_dir/fa.nii.gz --mask $in_dir/mask.nii.gz --processes 8 -v

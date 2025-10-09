@@ -23,13 +23,5 @@ in_dir=$in_dir/btensor_testdata/
 # ==============
 cd $out_folder
 
-echo "Creating the frf"
-echo "*****************"
-scil_frf_msmt dwi.nii.gz dwi.bval dwi.bvec wm_frf.txt gm_frf.txt \
-        csf_frf.txt --mask $in_dir/brainmask.nii.gz --mask_wm $in_dir/wm_mask.nii.gz \
-        --mask_gm $in_dir/gm_mask.nii.gz --mask_csf $in_dir/csf_mask.nii.gz -v
-
-echo "Creating the fODF"
-echo "*****************"
-scil_fodf_msmt dwi.nii.gz dwi.bval dwi.bvec wm_fodf.txt gm_fodf.txt \
-    csf_fodf.txt --mask $in_dir/brainmask.nii.gz -v
+scil_qball_metrics $in_dir/dwi.nii.gz $in_dir/dwi.bval $in_dir/dwi.bvec \
+    --mask $in_dir/brainmask.nii.gz --not_all --gfa gfa.nii.gz --nufo nufo.nii.gz
