@@ -1,6 +1,20 @@
 #!/usr/bin/env bash
 set -euo pipefail  # Will fail on error
 
+<<<<<<< HEAD
+=======
+# ==============
+# How to run this script
+#    1) Load the input data
+#       https://scilpy.readthedocs.io/en/latest/documentation/getting_started.html
+#    2) Call this script with
+#    --->   bash streamlines_math.sh  path/to/your/data  path/to/save/outputs
+# ==============
+in_folder=$1
+out_folder=$2
+
+
+>>>>>>> b3af6517 (Finishing tutorial for tractogram_math)
 # --------------------
 # Resampling / compressing
 # --------------------
