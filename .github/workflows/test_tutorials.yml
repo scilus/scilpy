@@ -51,6 +51,7 @@ jobs:
             libdrm-dev \
             libgl1-mesa-dev \
             libosmesa6-dev
+          sudo apt-get install wget
 
       - name: stdlib checkout
         if: ${{ !contains(steps.python-selector.outputs.python-version, '3.12') }}
@@ -73,11 +74,11 @@ jobs:
           chmod +x docs/source/_static/bash/*/*.sh
           
           # Get data
-          wget -O WB-common.zip https://scil.usherbrooke.ca/scil_test_data/dvc-store/files/md5/21/0b52975dc2b84d94426166e74245a3
-          unzip WB-common
-          rm WB-common
+          wget -O data_for_test.tar.gz https://drive.google.com/file/d/1acraVPkRfYihBS15AEJi9EUgVs0S0LKY/view?usp=sharing
+          tar -xvf data_for_test.tar.gz
+          rm data_for_test.tar.gz 
           here=`pwd`
-          input_path=$here/WB-common
+          input_path=$here/data_for_test
           
           for script in docs/source/_static/bash/*/*.sh;
           do
