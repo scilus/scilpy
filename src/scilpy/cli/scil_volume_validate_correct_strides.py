@@ -42,6 +42,7 @@ from scilpy.gradients.bvec_bval_tools import (check_b0_threshold,
                                               is_normalized_bvecs,
                                               normalize_bvecs,
                                               swap_gradient_axis)
+from scilpy.image.utils import verify_strides, find_strides_transform
 from scilpy.io.utils import (add_b0_thresh_arg, add_overwrite_arg,
                              add_skip_b0_check_arg, assert_inputs_exist,
                              assert_outputs_exist, add_verbose_arg)
@@ -101,26 +102,10 @@ def main():
 
     # Get the current strides
     img = nib.load(args.in_data)
-    strides = nib.io_orientation(img.affine).astype(np.int8)
-    strides = (strides[:, 0] + 1) * strides[:, 1]
-    # Check if the strides are correct ([1, 2, 3])
-    if np.array_equal(strides, [1, 2, 3]):
-        is_stride_correct = True
-        logging.warning('Input data already has the correct strides [1, 2, 3].'
-                        ' No correction on data needed and outputed.')
-    else:
-        is_stride_correct = False
-        logging.warning('Input data has strides {}. '
-                        'Correcting to [1, 2, 3].'.format(strides))
+    strides, is_stride_correct = verify_strides(img)
+    if not is_stride_correct:
         # Compute the required transform to get to [1, 2, 3]
-        n = len(strides)
-        transform = [0]*n
-        for i, m in enumerate(strides):
-            # Get the axis (0, 1, 2) and the sign of the current stride
-            axis = abs(m) - 1
-            sign = 1 if m > 0 else -1
-            # Set the transform for this axis
-            transform[axis] = sign * (i + 1)
+        transform = find_strides_transform(strides)
 
         # Write the transform in a format compatible with the
         # flip_gradient_axis and swap_gradient_axis functions (for bvecs)
@@ -129,7 +114,8 @@ def main():
         # Write the transform in a format compatible with the nibabel
         # as_reoriented function (for image)
         ornt = np.column_stack((np.array(swapped_order, dtype=np.int8),
-                                np.where(np.isin(range(n), axes_to_flip),
+                                np.where(np.isin(range(len(strides)),
+                                                 axes_to_flip),
                                          -1, 1)))
         # Apply the transform to the image and save it
         new_img = img.as_reoriented(ornt)
