@@ -55,19 +55,16 @@ def _build_arg_parser():
 
     p.add_argument('in_data', 
                    help='Path to input nifti file.')
-    
     p.add_argument('out_data',
                    help='Path to output nifti file with corrected strides.')
-    
+
     p.add_argument('--in_bvec',
                    help='Path to bvec file (FSL format). If provided, the '
                         'bvecs will \nbe permuted and sign flipped to match '
                         'the new strides.')
-
     p.add_argument('--out_bvec',
                    help='Path to output bvec file (FSL format). Must be '
                         'provided if --in_bvec is used.')
-    
     p.add_argument('--validate_bvec', action='store_true',
                    help='If set, the script first detects sign flips and/or '
                         'axes swaps \nin the b-vectors from a fiber coherence '
@@ -75,7 +72,6 @@ def _build_arg_parser():
                         'permuting/sign flipping them to match the new '
                         'strides. \nIf not set, the b-vectors are only '
                         'permuted and sign flipped to match the new strides.')
-
     p.add_argument('--in_bval',
                    help='Path to bval file. Must be provided if '
                         '--validate_bvecs is used.')
@@ -102,9 +98,11 @@ def main():
         parser.error('--in_bvec and --in_bval must be provided if '
                      '--validate_bvecs is set.')
 
+    # Get the current strides
     img = nib.load(args.in_data)
     strides = nib.io_orientation(img.affine).astype(np.int8)
     strides = (strides[:, 0] + 1) * strides[:, 1]
+    # Check if the strides are correct ([1, 2, 3])
     if np.array_equal(strides, [1, 2, 3]):
         correct=True
         logging.warning('Input data already has the correct strides [1, 2, 3].'
@@ -113,15 +111,20 @@ def main():
         correct=False
         logging.warning('Input data has strides {}. '
                         'Correcting to [1, 2, 3].'.format(strides))
+        # Compute the required transform to get to [1, 2, 3]
         n = len(strides)
         transform = [0]*n
         for i, m in enumerate(strides):
+            # Get the axis (0, 1, 2) and the sign of the current stride
             axis = abs(m) - 1
             sign = 1 if m > 0 else -1
-            transform[axis] = sign * (i+1)
+            # Set the transform for this axis
+            transform[axis] = sign * (i + 1)
 
         axes_to_flip = []
         swapped_order = []
+        # Write the transform in a format compatible with the
+        # flip_gradient_sampling and swap_gradient_axis functions (for bvecs)
         for next_axis in transform:
             if next_axis in [1, 2, 3]:
                 swapped_order.append(next_axis - 1)
@@ -129,16 +132,19 @@ def main():
                 axes_to_flip.append(abs(next_axis) - 1)
                 swapped_order.append(abs(next_axis) - 1)
 
+        # Write the transform in a format compatible with the nibabel
+        # as_reoriented function (for image)
         ornt = np.column_stack((np.array(swapped_order, dtype=np.int8),
                                 np.where(np.isin(range(n), axes_to_flip),
                                          -1, 1)))
-
+        # Apply the transform to the image and save it
         new_img = img.as_reoriented(ornt)
         nib.save(new_img, args.out_data)
 
     if args.validate_bvec:
         logging.info('Validating b-vectors from fiber coherence index...')
-        data = img.get_fdata()
+        # Load and validate the data and bvals/bvecs
+        data = img.get_fdata().astype(np.float32)
         if len(data.shape) != 4:
             parser.error('Input data must be DWI (4D) when --validate_bvec '
                          'is set.')
@@ -153,8 +159,9 @@ def main():
                               b0_threshold=args.b0_threshold)
         tenmodel = TensorModel(gtab, fit_method='WLS',
                                min_signal=np.min(data[data > 0]))
-
+        # Generate a mask to avoid fitting tensor on the whole image
         mask = np.zeros(data.shape[:3], dtype=bool)
+        # Use a small cubic ROI at the center of the volume
         interval_i = slice(data.shape[0]//2,
                            data.shape[0]//2 + data.shape[0]//4)
         interval_j = slice(data.shape[1]//2,
@@ -162,13 +169,14 @@ def main():
         interval_k = slice(data.shape[2]//2,
                            data.shape[2]//2 + data.shape[2]//4)
         mask[interval_i, interval_j, interval_k] = 1
+        # Compute the necessary DTI metrics to compute the coherence of bvecs
         tenfit = tenmodel.fit(data, mask=mask)
         fa = fractional_anisotropy(tenfit.evals)
         evecs = tenfit.evecs.astype(np.float32)[..., 0]
         evecs[fa < 0.2] = 0
         coherence, transform = compute_coherence_table_for_transforms(evecs, 
                                                                       fa)
-
+        # Find the best transform and apply it to the bvecs if needed
         best_t = transform[np.argmax(coherence)]
         if (best_t == np.eye(3)).all():
             logging.info('The b-vectors are aligned with the original data.')
@@ -176,9 +184,11 @@ def main():
             logging.warning('Applying correction to b-vectors.')
             logging.info('Transform is: \n{0}.'.format(best_t))
             bvecs = np.dot(bvecs, best_t)
+            # If the data strides were correct, save the bvecs now
             if correct:
                 np.savetxt(args.out_bvec, bvecs.T, "%.8f")
 
+    # Apply the permutation and sign flip to the bvecs and save them
     if args.in_bvec and not correct:
         if not args.validate_bvec:
             _, bvecs = read_bvals_bvecs(None, args.in_bvec)
