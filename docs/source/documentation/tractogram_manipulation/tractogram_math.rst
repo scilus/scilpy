@@ -1,7 +1,7 @@
 .. _page_tractogram_math:
 
-Tractogram manipulations: logical operations and filtering
-==========================================================
+Tractogram manipulations: logical operations, resampling, filtering
+===================================================================
 
 Scilpy scripts allow users to modify tractograms in various ways based on their needs, such as shown on Figure 2 in our upcoming paper:
 
@@ -27,6 +27,9 @@ Overall, figure 2 in our upcoming paper represents well the range of possibiliti
 | ** For the coloring of tractograms, see :ref:`page_viz_colors`.
 | ** For an example of streamlines cutting, see :ref:`page_streamlines_math`.
 
+
+Examples of tractogram manipulation
+-----------------------------------
 
 Preparing data for this tutorial
 ********************************
@@ -155,8 +158,8 @@ Finally, it is again possible to split per Quickbundles cluster.
     scil_tractogram_split --nb_chunk 3 --split_per_cluster \
           $tractogram1 out_split_3QB_part -v --qbx_thresholds 6
 
-Tractogram flipping
-*******************
+C. Tractogram flipping
+**********************
 
 To flip a tractogram on an axis (x, y, z; here we chose the x-axis), you can use:
 
