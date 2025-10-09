@@ -1,7 +1,14 @@
-Instructions for estimation of bundle diameter
-========================================================
+Estimation of a bundle diameter
+===============================
 
-Script to estimate the diameter of bundle(s) along their length.
+Here is an explanation to help you run :ref:`scil_bundle_diameter` to estimate the diameter of bundle(s) along their length.
+
+.. note::
+    This tutorial is in preparation.
+
+Preparing data for this tutorial
+********************************
+
 The script expects:
 
 - bundles with coherent endpoints from scil_bundle_uniformize_endpoints
@@ -15,6 +22,22 @@ The script expects:
     
     - fanning is in 2 directions (uniform dispersion) good approximation
 
+Running the script
+******************
+
+The use of the **--fitting_func** option for the least-square fitting:
+
+- ``None``: Default, all points are weighted equally no matter their (normalized 0-1) distance to the barycenter.
+- ``lin_up``': Points are weighted using their distance to the barycenter (linear, x). Farther = increased weight. Bigger envelope.
+- ``lin_down``: Points are weighted using their distance to the barycenter (linear, 1-x). Farther = decreased weight. Smaller envelope.
+- ``exp``: Points are weighted using their distance to the barycenter (exponential, e^x). Farther = decreased weight. Smaller envelope.
+- ``inv``: Points are weighted using their distance to the barycenter (inverse, 1/x). Farther = decreased weight. Much smaller envelope.
+- ``log``: Points are weighted using their distance to the barycenter (logarithmic, ln x+1). Farther = increased weight. Bigger envelope.
+
+
+Explanation of the output
+*************************
+
 The scripts prints a JSON file with mean/std to be compatible with tractometry.
 WARNING: STD is in fact an ERROR measure from the fit and NOT an STD.
 
@@ -22,12 +45,3 @@ Since the estimation and fit quality is not always intuitive for some bundles
 and the tube with varying diameter is not easy to color/visualize,
 the script comes with its own VTK rendering to allow exploration of the data.
 (optional).
-
-The use of the **--fitting_func** option for the least-square fitting:
-
-- ``None``: Default, all points are weighted equally no matter their (normalized 0-1) distance to the barycenter.
-- ``lin_up``': Points are weighted using their distance to the barycenter (linear, x). Farther = increased weight. Bigger envelope. 
-- ``lin_down``: Points are weighted using their distance to the barycenter (linear, 1-x). Farther = decreased weight. Smaller envelope.
-- ``exp``: Points are weighted using their distance to the barycenter (exponential, e^x). Farther = decreased weight. Smaller envelope.
-- ``inv``: Points are weighted using their distance to the barycenter (inverse, 1/x). Farther = decreased weight. Much smaller envelope.
-- ``log``: Points are weighted using their distance to the barycenter (logarithmic, ln x+1). Farther = increased weight. Bigger envelope.

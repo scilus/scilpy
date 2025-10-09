@@ -137,6 +137,7 @@ def main():
     assert_headers_compatible(parser, args.in_sh, args.mask)
 
     # Loading
+    logging.info("Loading data")
     sh_img = nib.load(args.in_sh)
     sh = sh_img.get_fdata()
 
@@ -195,6 +196,7 @@ def main():
             nufid = np.count_nonzero(values, axis=-1).astype(np.uint8)
             nib.save(nib.Nifti1Image(nufid, sh_img.affine), args.nufid)
 
+    logging.info("Done. All files written to disk.")
 
 if __name__ == '__main__':
     main()

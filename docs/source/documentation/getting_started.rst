@@ -28,3 +28,5 @@ In order to follow the tutorials we highly encourage you to download this archiv
 .. code-block:: bash
 
     wget -O WB-common.zip https://scil.usherbrooke.ca/scil_test_data/dvc-store/files/md5/21/0b52975dc2b84d94426166e74245a3
+    unzip WB-common.zip
+    rm WM-common.zip

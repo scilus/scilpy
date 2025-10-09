@@ -16,5 +16,5 @@ Scilpy scripts enable users to create a WM bundle population template, such as d
 Then, registration can be performed (see :ref:`page_tractogram_registration`). The tractograms can be downsampled and concatenated (see :ref:`page_tractogram_math`) and even concatenated to their flipped version to obtain a symmetrical template.
 
 
-.. image:: ../../_static/scilpy_paper_figure3.png
+.. image:: /_static/images/scilpy_paper_figure3.png
    :alt: Figure 3 in upcoming paper.

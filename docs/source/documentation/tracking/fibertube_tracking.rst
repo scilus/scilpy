@@ -1,5 +1,5 @@
-Introduction to the Fibertube Tracking environment through an interactive demo.
-===============================================================================
+Introduction to the Fibertube Tracking
+======================================
 
 In this demo, you will be introduced to the main scripts of this project
 as you apply them on simple data. Our main objective is to better

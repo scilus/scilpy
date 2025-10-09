@@ -14,7 +14,7 @@ Beyond profilometry, other analysis steps could also be performed on the whole b
 Example: reproducing figure 4 in scilpy paper
 ---------------------------------------------
 
-.. image:: ../../_static/scilpy_paper_figure4.png
+.. image:: /_static/images/scilpy_paper_figure4.png
    :alt: Figure 4 in upcoming paper.
 
 

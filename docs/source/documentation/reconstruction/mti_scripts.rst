@@ -1,29 +1,24 @@
 Generating Myelin Indices Maps using Magnetization Transfer Imaging (MTI)
 ===============================================================================
 
-Magnetization Transfer (MT) imaging is an MRI technique that measures interactions 
+Magnetization Transfer (MT) imaging is an MRI technique that measures interactions
 between :
 
 - **Bound protons** (associated with macromolecules like myelin)
 - **Free water protons** (aqueous pool)
 
-When saturation pulses are applied at off-resonance frequencies, 
-the MRI signal from bound protons decreases. This attenuation depends on the 
-macromolecular content of tissue, making MT imaging sensitive to myelin content. 
-The inhomogeneous Magnetization Transfer (ihMT) enhances this effect by using 
-alternating positive and negative frequency saturation pulses, improving 
-specificity to myelin.
+When saturation pulses are applied at off-resonance frequencies, the MRI signal from bound protons decreases. This attenuation depends on the macromolecular content of tissue, making MT imaging sensitive to myelin content. The inhomogeneous Magnetization Transfer (ihMT) enhances this effect by using alternating positive and negative frequency saturation pulses, improving specificity to myelin.
 
-.. image:: ../../_static/scil_ihmt_explanation.png
+.. image:: /_static/images/scil_ihmt_explanation.png
    :alt: How does ihMT work?
+   :width: 75%
+   :align: center
 
 Play the video for more details on how MT sequence acquisition and parameter calculation work (link will be added soon)
 .. ToDo: Add video on YouTube (MT_WhatIsIt.mp4)
 
 
-The ``scil_mti_maps_ihMT`` script computes **four myelin indices maps** from Magnetization Transfer (MT)
-and inhomogeneous Magnetization Transfer (ihMT) images. These maps provide valuable information
-about **myelin content** in brain white matter.
+The ``scil_mti_maps_ihMT`` script computes **four myelin indices maps** from Magnetization Transfer (MT) and inhomogeneous Magnetization Transfer (ihMT) images. These maps provide valuable information about **myelin content** in brain white matter.
 
 
 Computed indices include:
@@ -31,13 +26,13 @@ Computed indices include:
 
 **Magnetization Transfer maps**
 
-+----------------------------------------+----------------------------------------------+
-| **MTR**: Magnetization Transfer Ratio  | **MTsat**: Magnetization Transfer Saturation |
-+========================================+==============================================+
-| .. image:: ../../_static/scil_MTR.gif  | .. image:: ../../_static/scil_MTsat.gif      |
-|    :width: 200                         |    :width: 200                               |
-|    :align: center                      |    :align: center                            |
-+----------------------------------------+----------------------------------------------+
++------------------------------------------+----------------------------------------------+
+| **MTR**: Magnetization Transfer Ratio    | **MTsat**: Magnetization Transfer Saturation |
++==========================================+==============================================+
+| .. image:: /_static/images/scil_MTR.gif  | .. image:: /_static/images/scil_MTsat.gif    |
+|    :width: 35%                           |    :width: 35%                               |
+|    :align: center                        |    :align: center                            |
++------------------------------------------+----------------------------------------------+
 
 
 **Inhomogeneous Magnetization Transfer maps**
@@ -45,8 +40,8 @@ Computed indices include:
 +-------------------------------------------------------+--------------------------------------------------------------+
 | **ihMTR**: Inhomogeneous Magnetization Transfer Ratio | **ihMTsat**: Inhomogeneous Magnetization Transfer Saturation |
 +=======================================================+==============================================================+
-| .. image:: ../../_static/scil_ihMTR.gif               | .. image:: ../../_static/scil_ihMTsat.gif                    |
-|    :width: 200                                        |    :width: 200                                               |
+| .. image:: /_static/images/scil_ihMTR.gif             | .. image:: /_static/images/scil_ihMTsat.gif                  |
+|    :width: 35%                                        |    :width: 35%                                               |
 |    :align: center                                     |    :align: center                                            |
 +-------------------------------------------------------+--------------------------------------------------------------+
 
@@ -54,19 +49,7 @@ Computed indices include:
 Preparing the Input Data
 -------------------------
 
-Before running the script:
-
-- Convert DICOMs → NIfTI with ``dcm2niix`` using this specific version :
-  `v1.0.20200331 <https://github.com/rordenlab/dcm2niix/releases/tag/v1.0.20200331>`__.
-
-  To convert our DICOM data folder to the compatible BIDS structure, we used
-  `dcm2bids <https://github.com/cbedetti/Dcm2Bids#install>`__.
-
-
-.. code-block:: bash
-    
-    dcm2bids -d DICOM_folder -p id_subject -c config.json -o sub-id
-
+You will need data available in ?
 
 - Required contrasts:
 
@@ -78,7 +61,7 @@ Before running the script:
 6. **mtoff_T1** *(optional)* – T1-weighted unsaturated reference (required for saturation maps)
 
 
-- Example of input data for one subject: 
+- Example of input data for one subject:
 
 .. code-block:: text
 
@@ -98,7 +81,19 @@ Before running the script:
               ├── sub-001_acq-mtoff_ihmt.nii.gz (optional)
               ├── sub-001_acq-T1w_ihmt.json
               └── sub-001_acq-T1w_ihmt.nii.gz
-          
+
+Note. If your data comes from a DICOM file, you may convert it to a nifti file:
+
+- Convert DICOMs → NIfTI with ``dcm2niix`` using this specific version : `v1.0.20200331 <https://github.com/rordenlab/dcm2niix/releases/tag/v1.0.20200331>`__.
+
+  To convert our DICOM data folder to the compatible BIDS structure, we used `dcm2bids <https://github.com/cbedetti/Dcm2Bids#install>`__.
+
+.. code-block:: bash
+    
+    dcm2bids -d DICOM_folder -p id_subject -c config.json -o sub-id
+
+.. tip::
+    You may download the complete bash script to run the whole tutorial in one step `here </_static/bash/reconst/mti_scripts.sh>`_.
 
 Basic Usage
 -----------
