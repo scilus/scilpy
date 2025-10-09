@@ -20,7 +20,7 @@ First, make sure you have the required data. You will need:
 * A white matter mask (e.g., `wm_mask.nii.gz`)
 
 Preprocessing
------------------
+-------------
 
 We will then extract the b0 images from the DWI using :ref:`scil_dwi_extract_b0` and compute their mean to use as a reference for registration and visualization.
 ::
@@ -37,14 +37,14 @@ This should produce a file named `b0_mean.nii.gz` which is the average of all b0
 Preprocessing of the DWI can include rejecting problematic volumes with :ref:`scil_dwi_detect_volume_outliers` or denoising with :ref:`scil_denoising_nlmeans`. The user may include other preprocessing steps of their choice, such as registration to the MNI template with ANTS or skull-stripping with FSL.
 
 Reconstruction
-----------------
+--------------
 
 scilpy has scripts to compute various local reconstruction methods (:ref:`scil_dti_metrics`, :ref:`scil_dki_metrics`, :ref:`scil_qball_metrics`, :ref:`scil_freewater_maps`, :ref:`scil_NODDI_maps`), particularly many variations of fODFs (:ref:`scil_fodf_metrics`, :ref:`scil_fodf_msmt`, :ref:`scil_fodf_memsmt`, :ref:`scil_fodf_ssst`). 
 
 Let's start with diffusion tensor imaging (DTI).
 
 DTI reconstruction 
-----------------
+------------------
 
 We will extract the shell with a b-value around 1000 s/mm² for DTI fitting using :ref:`scil_dwi_extract_shell`. We will also include the b0 images.
 ::
@@ -81,7 +81,7 @@ and an RGB map:
 
 
 DTI Tractography
-------------------
+----------------
 
 Finally, we can do some basic deterministic tractography using the principal eigenvector (`tensor_evecs_v1.nii.gz`) of the DTI. We will use :ref:`scil_tracking_local` with the [EUDX]_ algorithm. We will seed from the white matter mask and constrain tracking to stay within it. We will generate 20,000 seeds and only keep streamline with lengths between 20 and 200 mm. We will also apply a compression factor of 0.1 to reduce file size.
 ::
@@ -98,7 +98,7 @@ The output tractogram (`tractogram.trk`) can be visualized with :ref:`scil_viz_b
 Next, let's move on to fiber orientation distribution functions (fODFs).
 
 fODF reconstruction
-------------------
+-------------------
 
 fODFs require the compuation of a response function [Descoteaux07]_. We will use the `ssst` algorithm from :ref:`scil_frf_ssst` to compute a **s**\ ingle-**s**\ hell **s**\ ingle-**t**\ issue response function from the b=1000 shell we extracted earlier. We will also use the brain mask and a white matter mask to constrain the selection of voxels used for the estimation.
 ::
@@ -126,7 +126,7 @@ This will produce several files, including:
 For more information on fodf reconstruction, see :ref:`ssst_fodf` and :ref:`msmt_fodf`.
 
 fODF Tractography
-------------------
+-----------------
 
 Tractography on fODFs can be performed using either probabilistic (`--algo prob`) or deterministic (`--algo det`) algorithms in :ref:`scil_tracking_local`. We will use the same white matter mask for seeding and constraining tracking. We will generate 200,000 seeds and only keep streamlines with lengths between 20 and 200 mm, and apply a compression factor of 0.1 to reduce file size.
 ::
@@ -142,8 +142,8 @@ The output tractogram (`prob_tractogram.trk`) can be visualized with :ref:`scil_
 
 You have now gone from raw diffusion data to both DTI and fODF-based tractograms using scilpy!
 
-References:
-----------------------
+References
+----------
 
 .. [EUDX] Garyfallidis, E. (2013). Towards an accurate brain tractography (Doctoral dissertation, University of Cambridge).
 .. [Descoteaux07] Descoteaux, M., Angelino, E., Fitzgibbons, S., & Deriche, R. (2007). Regularized, fast, and robust analytical q-ball imaging. Magnetic Resonance in Medicine: An Official Journal of the International Society for Magnetic Resonance in Medicine, 58(3), 497-510.

@@ -17,10 +17,8 @@ specificity to myelin.
 .. image:: ../../_static/scil_ihmt_explanation.png
    :alt: How does ihMT work?
 
-Play the video for more details on how MT sequence acquisition and parameter 
-calculation work.
-
-.. video:: MT_WhatIsIt.mp4
+Play the video for more details on how MT sequence acquisition and parameter calculation work (link will be added soon)
+.. ToDo: Add video on YouTube (MT_WhatIsIt.mp4)
 
 
 The ``scil_mti_maps_ihMT`` script computes **four myelin indices maps** from Magnetization Transfer (MT)
@@ -131,7 +129,7 @@ Minimal command example:
 
 
 Understanding the Outputs
-------------------------
+-------------------------
 
 The script generates two main folders:
 
@@ -215,7 +213,7 @@ The ``ihmt_flow`` pipelines wrap ``scil_mti_maps_ihMT`` together with
 preprocessing, registration, and correction steps. Using ``ihmt_flow`` is
 recommended if you want a ready-to-use workflow that ensures reproducibility
 and minimizes manual intervention. In addition, the pipeline register the MT images 
-generated in the DWI space using the output from Tractoflow (Register_T1, *t1_brain_on_b0.nii.gz).
+generated in the DWI space using the output from Tractoflow (Register_T1, \*t1_brain_on_b0.nii.gz).
 
 
 **Usage**:
