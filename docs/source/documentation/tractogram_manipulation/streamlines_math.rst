@@ -3,7 +3,7 @@
 Streamlines manipulation (resampling, smoothing)
 ================================================
 
-Here, we discuss scripts allowing modifying the streamlines themselves, for instance by resampling the number of points on each streamline (:ref:`scil_tractogram_resample_nb_points, scil_tractogram_compress`), or smoothing the streamlines’ trajectories (:ref:`scil_tractogram_smooth`).
+Here, we discuss scripts allowing modifying the streamlines themselves, for instance by resampling the number of points on each streamline (:ref:`scil_tractogram_resample_nb_points`, :ref:`scil_tractogram_compress`), or smoothing the streamlines’ trajectories (:ref:`scil_tractogram_smooth`).
 
 See page :ref:`page_tractogram_math` for scripts modifying the tractograms as a whole.
 
