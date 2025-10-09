@@ -37,7 +37,8 @@ import numpy as np
 import nibabel as nib
 
 from scilpy.gradients.bvec_bval_tools import (check_b0_threshold,
-                                              flip_gradient_sampling,
+                                              find_flip_swap_from_order,
+                                              flip_gradient_axis,
                                               is_normalized_bvecs,
                                               normalize_bvecs,
                                               swap_gradient_axis)
@@ -104,11 +105,11 @@ def main():
     strides = (strides[:, 0] + 1) * strides[:, 1]
     # Check if the strides are correct ([1, 2, 3])
     if np.array_equal(strides, [1, 2, 3]):
-        is_stride_correct=True
+        is_stride_correct = True
         logging.warning('Input data already has the correct strides [1, 2, 3].'
                         ' No correction on data needed and outputed.')
     else:
-        is_stride_correct=False
+        is_stride_correct = False
         logging.warning('Input data has strides {}. '
                         'Correcting to [1, 2, 3].'.format(strides))
         # Compute the required transform to get to [1, 2, 3]
@@ -121,16 +122,9 @@ def main():
             # Set the transform for this axis
             transform[axis] = sign * (i + 1)
 
-        axes_to_flip = []
-        swapped_order = []
         # Write the transform in a format compatible with the
-        # flip_gradient_sampling and swap_gradient_axis functions (for bvecs)
-        for next_axis in transform:
-            if next_axis in [1, 2, 3]:
-                swapped_order.append(next_axis - 1)
-            elif next_axis in [-1, -2, -3]:
-                axes_to_flip.append(abs(next_axis) - 1)
-                swapped_order.append(abs(next_axis) - 1)
+        # flip_gradient_axis and swap_gradient_axis functions (for bvecs)
+        axes_to_flip, swapped_order = find_flip_swap_from_order(transform)
 
         # Write the transform in a format compatible with the nibabel
         # as_reoriented function (for image)
@@ -162,11 +156,11 @@ def main():
         # Generate a mask to avoid fitting tensor on the whole image
         mask = np.zeros(data.shape[:3], dtype=bool)
         # Use a small cubic ROI at the center of the volume
-        interval_i = slice(data.shape[0]//2,
+        interval_i = slice(data.shape[0]//2 - data.shape[0]//4,
                            data.shape[0]//2 + data.shape[0]//4)
-        interval_j = slice(data.shape[1]//2,
+        interval_j = slice(data.shape[1]//2 - data.shape[1]//4,
                            data.shape[1]//2 + data.shape[1]//4)
-        interval_k = slice(data.shape[2]//2,
+        interval_k = slice(data.shape[2]//2 - data.shape[2]//4,
                            data.shape[2]//2 + data.shape[2]//4)
         mask[interval_i, interval_j, interval_k] = 1
         # Compute the necessary DTI metrics to compute the coherence of bvecs
@@ -180,6 +174,7 @@ def main():
         best_t = transform[np.argmax(coherence)]
         if (best_t == np.eye(3)).all():
             logging.info('The b-vectors are aligned with the original data.')
+            valid_bvecs = bvecs
         else:
             logging.warning('Applying correction to b-vectors.')
             logging.info('Transform is: \n{0}.'.format(best_t))
@@ -194,7 +189,7 @@ def main():
             _, bvecs = read_bvals_bvecs(None, args.in_bvec)
         else:
             bvecs = valid_bvecs
-        flipped_bvecs = flip_gradient_sampling(bvecs.T, axes_to_flip, 'fsl')
+        flipped_bvecs = flip_gradient_axis(bvecs.T, axes_to_flip, 'fsl')
         swapped_flipped_bvecs = swap_gradient_axis(flipped_bvecs,
                                                    swapped_order, 'fsl')
         np.savetxt(args.out_bvec, swapped_flipped_bvecs, "%.8f")

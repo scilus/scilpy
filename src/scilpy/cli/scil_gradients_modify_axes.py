@@ -12,7 +12,8 @@ import os
 
 import numpy as np
 
-from scilpy.gradients.bvec_bval_tools import (flip_gradient_sampling,
+from scilpy.gradients.bvec_bval_tools import (find_flip_swap_from_order,
+                                              flip_gradient_axis,
                                               swap_gradient_axis)
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              assert_outputs_exist, add_verbose_arg)
@@ -70,17 +71,7 @@ def main():
                      "input's. We do not support conversion in this script.")
 
     # Format final order
-    # Our scripts use axes as 0, 1, 2 rather than 1, 2, 3: adding -1.
-    axes_to_flip = []
-    swapped_order = []
-    for next_axis in args.final_order:
-        if next_axis in [1, 2, 3]:
-            swapped_order.append(next_axis - 1)
-        elif next_axis in [-1, -2, -3]:
-            axes_to_flip.append(abs(next_axis) - 1)
-            swapped_order.append(abs(next_axis) - 1)
-        else:
-            parser.error("Sorry, final order not understood.")
+    axes_to_flip, swapped_order = find_flip_swap_from_order(args.final_order)
 
     # Verifying that user did not ask for, ex, -xxy
     if len(np.unique(swapped_order)) != 3:
@@ -95,7 +86,7 @@ def main():
             parser.error("b-vectors format for a .b file should be FSL, "
                          "and contain 3 lines (x, y, z), but got {}"
                          .format(bvecs.shape[0]))
-        bvecs = flip_gradient_sampling(bvecs, axes_to_flip, 'fsl')
+        bvecs = flip_gradient_axis(bvecs, axes_to_flip, 'fsl')
         bvecs = swap_gradient_axis(bvecs, swapped_order, 'fsl')
         np.savetxt(args.out_gradient_sampling_file, bvecs, "%.8f")
     else:  # ext == '.b':
@@ -104,7 +95,7 @@ def main():
             parser.error("b-vectors format for a .b file should be mrtrix, "
                          "and contain 4 columns (x, y, z, bval), but got {}"
                          .format(bvecs.shape[1]))
-        bvecs = flip_gradient_sampling(bvecs, axes_to_flip, 'mrtrix')
+        bvecs = flip_gradient_axis(bvecs, axes_to_flip, 'mrtrix')
         bvecs = swap_gradient_axis(bvecs, swapped_order, 'mrtrix')
         np.savetxt(args.out_gradient_sampling_file, bvecs,
                    "%.8f %.8f %.8f %0.6f")
