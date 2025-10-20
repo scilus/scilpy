@@ -9,7 +9,7 @@ set -euo pipefail  # Will fail on error
 #    --->   bash btensor_scripts.sh  path/to/your/data  path/to/save/outputs
 # ==============
 in_dir=$1
-out_folder=$2
+out_dir=$2
 
 
 # For now, let's use data in .scilpy
@@ -22,7 +22,7 @@ in_dir=$in_dir/btensor_testdata/
 # ==============
 # Now let's run the tutorial
 # ==============
-cd $out_folder
+cd $out_dir
 
 echo "Creating the frf"
 echo "*****************"
