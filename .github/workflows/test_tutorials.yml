@@ -52,6 +52,7 @@ jobs:
             libgl1-mesa-dev \
             libosmesa6-dev
           sudo apt-get install wget
+          pip install gdown
 
       - name: stdlib checkout
         if: ${{ !contains(steps.python-selector.outputs.python-version, '3.12') }}
@@ -74,7 +75,7 @@ jobs:
           chmod +x docs/source/_static/bash/*/*.sh
           
           # Get data
-          wget -O data_for_test.tar.gz https://drive.google.com/file/d/1acraVPkRfYihBS15AEJi9EUgVs0S0LKY/view?usp=sharing
+          gdown https://drive.google.com/file/d/1acraVPkRfYihBS15AEJi9EUgVs0S0LKY/view?usp=drive_link --fuzzy
           tar -xvf data_for_test.tar.gz
           rm data_for_test.tar.gz 
           here=`pwd`
@@ -89,5 +90,9 @@ jobs:
             echo "Running $script..." 
             
             # We made sure that all our scripts receive as input the path to WB-common 
-            bash "$script" $input_path $output_folder
+            bash "$here/$script" $input_path $output_folder
+  
+            # TO REMOVE        
+            read -p "Press enter to continue"
+
           done
