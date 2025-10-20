@@ -52,7 +52,6 @@ jobs:
             libgl1-mesa-dev \
             libosmesa6-dev
           sudo apt-get install wget
-          pip install gdown
 
       - name: stdlib checkout
         if: ${{ !contains(steps.python-selector.outputs.python-version, '3.12') }}
@@ -69,6 +68,7 @@ jobs:
           VTK_VERSION=$(cat pyproject.toml | grep 'vtk==' | sed 's/vtk==//g' | sed 's/\"//g' )
           uv pip install --extra-index-url https://wheels.vtk.org vtk-osmesa==$VTK_VERSION
           uv pip install pytest-xdist pytest-cov
+          uv pip install gdown
 
       - name: Run tests
         run: |
