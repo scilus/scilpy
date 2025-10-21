@@ -75,9 +75,11 @@ jobs:
           chmod +x docs/source/_static/bash/*/*.sh
           
           # Get data
-          gdown https://drive.google.com/file/d/1acraVPkRfYihBS15AEJi9EUgVs0S0LKY/view?usp=drive_link --fuzzy
-          tar -xvf data_for_test.tar.gz
-          rm data_for_test.tar.gz 
+          gdown https://drive.google.com/file/d/1YSG8n0A9QQL9Ytitql4M3cIxMz6Yy_oP/view?usp=sharing --fuzzy
+          #tar -xvf data_for_test.tar.gz
+          #rm data_for_test.tar.gz 
+          unzip data_for_test.zip
+          rm data_for_test.zip
           here=`pwd`
           input_path=$here/data_for_test
           
@@ -89,6 +91,6 @@ jobs:
       
             echo "Running $script..." 
             
-            # We made sure that all our scripts receive as input the path to WB-common 
+            # We made sure that all our scripts receive as input the path to our tutorial data.
             bash "$here/$script" $input_path $output_folder
           done
