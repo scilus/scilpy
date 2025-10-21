@@ -5,6 +5,7 @@ Download data for tests.
 This is used to download our internal tests into your home/.scilpy.
 """
 import argparse
+import logging
 
 import tqdm
 
@@ -12,6 +13,7 @@ import nltk
 
 from scilpy.io.dvc import pull_test_case_package
 from scilpy.io.fetcher import fetch_data, get_testing_files_dict
+from scilpy.io.utils import add_verbose_arg
 from scilpy.version import version_string
 
 LIST_ZIP_FILES = ["anatomical_filtering",
@@ -36,16 +38,21 @@ LIST_ZIP_FILES = ["anatomical_filtering",
                   "tractograms",
                   "tractometry"]
 
+def _build_arg_parser():
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
+    add_verbose_arg(p)
+    return p
 
 def main():
 
     # No argument but adding the arg parser in case user wants to do --help.
-    p = argparse.ArgumentParser(description=__doc__,
-                                formatter_class=argparse.RawTextHelpFormatter,
-                                epilog=version_string)
-    p.parse_args()
+    parser = _build_arg_parser()
+    args = parser.parse_args()
+    logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
-    tqdm_bar = tqdm.tqdm(total=len(LIST_ZIP_FILES)+2,
+    tqdm_bar = tqdm.tqdm(total=len(LIST_ZIP_FILES)+1,
                          desc="Download data test")
     for zip_file in LIST_ZIP_FILES:
         fetch_data(get_testing_files_dict(),

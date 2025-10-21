@@ -13,7 +13,7 @@ out_folder=$2
 
 
 # For now, let's use data in .scilpy
-scil_data_download
+scil_data_download -v ERROR
 in_dir=$in_dir/mti
 mkdir $in_dir
 cp $HOME/.scilpy/ihMT/B1* $in_dir/

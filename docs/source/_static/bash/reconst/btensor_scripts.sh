@@ -15,7 +15,7 @@ in_dir=$in_dir/btensor
 
 # For now, the tutorial data only contains the masks.
 # Other necessary data can be obtained with:
-scil_data_download
+scil_data_download -v ERROR
 cp $HOME/.scilpy/btensor_testdata/* $in_dir/
 
 # ==============

@@ -13,7 +13,7 @@ out_dir=$2
 
 
 # For now, let's use data in .scilpy
-scil_data_download
+scil_data_download -v ERROR
 in_dir=$in_dir/msmt
 mkdir $in_dir
 cp $HOME/.scilpy/commit_amico/* $in_dir/
