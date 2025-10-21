@@ -6,7 +6,7 @@ Cropping volumes
 To crop a file, you may use :ref:`scil_volume_crop`.
 
 .. tip::
-    This is used for instance at the beggining of tutorial script for `aodf </_static/bash/reconst/aodf_scripts.sh>`_ or `aodf </_static/bash/reconst/msmt_fodf.sh>`_
+    This is used for instance at the beggining of tutorial script for `aodf </_static/bash/reconst/aodf_scripts.sh>`_ or `msmt </_static/bash/reconst/msmt_fodf.sh>`_
 
 You first need to find the bounding box of your file. It is a json file looking like:
 

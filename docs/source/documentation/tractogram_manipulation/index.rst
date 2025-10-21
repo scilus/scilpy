@@ -1,4 +1,4 @@
-3. Manipulating tractograms
+4. Manipulating tractograms
 ===========================
 
 This section covers tractogram manipulation methods in scilpy. Most of the functions in those scripts are included in the `tractograms <../../modules/scilpy.tractograms>`_ module.

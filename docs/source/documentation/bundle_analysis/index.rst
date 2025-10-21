@@ -1,4 +1,4 @@
-4. Bundle segmentation and analysis (tractometry, profilometry)
+5. Bundle segmentation and analysis (tractometry, profilometry)
 ===============================================================
 
 This section covers bundle analysis methods in scilpy.

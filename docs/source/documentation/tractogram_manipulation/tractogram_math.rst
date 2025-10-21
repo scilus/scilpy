@@ -83,7 +83,7 @@ It is also possible to downsample per Quickbundles cluster. This will ensure tha
 See the difference between the two calls above:
 
 +------------------------------------------+----------------------------------------------+
-| Random selection                         | Selection per Quickbundle cluster |
+| Random selection                         | Selection per Quickbundle cluster            |
 +==========================================+==============================================+
 | .. image:: /??                           | .. image:: ?                                 |
 |    :width: 35%                           |    :width: 35%                               |
