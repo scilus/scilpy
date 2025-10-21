@@ -19,17 +19,19 @@ scil_volume_math convert $HOME/.scilpy/processing/fa_thr.nii.gz \
     $in_dir/brainmask.nii.gz --data_type uint8
 cp $HOME/.scilpy/processing/fodf_descoteaux07.nii.gz $in_dir/fodf.nii.gz
 
-# Let's crop our data
+# Let's crop our data.
+# The explanation for this section is in
+# https://scilpy.readthedocs.io/en/latest/documentation/volumes_manip/cropping.html
 echo "Cropping!"
 echo '{' >> $out_dir/bounding_box.json
 echo '    "minimums": [-20, -30, -20],'  >> $out_dir/bounding_box.json
 echo '    "maximums": [20, 30, 20],' >> $out_dir/bounding_box.json
 echo '    "voxel_size": [2.5, 2.5, 2.5]' >> $out_dir/bounding_box.json
 echo '}' >> $out_dir/bounding_box.json
-scil_volume_crop $in_dir/fodf.nii.gz $out_dir/fodf.nii.gz \
-    --input_bbox $out_dir/bounding_box.json
-scil_volume_crop $in_dir/brainmask.nii.gz $out_dir/brainmask.nii.gz \
-    --input_bbox $out_dir/bounding_box.json
+scil_volume_crop $in_dir/fodf.nii.gz $in_dir/fodf.nii.gz \
+    --input_bbox $out_dir/bounding_box.json -f
+scil_volume_crop $in_dir/brainmask.nii.gz $in_dir/brainmask.nii.gz \
+    --input_bbox $out_dir/bounding_box.json -f
 
 # ==============
 # Now let's run the tutorial
@@ -39,9 +41,8 @@ cd $out_dir
 
 echo "Creating the aodf"
 echo "*****************"
-scil_sh_to_aodf $out_dir/fodf.nii.gz $out_dir/afodf.nii.gz -v \
-    --sphere repulsion100
+scil_sh_to_aodf $in_dir/fodf.nii.gz afodf.nii.gz -v --sphere repulsion100
 
 echo "Computing metrics"
 echo "*****************"
-scil_aodf_metrics $out_dir/afodf.nii.gz --mask $out_dir/brainmask.nii.gz -v
+scil_aodf_metrics afodf.nii.gz --mask $in_dir/brainmask.nii.gz -v
