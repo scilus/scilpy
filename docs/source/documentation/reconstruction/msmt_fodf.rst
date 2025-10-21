@@ -16,7 +16,7 @@ To run lines below, you need a various volumes, b-vector information and masks. 
     in_dir=where/you/downloaded/tutorial/data
 
     # For now, let's use data in .scilpy
-    scil_data_download
+    scil_data_download -v ERROR
     in_dir=$in_dir/msmt
     mkdir $in_dir
     cp $HOME/.scilpy/commit_amico/* $in_dir/

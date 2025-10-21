@@ -14,7 +14,7 @@ To run lines below, you need a symmetric ODF image (e.g. from Q-ball or CSD) and
     in_dir=where/you/downloaded/tutorial/data
 
     # For now, let's use data in .scilpy
-    scil_data_download
+    scil_data_download -v ERROR
     mkdir $in_dir/aodf_data
     in_dir=$in_dir/aodf_data
     scil_volume_math convert $HOME/.scilpy/processing/fa_thr.nii.gz \

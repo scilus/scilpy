@@ -15,8 +15,7 @@ out_dir=$2
 scil_data_download -v ERROR
 mkdir $in_dir/aodf_data
 in_dir=$in_dir/aodf_data
-scil_volume_math convert $HOME/.scilpy/processing/fa_thr.nii.gz \
-    $in_dir/brainmask.nii.gz --data_type uint8
+cp $HOME/.scilpy/processing/fa_thr.nii.gz $in_dir/brainmask.nii.gz
 cp $HOME/.scilpy/processing/fodf_descoteaux07.nii.gz $in_dir/fodf.nii.gz
 
 # Let's crop our data.
@@ -32,6 +31,8 @@ scil_volume_crop $in_dir/fodf.nii.gz $in_dir/fodf.nii.gz \
     --input_bbox $out_dir/bounding_box.json -f
 scil_volume_crop $in_dir/brainmask.nii.gz $in_dir/brainmask.nii.gz \
     --input_bbox $out_dir/bounding_box.json -f
+scil_volume_math convert $in_dir/brainmask.nii.gz $in_dir/brainmask.nii.gz \
+  --data_type uint8 -f
 
 # ==============
 # Now let's run the tutorial

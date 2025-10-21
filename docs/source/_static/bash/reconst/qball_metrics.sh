@@ -9,24 +9,22 @@ set -euo pipefail  # Will fail on error
 #    --->   bash btensor_scripts.sh  path/to/your/data  path/to/save/outputs
 # ==============
 in_dir=$1
-out_folder=$2
+out_dir=$2
 
 
-# For now, the tutorial data only contains the masks.
-# Other necessary data can be obtained with:
+# For now, let's use data in .scilpy
 scil_data_download -v ERROR
 in_dir=$in_dir/qball
 mkdir $in_dir
 cp $HOME/.scilpy/processing/dwi_crop.nii.gz $in_dir/dwi.nii.gz
 cp $HOME/.scilpy/processing/1000.bval $in_dir/dwi.bval
 cp $HOME/.scilpy/processing/1000.bvec $in_dir/dwi.bvec
-cp $HOME/.scilpy/processing/1000.bvec $in_dir/dwi.bvec
 cp $HOME/.scilpy/processing/fa_thr.nii.gz $in_dir/mask.nii.gz
 
 # ==============
 # Now let's run the tutorial
 # ==============
-cd $out_folder
+cd $out_dir
 
 echo "Running QBall"
 scil_qball_metrics $in_dir/dwi.nii.gz $in_dir/dwi.bval $in_dir/dwi.bvec \

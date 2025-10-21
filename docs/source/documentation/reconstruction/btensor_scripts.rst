@@ -15,7 +15,7 @@ To run lines below, you need a various volumes, b-vector information and masks. 
 
     # For now, the tutorial data only contains the masks.
     # Other necessary data can be obtained with:
-    scil_data_download
+    scil_data_download -v ERROR
     cp $HOME/.scilpy/btensor_testdata/* $in_dir/
 
 .. tip::

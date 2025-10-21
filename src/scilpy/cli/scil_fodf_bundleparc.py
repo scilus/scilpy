@@ -69,7 +69,7 @@ def _build_arg_parser():
                         help='Input fODF volume in nifti format. ')
     parser.add_argument('--out_prefix', default='',
                         help='Output file prefix. Default is nothing. ')
-    parser.add_argument('--out_folder', default='bundleparc',
+    parser.add_argument('--out_dir', default='bundleparc',
                         help='Output destination. Default is [%(default)s].')
     parser.add_argument('--half_precision', action='store_true',
                         help='Use half precision (float16) for inference. '
@@ -113,7 +113,7 @@ def main():
     args = parser.parse_args()
 
     assert_inputs_exist(parser, [args.in_fodf], [])
-    assert_output_dirs_exist_and_empty(parser, args, args.out_folder,
+    assert_output_dirs_exist_and_empty(parser, args, args.out_dir,
                                        create_dir=True)
 
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
@@ -185,7 +185,7 @@ def main():
                                           enforce_dimensions=False)
         # Save it
         nib.save(resampled_label, os.path.join(
-            args.out_folder, f'{args.out_prefix}{b_name}.nii.gz'))
+            args.out_dir, f'{args.out_prefix}{b_name}.nii.gz'))
 
 
 if __name__ == "__main__":

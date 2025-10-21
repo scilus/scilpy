@@ -13,9 +13,17 @@ To run the script, you need a DWI image with its corresponding b-values and b-ve
 
     in_dir=where/you/downloaded/tutorial/data
 
-    # For now, let's use data in .scilpy
-    scil_data_download
-    ?
+    # For now, the tutorial data only contains the masks.
+    # Other necessary data can be obtained with:
+    scil_data_download -v ERROR
+    in_dir=$in_dir/qball
+    mkdir $in_dir
+    cp $HOME/.scilpy/processing/dwi_crop.nii.gz $in_dir/dwi.nii.gz
+    cp $HOME/.scilpy/processing/1000.bval $in_dir/dwi.bval
+    cp $HOME/.scilpy/processing/1000.bvec $in_dir/dwi.bvec
+    cp $HOME/.scilpy/processing/1000.bvec $in_dir/dwi.bvec
+    cp $HOME/.scilpy/processing/fa_thr.nii.gz $in_dir/mask.nii.gz
+
 
 .. tip::
     You may download the complete bash script to run the whole tutorial in one step `here </_static/bash/reconst/qball_metrics.sh>`_.
@@ -28,7 +36,8 @@ You can run the command as follows:
 
 .. code-block:: bash
 
-    scil_qball_metrics $in_dir/dwi.nii.gz $in_dir/dwi.bval $in_dir/dwi.bvec --mask $in_dir/brainmask.nii.gz
+    scil_qball_metrics $in_dir/dwi.nii.gz $in_dir/dwi.bval $in_dir/dwi.bvec \
+        --mask $in_dir/mask.nii.gz --not_all --gfa gfa.nii.gz --nufo nufo.nii.gz -v
 
 By default, the script will output the following files in the current directory:
 
@@ -43,5 +52,6 @@ To skip some outputs, you can use the ``--not_all`` flag. For example, if you on
 
 .. code-block:: bash
 
-    scil_qball_metrics $in_dir/dwi.nii.gz $in_dir/dwi.bval $in_dir/dwi.bvec --mask $in_dir/brainmask.nii.gz \
+    scil_qball_metrics $in_dir/dwi.nii.gz $in_dir/dwi.bval $in_dir/dwi.bvec \
+        --mask $in_dir/mask.nii.gz --not_all --gfa gfa.nii.gz --nufo nufo.nii.gz -v \
         --not_all --gfa gfa.nii.gz --nufo nufo.nii.gz

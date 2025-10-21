@@ -74,7 +74,7 @@ To run lines below, you need a various volumes. The tutorial data is still in pr
     in_dir=where/you/downloaded/tutorial/data
 
     # For now, let's use data in .scilpy
-    scil_data_download
+    scil_data_download -v ERROR
     in_dir=$in_dir/mti
     mkdir $in_dir
     cp $HOME/.scilpy/ihMT/B1* $in_dir/
@@ -124,7 +124,7 @@ Minimal command example:
 
 .. code-block:: bash
     
-    scil_mti_maps_ihMT $out_folder \
+    scil_mti_maps_ihMT $out_dir \
         --in_altnp $in_dir/*altnp*.nii.gz \
         --in_altpn $in_dir/*altpn*.nii.gz \
         --in_negative $in_dir/*neg*.nii.gz \
@@ -174,7 +174,7 @@ Optional outputs are available in a ``Complementary_maps`` folder, such as the i
 
 .. code-block:: bash
 
-    scil_mti_maps_MT $out_folder \
+    scil_mti_maps_MT $out_dir \
         --in_positive $in_dir/echo*pos*.nii.gz \
         --in_negative $in_dir/echo*neg*.nii.gz \
         --in_mtoff_pd $in_dir/echo*mtoff*.nii.gz \

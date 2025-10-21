@@ -9,7 +9,7 @@ set -euo pipefail  # Will fail on error
 #    --->   bash btensor_scripts.sh  $in_dir/your/data  $in_dir/save/outputs
 # ==============
 in_dir=$1
-out_folder=$2
+out_dir=$2
 
 
 # For now, let's use data in .scilpy
@@ -23,13 +23,13 @@ cp $HOME/.scilpy/ihMT/mask_resample.nii.gz $in_dir/mask.nii.gz
 # ==============
 # Now let's run the tutorial
 # ==============
-cd $out_folder
+cd $out_dir
 
 
 # 2. Basic usage
 echo "Basic usage: ihmt"
 echo "******************"
-scil_mti_maps_ihMT $out_folder \
+scil_mti_maps_ihMT $out_dir \
         --in_altnp $in_dir/*altnp*.nii.gz \
         --in_altpn $in_dir/*altpn*.nii.gz \
         --in_negative $in_dir/*neg*.nii.gz \
@@ -42,7 +42,7 @@ scil_mti_maps_ihMT $out_folder \
 # Or:
 echo "Or for MT only"
 echo "**************"
-scil_mti_maps_MT $out_folder \
+scil_mti_maps_MT $out_dir \
     --in_positive $in_dir/echo*pos*.nii.gz \
     --in_negative $in_dir/echo*neg*.nii.gz \
     --in_mtoff_pd $in_dir/echo*mtoff*.nii.gz \
