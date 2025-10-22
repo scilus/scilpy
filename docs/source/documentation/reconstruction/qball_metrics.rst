@@ -7,7 +7,7 @@ Q-ball, a timeless classic. When you cannot make assumptions about the nature of
 Preparing data for this tutorial
 ********************************
 
-To run the script, you need a DWI image with its corresponding b-values and b-vectors. Optionally, a mask can be provided to speed up the computation. The tutorial data is still in preparation, meanwhile you can use this: `
+To run the script, you need a DWI image with its corresponding b-values and b-vectors. Optionally, a mask can be provided to speed up the computation. The tutorial data is still in preparation, meanwhile you can use this:
 
 .. code-block:: bash
 

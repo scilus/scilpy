@@ -17,8 +17,8 @@ scil_data_download -v ERROR
 in_dir=$in_dir/ssst
 mkdir $in_dir
 cp $HOME/.scilpy/processing/dwi_crop.nii.gz $in_dir/dwi.nii.gz
-cp $HOME/.scilpy/processing/1000.bval $in_dir/dwi.bval
-cp $HOME/.scilpy/processing/1000.bvec $in_dir/dwi.bvec
+cp $HOME/.scilpy/processing/dwi.bval $in_dir/dwi.bval
+cp $HOME/.scilpy/processing/dwi.bvec $in_dir/dwi.bvec
 cp $HOME/.scilpy/processing/fa_thr.nii.gz $in_dir/mask.nii.gz
 cp $HOME/.scilpy/processing/fa_thr.nii.gz $in_dir/wm_mask.nii.gz
 
@@ -31,9 +31,9 @@ cd $out_dir
 echo "1 - preparing the FRF"
 echo "*********************"
 scil_frf_ssst $in_dir/dwi.nii.gz $in_dir/dwi.bval $in_dir/dwi.bvec frf.txt \
-    --mask $in_dir/mask.nii.gz --mask_wm $in_dir/wm_mask.nii.gz -f
+    --mask $in_dir/mask.nii.gz --mask_wm $in_dir/wm_mask.nii.gz -v
 
 echo "2 - Preparing the fODF"
 echo "*********************"
 scil_fodf_ssst $in_dir/dwi.nii.gz $in_dir/dwi.bval $in_dir/dwi.bvec frf.txt fodf.nii.gz \
-    --mask $in_dir/mask.nii.gz -f
+    --mask $in_dir/mask.nii.gz
