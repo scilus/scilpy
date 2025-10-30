@@ -103,6 +103,9 @@ def main():
         logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     hidden_dir = pathlib.Path(SCILPY_HOME) / ".hidden"
+    if not hidden_dir.exists():
+        hidden_dir.mkdir(parents=True, exist_ok=True)
+        logging.info("Folder '.hidden' created in SCILPY_HOME")
 
     if args.regenerate_help_files:
         shutil.rmtree(hidden_dir, ignore_errors=True)
