@@ -15,7 +15,7 @@ You first need to find the bounding box of your file. It is a json file looking 
     {
         "minimums": [-67.5, -96.0, -64.5],
         "maximums": [75.0, 71.5, 75.5],
-        "voxel_size": [2.5, 2.5, 2.5]}
+        "voxel_size": [2.5, 2.5, 2.5]
     }
 
 You can find this information with:
