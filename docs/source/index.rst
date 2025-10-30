@@ -20,6 +20,7 @@ The documentation is organized into the following sections:
    :maxdepth: 1
    :caption: Documentation & Tutorials
 
+   documentation/volumes_manip/index
    documentation/reconstruction/index
    documentation/tracking/index
    documentation/tractogram_manipulation/index

@@ -99,7 +99,7 @@ def _build_arg_parser():
                          '(Note. This option is not verified by tests. If '
                          'you encounter any bug, \nplease report it to our '
                          'team.)')
-    p3.add_argument('--save_rendering', metavar='OUT_FOLDER',
+    p3.add_argument('--save_rendering', metavar='out_dir',
                     help='Save VTK render in the specified folder (optional)')
     p2.add_argument('--wireframe', action='store_true',
                     help='Use wireframe for the tube rendering.')

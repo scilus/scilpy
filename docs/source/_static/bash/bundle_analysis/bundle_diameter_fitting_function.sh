@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
+set -euo pipefail  # Will fail on error
 
-
-# TODO
+echo "Not ready!"

@@ -71,7 +71,7 @@ def _build_arg_parser():
     p.add_argument('--viz', action='store_true',
                    help='Visualize the inputed gradient scheme, then the '
                         'optimal one.')
-    p.add_argument('--save_viz', metavar='OUT_FOLDER',
+    p.add_argument('--save_viz', metavar='out_dir',
                    help='Save the input and optimal gradient schemes in '
                         'the specified folder. If --viz is not set, then '
                         'the window is not shown but will be saved.')

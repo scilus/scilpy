@@ -1,4 +1,4 @@
-2. Performing tractography
+3. Performing tractography
 ==========================
 
 This section covers tracking methods in scilpy.

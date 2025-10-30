@@ -1,5 +1,5 @@
-Reproducing scilpy paper figures
-================================
+-- Reproducing scilpy paper figures --
+======================================
 
 The following tutorials will help you reproduce the figures in our upcoming scilpy paper.
 

@@ -33,12 +33,12 @@ Connectoflow input:
                        |--- ad.npy
 
 The plots, tables and principal components matrices will be saved in the
-designated folder from the <out_folder> argument. If you want to move back your
+designated folder from the <out_dir> argument. If you want to move back your
 principal components matrices in your connectoflow output, you can use a
 similar bash command for all principal components:
 for sub in `cat list_id.txt`;
 do
-    cp out_folder/${sub}_PC1.npy connectoflow_output/$sub/Compute_Connectivity/
+    cp out_dir/${sub}_PC1.npy connectoflow_output/$sub/Compute_Connectivity/
 done
 
 EXAMPLE USAGE:
@@ -88,7 +88,7 @@ def _build_arg_parser():
     p.add_argument('in_folder',
                    help='Path to the input folder. See explanation above for '
                         'its expected organization.')
-    p.add_argument('out_folder',
+    p.add_argument('out_dir',
                    help='Path to the output folder to export graphs, tables '
                         'and principal \ncomponents matrices.')
     p.add_argument('--metrics', nargs='+', required=True,
@@ -197,12 +197,12 @@ def main():
 
     assert_inputs_dirs_exist(parser, args.in_folder)
     assert_inputs_exist(parser, args.list_ids)
-    assert_output_dirs_exist_and_empty(parser, args, args.out_folder,
+    assert_output_dirs_exist_and_empty(parser, args, args.out_dir,
                                        create_dir=True)
-    out_eigenvalues = os.path.join(args.out_folder, 'eigenvalues.pdf')
-    out_variance = os.path.join(args.out_folder, 'explained_variance.pdf')
-    out_excel = os.path.join(args.out_folder, 'loadings.xlsx')
-    out_contributions = os.path.join(args.out_folder, 'contribution.pdf')
+    out_eigenvalues = os.path.join(args.out_dir, 'eigenvalues.pdf')
+    out_variance = os.path.join(args.out_dir, 'explained_variance.pdf')
+    out_excel = os.path.join(args.out_dir, 'loadings.xlsx')
+    out_contributions = os.path.join(args.out_dir, 'contribution.pdf')
 
     with open(args.list_ids) as f:
         subjects = f.read().split()
@@ -306,7 +306,7 @@ def main():
     nb_pc = eigenvalues[eigenvalues >= 1]
     for i in range(0, len(nb_pc)):
         for s in range(0, len(subjects)):
-            filename = os.path.join(args.out_folder,
+            filename = os.path.join(args.out_dir,
                                     f'{subjects[s]}_PC{i+1}.npy')
             save_matrix_in_any_format(filename, out[i, s, :, :])
 
