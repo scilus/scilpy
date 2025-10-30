@@ -164,20 +164,24 @@ def main():
     # Loading spheres
     reg_sphere = get_sphere(name='symmetric362')
 
+    logging.info("All data loaded and verified, starting process.")
     # Starting main process!
 
     # Checking response functions and computing msmt response function
     ubvals = unique_bvals_tolerance(bvals, tol=args.tolerance)
+    logging.info("Computing multi-shell fiber response...")
     msmt_response = multi_shell_fiber_response(args.sh_order, ubvals,
                                                wm_frf, gm_frf, csf_frf,
                                                tol=args.tolerance)
 
     # Computing msmt-CSD
+    logging.info("Computing multi-shell deconvolution...")
     msmt_model = MultiShellDeconvModel(gtab, msmt_response,
                                        reg_sphere=reg_sphere,
                                        sh_order_max=args.sh_order)
 
     # Computing msmt-CSD fit
+    logging.info("Fitting msmt model. This could take a while...")
     msmt_fit = fit_from_model(msmt_model, data,
                               mask=mask, nbr_processes=args.nbr_processes)
 
@@ -193,6 +197,7 @@ def main():
     vf = np.where(np.isnan(vf), 0, vf)
 
     # Saving results
+    logging.info("Done. Saving outputs...")
     if args.wm_out_fODF:
         wm_coeff = shm_coeff[..., 2:]
         wm_coeff = convert_sh_basis(wm_coeff, reg_sphere, mask=mask,

@@ -36,4 +36,4 @@ You can do:
     done
 
 
-Note however that this will still run all commands one after the other, which prevents scalability to large cohorts. For more computationally efficient ways to run pipelines, see :ref:`page_nextflow`.
+Note however that this will still run all commands one after the other, which prevents scalability to large cohorts. For more computationally efficient ways to run pipelines, see :ref:`use_nextflow`.

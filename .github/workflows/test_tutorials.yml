@@ -1,0 +1,96 @@
+name: Test tutorial bash scripts
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+  merge_group:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  MPLBACKEND: agg
+  OPENBLAS_NUM_THREADS: 1
+  PYTEST_XDIST_AUTO_NUM_WORKERS: 8
+
+jobs:
+  test:
+    runs-on: scilus-large
+    if: github.repository == 'scilus/scilpy'
+
+    steps:
+      - name: Checkout repository at merge
+        uses: actions/checkout@v4
+
+      - name: Fetch python version from repository
+        id: python-selector
+        run: echo "python-version=$(head -1 .python-version)" >> $GITHUB_OUTPUT
+
+      - name: Set up Python and uv for Scilpy
+        uses: astral-sh/setup-uv@v6.4.3
+        with:
+          python-version: ${{ steps.python-selector.outputs.python-version }}
+          activate-environment: true
+          enable-cache: true
+
+      - name: Install non-python dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            curl \
+            git \
+            libblas-dev \
+            liblapack-dev \
+            libfreetype6-dev \
+            libdrm-dev \
+            libgl1-mesa-dev \
+           libosmesa6-dev \
+           wget
+
+      - name: stdlib checkout
+        if: ${{ !contains(steps.python-selector.outputs.python-version, '3.12') }}
+        run: |
+          echo "SETUPTOOLS_USE_DISTUTILS=stdlib" >> "$GITHUB_ENV"
+
+      - name: Install Scilpy
+        run: |
+          uv pip install --upgrade pip wheel
+          uv pip install --upgrade "setuptools<71.0.0" 
+          uv pip install -e .
+          # TODO: to adapt once Scilpy passes to VTK 9.4.0, which selects OSMesa at runtime
+          # https://discourse.vtk.org/t/status-update-runtime-opengl-render-window-selection-in-vtk/14583
+          VTK_VERSION=$(cat pyproject.toml | grep 'vtk==' | sed 's/vtk==//g' | sed 's/\"//g' )
+          uv pip install --extra-index-url https://wheels.vtk.org vtk-osmesa==$VTK_VERSION
+          uv pip install pytest-xdist pytest-cov
+          uv pip install gdown
+
+      - name: Run tests
+        run: |
+          chmod +x docs/source/_static/bash/*/*.sh
+          
+          # Get data
+          gdown https://drive.google.com/file/d/1YSG8n0A9QQL9Ytitql4M3cIxMz6Yy_oP/view?usp=sharing --fuzzy
+          #tar -xvf data_for_test.tar.gz
+          #rm data_for_test.tar.gz 
+          unzip data_for_test.zip
+          rm data_for_test.zip
+          here=`pwd`
+          input_path=$here/data_for_test
+          
+          for script in docs/source/_static/bash/*/*.sh;
+          do
+            tmpdir=$(mktemp -d)
+            cd "$tmpdir"
+            output_folder=$tmpdir
+      
+            echo "Running $script..." 
+            
+            # We made sure that all our scripts receive as input the path to our tutorial data.
+            bash "$here/$script" $input_path $output_folder
+          done

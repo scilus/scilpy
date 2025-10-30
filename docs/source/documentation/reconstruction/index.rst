@@ -1,7 +1,7 @@
-Reconstruction
-==============
+2. Reconstructing the local model
+=================================
 
-This section covers reconstruction methods in scilpy.
+This section covers local reconstruction methods in scilpy. They mainly use functions in the `reconst module <../../modules/scilpy.reconst>`_.
 
 .. toctree::
    :maxdepth: 1
@@ -11,3 +11,4 @@ This section covers reconstruction methods in scilpy.
    btensor_scripts
    aodf_scripts
    qball_metrics
+   mti_scripts

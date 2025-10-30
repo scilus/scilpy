@@ -26,7 +26,7 @@ scilpy.utils.scilpy\_bot module
    :show-inheritance:
 
 scilpy.utils.spatial module
-------------------------
+---------------------------
 
 .. automodule:: scilpy.utils.spatial
    :members:

@@ -198,11 +198,31 @@ def setup(app):
         shutil.rmtree(join(path_src, "scripts"))
     os.mkdir(join(path_src, "scripts"))
 
-    # Fake c files
+    # 1) Modules API documentation preparation.
+
+    # Adding fake c files
     for f in os.listdir(join(path_src, "fake_files")):
         shutil.copyfile(join(path_src, "fake_files", f),
                         join(module_path, "scilpy/tractanalysis/", f))
 
+    # Preparing a cleanup hook to delete these files later when the doc is
+    # finished building.
+    def cleanup_fake_files(app, exception):
+        """Delete fake C files after docs are built."""
+        for f in os.listdir(join(path_src, "fake_files")):
+            copied_file = join(module_path, "scilpy/tractanalysis/", f)
+            if os.path.exists(copied_file):
+                try:
+                    os.remove(copied_file)
+                except Exception as e:
+                    print(f"[cleanup] Could not remove {copied_file}: {e}")
+    app.connect('build-finished', cleanup_fake_files)
+
+    # 2) Scripts documentation
+    # We will want to run the --help (i.e. build the argparser) to show the
+    # help in the doc.  In some cases, this fails if some modules are not
+    # installed. Temporarily replacing lines in file on disk to use mock.
+    # Unchanged script (saved in "data" below) is then re-written on disk.
     commit_scripts = ["scil_tractogram_commit.py"]
     amico_scripts = ["scil_NODDI_maps.py",
                      "scil_freewater_maps.py"]
@@ -225,6 +245,7 @@ def setup(app):
 
                 # To be safe, ignore fails
                 try:
+                    data = None
                     if i in commit_scripts:
                         with open(join(path_script, i), "r") as f:
                             data = f.readlines()
@@ -280,5 +301,12 @@ def setup(app):
                         help_text.replace('.py', '')
                         s.write("::\n\n\t")
                         s.write("\t".join(help_text.splitlines(True)))
+
+                    if data is not None:
+                        # We have changed data on disk. Re-writing initial text
+                        with open(join(path_script, i), "w") as f:
+                            for line in data:
+                                f.write(line)
+
                 except Exception as e:
                     print(e)

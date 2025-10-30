@@ -1,5 +1,5 @@
-Utils
-=====
+-- Useful utilitary scripts --
+==============================
 
 This section covers utils methods in scilpy.
 

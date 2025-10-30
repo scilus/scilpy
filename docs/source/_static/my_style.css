@@ -11,3 +11,8 @@
 .strike {
   text-decoration: line-through;
 }
+
+/* Make citations use full page width instead of narrow blocks */
+div.citation {
+    display: flex !important;
+}

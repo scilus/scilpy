@@ -1,13 +1,11 @@
-Reproducing scilpy paper figures
-================================
+-- Reproducing scilpy paper figures --
+======================================
 
 The following tutorials will help you reproduce the figures in our upcoming scilpy paper.
 
-.. toctree::
-   :maxdepth: 1
 
-   start_to_finish_pipelines/from_raw_data_to_tractogram
-   tractogram_manipulation/tractogram_math
-   bundle_analysis/create_population_template
-   bundle_analysis/profilometry
-   connectivity/connectivity
+   - Figure 1: :ref:`page_from_raw_to_tractogram`
+   - Figure 2 :ref:`page_tractogram_math`
+   - Figure 3: :ref:`page_population_template`
+   - Figure 4: :ref:`profilometry`
+   - Figure 5: :ref:`page_connectivity`

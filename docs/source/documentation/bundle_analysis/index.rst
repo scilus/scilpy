@@ -1,10 +1,12 @@
-Bundle analysis
-===============
+5. Bundle segmentation and analysis (tractometry, profilometry)
+===============================================================
 
 This section covers bundle analysis methods in scilpy.
 
 .. toctree::
    :maxdepth: 1
 
-   bundle_diameter_fitting_function
+   tractogram_segmentation
    profilometry
+   tractometry
+   create_population_template
