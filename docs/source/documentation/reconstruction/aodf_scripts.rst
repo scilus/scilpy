@@ -28,7 +28,7 @@ Suggestion. For a faster processing of this tutorial data, you could crop the fo
     {
         "minimums": [-20, -30, -20],
         "maximums": [20, 30, 20],
-        "voxel_size": [2.5, 2.5, 2.5]}
+        "voxel_size": [2.5, 2.5, 2.5]
     }
 
 .. tip::
