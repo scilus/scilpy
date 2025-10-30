@@ -27,9 +27,9 @@ In order to follow the tutorials we highly encourage you to download this archiv
 
 .. code-block:: bash
 
-    wget -O data_for_test.tar.gz https://drive.google.com/file/d/1acraVPkRfYihBS15AEJi9EUgVs0S0LKY/view?usp=sharing
-    tar -xvf data_for_test.tar.gz
-    rm data_for_test.tar.gz
+      gdown https://drive.google.com/file/d/1YSG8n0A9QQL9Ytitql4M3cIxMz6Yy_oP/view?usp=sharing --fuzzy
+      unzip data_for_test.zip
+      rm data_for_test.zip
 
 This file contains:
 
