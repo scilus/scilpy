@@ -1,3 +1,5 @@
+.. _page_getting_started:
+
 Getting ready for tutorials
 ===========================
 
@@ -27,9 +29,9 @@ In order to follow the tutorials we highly encourage you to download this archiv
 
 .. code-block:: bash
 
-    wget -O data_for_test.tar.gz https://drive.google.com/file/d/1acraVPkRfYihBS15AEJi9EUgVs0S0LKY/view?usp=sharing
-    tar -xvf data_for_test.tar.gz
-    rm data_for_test.tar.gz
+      gdown https://drive.google.com/file/d/1DYQ1LHgqB_wloKmUmIcc6ORaHld0U972/view?usp=sharing --fuzzy
+      unzip data_for_test.zip
+      rm data_for_test.zip
 
 This file contains:
 
@@ -63,4 +65,3 @@ This file contains:
         ├── sub-01__small_mask_csf.nii.gz
         ├── sub-01__small_mask_gm.nii.gz
         ├── sub-01__small_mask_wm.nii.gz
-
