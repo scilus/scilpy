@@ -50,8 +50,8 @@ jobs:
             libfreetype6-dev \
             libdrm-dev \
             libgl1-mesa-dev \
-            libosmesa6-dev
-          sudo apt-get install wget
+           libosmesa6-dev \
+           wget
 
       - name: stdlib checkout
         if: ${{ !contains(steps.python-selector.outputs.python-version, '3.12') }}
