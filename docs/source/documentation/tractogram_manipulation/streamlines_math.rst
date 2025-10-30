@@ -15,9 +15,15 @@ Example of data for this tutorial can be downloaded using instructions here: :re
 
 .. code-block:: bash
 
-    tractogram1=$in_folder/sub-01/sub-01__cst_L_part1.trk
-    mask=$in_folder/sub-01/sub-01__small_mask_wm.nii.gz
-    labels=$in_folder/sub-01/sub-01__wmparc.nii.gz
+    # Let's use a tractogram available in the data:
+    # tractogram1=$in_dir/sub-01/sub-01__cst_L_part2.trk not compatible...
+    tractogram1=$in_dir/sub-01/sub-01__cst_L.trk
+    labels=$in_dir/sub-01/sub-01__wmparc.nii.gz
+    mask=$in_dir/sub-01/sub-01__small_mask_wm.nii.gz
+
+    # Current wmparc is in float. Should be in int. Let's convert.
+    scil_volume_math convert $in_dir/sub-01/sub-01__wmparc.nii.gz \
+        --data_type int16  -f $in_dir/sub-01/sub-01__wmparc.nii.gz
 
 To look at your data in a viewer, you may use the subject's T1 volume:
 
@@ -47,7 +53,7 @@ An alternative is to use DIPY's compression. This uses the minimal number of poi
 
 .. code-block:: bash
 
-    scil_tractogram_compress $tractogram1 compressed.trk
+    scil_tractogram_compress $tractogram1 compressed.trk -v
 
 Cutting streamlines
 *******************
@@ -69,8 +75,6 @@ This will find the segments of streamlines that go from one region of interest (
 
 .. code-block:: bash
 
-    scil_labels_split_volume_by_ids $labels --out_dir labels/
-    ROI1=labels/2024.nii.gz
-    ROI2=labels/16.nii.gz
-    scil_tractogram_cut_streamlines $tractogram1 cut_streamlines.trk \
-        --labels $labels --label_ids $ROI1 $ROI2
+    scil_tractogram_cut_streamlines $tractogram1 cut_streamlines2.trk \
+        --labels $labels --label_ids 16 2024
+
