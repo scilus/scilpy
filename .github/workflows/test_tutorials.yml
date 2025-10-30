@@ -75,7 +75,7 @@ jobs:
           chmod +x docs/source/_static/bash/*/*.sh
           
           # Get data
-          gdown https://drive.google.com/file/d/1GpAlu-NlBv0TTAOQwxAT8MgKURWeJXa6/view?usp=sharing --fuzzy
+          gdown https://drive.google.com/file/d/1DYQ1LHgqB_wloKmUmIcc6ORaHld0U972/view?usp=sharing --fuzzy
           #tar -xvf data_for_test.tar.gz
           #rm data_for_test.tar.gz 
           unzip data_for_test.zip
