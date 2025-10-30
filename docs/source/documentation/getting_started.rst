@@ -29,7 +29,7 @@ In order to follow the tutorials we highly encourage you to download this archiv
 
 .. code-block:: bash
 
-      gdown https://drive.google.com/file/d/1YSG8n0A9QQL9Ytitql4M3cIxMz6Yy_oP/view?usp=sharing --fuzzy
+      gdown https://drive.google.com/file/d/1GpAlu-NlBv0TTAOQwxAT8MgKURWeJXa6/view?usp=sharing --fuzzy
       unzip data_for_test.zip
       rm data_for_test.zip
 

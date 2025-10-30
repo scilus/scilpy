@@ -70,13 +70,17 @@ Step A. Prepare the bundle of interest in each subject
 
         # 4) Register to MNI space.
         #    You can use any tool for this, such as ANTs
-        antsRegistrationSyNQuick.sh -d 3 -m $MNI \
-            -f $in_dir/$subj/${subj}__fa.nii.gz -t r -o $subj/MNI_ -n 4
+        #    Here is how *we* created the transformation files.
+        #    You need to have ANTs installed to run this:
+        # mkdir $in_dir/$subj/transfo/
+        # antsRegistrationSyNQuick.sh -d 3 -m $MNI \
+        #     -f $in_dir/$subj/${subj}__fa.nii.gz -t r \
+        #     -o $in_dir/$subj/transfo/MNI_ -n 4
+        transfo=$in_dir/$subj/transfo/MNI_0GenericAffine.mat
 
         # 5) Apply the transformation to your tractogram.
         #    Uses the ANTs transformation. We used linear registration so we
         #    can use the .mat output.
-        transfo=$subj/MNI_0GenericAffine.mat
         in_bundle=$subj/CST.tck
         out_bundle=$subj/CST_MNI.tck
         ref=$in_dir/$subj/${subj}__fa.nii.gz
