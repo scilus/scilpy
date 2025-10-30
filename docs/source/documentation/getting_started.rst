@@ -1,3 +1,5 @@
+.. _page_getting_started:
+
 Getting ready for tutorials
 ===========================
 
