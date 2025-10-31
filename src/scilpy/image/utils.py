@@ -74,6 +74,60 @@ def extract_affine(input_files):
             return vol.affine
 
 
+def verify_strides(vol_img):
+    """Verify if the strides of the given volume are [1, 2, 3].
+
+    Parameters
+    ----------
+    vol_img : nib.Nifti1Image
+        Volume image.
+
+    Returns
+    -------
+    strides : np.array
+        Current strides of the volume.
+    is_stride_correct : bool
+        True if the strides are [1, 2, 3], false otherwise.
+    """
+    strides = nib.io_orientation(vol_img.affine).astype(np.int8)
+    strides = (strides[:, 0] + 1) * strides[:, 1]
+    # Check if the strides are correct ([1, 2, 3])
+    if np.array_equal(strides, [1, 2, 3]):
+        is_stride_correct = True
+        logging.warning('Input data already has the correct strides [1, 2, 3].'
+                        ' No correction on data needed and outputed.')
+    else:
+        is_stride_correct = False
+        logging.warning('Input data has strides {}. '
+                        'Correcting to [1, 2, 3].'.format(strides))
+    return strides, is_stride_correct
+
+
+def find_strides_transform(strides):
+    """Find the transform required to get to [1, 2, 3] from the current
+    strides.
+
+    Parameters
+    ----------
+    strides : np.array
+        Current strides of the volume.
+
+    Returns
+    -------
+    transform : list of int
+        Transform to apply to get to [1, 2, 3].
+    """
+    n = len(strides)
+    transform = [0]*n
+    for i, m in enumerate(strides):
+        # Get the axis (0, 1, 2) and the sign of the current stride
+        axis = abs(m) - 1
+        sign = 1 if m > 0 else -1
+        # Set the transform for this axis
+        transform[axis] = sign * (i + 1)
+    return transform
+
+
 def check_slice_indices(vol_img, axis_name, slice_ids):
     """Check that the given volume can be sliced at the given slice indices
     along the requested axis.
