@@ -10,6 +10,8 @@ from nibabel.streamlines import ArraySequence
 from scipy.ndimage import map_coordinates
 
 from scilpy.tractograms.uncompress import streamlines_to_voxel_coordinates
+
+from scilpy.image.volume_space_management import map_coordinates_in_volume
 from scilpy.tractograms.streamline_operations import \
     (_get_point_on_line, _get_streamline_pt_index,
      _get_next_real_point, _get_previous_real_point,
@@ -620,7 +622,8 @@ def _intersects_two_rois(roi_data_1, roi_data_2, strl_indices,
     roi_data_2: np.ndarray
         Boolean array representing the region #2
     strl_indices: list of tuple (N, 3)
-        3D indices of the voxels intersected by the streamline
+        3D indices of the voxels intersected by the streamline, in vox space,
+        corner origin.
     one_point_in_roi: bool
         If True, one point in each ROI will be kept.
     no_point_in_roi: bool
@@ -635,10 +638,10 @@ def _intersects_two_rois(roi_data_1, roi_data_2, strl_indices,
     """
 
     # Find all the points of the streamline that are in the ROIs
-    roi_data_1_intersect = map_coordinates(
-        roi_data_1, strl_indices.T, order=0, mode='nearest')
+    roi_data_1_intersect = map_coordinates_in_volume(
+        roi_data_1, strl_indices.T, order=0)
     roi_data_2_intersect = map_coordinates(
-        roi_data_2, strl_indices.T, order=0, mode='nearest')
+        roi_data_2, strl_indices.T, order=0)
 
     # Get the indices of the voxels intersecting with the ROIs
     in_strl_indices = np.argwhere(roi_data_1_intersect).squeeze(-1)
