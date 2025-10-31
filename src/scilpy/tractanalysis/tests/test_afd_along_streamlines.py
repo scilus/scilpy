@@ -17,7 +17,7 @@ fetch_data(get_testing_files_dict(), keys=['processing.zip'])
 
 def test_afd_map_along_streamlines():
     fodf_img = nib.load(os.path.join(SCILPY_HOME, 'processing', 'fodf.nii.gz'))
-    fodf = fodf_img.get_fdata()
+    fodf = fodf_img.get_fdata(dtype=np.float32)
     fodf_mask = np.sum(fodf, axis=-1) > 0
 
     peaks = nib.load(os.path.join(SCILPY_HOME, 'processing', 'peaks.nii.gz'))
