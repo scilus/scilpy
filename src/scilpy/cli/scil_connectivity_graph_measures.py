@@ -20,7 +20,7 @@ nodal_strength, local_efficiency, global_efficiency, density, rich_club,
 path_length, edge_count, omega, sigma
 
 For more details about the measures, please refer to
-- https://sites.google.com/site/bctnet/measures
+- https://sites.google.com/site/bctnet/
 - https://github.com/aestrivex/bctpy/wiki
 
 This script is under the GNU GPLv3 license, for more detail please refer to
