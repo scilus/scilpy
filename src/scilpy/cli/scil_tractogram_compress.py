@@ -47,6 +47,10 @@ def main():
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
+    if args.in_tractogram == args.out_tractogram:
+        parser.error("This script does not allow using the same input and "
+                     "output tractogram files, even with option -f. It uses "
+                     "lazy loading which does not allow this option.")
     assert_inputs_exist(parser, args.in_tractogram)
     assert_outputs_exist(parser, args, args.out_tractogram)
     check_tracts_same_format(parser, args.in_tractogram, args.out_tractogram)
