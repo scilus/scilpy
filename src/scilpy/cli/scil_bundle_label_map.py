@@ -72,6 +72,7 @@ import numpy as np
 import scipy.ndimage as ndi
 
 from scilpy.image.volume_math import neighborhood_correlation_
+from scilpy.image.volume_space_management import map_coordinates_in_volume
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg,
                              add_reference_arg,
@@ -353,9 +354,8 @@ def main():
                 continue
 
             if len(cut_sft):
-                tmp_data = ndi.map_coordinates(
-                    map, cut_sft.streamlines._data.T - 0.5, order=0,
-                    mode='nearest')
+                tmp_data = map_coordinates_in_volume(
+                    map, cut_sft.streamlines._data.T - 0.5, order=0)
 
                 if basename == 'labels':
                     max_val = args.nb_pts
