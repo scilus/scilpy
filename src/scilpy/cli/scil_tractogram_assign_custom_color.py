@@ -119,8 +119,9 @@ def _build_arg_parser():
                     'approximation. Default if set is 4.')
     g2.add_argument('--colormap', default='jet',
                     help='Select the colormap for colored trk (dps/dpp) '
-                    '[%(default)s].\nUse two Matplotlib named color separeted '
-                    'by a - to create your own colormap.')
+                    '[%(default)s].\nYou may also use two Matplotlib named '
+                    'colors separated by a "- to\n create your own colormap. '
+                    'Ex: red-blue.')
     g2.add_argument('--clip_outliers', action='store_true',
                     help="If set, we will clip the outliers (first and last "
                          "5%% quantile). Strongly suggested if your data "
