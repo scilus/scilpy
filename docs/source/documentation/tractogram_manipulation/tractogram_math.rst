@@ -119,7 +119,8 @@ See the difference between the two calls above:
 |    :width: 35%                           |    :width: 35%                               |
 |    :align: center                        |    :align: center                            |
 +------------------------------------------+----------------------------------------------+
-=======
+
+
 You may open and compare tractogram_downsampled.trk and tractogram_downsampled2.trk. Here, data is small and in both cases, the downsampling should cover a good portion of the spatial extend of the bundle, even though the first call is random. On whole-brain data, the difference can be more impressive.
 
 **2. Upsampling:**

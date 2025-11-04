@@ -32,10 +32,10 @@ Suggestion. For a faster processing of this tutorial data, you could crop the fo
     }
 
 .. tip::
-    You may download the complete bash script to run the whole tutorial in one step `here </_static/bash/reconst/aodf_scripts.sh>`_.
+    You may download the complete bash script to run the whole tutorial in one step `⭳ here <../../_static/bash/reconst/aodf_scripts.sh>`_.
 
-Creating the aodf
-*****************
+1. Creating the aodf
+********************
 
 Although there is an automatic way to set the parameters, it is not yet implemented in scilpy. We recommend that you experiment with the parameters to find the best configuration for your data. Here, we use the smallest sphere available in Dipy, for a fast test. You can run the command as follows:
 
@@ -52,8 +52,8 @@ The default script runs a pure python implementation, which is slow. To speed up
 
 The script will output the asymmetric ODF image (``afodf.nii.gz``) in the current directory. At the difference of a symmetric ODF image, which is represented using a symmetric spherical harmonics basis, the asymmetric ODF image is represented using a full spherical harmonics basis. Therefore, the output image will have more SH coefficients than the input image. For instance, for a maximum SH order of 8, the input image will have 45 coefficients per voxel, while the output image will have 81 coefficients per voxel.
 
-Computing metrics
-*****************
+2. Computing metrics
+********************
 
 From the estimated AODF, we can compute a bunch of metrics using the script :ref:`scil_aodf_metrics`:.
 

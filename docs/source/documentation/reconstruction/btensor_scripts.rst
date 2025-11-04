@@ -19,7 +19,7 @@ To run lines below, you need a various volumes, b-vector information and masks. 
     cp $HOME/.scilpy/btensor_testdata/* $in_dir/
 
 .. tip::
-    You may download the complete bash script to run the whole tutorial in one step `here </_static/bash/reconst/btensor_scripts.sh>`_.
+    You may download the complete bash script to run the whole tutorial in one step `⭳ here <../../_static/bash/reconst/btensor_scripts.sh>`_.
 
 1. Computing the frf
 ********************
@@ -63,5 +63,8 @@ If you want to do DIVIDE with b-tensor data, you should use the following comman
         --in_bvals $in_dir/linear.bvals $in_dir/planar.bvals $in_dir/spherical.bvals \
         --in_bvecs $in_dir/linear.bvecs $in_dir/planar.bvecs $in_dir/spherical.bvecs \
         --in_bdeltas 1 -0.5 0 --fa $in_dir/fa.nii.gz --processes 8 --mask $in_dir/mask.nii.gz
+
+References
+**********
 
 .. [memst] P. Karan et al., Bridging the gap between constrained spherical deconvolution and diffusional variance decomposition via tensor-valued diffusion MRI. Medical Image Analysis (2022)

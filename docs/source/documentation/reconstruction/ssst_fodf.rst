@@ -23,7 +23,7 @@ The tutorial data is still in preparation, meanwhile you can use this:
     cp $HOME/.scilpy/processing/fa_thr.nii.gz $in_dir/wm_mask.nii.gz
 
 .. tip::
-    You may download the complete bash script to run the whole tutorial in one step `here </_static/bash/reconst/ssst_fodf.sh>`_.
+    You may download the complete bash script to run the whole tutorial in one step `⭳ here <../../_static/bash/reconst/ssst_fodf.sh>`_.
 
 
 1. Computing the frf

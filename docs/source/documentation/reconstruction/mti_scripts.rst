@@ -112,7 +112,7 @@ Overall, we have data for a subject, containing:
 
 
 .. tip::
-    You may download the complete bash script to run the whole tutorial in one step `here </_static/bash/reconst/mti_scripts.sh>`_.
+    You may download the complete bash script to run the whole tutorial in one step `⭳ here <../../_static/bash/reconst/mti_scripts.sh>`_.
 
 Step-by-step processing
 ***********************
@@ -267,7 +267,7 @@ This workflow handles conversion, registration, and execution of the ``scil_mti_
 
 
 References
-----------
+**********
 
 [1] Varma G, Girard OM, Prevost VH, Grant AK, Duhamel G, Alsop DC.
     Interpretation of magnetization transfer from inhomogeneously broadened

@@ -26,7 +26,7 @@ To run the script, you need a DWI image with its corresponding b-values and b-ve
 
 
 .. tip::
-    You may download the complete bash script to run the whole tutorial in one step `here </_static/bash/reconst/qball_metrics.sh>`_.
+    You may download the complete bash script to run the whole tutorial in one step `⭳ here <../../_static/bash/reconst/qball_metrics.sh>`_.
 
 
 Running Q-ball
