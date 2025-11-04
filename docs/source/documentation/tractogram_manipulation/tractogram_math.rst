@@ -7,15 +7,31 @@ Scilpy scripts allow users to modify tractograms in various ways based on their 
 
 
 The range of possibilities is wide!
------------------------------------
+***********************************
 
-- Mathematical operations on two tractograms such as union, intersection and difference can be performed through the :ref:`scil_tractogram_math` script.
+- Mathematical operations on **two tractograms**
 
-- Some scripts allow operations on the tractogram as a whole object in the brain, such as flipping it on a chosen axis (:ref:`scil_tractogram_flip`) or creating a map of all voxels touched by a streamline (:ref:`scil_tractogram_compute_density_map`).
+    - Union, intersection and difference can be performed through the :ref:`scil_tractogram_math` script.
 
-- Other scripts allow operations on the tractogram as set of streamlines, such as resampling the number of streamlines (:ref:`scil_tractogram_resample`, :ref:`scil_tractogram_split`), separating streamlines based on various criteria  (:ref:`scil_tractogram_filter_by_roi`, :ref:`scil_tractogram_filter_by_anatomy`, :ref:`scil_tractogram_filter_by_length`, :ref:`scil_tractogram_filter_by_orientation`) or segmenting a tractogram into bundles (see :ref:`page_tractogram_segmentation`).
+- Some scripts allow operations on **a single tractogram as a whole object** in the brain
 
-- Finally, other scripts allow modifying the streamlines themselves, for instance by resampling the number of points on each streamline (:ref:`scil_tractogram_resample_nb_points`, :ref:`scil_tractogram_compress`), or smoothing the streamlines’ trajectories (:ref:`scil_tractogram_smooth`). See page :ref:`page_streamlines_math` for more information.
+    - We can flip it on a chosen axis with :ref:`scil_tractogram_flip`
+
+    - We can create a map of all voxels touched by a streamline with :ref:`scil_tractogram_compute_density_map`.
+
+- Other scripts allow operations on **a single tractogram as set of streamlines**
+
+    - We can resample the number of streamlines (:ref:`scil_tractogram_resample`, :ref:`scil_tractogram_split`)
+
+    - We can filter out streamlines based on various criteria  (:ref:`scil_tractogram_filter_by_roi`, :ref:`scil_tractogram_filter_by_anatomy`, :ref:`scil_tractogram_filter_by_length`, :ref:`scil_tractogram_filter_by_orientation`)
+
+    - We can segment a tractogram into bundles (see :ref:`page_tractogram_segmentation`).
+
+- Finally, other scripts allow modifying **the streamlines themselves**. See page :ref:`page_streamlines_math` for more information.
+
+    - We can resample the number of points on each streamline (:ref:`scil_tractogram_resample_nb_points`, :ref:`scil_tractogram_compress`)
+
+    - We can smooth the streamlines’ trajectories (:ref:`scil_tractogram_smooth`).
 
 Overall, figure 2 in our upcoming paper represents well the range of possibilities.
 
@@ -27,9 +43,6 @@ Overall, figure 2 in our upcoming paper represents well the range of possibiliti
 | ** For the coloring of tractograms, see :ref:`page_viz_colors`.
 | ** For an example of streamlines cutting, see :ref:`page_streamlines_math`.
 
-
-Examples of tractogram manipulation
------------------------------------
 
 Preparing data for this tutorial
 ********************************
@@ -55,7 +68,7 @@ We used MI-Brain to visualize both tractograms, which each contain one part of t
 
 
 .. tip::
-    You may download the complete bash script to run the whole tutorial in one step `here </_static/bash/tractogram_manipulation/tractogram_math.sh>`_.
+    You may download the complete bash script to run the whole tutorial in one step `⭳ here <../../_static/bash/tractogram_manipulation/tractogram_math.sh>`_.
 
 
 A. Logical operations
@@ -84,11 +97,11 @@ If a streamline is exactly the same in both tractograms, it will be kept once.
 
     scil_tractogram_math difference $tractogram1 $tractogram2 difference1-2.trk
 
-Below is the result of the intersection operation. The streamlines in red belonged to both tractograms and form the new file intersection.trk.
-
-.. image:: /_static/images/tractogram_math_intersection.png
+.. figure:: /_static/images/tractogram_math_intersection.png
    :alt: Intersection result
    :width: 40%
+
+   Result of the intersection operation. The streamlines in orange belonged to both tractograms and form the new file intersection.trk.
 
 B. Tractogram resampling
 ************************
@@ -110,16 +123,6 @@ Most of the time, you can use the default value for --qbx_thresholds, particular
     scil_tractogram_resample $tractogram1 200 tractogram_downsampled2.trk \
         --downsample_per_cluster -v --qbx_thresholds 3
 
-See the difference between the two calls above:
-
-+------------------------------------------+----------------------------------------------+
-| Random selection                         | Selection per Quickbundle cluster            |
-+==========================================+==============================================+
-| .. image:: /??                           | .. image:: ?                                 |
-|    :width: 35%                           |    :width: 35%                               |
-|    :align: center                        |    :align: center                            |
-+------------------------------------------+----------------------------------------------+
-=======
 You may open and compare tractogram_downsampled.trk and tractogram_downsampled2.trk. Here, data is small and in both cases, the downsampling should cover a good portion of the spatial extend of the bundle, even though the first call is random. On whole-brain data, the difference can be more impressive.
 
 **2. Upsampling:**
@@ -131,11 +134,11 @@ To add more streamlines to our tractogram, the script uses randomly picked strea
     scil_tractogram_resample $tractogram1 4000 tractogram_upsampled.trk \
         --point_wise_std 5 -v --tube_radius 4
 
-Below, we show a zoomed view on the results. In green: the original bundle. In blue: the new streamlines.
-
-.. image:: /_static/images/tractogram_math_upsampling.png
+.. figure:: /_static/images/tractogram_math_upsampling.png
    :alt: Intersection result
-   :width: 40%
+   :width: 50%
+
+   Zoomed view on the results. In green: the original bundle. In blue: the new streamlines.
 
 **3. Splitting a tractogram**
 

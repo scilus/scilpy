@@ -362,5 +362,3 @@ This reconstruction is not very good, but it is to be expected with
 a --blur_radius and --step_size of 0.1. If you have a few minutes,
 try again with 0.01!
 
-End of Demo
------------

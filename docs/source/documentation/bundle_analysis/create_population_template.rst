@@ -5,7 +5,7 @@ Creating a bundle template from a chosen population
 
 Scilpy scripts enable users to create a WM bundle population template, such as described in figure 3 in our upcoming paper. Such a pipeline includes:
 
-1) segmenting the bundle of interest in each subject’s tractogram. The segmentation of bundles can be based on ROIs of inclusion / exclusion (`scil_tractogram_segment_with_ROI_and_score` or `scil_tractogram_filter_by_roi`) or based on the general shape of the streamlines (`scil_tractogram_segment_with_recobundles`, `scil_tractogram_segment_with_bundleseg`). See :ref:`page_tractogram_segmentation` for more information on this.
+1) segmenting the bundle of interest in each subject’s tractogram. The segmentation of bundles can be based on ROIs of inclusion / exclusion (:ref:`scil_tractogram_segment_with_ROI_and_score` or :ref:`scil_tractogram_filter_by_roi`) or based on the general shape of the streamlines (:ref:`scil_tractogram_segment_with_recobundles`, :ref:`scil_tractogram_segment_with_bundleseg`). See :ref:`page_tractogram_segmentation` for more information on this.
 
 2) registering the bundles to a reference space (e.g., MNI space) and analysing the inter-subject variability,
 
@@ -23,7 +23,7 @@ Then, registration can be performed (see :ref:`page_tractogram_registration`). T
 Preparing data for this tutorial
 ********************************
 
-To download data for this tutorial, see page :ref:`page_getting_started`_. Then do:
+To download data for this tutorial, see page :ref:`page_getting_started`. Then do:
 
 .. code-block:: bash
 
@@ -34,10 +34,10 @@ To download data for this tutorial, see page :ref:`page_getting_started`_. Then 
         --data_type int16  -f $in_dir/sub-01/sub-01__wmparc.nii.gz
 
 
-The labels come from a Freesurfer segmentation (https://surfer.nmr.mgh.harvard.edu/ ), and the labels that it contains are found here: https://surfer.nmr.mgh.harvard.edu/fswiki/FsTutorial/AnatomicalROI/FreeSurferColorLUT .
+The labels come from a `Freesurfer <https://surfer.nmr.mgh.harvard.edu/>`_ segmentation, and the labels that it contains are found `in the FsWiki's Color Look-up Table (LUT) <https://surfer.nmr.mgh.harvard.edu/fswiki/FsTutorial/AnatomicalROI/FreeSurferColorLUT>`_ .
 
 .. tip::
-    You may download the complete bash script to run the whole tutorial in one step `here </_static/bash/bundle_analysis/create_population_template.sh>`_.
+    You may download the complete bash script to run the whole tutorial in one step `⭳ here <../../_static/bash/bundle_analysis/create_population_template.sh>`_.
 
 
 Step A. Prepare the bundle of interest in each subject

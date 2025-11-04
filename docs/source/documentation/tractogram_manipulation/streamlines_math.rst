@@ -1,7 +1,7 @@
 .. _page_streamlines_math:
 
-Streamlines manipulation (resampling, smoothing)
-================================================
+Streamlines manipulation
+========================
 
 Here, we discuss scripts allowing modifying the streamlines themselves, for instance by resampling the number of points on each streamline (:ref:`scil_tractogram_resample_nb_points`, :ref:`scil_tractogram_compress`), or smoothing the streamlines’ trajectories (:ref:`scil_tractogram_smooth`).
 
@@ -32,7 +32,7 @@ To look at your data in a viewer, you may use the subject's T1 volume:
     t1=$in_folder/sub-01/sub-01__t1.nii.gz
 
 .. tip::
-    You may download the complete bash script to run the whole tutorial in one step `here </_static/bash/tractogram_manipulation/streamlines_math.sh>`_.
+    You may download the complete bash script to run the whole tutorial in one step `⭳ here <../../_static/bash/tractogram_manipulation/streamlines_math.sh>`_.
 
 Resampling the number of points in each streamline
 **************************************************
