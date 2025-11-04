@@ -10,4 +10,3 @@ This section covers tractogram manipulation methods in scilpy. Most of the funct
    tractogram_registration
    tractogram_math
    streamlines_math
-   tractogram_filtering

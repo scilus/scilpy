@@ -21,3 +21,8 @@ div.citation {
 div.citation a, p {
     font-size: 1rem !important;
 }
+
+/* Making links from :ref: gray. With blue, it was becoming heavy */
+.internal {
+    color: #878787;
+}
