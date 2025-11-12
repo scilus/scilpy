@@ -238,8 +238,9 @@ def _save_results(args, tmp_dir, ext, in_hdf5_file, offsets_list, sub_dir,
 
     # Loading the tractogram (we never did yet! Only sent the filename to
     # commit). Reminder. If input was a hdf5, we have changed
-    # args.in_tractogram to our tmp_tractogram saved in tmp_dir.
-    if ext == '.trk' and args.reference is None:
+    # args.in_tractogram to our tmp_tractogram saved in tmp_dir. However,
+    # ext is still .h5 so we need to set the reference accordingly.
+    if ext in ['.trk', '.h5'] and args.reference is None:
         args.reference = 'same'
     logging.debug('Loading tractogram from {} with reference {}.'
                   .format(args.in_tractogram, args.reference))
