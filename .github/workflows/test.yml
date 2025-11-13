@@ -36,6 +36,7 @@ jobs:
       - name: Set up Python and uv for Scilpy
         uses: astral-sh/setup-uv@v6.4.3
         with:
+          version: "0.9.7"
           python-version: ${{ steps.python-selector.outputs.python-version }}
           activate-environment: true
           enable-cache: true
