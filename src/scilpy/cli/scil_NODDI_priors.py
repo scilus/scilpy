@@ -149,8 +149,12 @@ def main():
                  '{}-{}]: {}'
                  .format(args.fa_min_single_fiber, 0.95, nb_voxels))
     single_fiber_ad_mean = np.mean(roi_ad[indices])
+    single_fiber_ad_max = np.max(roi_ad[indices])
+    single_fiber_ad_min = np.min(roi_ad[indices])
     single_fiber_ad_std = np.std(roi_ad[indices])
     single_fiber_rd_mean = np.mean(roi_rd[indices])
+    single_fiber_rd_max = np.max(roi_rd[indices])
+    single_fiber_rd_min = np.min(roi_rd[indices])
     single_fiber_rd_std = np.std(roi_rd[indices])
 
     # Create mask of single fiber in ROI
@@ -168,7 +172,9 @@ def main():
                  '{}'.format(args.fa_max_ventricles, args.md_min_ventricles,
                              nb_voxels))
 
-    vent_avg = np.mean(roi_md[indices])
+    vent_mean = np.mean(roi_md[indices])
+    vent_min = np.min(roi_md[indices])
+    vent_max = np.max(roi_md[indices])
     vent_std = np.std(roi_md[indices])
 
     # Create mask of ventricle in ROI
@@ -187,20 +193,29 @@ def main():
         nib.save(nib.Nifti1Image(mask_vent, affine), args.out_mask_ventricles)
 
     if args.out_txt_1fiber_para:
-        np.savetxt(args.out_txt_1fiber_para, [single_fiber_ad_mean], fmt='%f')
+        np.savetxt(args.out_txt_1fiber_para, [single_fiber_ad_max,
+                                              single_fiber_ad_mean,
+                                              single_fiber_ad_min,
+                                              single_fiber_ad_std], fmt='%f')
 
     if args.out_txt_1fiber_perp:
-        np.savetxt(args.out_txt_1fiber_perp, [single_fiber_rd_mean], fmt='%f')
+        np.savetxt(args.out_txt_1fiber_perp, [single_fiber_rd_max,
+                                              single_fiber_rd_mean,
+                                              single_fiber_rd_min,
+                                              single_fiber_rd_std], fmt='%f')
 
     if args.out_txt_ventricles:
-        np.savetxt(args.out_txt_ventricles, [vent_avg], fmt='%f')
+        np.savetxt(args.out_txt_ventricles, [vent_max,
+                                             vent_mean,
+                                             vent_min,
+                                             vent_std], fmt='%f')
 
     logging.info("Average AD in single fiber areas: {} +- {}"
                  .format(single_fiber_ad_mean, single_fiber_ad_std))
     logging.info("Average RD in single fiber areas: {} +- {}"
                  .format(single_fiber_rd_mean, single_fiber_rd_std))
     logging.info("Average MD in ventricles: {} +- {}"
-                 .format(vent_avg, vent_std))
+                 .format(vent_mean, vent_std))
 
 
 if __name__ == "__main__":
