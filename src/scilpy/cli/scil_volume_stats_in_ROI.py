@@ -38,6 +38,10 @@ def _build_arg_parser():
                    help='ROIs volume filenames.\nCan be binary masks or '
                         'weighted masks.')
 
+    p.add_argument('--keep_unique_roi_name', action='store_true',
+                     help='If set, will keep the same JSON structure even if only '
+                            'one ROI is provided as input.')
+
     g = p.add_argument_group('Metrics input options')
     gg = g.add_mutually_exclusive_group(required=True)
     gg.add_argument('--metrics_dir', metavar='dir',
@@ -139,7 +143,7 @@ def main():
                     'Metric {} is not a 3D image ({}D shape).'
                     .format(f, len(metric_img.shape)))
 
-    if len(args.in_rois) == 1:
+    if len(args.in_rois) == 1 and not args.keep_unique_roi_name:
         json_stats = json_stats[roi_name]
 
     # Print results
