@@ -125,7 +125,6 @@ def evaluate_graph_measures_functional(conn_matrix, conn_threshold,
     gtm_dict['clustering'] = func_cast(bct.clustering_coef_wu(Wb))
 
     gtm_dict['nodal_strength'] = func_cast(bct.strengths_und(Wb))
-
     gtm_dict['density'] = func_cast(bct.density_und(Wb)[0])
 
     # Rich club always gives an error for the matrix rank and gives NaN

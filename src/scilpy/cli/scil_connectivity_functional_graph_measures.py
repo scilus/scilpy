@@ -1,9 +1,23 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Evaluate graph theory measures from connectivity matrices.
-A length-weighted and a streamline count-weighted matrix are required since
-some measures require one or the other.
+Evaluate graph theory measures from connectivity matrices. Three potential:
+1) Structural connectivity graph measures. A length-weighted matrix is
+optional but required to extract measures global efficiency, local efficiancy,
+betweeness centrality, path length, edge count, and small-world omega/sigma
+(not computed otherwise). The other computed connectivity measures that do
+not require the length matrix are:
+modularity, assortativity, participation, clustering, nodal_strength, and
+rich_club.
+
+2) Functional connectivity graph measures. The functional connectivity matrix
+is assumed to come from fMRI bold correlations (-1 to 1 values). Hence, matrix
+is made strictly positive (absolute value) and thresholded above a certain
+correlation value (default: 0.25) as recommended in the litterature.
+The computed connectivity measures are: modularity, assortativity,
+participation, clustering, nodal_strength, and rich_club.
+
+3) Both structural and functional anaylisis. 
 
 This script evaluates the measures one subject at the time. To generate a
 population dictionary (similarly to other scil_connectivity_* scripts), use
@@ -13,11 +27,6 @@ the --append_json option as well as using the same output filename.
 
 Some measures output one value per node, the default behavior is to list
 them all. To obtain only the average use the --avg_node_wise option.
-
-The computed connectivity measures are:
-centrality, modularity, assortativity, participation, clustering,
-nodal_strength, local_efficiency, global_efficiency, density, rich_club,
-path_length, edge_count, omega, sigma
 
 For more details about the measures, please refer to
 - https://sites.google.com/site/bctnet/
@@ -55,13 +64,12 @@ def _build_arg_parser():
                                 epilog=version_string)
 
     p.add_argument('in_conn_matrix',
-                   help='Input connectivity matrix (.npy).\n'
-                        'Typically a streamline count weighted matrix.')
-    p.add_argument('in_length_matrix',
-                   help='Input length-weighted matrix (.npy).')
+                   help='Input connectivity matrix (.npy).')
     p.add_argument('out_json',
                    help='Path of the output json.')
 
+    p.add_argument('--in_length_matrix',
+                   help='Input length-weighted matrix (.npy).')
     p.add_argument('--filtering_mask',
                    help='Binary filtering mask to apply before computing the '
                         'measures.')
