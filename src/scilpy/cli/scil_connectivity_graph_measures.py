@@ -105,8 +105,7 @@ def main():
     len_matrix = load_matrix_in_any_format(args.in_length_matrix)
 
     if args.filtering_mask:
-        mask_matrix = load_matrix_in_any_format(
-            args.filtering_mask).astype(bool)
+        mask_matrix = load_matrix_in_any_format(args.filtering_mask).astype(bool)
         conn_matrix *= mask_matrix
         len_matrix *= mask_matrix
 

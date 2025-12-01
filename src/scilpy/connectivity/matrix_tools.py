@@ -77,6 +77,66 @@ def apply_reordering(array, ordering):
     return tmp_array
 
 
+def evaluate_graph_measures_functional(conn_matrix, conn_threshold,
+                                       avg_node_wise, small_world):
+    """
+    Parameters
+    ----------
+    conn_matrix: np.ndarray
+        2D matrix of functional connectivity weights 
+    conn_threshold: float
+        2D matrix of bundle lengths.
+    avg_node_wise: bool
+        If true, return a single value for node-wise measures.
+    small_world: bool
+        If true, compute measure related to small worldness (omega and sigma).
+        This option is much slower.
+    """
+    if not have_bct:
+        raise RuntimeError("bct ist not installed. Please install to use "
+                           "this connectivity script.")
+    N = len_matrix.shape[0]
+
+    def avg_cast(_input):
+        return float(np.average(_input))
+
+    def list_cast(_input):
+        if isinstance(_input, np.ndarray):
+            if _input.ndim == 2:
+                return np.average(_input, axis=1).astype(np.float32).tolist()
+            return _input.astype(np.float32).tolist()
+        return float(_input)
+
+    if avg_node_wise:
+        func_cast = avg_cast
+    else:
+        func_cast = list_cast
+
+    # Taking the absolute value and thresholding matrix
+    print("Keep only positive correlations above threshold:", conn_threshold)
+    Wp = np.copy(conn_matrix)
+    Wp = np.abs(conn_matrix)
+    Wp[Wp <= conn_threshold] = 0
+
+    gtm_dict = {}
+    ci, gtm_dict['modularity'] = bct.modularity_louvain_und(Wp, seed=0)
+    gtm_dict['assortativity'] = bct.assortativity_wei(Wp, flag=0)
+    gtm_dict['participation'] = func_cast(bct.participation_coef_sign(Wb, ci)[0])
+    gtm_dict['clustering'] = func_cast(bct.clustering_coef_wu(Wb))
+
+    gtm_dict['nodal_strength'] = func_cast(bct.strengths_und(Wb))
+
+    gtm_dict['density'] = func_cast(bct.density_und(Wb)[0])
+
+    # Rich club always gives an error for the matrix rank and gives NaN
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        tmp_rich_club = bct.rich_club_wu(Wb)        
+    gtm_dict['rich_club'] = func_cast(tmp_rich_club[~np.isnan(tmp_rich_club)])
+
+    return gtm_dict
+
+
 def evaluate_graph_measures(conn_matrix, len_matrix, avg_node_wise,
                             small_world):
     """
