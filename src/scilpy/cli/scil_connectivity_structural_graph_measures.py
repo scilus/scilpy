@@ -1,23 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Evaluate graph theory measures from connectivity matrices. Three potential:
-1) Structural connectivity graph measures. A length-weighted matrix is
-optional but required to extract measures global efficiency, local efficiancy,
-betweeness centrality, path length, edge count, and small-world omega/sigma
-(not computed otherwise). The other computed connectivity measures that do
-not require the length matrix are:
-modularity, assortativity, participation, clustering, nodal_strength, and
-rich_club.
-
-2) Functional connectivity graph measures. The functional connectivity matrix
-is assumed to come from fMRI bold correlations (-1 to 1 values). Hence, matrix
-is made strictly positive (absolute value) and thresholded above a certain
-correlation value (default: 0.25) as recommended in the litterature.
-The computed connectivity measures are: modularity, assortativity,
+Evaluate graph theory measures from structural connectivity matrices from
+outputs of diffusion MRI tractography. A length-weighted matrix is
+optional but required to extract measures such as: global efficiency,
+local efficiency, betweeness centrality, path length, edge count, and
+small-world omega/sigma. These are not computed if a length matrix is
+not provided. The other computed connectivity measures that do
+not require the length matrix are: modularity, assortativity,
 participation, clustering, nodal_strength, and rich_club.
-
-3) Both structural and functional anaylisis. 
 
 This script evaluates the measures one subject at the time. To generate a
 population dictionary (similarly to other scil_connectivity_* scripts), use
@@ -68,7 +59,7 @@ def _build_arg_parser():
     p.add_argument('out_json',
                    help='Path of the output json.')
 
-    p.add_argument('--in_length_matrix',
+    p.add_argument('--length_matrix', 
                    help='Input length-weighted matrix (.npy).')
     p.add_argument('--filtering_mask',
                    help='Binary filtering mask to apply before computing the '
@@ -94,8 +85,7 @@ def main():
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
-    assert_inputs_exist(parser, [args.in_length_matrix,
-                                 args.in_conn_matrix])
+    assert_inputs_exist(parser, args.in_conn_matrix)
 
     if not args.append_json:
         assert_outputs_exist(parser, args, args.out_json)
@@ -110,13 +100,21 @@ def main():
                      'output json file first instead.')
 
     conn_matrix = load_matrix_in_any_format(args.in_conn_matrix)
-    len_matrix = load_matrix_in_any_format(args.in_length_matrix)
+    len_matrix = None
+    
+    if args.length_matrix:
+        len_matrix = load_matrix_in_any_format(args.length_matrix)
 
     if args.filtering_mask:
         mask_matrix = load_matrix_in_any_format(args.filtering_mask).astype(bool)
         conn_matrix *= mask_matrix
-        len_matrix *= mask_matrix
+        
+        if args.length_matrix:
+            len_matrix *= mask_matrix
 
+    if len_matrix is None:
+        print("Warning: No length-weighted matrix provided. ")
+        
     gtm_dict = evaluate_graph_measures(conn_matrix, len_matrix,
                                        args.avg_node_wise, args.small_world)
 
