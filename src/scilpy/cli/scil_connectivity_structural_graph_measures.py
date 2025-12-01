@@ -13,8 +13,9 @@ participation, clustering, nodal_strength, and rich_club.
 This script evaluates the measures one subject at the time. To generate a
 population dictionary (similarly to other scil_connectivity_* scripts), use
 the --append_json option as well as using the same output filename.
->>> for i in hcp/*/; do scil_connectivity_graph_measures ${i}/sc_prob.npy
-    ${i}/len_prob.npy hcp_prob.json --append_json --avg_node_wise; done
+>>> for i in hcp/*/; do scil_connectivity_structural_graph_measures
+    ${i}/sc_prob.npy ${i}/len_prob.npy hcp_prob.json
+    --append_json --avg_node_wise; done
 
 Some measures output one value per node, the default behavior is to list
 them all. To obtain only the average use the --avg_node_wise option.
@@ -55,7 +56,7 @@ def _build_arg_parser():
                                 epilog=version_string)
 
     p.add_argument('in_conn_matrix',
-                   help='Input connectivity matrix (.npy).')
+                   help='Input structural connectivity matrix (.npy).')
     p.add_argument('out_json',
                    help='Path of the output json.')
 
