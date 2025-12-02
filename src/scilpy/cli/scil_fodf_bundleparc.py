@@ -85,7 +85,7 @@ def _build_arg_parser():
                              'will be downloaded.')
     parser.add_argument('--volume_size', default=128, type=int,
                         help='Size of volume to resample to for inference. '
-                             'Only modify if you know what you are doing. ')
+                             'Only modify if you know what you are doing.')
     parcel_group = parser.add_mutually_exclusive_group()
     parcel_group.add_argument('--nb_pts', type=int, default=10,
                               help='Number of divisions per bundle. Default is'
