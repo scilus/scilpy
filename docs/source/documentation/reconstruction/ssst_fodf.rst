@@ -51,4 +51,16 @@ The second step is to perform single-shell single-tissue CSD (ssst-CSD) using :r
      scil_fodf_ssst $in_dir/dwi.nii.gz $in_dir/dwi.bval $in_dir/dwi.bvec frf.txt fodf.nii.gz \
         --mask $in_dir/mask.nii.gz
 
-The script will output the fODFs in a nifti file (fodf.nii.gz). The only optional arguments are the ``--sh_order`` option (default is 8) to set the maximum spherical harmonics order used to represent the fODFs and the ``--sh_basis`` option (default is 'descoteaux07') to set the spherical harmonics basis. The ``--processes`` option is used to speed up the computation by using multiple CPU cores. To visualize the fODFs, you can use :ref:`scil_viz_fodf`.
+The script will output the fODFs in a nifti file (fodf.nii.gz). The only optional arguments are the ``--sh_order`` option (default is 8) to set the maximum spherical harmonics order used to represent the fODFs and the ``--sh_basis`` option (default is 'descoteaux07') to set the spherical harmonics basis. The ``--processes`` option is used to speed up the computation by using multiple CPU cores.
+
+
+3. Visualizing the fODF
+***********************
+
+The resulting fODFs can be visualized using the following command:
+
+.. code-block:: bash
+
+     scil_viz_fodf fodf.nii.gz
+
+See :ref:`scil_viz_fodf` for more information about the visualization options.

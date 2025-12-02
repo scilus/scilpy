@@ -8,7 +8,8 @@ This section covers local reconstruction methods in scilpy. They mainly use func
 
    ssst_fodf
    msmt_fodf
-   btensor_scripts
+   memsmt_fodf
    aodf_scripts
    qball_metrics
    mti_scripts
+   btensor_metrics

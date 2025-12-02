@@ -50,3 +50,9 @@ echo "Creating the fODF"
 echo "*****************"
 scil_fodf_msmt $in_dir/dwi.nii.gz $in_dir/dwi.bval $in_dir/dwi.bvec \
     wm_frf.txt gm_frf.txt csf_frf.txt --mask $in_dir/mask.nii.gz -v
+
+echo "Visualizing the fODF"
+echo "********************"
+# Here, the --silent flag is used to avoid opening a visualization window.
+# It should be remove if you want to see the interactive visualization.
+scil_viz_fodf wm_fodf.nii.gz --silent --output fodf_msmt.png
