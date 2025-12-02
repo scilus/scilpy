@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 This script is designed to compare and help visualize differences between two
 tractograms. This can be especially useful in studies where multiple
 tractograms from different algorithms or parameters need to be compared.
 
-A similar script (scil_bundle_pairwise_comparison.py) is available for bundles,
+A similar script (scil_bundle_pairwise_comparison) is available for bundles,
 with metrics more adapted to bundles (and spatial agreement).
 
 The difference is computed in terms of

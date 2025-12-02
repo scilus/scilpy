@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Search through all SCILPY scripts and their docstrings to find matches for the
 provided keywords.
@@ -26,12 +25,12 @@ Keywords Highlighting:
 red.
 
 Examples:
-- scil_search_keywords.py tractogram filtering
-- scil_search_keywords.py "Spherical Harmonics"
-- scil_search_keywords.py --no_synonyms "Spherical Harmonics"
-- scil_search_keywords.py --search_category tractogram
-- scil_search_keywords.py -v sh
-- scil_search_keywords.py -v DEBUG sh
+- scil_search_keywords tractogram filtering
+- scil_search_keywords "Spherical Harmonics"
+- scil_search_keywords --no_synonyms "Spherical Harmonics"
+- scil_search_keywords --search_category tractogram
+- scil_search_keywords -v sh
+- scil_search_keywords -v DEBUG sh
 """
 
 # TODO harmonize variable names
@@ -104,6 +103,9 @@ def main():
         logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     hidden_dir = pathlib.Path(SCILPY_HOME) / ".hidden"
+    if not hidden_dir.exists():
+        hidden_dir.mkdir(parents=True, exist_ok=True)
+        logging.info("Folder '.hidden' created in SCILPY_HOME")
 
     if args.regenerate_help_files:
         shutil.rmtree(hidden_dir, ignore_errors=True)
@@ -138,7 +140,7 @@ def main():
     stemmed_phrases = list(set([_stem_phrase(phrase) for phrase in phrases]))
 
     # Create a mapping of stemmed to original keywords
-    # This will be needed to display the occurence of the keywords
+    # This will be needed to display the occurrence of the keywords
     keyword_mapping = {stem: orig for orig,
                        stem in zip(keywords, stemmed_keywords)}
     phrase_mapping = {stem: orig for orig,
@@ -158,7 +160,7 @@ def main():
     for script in sorted(hidden_dir.glob(f'scil_{selected_object}*.help')):
         script_name = script.stem
 
-        with open(script, 'r') as f:
+        with open(script, 'r', encoding='utf-8') as f:
             search_text = f.read()
 
         score_details = _calculate_score(

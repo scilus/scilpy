@@ -1,6 +1,5 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
-
 """
 Compute response functions for multi-shell multi-tissue (MSMT) constrained
 spherical deconvolution from DWI data.
@@ -21,8 +20,6 @@ e-values are (15,4,4)x10^-4 mm^2/s and the mean b0 is 700.
 
 Based on B. Jeurissen et al., Multi-tissue constrained spherical deconvolution
 for improved analysis of multi-shell diffusion MRI data. Neuroimage (2014)
-
-Formerly: scil_compute_msmt_frf.py
 """
 
 import argparse

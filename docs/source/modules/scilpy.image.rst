@@ -10,7 +10,7 @@ scilpy.image.labels module
    :show-inheritance:
 
 scilpy.image.reslice module
-----------------------------
+---------------------------
 
 .. automodule:: scilpy.image.reslice
    :members:
@@ -25,10 +25,26 @@ scilpy.image.utils module
    :undoc-members:
    :show-inheritance:
 
+scilpy.image.volume\_b0\_synthesis module
+-----------------------------------------
+
+.. automodule:: scilpy.image.volume_b0_synthesis
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 scilpy.image.volume\_math module
 --------------------------------
 
 .. automodule:: scilpy.image.volume_math
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+scilpy.image.volume\_metrics module
+-----------------------------------
+
+.. automodule:: scilpy.image.volume_metrics
    :members:
    :undoc-members:
    :show-inheritance:

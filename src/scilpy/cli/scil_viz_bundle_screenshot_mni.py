@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Register bundle to a template for screenshots using a reference.
 The template can be any MNI152 (any resolution, cropped or not)
@@ -166,7 +165,8 @@ def main():
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     required = [args.in_bundle, args.in_anat]
-    optional = [args.target_template] + args.roi or []
+    optional = [args.target_template] + [roi[0]
+                                         for roi in args.roi] if args.roi else []
     assert_inputs_exist(parser, required, optional)
     assert_headers_compatible(parser, args.in_bundle, optional, args.in_anat)
 
@@ -264,13 +264,12 @@ def main():
         sft.to_vox()
         streamlines_vox = sft.get_streamlines_copy()
         sft.to_rasmm()
-        colors = []
         normalized_data = reference_data / np.max(reference_data)
         cmap = get_lookup_table(args.reference_coloring)
-        for points in streamlines_vox:
-            values = map_coordinates(normalized_data, points.T,
-                                     order=1, mode='nearest')
-            colors.append(cmap(values)[:, 0:3])
+        values = map_coordinates(normalized_data,
+                                 streamlines_vox.streamlines._data.T,
+                                 order=1, mode='nearest')
+        colors = cmap(values)[:, 0:3]
     else:
         colors = None
 

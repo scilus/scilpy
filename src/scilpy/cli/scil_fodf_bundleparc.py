@@ -5,21 +5,21 @@ BundleParc: automatic tract labelling without tractography.
 
 This method takes as input fODF maps and outputs 71 bundle label maps. These maps can then be used to perform tractometry/tract profiling/radiomics. The bundle definitions follow TractSeg's minus the whole CC.
 
-Inputs are presumed to come from Tractoflow and must be BET and cropped. fODFs must be of basis descoteaux07 and can be of order < 8 but accuracy may be reduced.
+**IMPORTANT**: fODF inputs are presumed to come from Tractoflow, must have stride of -1,2,3,4 and must be BET and cropped. fODFs must be in SH format, basis descoteaux07_legacy and can be of order < 8 but accuracy may be reduced.
 
 Model weights will be downloaded the first time the script is run, which will require an internet connection at runtime. Otherwise they can be manually downloaded from zenodo [1] and by specifying --checkpoint.
 
 Example usage:
-    $ scil_fodf_bundleparc.py fodf.nii.gz --out_prefix sub-001__
+    $ scil_fodf_bundleparc fodf.nii.gz --out_prefix sub-001__
 
 Example output:
     sub-001__AF_left.nii.gz, sub-001__AF_right.nii.gz, ..., sub-001__UF_right.nii.gz
 
-The output can be further processed with scil_bundle_mean_std.py to compute statistics for each bundle.
+The output can be further processed with scil_bundle_mean_std to compute statistics for each bundle.
 
 The default value of 50 for --min_blob_size was found empirically on adult brains at a resolution of 1mm^3. The best value for your dataset may differ.
 
-This script requires a GPU with ~6GB of available memory. If you use half-precision (float16) inference, you may be able to run it with ~3GB of GPU memory available. Otherwise, install the CPU version of PyTorch.
+This script requires a GPU with ~6GB of available memory. If you use half-precision (float16) inference, you may be able to run it with ~3GB of GPU memory available. Otherwise, install the CPU version of PyTorch. Execution on MacOS is not supported for now.
 
 Parts of the implementation are based on or lifted from:
     SAM-Med3D: https://github.com/uni-medical/SAM-Med3D
@@ -27,7 +27,8 @@ Parts of the implementation are based on or lifted from:
 
 To cite: Antoine Théberge, Zineb El Yamani, François Rheault, Maxime Descoteaux, Pierre-Marc Jodoin (2025). LabelSeg. ISMRM Workshop on 40 Years of Diffusion: Past, Present & Future Perspectives, Kyoto, Japan.
 
-[1]: https://zenodo.org/records/15579498
+[1]: Descoteaux, M., Deriche, R., Knösche, T. R., & Anwander, A. (2007). Deterministic and probabilistic tractography based on complex fibre orientation distributions. IEEE Transactions on Medical Imaging, 26(11), 1464-1477.
+[2]: https://zenodo.org/records/15579498
 """  # noqa
 
 import argparse
@@ -37,6 +38,7 @@ import numpy as np
 import os
 
 from argparse import RawTextHelpFormatter
+from functools import partial
 
 from scilpy.io.utils import (
     assert_inputs_exist, assert_output_dirs_exist_and_empty,
@@ -44,8 +46,10 @@ from scilpy.io.utils import (
 from scilpy.image.volume_operations import resample_volume
 
 from scilpy.ml.bundleparc.predict import predict
+from scilpy.ml.bundleparc.labels import post_process_labels_discrete, \
+    post_process_labels_mm, post_process_labels_continuous
 from scilpy.ml.bundleparc.utils import DEFAULT_BUNDLES, \
-    download_weights, get_model
+     download_weights, get_model
 from scilpy.ml.utils import get_device, IMPORT_ERROR_MSG
 from scilpy import SCILPY_HOME
 
@@ -62,20 +66,11 @@ def _build_arg_parser():
         formatter_class=RawTextHelpFormatter)
 
     parser.add_argument('in_fodf',
-                        help='fODF input.')
+                        help='Input fODF volume in nifti format. ')
     parser.add_argument('--out_prefix', default='',
                         help='Output file prefix. Default is nothing. ')
-    parser.add_argument('--out_folder', default='bundleparc',
+    parser.add_argument('--out_dir', default='bundleparc',
                         help='Output destination. Default is [%(default)s].')
-    parser.add_argument('--nb_pts', type=int, default=50,
-                        help='Number of divisions per bundle. '
-                             'Default is [%(default)s].')
-    parser.add_argument('--min_blob_size', type=int, default=50,
-                        help='Minimum blob size (in voxels) to keep. Smaller '
-                             'blobs will be removed. Default is '
-                             '[%(default)s].')
-    parser.add_argument('--keep_biggest_blob', action='store_true',
-                        help='If set, only keep the biggest blob predicted.')
     parser.add_argument('--half_precision', action='store_true',
                         help='Use half precision (float16) for inference. '
                              'This reduces memory usage but may lead to '
@@ -88,6 +83,24 @@ def _build_arg_parser():
                              'and weights of model. Default is '
                              '[%(default)s]. If the file does not exist, it '
                              'will be downloaded.')
+    parcel_group = parser.add_mutually_exclusive_group()
+    parcel_group.add_argument('--nb_pts', type=int, default=10,
+                              help='Number of divisions per bundle. Default is'
+                                   ' [%(default)s].')
+    parcel_group.add_argument('--mm', type=float,
+                              help='If set, bundles will be split in sections '
+                                   'roughly X mm wide.')
+    parcel_group.add_argument('--continuous', action='store_true',
+                              help='If set, the output label maps will be '
+                                   'continuous ∈ [0, 1].')
+    blob_group = parser.add_mutually_exclusive_group()
+    blob_group.add_argument('--min_blob_size', type=int, default=50,
+                            help='Minimum blob size (in voxels) to keep. '
+                                 'Smaller blobs will be removed. Default is '
+                                 '[%(default)s].')
+    blob_group.add_argument('--keep_biggest_blob', action='store_true',
+                            help='Only keep the biggest blob predicted.')
+
     add_overwrite_arg(parser)
     add_verbose_arg(parser)
 
@@ -99,8 +112,8 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, [args.in_fodf])
-    assert_output_dirs_exist_and_empty(parser, args, args.out_folder,
+    assert_inputs_exist(parser, [args.in_fodf], [])
+    assert_output_dirs_exist_and_empty(parser, args, args.out_dir,
                                        create_dir=True)
 
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
@@ -135,19 +148,33 @@ def main():
                                     interp='lin',
                                     enforce_dimensions=False)
 
+    # Get the voxel size of the input fODF after resampling
+    # Presuming isotropic resampling
+    voxel_size = np.mean(resampled_img.header.get_zooms()[:3])
+
+    # Get the label function to use for post-processing
+    if args.continuous:
+        label_function = post_process_labels_continuous
+    elif args.mm is not None:
+        label_function = partial(post_process_labels_mm, args.mm, voxel_size)
+    else:
+        label_function = partial(post_process_labels_discrete,
+                                 args.nb_pts)
+
     # Predict label maps. `predict` is a generator
     # yielding one label map per bundle and its name.
     for y_hat_label, b_name in predict(
-        model, resampled_img.get_fdata(dtype=np.float32), n_coefs, args.nb_pts,
-        args.bundles, args.min_blob_size, args.keep_biggest_blob,
-        args.half_precision, logging.getLogger().getEffectiveLevel() <
-        logging.WARNING
+        model, resampled_img.get_fdata(dtype=np.float32), n_coefs,
+        label_function, DEFAULT_BUNDLES, args.keep_biggest_blob,
+        args.half_precision,
+        logging.getLogger().getEffectiveLevel() < logging.WARNING
     ):
 
         # Format the output as a nifti image
         label_img = nib.Nifti1Image(y_hat_label,
                                     resampled_img.affine,
-                                    resampled_img.header, dtype=np.uint16)
+                                    resampled_img.header,
+                                    dtype=y_hat_label.dtype)
 
         # Resampling volume to fit the original image size
         resampled_label = resample_volume(label_img, ref_img=None,
@@ -158,7 +185,7 @@ def main():
                                           enforce_dimensions=False)
         # Save it
         nib.save(resampled_label, os.path.join(
-            args.out_folder, f'{args.out_prefix}{b_name}.nii.gz'))
+            args.out_dir, f'{args.out_prefix}{b_name}.nii.gz'))
 
 
 if __name__ == "__main__":

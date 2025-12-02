@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Compute label image (Nifti) from bundle(s) and centroid(s).
 Each voxel will have a label that represents its position along the bundle.
@@ -44,8 +43,6 @@ unless specified otherwise.
 Colormap selection affects tractograms coloring for visualization only.
 For detailed information on usage and parameters, please refer to the script's
 documentation.
-
-Formerly: scil_compute_bundle_voxel_label_map.py
 
 Author:
 -------

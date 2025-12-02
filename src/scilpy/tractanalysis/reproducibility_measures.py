@@ -19,7 +19,8 @@ from sklearn.neighbors import KDTree
 from tqdm import tqdm
 
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
-from scilpy.tractanalysis.todi import TrackOrientationDensityImaging
+from scilpy.tractanalysis.todi import TrackOrientationDensityImaging, \
+    get_sh_from_todi
 from scilpy.tractograms.streamline_operations import generate_matched_points
 from scilpy.tractograms.tractogram_operations import (difference_robust,
                                                       intersection_robust,
@@ -195,7 +196,7 @@ def compute_bundle_adjacency_streamlines(bundle_1, bundle_2, non_overlap=False,
     Distance between matched paired is averaged for the final results.
     References
     ----------
-    .. [Garyfallidis15] Garyfallidis et al. Robust and efficient linear
+    [1] Garyfallidis et al. Robust and efficient linear
         registration of white-matter fascicles in the space of streamlines,
         Neuroimage, 2015.
     Parameters
@@ -675,19 +676,11 @@ def tractogram_pairwise_comparison(sft_one, sft_two, mask, nbr_cpu=1,
 
     logging.info('Computing TODI from tractogram #1...')
     global sh_data_1, sh_data_2
-    todi_obj = TrackOrientationDensityImaging(dimensions, 'repulsion724')
-    todi_obj.compute_todi(deepcopy(sft_1.streamlines), length_weights=True)
-    todi_obj.mask_todi(mask)
-    sh_data_1 = todi_obj.get_sh('descoteaux07', 8)
-    sh_data_1 = todi_obj.reshape_to_3d(sh_data_1)
+    sh_data_1 = get_sh_from_todi(sft_1, mask)
     sft_1.to_center()
 
     logging.info('Computing TODI from tractogram #2...')
-    todi_obj = TrackOrientationDensityImaging(dimensions, 'repulsion724')
-    todi_obj.compute_todi(deepcopy(sft_2.streamlines), length_weights=True)
-    todi_obj.mask_todi(mask)
-    sh_data_2 = todi_obj.get_sh('descoteaux07', 8)
-    sh_data_2 = todi_obj.reshape_to_3d(sh_data_2)
+    sh_data_2 = get_sh_from_todi(sft_2, mask)
     sft_2.to_center()
 
     global B
@@ -704,7 +697,8 @@ def tractogram_pairwise_comparison(sft_one, sft_two, mask, nbr_cpu=1,
 
 
 def compare_volume_wrapper(data_1, data_2, voxel_size=1, ratio=False,
-                           adjency_no_overlap=False, labels_to_mask=False):
+                           adjency_no_overlap=False, labels_to_mask=False,
+                           one_sided=False):
     """
     Compute the similarity between binary mask or labels maps in the voxel
     representation.
@@ -713,7 +707,9 @@ def compare_volume_wrapper(data_1, data_2, voxel_size=1, ratio=False,
     different metrics. The function returns a dictionary containing the
     computed measures.
 
-    Similar to compare_bundle_wrapper (but just for Nifti volumes)
+    Similar to compare_bundle_wrapper (but just for Nifti volumes). If coming
+    from `scil_volume_pairwise_comparison` with '--single_compare', data_1 is
+    a candidate volume and data_2 is the reference.
 
     Parameters
     ----------
@@ -732,6 +728,9 @@ def compare_volume_wrapper(data_1, data_2, voxel_size=1, ratio=False,
         If true, explicitely compare every labels in the first image to
         the ROI in the second image. Otherwise, the computation presumes
         both images are either label maps or binary masks.
+    one_sided: bool
+        If true, compute the measures presuming the second image is a
+        "ground truth".
 
     Returns
     -------
@@ -772,13 +771,31 @@ def compare_volume_wrapper(data_1, data_2, voxel_size=1, ratio=False,
 
         # These measures are in mm^3
         volume_overlap = np.count_nonzero(binary_1 * binary_2)
-        volume_overreach = np.abs(np.count_nonzero(
-            binary_1 + binary_2) - volume_overlap)
+
+        # If comparison is performed against a reference volume
+        if one_sided:
+            # we compute the overreach wrt the second 
+            # volume. The one-sided overreach is the number of
+            # voxels in the first volume that are not in the second 
+            diff = (binary_1 - (binary_1 * binary_2)) > 0
+            volume_overreach = np.count_nonzero(diff)
+        # Otherwise, we compute the overreach between both volumes
+        # ie the number of voxels in either volume but not in both
+        else:
+            volume_overreach = np.abs(np.count_nonzero(
+                binary_1 + binary_2) - volume_overlap)
 
         if ratio:
-            count = np.count_nonzero(binary_1)
-            volume_overlap /= count
-            volume_overreach /= count
+            if one_sided:
+                count = np.count_nonzero(binary_2) # wrt reference
+            else:
+                count = np.count_nonzero(binary_1) # wrt first volume
+            if count > 0:
+                volume_overlap /= count
+                volume_overreach /= count
+            else:
+                volume_overreach = 0
+                volume_overreach = 0
 
         # These measures are in mm
         bundle_adjacency_voxel = compute_bundle_adjacency_voxel(
@@ -794,6 +811,7 @@ def compare_volume_wrapper(data_1, data_2, voxel_size=1, ratio=False,
         # If computing ratio, voxel size does not make sense
         if ratio:
             voxel_size = 1.
+
         measures = [bundle_adjacency_voxel,
                     dice_vox, hausdorff_vox * voxel_size,
                     volume_overlap * voxel_size,

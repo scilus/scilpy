@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 The script uses scalars from an anatomy, data_per_point or data_per_streamline
 (e.g. commit_weights) to visualize them on the streamlines.
@@ -19,11 +18,11 @@ This script maps the raw values from these sources to RGB using a colormap.
     --use_dpp: The data from each point is converted to a color.
     --use_dps: The same color is applied to all points of the streamline.
     --from_anatomy: The voxel's color is used for the points of the streamlines
-    crossing it. See also scil_tractogram_project_map_to_streamlines.py. You
+    crossing it. See also scil_tractogram_project_map_to_streamlines. You
     can have more options to project maps to dpp, and then use --use_dpp here.
     --along_profile: The data used here is each point's position in the
     streamline. To have nice results, you should first uniformize head/tail.
-    See scil_tractogram_uniformize_endpoints.py.
+    See scil_bundle_uniformize_endpoints.
     --local_angle.
 
 COLORING OPTIONS
@@ -41,9 +40,7 @@ containing a colormap name OR multiple Matplotlib named colors separated by -.
 The colormap used for mapping values to colors can be saved to a png/jpg image
 using the --out_colorbar option.
 
-See also: scil_tractogram_assign_uniform_color.py, for simplified options.
-
-Formerly: scil_assign_custom_color_to_tractogram.py
+See also: scil_tractogram_assign_uniform_color, for simplified options.
 """
 
 import argparse
@@ -122,8 +119,9 @@ def _build_arg_parser():
                     'approximation. Default if set is 4.')
     g2.add_argument('--colormap', default='jet',
                     help='Select the colormap for colored trk (dps/dpp) '
-                    '[%(default)s].\nUse two Matplotlib named color separeted '
-                    'by a - to create your own colormap.')
+                    '[%(default)s].\nYou may also use two Matplotlib named '
+                    'colors separated by a "- to\n create your own colormap. '
+                    'Ex: red-blue.')
     g2.add_argument('--clip_outliers', action='store_true',
                     help="If set, we will clip the outliers (first and last "
                          "5%% quantile). Strongly suggested if your data "

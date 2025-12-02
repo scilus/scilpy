@@ -23,7 +23,6 @@ perfectly symmetric signal and 1 to a perfectly anti-symmetric signal. It is
 given as the ratio of the L2-norm of odd SH coefficients on the L2-norm of all
 SH coefficients.
 
-Formerly: scil_compute_asym_odf_metrics.py
 --------------------------------------------------------------------------------
 References:
 [1] C. Poirier and M. Descoteaux, "Filtering Methods for Asymmetric ODFs:
@@ -35,13 +34,12 @@ References:
     Magnetic Resonance Imaging, vol. 49, pp. 145-158, Jun. 2018,
     doi: https://doi.org/10.1016/j.mri.2018.03.006.
 
-[3] C. Poirier, E. St-Onge, and M. Descoteaux, "Investigating the Occurence of
+[3] C. Poirier, E. St-Onge, and M. Descoteaux, "Investigating the Occurrence of
     Asymmetric Patterns in White Matter Fiber Orientation Distribution Functions"
     [Abstract], In: Proc. Intl. Soc. Mag. Reson. Med. 29 (2021), 2021 May 15-20,
     Vancouver, BC, Abstract number 0865.
 ---------------------------------------------------------------------------------
 """
-
 
 import argparse
 import logging
@@ -96,7 +94,7 @@ def _build_arg_parser():
                         'value should be set to\napproximately 1.5 to 2 times '
                         'the maximum fODF amplitude in isotropic voxels\n'
                         '(ie. ventricles).\n'
-                        'Use scil_fodf_max_in_ventricles.py to find the '
+                        'Use scil_fodf_max_in_ventricles to find the '
                         'maximal value.\n'
                         'See [Dell\'Acqua et al HBM 2013] [%(default)s].')
     p.add_argument('--rt', dest='r_threshold', type=float, default='0.1',
@@ -139,6 +137,7 @@ def main():
     assert_headers_compatible(parser, args.in_sh, args.mask)
 
     # Loading
+    logging.info("Loading data")
     sh_img = nib.load(args.in_sh)
     sh = sh_img.get_fdata()
 
@@ -197,6 +196,7 @@ def main():
             nufid = np.count_nonzero(values, axis=-1).astype(np.uint8)
             nib.save(nib.Nifti1Image(nufid, sh_img.affine), args.nufid)
 
+    logging.info("Done. All files written to disk.")
 
 if __name__ == '__main__':
     main()

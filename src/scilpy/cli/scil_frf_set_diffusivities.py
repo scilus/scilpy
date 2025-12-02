@@ -1,15 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Replace the fiber response function in the FRF file.
 Use this script when you want to use a fixed response function
 and keep the mean b0.
 
-The FRF file is obtained from scil_frf_ssst.py or scil_frf_msmt.py in the case
+The FRF file is obtained from scil_frf_ssst or scil_frf_msmt in the case
 of multi-shell data.
 
-Formerly: scil_set_response_function.py
 """
 
 import argparse

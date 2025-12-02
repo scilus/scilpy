@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
 """
 Cut streamlines using a binary mask or two labels.
 
@@ -39,9 +38,7 @@ will be extended so they reach the boundary of the mask or the two labels,
 therefore won't be equal to the input streamlines.
 
 To generate a label map from a binary mask, you can use the following command:
-    scil_labels_from_mask.py
-
-Formerly: scil_cut_streamlines.py
+    scil_labels_from_mask
 """
 
 import argparse
@@ -100,6 +97,8 @@ def _build_arg_parser():
     p.add_argument('--min_length', type=float, default=0,
                    help='Minimum length of streamlines to keep (in mm) '
                         '[%(default)s].')
+    p.add_argument('--no_empty', action='store_true',
+                   help='Do not write file if there is no streamline.')
 
     g = p.add_argument_group('Cutting options', 'Options for cutting '
                              'streamlines with --mask.')
@@ -194,7 +193,7 @@ def main():
         new_sft = StatefulTractogram.from_sft(
             compressed_strs, sft, data_per_streamline=sft.data_per_streamline)
 
-    save_tractogram(new_sft, args.out_tractogram)
+    save_tractogram(new_sft, args.out_tractogram, args.no_empty)
 
 
 if __name__ == "__main__":

@@ -9,7 +9,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "scilpy"
-version = "2.2.0rc1"
+version = "2.2.1"
 description = "Scilpy: diffusion MRI tools and utilities"
 authors = [{ name = "SCIL Team" }]
 readme = "README.md"
@@ -30,7 +30,7 @@ dependencies = [
 "coloredlogs==15.0.*",
 "cvxpy==1.6.*",
 "cycler==0.12.*",
-"deepdiff==8.1.*",
+"deepdiff>=8.1,<8.7",
 "dipy==1.11.*",
 "dmri-amico==2.1.*",
 "dmri-commit==2.3.*",
@@ -101,7 +101,7 @@ scil_bundle_compute_centroid  = "scilpy.cli.scil_bundle_compute_centroid:main"
 scil_bundle_compute_endpoints_map  = "scilpy.cli.scil_bundle_compute_endpoints_map:main"
 scil_bundle_diameter  = "scilpy.cli.scil_bundle_diameter:main"
 scil_bundle_explore_bundleseg  = "scilpy.cli.scil_bundle_explore_bundleseg:main"
-scil_bundle_filter_by_occurence  = "scilpy.cli.scil_bundle_filter_by_occurence:main"
+scil_bundle_filter_by_occurrence  = "scilpy.cli.scil_bundle_filter_by_occurrence:main"
 scil_bundle_fixel_analysis  = "scilpy.cli.scil_bundle_fixel_analysis:main"
 scil_bundle_generate_priors  = "scilpy.cli.scil_bundle_generate_priors:main"
 scil_bundle_label_map  = "scilpy.cli.scil_bundle_label_map:main"
@@ -285,3 +285,4 @@ scil_volume_reshape  = "scilpy.cli.scil_volume_reshape:main"
 scil_volume_reslice_to_reference  = "scilpy.cli.scil_volume_reslice_to_reference:main"
 scil_volume_stats_in_labels  = "scilpy.cli.scil_volume_stats_in_labels:main"
 scil_volume_stats_in_ROI  = "scilpy.cli.scil_volume_stats_in_ROI:main"
+scil_volume_validate_correct_strides  = "scilpy.cli.scil_volume_validate_correct_strides:main"

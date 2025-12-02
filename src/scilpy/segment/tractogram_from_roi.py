@@ -96,6 +96,8 @@ def compute_masks_from_bundles(gt_files, parser, args, inverse_mask=False):
 
         gt_bundle_masks.append(gt_mask)
 
+    args.reference = save_ref
+
     return gt_bundle_masks
 
 
@@ -326,7 +328,7 @@ def _extract_vb_one_bundle(
     tail_filename: str
         Filename of the "tail" of the bundle.
     limits_length: list or None
-        Bundle's length parameters: [min max].
+        Bundle's length Parameters [min max].
     angle: int or None
         Bundle's max angle.
     orientation_length: list or None

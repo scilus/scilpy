@@ -30,7 +30,7 @@ def count_non_zero_voxels(image):
     """
     Count number of non-zero voxels
 
-    Parameters:
+    Parameters
     -----------
     image: np.ndarray
         The loaded image.
@@ -313,16 +313,17 @@ def compute_snr(dwi, bval, bvec, b0_thr, mask, noise_mask=None, noise_map=None,
                 split_shells=False):
     """
     Computes the SNR. One SNR per DWI volume is computed, with
-                     SNR = mean(data) / std(noise)
+    SNR = mean(data) / std(noise)
+
     Where
     - mean is the mean of all DWI voxels inside your given mask.
     - std is the standard deviatation of the noise. For instance, you could
       want to use std of the background. Here, we use:
-         - noise_map[mask] if noise_map is provided
-         - data[noise_mask] if noise_mask is provided
-         - data[automatic_mask] if neither are provided: we will try to
-         discover a noise_mask automatically in the background (from the upper
-         half, to avoid using neck and shoulder).
+        - noise_map[mask] if noise_map is provided
+        - data[noise_mask] if noise_mask is provided
+        - data[automatic_mask] if neither are provided: we will try to
+          discover a noise_mask automatically in the background (from the upper
+          half, to avoid using neck and shoulder).
 
     Parameters
     ----------
