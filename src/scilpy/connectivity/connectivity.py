@@ -13,6 +13,7 @@ import numpy as np
 from scipy.ndimage import map_coordinates
 
 from scilpy.image.labels import get_data_as_labels
+from scilpy.image.volume_space_management import map_coordinates_in_volume
 from scilpy.io.hdf5 import reconstruct_streamlines_from_hdf5
 from scilpy.tractanalysis.reproducibility_measures import \
     compute_bundle_adjacency_voxel
@@ -78,8 +79,9 @@ def compute_triu_connectivity_from_labels(tractogram, data_labels,
                   .format(nb_labels))
 
     matrix = np.zeros((nb_labels, nb_labels), dtype=int)
-    labels = map_coordinates(data_labels, streamlines._data.T, order=0,
-                             mode='nearest')
+    # Taking coords in vox space, center origin for interpolation
+    coords = np.vstack(streamlines).T
+    labels = map_coordinates_in_volume(data_labels, coords, order=0)
     start_labels = labels[0::2]
     end_labels = labels[1::2]
 
