@@ -100,7 +100,17 @@ def test_segment_tractogram_from_roi():
          bundle_stats) = segment_tractogram_from_roi(
             sft, gt_tails, gt_heads, bundle_names, lengths, angles,
             orientation_length, abs_orientation_length, all_masks, any_masks,
-            out_dir=tmpdirname)
+            out_dir=tmpdirname, compute_ic=True, save_wpc_separately=True)
+
+    print("?? VB", [x.streamlines for x in vb_sft_list])
+
+    assert len(vb_sft_list) == 2
+    assert [x is None for x in wpc_sft_list]
+    assert len(ib_sft_list) == 0
+    assert len(nc_sft) == 0
+    assert len(vb_sft_list[0]) == 2
+    assert len(vb_sft_list[1]) == 1
+    
 
 def test_extract_vb_one_bundle():
     # Testing extraction of VS corresponding to a bundle using
