@@ -83,7 +83,7 @@ def evaluate_functional_graph_measures(conn_matrix, conn_threshold,
     Parameters
     ----------
     conn_matrix: np.ndarray
-        2D matrix of functional connectivity weights 
+        2D matrix of functional connectivity weights
     conn_threshold: float
         2D matrix of bundle lengths.
     avg_node_wise: bool
@@ -114,11 +114,12 @@ def evaluate_functional_graph_measures(conn_matrix, conn_threshold,
     Wp = np.copy(conn_matrix)
     Wp = np.abs(conn_matrix)
     Wp[Wp <= conn_threshold] = 0
-    
+
     gtm_dict = {}
     ci, gtm_dict['modularity'] = bct.modularity_louvain_und(Wp, seed=0)
     gtm_dict['assortativity'] = bct.assortativity_wei(Wp, flag=0)
-    gtm_dict['participation'] = func_cast(bct.participation_coef_sign(Wp, ci)[0])
+    gtm_dict['participation'] = func_cast(
+        bct.participation_coef_sign(Wp, ci)[0])
     gtm_dict['clustering'] = func_cast(bct.clustering_coef_wu(Wp))
 
     gtm_dict['nodal_strength'] = func_cast(bct.strengths_und(Wp))
@@ -127,7 +128,7 @@ def evaluate_functional_graph_measures(conn_matrix, conn_threshold,
     # Rich club always gives an error for the matrix rank and gives NaN
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
-        tmp_rich_club = bct.rich_club_wu(Wp)        
+        tmp_rich_club = bct.rich_club_wu(Wp)
     gtm_dict['rich_club'] = func_cast(tmp_rich_club[~np.isnan(tmp_rich_club)])
 
     return gtm_dict
@@ -170,12 +171,14 @@ def evaluate_graph_measures(conn_matrix, len_matrix, avg_node_wise,
 
     gtm_dict = {}
 
-    if len_matrix is not None :
-        betweenness_centrality = bct.betweenness_wei(len_matrix) / ((N-1)*(N-2))
+    if len_matrix is not None:
+        betweenness_centrality = bct.betweenness_wei(
+            len_matrix) / ((N - 1) * (N - 2))
         gtm_dict['betweenness_centrality'] = func_cast(betweenness_centrality)
-        gtm_dict['local_efficiency'] = func_cast(bct.efficiency_wei(len_matrix,
-                                                                    local=True))
-        gtm_dict['global_efficiency'] = func_cast(bct.efficiency_wei(len_matrix))
+        gtm_dict['local_efficiency'] = func_cast(
+            bct.efficiency_wei(len_matrix, local=True))
+        gtm_dict['global_efficiency'] = func_cast(
+            bct.efficiency_wei(len_matrix))
 
         # Path length gives an infinite distance for unconnected nodes
         # All of this is simply to fix that
@@ -193,12 +196,9 @@ def evaluate_graph_measures(conn_matrix, len_matrix, avg_node_wise,
                     gtm_dict['path_length'].insert(i, -1)
                     gtm_dict['edge_count'].insert(i, -1)
 
-        
         if small_world:
             gtm_dict['omega'], gtm_dict['sigma'] = omega_sigma(len_matrix)
 
-
-            
     ci, gtm_dict['modularity'] = bct.modularity_louvain_und(conn_matrix,
                                                             seed=0)
     gtm_dict['assortativity'] = bct.assortativity_wei(conn_matrix,

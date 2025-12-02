@@ -58,9 +58,12 @@ def _build_arg_parser():
                    help='Input fonctional connectivity matrix (.npy).')
     p.add_argument('out_json',
                    help='Path of the output json.')
-    p.add_argument('--conn_threshold', type=float, default=0.25,
-                   help='Threshold for the functional connectivity values. All values \n'
-                   'lower or equal to will be set to zero. (default: 0.25)')
+    p.add_argument(
+        '--conn_threshold',
+        type=float,
+        default=0.25,
+        help='Threshold for the functional connectivity values. All values \n'
+        'lower or equal to will be set to zero. (default: 0.25)')
     p.add_argument('--filtering_mask',
                    help='Binary filtering mask to apply before computing the '
                         'measures.')
@@ -89,7 +92,7 @@ def main():
     else:
         logging.info('Using --append_json, make sure to delete {} '
                      'before re-launching a group analysis.'.format(
-                            args.out_json))
+                         args.out_json))
 
     if args.append_json and args.overwrite:
         parser.error('Cannot use the append option at the same time as '
@@ -99,11 +102,12 @@ def main():
     conn_matrix = load_matrix_in_any_format(args.in_conn_matrix)
 
     if args.filtering_mask:
-        mask_matrix = load_matrix_in_any_format(args.filtering_mask).astype(bool)
+        mask_matrix = load_matrix_in_any_format(
+            args.filtering_mask).astype(bool)
         conn_matrix *= mask_matrix
 
-    gtm_dict = evaluate_functional_graph_measures(conn_matrix, args.conn_threshold,
-                                                  args.avg_node_wise)
+    gtm_dict = evaluate_functional_graph_measures(
+        conn_matrix, args.conn_threshold, args.avg_node_wise)
 
     if os.path.isfile(args.out_json) and args.append_json:
         with open(args.out_json) as json_data:

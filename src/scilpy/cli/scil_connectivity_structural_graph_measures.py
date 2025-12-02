@@ -60,7 +60,7 @@ def _build_arg_parser():
     p.add_argument('out_json',
                    help='Path of the output json.')
 
-    p.add_argument('--length_matrix', 
+    p.add_argument('--length_matrix',
                    help='Input length-weighted matrix (.npy).')
     p.add_argument('--filtering_mask',
                    help='Binary filtering mask to apply before computing the '
@@ -93,7 +93,7 @@ def main():
     else:
         logging.info('Using --append_json, make sure to delete {} '
                      'before re-launching a group analysis.'.format(
-                            args.out_json))
+                         args.out_json))
 
     if args.append_json and args.overwrite:
         parser.error('Cannot use the append option at the same time as '
@@ -102,20 +102,21 @@ def main():
 
     conn_matrix = load_matrix_in_any_format(args.in_conn_matrix)
     len_matrix = None
-    
+
     if args.length_matrix:
         len_matrix = load_matrix_in_any_format(args.length_matrix)
 
     if args.filtering_mask:
-        mask_matrix = load_matrix_in_any_format(args.filtering_mask).astype(bool)
+        mask_matrix = load_matrix_in_any_format(
+            args.filtering_mask).astype(bool)
         conn_matrix *= mask_matrix
-        
+
         if args.length_matrix:
             len_matrix *= mask_matrix
 
     if len_matrix is None:
         print("Warning: No length-weighted matrix provided. ")
-        
+
     gtm_dict = evaluate_graph_measures(conn_matrix, len_matrix,
                                        args.avg_node_wise, args.small_world)
 
