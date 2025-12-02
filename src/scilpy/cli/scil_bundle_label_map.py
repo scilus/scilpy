@@ -242,7 +242,7 @@ def main():
 
     # Make sure we didn't end up with separated blobs in the map.
     # Here we don't check the is_ok variable.
-    if args.streamlines_thr is not None or args.corralation_thr > 0:
+    if args.streamlines_thr is not None or args.correlation_thr > 0:
         binary_mask, is_ok, _ = keep_main_blob_from_bundle_map(binary_mask)
 
         if not is_ok:
