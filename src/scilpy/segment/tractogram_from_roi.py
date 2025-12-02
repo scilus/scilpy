@@ -636,8 +636,7 @@ def segment_tractogram_from_roi(
     wpc_sft_list: list
         The list of wrong path connections: streamlines connecting the right
         endpoint regions but not included in the ALL mask.
-        ** This is only computed if save_wpc_separately. Else, this is
-        None.
+        ** This is only computed if save_wpc_separately. Else, this is None.
     ib_sft_list: list
         The list of invalid bundles: streamlines connecting regions that should
         not be connected.
