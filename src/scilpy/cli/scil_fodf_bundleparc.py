@@ -83,6 +83,9 @@ def _build_arg_parser():
                              'and weights of model. Default is '
                              '[%(default)s]. If the file does not exist, it '
                              'will be downloaded.')
+    parser.add_argument('--volume_size', default=128, type=int,
+                        help='Size of volume to resample to for inference. '
+                             'Only modify if you know what you are doing.')
     parcel_group = parser.add_mutually_exclusive_group()
     parcel_group.add_argument('--nb_pts', type=int, default=10,
                               help='Number of divisions per bundle. Default is'
@@ -130,7 +133,7 @@ def main():
 
     # TODO in future release: infer these from model
     n_coefs = 45
-    img_size = 128
+    img_size = args.volume_size
 
     # Check the number of coefficients in the input fODF
     if C < n_coefs:
@@ -164,12 +167,16 @@ def main():
     # Predict label maps. `predict` is a generator
     # yielding one label map per bundle and its name.
     for y_hat_label, b_name in predict(
-        model, resampled_img.get_fdata(dtype=np.float32), n_coefs,
-        label_function, DEFAULT_BUNDLES, args.keep_biggest_blob,
-        args.half_precision,
-        logging.getLogger().getEffectiveLevel() < logging.WARNING
+        model,
+        resampled_img.get_fdata(dtype=np.float32),
+        n_coefs,
+        label_function,
+        DEFAULT_BUNDLES,
+        args.min_blob_size,
+        args.keep_biggest_blob,
+        half_precision=args.half_precision,
+        verbose=logging.getLogger().getEffectiveLevel() < logging.WARNING
     ):
-
         # Format the output as a nifti image
         label_img = nib.Nifti1Image(y_hat_label,
                                     resampled_img.affine,
