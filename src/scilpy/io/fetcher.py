@@ -52,7 +52,7 @@ def get_testing_files_dict():
         "tracking.zip": "4793a470812318ce15f1624e24750e4d",
         "atlas.zip": "dc34e073fc582476504b3caf127e53ef",
         "anatomical_filtering.zip": "5282020575bd485e15d3251257b97e01",
-        "connectivity.zip": "fe8c47f444d33067f292508d7050acc4",
+        "connectivity.zip": "ad5428b7b131f964382dfbe60a89f8a8",
         "plot.zip": "a1dc54cad7e1d17e55228c2518a1b34e",
         "others.zip": "82248b4888a63b0aeffc8070cc206995",
         "fodf_filtering.zip": "5985c0644321ecf81fd694fb91e2c898",
