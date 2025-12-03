@@ -586,9 +586,11 @@ def segment_tractogram_from_roi(
     sft: StatefulTractogram
         The tractogram to segment.
     gt_tails: list[str]
-        List of filenames, each endpoint mask (first end)
+        List of filenames, each VB endpoint mask (first end)
     gt_heads:  list[str]
-        List of filenames, each endpoint mask (second end)
+        List of filenames, each VB endpoint mask (second end), in the same
+        order as gt_tails. Ex, VB #2 uses gt_tails[2] and gt_head[2] as
+        endpoints.
     bundle_names: list[str]
         Bundle names.
     bundle_lengths: list[[float, float] or None]
@@ -630,20 +632,21 @@ def segment_tractogram_from_roi(
 
     Returns
     -------
-    vb_sft_list: list
+    vb_sft_list: list[StatefulTractogram]
         The list of valid bundles discovered. These files are also saved
         in segmented_VB/\\*_VS.trk.
-    wpc_sft_list: list
+    wpc_sft_list: list[StatefulTractogram or None] or None
         The list of wrong path connections: streamlines connecting the right
-        endpoint regions but not included in the ALL mask.
+        endpoint regions but not included in the ALL mask. This list has the
+        same length as vb_sft_list.
         ** This is only computed if save_wpc_separately. Else, this is None.
-    ib_sft_list: list
+    ib_sft_list: list[StatefulTractogram] or None
         The list of invalid bundles: streamlines connecting regions that should
         not be connected.
         ** This is only computed if compute_ic. Else, this is None.
-    nc_sft_list: list
+    nc_sft_list: list[StatefulTractogram] or None
         The list of rejected streamlines that were not included in any IB.
-    ib_names: list
+    ib_names: list[StatefulTractogram] or None
         The list of names for invalid bundles (IB). They are created from the
         combinations of ROIs used for IB computations.
     bundle_stats: dict
