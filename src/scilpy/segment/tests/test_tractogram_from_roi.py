@@ -1,3 +1,4 @@
+import logging
 import os
 import tempfile
 
@@ -23,25 +24,51 @@ def test_segment_tractogram_from_roi():
     # Creating an example.
     # This is already pretty complex, we will not test all complex
     # configurations
-    # Inventing a volume of size 5, 5, 5
-    # Inventing a streamline that goes
-    #   - from right to left in y. Starts at y=0, finishes at y=4
-    #   - same, reverse
-    #   - in vertical direction. Starts at z=0. Finishes at z=4.
+    # Inventing a volume of size 5, 5, 5 and bundles. See ROIs below.
+    # ROIs are y=0, y=4, z=0, z=4 slices.
+
+    #   Bundle 1: left to right (in y). Start at y=0, finish at y=4.
+    #   - two streamlines, reversed
+    #   - any mask: need to pass in voxel [1, 1, 1]
     streamline_r_to_l = [[1.1, 0.2, 1.3],
                          [1.1, 2.2, 1.4],
                          [1.1, 3.3, 1.3],
                          [1.1, 4.3, 1.2]]
     streamline_l_to_r = streamline_r_to_l[::-1]
     bundle1_any_mask = np.zeros((5, 5, 5))
-    bundle1_any_mask[1, 1, 1] = 1  # No real point there but passes through
+    bundle1_any_mask[1, 1, 1] = 1  # No real point there but they pass through
+    # wpc not passing by [1, 1, 1]
+    wpc_streamline1 =  [[2.1, 0.2, 1.3],
+                        [2.1, 2.2, 1.4],
+                        [2.1, 3.3, 1.3],
+                        [2.1, 4.3, 1.2]]
 
-    streamline_vertical = [[3.4, 0.9, 3.9],
-                           [3.5, 1.8, 3.8],
-                           [3.4, 2.7, 3.6],
-                           [3.4, 4.7, 3.5]]
+    #   Bundle 2: vertical. Starts at z=0. Finishes at z=4.
+    streamline_vertical = [[3.4, 5.9, 0.9],
+                           [3.5, 1.8, 1.8],
+                           [3.4, 2.7, 2.6],
+                           [3.4, 4.7, 4.5]]
     bundle2_all_mask = np.zeros((5, 5, 5))
-    bundle2_all_mask[3, :, 3] = 1
+    bundle2_all_mask[3, :, :] = 1
+    # wpc not entirely in [3, :, :]
+    wpc_streamline2 = [[3.4, 5.9, 0.9],
+                       [3.5, 1.8, 1.8],
+                       [5.4, 2.7, 2.6],
+                       [3.4, 4.7, 4.5]]
+
+    # Adding an IC streamline. From y=0, but reaches z=0 instead of reaching
+    # y=4
+    ic_streamline = [[1.1, 0.2, 1.3],
+                     [1.1, 2.2, 1.4],
+                     [1.1, 3.3, 1.3],
+                     [1.1, 2.3, 0.2]]
+
+    # Adding a NC streamline. Finishes in the middle of the volume, so not in
+    # any ROI.
+    nc_streamline = [[1.1, 0.2, 1.3],
+                     [1.1, 2.2, 1.4],
+                     [1.1, 3.3, 1.3],
+                     [3.1, 2.3, 3.2]]
 
     # Preparing data.
     gt_heads = []  # will be prepared below
@@ -60,7 +87,9 @@ def test_segment_tractogram_from_roi():
 
         fake_ref = nib.Nifti1Image(np.zeros((5, 5, 5)), affine=np.eye(4))
         sft = StatefulTractogram([streamline_r_to_l, streamline_l_to_r,
-                                  streamline_vertical],
+                                  streamline_vertical, wpc_streamline1,
+                                  wpc_streamline2, ic_streamline,
+                                  nc_streamline],
                                  space=Space.VOX, origin=Origin('corner'),
                                  reference=fake_ref)
 
@@ -69,13 +98,13 @@ def test_segment_tractogram_from_roi():
             nib.save(img, filename)
 
         # Bundle 1 : left to right (streamlines 1 and 2)
+        # Creating a fake ROI to the left and another to the right.
         gt_head = np.zeros((5, 5, 5))
         gt_head[:, 0, :] = 1
         filename = os.path.join(tmpdirname, 'bundle1_head.nii.gz')
         save_img(gt_head)
         gt_heads.append(filename)
 
-        gt_heads.append(filename)
         gt_tail = np.zeros((5, 5, 5))
         gt_tail[:, 4, :] = 1
         filename = os.path.join(tmpdirname, 'bundle1_tail.nii.gz')
@@ -83,34 +112,43 @@ def test_segment_tractogram_from_roi():
         gt_tails.append(filename)
 
         # Bundle 2: vertical (streamline 2)
+        # Creating a fake ROI at the bottom and another at the top
         gt_head = np.zeros((5, 5, 5))
-        gt_head[:, 0, :] = 1
+        gt_head[:, :, 0] = 1
         filename = os.path.join(tmpdirname, 'bundle2_head.nii.gz')
         save_img(gt_head)
         gt_heads.append(filename)
 
-        gt_heads.append(filename)
         gt_tail = np.zeros((5, 5, 5))
-        gt_tail[:, 4, :] = 1
+        gt_tail[:, :, 4] = 1
         filename = os.path.join(tmpdirname, 'bundle2_tail.nii.gz')
         save_img(gt_tail)
         gt_tails.append(filename)
 
+        logging.getLogger().setLevel('INFO')
         (vb_sft_list, wpc_sft_list, ib_sft_list, nc_sft, ib_names,
          bundle_stats) = segment_tractogram_from_roi(
             sft, gt_tails, gt_heads, bundle_names, lengths, angles,
             orientation_length, abs_orientation_length, all_masks, any_masks,
             out_dir=tmpdirname, compute_ic=True, save_wpc_separately=True)
 
-    print("?? VB", [x.streamlines for x in vb_sft_list])
+    print("bundle stats:", bundle_stats)
 
+    # 2 valid in bundle1, 1 valid in bundle 2
     assert len(vb_sft_list) == 2
-    assert [x is None for x in wpc_sft_list]
-    assert len(ib_sft_list) == 0
-    assert len(nc_sft) == 0
     assert len(vb_sft_list[0]) == 2
     assert len(vb_sft_list[1]) == 1
-    
+
+    # two wpc streamlines
+    assert len(wpc_sft_list) == 2
+    assert len(wpc_sft_list[0]) == 1
+    assert len(wpc_sft_list[1]) == 1
+
+    # One IB with one streamline, one NC
+    assert len(ib_sft_list) == 1
+    assert len(ib_sft_list[0]) == 1
+    assert len(nc_sft) == 1
+
 
 def test_extract_vb_one_bundle():
     # Testing extraction of VS corresponding to a bundle using
