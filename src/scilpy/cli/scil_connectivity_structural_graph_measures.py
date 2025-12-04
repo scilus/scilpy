@@ -1,23 +1,24 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Evaluate graph theory measures from connectivity matrices.
-A length-weighted and a streamline count-weighted matrix are required since
-some measures require one or the other.
+Evaluate graph theory measures from structural connectivity matrices from
+outputs of diffusion MRI tractography. A length-weighted matrix is
+optional but required to extract measures such as: global efficiency,
+local efficiency, betweeness centrality, path length, edge count, and
+small-world omega/sigma. These are not computed if a length matrix is
+not provided. The other computed connectivity measures that do
+not require the length matrix are: modularity, assortativity,
+participation, clustering, nodal_strength, and rich_club.
 
 This script evaluates the measures one subject at the time. To generate a
 population dictionary (similarly to other scil_connectivity_* scripts), use
 the --append_json option as well as using the same output filename.
->>> for i in hcp/*/; do scil_connectivity_graph_measures ${i}/sc_prob.npy
-    ${i}/len_prob.npy hcp_prob.json --append_json --avg_node_wise; done
+>>> for i in hcp/*/; do scil_connectivity_structural_graph_measures
+    ${i}/sc_prob.npy ${i}/len_prob.npy hcp_prob.json
+    --append_json --avg_node_wise; done
 
 Some measures output one value per node, the default behavior is to list
 them all. To obtain only the average use the --avg_node_wise option.
-
-The computed connectivity measures are:
-centrality, modularity, assortativity, participation, clustering,
-nodal_strength, local_efficiency, global_efficiency, density, rich_club,
-path_length, edge_count, omega, sigma
 
 For more details about the measures, please refer to
 - https://sites.google.com/site/bctnet/
@@ -55,13 +56,12 @@ def _build_arg_parser():
                                 epilog=version_string)
 
     p.add_argument('in_conn_matrix',
-                   help='Input connectivity matrix (.npy).\n'
-                        'Typically a streamline count weighted matrix.')
-    p.add_argument('in_length_matrix',
-                   help='Input length-weighted matrix (.npy).')
+                   help='Input structural connectivity matrix (.npy).')
     p.add_argument('out_json',
                    help='Path of the output json.')
 
+    p.add_argument('--length_matrix',
+                   help='Input length-weighted matrix (.npy).')
     p.add_argument('--filtering_mask',
                    help='Binary filtering mask to apply before computing the '
                         'measures.')
@@ -86,15 +86,14 @@ def main():
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
-    assert_inputs_exist(parser, [args.in_length_matrix,
-                                 args.in_conn_matrix])
+    assert_inputs_exist(parser, args.in_conn_matrix)
 
     if not args.append_json:
         assert_outputs_exist(parser, args, args.out_json)
     else:
         logging.info('Using --append_json, make sure to delete {} '
                      'before re-launching a group analysis.'.format(
-                            args.out_json))
+                         args.out_json))
 
     if args.append_json and args.overwrite:
         parser.error('Cannot use the append option at the same time as '
@@ -102,13 +101,21 @@ def main():
                      'output json file first instead.')
 
     conn_matrix = load_matrix_in_any_format(args.in_conn_matrix)
-    len_matrix = load_matrix_in_any_format(args.in_length_matrix)
+    len_matrix = None
+
+    if args.length_matrix:
+        len_matrix = load_matrix_in_any_format(args.length_matrix)
 
     if args.filtering_mask:
         mask_matrix = load_matrix_in_any_format(
             args.filtering_mask).astype(bool)
         conn_matrix *= mask_matrix
-        len_matrix *= mask_matrix
+
+        if args.length_matrix:
+            len_matrix *= mask_matrix
+
+    if len_matrix is None:
+        print("Warning: No length-weighted matrix provided. ")
 
     gtm_dict = evaluate_graph_measures(conn_matrix, len_matrix,
                                        args.avg_node_wise, args.small_world)
