@@ -62,7 +62,7 @@ def _build_arg_parser():
                           b0_tol_name='--tolerance')
 
     g1 = p.add_argument_group(title='Model options')
-    g1.add_argument('--para_diff', type=float, default=1.7e-3,
+    g1.add_argument('--para_diff', type=float, default=1.5e-3,
                     help='Axial diffusivity (AD) in the CC. [%(default)s]')
     g1.add_argument('--iso_diff', type=float, default=3e-3,
                     help='Mean diffusivity (MD) in ventricles. [%(default)s]')
