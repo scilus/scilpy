@@ -16,6 +16,7 @@ from dipy.direction.peaks import PeaksAndMetrics
 from dipy.io.utils import create_tractogram_header, get_reference_info
 from dipy.reconst.shm import sh_to_sf_matrix
 from dipy.tracking.streamlinespeed import compress_streamlines, length
+from scilpy.io.image import nifti_reorient
 from scilpy.io.utils import (add_compression_arg, add_overwrite_arg,
                              add_sh_basis_args)
 from scilpy.reconst.utils import find_order_from_nb_coeff, get_maximas
@@ -179,7 +180,8 @@ def tqdm_if_verbose(generator: Iterable, verbose: bool, *args, **kwargs):
 
 def save_tractogram(
         streamlines_generator, tracts_format, ref_img, total_nb_seeds,
-        out_tractogram, min_length, max_length, compress, save_seeds, verbose
+        out_tractogram, min_length, max_length, compress, save_seeds,
+        verbose, flip_vector=None,
 ):
     """ Save the streamlines on-the-fly using a generator. Tracts are
     filtered according to their length and compressed if requested. Seeds
@@ -209,8 +211,12 @@ def save_tractogram(
         data_per_streamline property.
     verbose : bool
         If True, display progression bar.
+    flip_vector : np.ndarray, shape (3,)
+        If provided, the reference image will be flipped according to this vector.
 
     """
+    if flip_vector is not None:
+        ref_img = nifti_reorient(ref_img, flip_vector)
 
     voxel_size = ref_img.header.get_zooms()[0]
 
@@ -265,16 +271,16 @@ def save_tractogram(
     nib.streamlines.save(tractogram, out_tractogram, header=header)
 
 
-def get_direction_getter(in_img, algo, sphere, sub_sphere, theta, sh_basis,
-                         voxel_size, sf_threshold, sh_to_pmf,
+def get_direction_getter(img_data, algo, sphere, sub_sphere, theta, sh_basis,
+                         sf_threshold, sh_to_pmf,
                          probe_length, probe_radius, probe_quality,
                          probe_count, support_exponent, is_legacy=True):
     """ Return the direction getter object.
 
     Parameters
     ----------
-    in_img: str
-        Path to the input odf file.
+    img_data: np.ndarray
+        The input odf data as a numpy array (float32).
     algo: str
         Algorithm to use for tracking. Can be 'det', 'prob', 'ptt' or 'eudx'.
     sphere: str
@@ -319,8 +325,6 @@ def get_direction_getter(in_img, algo, sphere, sub_sphere, theta, sh_basis,
     dg: dipy.direction.DirectionGetter
         The direction getter object.
     """
-    img_data = nib.load(in_img).get_fdata(dtype=np.float32)
-
     sphere = HemiSphere.from_sphere(
         get_sphere(name=sphere)).subdivide(n=sub_sphere)
 
