@@ -87,7 +87,7 @@ def load_tractogram_with_reference(parser, args, filepath, arg_name=None):
     if ext == '.trk':
         if (is_argument_set(args, 'reference') or
                 arg_name and args.__getattribute__(arg_name + '_ref')):
-            logging.warning('Reference is discarded for this file format '
+            logging.debug('Reference is discarded for this file format '
                             '{}.'.format(filepath))
         sft = load_tractogram(filepath, 'same',
                               bbox_valid_check=bbox_check)
