@@ -52,6 +52,7 @@ dependencies = [
 "numpy==1.26.*",
 "openpyxl==3.1.*",
 "packaging==24.*",
+"pathspec==0.12.*",
 "pybids==0.18.*",
 "PyMCubes==0.1.*",
 "pyparsing==3.2.*",
