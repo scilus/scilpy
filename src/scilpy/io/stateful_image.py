@@ -162,6 +162,11 @@ class StatefulImage(nib.Nifti1Image):
     def axcodes(self):
         """Get the axis codes for the current image orientation."""
         return nib.orientations.aff2axcodes(self.affine)
+    
+    @property
+    def original_axcodes(self):
+        """Get the axis codes for the original image orientation."""
+        return self._original_axcodes
 
     def __str__(self):
         """Return a string representation of the image, including orientation."""
