@@ -79,8 +79,8 @@ class StatefulImage(nib.Nifti1Image):
         filename : str
             Path to save the NIfTI file.
         """
-        img_to_save = self.get_reoriented_to_original()
-        nib.save(img_to_save, filename)
+        self.reorient_to_original()
+        nib.save(self, filename)
 
     def reorient_to_original(self):
         """
