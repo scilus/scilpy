@@ -3,6 +3,7 @@
 import nibabel as nib
 import numpy as np
 from dipy.io.utils import get_reference_info
+from scilpy.utils.orientation import validate_axcodes
 
 class StatefulImage(nib.Nifti1Image):
     """
@@ -56,6 +57,7 @@ class StatefulImage(nib.Nifti1Image):
         original_voxel_sizes = img.header.get_zooms()
 
         if to_orientation:
+            validate_axcodes(to_orientation)
             start_ornt = nib.orientations.io_orientation(img.affine)
             target_ornt = nib.orientations.axcodes2ornt(to_orientation)
             transform = nib.orientations.ornt_transform(start_ornt,
@@ -103,29 +105,11 @@ class StatefulImage(nib.Nifti1Image):
         target_axcodes : str or tuple
             The target orientation axis codes (e.g., 'LPS', ('R', 'A', 'S')).
         """
-        if target_axcodes is None:
-            raise ValueError("Target axis codes cannot be None.")
+        validate_axcodes(target_axcodes)
 
         current_axcodes = nib.orientations.aff2axcodes(self.affine)
         if current_axcodes == tuple(target_axcodes):
             return
-        
-        # Check unique are only valid axis codes
-        valid_codes = {'L', 'R', 'A', 'P', 'S', 'I'}
-        for code in target_axcodes:
-            if code not in valid_codes:
-                raise ValueError(f"Invalid axis code '{code}' in target.")
-            
-        # Check L/R, A/P, S/I pairs are not both present
-        pairs = [('L', 'R'), ('A', 'P'), ('S', 'I')]
-        for pair in pairs:
-            if pair[0] in target_axcodes and pair[1] in target_axcodes:
-                raise ValueError(f"Conflicting axis codes '{pair[0]}' and "
-                                 f"'{pair[1]}' in target.")
-            
-        # Check no repeated axis codes (LL, RR, etc.)
-        if len(set(target_axcodes)) != 3:
-            raise ValueError("Target axis codes must be unique.")
 
         start_ornt = nib.orientations.axcodes2ornt(current_axcodes)
         target_ornt = nib.orientations.axcodes2ornt(target_axcodes)

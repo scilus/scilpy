@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from time import time
+from scilpy.utils.orientation import validate_axcodes
 
 
 def get_duration(start_time, decimal=2):
