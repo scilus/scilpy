@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 
 import nibabel as nib
-import numpy as np
 from dipy.io.utils import get_reference_info
 from scilpy.utils.orientation import validate_axcodes
+
 
 class StatefulImage(nib.Nifti1Image):
     """
@@ -33,7 +33,7 @@ class StatefulImage(nib.Nifti1Image):
         self._original_axcodes = original_axcodes
 
     @classmethod
-    def load(cls, filename, to_orientation='RAS'):
+    def load(cls, filename, to_orientation="RAS"):
         """
         Load a NIfTI image, store its original orientation, and reorient it.
 
@@ -42,7 +42,7 @@ class StatefulImage(nib.Nifti1Image):
         filename : str
             Path to the NIfTI file.
         to_orientation : str or tuple, optional
-            The target orientation for the in-memory data. Default is 'RAS'.
+            The target orientation for the in-memory data. Default is "RAS".
 
         Returns
         -------
@@ -95,7 +95,6 @@ class StatefulImage(nib.Nifti1Image):
         """
         self.reorient(self._original_axcodes)
 
-
     def reorient(self, target_axcodes):
         """
         Reorient the in-memory image to a target orientation.
@@ -103,7 +102,7 @@ class StatefulImage(nib.Nifti1Image):
         Parameters
         ----------
         target_axcodes : str or tuple
-            The target orientation axis codes (e.g., 'LPS', ('R', 'A', 'S')).
+            The target orientation axis codes (e.g., "LPS", ("R", "A", "S")).
         """
         validate_axcodes(target_axcodes)
 
@@ -125,26 +124,26 @@ class StatefulImage(nib.Nifti1Image):
 
     def to_ras(self):
         """Convenience method to reorient in-memory data to RAS."""
-        self.reorient(('R', 'A', 'S'))
+        self.reorient(("R", "A", "S"))
 
     def to_lps(self):
         """Convenience method to reorient in-memory data to LPS."""
-        self.reorient(('L', 'P', 'S'))
+        self.reorient(("L", "P", "S"))
 
     def to_reference(self, obj):
         """Reorient the in-memory image to match the orientation of a reference
            object."""
         if isinstance(obj, StatefulImage):
-            raise TypeError('Reference object must not be a StatefulImage.')
-        
+            raise TypeError("Reference object must not be a StatefulImage.")
+
         _, _, _, voxel_order = get_reference_info(obj)
         self.reorient(voxel_order)
-        
+
     @property
     def axcodes(self):
         """Get the axis codes for the current image orientation."""
         return nib.orientations.aff2axcodes(self.affine)
-    
+
     @property
     def original_axcodes(self):
         """Get the axis codes for the original image orientation."""

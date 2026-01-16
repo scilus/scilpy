@@ -33,11 +33,11 @@ def test_load_and_reorient():
     Test loading a NIfTI file and reorienting it to RAS.
     """
     with create_dummy_nifti_file() as file_path:
-        img = StatefulImage.load(file_path, to_orientation='RAS')
+        img = StatefulImage.load(file_path, to_orientation="RAS")
 
         assert isinstance(img, StatefulImage)
-        assert img.axcodes == ('R', 'A', 'S')
-        assert img.original_axcodes == ('R', 'A', 'S')
+        assert img.axcodes == ("R", "A", "S")
+        assert img.original_axcodes == ("R", "A", "S")
 
 
 def test_save_to_original_orientation():
@@ -45,7 +45,7 @@ def test_save_to_original_orientation():
     Test that saving the image reverts it to its original orientation.
     """
     with create_dummy_nifti_file() as file_path:
-        img = StatefulImage.load(file_path, to_orientation='LPS')
+        img = StatefulImage.load(file_path, to_orientation="LPS")
 
         # Save the image
         tmp_dir = os.path.dirname(file_path)
@@ -54,7 +54,7 @@ def test_save_to_original_orientation():
 
         # Load the saved image and check its orientation
         saved_img = nib.load(output_path)
-        assert nib.orientations.aff2axcodes(saved_img.affine) == ('R', 'A', 'S')
+        assert nib.orientations.aff2axcodes(saved_img.affine) == ("R", "A", "S")
 
 
 def test_reorient_to_original():
@@ -62,9 +62,9 @@ def test_reorient_to_original():
     Test reorienting the image back to its original orientation.
     """
     with create_dummy_nifti_file() as file_path:
-        img = StatefulImage.load(file_path, to_orientation='LPS')
+        img = StatefulImage.load(file_path, to_orientation="LPS")
         img.reorient_to_original()
-        assert img.axcodes == ('R', 'A', 'S')
+        assert img.axcodes == ("R", "A", "S")
 
 
 def test_to_ras_lps():
@@ -75,10 +75,10 @@ def test_to_ras_lps():
         img = StatefulImage.load(file_path)
 
         img.to_lps()
-        assert img.axcodes == ('L', 'P', 'S')
+        assert img.axcodes == ("L", "P", "S")
 
         img.to_ras()
-        assert img.axcodes == ('R', 'A', 'S')
+        assert img.axcodes == ("R", "A", "S")
 
 
 def test_to_reference():
@@ -93,7 +93,7 @@ def test_to_reference():
         ref_img = nib.Nifti1Image(np.zeros((10, 10, 10)), ref_affine)
 
         img.to_reference(ref_img)
-        assert img.axcodes == ('L', 'P', 'S')
+        assert img.axcodes == ("L", "P", "S")
 
 
 def test_to_reference_stateful_image():
@@ -104,7 +104,7 @@ def test_to_reference_stateful_image():
         img = StatefulImage.load(file_path)
         ref_img = StatefulImage.load(file_path)
 
-        with pytest.raises(TypeError, match='Reference object must not be a StatefulImage.'):
+        with pytest.raises(TypeError, match="Reference object must not be a StatefulImage."):
             img.to_reference(ref_img)
 
 
@@ -113,9 +113,9 @@ def test_axcodes_properties_tuple():
     Test the axcodes and original_axcodes properties.
     """
     with create_dummy_nifti_file() as file_path:
-        img = StatefulImage.load(file_path, to_orientation=('L', 'P', 'S'))
-        assert img.axcodes == ('L', 'P', 'S')
-        assert img.original_axcodes == ('R', 'A', 'S')
+        img = StatefulImage.load(file_path, to_orientation=("L", "P", "S"))
+        assert img.axcodes == ("L", "P", "S")
+        assert img.original_axcodes == ("R", "A", "S")
 
 
 def test_axcodes_properties_string():
@@ -123,9 +123,9 @@ def test_axcodes_properties_string():
     Test the axcodes and original_axcodes properties.
     """
     with create_dummy_nifti_file() as file_path:
-        img = StatefulImage.load(file_path, to_orientation='LPS')
-        assert img.axcodes == ('L', 'P', 'S')
-        assert img.original_axcodes == ('R', 'A', 'S')
+        img = StatefulImage.load(file_path, to_orientation="LPS")
+        assert img.axcodes == ("L", "P", "S")
+        assert img.original_axcodes == ("R", "A", "S")
 
 
 def test_str_representation():
@@ -133,7 +133,7 @@ def test_str_representation():
     Test the string representation of the StatefulImage.
     """
     with create_dummy_nifti_file() as file_path:
-        img = StatefulImage.load(file_path, to_orientation='LPS')
+        img = StatefulImage.load(file_path, to_orientation="LPS")
         s = str(img)
         assert "Original axis codes:    ('R', 'A', 'S')" in s
         assert "Current axis codes:     ('L', 'P', 'S')" in s
@@ -146,8 +146,8 @@ def test_load_no_reorientation():
     """
     with create_dummy_nifti_file() as file_path:
         img = StatefulImage.load(file_path, to_orientation=None)
-        assert img.axcodes == ('R', 'A', 'S')
-        assert img.original_axcodes == ('R', 'A', 'S')
+        assert img.axcodes == ("R", "A", "S")
+        assert img.original_axcodes == ("R", "A", "S")
 
 
 def test_reorient_no_op_tuple():
@@ -156,8 +156,8 @@ def test_reorient_no_op_tuple():
     """
     with create_dummy_nifti_file(in_lps=True) as file_path:
         img = StatefulImage.load(file_path)
-        img.reorient(('R', 'A', 'S'))
-        assert img.axcodes == ('R', 'A', 'S')
+        img.reorient(("R", "A", "S"))
+        assert img.axcodes == ("R", "A", "S")
 
 
 def test_reorient_no_op_string():
@@ -166,8 +166,8 @@ def test_reorient_no_op_string():
     """
     with create_dummy_nifti_file(in_lps=True) as file_path:
         img = StatefulImage.load(file_path)
-        img.reorient(('RAS'))
-        assert img.axcodes == ('R', 'A', 'S')
+        img.reorient("RAS")
+        assert img.axcodes == ("R", "A", "S")
 
 
 def test_direct_instantiation():
@@ -179,7 +179,7 @@ def test_direct_instantiation():
         img = StatefulImage(nii.dataobj, nii.affine, nii.header)
 
         assert img.original_axcodes is None
-        assert img.axcodes == ('R', 'A', 'S')
+        assert img.axcodes == ("R", "A", 'S')
 
         # Test that save fails without original orientation information
         with pytest.raises(ValueError):
@@ -190,46 +190,46 @@ def test_direct_instantiation():
             img.reorient_to_original()
 
 
-@pytest.mark.parametrize('codes, error_msg', [
+@pytest.mark.parametrize("codes, error_msg", [
     (None, "Axis codes cannot be None."),
-    ('INVALID', "Target axis codes must be of length 3."),
-    ('RAR', "Target axis codes must be unique"),
-    ('LRR', "Target axis codes must be unique."),
-    ('LRA', "Conflicting axis codes 'L' and 'R' in target."),
-    ('API', "Conflicting axis codes 'A' and 'P' in target."),
+    ("INVALID", "Target axis codes must be of length 3."),
+    ("RAR", "Target axis codes must be unique"),
+    ("LRR", "Target axis codes must be unique."),
+    ("LRA", "Conflicting axis codes 'L' and 'R' in target."),
+    ("API", "Conflicting axis codes 'A' and 'P' in target."),
 ])
 def test_stateful_image_bad_axcodes_reorient(codes, error_msg):
     """
     Test that reorienting with invalid axis codes raises a ValueError.
     """
-    with create_dummy_nifti_file(filename='dummy.nii.gz', in_lps=True) as filepath:
+    with create_dummy_nifti_file(filename="dummy.nii.gz", in_lps=True) as filepath:
         stateful_img = StatefulImage.load(filepath)
         with pytest.raises(ValueError, match=error_msg):
             stateful_img.reorient(codes)
 
 
-@pytest.mark.parametrize('codes, error_msg', [
-    ('INVALID', "Target axis codes must be of length 3."),
-    ('RAR', "Target axis codes must be unique"),
-    ('LRR', "Target axis codes must be unique."),
-    ('LRA', "Conflicting axis codes 'L' and 'R' in target."),
-    ('API', "Conflicting axis codes 'A' and 'P' in target."),
+@pytest.mark.parametrize("codes, error_msg", [
+    ("INVALID", "Target axis codes must be of length 3."),
+    ("RAR", "Target axis codes must be unique"),
+    ("LRR", "Target axis codes must be unique."),
+    ("LRA", "Conflicting axis codes 'L' and 'R' in target."),
+    ("API", "Conflicting axis codes 'A' and 'P' in target."),
 ])
 def test_stateful_image_bad_axcodes_load(codes, error_msg):
     """
     Test that loading with invalid axis codes raises a ValueError.
     """
-    with create_dummy_nifti_file(filename='dummy.nii.gz', in_lps=True) as filepath:
+    with create_dummy_nifti_file(filename="dummy.nii.gz", in_lps=True) as filepath:
         with pytest.raises(ValueError, match=error_msg):
             StatefulImage.load(filepath, to_orientation=codes)
 
 
-@pytest.mark.parametrize('codes', [
-    ('R', 'A', 'S'), 'RAS',
-    ('L', 'P', 'S',), 'LPS',
-    ('A', 'R', 'S'), 'ARS',
-    ('L', 'P', 'I'), 'LPI',
-    ('S', 'P', 'L'), 'SPL',
+@pytest.mark.parametrize("codes", [
+    ("R", "A", "S"), "RAS",
+    ("L", "P", "S",), "LPS",
+    ("A", "R", "S"), "ARS",
+    ("L", "P", "I"), "LPI",
+    ("S", "P", "L"), "SPL",
 ])
 def test_reorient_valid_codes(codes):
     """
@@ -241,8 +241,8 @@ def test_reorient_valid_codes(codes):
 
 
 @pytest.mark.parametrize('codes, invalid_code', [
-    (('X', 'Y', 'Z'), 'X'),
-    (('L', 'A', 'B'), 'B'),
+    (("X", "Y", "Z"), "X"),
+    (("L", "A", "B"), "B"),
 ])
 def test_reorient_invalid_codes(codes, invalid_code):
     """
