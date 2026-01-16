@@ -103,6 +103,9 @@ class StatefulImage(nib.Nifti1Image):
         target_axcodes : str or tuple
             The target orientation axis codes (e.g., 'LPS', ('R', 'A', 'S')).
         """
+        if target_axcodes is None:
+            raise ValueError("Target axis codes cannot be None.")
+
         current_axcodes = nib.orientations.aff2axcodes(self.affine)
         if current_axcodes == tuple(target_axcodes):
             return
@@ -153,11 +156,6 @@ class StatefulImage(nib.Nifti1Image):
         _, _, _, voxel_order = get_reference_info(obj)
         self.reorient(voxel_order)
         
-
-    def to_original_orientation(self):
-        """Reverts the in-memory image to its original orientation."""
-        self.reorient(self._original_axcodes)
-
     @property
     def axcodes(self):
         """Get the axis codes for the current image orientation."""
