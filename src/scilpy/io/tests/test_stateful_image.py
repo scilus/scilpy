@@ -226,7 +226,7 @@ def test_stateful_image_bad_axcodes_load(codes, error_msg):
 
 @pytest.mark.parametrize("codes", [
     ("R", "A", "S"), "RAS",
-    ("L", "P", "S",), "LPS",
+    ("L", "P", "S"), "LPS",
     ("A", "R", "S"), "ARS",
     ("L", "P", "I"), "LPI",
     ("S", "P", "L"), "SPL",
