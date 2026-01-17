@@ -179,7 +179,7 @@ def test_direct_instantiation():
         img = StatefulImage(nii.dataobj, nii.affine, nii.header)
 
         assert img.original_axcodes is None
-        assert img.axcodes == ("R", "A", 'S')
+        assert img.axcodes == ("R", "A", "S")
 
         # Test that save fails without original orientation information
         with pytest.raises(ValueError):
