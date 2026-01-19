@@ -104,7 +104,8 @@ def test_to_reference_stateful_image():
         img = StatefulImage.load(file_path)
         ref_img = StatefulImage.load(file_path)
 
-        with pytest.raises(TypeError, match="Reference object must not be a StatefulImage."):
+        with pytest.raises(TypeError,
+                           match="Reference object cannot be a StatefulImage."):
             img.to_reference(ref_img)
 
 
@@ -193,7 +194,7 @@ def test_direct_instantiation():
 @pytest.mark.parametrize("codes, error_msg", [
     (None, "Axis codes cannot be None."),
     ("INVALID", "Target axis codes must be of length 3."),
-    ("RAR", "Target axis codes must be unique"),
+    ("RAR", "Target axis codes must be unique."),
     ("LRR", "Target axis codes must be unique."),
     ("LRA", "Conflicting axis codes 'L' and 'R' in target."),
     ("API", "Conflicting axis codes 'A' and 'P' in target."),
@@ -210,7 +211,7 @@ def test_stateful_image_bad_axcodes_reorient(codes, error_msg):
 
 @pytest.mark.parametrize("codes, error_msg", [
     ("INVALID", "Target axis codes must be of length 3."),
-    ("RAR", "Target axis codes must be unique"),
+    ("RAR", "Target axis codes must be unique."),
     ("LRR", "Target axis codes must be unique."),
     ("LRA", "Conflicting axis codes 'L' and 'R' in target."),
     ("API", "Conflicting axis codes 'A' and 'P' in target."),
@@ -250,5 +251,6 @@ def test_reorient_invalid_codes(codes, invalid_code):
     """
     with create_dummy_nifti_file() as file_path:
         img = StatefulImage.load(file_path)
-        with pytest.raises(ValueError, match=f"Invalid axis code '{invalid_code}' in target."):
+        with pytest.raises(ValueError,
+                           match=f"Invalid axis code '{invalid_code}' in target."):
             img.reorient(codes)

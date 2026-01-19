@@ -13,13 +13,15 @@ def test_validate_axcodes_valid():
 
 def test_validate_axcodes_none():
     """Test that None raises a ValueError."""
-    with pytest.raises(ValueError, match="Axis codes cannot be None."):
+    with pytest.raises(ValueError,
+                       match="Axis codes cannot be None."):
         validate_axcodes(None)
 
 
 def test_validate_axcodes_invalid_code():
     """Test that an invalid code raises a ValueError."""
-    with pytest.raises(ValueError, match="Invalid axis code 'X' in target."):
+    with pytest.raises(ValueError,
+                       match="Invalid axis code 'X' in target."):
         validate_axcodes("XAS")
 
 
@@ -32,11 +34,13 @@ def test_validate_axcodes_conflicting_codes():
 
 def test_validate_axcodes_wrong_length():
     """Test that codes with length != 3 raise a ValueError."""
-    with pytest.raises(ValueError, match="Target axis codes must be of length 3."):
+    with pytest.raises(ValueError,
+                       match="Target axis codes must be of length 3."):
         validate_axcodes("RASL")
 
 
 def test_validate_axcodes_repeated_codes():
     """Test that repeated codes raise a ValueError."""
-    with pytest.raises(ValueError, match="Target axis codes must be unique."):
+    with pytest.raises(ValueError,
+                       match="Target axis codes must be unique."):
         validate_axcodes("RRS")
