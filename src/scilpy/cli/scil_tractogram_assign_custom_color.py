@@ -52,6 +52,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.ndimage import map_coordinates
 
+from scilpy.image.volume_space_management import map_coordinates_in_volume
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg,
                              add_reference_arg,
@@ -200,9 +201,11 @@ def main():
                          '({}) but found {} values.'
                          .format(len(sft), len(data)))
     elif args.load_dpp or args.from_anatomy:
+        # Sending data to vox space, center origin for scipy's interpolation
         sft.to_vox()
         concat_points = np.vstack(sft.streamlines).T
         expected_shape = len(concat_points)
+        # Back to normal space
         sft.to_rasmm()
         if args.load_dpp:
             data = np.squeeze(load_matrix_in_any_format(args.load_dpp))
@@ -211,8 +214,7 @@ def main():
                              'but got {}'.format(expected_shape, len(data)))
         else:  # args.from_anatomy:
             data = nib.load(args.from_anatomy).get_fdata()
-            data = map_coordinates(data, concat_points, order=0,
-                                   mode='nearest')
+            data = map_coordinates_in_volume(data, concat_points, order=0)
     elif args.along_profile:
         data = get_streamlines_as_linspaces(sft)
         data = np.hstack(data)
