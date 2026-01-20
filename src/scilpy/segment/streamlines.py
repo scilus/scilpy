@@ -58,7 +58,7 @@ def streamlines_in_mask(sft, target_mask, all_in=False):
         return np.where(streamlines_case == [0, 1][True])[0].tolist()
 
 
-def filter_grid_roi_both(sft, mask_1, mask_2):
+def filter_grid_roi_both_ends(sft, mask_1, mask_2):
     """ Filters streamlines with one end in a mask and the other in
     another mask.
 
