@@ -59,8 +59,10 @@ def streamlines_in_mask(sft, target_mask, all_in=False):
 
 
 def filter_grid_roi_both_ends(sft, mask_1, mask_2):
-    """ Filters streamlines with one end in a mask and the other in
-    another mask.
+    """
+    Filters streamlines with one end in a mask and the other in another mask.
+    See also filter_grid_roi, but here we may give two different masks for the
+    endpoints.
 
     Parameters
     ----------
@@ -115,6 +117,9 @@ def filter_grid_roi_both_ends(sft, mask_1, mask_2):
 def filter_grid_roi(sft, mask, filter_type, is_exclude, filter_distance=0,
                     return_sft=False, return_rejected_sft=False):
     """
+    Filters streamlines based on a given criteria (any, all, either_end,
+    both_ends).
+
     Parameters
     ----------
     sft : StatefulTractogram
@@ -206,8 +211,8 @@ def filter_grid_roi(sft, mask, filter_type, is_exclude, filter_distance=0,
     return line_based_indices
 
 
-def pre_filtering_for_geometrical_shape(sft, size, center, filter_type,
-                                        is_in_vox):
+def _pre_filtering_for_geometrical_shape(sft, size, center, filter_type,
+                                         is_in_vox):
     """
     Parameters
     ----------
@@ -261,6 +266,9 @@ def pre_filtering_for_geometrical_shape(sft, size, center, filter_type,
 def filter_ellipsoid(sft, ellipsoid_radius, ellipsoid_center,
                      filter_type, is_exclude, is_in_vox=False):
     """
+    Finds streamlines that respect some criteria in a ROI, where the ROI is
+    a bounding box of ellipsoid type.
+
     Parameters
     ----------
     sft : StatefulTractogram
@@ -287,9 +295,9 @@ def filter_ellipsoid(sft, ellipsoid_radius, ellipsoid_center,
         return np.array([]), sft
 
     pre_filtered_indices, pre_filtered_sft = \
-        pre_filtering_for_geometrical_shape(sft, ellipsoid_radius,
-                                            ellipsoid_center, filter_type,
-                                            is_in_vox)
+        _pre_filtering_for_geometrical_shape(sft, ellipsoid_radius,
+                                             ellipsoid_center, filter_type,
+                                             is_in_vox)
     pre_filtered_sft.to_rasmm()
     pre_filtered_sft.to_center()
     pre_filtered_streamlines = pre_filtered_sft.streamlines
@@ -367,9 +375,11 @@ def filter_ellipsoid(sft, ellipsoid_radius, ellipsoid_center,
     return line_based_indices, new_sft
 
 
-def filter_cuboid(sft, cuboid_radius, cuboid_center,
-                  filter_type, is_exclude):
+def filter_cuboid(sft, cuboid_radius, cuboid_center, filter_type, is_exclude):
     """
+    Finds streamlines that respect some criteria in a ROI, where the ROI is
+    a bounding box of cuboid type.
+
     Parameters
     ----------
     sft : StatefulTractogram
@@ -382,8 +392,7 @@ def filter_cuboid(sft, cuboid_radius, cuboid_center,
         One of the 4 following choices: 'any', 'all', 'either_end', 'both_ends'.
     is_exclude: bool
         Value to indicate if the ROI is an AND (false) or a NOT (true).
-    is_in_vox: bool
-        Value to indicate if the ROI is in voxel space.
+
     Returns
     -------
     ids : list
@@ -395,9 +404,9 @@ def filter_cuboid(sft, cuboid_radius, cuboid_center,
         return np.array([]), sft
 
     pre_filtered_indices, pre_filtered_sft = \
-        pre_filtering_for_geometrical_shape(sft, cuboid_radius,
-                                            cuboid_center, filter_type,
-                                            is_in_vox=False)
+        _pre_filtering_for_geometrical_shape(sft, cuboid_radius,
+                                             cuboid_center, filter_type,
+                                             is_in_vox=False)
     pre_filtered_sft.to_rasmm()
     pre_filtered_sft.to_center()
     pre_filtered_streamlines = pre_filtered_sft.streamlines
