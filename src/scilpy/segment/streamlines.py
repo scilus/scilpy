@@ -27,7 +27,8 @@ def streamlines_in_mask(sft, target_mask, all_in=False):
     target_mask : numpy.ndarray
         Binary mask in which the streamlines should pass.
     all_in: bool
-        If true, finds
+        If true, finds streamlines satisfying the 'all' criteria. Else, finds
+        streamlines satisfying the 'any' criteria.
 
     Returns
     -------
