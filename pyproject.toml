@@ -33,7 +33,7 @@ dependencies = [
 "deepdiff>=8.1,<8.7",
 "dipy==1.11.*",
 "dmri-amico==2.1.*",
-"dmri-commit==2.3.*",
+"dmri-commit==2.4.*",
 "docopt==0.6.*",
 "dvc==3.59.*",
 "formulaic==0.5.*",
