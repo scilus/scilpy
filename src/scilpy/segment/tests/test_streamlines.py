@@ -3,48 +3,59 @@ from dipy.io.stateful_tractogram import StatefulTractogram, Space, Origin
 import nibabel as nib
 import numpy as np
 from scilpy.segment.streamlines import streamlines_in_mask, \
-    filter_grid_roi_both_ends, filter_grid_roi
+    filter_grid_roi_both_ends, filter_grid_roi, filter_ellipsoid, filter_cuboid
 
 # Preparing SFT for all tests here.
-# Binary mask: ROI on x=1 and x=2
+# 3 ways to crete ROI, all ~voxels 1 and 2 in x, y, z
+# - mask
+# - bdo_ellipsoid
+# - bdo_cuboid
+
+# Binary mask
 mask = np.zeros((10, 10, 10))
-mask[1:3, :, :] = 1
+mask[1:3, 1:3, 1:3] = 1
 
-# line 0 entirely in mask. y and z values are random.
-line0 = [[1.3, 5, 6],
-         [1.5, 5, 7],
-         [2.5, 7, 4],
-         [2.9, 9, 9]]
+# bdo.
+# Note. Everything else here is in vox, corner, except bdo_center
+bdo_center_rasmm_centerorigin = np.asarray([1.5, 1.5, 1.5])
+bdo_radius_mm = 1.5
 
-# line 1: partially in mask (both ends in mask but not in the middle)
-line1 = [[1.3, 5, 6],
-         [5.5, 5, 7],
-         [2.5, 7, 4],
-         [2.9, 9, 9]]
+# Preparing streamlines fitting criteria.
+# line 0 'all': entirely in mask.
+line0 = [[1.5, 1.5, 1.5],
+         [1.6, 1.6, 1.6],
+         [1.7, 1.7, 1.7],
+         [2.5, 2.5, 2.5]]
 
-# line 2: Only one end in mask
-line2 = [[1.3, 5, 6],
-         [5.5, 5, 7],
-         [6.5, 7, 4],
-         [7.9, 9, 9]]
+# line 1 'both_ends': both ends in mask but not in the middle.
+line1 = [[1.5, 1.5, 1.5],
+         [9, 9, 9],
+         [1.7, 1.7, 1.7],
+         [2.5, 2.5, 2.5]]
 
-# line 3: Both ends out of mask but touches in the middle
-line3 = [[5.3, 5, 6],
-         [1.5, 5, 7],
-         [2.5, 7, 4],
-         [7.9, 9, 9]]
+# line 2 'any': Only one end in mask
+line2 = [[1.5, 1.5, 1.5],
+         [1.6, 1.6, 1.6],
+         [1.7, 1.7, 1.7],
+         [9, 9, 9]]
 
-# line 4: never in mask
-line4 = [[4.3, 5, 6],
-         [5.5, 5, 7],
-         [7.5, 7, 4],
-         [9.9, 9, 9]]
+# line 3 'any': Both ends out of mask but touches in the middle
+line3 = [[9, 9, 9],
+         [1.6, 1.6, 1.6],
+         [1.7, 1.7, 1.7],
+         [9, 9, 9]]
 
-# line 5: passes through, but no real point inside.
-line5 = [[0.3, 5, 6],
-         [5.5, 5, 7],
-         [7.5, 7, 4],
-         [9.9, 9, 9]]
+# line 4 (exclude): never in mask
+line4 = [[9, 9, 9.0],
+         [8, 8, 8.0],
+         [7, 7, 7.0],
+         [9, 9, 9.0]]
+
+# line 5 'any': passes through, but no real point inside.
+line5 = [[0.1, 0.1, 0.1],
+         [8, 8, 8.0],
+         [7, 7, 7.0],
+         [9, 9, 9.0]]
 
 fake_reference = nib.Nifti1Image(
     np.zeros((10, 10, 10, 1)), affine=np.eye(4))
@@ -73,34 +84,52 @@ def test_filter_grid_roi_both_ends():
 
 def test_filter_grid_roi():
     # Note. Distance not tested yet. (toDo)
-    # Testing the returned SFT only the first time.
+    roi_options = (mask,)
+    _test_all_criteria(filter_grid_roi, roi_options)
+
+
+def test_filter_ellipsoid():
+    roi_options = (bdo_radius_mm, bdo_center_rasmm_centerorigin)
+    _test_all_criteria(filter_ellipsoid, roi_options)
+
+
+def test_filter_cuboid():
+    roi_options = (bdo_radius_mm, bdo_center_rasmm_centerorigin)
+    _test_all_criteria(filter_cuboid, roi_options)
+
+
+def _test_all_criteria(fct, roi_options):
+    """
+    The three filtering methods (filter_grid_roi, filter_ellipsoid,
+    filter_cuboid) test the same criteria, but with a different way to treat
+    the ROI.
+    """
     # Parameter is "is_exclude", so:
     include=False
     exclude=True
 
     # Test 'any'
-    ids, new_sft, rejected_sft = filter_grid_roi(
-        sft, mask, 'any', include,
-        return_sft=True, return_rejected_sft=True)
+    # Testing the returned sft only this once
+    ids, new_sft = fct(sft, *roi_options, 'any', include)
     assert np.array_equal(ids, [0, 1, 2, 3, 5])
     assert len(new_sft) == 5
-    ids = filter_grid_roi(sft, mask, 'any', exclude)
+    ids, _ =  fct(sft, *roi_options, 'any', exclude)
     assert np.array_equal(ids, [4])
 
     # Test 'all'
-    ids = filter_grid_roi(sft, mask, 'all', include)
+    ids, _ =  fct(sft, *roi_options, 'all', include)
     assert np.array_equal(ids, [0])
-    ids = filter_grid_roi(sft, mask, 'all', exclude)
+    ids, _ =  fct(sft, *roi_options, 'all', exclude)
     assert np.array_equal(ids, [1, 2, 3, 4, 5])
 
     # Test 'either_end'
-    ids = filter_grid_roi(sft, mask, 'either_end', include)
+    ids, _ =  fct(sft, *roi_options, 'either_end', include)
     assert np.array_equal(ids, [0, 1, 2])
-    ids = filter_grid_roi(sft, mask, 'either_end', exclude)
+    ids, _ =  fct(sft, *roi_options, 'either_end', exclude)
     assert np.array_equal(ids, [3, 4, 5])
 
     # Test 'both_ends'
-    ids = filter_grid_roi(sft, mask, 'both_ends', include)
+    ids, _ =  fct(sft, *roi_options, 'both_ends', include)
     assert np.array_equal(ids, [0, 1])
-    ids = filter_grid_roi(sft, mask, 'both_ends', exclude)
+    ids, _ =  fct(sft, *roi_options, 'both_ends', exclude)
     assert np.array_equal(ids, [2, 3, 4, 5])

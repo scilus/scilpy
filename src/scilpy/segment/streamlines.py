@@ -259,8 +259,7 @@ def _pre_filtering_for_geometrical_shape(sft, size, center, filter_type,
 
     pre_mask[min_x:max_x, min_y:max_y, min_z:max_z] = 1
 
-    return filter_grid_roi(sft, pre_mask, filter_type, is_exclude=False,
-                           return_sft=True)
+    return filter_grid_roi(sft, pre_mask, filter_type, is_exclude=False)
 
 
 def filter_ellipsoid(sft, ellipsoid_radius, ellipsoid_center,
@@ -276,7 +275,7 @@ def filter_ellipsoid(sft, ellipsoid_radius, ellipsoid_center,
     ellipsoid_radius : numpy.ndarray (3)
         Size in mm, x/y/z of the ellipsoid.
     ellipsoid_center: numpy.ndarray (3)
-        Center x/y/z of the ellipsoid.
+        Center x/y/z of the ellipsoid, in RASMM space, center origin.
     filter_type: str
         One of the 4 following choices, 'any', 'all', 'either_end', 'both_ends'.
     is_exclude: bool
@@ -300,7 +299,6 @@ def filter_ellipsoid(sft, ellipsoid_radius, ellipsoid_center,
                                              is_in_vox)
     pre_filtered_sft.to_rasmm()
     pre_filtered_sft.to_center()
-    pre_filtered_streamlines = pre_filtered_sft.streamlines
     transfo, _, res, _ = sft.space_attributes
 
     if is_in_vox:
@@ -318,7 +316,7 @@ def filter_ellipsoid(sft, ellipsoid_radius, ellipsoid_center,
     ellipsoid_radius = np.asarray(ellipsoid_radius, dtype=float)
     ellipsoid_center = np.asarray(ellipsoid_center, dtype=float)
 
-    for i, line in enumerate(pre_filtered_streamlines):
+    for i, line in enumerate(pre_filtered_sft.streamlines):
         if filter_type in ['any', 'all']:
             # Resample to 1/10 of the voxel size
             nb_points = max(int(length(line) / np.average(res) * 10), 2)
@@ -387,7 +385,7 @@ def filter_cuboid(sft, cuboid_radius, cuboid_center, filter_type, is_exclude):
     cuboid_radius : numpy.ndarray (3)
         Size in mm, x/y/z of the cuboid.
     cuboid_center: numpy.ndarray (3)
-        Center x/y/z of the cuboid.
+        Center x/y/z of the cuboid, in RASMM space, center origin.
     filter_type: str
         One of the 4 following choices: 'any', 'all', 'either_end', 'both_ends'.
     is_exclude: bool
