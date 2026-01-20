@@ -17,16 +17,22 @@ from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
 
 def streamlines_in_mask(sft, target_mask, all_in=False):
     """
+    Finds the streamlines that are either touching a mask (if all_in=False) or
+    entirely contained in the mask (if all_in=True).
+
     Parameters
     ----------
     sft : StatefulTractogram
         StatefulTractogram containing the streamlines to segment.
     target_mask : numpy.ndarray
         Binary mask in which the streamlines should pass.
+    all_in: bool
+        If true, finds
+
     Returns
     -------
     ids : list
-        Ids of the streamlines passing through the mask.
+        Ids of the streamlines passing the test.
     """
     sft.to_vox()
     sft.to_corner()
@@ -64,6 +70,7 @@ def filter_grid_roi_both(sft, mask_1, mask_2):
         Binary mask in which the streamlines should start or end.
     mask_2: numpy.ndarray
         Binary mask in which the streamlines should start or end.
+
     Returns
     -------
     new_sft: StatefulTractogram
