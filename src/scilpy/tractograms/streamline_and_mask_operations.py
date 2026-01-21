@@ -324,7 +324,7 @@ def cut_streamlines_with_mask(sft, mask,
     orig_space = sft.space
     orig_origin = sft.origin
     sft.to_vox()
-    sft.to_corner()
+    sft.to_center()
 
     # Get the indices of the voxels
     # intersected by the streamlines and the mapping from points to indices

@@ -272,7 +272,8 @@ def main():
     concat_sft.to_corner()
     for i in range(len(sft_list)):
         sft_list[i] = cut_streamlines_with_mask(sft_list[i],
-                                                binary_mask)
+                                                binary_mask,
+                                                cutting_style=CuttingStyle.KEEP_LONGEST)
 
         sft_list[i] = filter_streamlines_by_nb_points(sft_list[i],
                                                       min_nb_points=4)
