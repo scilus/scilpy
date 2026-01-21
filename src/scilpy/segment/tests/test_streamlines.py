@@ -85,51 +85,54 @@ def test_filter_grid_roi_both_ends():
 def test_filter_grid_roi():
     # Note. Distance not tested yet. (toDo)
     roi_options = (mask,)
-    _test_all_criteria(filter_grid_roi, roi_options)
+    _test_all_criteria(filter_grid_roi, roi_options, fct_returns_sft=False)
 
 
 def test_filter_ellipsoid():
     roi_options = (bdo_radius_mm, bdo_center_rasmm_centerorigin)
-    _test_all_criteria(filter_ellipsoid, roi_options)
+    _test_all_criteria(filter_ellipsoid, roi_options, fct_returns_sft=True)
 
 
 def test_filter_cuboid():
     roi_options = (bdo_radius_mm, bdo_center_rasmm_centerorigin)
-    _test_all_criteria(filter_cuboid, roi_options)
+    _test_all_criteria(filter_cuboid, roi_options, fct_returns_sft=True)
 
 
-def _test_all_criteria(fct, roi_options):
+def _test_all_criteria(fct, roi_args, fct_returns_sft):
     """
     The three filtering methods (filter_grid_roi, filter_ellipsoid,
     filter_cuboid) test the same criteria, but with a different way to treat
-    the ROI.
+    the ROI. Here are the tests, the roi_args should be different based on fct.
     """
-    # Parameter is "is_exclude", so:
+    # Parameter is "is_exclude" for all three methods. So:
     include=False
     exclude=True
 
+    def get_ids(output):
+        if fct_returns_sft:
+            return output[0]
+        return output
+
     # Test 'any'
-    # Testing the returned sft only this once
-    ids, new_sft = fct(sft, *roi_options, 'any', include)
+    ids = get_ids(fct(sft, *roi_args, 'any', include))
     assert np.array_equal(ids, [0, 1, 2, 3, 5])
-    assert len(new_sft) == 5
-    ids, _ =  fct(sft, *roi_options, 'any', exclude)
+    ids =  get_ids(fct(sft, *roi_args, 'any', exclude))
     assert np.array_equal(ids, [4])
 
     # Test 'all'
-    ids, _ =  fct(sft, *roi_options, 'all', include)
+    ids =  get_ids(fct(sft, *roi_args, 'all', include))
     assert np.array_equal(ids, [0])
-    ids, _ =  fct(sft, *roi_options, 'all', exclude)
+    ids =  get_ids(fct(sft, *roi_args, 'all', exclude))
     assert np.array_equal(ids, [1, 2, 3, 4, 5])
 
     # Test 'either_end'
-    ids, _ =  fct(sft, *roi_options, 'either_end', include)
+    ids =  get_ids(fct(sft, *roi_args, 'either_end', include))
     assert np.array_equal(ids, [0, 1, 2])
-    ids, _ =  fct(sft, *roi_options, 'either_end', exclude)
+    ids =  get_ids(fct(sft, *roi_args, 'either_end', exclude))
     assert np.array_equal(ids, [3, 4, 5])
 
     # Test 'both_ends'
-    ids, _ =  fct(sft, *roi_options, 'both_ends', include)
+    ids =  get_ids(fct(sft, *roi_args, 'both_ends', include))
     assert np.array_equal(ids, [0, 1])
-    ids, _ =  fct(sft, *roi_options, 'both_ends', exclude)
+    ids =  get_ids(fct(sft, *roi_args, 'both_ends', exclude))
     assert np.array_equal(ids, [2, 3, 4, 5])

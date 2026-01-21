@@ -260,7 +260,8 @@ def _pre_filtering_for_geometrical_shape(sft, size, center, filter_type,
 
     pre_mask[min_x:max_x, min_y:max_y, min_z:max_z] = 1
 
-    return filter_grid_roi(sft, pre_mask, filter_type, is_exclude=False)
+    return filter_grid_roi(sft, pre_mask, filter_type, is_exclude=False,
+                           return_sft=True)
 
 
 def filter_ellipsoid(sft, ellipsoid_radius, ellipsoid_center,
