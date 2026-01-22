@@ -81,8 +81,7 @@ class StatefulImage(nib.Nifti1Image):
         filename : str
             Path to save the NIfTI file.
         """
-        if not hasattr(self, "_original_axcodes") or \
-                self._original_axcodes is None:
+        if self._original_axcodes is None:
             raise ValueError(
                 "Unknown original orientation. Ensure the image was loaded"
                 "with StatefulImage.load() or that original_axcodes was"
