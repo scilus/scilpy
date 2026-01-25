@@ -128,7 +128,7 @@ def main():
         if len(args.voxel_size) == 1:
             args.voxel_size = args.voxel_size * 3
 
-        if not np.array_equal(zooms[:3], args.voxel_size):
+        if not np.allclose(zooms[:3], args.voxel_size, atol=1e-3):
             logging.warning('Voxel size is different from expected.'
                             ' Got: %s, expected: %s',
                             tuple(zooms), tuple(args.voxel_size))
