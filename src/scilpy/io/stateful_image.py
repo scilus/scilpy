@@ -5,7 +5,6 @@ from dipy.io.utils import get_reference_info
 from scilpy.utils.orientation import validate_axcodes
 
 
-
 class StatefulImage(nib.Nifti1Image):
     """
     A class that extends nib.Nifti1Image to manage image orientation state.
@@ -201,11 +200,7 @@ class StatefulImage(nib.Nifti1Image):
         """
 
         if isinstance(obj, StatefulImage):
-<<<<<<< HEAD
             raise TypeError('Reference object must not be a StatefulImage.')
-=======
-            raise TypeError("Reference object cannot be a StatefulImage.")
->>>>>>> a6c4fae0431b7ebf354f0e6ce19c6a5677b0199f
 
         _, _, _, voxel_order = get_reference_info(obj)
         self.reorient(voxel_order)
