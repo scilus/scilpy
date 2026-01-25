@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
 import nibabel as nib
-import numpy as np
 from dipy.io.utils import get_reference_info
+
 
 class StatefulImage(nib.Nifti1Image):
     """
@@ -82,6 +82,29 @@ class StatefulImage(nib.Nifti1Image):
         self.reorient_to_original()
         nib.save(self, filename)
 
+    def create_from(self, new_img):
+        """
+        Create a new StatefulImage from a nibabel image, keeping the original
+        orientation information from the current StatefulImage.
+
+        Parameters
+        ----------
+        new_img : nib.Nifti1Image
+            The new image to create the StatefulImage from.
+
+        Returns
+        -------
+        StatefulImage
+            A new StatefulImage with the new image's data and the original
+            orientation information from the current StatefulImage.
+        """
+        return StatefulImage(new_img.dataobj, new_img.affine,
+                             header=new_img.header,
+                             original_affine=self._original_affine,
+                             original_dimensions=self._original_dimensions,
+                             original_voxel_sizes=self._original_voxel_sizes,
+                             original_axcodes=self._original_axcodes)
+
     def reorient_to_original(self):
         """
         Get a Nifti1Image object reoriented to its original orientation.
@@ -92,7 +115,6 @@ class StatefulImage(nib.Nifti1Image):
             A new Nifti1Image instance in the original orientation.
         """
         self.reorient(self._original_axcodes)
-
 
     def reorient(self, target_axcodes):
         """
@@ -109,20 +131,20 @@ class StatefulImage(nib.Nifti1Image):
         current_axcodes = nib.orientations.aff2axcodes(self.affine)
         if current_axcodes == tuple(target_axcodes):
             return
-        
+
         # Check unique are only valid axis codes
         valid_codes = {'L', 'R', 'A', 'P', 'S', 'I'}
         for code in target_axcodes:
             if code not in valid_codes:
                 raise ValueError(f"Invalid axis code '{code}' in target.")
-            
+
         # Check L/R, A/P, S/I pairs are not both present
         pairs = [('L', 'R'), ('A', 'P'), ('S', 'I')]
         for pair in pairs:
             if pair[0] in target_axcodes and pair[1] in target_axcodes:
                 raise ValueError(f"Conflicting axis codes '{pair[0]}' and "
                                  f"'{pair[1]}' in target.")
-            
+
         # Check no repeated axis codes (LL, RR, etc.)
         if len(set(target_axcodes)) != 3:
             raise ValueError("Target axis codes must be unique.")
@@ -152,15 +174,15 @@ class StatefulImage(nib.Nifti1Image):
            object."""
         if isinstance(obj, StatefulImage):
             raise TypeError('Reference object must not be a StatefulImage.')
-        
+
         _, _, _, voxel_order = get_reference_info(obj)
         self.reorient(voxel_order)
-        
+
     @property
     def axcodes(self):
         """Get the axis codes for the current image orientation."""
         return nib.orientations.aff2axcodes(self.affine)
-    
+
     @property
     def original_axcodes(self):
         """Get the axis codes for the original image orientation."""

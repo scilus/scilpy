@@ -26,6 +26,7 @@ from scilpy.image.volume_operations import apply_transform
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              add_verbose_arg, assert_outputs_exist)
 from scilpy.version import version_string
+from scilpy.io.stateful_image import StatefulImage
 
 
 def _build_arg_parser():
@@ -63,14 +64,14 @@ def main():
     assert_outputs_exist(parser, args, args.out_file)
 
     # Load images.
-    in_file = nib.load(args.in_file)
+    simg = StatefulImage.load(args.in_file, to_orientation='RAS')
     ref_file = nib.load(args.in_ref_file)
 
-    reshaped_img = apply_transform(np.eye(4), ref_file, in_file,
-                                   interp=args.interpolation,
-                                   keep_dtype=args.keep_dtype)
+    reshaped_simg = apply_transform(np.eye(4), ref_file, simg,
+                                    interp=args.interpolation,
+                                    keep_dtype=args.keep_dtype)
 
-    nib.save(reshaped_img, args.out_file)
+    reshaped_simg.save(args.out_file)
 
 
 if __name__ == "__main__":

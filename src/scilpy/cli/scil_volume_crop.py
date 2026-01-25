@@ -21,7 +21,6 @@ To:
 import argparse
 import logging
 
-import nibabel as nib
 import numpy as np
 
 from scilpy.io.utils import (add_overwrite_arg,
@@ -32,6 +31,7 @@ from scilpy.utils.spatial import WorldBoundingBox
 from scilpy.image.utils import compute_nifti_bounding_box
 from scilpy.image.volume_operations import crop_volume
 from scilpy.version import version_string
+from scilpy.io.stateful_image import StatefulImage
 
 
 def _build_arg_parser():
@@ -73,23 +73,23 @@ def main():
     assert_inputs_exist(parser, args.in_image, args.input_bbox)
     assert_outputs_exist(parser, args, args.out_image, args.output_bbox)
 
-    img = nib.load(args.in_image)
+    simg = StatefulImage.load(args.in_image, to_orientation='RAS')
     if args.input_bbox:
         wbbox = WorldBoundingBox.load(args.input_bbox,
                                       args.use_deprecated_pickle)
         if not args.ignore_voxel_size:
-            voxel_size = img.header.get_zooms()[0:3]
+            voxel_size = simg.header.get_zooms()[0:3]
             if not np.allclose(voxel_size, wbbox.voxel_size[0:3], atol=1e-03):
                 raise IOError("Bounding box and data voxel sizes are not "
                               "compatible. Use option --ignore_voxel_size "
                               "to ignore this test.")
     else:
-        wbbox = compute_nifti_bounding_box(img)
+        wbbox = compute_nifti_bounding_box(simg)
         if args.output_bbox:
             wbbox.dump(args.output_bbox, args.use_deprecated_pickle)
 
-    out_nifti_file = crop_volume(img, wbbox)
-    nib.save(out_nifti_file, args.out_image)
+    out_simg = crop_volume(simg, wbbox)
+    out_simg.save(args.out_image)
 
 
 if __name__ == "__main__":

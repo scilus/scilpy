@@ -27,6 +27,7 @@ from scilpy.io.utils import (add_verbose_arg, add_overwrite_arg,
                              assert_inputs_exist, assert_outputs_exist)
 from scilpy.image.volume_operations import reshape_volume
 from scilpy.version import version_string
+from scilpy.io.stateful_image import StatefulImage
 
 
 def _build_arg_parser():
@@ -80,7 +81,7 @@ def main():
 
     logging.info('Loading raw data from %s', args.in_image)
 
-    img = nib.load(args.in_image)
+    simg = StatefulImage.load(args.in_image, to_orientation='RAS')
 
     ref_img = None
     if args.ref:
@@ -93,14 +94,14 @@ def main():
             volume_shape = args.volume_size
 
     # Resampling volume
-    reshaped_img = reshape_volume(img, volume_shape,
-                                  mode=args.mode,
-                                  cval=args.constant_value,
-                                  dtype=args.data_type)
+    reshaped_simg = reshape_volume(simg, volume_shape,
+                                   mode=args.mode,
+                                   cval=args.constant_value,
+                                   dtype=args.data_type)
 
     # Saving results
     logging.info('Saving reshaped data to %s', args.out_image)
-    nib.save(reshaped_img, args.out_image)
+    reshaped_simg.save(args.out_image)
 
 
 if __name__ == '__main__':
