@@ -3,13 +3,15 @@
 import re
 
 
-def validate_voxel_order(axcodes):
+def validate_voxel_order(axcodes, dimensions=3):
     """
     Validate a set of axis codes.
     Parameters
     ----------
     axcodes : str or tuple or list
         The axis codes to validate (e.g., "LPS", ("R", "A", "S")).
+    dimensions : int
+        The number of dimensions of the image.
     Returns
     -------
     tuple
@@ -23,17 +25,19 @@ def validate_voxel_order(axcodes):
         raise ValueError("Axis codes cannot be None.")
 
     axcodes = tuple(axcodes)
-    if len(axcodes) != 3:
-        raise ValueError("Target axis codes must be of length 3.")
+    if len(axcodes) != dimensions:
+        raise ValueError(f"Target axis codes must be of length {dimensions}.")
 
     # Check unique are only valid axis codes
     valid_codes = {"L", "R", "A", "P", "S", "I"}
+    if dimensions == 4:
+        valid_codes.add("T")
     for code in axcodes:
         if code not in valid_codes:
             raise ValueError(f"Invalid axis code '{code}' in target.")
 
     # Check no repeated axis codes (LL, RR, etc.)
-    if len(set(axcodes)) != 3:
+    if len(set(axcodes)) != dimensions:
         raise ValueError("Target axis codes must be unique.")
 
     # Check L/R, A/P, S/I pairs are not both present
@@ -45,21 +49,37 @@ def validate_voxel_order(axcodes):
     return axcodes
 
 
-def parse_voxel_order(order_str):
+def parse_voxel_order(order_str, dimensions=3):
     """
     Parse the voxel order string into a tuple of axis codes.
     """
-    order_str = order_str.replace(',', '').replace(' ', '')
+    order_str_cleaned = order_str.replace(',', '').replace(' ', '')
 
-    if order_str.isalpha():
-        if len(order_str) != 3:
+    if dimensions == 4 and order_str_cleaned.isalpha():
+        raise ValueError("Alphabetical voxel order is not supported for 4D "
+                         "images. Please use numeric format.")
+
+    if order_str_cleaned.isalpha():
+        if len(order_str_cleaned) != 3:
             raise ValueError("Voxel order string must have 3 characters.")
-        return validate_voxel_order(tuple(order_str.upper()))
+        return validate_voxel_order(tuple(order_str_cleaned.upper()))
 
-    numeric_parts = re.findall(r'-?\d', order_str)
-    if len(numeric_parts) == 3:
-        ras_map = {1: 'R', 2: 'A', 3: 'S'}
-        flip_map = {'R': 'L', 'A': 'P', 'S': 'I'}
+    if order_str_cleaned.replace('-', '').isdigit():
+        numeric_parts = re.findall(r'-?\d', order_str_cleaned)
+        if len(numeric_parts) == 4 and dimensions != 4:
+            raise ValueError("4D voxel order is only supported for 4D images.")
+        if len(numeric_parts) not in [3, 4]:
+            raise ValueError("Voxel order string must have 3 or 4 numbers.")
+
+        if dimensions == 4:
+            ras_map = {1: 'R', 2: 'A', 3: 'S', 4: 'T'}
+            flip_map = {'R': 'L', 'A': 'P', 'S': 'I', 'T': 'T'}
+            if len(numeric_parts) == 4:
+                if abs(int(numeric_parts[3])) != 4:
+                    raise ValueError("The 4th dimension must be 4 or -4.")
+        else:
+            ras_map = {1: 'R', 2: 'A', 3: 'S'}
+            flip_map = {'R': 'L', 'A': 'P', 'S': 'I'}
 
         order = []
         for part in numeric_parts:
@@ -70,50 +90,15 @@ def parse_voxel_order(order_str):
             order.append(axis)
 
         # Check for duplicate axes
-        if len(set(order)) != 3:
+        if len(set(order)) != len(numeric_parts):
             # Handle swapped axes from numeric input (e.g., '231')
             axis_vals = [ras_map[abs(int(p))] for p in numeric_parts]
-            if len(set(axis_vals)) == 3:
-                return validate_voxel_order(tuple(order))
+            if len(set(axis_vals)) == len(numeric_parts):
+                return validate_voxel_order(tuple(order), dimensions=len(numeric_parts))
             else:
                 raise ValueError("Invalid numeric voxel order. "
                                  "Axes cannot be repeated.")
 
-        return validate_voxel_order(tuple(order))
-
-    # Handling swapped axes like '231' more robustly
-    if order_str.replace('-', '').isdigit():
-        # This will handle cases like '213', '312', etc.
-        unique_digits = set(abs(int(c)) for c in re.findall(r'-?\d',
-                                                            order_str))
-        if unique_digits != {1, 2, 3}:
-            raise ValueError("Invalid numeric voxel order. Must use 1, 2, "
-                             "and 3.")
-
-        # Re-evaluating with a more direct mapping for swaps
-        parsed_order = []
-        initial_ras = ['R', 'A', 'S']
-        flip_map = {'R': 'L', 'A': 'P', 'S': 'I'}
-
-        for part in numeric_parts:
-            num = int(part)
-            idx = abs(num) - 1
-            axis = initial_ras[idx]
-            if num < 0:
-                axis = flip_map.get(axis, axis)  # Flip if negative
-            parsed_order.append(axis)
-
-        # Final validation for unique axes
-        final_axes = [a[0] for a in parsed_order]
-        if len(set(final_axes)) != 3:
-            # Create a more descriptive error for conflicting axes
-            # like ('L', 'R', 'S')
-            pairs = [('L', 'R'), ('A', 'P'), ('S', 'I')]
-            for pair in pairs:
-                if pair[0] in final_axes and pair[1] in final_axes:
-                    raise ValueError(f"Conflicting axes in input: "
-                                     f"{pair[0]} and {pair[1]}")
-
-        return validate_voxel_order(tuple(parsed_order))
-
+        return validate_voxel_order(tuple(order), dimensions=len(numeric_parts))
+    
     raise ValueError(f"Invalid voxel order format: {order_str}")

@@ -18,7 +18,11 @@ The new voxel order can be specified in several ways:
 
 For numeric input, 1, 2, and 3 correspond to the R, A, and S axes of the
 image when loaded in RAS orientation. A negative sign flips the axis.
-For example, '-1,2,-3' would correspond to a voxel order of 'LAS'.
+For example., '-1,2,-3' would correspond to a voxel order of 'LAS'.
+
+For 4D images, the voxel order must be specified numerically.
+e.g., '1,2,3,4' or '1,2,3' (if the 4th dimension is time and does not
+need to be reordered). The 4th dimension must be 4 or -4.
 
 To change the header of a tractogram (.trk), we recommend converting it to a
 .tck file, then converting it back to .trk with the target NIfTI image as a
@@ -64,9 +68,11 @@ def main():
     assert_inputs_exist(parser, args.in_image)
     assert_outputs_exist(parser, args, args.out_image)
 
+    img = nib.load(args.in_image)
     simg = StatefulImage.load(args.in_image, to_orientation='RAS')
 
-    parsed_voxel_order = _parse_voxel_order(args.new_voxel_order)
+    parsed_voxel_order = parse_voxel_order(args.new_voxel_order,
+                                           dimensions=len(img.shape))
 
     simg.reorient(parsed_voxel_order)
 

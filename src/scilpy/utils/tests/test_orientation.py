@@ -77,9 +77,52 @@ def test_parse_voxel_order_invalid_numeric_repeat():
 def test_parse_voxel_order_invalid_format():
     """Test that mixed or invalid format strings raise an error."""
     with pytest.raises(ValueError,
-                       match="Invalid voxel order format: 1A2"):
+                       match="Invalid voxel order format: 1,A,2"):
         parse_voxel_order("1,A,2")
 
     with pytest.raises(ValueError,
-                       match="Invalid numeric voxel order. Must use 1, 2, and 3."):
+                       match="Voxel order string must have 3 or 4 numbers."):
+        parse_voxel_order("1,2,3,4,5", dimensions=4)
+
+def test_parse_voxel_order_4d_valid_numeric():
+    """Test parsing of valid 4D numeric voxel order strings."""
+    assert parse_voxel_order("1,2,3,4", dimensions=4) == ("R", "A", "S", "T")
+    assert parse_voxel_order("-1,2,-3,4", dimensions=4) == ("L", "A", "I", "T")
+    assert parse_voxel_order("2,3,1", dimensions=4) == ("A", "S", "R")
+
+
+def test_parse_voxel_order_4d_invalid_alpha():
+    """Test that 4D alphabetical voxel order strings raise an error."""
+    with pytest.raises(ValueError,
+                       match="Alphabetical voxel order is not supported for 4D "
+                             "images. Please use numeric format."):
+        parse_voxel_order("RAS", dimensions=4)
+
+
+def test_parse_voxel_order_4d_invalid_numeric():
+    """Test that invalid 4D numeric voxel order strings raise an error."""
+    with pytest.raises(ValueError,
+                       match="The 4th dimension must be 4 or -4."):
+        parse_voxel_order("1,2,3,5", dimensions=4)
+
+    with pytest.raises(ValueError,
+                       match="Voxel order string must have 3 or 4 numbers."):
+        parse_voxel_order("1,2", dimensions=4)
+
+    with pytest.raises(ValueError,
+                       match="Voxel order string must have 3 or 4 numbers."):
+        parse_voxel_order("1,2,3,4,5", dimensions=4)
+
+    with pytest.raises(ValueError, match="Axes cannot be repeated."):
+        parse_voxel_order("1,1,2,4", dimensions=4)
+
+
+def test_parse_voxel_order_invalid_format_3d():
+    """Test that mixed or invalid format strings raise an error for 3D."""
+    with pytest.raises(ValueError,
+                       match="Invalid voxel order format: 1A2"):
+        parse_voxel_order("1A2")
+
+    with pytest.raises(ValueError,
+                       match="4D voxel order is only supported for 4D images."):
         parse_voxel_order("1,2,3,4")
