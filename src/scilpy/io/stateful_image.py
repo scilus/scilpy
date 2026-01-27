@@ -2,7 +2,7 @@
 
 import nibabel as nib
 from dipy.io.utils import get_reference_info
-from scilpy.utils.orientation import validate_axcodes
+from scilpy.utils.orientation import validate_voxel_order
 
 
 class StatefulImage(nib.Nifti1Image):
@@ -57,7 +57,7 @@ class StatefulImage(nib.Nifti1Image):
         original_voxel_sizes = img.header.get_zooms()
 
         if to_orientation:
-            validate_axcodes(to_orientation)
+            validate_voxel_order(to_orientation)
             start_ornt = nib.orientations.io_orientation(img.affine)
             target_ornt = nib.orientations.axcodes2ornt(to_orientation)
             transform = nib.orientations.ornt_transform(start_ornt,
@@ -139,7 +139,7 @@ class StatefulImage(nib.Nifti1Image):
         target_axcodes : str or tuple
             The target orientation axis codes (e.g., "LPS", ("R", "A", "S")).
         """
-        validate_axcodes(target_axcodes)
+        validate_voxel_order(target_axcodes)
 
         current_axcodes = nib.orientations.aff2axcodes(self.affine)
         if current_axcodes == tuple(target_axcodes):

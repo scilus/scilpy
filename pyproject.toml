@@ -275,6 +275,7 @@ scil_viz_volume_screenshot_mosaic  = "scilpy.cli.scil_viz_volume_screenshot_mosa
 scil_viz_volume_screenshot  = "scilpy.cli.scil_viz_volume_screenshot:main"
 scil_volume_apply_transform  = "scilpy.cli.scil_volume_apply_transform:main"
 scil_volume_b0_synthesis  = "scilpy.cli.scil_volume_b0_synthesis:main"
+scil_volume_modify_voxel_order = "scilpy.cli.scil_volume_modify_voxel_order:main"
 scil_volume_count_non_zero_voxels  = "scilpy.cli.scil_volume_count_non_zero_voxels:main"
 scil_volume_crop  = "scilpy.cli.scil_volume_crop:main"
 scil_volume_distance_map  = "scilpy.cli.scil_volume_distance_map:main"
