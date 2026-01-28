@@ -12,22 +12,23 @@ difference.
 The ae is added as data_per_point (dpp) for each segment, using the last point
 of the segment. The last point of each streamline has an AE of zero.
 Optionnally, you may also save it as a color.
-
-
 """
+
 import argparse
 import logging
 
 import nibabel as nib
 import numpy as np
 
-from scilpy.io.streamlines import load_tractogram_with_reference, \
-    save_tractogram
-from scilpy.io.utils import add_processes_arg, add_verbose_arg, add_overwrite_arg, \
-    assert_headers_compatible, assert_inputs_exist, assert_outputs_exist, \
-    add_bbox_arg
+from scilpy.io.streamlines import (load_tractogram_with_reference, 
+                                   save_tractogram)
+from scilpy.io.utils import (add_processes_arg, add_verbose_arg, 
+                             add_overwrite_arg, assert_headers_compatible, 
+                             assert_inputs_exist, assert_outputs_exist, 
+                             add_bbox_arg)
 from scilpy.tractanalysis.scoring import compute_ae
-from scilpy.tractograms.dps_and_dpp_management import add_data_as_color_dpp, project_dpp_to_map
+from scilpy.tractograms.dps_and_dpp_management import (add_data_as_color_dpp, 
+                                                       project_dpp_to_map)
 from scilpy.version import version_string
 from scilpy.viz.color import get_lookup_table
 
@@ -43,24 +44,30 @@ def _build_arg_parser():
                    help='Path of the input peaks file.')
     p.add_argument('out_tractogram',
                    help='Path of the output tractogram file (trk or tck).')
-
     p.add_argument('--dpp_key', default="AE",
-                   help="Name of the dpp key containg the AE. Default: AE")
-    p.add_argument('--save_as_color', action='store_true',
+                   help="Name of the dpp key containg the AE in the output. "
+                        "Default: AE")
+    
+    g = p.add_argument_group("Optional outputs")
+    g.add_argument('--save_as_color', action='store_true',
                    help="Save the AE as a color. Colors will range between "
                         "black (0) and yellow (--cmax_max) \n"
                         "See also scil_tractogram_assign_custom_color, option "
                         "--use_dpp.")
-    p.add_argument('--cmap_max', nargs='?', const=180,
-                    help="If set, the maximum color on the colormap (yellow) "
-                         "will be associated \nto this value. If not set, the "
-                         "maxium value found in the data will be used instead."
-                         "Default if set: 180 degrees.")
-    
-    p.add_argument('--save_mean_map', metavar='filename',
+    g.add_argument('--save_mean_map', metavar='filename',
                    help="If set, save the mean value of each streamline per "
                         "voxel. Name of the map file (nifti).\n"
                         "See also scil_tractogram_project_streamlines_to_map.")
+    g.add_argument('--save_worst', metavar='filename',
+                   help="If set, save the worst streamlines in a separate "
+                        "tractogram.")
+
+    g = p.add_argument_group("Processing options")
+    g.add_argument('--cmap_max', nargs='?', const=180,
+                    help="If set, the maximum color on the colormap (yellow) "
+                         "will be associated \nto this value. If not set, the "
+                         "maxium value found in the data will be used instead. "
+                         "Default if set: 180 degrees.")
 
     add_processes_arg(p)
     add_verbose_arg(p)
@@ -81,7 +88,8 @@ def main():
                         args.reference)
     assert_headers_compatible(parser, [args.in_tractogram, args.in_peaks], [],
                               args.reference)
-    assert_outputs_exist(parser, args, args.out_tractogram, args.save_mean_map)
+    assert_outputs_exist(parser, args, args.out_tractogram, 
+                        [args.save_mean_map, args.save_worst])
 
     # -- Loading
     peaks = nib.load(args.in_peaks).get_fdata()
@@ -106,6 +114,8 @@ def main():
 
     # -- Processing
     ae = compute_ae(sft, peaks, nb_processes=args.nbr_processes)
+
+    # Printing stats
     stacked_ae = np.hstack(ae)
     mean_ae = np.mean(stacked_ae)
     std_ae = np.std(stacked_ae)
@@ -141,3 +151,7 @@ def main():
 
         logging.info("Saving file {}".format(args.save_mean_map))
         nib.save(nib.Nifti1Image(the_map, sft.affine), args.save_mean_map)
+
+
+if __name__ == "__main__":
+    main()

@@ -157,11 +157,11 @@ def compute_ae(sft, peaks, nb_processes=1):
               "traversing these voxels: {} /{} .".format(nb_nan, nb_items)
         if multi_peaks:
             logging.warning("Some voxels had 0 valid peaks out of the {} "
-                            "possible  peaks (they were all (0,0,0)). "
+                            "possible peaks (they were all [0,0,0]). "
                             .format(peaks.shape[3]) + msg)
         else:
-            logging.warning("Invalid peaks (0,0,0) were found in some voxels. "
-                            + msg)
+            logging.warning("Invalid peaks ([0,0,0]) were found in some "
+                            "voxels. " + msg)
 
     # Split back streamlines
     lengths = [len(s) - 1 for s in sft.streamlines]
