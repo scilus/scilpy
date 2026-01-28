@@ -224,6 +224,7 @@ scil_tractogram_assign_uniform_color  = "scilpy.cli.scil_tractogram_assign_unifo
 scil_tractogram_commit  = "scilpy.cli.scil_tractogram_commit:main"
 scil_tractogram_compress  = "scilpy.cli.scil_tractogram_compress:main"
 scil_tractogram_compute_density_map  = "scilpy.cli.scil_tractogram_compute_density_map:main"
+scil_tractogram_compute_ae  = "scilpy.cli.scil_tractogram_compute_ae:main"
 scil_tractogram_compute_TODI  = "scilpy.cli.scil_tractogram_compute_TODI:main"
 scil_tractogram_convert_hdf5_to_trk  = "scilpy.cli.scil_tractogram_convert_hdf5_to_trk:main"
 scil_tractogram_convert  = "scilpy.cli.scil_tractogram_convert:main"
