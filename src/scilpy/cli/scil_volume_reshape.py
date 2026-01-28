@@ -81,7 +81,7 @@ def main():
 
     logging.info('Loading raw data from %s', args.in_image)
 
-    simg = StatefulImage.load(args.in_image, to_orientation='RAS')
+    simg = StatefulImage.load(args.in_image)
 
     ref_img = None
     if args.ref:

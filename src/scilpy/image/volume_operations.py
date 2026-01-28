@@ -80,7 +80,7 @@ def flip_volume(data, axes):
     return data
 
 
-def crop_volume(simg: StatefulImage, wbbox):
+def crop_volume(simg, wbbox):
     """
     Applies cropping from a world space defined bounding box and fixes the
     affine to keep data aligned.
@@ -121,8 +121,8 @@ def crop_volume(simg: StatefulImage, wbbox):
     return StatefulImage.create_from(cropped_img, simg)
 
 
-def apply_transform(transfo, reference: nib.Nifti1Image,
-                    moving: StatefulImage, interp='linear', keep_dtype=False):
+def apply_transform(transfo, reference,
+                    moving, interp='linear', keep_dtype=False):
     """
     Apply transformation to an image using Dipy's tool
 
@@ -511,7 +511,7 @@ def _interp_code_to_order(interp_code):
     return orders[interp_code]
 
 
-def resample_volume(simg: StatefulImage, ref_img: nib.Nifti1Image = None,
+def resample_volume(simg, ref_img=None,
                     volume_shape=None, iso_min=False, voxel_res=None,
                     interp='lin', enforce_dimensions=False):
     """
@@ -622,9 +622,7 @@ def resample_volume(simg: StatefulImage, ref_img: nib.Nifti1Image = None,
     return StatefulImage.create_from(resampled_nib_img, simg)
 
 
-def reshape_volume(
-    simg: StatefulImage, volume_shape, mode='constant', cval=0, dtype=None
-):
+def reshape_volume(simg, volume_shape, mode='constant', cval=0, dtype=None):
     """ Reshape a volume to a specified shape by padding or cropping. The
     new volume is centered wrt the old volume in world space.
 

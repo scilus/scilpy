@@ -69,7 +69,7 @@ def main():
     assert_outputs_exist(parser, args, args.out_image)
 
     img = nib.load(args.in_image)
-    simg = StatefulImage.load(args.in_image, to_orientation='RAS')
+    simg = StatefulImage.load(args.in_image)
 
     parsed_voxel_order = parse_voxel_order(args.new_voxel_order,
                                            dimensions=len(img.shape))

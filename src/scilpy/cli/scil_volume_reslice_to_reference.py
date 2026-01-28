@@ -19,7 +19,6 @@ To
 import argparse
 import logging
 
-import nibabel as nib
 import numpy as np
 
 from scilpy.image.volume_operations import apply_transform
@@ -64,8 +63,8 @@ def main():
     assert_outputs_exist(parser, args, args.out_file)
 
     # Load images.
-    simg = StatefulImage.load(args.in_file, to_orientation='RAS')
-    ref_file = StatefulImage.load(args.in_ref_file, to_orientation='RAS')
+    simg = StatefulImage.load(args.in_file)
+    ref_file = StatefulImage.load(args.in_ref_file)
 
     reshaped_simg = apply_transform(np.eye(4), ref_file, simg,
                                     interp=args.interpolation,

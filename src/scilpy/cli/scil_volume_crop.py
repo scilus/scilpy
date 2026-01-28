@@ -73,7 +73,7 @@ def main():
     assert_inputs_exist(parser, args.in_image, args.input_bbox)
     assert_outputs_exist(parser, args, args.out_image, args.output_bbox)
 
-    simg = StatefulImage.load(args.in_image, to_orientation='RAS')
+    simg = StatefulImage.load(args.in_image)
     if args.input_bbox:
         wbbox = WorldBoundingBox.load(args.input_bbox,
                                       args.use_deprecated_pickle)
