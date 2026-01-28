@@ -90,28 +90,32 @@ class StatefulImage(nib.Nifti1Image):
         self.reorient_to_original()
         nib.save(self, filename)
 
-    def create_from(self, new_img):
+    @staticmethod
+    def create_from(source, reference):
         """
-        Create a new StatefulImage from a nibabel image, keeping the original
-        orientation information from the current StatefulImage.
+        Create a new StatefulImage from a source image, preserving the original
+        orientation information from a reference StatefulImage.
 
         Parameters
         ----------
-        new_img : nib.Nifti1Image
-            The new image to create the StatefulImage from.
+        source : nib.Nifti1Image
+            The image data to use for the new StatefulImage.
+        reference : StatefulImage
+            The reference image from which to copy original orientation
+            information.
 
         Returns
         -------
         StatefulImage
-            A new StatefulImage with the new image's data and the original
-            orientation information from the current StatefulImage.
+            A new StatefulImage with the source image's data and the reference
+            image's original orientation information.
         """
-        return StatefulImage(new_img.dataobj, new_img.affine,
-                             header=new_img.header,
-                             original_affine=self._original_affine,
-                             original_dimensions=self._original_dimensions,
-                             original_voxel_sizes=self._original_voxel_sizes,
-                             original_axcodes=self._original_axcodes)
+        return StatefulImage(source.dataobj, source.affine,
+                             header=source.header,
+                             original_affine=reference._original_affine,
+                             original_dimensions=reference._original_dimensions,
+                             original_voxel_sizes=reference._original_voxel_sizes,
+                             original_axcodes=reference._original_axcodes)
 
     def reorient_to_original(self):
         """

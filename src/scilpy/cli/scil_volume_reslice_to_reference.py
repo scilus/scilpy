@@ -65,7 +65,7 @@ def main():
 
     # Load images.
     simg = StatefulImage.load(args.in_file, to_orientation='RAS')
-    ref_file = nib.load(args.in_ref_file)
+    ref_file = StatefulImage.load(args.in_ref_file, to_orientation='RAS')
 
     reshaped_simg = apply_transform(np.eye(4), ref_file, simg,
                                     interp=args.interpolation,

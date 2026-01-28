@@ -118,7 +118,7 @@ def crop_volume(simg: StatefulImage, wbbox):
     new_affine[0:3, 3] = translation[0:3]
 
     cropped_img = nib.Nifti1Image(data_crop, new_affine)
-    return simg.create_from(cropped_img)
+    return StatefulImage.create_from(cropped_img, simg)
 
 
 def apply_transform(transfo, reference: nib.Nifti1Image,
@@ -188,7 +188,7 @@ def apply_transform(transfo, reference: nib.Nifti1Image,
         raise ValueError('Does not support this dataset (shape, type, etc)')
 
     moved_nib_img = nib.Nifti1Image(resampled.astype(orig_type), grid2world)
-    return moving.create_from(moved_nib_img)
+    return StatefulImage.create_from(moved_nib_img, reference)
 
 
 def transform_dwi(reg_obj, static, dwi, interpolation='linear'):
@@ -619,7 +619,7 @@ def resample_volume(simg: StatefulImage, ref_img: nib.Nifti1Image = None,
                 data2 = fix_dim_volume
 
     resampled_nib_img = nib.Nifti1Image(data2.astype(data.dtype), affine2)
-    return simg.create_from(resampled_nib_img)
+    return StatefulImage.create_from(resampled_nib_img, simg)
 
 
 def reshape_volume(
@@ -701,7 +701,7 @@ def reshape_volume(
     new_affine[0:3, 3] = translation[0:3]
 
     reshaped_nib_img = nib.Nifti1Image(cropped_data.astype(dtype), new_affine)
-    return simg.create_from(reshaped_nib_img)
+    return StatefulImage.create_from(reshaped_nib_img, simg)
 
 
 def mask_data_with_default_cube(data):

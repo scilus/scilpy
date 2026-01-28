@@ -17,6 +17,7 @@ from scilpy.image.volume_operations import apply_transform
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              assert_outputs_exist, add_verbose_arg,
                              load_matrix_in_any_format)
+from scilpy.io.stateful_image import StatefulImage
 from scilpy.utils.filenames import split_name_with_nii
 from scilpy.version import version_string
 
@@ -72,15 +73,15 @@ def main():
     transfo = load_matrix_in_any_format(args.in_transfo)
     if args.inverse:
         transfo = np.linalg.inv(transfo)
-    moving = nib.load(args.in_file)
-    reference = nib.load(args.in_target_file)
+    moving = StatefulImage.load(args.in_file)
+    reference = StatefulImage.load(args.in_target_file)
 
     # Processing, saving
     warped_img = apply_transform(
         transfo, reference, moving, keep_dtype=args.keep_dtype,
         interp=args.interpolation)
 
-    nib.save(warped_img, args.out_name)
+    warped_img.save(args.out_name)
 
 
 if __name__ == "__main__":

@@ -1,12 +1,16 @@
 #! /usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Flip the volume according to the specified axis.
+Flip the volume according to the specified axis. In this script, axes are
+referred to as 'x', 'y' and 'z', but they simply correspond to the first,
+second and third dimensions of the data array.
 
 This script only flips the data array in memory and does not modify the
 image's strides or orientation information in the header. It simply
 flips the numpy data.
-In contrast, `scil_volume_change_voxel_order` modifies the image header's
+
+
+In contrast, `scil_volume_modify_voxel_order` modifies the image header's
 voxel order, but does not modify the data array.
 """
 
