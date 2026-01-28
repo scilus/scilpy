@@ -50,8 +50,9 @@ jobs:
             libfreetype6-dev \
             libdrm-dev \
             libgl1-mesa-dev \
-           libosmesa6-dev \
-           wget
+            libosmesa6-dev \
+            python3-dev \
+            wget
 
       - name: stdlib checkout
         if: ${{ !contains(steps.python-selector.outputs.python-version, '3.12') }}
