@@ -13,7 +13,7 @@ Global connectivity metrics:
 - Optional:
     - WPC: wrong path connections, streamlines connecting correct ROIs but not
         respecting the other criteria for that bundle. Such streamlines always
-        exist but they are only saved separately if specified in the options.
+        exist but they are only saved separately if specified{}  in the options.
         Else, they are merged back with the IS.
         By definition. WPC are only computed if "limits masks" are provided.
     - IC: invalid connections, streamlines joining an incorrect combination of
@@ -38,16 +38,49 @@ Global connectivity metrics:
 
 import logging
 
+from multiprocessing import Pool
 import numpy as np
 from tqdm import tqdm
 
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
-
 from scilpy.tractograms.streamline_and_mask_operations import \
     get_endpoints_density_map
 
 
-def compute_ae(sft, peaks):
+def _compute_ae(args):
+    """Used for multiprocessing in compute_ae below."""
+    process_id, start, end, dirs, coords, peaks = args
+
+    ae_chunk = np.zeros(end - start)
+    nb_nan_chunk = 0
+
+    # Hiding the segment number in the tqdm bar, not meaningful
+    format = '{desc}:{percentage:3.0f}%|{bar}|  '
+    format += '[{elapsed}<{remaining}, {rate_fmt}{postfix}'
+
+    for chunk_i, i in enumerate(tqdm(range(start, end), ncols=120, 
+                                     bar_format=format, leave=False,
+                                     desc="Process {}".format(process_id + 1),
+                                     position=process_id+1)):
+        current_peaks = peaks[coords[i][0], coords[i][1], coords[i][2], :, :]
+
+        # Using only non-zero peaks. Dealing with buggy voxels: setting AE to 0
+        current_peaks = current_peaks[np.any(current_peaks!=0, axis=-1)]
+        if current_peaks.size == 0:
+            nb_nan_chunk += 1
+            ae_chunk[chunk_i] = 0
+            continue
+
+        # Using the abs value because vectors are undirected.
+        cos_theta = np.abs(np.dot(current_peaks, dirs[i]))
+        cos_theta = np.clip(cos_theta, -1.0, 1.0)  # numerical safety
+        theta = np.rad2deg(np.arccos(cos_theta))
+        ae_chunk[chunk_i] = np.min(theta)
+
+    return start, ae_chunk, nb_nan_chunk
+
+
+def compute_ae(sft, peaks, nb_processes=1):
     """
     Computing the angular error for each segment. The direction is compared
     with the underlying peak (for single peak files like DTI) or with the
@@ -61,6 +94,8 @@ def compute_ae(sft, peaks):
         The tractogram
     peaks: np.array of shape [x, y, z, nb_peaks, 3].
         The peaks.
+    nb_processes: int
+        To use multiprocessing
 
     Returns
     -------
@@ -100,31 +135,26 @@ def compute_ae(sft, peaks):
     # Concatenating streamlines for faster processing + nearest neighbor
     coords = np.floor(np.vstack([s[1:] for s in sft.streamlines])).astype(int)
 
+    # Preparing multiprocessing
+    nb_items = len(coords)
+    chunk_size = (nb_items + nb_processes - 1) // nb_processes
+    split_indices = [(i, min(i + chunk_size, nb_items))
+                     for i in range(0, nb_items, chunk_size)]
+
     # Finding the angular difference with the closest peak
-    # Hiding the segment number in the tqdm bar, not meaningful
-    format='{percentage:3.0f}%|{bar}|  [{elapsed}<{remaining}, {rate_fmt}{postfix}'
     ae = np.zeros(len(coords))
     nb_nan = 0
-    for i in tqdm(range(len(dirs)), ncols=120, bar_format=format):
-        current_peaks = peaks[coords[i][0], coords[i][1], coords[i][2], :, :]
-        
-        # Using only non-zero peaks. Dealing with buggy voxels: setting AE to 0
-        current_peaks = current_peaks[np.any(current_peaks!=0, axis=-1)]
-        if current_peaks.size == 0:
-            nb_nan += 1
-            ae[i] = 0
-            continue
+    with Pool(processes=nb_processes) as pool:
+        for start, ae_chunk, nb_nan_chunk in pool.imap_unordered(
+            _compute_ae, [(i, start, end, dirs, coords, peaks)
+                          for i, (start, end) in enumerate(split_indices)]):
+            ae[start:start + len(ae_chunk)] = ae_chunk
+            nb_nan += nb_nan_chunk             
 
-        # Using the abs value because vectors are undirected.
-        cos_theta = np.abs(np.dot(current_peaks, dirs[i]))
-        cos_theta = np.clip(cos_theta, -1.0, 1.0)  # numerical safety
-        theta = np.rad2deg(np.arccos(cos_theta))
-
-        ae[i] = np.min(theta)
-
+    print(' ')  # Required because finishing sub-processes' tqdm is flaky
     if nb_nan > 0:
         msg = "AE in these voxels was set to 0. Total number of segments " + \
-              "traversing these voxels: {}.".format(nb_nan)
+              "traversing these voxels: {} /{} .".format(nb_nan, nb_items)
         if multi_peaks:
             logging.warning("Some voxels had 0 valid peaks out of the {} "
                             "possible  peaks (they were all (0,0,0)). "

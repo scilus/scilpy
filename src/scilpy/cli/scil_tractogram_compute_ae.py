@@ -23,7 +23,7 @@ import numpy as np
 
 from scilpy.io.streamlines import load_tractogram_with_reference, \
     save_tractogram
-from scilpy.io.utils import add_verbose_arg, add_overwrite_arg, \
+from scilpy.io.utils import add_processes_arg, add_verbose_arg, add_overwrite_arg, \
     assert_headers_compatible, assert_inputs_exist, assert_outputs_exist, \
     add_bbox_arg
 from scilpy.tractanalysis.scoring import compute_ae
@@ -62,7 +62,7 @@ def _build_arg_parser():
                         "voxel. Name of the map file (nifti).\n"
                         "See also scil_tractogram_project_streamlines_to_map.")
 
-
+    add_processes_arg(p)
     add_verbose_arg(p)
     add_overwrite_arg(p)
     add_bbox_arg(p)
@@ -105,7 +105,7 @@ def main():
                      "proceed.")
 
     # -- Processing
-    ae = compute_ae(sft, peaks)
+    ae = compute_ae(sft, peaks, nb_processes=args.nbr_processes)
     stacked_ae = np.hstack(ae)
     mean_ae = np.mean(stacked_ae)
     std_ae = np.std(stacked_ae)
