@@ -112,8 +112,8 @@ def main():
     if args.tractogram_clustering_thr and args.in_pickle:
         parser.error("Option --tractogram_clustering_thr should not be "
                      "used with --in_pickle.")
-    else:
-        # Setting default value. (Will be ignored in args.in_pickle)
+    elif args.tractogram_clustering_thr is not None:
+        # Setting default value. (Will be ignored if args.in_pickle)
         args.tractogram_clustering_thr = 8.0
 
     # Loading
