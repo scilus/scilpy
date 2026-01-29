@@ -51,10 +51,10 @@ def _build_arg_parser():
     gg = g.add_mutually_exclusive_group(required=True)
     gg.add_argument('--top', action='store_true',
                     help="If set, selects a portion of streamlines that has "
-                         "the highest value in its dps or mean dpp.")
+                         "the highest value in its dps \nor mean dpp.")
     gg.add_argument('--bottom', action='store_true',
                     help="If set, selects a portion of streamlines that has "
-                         "the lowest value in its dps or mean dpp.")
+                         "the lowest value in its dps \nor mean dpp.")
     gg.add_argument('--center', action='store_true',
                     help="Selects the average streamlines.")
     
@@ -66,13 +66,13 @@ def _build_arg_parser():
         help="Selects a chosen number of streamlines.")
     gg.add_argument(
         '--percent', type=ranged_type(float, 0, 100),  const=5,  nargs='?',
-        help=r"Saves the streamlines in the top / lowest percentile. "
-             "Default if set: The top / bottom 5%")
+        help="Saves the streamlines in the top / lowest percentile.\n"
+             "Default if set: The top / bottom 5%%")
     gg.add_argument(
         '--mean_std', type=int, const=3,  nargs='?',
         help="Saves the streamlines with value above mean + N*std (option "
-             "--top), below\n mean - N*std (option --below) or in the "
-             "range [mean - N*std, mean + N*std] )option --center)."
+             "--top), below \nmean - N*std (option --below) or in the "
+             "range [mean - N*std, mean + N*std] \n(option --center)."
              "Default if set: uses mean +- 3std.")   
 
     add_verbose_arg(p)
