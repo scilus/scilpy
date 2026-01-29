@@ -1,5 +1,6 @@
 [run]
 branch = True
+parallel = True
 concurrency = multiprocessing
 data_file = .coverage
 source = src
