@@ -76,13 +76,16 @@ jobs:
       - name: Run unit tests
         run: |
           uv run --active pytest src/scilpy --cov-report term-missing:skip-covered --dist=loadgroup --ignore=src/scilpy/cli
-          mv .test_reports unit_test_reports
+          coverage combine
+          coverage xml -o unit_test_reports/coverage.xml
+          mv .coverage coverage.unit
 
       - name: Run smoke tests
         run: |
           uv run --active pytest src/scilpy/cli --cov-report term-missing:skip-covered --dist=loadgroup
+          coverage combine
+          coverage xml -o smoke_test_reports/coverage.xml
           mv .coverage .coverage.smoke
-          mv .test_reports smoke_test_reports
 
       - name: Save test results and coverage
         uses: actions/upload-artifact@v4
@@ -109,7 +112,7 @@ jobs:
         with:
           name: test-coverage-${{ github.run_id }}
 
-      - name: Upload coverage reports to Codecov
+      - name: Upload unit test coverage reports to Codecov
         uses: codecov/codecov-action@v5.4.3
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -120,7 +123,7 @@ jobs:
           verbose: true
           fail_ci_if_error: true
 
-      - name: Upload coverage reports to Codecov
+      - name: Upload smoke test coverage reports to Codecov
         uses: codecov/codecov-action@v5.4.3
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
