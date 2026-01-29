@@ -69,7 +69,7 @@ def _build_arg_parser():
         help="Saves the streamlines in the top / lowest percentile.\n"
              "Default if set: The top / bottom 5%%")
     gg.add_argument(
-        '--mean_std', type=int, const=3,  nargs='?',
+        '--mean_std', type=int, const=3,  nargs='?', dest='std',
         help="Saves the streamlines with value above mean + N*std (option "
              "--top), below \nmean - N*std (option --below) or in the "
              "range [mean - N*std, mean + N*std] \n(option --center)."
