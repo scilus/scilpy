@@ -22,6 +22,8 @@ jobs:
   test:
     runs-on: scilus-large
     if: github.repository == 'scilus/scilpy'
+    env:
+      COVERAGE_PROCESS_START: .coveragerc
 
     steps:
       - name: Checkout repository at merge
