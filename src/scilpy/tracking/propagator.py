@@ -7,6 +7,7 @@ import numpy as np
 from dipy.data import get_sphere
 from dipy.io.stateful_tractogram import Space, Origin
 from dipy.reconst.shm import sh_to_sf_matrix
+from dipy.reconst.dti import eig_from_lo_tri
 
 from scilpy.reconst.utils import (get_sphere_neighbours,
                                   get_sh_order_and_fullness)
@@ -691,3 +692,161 @@ class FibertubePropagator(AbstractPropagator):
         valid_volumes = np.array(valid_volumes)
 
         return valid_dirs, valid_volumes
+
+
+class TensorPropagator(AbstractPropagator):
+    """
+    Propagator for DTI tensor tracking. Tracks along the principal
+    eigenvector of the diffusion tensor.
+    """
+    def __init__(self, datavolume, step_size, rk_order, algo, theta,
+                 space=Space('vox'), origin=Origin('center')):
+        """
+        Parameters
+        ----------
+        datavolume: scilpy.image.volume_space_management.DataVolume
+            Trackable DataVolume object containing tensor data in lower
+            triangular format (6 coefficients: Dxx, Dxy, Dyy, Dxz, Dyz, Dzz).
+        step_size: float
+            The step size for tracking.
+        rk_order: int
+            Order for the Runge Kutta integration.
+        algo: string
+            Type of algorithm. Choices are 'det' or 'prob'
+        theta: float
+            Maximum angle (radians) between two steps.
+        space: dipy Space
+            Space of the streamlines during tracking. Default: VOX.
+        origin: dipy Origin
+            Origin of the streamlines during tracking. Default: center.
+        """
+        super().__init__(datavolume, step_size, rk_order, space, origin)
+
+        if self.space == Space.RASMM:
+            raise NotImplementedError(
+                "This version of the propagator on tensors is not ready to work "
+                "in RASMM space.")
+
+        self.algo = algo
+        self.theta = theta
+        self.normalize_directions = True
+        self.line_rng_generator = None
+
+    def reset_data(self, new_data=None):
+        return super().reset_data(new_data)
+
+    def prepare_forward(self, seeding_pos, random_generator):
+        """Get initial direction from tensor at seeding position."""
+        self.line_rng_generator = random_generator
+
+        # Get tensor at seeding position
+        tensor_data = self.datavolume.get_value_at_coordinate(
+            *seeding_pos, space=self.space, origin=self.origin)
+
+        if tensor_data is None:
+            logging.debug(f"Seed at {seeding_pos}: tensor_data is None")
+            return PropagationStatus.ERROR
+
+        if np.all(tensor_data == 0):
+            logging.debug(f"Seed at {seeding_pos}: tensor_data is all zeros")
+            return PropagationStatus.ERROR
+
+        # Get principal eigenvector
+        direction = self._get_direction_from_tensor(tensor_data)
+
+        if direction is None:
+            logging.debug(f"Seed at {seeding_pos}: failed to extract direction from tensor")
+            return PropagationStatus.ERROR
+
+        return TrackingDirection(direction)
+
+    def prepare_backward(self, line, forward_dir):
+        """Flip direction for backward tracking."""
+        # forward_dir is a TrackingDirection (which is a list)
+        return TrackingDirection(-np.array(forward_dir))
+
+    def finalize_streamline(self, last_pos, v_in):
+        return super().finalize_streamline(last_pos, v_in)
+
+    def propagate(self, line, v_in):
+        """Propagate using Runge-Kutta integration."""
+        return super().propagate(line, v_in)
+
+    def _sample_next_direction(self, pos, v_in):
+        """Sample next direction from tensor."""
+        tensor_data = self.datavolume.get_value_at_coordinate(
+            *pos, space=self.space, origin=self.origin)
+
+        if tensor_data is None or np.all(tensor_data == 0):
+            return None
+
+        # Get principal eigenvector
+        direction = self._get_direction_from_tensor(tensor_data)
+
+        if direction is None:
+            return None
+
+        # Check angle constraint
+        cosine = np.dot(v_in, direction) / (np.linalg.norm(v_in) * np.linalg.norm(direction))
+        cosine = np.clip(cosine, -1, 1)
+
+        # Flip if needed to maintain direction continuity
+        if cosine < 0:
+            direction = -direction
+            cosine = abs(cosine)
+
+        if np.arccos(cosine) > self.theta:
+            return None
+
+        # For probabilistic tracking, add some noise
+        if self.algo == 'prob' and self.line_rng_generator is not None:
+            # Add gaussian noise to direction
+            noise = self.line_rng_generator.normal(0, 0.1, 3)
+            direction = direction + noise
+            direction = direction / np.linalg.norm(direction)
+
+        return direction
+
+    def _get_direction_from_tensor(self, tensor_data):
+        """
+        Extract principal eigenvector and FA from tensor data.
+
+        Parameters
+        ----------
+        tensor_data : ndarray
+            Tensor coefficients in lower triangular format (6 values).
+
+        Returns
+        -------
+        direction : ndarray or None
+            Principal eigenvector (3D direction).
+        """
+        if len(tensor_data) != 6:
+            logging.warning(f"Expected 6 tensor coefficients, got {len(tensor_data)}")
+            return None, 0.0
+
+        logging.debug(f"Tensor data: {tensor_data}")
+
+        # Compute eigenvalues and eigenvectors
+        # eig_from_lo_tri returns a flat array of 12 values:
+        # [eval1, eval2, eval3, evec1_x, evec1_y, evec1_z, evec2_x, evec2_y, evec2_z, evec3_x, evec3_y, evec3_z]
+        try:
+            result = eig_from_lo_tri(tensor_data)
+            evals = result[:3]  # First 3 values are eigenvalues
+            evecs = result[3:].reshape(3, 3)  # Next 9 values are eigenvectors (3x3 matrix)
+            logging.debug(f"Eigenvalues: {evals}, Eigenvectors shape: {evecs.shape}")
+        except Exception as e:
+            logging.debug(f"Exception in eig_from_lo_tri: {e}")
+            return None
+
+        # Sort by eigenvalue magnitude (largest first)
+        order = np.argsort(evals)[::-1]
+        evals = evals[order]
+        evecs = evecs[:, order]
+
+        # Principal eigenvector (associated with largest eigenvalue)
+        principal_evec = evecs[:, 0]
+
+        logging.debug(f"Principal eigenvector: {principal_evec}, Sorted eigenvalues: {evals}")        # Calculate FA
+
+        return principal_evec
