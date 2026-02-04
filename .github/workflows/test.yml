@@ -80,6 +80,7 @@ jobs:
           uv run --active coverage run -m pytest src/scilpy --dist=loadgroup --ignore=src/scilpy/cli
           uv run --active coverage combine
           uv run --active coverage xml -o unit_test_reports/coverage.xml
+          uv run --active coverage html -d unit_test_reports/coverage.html
           mv .coverage coverage.unit
 
       - name: Run smoke tests
@@ -87,6 +88,7 @@ jobs:
           uv run --active coverage run -m pytest src/scilpy/cli --dist=loadgroup
           uv run --active coverage combine
           uv run --active coverage xml -o smoke_test_reports/coverage.xml
+          uv run --active coverage html -d smoke_test_reports/coverage.html
           mv .coverage .coverage.smoke
 
       - name: Save test results and coverage
