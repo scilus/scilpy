@@ -23,7 +23,7 @@ jobs:
     runs-on: scilus-large
     if: github.repository == 'scilus/scilpy'
     env:
-      COVERAGE_PROCESS_START: .coveragerc
+        COVERAGE_PROCESS_START: .coveragerc
 
     steps:
       - name: Checkout repository at merge
@@ -71,25 +71,20 @@ jobs:
           # https://discourse.vtk.org/t/status-update-runtime-opengl-render-window-selection-in-vtk/14583
           VTK_VERSION=$(cat pyproject.toml | grep 'vtk==' | sed 's/vtk==//g' | sed 's/\"//g' )
           pip install --extra-index-url https://wheels.vtk.org vtk-osmesa==$VTK_VERSION
-          uv pip install pytest-xdist coverage
+          uv pip install pytest-xdist pytest-cov
           scil_data_download
           scil_search_keywords test --regenerate_help_files --processes 8
 
       - name: Run unit tests
         run: |
-          uv run --active coverage run -m pytest src/scilpy --dist=loadgroup --ignore=src/scilpy/cli
-          uv run --active coverage combine
-          uv run --active coverage xml -o unit_test_reports/coverage.xml
-          uv run --active coverage html -d unit_test_reports/coverage.html
-          mv .coverage coverage.unit
+          uv run --active pytest src/scilpy --cov-report term-missing:skip-covered --dist=loadgroup --ignore=src/scilpy/cli
+          mv .test_reports unit_test_reports
 
       - name: Run smoke tests
         run: |
-          uv run --active coverage run -m pytest src/scilpy/cli --dist=loadgroup
-          uv run --active coverage combine
-          uv run --active coverage xml -o smoke_test_reports/coverage.xml
-          uv run --active coverage html -d smoke_test_reports/coverage.html
+          uv run --active pytest src/scilpy/cli --cov-report term-missing:skip-covered --dist=loadgroup
           mv .coverage .coverage.smoke
+          mv .test_reports smoke_test_reports
 
       - name: Save test results and coverage
         uses: actions/upload-artifact@v4
@@ -116,7 +111,7 @@ jobs:
         with:
           name: test-coverage-${{ github.run_id }}
 
-      - name: Upload unit test coverage reports to Codecov
+      - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v5.4.3
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -127,7 +122,7 @@ jobs:
           verbose: true
           fail_ci_if_error: true
 
-      - name: Upload smoke test coverage reports to Codecov
+      - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v5.4.3
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
