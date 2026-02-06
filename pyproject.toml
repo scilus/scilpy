@@ -52,6 +52,7 @@ dependencies = [
 "numpy==1.26.*",
 "openpyxl==3.1.*",
 "packaging==24.*",
+"pathspec==0.12.*",
 "pybids==0.18.*",
 "PyMCubes==0.1.*",
 "pyparsing==3.2.*",
@@ -122,13 +123,14 @@ scil_connectivity_compute_matrices  = "scilpy.cli.scil_connectivity_compute_matr
 scil_connectivity_compute_pca  = "scilpy.cli.scil_connectivity_compute_pca:main"
 scil_connectivity_compute_simple_matrix  = "scilpy.cli.scil_connectivity_compute_simple_matrix:main"
 scil_connectivity_filter  = "scilpy.cli.scil_connectivity_filter:main"
-scil_connectivity_graph_measures  = "scilpy.cli.scil_connectivity_graph_measures:main"
+scil_connectivity_functional_graph_measures  = "scilpy.cli.scil_connectivity_functional_graph_measures:main"
 scil_connectivity_hdf5_average_density_map  = "scilpy.cli.scil_connectivity_hdf5_average_density_map:main"
 scil_connectivity_math  = "scilpy.cli.scil_connectivity_math:main"
 scil_connectivity_normalize  = "scilpy.cli.scil_connectivity_normalize:main"
 scil_connectivity_pairwise_agreement  = "scilpy.cli.scil_connectivity_pairwise_agreement:main"
 scil_connectivity_print_filenames  = "scilpy.cli.scil_connectivity_print_filenames:main"
 scil_connectivity_reorder_rois  = "scilpy.cli.scil_connectivity_reorder_rois:main"
+scil_connectivity_structural_graph_measures  = "scilpy.cli.scil_connectivity_structural_graph_measures:main"
 scil_data_download  = "scilpy.cli.scil_data_download:main"
 scil_denoising_nlmeans  = "scilpy.cli.scil_denoising_nlmeans:main"
 scil_dki_metrics  = "scilpy.cli.scil_dki_metrics:main"

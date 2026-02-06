@@ -15,7 +15,7 @@ from scilpy.image.utils import \
     split_mask_blobs_kmeans
 from scilpy.io.image import get_data_as_mask
 from scilpy.io.streamlines import load_tractogram_with_reference
-from scilpy.segment.streamlines import filter_grid_roi, filter_grid_roi_both
+from scilpy.segment.streamlines import filter_grid_roi, filter_grid_roi_both_ends
 from scilpy.tractograms.streamline_operations import \
     remove_loops_and_sharp_turns
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
@@ -363,7 +363,7 @@ def _extract_vb_one_bundle(
             mask_1 = binary_dilation(mask_1, iterations=dilate_endpoints)
             mask_2 = binary_dilation(mask_2, iterations=dilate_endpoints)
 
-        _, vs_ids = filter_grid_roi_both(sft, mask_1, mask_2)
+        _, vs_ids = filter_grid_roi_both_ends(sft, mask_1, mask_2)
     else:
         vs_ids = np.array([])
 
@@ -514,7 +514,7 @@ def _extract_ib_one_bundle(sft, mask_1_filename, mask_2_filename,
             mask_1 = binary_dilation(mask_1, iterations=dilate_endpoints)
             mask_2 = binary_dilation(mask_2, iterations=dilate_endpoints)
 
-        _, fc_ids = filter_grid_roi_both(sft, mask_1, mask_2)
+        _, fc_ids = filter_grid_roi_both_ends(sft, mask_1, mask_2)
     else:
         fc_ids = []
 

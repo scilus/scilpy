@@ -150,8 +150,12 @@ def main():
                  .format(args.fa_min_single_fiber, 0.95, nb_voxels))
     single_fiber_ad_mean = np.mean(roi_ad[indices])
     single_fiber_ad_std = np.std(roi_ad[indices])
+    single_fiber_ad_max = np.max(roi_ad[indices])
+    single_fiber_ad_min = np.min(roi_ad[indices])
     single_fiber_rd_mean = np.mean(roi_rd[indices])
     single_fiber_rd_std = np.std(roi_rd[indices])
+    single_fiber_rd_max = np.max(roi_rd[indices])
+    single_fiber_rd_min = np.min(roi_rd[indices])
 
     # Create mask of single fiber in ROI
     indices[0][:] += ci - w
@@ -168,7 +172,9 @@ def main():
                  '{}'.format(args.fa_max_ventricles, args.md_min_ventricles,
                              nb_voxels))
 
-    vent_avg = np.mean(roi_md[indices])
+    vent_mean = np.mean(roi_md[indices])
+    vent_min = np.min(roi_md[indices])
+    vent_max = np.max(roi_md[indices])
     vent_std = np.std(roi_md[indices])
 
     # Create mask of ventricle in ROI
@@ -187,20 +193,35 @@ def main():
         nib.save(nib.Nifti1Image(mask_vent, affine), args.out_mask_ventricles)
 
     if args.out_txt_1fiber_para:
-        np.savetxt(args.out_txt_1fiber_para, [single_fiber_ad_mean], fmt='%f')
+        single_fiber_ad = np.array([single_fiber_ad_mean,
+                                    single_fiber_ad_std,
+                                    single_fiber_ad_min,
+                                    single_fiber_ad_max])[np.newaxis, :]
+        np.savetxt(args.out_txt_1fiber_para, single_fiber_ad,
+                   header="mean std min max", fmt='%f')
 
     if args.out_txt_1fiber_perp:
-        np.savetxt(args.out_txt_1fiber_perp, [single_fiber_rd_mean], fmt='%f')
+        single_fiber_rd = np.array([single_fiber_rd_mean,
+                                    single_fiber_rd_std,
+                                    single_fiber_rd_min,
+                                    single_fiber_rd_max])[np.newaxis, :]
+        np.savetxt(args.out_txt_1fiber_perp, single_fiber_rd,
+                   header="mean std min max", fmt='%f')
 
     if args.out_txt_ventricles:
-        np.savetxt(args.out_txt_ventricles, [vent_avg], fmt='%f')
+        vent = np.array([vent_mean,
+                         vent_std,
+                         vent_min,
+                         vent_max])[np.newaxis, :]
+        np.savetxt(args.out_txt_ventricles, vent,
+                   header="mean std min max", fmt='%f')
 
     logging.info("Average AD in single fiber areas: {} +- {}"
                  .format(single_fiber_ad_mean, single_fiber_ad_std))
     logging.info("Average RD in single fiber areas: {} +- {}"
                  .format(single_fiber_rd_mean, single_fiber_rd_std))
     logging.info("Average MD in ventricles: {} +- {}"
-                 .format(vent_avg, vent_std))
+                 .format(vent_mean, vent_std))
 
 
 if __name__ == "__main__":

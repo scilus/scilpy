@@ -77,6 +77,7 @@ def main():
     transformation, dimensions, _, _ = sft.space_attributes
 
     # Processing
+    logging.info("Computing density map...")
     if args.endpoints_only:
         streamline_count = get_endpoints_density_map(sft)
     else:
@@ -84,6 +85,7 @@ def main():
                                                     dimensions)
 
     # Saving
+    logging.info("Saving density map {}".format(args.out_img))
     dtype_to_use = np.int32
     if args.binary is not None:
         if args.binary == 1:

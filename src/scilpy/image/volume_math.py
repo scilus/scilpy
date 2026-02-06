@@ -55,6 +55,7 @@ def get_array_ops():
         ('subtraction', subtraction),
         ('multiplication', multiplication),
         ('division', division),
+        ('maximum', maximum),
         ('mean', mean),
         ('std', std),
         ('correlation', neighborhood_correlation),
@@ -440,6 +441,27 @@ def convert(input_list, ref_img):
     _validate_type(input_list[0], nib.Nifti1Image)
 
     return input_list[0].get_fdata(dtype=np.float64)
+
+
+def maximum(input_list, ref_img):
+    """
+    maximum: IMGs
+        Compute the voxel-wise maximum across images.
+    """
+    _validate_length(input_list, 2, at_least=True)
+    _validate_imgs_type(*input_list, all_imgs=False)
+    _validate_same_shape(*input_list, ref_img, all_imgs=False)
+
+    output_data = np.zeros(ref_img.header.get_data_shape(), dtype=np.float64)
+    for img in input_list:
+        if isinstance(img, nib.Nifti1Image):
+            data = img.get_fdata(dtype=np.float64)
+            output_data = np.maximum(output_data, data)
+            img.uncache()
+        else:
+            output_data = np.maximum(output_data, img)
+
+    return output_data
 
 
 def addition(input_list, ref_img):
