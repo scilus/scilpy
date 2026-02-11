@@ -3,7 +3,7 @@
 Multi-shell multi-tissue fODF (msmt-fODF)
 =========================================
 
-This tutorial explains how to compute multi-shell multi-tissue fiber orientation distribution functions (fODFs) using multi-shell multi-tissue constrained spherical deconvolution (msmt-CSD) [multitissueCSD]_. If your data contains less than three b-values, you might want to consider using single-shell single-tissue CSD (ssst-CSD) instead. See the :ref:`ssst_fodf` instructions for that. The following instructions are specific to multi-shell and based on [multi-tissue_CSD]_.
+This tutorial explains how to compute multi-shell multi-tissue fiber orientation distribution functions (fODFs) using multi-shell multi-tissue constrained spherical deconvolution (msmt-CSD) [multitissueCSD]_. If your data contains less than three b-values, you might want to consider using single-shell single-tissue CSD (ssst-CSD) instead. See the :ref:`ssst_fodf` instructions for that. The following instructions are specific to multi-shell and based on [multitissueCSD]_.
 
 
 Preparing data for this tutorial
@@ -60,6 +60,19 @@ The second step is to perform multi-shell multi-tissue CSD (msmt-CSD) using :ref
         wm_frf.txt gm_frf.txt csf_frf.txt --mask $in_dir/mask.nii.gz -v
 
 The script will output one fODFs file per tissue type, in nifti format (wm_fodf.nii.gz, gm_fodf.nii.gz and csf_fodf.nii.gz). The only optional arguments are the ``--sh_order`` option (default is 8) to set the maximum spherical harmonics order used to represent the fODFs and the ``--sh_basis`` option (default is 'descoteaux07') to set the spherical harmonics basis. The ``--processes`` option is used to speed up the computation by using multiple CPU cores. By default, the script will also output the volume fractions map (in default and RGB versions), with names vf.nii.gz and vf_rgb.nii.gz. To change any of the output names and paths or output only a selection of files, use the ``--not_all`` option along with the ``--wm_out_fODF``, ``--gm_out_fODF``, ``--csf_out_fODF``, ``--vf`` and ``--vf_rgb`` arguments. To visualize the fODFs, you can use :ref:`scil_viz_fodf`.
+
+
+3. Visualizing the fODF
+***********************
+
+The resulting fODFs can be visualized using the following command:
+
+.. code-block:: bash
+
+     scil_viz_fodf wm_fodf.nii.gz
+
+See :ref:`scil_viz_fodf` for more information about the visualization options.
+
 
 References
 **********
