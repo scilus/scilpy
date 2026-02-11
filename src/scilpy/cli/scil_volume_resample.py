@@ -103,8 +103,8 @@ def main():
 
         # Must not verify that headers are compatible. But can verify that, at
         # least, the first columns of their affines are compatible.
-        img_zoom_invert = [1 / zoom for zoom in img.header.get_zooms()]
-        ref_zoom_invert = [1 / zoom for zoom in ref_img.header.get_zooms()]
+        img_zoom_invert = [1 / zoom for zoom in img.header.get_zooms()[:3]]
+        ref_zoom_invert = [1 / zoom for zoom in ref_img.header.get_zooms()[:3]]
 
         img_affine = np.dot(img.affine[:3, :3], img_zoom_invert)
         ref_affine = np.dot(ref_img.affine[:3, :3], ref_zoom_invert)
