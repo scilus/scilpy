@@ -302,9 +302,17 @@ def get_data(layout, nSub, dwis, t1s, fs, default_readout, clean):
         elif len(t1_nSess) == 0:
             logging.warning('No T1 file found.')
         else:
-            t1_paths = [curr_t1.path for curr_t1 in t1_nSess]
-            logging.warning('More than one T1 file found.'
-                            ' [{}]'.format(','.join(t1_paths)))
+            t1_run_match = [t for t in t1_nSess if t.entities.get('run') == nRun]
+            if len(t1_run_match) == 1:
+                # We found a single T1 with the same run number.
+                logging.warning('Multiple T1 files found, but only one with the same run number as the DWI. '
+                                'Using the T1 file with matching run number: [{}]'.format(t1_run_match[0].path))
+                t1_path = t1_run_match[0].path
+            else:
+                # Either 0 matches or more than 1 match for the same run.
+                t1_paths = [curr_t1.path for curr_t1 in t1_nSess]
+                logging.warning('More than one T1 file found.'
+                                ' [{}]'.format(','.join(t1_paths)))
 
     return {'subject': nSub,
             'session': nSess,
