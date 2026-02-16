@@ -39,7 +39,7 @@ import nibabel as nib
 from dipy.data import get_sphere
 from dipy.direction.peaks import reshape_peaks_for_visualization
 
-from scilpy.io.image import get_data_as_mask
+from scilpy.io.image import get_data_as_mask, load_nifti_reorient, save_nifti_reorient
 from scilpy.io.utils import (add_overwrite_arg, add_sh_basis_args,
                              add_processes_arg, add_verbose_arg,
                              assert_inputs_exist, assert_outputs_exist,
@@ -138,10 +138,9 @@ def main():
     assert_headers_compatible(parser, args.in_fODF, args.mask)
 
     # Loading
-    vol = nib.load(args.in_fODF)
+    vol, flip_vector = load_nifti_reorient(args.in_fODF, return_flip_vector=True)
     data = vol.get_fdata(dtype=np.float32)
-    affine = vol.affine
-    mask = get_data_as_mask(nib.load(args.mask),
+    mask = get_data_as_mask(load_nifti_reorient(args.mask),
                             dtype=bool) if args.mask else None
 
     sphere = get_sphere(name=args.sphere)
@@ -167,27 +166,28 @@ def main():
                                 sphere, nbr_processes=args.nbr_processes)
 
         # Save result
+        affine = vol.affine
         if args.nufo:
-            nib.save(nib.Nifti1Image(nufo_map.astype(np.float32), affine),
-                     args.nufo)
+            out_img = nib.Nifti1Image(nufo_map.astype(np.float32), affine)
+            save_nifti_reorient(out_img, flip_vector, args.nufo)
 
         if args.afd_max:
-            nib.save(nib.Nifti1Image(afd_max.astype(np.float32), affine),
-                     args.afd_max)
+            out_img = nib.Nifti1Image(afd_max.astype(np.float32), affine)
+            save_nifti_reorient(out_img, flip_vector, args.afd_max)
 
         if args.afd_total:
             # this is the analytical afd total
             afd_tot = data[:, :, :, 0]
-            nib.save(nib.Nifti1Image(afd_tot.astype(np.float32), affine),
-                     args.afd_total)
+            out_img = nib.Nifti1Image(afd_tot.astype(np.float32), affine)
+            save_nifti_reorient(out_img, flip_vector, args.afd_total)
 
         if args.afd_sum:
-            nib.save(nib.Nifti1Image(afd_sum.astype(np.float32), affine),
-                     args.afd_sum)
+            out_img = nib.Nifti1Image(afd_sum.astype(np.float32), affine)
+            save_nifti_reorient(out_img, flip_vector, args.afd_sum)
 
         if args.rgb:
-            nib.save(nib.Nifti1Image(rgb_map.astype('uint8'), affine),
-                     args.rgb)
+            out_img = nib.Nifti1Image(rgb_map.astype('uint8'), affine)
+            save_nifti_reorient(out_img, flip_vector, args.rgb)
 
     if args.peaks or args.peak_values:
         if not args.abs_peaks_and_values:
@@ -196,15 +196,17 @@ def main():
                                     where=peak_values[..., 0, None] != 0)
             peak_dirs[...] *= peak_values[..., :, None]
         if args.peaks:
-            nib.save(nib.Nifti1Image(
+            out_img = nib.Nifti1Image(
                 reshape_peaks_for_visualization(peak_dirs),
-                affine), args.peaks)
+                affine)
+            save_nifti_reorient(out_img, flip_vector, args.peaks)
         if args.peak_values:
-            nib.save(nib.Nifti1Image(peak_values, vol.affine),
-                     args.peak_values)
+            out_img = nib.Nifti1Image(peak_values, vol.affine)
+            save_nifti_reorient(out_img, flip_vector, args.peak_values)
 
     if args.peak_indices:
-        nib.save(nib.Nifti1Image(peak_indices, vol.affine), args.peak_indices)
+        out_img = nib.Nifti1Image(peak_indices, vol.affine)
+        save_nifti_reorient(out_img, flip_vector, args.peak_indices)
 
 
 if __name__ == "__main__":
