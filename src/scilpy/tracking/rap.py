@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
+from scilpy.tracking.utils import TrackingDirection
+
 
 
 class RAP:
@@ -61,10 +63,44 @@ class RAPContinue(RAP):
 
 
 class RAPGraph(RAP):
-    def __init__(self, mask_rap, propagator, max_nbr_pts, neighboorhood_size):
+    def __init__(self, mask_rap, rap_img, propagator, max_nbr_pts, fodf, reps, alpha):
+        """
+        RAPGraph class for the quantum Graph solution for a region.
+
+        Parameters
+        ----------
+        fodf: DataVolume
+            The FODF volume used to compute the RAP.
+        reps: int
+            Number of repetitions used in the quantum circuit.
+        alpha: float
+            Initial paramater to search the cost landscape.
+        """
         super().__init__(mask_rap, propagator, max_nbr_pts)
-        self.neighboorhood_size = neighboorhood_size
+       
+
+        self.fodf = fodf
+        self.rap_img = rap_img
+        self.reps = reps
+        self.alpha = alpha
 
 
     def rap_multistep_propagate(self, line, prev_direction):
-        raise NotImplementedError
+        try:
+            from quactography.solver.rap_tracking import quack_rap
+        except ImportError:
+            raise ImportError("quactography is not installed. "
+                              "Please install it to use RAPGraph.\n"
+                              "Add: Follow instructions here: https://github.com/scilus/quactography")
+        
+        prev_dir = np.array(prev_direction)
+        seg, prev_dir, is_line_valid = quack_rap(self.rap_img, self.fodf, line[-1].round().astype(int),
+                                                  reps = self.reps,
+                                                  alpha = self.alpha, 
+                                                  prev_direction = prev_dir,
+                                                  theta = self.propagator.theta,
+                                                  threshold = self.propagator.sf_threshold)
+        line.extend(seg)
+        last_dir = TrackingDirection(prev_direction)
+        
+        return line, last_dir, is_line_valid
