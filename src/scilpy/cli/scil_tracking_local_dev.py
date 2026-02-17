@@ -77,36 +77,6 @@ from scilpy.tracking.utils import (add_mandatory_options_tracking,
                                    verify_seed_options)
 from scilpy.version import version_string
 
-def _remove_invalid_streamlines_sft(sft):
-    """Remove streamlines that go outside voxel bounds.
-
-    Some DIPY versions do not implement StatefulTractogram.copy().
-    In this script, tracking is performed in voxel space (Space.VOX), so we
-    can validate bounds directly on the stored coordinates.
-    """
-    dims = np.asarray(sft.dimensions, dtype=np.float64)
-
-    valid_idx = []
-    for i, sl in enumerate(sft.streamlines):
-        if len(sl) == 0:
-            continue
-        mn = sl.min(axis=0)
-        mx = sl.max(axis=0)
-        if np.all(mn >= 0.0) and np.all(mx < dims):
-            valid_idx.append(i)
-
-    if len(valid_idx) == len(sft.streamlines):
-        return sft
-
-    # Prefer slicing when supported
-    try:
-        return sft[valid_idx]
-    except Exception:
-        # Fallback: rebuild a new StatefulTractogram
-        valid_streamlines = [sft.streamlines[i] for i in valid_idx]
-        return StatefulTractogram(valid_streamlines, sft.reference,
-                                 space=sft.space, origin=sft.origin)
-
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(description=__doc__,
@@ -373,41 +343,17 @@ def main():
     if args.rap_save_entry_exit:
         tracker.save_rap_entry_exit_mask(args.rap_save_entry_exit, mask_img)
 
-    # For .trk saving, DIPY/TrackVis expects voxel coordinates using the
-    # "corner" convention. Our tracking runs in vox+center. Convert to
-    # vox+corner by shifting coordinates by +0.5.
-    if our_space == Space.VOX and str(our_origin) == 'center':
-        streamlines_save = [sl + 0.5 for sl in streamlines]
-        if args.save_seeds:
-            data_per_streamline = {'seeds': [sd + 0.5 for sd in seeds]}
-        else:
-            data_per_streamline = {}
-        save_origin = Origin('corner')
-    else:
-        streamlines_save = streamlines
-        save_origin = our_origin
-
-    sft = StatefulTractogram(streamlines_save, mask_img,
-                             space=our_space, origin=save_origin,
+    # Compared with scil_tracking_local, using sft rather than
+    # LazyTractogram to deal with space.
+    # Contrary to scilpy or dipy, where space after tracking is vox, here
+    # space after tracking is voxmm.
+    # Smallest possible streamline coordinate is (0,0,0), equivalent of
+    # corner origin (TrackVis)
+    sft = StatefulTractogram(streamlines, mask_img,
+                             space=our_space, origin=our_origin,
                              data_per_streamline=data_per_streamline)
-    try:
-        save_tractogram(sft, args.out_tractogram)
-        logging.info('Saved tractogram to %s', args.out_tractogram)
-    except ValueError as e:
-        logging.warning("save_tractogram failed: %s", e)
-        logging.warning("Filtering invalid streamlines and retrying save.")
+    save_tractogram(sft, args.out_tractogram)
 
-        sft_clean = _remove_invalid_streamlines_sft(sft)
-        logging.info('Keeping %d/%d streamlines after filtering.',
-                     len(sft_clean.streamlines), len(sft.streamlines))
-
-        try:
-            save_tractogram(sft_clean, args.out_tractogram,
-                            bbox_valid_check=False)
-            logging.info('Saved cleaned tractogram to %s', args.out_tractogram)
-        except Exception as e2:
-            logging.error('Failed to save even after filtering: %s', e2)
-            raise
 
 if __name__ == "__main__":
     main()
