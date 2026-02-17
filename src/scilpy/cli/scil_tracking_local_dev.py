@@ -164,6 +164,9 @@ def _build_arg_parser():
                          help='JSON file containing RAP parameters.\n'
                               'Required for rap_method=switch. Format:\n'
                               '{"step_size": float, "theta": float (degrees)}')
+    track_g.add_argument('--rap_save_entry_exit', default=None,
+                         help='Save RAP entry/exit coordinates as a binary mask.\n'
+                              'Provide output filename (.nii.gz).')
 
     m_g = p.add_argument_group('Memory options')
     add_processes_arg(m_g)
@@ -335,6 +338,10 @@ def main():
         data_per_streamline = {'seeds': seeds}
     else:
         data_per_streamline = {}
+
+    # Save RAP entry/exit mask if requested
+    if args.rap_save_entry_exit:
+        tracker.save_rap_entry_exit_mask(args.rap_save_entry_exit, mask_img)
 
     # Compared with scil_tracking_local, using sft rather than
     # LazyTractogram to deal with space.

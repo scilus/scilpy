@@ -74,6 +74,17 @@ class RAPContinue(RAP):
 
 class RAPSwitch(RAP):
     """RAP class that switches tracking parameters when inside the RAP mask, using a label-map
+    Parameters
+        ----------
+        mask_rap : DataVolume
+            Region-Adaptive Propagation mask.
+        propagator : Propagator
+            The propagator used for tracking.
+        max_nbr_pts : int
+            Maximum number of points per streamline.
+        rap_params_file : str
+            Path to JSON file containing RAP parameters.
+            
     RAP mask convention (label-map):
         0: outside RAP
         1..N: region labels
