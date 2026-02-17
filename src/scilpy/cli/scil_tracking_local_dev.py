@@ -352,7 +352,8 @@ def main():
     sft = StatefulTractogram(streamlines, mask_img,
                              space=our_space, origin=our_origin,
                              data_per_streamline=data_per_streamline)
-    save_tractogram(sft, args.out_tractogram)
+    save_tractogram(sft, args.out_tractogram, bbox_valid_check=False
+    )
 
 
 if __name__ == "__main__":

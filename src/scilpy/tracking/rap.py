@@ -20,6 +20,15 @@ class RAP:
         return self.rap_mask.get_value_at_coordinate(
             *curr_pos, space=space, origin=origin) > 0
 
+    def get_label_at(self, curr_pos, space, origin):
+        """Return integer label at position. 0 means outside RAP"""
+        val = self.rap_mask.get_value_at_coordinate(
+            *curr_pos, space=space, origin=origin)
+        try:
+            return int(val)
+        except Exception:
+            return 0
+
     def rap_multistep_propagate(self, line, prev_direction):
         """
         All child classes must implement this method. Must receive and return
@@ -64,170 +73,193 @@ class RAPContinue(RAP):
 
 
 class RAPSwitch(RAP):
-    """RAP class that switches tracking parameters when inside the RAP mask."""
+    """RAP class that switches tracking parameters when inside the RAP mask, using a label-map
+    RAP mask convention (label-map):
+        0: outside RAP
+        1..N: region labels
+
+    JSON formats supported:
+    (A) Legacy single policy (applied for any label > 0):
+        {"step_size": 0.5, "theta": 35, "algo": "prob"}
+    (B) Multi-label policies:
+        {
+          "1": {"step_size": 0.5, "theta": 35, "algo": "det"},
+          "2": {"step_size": 0.5, "theta": 35, "algo": "prob"},
+          "3": {"step_size": 0.25, "theta": 10, "algo": "prob"}
+        }
+
+    `theta` is specified in degrees in JSON and converted to radians.
+    """
+
     def __init__(self, mask_rap, propagator, max_nbr_pts, rap_params_file):
-        """
-        Parameters
-        ----------
-        mask_rap : DataVolume
-            Region-Adaptive Propagation mask.
-        propagator : Propagator
-            The propagator used for tracking.
-        max_nbr_pts : int
-            Maximum number of points per streamline.
-        rap_params_file : str
-            Path to JSON file containing RAP parameters.
-        """
         super().__init__(mask_rap, propagator, max_nbr_pts)
 
-        # RAP policies can be provided in two formats:
-        # (1) Legacy: single policy applied to label above zero
-            # {"step_size": float, "theta": float (deg), "algo": "det"|"prob" (optional)}
-        # (2) Multi-label policies: label map
-        #     {"1": {"step_size": .., "theta": .., "algo": ..},
-        #      "2": {...}, ... }
+        if rap_params_file is None:
+            raise ValueError('RAPSwitch requires rap_params_file.')
+
         with open(rap_params_file, 'r') as f:
             raw = json.load(f)
 
+        # Normalized policies: {0: legacy_policy} or {label:int -> policy:dict}
         self._policies = self._parse_policies(raw)
-        self._last_label = None
-        self._prev_params = None  # (algo, theta_rad, step_size)
-
-        # We want to keep a small log so we know which mode is used
-        if 0 in self._policies:
-            logging.info("RAPSwitch loaded legacy single-policy JSON.")
-        else:
-            logging.info("RAPSwitch loaded multi-label policies for labels: %s",
-                         sorted(self._policies.keys()))
 
     def _parse_policies(self, raw):
-        # Legacy single-policy format
-        if isinstance(raw, dict) and 'step_size' in raw and 'theta' in raw:
-            algo = raw.get('algo', None)
-            if algo is not None and algo not in ['det', 'prob']:
-                raise ValueError("RAPSwitch legacy policy 'algo' must be 'det' or 'prob'")
-            step_size = float(raw['step_size'])
-            theta_rad = math.radians(float(raw['theta']))
-            return {0: {'algo': algo, 'step_size': step_size, 'theta_rad': theta_rad}}
-        
-            # Multi-label format
-        if not isinstance(raw, dict):
-            raise ValueError('RAPSwitch policies JSON must be a dict')
+        if not isinstance(raw, dict) or len(raw) == 0:
+            raise ValueError('Invalid RAP JSON: expected a non-empty object (dict).')
 
+        # (A) Legacy single policy for any label > 0
+        if 'step_size' in raw and 'theta' in raw:
+            pol = {
+                'step_size': float(raw['step_size']),
+                'theta': float(raw['theta']),  # degrees
+            }
+            if 'algo' in raw and raw['algo'] is not None:
+                algo = str(raw['algo']).lower()
+                if algo not in ['det', 'prob']:
+                    raise ValueError("Legacy RAPSwitch 'algo' must be 'det' or 'prob'.")
+                pol['algo'] = algo
+            return {0: pol}
+
+        # (B) Multi-label policies
         policies = {}
         for k, v in raw.items():
             label = int(k)
+            if label <= 0:
+                continue
             if not isinstance(v, dict):
-                raise ValueError(f'RAPSwitch policy for label {label} must be a dict')
-            algo = v.get('algo', None)
-            if algo is not None and algo not in ['det', 'prob']:
-                raise ValueError(f"RAPSwitch policy for label {label}: 'algo' must be 'det' or 'prob'")
+                raise ValueError(f'RAPSwitch policy for label {label} must be an object (dict).')
             if 'step_size' not in v or 'theta' not in v:
-                raise ValueError(f"RAPSwitch policy for label {label} must contain 'step_size' and 'theta' (deg).")
-            step_size = float(v['step_size'])
-            theta_rad = math.radians(float(v['theta']))
-            policies[label] = {'algo': algo, 'step_size': step_size, 'theta_rad': theta_rad}
+                raise ValueError(
+                    f"RAPSwitch policy for label {label} must contain 'step_size' and 'theta' (deg).")
+
+            pol = dict(v)
+            pol['step_size'] = float(v['step_size'])
+            pol['theta'] = float(v['theta'])  # degrees
+
+            if 'algo' in v and v['algo'] is not None:
+                algo = str(v['algo']).lower()
+                if algo not in ['det', 'prob']:
+                    raise ValueError(
+                        f"RAPSwitch policy for label {label}: 'algo' must be 'det' or 'prob'.")
+                pol['algo'] = algo
+
+            policies[label] = pol
+
+        if len(policies) == 0:
+            raise ValueError('Invalid RAP JSON: no valid label policies found.')
 
         return policies
 
     def _get_label(self, curr_pos, space, origin):
-        # we give the option for rap_mask to be a binary mask or an integer label map
-        return int(self.rap_mask.get_value_at_coordinate(
-            *curr_pos, space=space, origin=origin))
+        # DataVolume may return float; enforce integer labels.
+        val = self.rap_mask.get_value_at_coordinate(
+            *curr_pos, space=space, origin=origin)
+        try:
+            return int(val)
+        except Exception:
+            return 0
 
-    def _save_prev_params_if_needed(self, label):
-        if self._last_label == label:
-            return
-        self._prev_params = (
-            getattr(self.propagator, 'algo', None),
-            getattr(self.propagator, 'theta', None),
-            getattr(self.propagator, 'step_size', None)
-        )
-        self._last_label = label
+    def _select_policy(self, label):
+        if label <= 0:
+            return None
+        # Legacy mode: apply same policy to any label > 0
+        if 0 in self._policies:
+            return self._policies[0]
+        return self._policies.get(label, None)
+
+    def _snapshot_propagator_params(self):
+        """Best-effort snapshot so we can restore after RAP."""
+        snap = {}
+        for key in ['algo', 'theta', 'step_size']:
+            if hasattr(self.propagator, key):
+                snap[key] = getattr(self.propagator, key)
+        # Also snapshot tracking_neighbours if present (derived from theta).
+        if hasattr(self.propagator, 'tracking_neighbours'):
+            snap['tracking_neighbours'] = getattr(self.propagator,
+                                                 'tracking_neighbours')
+        return snap
+
+    def _restore_propagator_params(self, snap):
+        for k, v in snap.items():
+            setattr(self.propagator, k, v)
 
     def _apply_policy(self, policy):
-        # Apply algo
-        if policy.get('algo', None) is not None:
-            if hasattr(self.propagator, 'set_algo'):
-                self.propagator.set_algo(policy['algo'])
-            else:
-                self.propagator.algo = policy['algo']
+        """Apply policy keys directly to propagator.
 
-        # Apply theta
-        if hasattr(self.propagator, 'set_theta'):
-            self.propagator.set_theta(policy['theta_rad'])
-        else:
-            self.propagator.theta = policy['theta_rad']
+        Special cases:
+        - theta: degrees -> radians + recompute tracking_neighbours.
+        """
+        theta_changed = False
 
-        # Apply step size
-        if hasattr(self.propagator, 'set_step_size'):
-            self.propagator.set_step_size(policy['step_size'])
-        else:
-            self.propagator.step_size = policy['step_size']
+        # Apply algo first (if present)
+        if 'algo' in policy and hasattr(self.propagator, 'algo'):
+            self.propagator.algo = policy['algo']
 
-    def _restore_prev_params(self):
-        if self._prev_params is None:
-            self._last_label = None
-            return
-        algo, theta, step = self._prev_params
+        # Apply step_size (if present)
+        if 'step_size' in policy and hasattr(self.propagator, 'step_size'):
+            self.propagator.step_size = float(policy['step_size'])
 
-        if algo is not None:
-            if hasattr(self.propagator, 'set_algo'):
-                self.propagator.set_algo(algo)
-            else:
-                self.propagator.algo = algo
+        # Apply theta (degrees -> radians)
+        if 'theta' in policy and hasattr(self.propagator, 'theta'):
+            self.propagator.theta = math.radians(float(policy['theta']))
+            theta_changed = True
 
-        if theta is not None:
-            if hasattr(self.propagator, 'set_theta'):
-                self.propagator.set_theta(theta)
-            else:
-                self.propagator.theta = theta
+        # Apply any other custom keys if propagator has the attribute.
+        for k, v in policy.items():
+            if k in ['algo', 'step_size', 'theta']:
+                continue
+            if hasattr(self.propagator, k):
+                setattr(self.propagator, k, v)
 
-        if step is not None:
-            if hasattr(self.propagator, 'set_step_size'):
-                self.propagator.set_step_size(step)
-            else:
-                self.propagator.step_size = step
+        # If theta changed, recompute tracking_neighbours (Arnaud's approach).
+        if theta_changed:
+            from scilpy.tracking.propagator import get_sphere_neighbours
+            if hasattr(self.propagator, 'sphere'):
+                self.propagator.tracking_neighbours = get_sphere_neighbours(
+                    self.propagator.sphere, self.propagator.theta)
 
-        self._prev_params = None
-        self._last_label = None
-   
     def rap_multistep_propagate(self, line, prev_direction):
+        """Propagate inside RAP using the policy corresponding to the current label.
+
+        Uses Arnaud's propagate API:
+            new_pos, new_dir, is_direction_valid = propagator.propagate(line, prev_direction)
+        """
         is_line_valid = True
-        
-        # Apply RAP policies while we remain in RAP region
+
+        space = getattr(self.propagator, 'space', None)
+        origin = getattr(self.propagator, 'origin', None)
+
+        # Safety: need at least one point
+        if len(line) == 0:
+            return line, prev_direction, False
+
+        # Save propagator params once for the whole RAP segment
+        snap = self._snapshot_propagator_params()
+
         for _ in range(self.max_nbr_pts):
             curr_pos = line[-1]
-            label = self._get_label(curr_pos, self.propagator.space, 
-                                    self.propagator.origin)
+            label = self._get_label(curr_pos, space, origin)
             if label <= 0:
                 break
 
-            # Choose policy
-            if 0 in self._policies:
-                # Legacy single policy mode
-                policy = self._policies[0]
-            else:
-                policy = self._policies.get(label, None)
-                if policy is None:
-                    # If no policy for this label then we stop RAP here
-                    break
+            policy = self._select_policy(label)
+            if policy is None:
+                break
 
-            self._save_prev_params_if_needed(label)
             self._apply_policy(policy)
 
-            new_pos, new_dir, is_direction_valid = \
-                self.propagator.propagate(line, prev_direction)
-       
+            new_pos, new_dir, is_direction_valid = self.propagator.propagate(
+                line, prev_direction)
             if not is_direction_valid:
                 is_line_valid = False
                 break
-        
+
             line.append(new_pos)
             prev_direction = new_dir
 
-        # Restore original parameters after leaving RAP
-        self._restore_prev_params()
+        # Restore original propagator params after leaving RAP
+        self._restore_propagator_params(snap)
+
         return line, prev_direction, is_line_valid
 
 
