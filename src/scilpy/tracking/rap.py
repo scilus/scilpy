@@ -222,7 +222,7 @@ class RAPSwitch(RAP):
             if hasattr(self.propagator, k):
                 setattr(self.propagator, k, v)
 
-        # If theta changed, recompute tracking_neighbours (Arnaud's approach).
+        # If theta changed, recompute tracking_neighbours to stay consistent with the propagator.
         if theta_changed:
             from scilpy.tracking.propagator import get_sphere_neighbours
             if hasattr(self.propagator, 'sphere'):
@@ -232,7 +232,7 @@ class RAPSwitch(RAP):
     def rap_multistep_propagate(self, line, prev_direction):
         """Propagate inside RAP using the policy corresponding to the current label.
 
-        Uses Arnaud's propagate API:
+        Expected propagate API:
             new_pos, new_dir, is_direction_valid = propagator.propagate(line, prev_direction)
         """
         is_line_valid = True
