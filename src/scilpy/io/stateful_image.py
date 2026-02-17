@@ -117,6 +117,26 @@ class StatefulImage(nib.Nifti1Image):
                              original_voxel_sizes=reference._original_voxel_sizes,
                              original_axcodes=reference._original_axcodes)
 
+    @staticmethod
+    def convert_to_simg(img):
+        """
+        Initialize a StatefulImage from an existing Nifti1Image.
+
+        This constructor allows creating a StatefulImage directly from a
+        Nifti1Image, preserving its original orientation information.
+
+        Parameters
+        ----------
+        img : nib.Nifti1Image
+            The Nifti1Image to initialize from.
+        """
+        return StatefulImage(img.dataobj, img.affine, header=img.header,
+                             original_affine=img.affine.copy(),
+                             original_dimensions=img.header.get_data_shape(),
+                             original_voxel_sizes=img.header.get_zooms(),
+                             original_axcodes=nib.orientations.aff2axcodes(
+                                 img.affine))
+
     def reorient_to_original(self):
         """
         Reorient the in-memory image to its original orientation.

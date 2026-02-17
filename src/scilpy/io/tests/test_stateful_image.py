@@ -105,7 +105,7 @@ def test_to_reference_stateful_image():
         ref_img = StatefulImage.load(file_path)
 
         with pytest.raises(TypeError,
-                           match="Reference object cannot be a StatefulImage."):
+                           match="Reference object must not be a StatefulImage."):
             img.to_reference(ref_img)
 
 

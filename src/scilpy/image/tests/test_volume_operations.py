@@ -84,7 +84,6 @@ def test_apply_transform():
                       mode='constant', constant_values=0)
 
     moving4d_simg = StatefulImage(moving4d, np.eye(4))
-
     warped_img4d = apply_transform(transfo, ref3d_img, moving4d_simg)
 
     assert_equal(ref3d, warped_img4d.get_fdata()[:, :, :, 2])
