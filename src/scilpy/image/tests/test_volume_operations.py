@@ -17,6 +17,7 @@ from scilpy.image.volume_operations import (apply_transform,
                                             merge_metrics, normalize_metric,
                                             resample_volume, reshape_volume,
                                             register_image)
+from scilpy.io.stateful_image import StatefulImage
 from scilpy.io.fetcher import fetch_data, get_testing_files_dict
 from scilpy.image.utils import compute_nifti_bounding_box
 
@@ -53,10 +54,10 @@ def test_crop_volume():
     temp = np.ones((3, 3, 3))
     vol = np.pad(temp, pad_width=2, mode='constant', constant_values=0)
 
-    img = nib.Nifti1Image(vol, np.eye(4))
-    wbbox = compute_nifti_bounding_box(img)
+    simg = StatefulImage(vol, np.eye(4))
+    wbbox = compute_nifti_bounding_box(simg)
 
-    vol_cropped = crop_volume(img, wbbox)
+    vol_cropped = crop_volume(simg, wbbox)
 
     assert_equal(temp, vol_cropped.get_fdata())
 
@@ -71,10 +72,10 @@ def test_apply_transform():
     transfo = np.eye(4)
     transfo[0, 3] = 1
 
-    moving3d_img = nib.Nifti1Image(moving3d, np.eye(4))
+    moving3d_simg = StatefulImage(moving3d, np.eye(4))
     ref3d_img = nib.Nifti1Image(ref3d, np.eye(4))
 
-    warped_img3d = apply_transform(transfo, ref3d_img, moving3d_img)
+    warped_img3d = apply_transform(transfo, ref3d_img, moving3d_simg)
 
     assert_equal(ref3d, warped_img3d.get_fdata())
 
@@ -82,9 +83,8 @@ def test_apply_transform():
     moving4d = np.pad(np.ones((3, 3, 3, 2)), pad_width=1,
                       mode='constant', constant_values=0)
 
-    moving4d_img = nib.Nifti1Image(moving4d, np.eye(4))
-
-    warped_img4d = apply_transform(transfo, ref3d_img, moving4d_img)
+    moving4d_simg = StatefulImage(moving4d, np.eye(4))
+    warped_img4d = apply_transform(transfo, ref3d_img, moving4d_simg)
 
     assert_equal(ref3d, warped_img4d.get_fdata()[:, :, :, 2])
 
@@ -176,7 +176,7 @@ def test_resample_volume():
     # affine as np.eye => voxel size 1x1x1
     moving3d = np.pad(np.ones((4, 4, 4)), pad_width=1,
                       mode='constant', constant_values=0)
-    moving3d_img = nib.Nifti1Image(moving3d, np.eye(4))
+    moving3d_simg = StatefulImage(moving3d, np.eye(4))
 
     # Ref: 2x2x2, voxel size 3x3x3
     ref3d = np.ones((2, 2, 2))
@@ -185,111 +185,111 @@ def test_resample_volume():
 
     # 1) Option volume_shape: expecting an output of 2x2x2, which means
     # voxel resolution 3x3x3
-    resampled_img = resample_volume(moving3d_img, volume_shape=(2, 2, 2),
-                                    interp='nn')
-    assert_equal(resampled_img.get_fdata(), ref3d)
-    assert resampled_img.affine[0, 0] == 3
+    resampled_simg = resample_volume(moving3d_simg, volume_shape=(2, 2, 2),
+                                     interp='nn')
+    assert_equal(resampled_simg.get_fdata(), ref3d)
+    assert resampled_simg.affine[0, 0] == 3
 
     # 2) Option reference image that is 2x2x2, resolution 3x3x3.
     ref_img = nib.Nifti1Image(ref3d, ref_affine)
-    resampled_img = resample_volume(moving3d_img, ref_img=ref_img,
-                                    interp='nn')
-    assert_equal(resampled_img.get_fdata(), ref3d)
-    assert resampled_img.affine[0, 0] == 3
+    resampled_simg = resample_volume(moving3d_simg, ref_img=ref_img,
+                                     interp='nn')
+    assert_equal(resampled_simg.get_fdata(), ref3d)
+    assert resampled_simg.affine[0, 0] == 3
 
     # 3) Option final resolution 3x3x3, should be of shape 2x2x2
-    resampled_img = resample_volume(moving3d_img, voxel_res=(3, 3, 3),
-                                    interp='nn')
-    assert_equal(resampled_img.get_fdata(), ref3d)
-    assert resampled_img.affine[0, 0] == 3
+    resampled_simg = resample_volume(moving3d_simg, voxel_res=(3, 3, 3),
+                                     interp='nn')
+    assert_equal(resampled_simg.get_fdata(), ref3d)
+    assert resampled_simg.affine[0, 0] == 3
 
     # 4) Same test, with a fake 4th dimension
     moving3d = np.stack((moving3d, moving3d), axis=-1)
-    moving3d_img = nib.Nifti1Image(moving3d, np.eye(4))
-    resampled_img = resample_volume(moving3d_img, voxel_res=(3, 3, 3),
-                                    interp='nn')
-    result = resampled_img.get_fdata()
+    moving3d_simg = StatefulImage(moving3d, np.eye(4))
+    resampled_simg = resample_volume(moving3d_simg, voxel_res=(3, 3, 3),
+                                     interp='nn')
+    result = resampled_simg.get_fdata()
     assert_equal(result[:, :, :, 0], ref3d)
     assert_equal(result[:, :, :, 1], ref3d)
-    assert resampled_img.affine[0, 0] == 3
+    assert resampled_simg.affine[0, 0] == 3
 
 
 def test_reshape_volume_pad():
     # 3D img
-    img = nib.Nifti1Image(
+    simg = StatefulImage(
         np.arange(1, (3**3)+1).reshape((3, 3, 3)).astype(float),
         np.eye(4))
 
     # 1) Reshaping to 4x4x4, padding with 0
-    reshaped_img = reshape_volume(img, (4, 4, 4))
+    reshaped_simg = reshape_volume(simg, (4, 4, 4))
 
-    assert_equal(reshaped_img.affine[:, -1], [-1, -1, -1, 1])
-    assert_equal(reshaped_img.get_fdata()[0, 0, 0], 0)
+    assert_equal(reshaped_simg.affine[:, -1], [-1, -1, -1, 1])
+    assert_equal(reshaped_simg.get_fdata()[0, 0, 0], 0)
 
     # 2) Reshaping to 4x4x4, padding with -1
-    reshaped_img = reshape_volume(img, (4, 4, 4), mode='constant',
-                                  cval=-1)
-    assert_equal(reshaped_img.get_fdata()[0, 0, 0], -1)
+    reshaped_simg = reshape_volume(simg, (4, 4, 4), mode='constant',
+                                   cval=-1)
+    assert_equal(reshaped_simg.get_fdata()[0, 0, 0], -1)
 
     # 3) Reshaping to 4x4x4, padding with edge
-    reshaped_img = reshape_volume(img, (4, 4, 4), mode='edge')
-    assert_equal(reshaped_img.get_fdata()[0, 0, 0], 1)
+    reshaped_simg = reshape_volume(simg, (4, 4, 4), mode='edge')
+    assert_equal(reshaped_simg.get_fdata()[0, 0, 0], 1)
 
     # 4D img (2 "stacked" 3D volumes)
-    img = nib.Nifti1Image(
+    simg = StatefulImage(
         np.arange(1, ((3**3) * 2)+1).reshape((3, 3, 3, 2)).astype(float),
         np.eye(4))
 
     # 2) Reshaping to 5x5x5, padding with 0
-    reshaped_img = reshape_volume(img, (5, 5, 5))
-    assert_equal(reshaped_img.get_fdata()[0, 0, 0, 0], 0)
+    reshaped_simg = reshape_volume(simg, (5, 5, 5))
+    assert_equal(reshaped_simg.get_fdata()[0, 0, 0, 0], 0)
 
 
 def test_reshape_volume_crop():
     # 3D img
-    img = nib.Nifti1Image(
+    simg = StatefulImage(
         np.arange(1, (3**3)+1).reshape((3, 3, 3)).astype(float),
         np.eye(4))
 
     # 1) Cropping to 1x1x1
-    reshaped_img = reshape_volume(img, (1, 1, 1))
-    assert_equal(reshaped_img.get_fdata().shape, (1, 1, 1))
-    assert_equal(reshaped_img.affine[:, -1], [1, 1, 1, 1])
-    assert_equal(reshaped_img.get_fdata()[0, 0, 0], 14)
+    reshaped_simg = reshape_volume(simg, (1, 1, 1))
+    assert_equal(reshaped_simg.get_fdata().shape, (1, 1, 1))
+    assert_equal(reshaped_simg.affine[:, -1], [1, 1, 1, 1])
+    assert_equal(reshaped_simg.get_fdata()[0, 0, 0], 14)
 
     # 2) Cropping to 2x2x2
-    reshaped_img = reshape_volume(img, (2, 2, 2))
-    assert_equal(reshaped_img.get_fdata().shape, (2, 2, 2))
-    assert_equal(reshaped_img.affine[:, -1], [0, 0, 0, 1])
-    assert_equal(reshaped_img.get_fdata()[0, 0, 0], 1)
+    reshaped_simg = reshape_volume(simg, (2, 2, 2))
+    assert_equal(reshaped_simg.get_fdata().shape, (2, 2, 2))
+    assert_equal(reshaped_simg.affine[:, -1], [0, 0, 0, 1])
+    assert_equal(reshaped_simg.get_fdata()[0, 0, 0], 1)
 
     # 4D img
-    img = nib.Nifti1Image(
+    simg = StatefulImage(
         np.arange(1, ((3**3) * 2)+1).reshape((3, 3, 3, 2)).astype(float),
         np.eye(4))
 
     # 2) Cropping to 2x2x2
-    reshaped_img = reshape_volume(img, (2, 2, 2))
-    assert_equal(reshaped_img.get_fdata().shape, (2, 2, 2, 2))
-    assert_equal(reshaped_img.affine[:, -1], [0, 0, 0, 1])
-    assert_equal(reshaped_img.get_fdata()[0, 0, 0, 0], 1)
+    reshaped_simg = reshape_volume(simg, (2, 2, 2))
+    assert_equal(reshaped_simg.get_fdata().shape, (2, 2, 2, 2))
+    assert_equal(reshaped_simg.affine[:, -1], [0, 0, 0, 1])
+    assert_equal(reshaped_simg.get_fdata()[0, 0, 0, 0], 1)
 
 
 def test_reshape_volume_dtype():
     # 3D img
-    img = nib.Nifti1Image(
+    simg = StatefulImage(
         np.arange(1, (3**3)+1).reshape((3, 3, 3)).astype(np.uint16),
         np.eye(4))
 
     # 1) Staying in 3x3x3, same dtype
-    reshaped_img = reshape_volume(img, (3, 3, 3))
-    assert_equal(reshaped_img.get_fdata().shape, (3, 3, 3))
-    assert reshaped_img.get_data_dtype() == img.get_data_dtype()
+    reshaped_simg = reshape_volume(simg, (3, 3, 3))
+    assert_equal(reshaped_simg.get_fdata().shape, (3, 3, 3))
+    assert reshaped_simg.get_data_dtype() == simg.get_data_dtype()
 
     # 1) Staying in 3x3x3, casting to float
-    reshaped_img = reshape_volume(img, (3, 3, 3), dtype=float)
-    assert_equal(reshaped_img.get_fdata().shape, (3, 3, 3))
-    assert reshaped_img.get_data_dtype() == float
+    reshaped_simg = reshape_volume(simg, (3, 3, 3), dtype=float)
+    assert_equal(reshaped_simg.get_fdata().shape, (3, 3, 3))
+    assert reshaped_simg.get_data_dtype() == float
 
 
 def test_normalize_metric_basic():

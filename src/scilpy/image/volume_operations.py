@@ -24,6 +24,7 @@ from scilpy.io.image import get_data_as_mask
 from scilpy.gradients.bvec_bval_tools import identify_shells
 from scilpy.utils.spatial import voxel_to_world
 from scilpy.utils.spatial import world_to_voxel
+from scilpy.io.stateful_image import StatefulImage
 
 
 def count_non_zero_voxels(image):
@@ -79,25 +80,27 @@ def flip_volume(data, axes):
     return data
 
 
-def crop_volume(img: nib.Nifti1Image, wbbox):
+def crop_volume(simg, wbbox):
     """
     Applies cropping from a world space defined bounding box and fixes the
     affine to keep data aligned.
 
     Parameters
     ----------
-    img: nib.Nifti1Image
+    simg: StatefulImage
         Input image to crop.
     wbbox: WorldBoundingBox
         Bounding box.
 
     Returns
     -------
-    cropped_im: nib.Nifti1Image
+    cropped_im: StatefulImage
         The image with cropped data and transformed affine.
     """
-    data = img.get_fdata(dtype=np.float32, caching='unchanged')
-    affine = img.affine
+    if not isinstance(simg, StatefulImage):
+        raise TypeError("Input 'simg' must be a StatefulImage object.")
+    data = simg.get_fdata(dtype=np.float32, caching='unchanged')
+    affine = simg.affine
 
     voxel_bb_mins = world_to_voxel(wbbox.minimums, affine)
     voxel_bb_maxs = world_to_voxel(wbbox.maximums, affine)
@@ -114,11 +117,12 @@ def crop_volume(img: nib.Nifti1Image, wbbox):
     new_affine = np.copy(affine)
     new_affine[0:3, 3] = translation[0:3]
 
-    return nib.Nifti1Image(data_crop, new_affine)
+    cropped_img = nib.Nifti1Image(data_crop, new_affine)
+    return StatefulImage.create_from(cropped_img, simg)
 
 
-def apply_transform(transfo, reference, moving,
-                    interp='linear', keep_dtype=False):
+def apply_transform(transfo, reference,
+                    moving, interp='linear', keep_dtype=False):
     """
     Apply transformation to an image using Dipy's tool
 
@@ -128,7 +132,7 @@ def apply_transform(transfo, reference, moving,
         Transformation matrix to be applied
     reference: nib.Nifti1Image
         Filename of the reference image (target)
-    moving: nib.Nifti1Image
+    moving: StatefulImage
         Filename of the moving image
     interp : string, either 'linear' or 'nearest'
         the type of interpolation to be used, either 'linear'
@@ -139,9 +143,11 @@ def apply_transform(transfo, reference, moving,
 
     Returns
     -------
-    moved_im: nib.Nifti1Image
+    moved_im: StatefulImage
         The warped moving image.
     """
+    if not isinstance(moving, StatefulImage):
+        raise TypeError("Input 'moving' must be a StatefulImage object.")
     grid2world, dim, _, _ = get_reference_info(reference)
     static_data = reference.get_fdata(dtype=np.float32)
 
@@ -181,7 +187,9 @@ def apply_transform(transfo, reference, moving,
     else:
         raise ValueError('Does not support this dataset (shape, type, etc)')
 
-    return nib.Nifti1Image(resampled.astype(orig_type), grid2world)
+    moved_nib_img = nib.Nifti1Image(resampled.astype(orig_type), grid2world)
+    return StatefulImage.create_from(moved_nib_img,
+                                     StatefulImage.convert_to_simg(reference))
 
 
 def transform_dwi(reg_obj, static, dwi, interpolation='linear'):
@@ -504,8 +512,8 @@ def _interp_code_to_order(interp_code):
     return orders[interp_code]
 
 
-def resample_volume(img, ref_img=None, volume_shape=None, iso_min=False,
-                    voxel_res=None,
+def resample_volume(simg, ref_img=None,
+                    volume_shape=None, iso_min=False, voxel_res=None,
                     interp='lin', enforce_dimensions=False):
     """
     Function to resample a dataset to match the resolution of another reference
@@ -516,7 +524,7 @@ def resample_volume(img, ref_img=None, volume_shape=None, iso_min=False,
 
     Parameters
     ----------
-    img: nib.Nifti1Image
+    simg: StatefulImage
         Image to resample.
     ref_img: nib.Nifti1Image, optional
         Reference volume to resample to. This method is used only if ref is not
@@ -539,13 +547,15 @@ def resample_volume(img, ref_img=None, volume_shape=None, iso_min=False,
 
     Returns
     -------
-    resampled_image: nib.Nifti1Image
+    resampled_image: StatefulImage
         Resampled image.
     """
-    data = np.asanyarray(img.dataobj)
+    if not isinstance(simg, StatefulImage):
+        raise TypeError("Input 'simg' must be a StatefulImage object.")
+    data = np.asanyarray(simg.dataobj)
     original_shape = data.shape
-    affine = img.affine
-    original_zooms = img.header.get_zooms()[:3]
+    affine = simg.affine
+    original_zooms = simg.header.get_zooms()[:3]
 
     error_msg = ('Please only provide one option amongst ref_img, '
                  'volume_shape, voxel_res or iso_min.')
@@ -609,18 +619,17 @@ def resample_volume(img, ref_img=None, volume_shape=None, iso_min=False,
                     data2[:x_dim, :y_dim, :z_dim]
                 data2 = fix_dim_volume
 
-    return nib.Nifti1Image(data2.astype(data.dtype), affine2)
+    resampled_nib_img = nib.Nifti1Image(data2.astype(data.dtype), affine2)
+    return StatefulImage.create_from(resampled_nib_img, simg)
 
 
-def reshape_volume(
-    img, volume_shape, mode='constant', cval=0, dtype=None
-):
+def reshape_volume(simg, volume_shape, mode='constant', cval=0, dtype=None):
     """ Reshape a volume to a specified shape by padding or cropping. The
     new volume is centered wrt the old volume in world space.
 
     Parameters
     ----------
-    img : nib.Nifti1Image
+    simg : StatefulImage
         The input image.
     volume_shape : tuple of 3 ints
         The desired shape of the volume.
@@ -634,14 +643,15 @@ def reshape_volume(
 
     Returns
     -------
-    reshaped_img : nib.Nifti1Image
+    reshaped_simg : StatefulImage
         The reshaped image.
     """
-
+    if not isinstance(simg, StatefulImage):
+        raise TypeError("Input 'simg' must be a StatefulImage object.")
     if not dtype:
-        dtype = img.get_data_dtype()
-    data = img.get_fdata(dtype=np.float32)
-    affine = img.affine
+        dtype = simg.get_data_dtype()
+    data = simg.get_fdata(dtype=np.float32)
+    affine = simg.affine
 
     # Compute the difference between the desired shape and the current shape
     diff = (np.array(volume_shape) - np.array(data.shape[:3])) // 2
@@ -689,7 +699,8 @@ def reshape_volume(
     new_affine = np.copy(affine)
     new_affine[0:3, 3] = translation[0:3]
 
-    return nib.Nifti1Image(cropped_data.astype(dtype), new_affine)
+    reshaped_nib_img = nib.Nifti1Image(cropped_data.astype(dtype), new_affine)
+    return StatefulImage.create_from(reshaped_nib_img, simg)
 
 
 def mask_data_with_default_cube(data):

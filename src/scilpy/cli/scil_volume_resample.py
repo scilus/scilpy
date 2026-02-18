@@ -24,6 +24,7 @@ from scilpy.io.utils import (add_verbose_arg, add_overwrite_arg,
                              assert_inputs_exist, assert_outputs_exist)
 from scilpy.image.volume_operations import resample_volume
 from scilpy.version import version_string
+from scilpy.io.stateful_image import StatefulImage
 
 
 def _build_arg_parser():
@@ -95,7 +96,7 @@ def main():
 
     logging.info('Loading raw data from %s', args.in_image)
 
-    img = nib.load(args.in_image)
+    simg = StatefulImage.load(args.in_image)
 
     ref_img = None
     if args.ref:
@@ -103,10 +104,10 @@ def main():
 
         # Must not verify that headers are compatible. But can verify that, at
         # least, the first columns of their affines are compatible.
-        img_zoom_invert = [1 / zoom for zoom in img.header.get_zooms()[:3]]
+        img_zoom_invert = [1 / zoom for zoom in ref_img.header.get_zooms()[:3]]
         ref_zoom_invert = [1 / zoom for zoom in ref_img.header.get_zooms()[:3]]
 
-        img_affine = np.dot(img.affine[:3, :3], img_zoom_invert)
+        img_affine = np.dot(simg.affine[:3, :3], img_zoom_invert)
         ref_affine = np.dot(ref_img.affine[:3, :3], ref_zoom_invert)
 
         if not np.allclose(img_affine, ref_affine):
@@ -114,20 +115,20 @@ def main():
                          "input image (but with a different sampling).")
 
     # Resampling volume
-    resampled_img = resample_volume(img, ref_img=ref_img,
-                                    volume_shape=args.volume_size,
-                                    iso_min=args.iso_min,
-                                    voxel_res=args.voxel_size,
-                                    interp=args.interp,
-                                    enforce_dimensions=args.enforce_dimensions)
+    resampled_simg = resample_volume(simg, ref_img=ref_img,
+                                     volume_shape=args.volume_size,
+                                     iso_min=args.iso_min,
+                                     voxel_res=args.voxel_size,
+                                     interp=args.interp,
+                                     enforce_dimensions=args.enforce_dimensions)
 
     # Saving results
-    zooms = list(resampled_img.header.get_zooms())
+    zooms = list(resampled_simg.header.get_zooms())
     if args.voxel_size:
         if len(args.voxel_size) == 1:
             args.voxel_size = args.voxel_size * 3
 
-        if not np.array_equal(zooms[:3], args.voxel_size):
+        if not np.allclose(zooms[:3], args.voxel_size, atol=1e-3):
             logging.warning('Voxel size is different from expected.'
                             ' Got: %s, expected: %s',
                             tuple(zooms), tuple(args.voxel_size))
@@ -137,10 +138,10 @@ def main():
                 zooms[0] = args.voxel_size[0]
                 zooms[1] = args.voxel_size[1]
                 zooms[2] = args.voxel_size[2]
-                resampled_img.header.set_zooms(tuple(zooms))
+                resampled_simg.header.set_zooms(tuple(zooms))
 
     logging.info('Saving resampled data to %s', args.out_image)
-    nib.save(resampled_img, args.out_image)
+    resampled_simg.save(args.out_image)
 
 
 if __name__ == '__main__':

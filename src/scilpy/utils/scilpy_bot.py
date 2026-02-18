@@ -201,9 +201,9 @@ def _generate_help_file(args):
         return
     # Run the script with --h and capture the output
     result = subprocess.run(['python', script, '--h'],
-                            capture_output=True, text=True)
+                            capture_output=True, text=True, encoding='utf-8')
     # Save the output to the hidden file
-    with open(help_file, 'w') as f:
+    with open(help_file, 'w', encoding='utf-8') as f:
         f.write(result.stdout)
 
 

@@ -8,7 +8,6 @@ import os
 
 from scilpy.utils import is_float
 
-
 def load_img(arg):
     """
     Function to create the variable for scil_volume_math main function.
