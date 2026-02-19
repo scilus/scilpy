@@ -13,7 +13,7 @@ Global connectivity metrics:
 - Optional:
     - WPC: wrong path connections, streamlines connecting correct ROIs but not
         respecting the other criteria for that bundle. Such streamlines always
-        exist but they are only saved separately if specified{}  in the options.
+        exist but they are only saved separately if specified in the options.
         Else, they are merged back with the IS.
         By definition. WPC are only computed if "limits masks" are provided.
     - IC: invalid connections, streamlines joining an incorrect combination of
@@ -73,7 +73,7 @@ def _compute_ae(args):
 
         # Using the abs value because vectors are undirected.
         cos_theta = np.abs(np.dot(current_peaks, dirs[i]))
-        cos_theta = np.clip(cos_theta, -1.0, 1.0)  # numerical safety
+        cos_theta = np.clip(cos_theta, 0, 1.0)  # numerical safety
         theta = np.rad2deg(np.arccos(cos_theta))
         ae_chunk[chunk_i] = np.min(theta)
 
