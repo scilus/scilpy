@@ -13,7 +13,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run(['scil_tractogram_extract_streamlines',
+    ret = script_runner.run(['scil_tractogram_filter_by_streamlines_properties',
                             '--help'])
     assert ret.success
 
@@ -43,21 +43,21 @@ def test_from_dpp(script_runner, monkeypatch):
     in_bundle_with_dpp = 'IFGWM_uni_with_dpp.trk'
 
     # From NB, top
-    ret = script_runner.run(['scil_tractogram_extract_streamlines',
+    ret = script_runner.run(['scil_tractogram_filter_by_streamlines_properties',
                              in_bundle_with_dpp, 'out_200_top.trk',
                              '--from_dpp', 'some_metric',
                              '--top', '--nb', 200])
     assert ret.success
 
     # From NB, center
-    ret = script_runner.run(['scil_tractogram_extract_streamlines',
+    ret = script_runner.run(['scil_tractogram_filter_by_streamlines_properties',
                              in_bundle_with_dpp, 'out_200_middle.trk',
                              '--from_dpp', 'some_metric',
                              '--center', '--nb', 200])
     assert ret.success
 
      # From Percent, bottom
-    ret = script_runner.run(['scil_tractogram_extract_streamlines',
+    ret = script_runner.run(['scil_tractogram_filter_by_streamlines_properties',
                              in_bundle_with_dpp, 'out_5percent_bottom.trk',
                              '--from_dpp', 'some_metric',
                              '--bottom', '--percent', 5])   
@@ -65,7 +65,7 @@ def test_from_dpp(script_runner, monkeypatch):
     assert ret.success
 
      # From mean + std, center
-    ret = script_runner.run(['scil_tractogram_extract_streamlines',
+    ret = script_runner.run(['scil_tractogram_filter_by_streamlines_properties',
                              in_bundle_with_dpp, 'out_middle_std.trk',
                              '--from_dpp', 'some_metric',
                              '--center', '--mean_std', 3])   
@@ -90,7 +90,7 @@ def from_dps(script_runner, monkeypatch):
 
     # No need to retest all options. 
     # From NB, top
-    ret = script_runner.run(['scil_tractogram_extract_streamlines',
+    ret = script_runner.run(['scil_tractogram_filter_by_streamlines_properties',
                              in_bundle_with_dps, 'out_200_top.trk',
                              '--from_dps', 'mean_dpp',
                              '--top', '--nb', 200])
