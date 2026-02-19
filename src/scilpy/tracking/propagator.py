@@ -405,22 +405,6 @@ class ODFPropagator(PropagatorOnSphere):
         self.B = sh_to_sf_matrix(self.sphere, sh_order, self.basis,
                                  smooth=0.006, return_inv=False,
                                  full_basis=full_basis, legacy=self.is_legacy)
-        
-    def set_theta(self, theta_rad: float):
-        """We want to update theta (radians) and recompute tracking neighbours"""
-        self.theta = float(theta_rad)
-        self.tracking_neighbours = get_sphere_neighbours(self.sphere,
-                                                         self.theta)
-
-    def set_algo(self, algo: str):
-        """This updates algorithm ('det' or 'prob')"""
-        if algo not in ['det', 'prob']:
-            raise ValueError("ODFPropagator algo should be 'det' or 'prob'")
-        self.algo = algo
-
-    def set_step_size(self, step_size: float):
-        """Update step size (in propagator space units)"""
-        self.step_size = float(step_size)
 
     def _get_sf(self, pos):
         """

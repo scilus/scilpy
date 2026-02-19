@@ -167,6 +167,10 @@ def _build_arg_parser():
     track_g.add_argument('--rap_save_entry_exit', default=None,
                          help='Save RAP entry/exit coordinates as a binary mask.\n'
                               'Provide output filename (.nii.gz).')
+    track_g.add_argument('--rap_labels', default=None,
+                         help='Region-Adaptive Propagation label volume (.nii.gz) .\n'
+                              'Voxel values are integer labels (0=background, 1..N=regions) .\n'
+                              'Used with --rap_method switch to select policies per label.')
 
     m_g = p.add_argument_group('Memory options')
     add_processes_arg(m_g)
@@ -195,15 +199,16 @@ def main():
     verify_compression_th(args.compress_th)
     verify_seed_options(parser, args)
 
-    if args.rap_mask is not None and args.rap_method == "None":
+    if (args.rap_mask is not None or args.rap_labels is not None) and args.rap_method == "None":
         parser.error('No RAP method selected.')
-    if not args.rap_method == "None" and args.rap_mask is None:
-        parser.error('No RAP mask selected.')
+    if args.rap_method == 'continue' and args.rap_mask is None:
+        parser.error('RAP method "continue" requires --rap_mask.')
+    if args.rap_method == 'switch' and (args.rap_mask is None and args.rap_labels is None):
+        parser.error('RAP method "switch" requires --rap_mask or --rap_labels.')
     if args.rap_method == 'switch' and args.rap_params is None:
         parser.error('RAP method "switch" requires --rap_params to be specified.')
     if args.rap_params is not None and args.rap_method != 'switch':
         parser.error('--rap_params can only be used with --rap_method switch.')
-
     tracts_format = detect_format(args.out_tractogram)
     if tracts_format is not TrkFile:
         logging.warning("You have selected option --save_seeds but you are "
@@ -292,21 +297,32 @@ def main():
         space=our_space, origin=our_origin, is_legacy=is_legacy)
 
     # ------- INSTANTIATING RAP OBJECT -------
+    rap_mask = None
+    rap_labels = None
     if args.rap_mask:
         logging.info("Loading RAP mask.")
         rap_img = nib.load(args.rap_mask)
         rap_data = rap_img.get_fdata(caching='unchanged', dtype=float)
         rap_res = rap_img.header.get_zooms()[:3]
         rap_mask = DataVolume(rap_data, rap_res, args.mask_interp)
-    else:
-        rap_mask = None
+
+    if args.rap_labels:
+        logging.info("Loading RAP labels.")
+        rap_label_img = nib.load(args.rap_labels)
+
+        rap_label_data = np.asanyarray(rap_label_img.dataobj).astype(np.uint8)
+        rap_label_res = rap_label_img.header.get_zooms()[:3]
+        rap_labels = DataVolume(rap_label_data, rap_label_res, 'nearest')
+        rap_mask_from_labels = (rap_label_data > 0).astype(np.float32)
+        rap_mask = DataVolume(rap_mask_from_labels, rap_label_res, 'nearest')
 
     if args.rap_method == "continue":
         rap = RAPContinue(rap_mask, propagator, max_nbr_pts,
                           step_size=vox_step_size)
     elif args.rap_method == "switch":
         rap = RAPSwitch(rap_mask, propagator, max_nbr_pts,
-                        rap_params_file=args.rap_params)
+                        rap_params_file=args.rap_params, 
+                        rap_labels=rap_labels)
     else:
         rap = None
 
