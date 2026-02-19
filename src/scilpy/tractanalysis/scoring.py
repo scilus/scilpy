@@ -149,7 +149,10 @@ def compute_ae(sft, peaks, nb_processes=1):
             _compute_ae, [(i, start, end, dirs, coords, peaks)
                           for i, (start, end) in enumerate(split_indices)]):
             ae[start:start + len(ae_chunk)] = ae_chunk
-            nb_nan += nb_nan_chunk             
+            nb_nan += nb_nan_chunk
+
+        pool.close()
+        pool.join()
 
     print(' ')  # Required because finishing sub-processes' tqdm is flaky
     if nb_nan > 0:
