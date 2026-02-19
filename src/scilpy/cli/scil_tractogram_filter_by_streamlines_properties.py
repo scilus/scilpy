@@ -1,13 +1,15 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Extract some streamlines from chosen criterion based on streamlines' dpp 
-(data_per_point) or dps (data_per_streamline).
+Extract some streamlines from your tractogram, using chosen criterion based on
+streamlines' dpp (data_per_point) or dps (data_per_streamline), or filter out
+streamlines.
 
 See also:
     - To modify your dpp / dps values: see scil_tractogram_dpp_math and 
     scil_tractogram_dps_math.
-    - To extract streamlines based on regions of interest (ROI), see 
+    - See all our other scil_tractogram_filter_* scripts!
+    - To extract streamlines based on regions of interest (ROI), see
     scil_tractogram_segment_with_ROI.
     - To extract U-shaped streamlines, see scil_tractogram_extract_ushape
 """
@@ -15,7 +17,6 @@ See also:
 import argparse
 import logging
 
-import nibabel as nib
 import numpy as np
 
 from scilpy.io.streamlines import (load_tractogram_with_reference,
@@ -58,7 +59,6 @@ def _build_arg_parser():
     gg.add_argument('--center', action='store_true',
                     help="Selects the average streamlines.")
     
-
     g = p.add_argument_group("Criterion")
     gg = g.add_mutually_exclusive_group(required=True)
     gg.add_argument(
@@ -69,8 +69,8 @@ def _build_arg_parser():
         help="Saves the streamlines in the top / lowest percentile.\n"
              "Default if set: The top / bottom 5%%")
     gg.add_argument(
-        '--mean_std', type=int, const=3,  nargs='?', dest='std',
-        help="Saves the streamlines with value above mean + N*std (option "
+        '--mean_std', metavar='N', type=int, const=3,  nargs='?', dest='std',
+        help="Saves streamlines with value above mean + N*std (option "
              "--top), below \nmean - N*std (option --below) or in the "
              "range [mean - N*std, mean + N*std] \n(option --center)."
              "Default if set: uses mean +- 3std.")   
@@ -104,6 +104,7 @@ def main():
         args.from_dps not in sft.data_per_streamline.keys()):
         parser.error("dps key not found")
 
+    # Extract the data of interest
     if args.from_dps is not None:
         data = sft.data_per_streamline[args.from_dps]
         data = [np.squeeze(data_s) for data_s in data] 
@@ -121,6 +122,7 @@ def main():
 
     nb_init = len(sft)
 
+    # Filtering
     if args.percent or args.nb:
         ordered_ind = np.argsort(data)
 
@@ -169,6 +171,7 @@ def main():
             logging.info("Number of streamlines in the range mean +- {}std: {}"
                          .format(args.std, sum(ind)))
 
+    # Saving
     sft = sft[ind]
     save_tractogram(sft, args.out_tractogram, no_empty=args.no_empty)
 

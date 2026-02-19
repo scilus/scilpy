@@ -4,14 +4,21 @@
 Compute the angular error (AE) for each segment of the streamlines.
 
 For each segment of each streamline, the direction is compared with the
-underlying peak (for single peak files like DTI) or with the closest peak
-(ex, with fODF peaks). Currently, interpolation is not supported: peaks of
-the closest voxel are used (nearest neighbor). AE is computed as the cosine
-difference.
+underlying peak (for single peak files, e.g. the first eigen-vector of tensors
+for DTI) or with the closest peak (ex, with fODF peaks). AE is computed as the
+cosine difference.
 
-The ae is added as data_per_point (dpp) for each segment, using the last point
+Currently, interpolation is not supported: peaks of  the closest voxel are used
+(nearest neighbor).
+
+The AE is added as data_per_point (dpp) for each point, using the first point
 of the segment. The last point of each streamline has an AE of zero.
 Optionnally, you may also save it as a color.
+
+When using --save_mean_map, if you want to be sure that your streamlines have
+points in most voxels that they touch, you could resample your tractogram
+first, with a small step size. See scil_tractogram_resample_nb_points.
+
 """
 
 import argparse
