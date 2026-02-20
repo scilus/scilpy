@@ -120,6 +120,21 @@ def load_tractogram_with_reference(parser, args, filepath, arg_name=None):
 
 
 def save_tractogram(sft, filename, no_empty, bbox_valid_check=True):
+    """
+    Save tractogram. If no_empty and the tractogram has 0 streamlines, won't
+    save.
+
+    Parameters
+    ----------
+    sft: StatefulTractogram
+        The Tractogram
+    filename: str
+        Where to save. Filename with valid extension.
+    no_empty: bool
+        Wether saving empty files is allowed or not.
+    bbox_valid_check: bool
+        Verify if streamlines are in the bounding box. Default: True.
+    """
     if len(sft.streamlines) == 0 and no_empty:
         logging.info("The file {} won't be written (0 streamlines)"
                      .format(filename))
