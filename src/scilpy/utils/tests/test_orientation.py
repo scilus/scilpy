@@ -89,15 +89,12 @@ def test_parse_voxel_order_4d_valid_numeric():
     """Test parsing of valid 4D numeric voxel order strings."""
     assert parse_voxel_order("1,2,3,4", dimensions=4) == ("R", "A", "S", "T")
     assert parse_voxel_order("-1,2,-3,4", dimensions=4) == ("L", "A", "I", "T")
-    assert parse_voxel_order("2,3,1", dimensions=4) == ("A", "S", "R")
+    assert parse_voxel_order("2,3,1", dimensions=4) == ("A", "S", "R", "T")
 
 
-def test_parse_voxel_order_4d_invalid_alpha():
-    """Test that 4D alphabetical voxel order strings raise an error."""
-    with pytest.raises(ValueError,
-                       match="Alphabetical voxel order is not supported for 4D "
-                             "images. Please use numeric format."):
-        parse_voxel_order("RAS", dimensions=4)
+def test_parse_voxel_order_4d_alpha():
+    """Test that 4D alphabetical voxel order strings are now supported."""
+    assert parse_voxel_order("RAS", dimensions=4) == ("R", "A", "S", "T")
 
 
 def test_parse_voxel_order_4d_invalid_numeric():

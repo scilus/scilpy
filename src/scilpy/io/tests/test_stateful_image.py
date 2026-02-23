@@ -193,7 +193,7 @@ def test_direct_instantiation():
 
 @pytest.mark.parametrize("codes, error_msg", [
     (None, "Axis codes cannot be None."),
-    ("INVALID", "Target axis codes must be of length 3."),
+    ("INVALID", "Invalid axis code 'N' in target."),
     ("RAR", "Target axis codes must be unique."),
     ("LRR", "Target axis codes must be unique."),
     ("LRA", "Conflicting axis codes 'L' and 'R' in target."),

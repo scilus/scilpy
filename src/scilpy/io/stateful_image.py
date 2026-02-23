@@ -123,20 +123,17 @@ class StatefulImage(nib.Nifti1Image):
         bvals = None
         bvecs = None
         if reference.bvals is not None and reference.bvecs is not None:
-            if len(reference.bvals) == source.shape[3]:
+            if source.ndim >= 4 and len(reference.bvals) == source.shape[3]:
                 bvals = reference.bvals
                 bvecs = reference.bvecs
 
                 # If reference orientation != source orientation, reorient bvecs
                 ref_axcodes = reference.axcodes
-                source_axcodes = nib.orientations.aff2axcodes(source.affine)
-                if len(source.shape) == 4:
-                    source_axcodes += ('T',)
-
-                if ref_axcodes != source_axcodes:
-                    # Strip 'T' for nibabel
-                    ref_axcodes_3d = [c for c in ref_axcodes if c != 'T']
-                    source_axcodes_3d = [c for c in source_axcodes if c != 'T']
+                source_axcodes_3d = nib.orientations.aff2axcodes(source.affine)
+                
+                if ref_axcodes[:3] != source_axcodes_3d:
+                    # Strip 'T' etc. for nibabel
+                    ref_axcodes_3d = ref_axcodes[:3]
 
                     # Use a temporary StatefulImage logic to reorient bvecs
                     start_ornt = nib.orientations.axcodes2ornt(ref_axcodes_3d)
@@ -327,11 +324,19 @@ class StatefulImage(nib.Nifti1Image):
         target_axcodes : str or tuple
             The target orientation axis codes (e.g., "LPS", ("R", "A", "S")).
         """
-        if len(self.shape) == 4 and len(target_axcodes) == 3:
-            if isinstance(target_axcodes, str):
-                target_axcodes += 'T'
-            else:
-                target_axcodes = tuple(target_axcodes) + ('T',)
+        if target_axcodes is None:
+            raise ValueError("Axis codes cannot be None.")
+
+        # Ensure target_axcodes has the same number of dimensions as self.shape
+        # by padding with unique placeholder codes if necessary.
+        target_axcodes = list(target_axcodes)
+        if len(target_axcodes) < len(self.shape):
+            extra_codes = ['T', 'U', 'V', 'W', 'X', 'Y', 'Z']
+            for i in range(len(target_axcodes), len(self.shape)):
+                target_axcodes.append(extra_codes[i-3])
+        elif len(target_axcodes) > len(self.shape):
+            target_axcodes = target_axcodes[:len(self.shape)]
+        target_axcodes = tuple(target_axcodes)
 
         validate_voxel_order(target_axcodes, dimensions=len(self.shape))
 
@@ -372,17 +377,11 @@ class StatefulImage(nib.Nifti1Image):
 
     def to_ras(self):
         """Convenience method to reorient in-memory data to RAS."""
-        if len(self.shape) == 4:
-            self.reorient(("R", "A", "S", "T"))
-        else:
-            self.reorient(("R", "A", "S"))
+        self.reorient(("R", "A", "S"))
 
     def to_lps(self):
         """Convenience method to reorient in-memory data to LPS."""
-        if len(self.shape) == 4:
-            self.reorient(("L", "P", "S", "T"))
-        else:
-            self.reorient(("L", "P", "S"))
+        self.reorient(("L", "P", "S"))
 
     def to_reference(self, obj):
         """
@@ -405,17 +404,17 @@ class StatefulImage(nib.Nifti1Image):
             raise TypeError('Reference object must not be a StatefulImage.')
 
         _, _, _, voxel_order = get_reference_info(obj)
-        if len(self.shape) == 4 and len(voxel_order) == 3:
-            voxel_order = tuple(voxel_order) + ('T',)
-        self.reorient(voxel_order)
+        self.reorient(voxel_order[:3])
 
     @property
     def axcodes(self):
         """Get the axis codes for the current image orientation."""
-        codes = nib.orientations.aff2axcodes(self.affine)
-        if len(self.shape) == 4:
-            codes += ('T',)
-        return codes
+        codes = list(nib.orientations.aff2axcodes(self.affine))
+        if len(self.shape) > 3:
+            extra_codes = ['T', 'U', 'V', 'W', 'X', 'Y', 'Z']
+            for i in range(3, len(self.shape)):
+                codes.append(extra_codes[i-3])
+        return tuple(codes)
 
     @property
     def original_axcodes(self):

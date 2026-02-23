@@ -6,16 +6,19 @@ import re
 def validate_voxel_order(axcodes, dimensions=3):
     """
     Validate a set of axis codes.
+
     Parameters
     ----------
     axcodes : str or tuple or list
         The axis codes to validate (e.g., "LPS", ("R", "A", "S")).
     dimensions : int
         The number of dimensions of the image.
+
     Returns
     -------
     tuple
         A tuple of validated axis codes.
+
     Raises
     ------
     ValueError
@@ -26,12 +29,13 @@ def validate_voxel_order(axcodes, dimensions=3):
 
     axcodes = tuple(axcodes)
     if len(axcodes) != dimensions:
-        raise ValueError(f"Target axis codes must be of length {dimensions}.")
+        raise ValueError(f"Target axis codes must be of length {dimensions}. "
+                         f"Got {len(axcodes)}.")
 
     # Check unique are only valid axis codes
     valid_codes = {"L", "R", "A", "P", "S", "I"}
-    if dimensions == 4:
-        valid_codes.add("T")
+    if dimensions >= 4:
+        valid_codes.update(["T", "U", "V", "W", "X", "Y", "Z"])
     for code in axcodes:
         if code not in valid_codes:
             raise ValueError(f"Invalid axis code '{code}' in target.")

@@ -7,6 +7,7 @@ import numpy as np
 import os
 
 from scilpy.utils import is_float
+from scilpy.io.stateful_image import StatefulImage
 
 
 def load_img(arg):
@@ -23,7 +24,7 @@ def load_img(arg):
     else:
         if not os.path.isfile(arg):
             raise ValueError('Input file {} does not exist.'.format(arg))
-        img = nib.load(arg)
+        img = StatefulImage.load(arg)
         shape = img.header.get_data_shape()
         dtype = img.header.get_data_dtype()
         logging.info('Loaded {} of shape {} and data_type {}.'.format(
@@ -95,7 +96,11 @@ def get_data_as_mask(mask_img, dtype=np.uint8):
 
     # Verify that loaded datatype is ok
     curr_type = mask_img.get_data_dtype().type
-    basename = os.path.basename(mask_img.get_filename())
+    if hasattr(mask_img, 'get_filename') and mask_img.get_filename():
+        basename = os.path.basename(mask_img.get_filename())
+    else:
+        basename = "unnamed"
+
     if np.issubdtype(curr_type, np.signedinteger) or \
         np.issubdtype(curr_type, np.unsignedinteger) \
             or np.issubdtype(curr_type, np.dtype(bool).type):

@@ -67,6 +67,7 @@ from dipy.tracking import utils as track_utils
 from dipy.tracking.local_tracking import LocalTracking
 from dipy.tracking.stopping_criterion import BinaryStoppingCriterion
 from scilpy.io.image import get_data_as_mask
+from scilpy.io.stateful_image import StatefulImage
 from scilpy.io.utils import (add_sphere_arg, add_verbose_arg,
                              assert_headers_compatible, assert_inputs_exist,
                              assert_outputs_exist, parse_sh_basis_arg,
@@ -187,14 +188,16 @@ def main():
     # when providing information to dipy (i.e. working as if in voxel space)
     # will not yield correct results. Tracking is performed in voxel space
     # in both the GPU and CPU cases.
-    odf_sh_img = nib.load(args.in_odf)
-    if not np.allclose(np.mean(odf_sh_img.header.get_zooms()[:3]),
-                       odf_sh_img.header.get_zooms()[0], atol=1e-03):
+    odf_sh_simg = StatefulImage.load(args.in_odf)
+    if not np.allclose(np.mean(odf_sh_simg.header.get_zooms()[:3]),
+                       odf_sh_simg.header.get_zooms()[0], atol=1e-03):
         parser.error(
             'ODF SH file is not isotropic. Tracking cannot be ran robustly.')
 
     logging.debug("Loading masks and finding seeds.")
-    mask_data = get_data_as_mask(nib.load(args.in_mask), dtype=bool)
+    mask_simg = StatefulImage.load(args.in_mask)
+    mask_simg.reorient(odf_sh_simg.axcodes)
+    mask_data = get_data_as_mask(mask_simg, dtype=bool)
 
     if args.npv:
         nb_seeds = args.npv
@@ -206,13 +209,14 @@ def main():
         nb_seeds = 1
         seed_per_vox = True
 
-    voxel_size = odf_sh_img.header.get_zooms()[0]
+    voxel_size = odf_sh_simg.header.get_zooms()[0]
     vox_step_size = args.step_size / voxel_size
-    seed_img = nib.load(args.in_seed)
+    seed_simg = StatefulImage.load(args.in_seed)
+    seed_simg.reorient(odf_sh_simg.axcodes)
 
     sh_basis, is_legacy = parse_sh_basis_arg(args)
 
-    if np.count_nonzero(seed_img.get_fdata(dtype=np.float32)) == 0:
+    if np.count_nonzero(seed_simg.get_fdata(dtype=np.float32)) == 0:
         raise IOError('The image {} is empty. '
                       'It can\'t be loaded as '
                       'seeding mask.'.format(args.in_seed))
@@ -224,7 +228,7 @@ def main():
         seeds = np.squeeze(load_matrix_in_any_format(args.in_custom_seeds))
     else:
         seeds = track_utils.random_seeds_from_mask(
-            seed_img.get_fdata(dtype=np.float32),
+            seed_simg.get_fdata(dtype=np.float32),
             np.eye(4),
             seeds_count=nb_seeds,
             seed_count_per_voxel=seed_per_vox,
@@ -259,7 +263,7 @@ def main():
         max_strl_len = int(2.0 * args.max_length / args.step_size) + 1
 
         # data volume
-        odf_sh = odf_sh_img.get_fdata(dtype=np.float32)
+        odf_sh = odf_sh_simg.get_fdata(dtype=np.float32)
 
         # GPU tracking needs the full sphere
         sphere = get_sphere(name=args.sphere).subdivide(n=args.sub_sphere)
@@ -280,7 +284,7 @@ def main():
 
     # save streamlines on-the-fly to file
     save_tractogram(streamlines_generator, tracts_format,
-                    odf_sh_img, total_nb_seeds, args.out_tractogram,
+                    odf_sh_simg, total_nb_seeds, args.out_tractogram,
                     args.min_length, args.max_length, args.compress_th,
                     args.save_seeds, args.verbose)
     # Final logging
