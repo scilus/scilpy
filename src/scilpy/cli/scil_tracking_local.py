@@ -235,6 +235,9 @@ def main():
             random_seed=args.seed)
     total_nb_seeds = len(seeds)
 
+    # ODF data
+    odf_sh_data = odf_sh_simg.get_fdata(dtype=np.float32)
+
     if not args.use_gpu:
         # LocalTracking.maxlen is actually the maximum length
         # per direction, we need to filter post-tracking.
@@ -243,7 +246,7 @@ def main():
         logging.info("Starting CPU local tracking.")
         streamlines_generator = LocalTracking(
             get_direction_getter(
-                args.in_odf, args.algo, args.sphere,
+                odf_sh_data, args.algo, args.sphere,
                 args.sub_sphere, args.theta, sh_basis,
                 voxel_size, args.sf_threshold, args.sh_to_pmf,
                 args.probe_length, args.probe_radius,
@@ -262,15 +265,12 @@ def main():
         # to agree with DIPY's implementation
         max_strl_len = int(2.0 * args.max_length / args.step_size) + 1
 
-        # data volume
-        odf_sh = odf_sh_simg.get_fdata(dtype=np.float32)
-
         # GPU tracking needs the full sphere
         sphere = get_sphere(name=args.sphere).subdivide(n=args.sub_sphere)
 
         logging.info("Starting GPU local tracking.")
         streamlines_generator = GPUTacker(
-            odf_sh, mask_data, seeds,
+            odf_sh_data, mask_data, seeds,
             vox_step_size, max_strl_len,
             theta=get_theta(args.theta, args.algo),
             sf_threshold=args.sf_threshold,

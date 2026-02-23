@@ -265,7 +265,7 @@ def save_tractogram(
     nib.streamlines.save(tractogram, out_tractogram, header=header)
 
 
-def get_direction_getter(in_img, algo, sphere, sub_sphere, theta, sh_basis,
+def get_direction_getter(img_data, algo, sphere, sub_sphere, theta, sh_basis,
                          voxel_size, sf_threshold, sh_to_pmf,
                          probe_length, probe_radius, probe_quality,
                          probe_count, support_exponent, is_legacy=True):
@@ -273,8 +273,8 @@ def get_direction_getter(in_img, algo, sphere, sub_sphere, theta, sh_basis,
 
     Parameters
     ----------
-    in_img: str
-        Path to the input odf file.
+    img_data: ndarray
+        The input odf data.
     algo: str
         Algorithm to use for tracking. Can be 'det', 'prob', 'ptt' or 'eudx'.
     sphere: str
@@ -319,8 +319,6 @@ def get_direction_getter(in_img, algo, sphere, sub_sphere, theta, sh_basis,
     dg: dipy.direction.DirectionGetter
         The direction getter object.
     """
-    img_data = nib.load(in_img).get_fdata(dtype=np.float32)
-
     sphere = HemiSphere.from_sphere(
         get_sphere(name=sphere)).subdivide(n=sub_sphere)
 
