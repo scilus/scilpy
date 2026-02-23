@@ -8,6 +8,7 @@ import os
 
 from scilpy.utils import is_float
 
+
 def load_img(arg):
     """
     Function to create the variable for scil_volume_math main function.
@@ -87,8 +88,8 @@ def get_data_as_mask(mask_img, dtype=np.uint8):
         Data (dtype : np.uint8 or bool).
     """
     # Verify that out data type is ok
-    if not (issubclass(np.dtype(dtype).type, np.uint8) or
-            issubclass(np.dtype(dtype).type, np.dtype(bool).type)):
+    if not (issubclass(np.dtype(dtype).type, np.uint8)
+            or issubclass(np.dtype(dtype).type, np.dtype(bool).type)):
         raise IOError('Output data type must be uint8 or bool. '
                       'Current data type is {}.'.format(dtype))
 

@@ -84,6 +84,7 @@ def test_parse_voxel_order_invalid_format():
                        match="Voxel order string must have 3 or 4 numbers."):
         parse_voxel_order("1,2,3,4,5", dimensions=4)
 
+
 def test_parse_voxel_order_4d_valid_numeric():
     """Test parsing of valid 4D numeric voxel order strings."""
     assert parse_voxel_order("1,2,3,4", dimensions=4) == ("R", "A", "S", "T")

@@ -32,6 +32,7 @@ reference.
 import argparse
 import logging
 import nibabel as nib
+import numpy as np
 
 from scilpy.io.utils import (add_overwrite_arg,
                              add_verbose_arg,
@@ -54,6 +55,11 @@ def _build_arg_parser():
     p.add_argument('--new_voxel_order', required=True,
                    help='The new voxel order (e.g., "RAS", "1,2,3").')
 
+    p.add_argument('--in_bvec',
+                   help='Path of the b-vectors file.')
+    p.add_argument('--out_bvec',
+                   help='Path of the modified b-vectors file to write.')
+
     add_verbose_arg(p)
     add_overwrite_arg(p)
 
@@ -65,18 +71,31 @@ def main():
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
-    assert_inputs_exist(parser, args.in_image)
-    assert_outputs_exist(parser, args, args.out_image)
+    assert_inputs_exist(parser, args.in_image, args.in_bvec)
+    assert_outputs_exist(parser, args, args.out_image, args.out_bvec)
 
     img = nib.load(args.in_image)
     simg = StatefulImage.load(args.in_image)
+
+    if args.in_bvec:
+        bvecs = np.loadtxt(args.in_bvec)
+        if bvecs.shape[0] == 3 and bvecs.shape[1] != 3:
+            bvecs = bvecs.T
+
+        # Create dummy bvals to satisfy StatefulImage validation
+        bvals = np.zeros(len(bvecs))
+        simg.attach_gradients(bvals, bvecs)
 
     parsed_voxel_order = parse_voxel_order(args.new_voxel_order,
                                            dimensions=len(img.shape))
 
     simg.reorient(parsed_voxel_order)
 
-    nib.save(simg, args.out_image)
+    new_simg = StatefulImage.convert_to_simg(simg, simg.bvals, simg.bvecs)
+    new_simg.save(args.out_image)
+
+    if args.in_bvec and args.out_bvec:
+        np.savetxt(args.out_bvec, simg.bvecs.T, fmt='%.8f')
 
 
 if __name__ == "__main__":

@@ -53,16 +53,18 @@ def parse_voxel_order(order_str, dimensions=3):
     """
     Parse the voxel order string into a tuple of axis codes.
     """
-    order_str_cleaned = order_str.replace(',', '').replace(' ', '')
+    order_str_cleaned = order_str.replace(',', '').replace(' ', '').upper()
 
-    if dimensions == 4 and order_str_cleaned.isalpha():
-        raise ValueError("Alphabetical voxel order is not supported for 4D "
-                         "images. Please use numeric format.")
+    if dimensions == 4 and order_str_cleaned.isalpha() and \
+            len(order_str_cleaned) == 3:
+        order_str_cleaned += 'T'
 
     if order_str_cleaned.isalpha():
-        if len(order_str_cleaned) != 3:
-            raise ValueError("Voxel order string must have 3 characters.")
-        return validate_voxel_order(tuple(order_str_cleaned.upper()))
+        if len(order_str_cleaned) != dimensions:
+            raise ValueError(f"Voxel order string must have {dimensions} "
+                             f"characters.")
+        return validate_voxel_order(tuple(order_str_cleaned),
+                                    dimensions=dimensions)
 
     if order_str_cleaned.replace('-', '').isdigit():
         numeric_parts = re.findall(r'-?\d', order_str_cleaned)
@@ -89,16 +91,19 @@ def parse_voxel_order(order_str, dimensions=3):
                 axis = flip_map[axis]
             order.append(axis)
 
+        if dimensions == 4 and len(order) == 3:
+            order.append('T')
+
         # Check for duplicate axes
-        if len(set(order)) != len(numeric_parts):
+        if len(set(order)) != len(order):
             # Handle swapped axes from numeric input (e.g., '231')
             axis_vals = [ras_map[abs(int(p))] for p in numeric_parts]
             if len(set(axis_vals)) == len(numeric_parts):
-                return validate_voxel_order(tuple(order), dimensions=len(numeric_parts))
+                return validate_voxel_order(tuple(order), dimensions=dimensions)
             else:
                 raise ValueError("Invalid numeric voxel order. "
                                  "Axes cannot be repeated.")
 
-        return validate_voxel_order(tuple(order), dimensions=len(numeric_parts))
-    
+        return validate_voxel_order(tuple(order), dimensions=dimensions)
+
     raise ValueError(f"Invalid voxel order format: {order_str}")

@@ -272,8 +272,8 @@ def register_image(static, static_grid2world, moving, moving_grid2world,
     level_iters = [250, 100, 50, 25] if fine else [50, 25, 5]
 
     # With images too small, dipy fails with no clear warning.
-    if (np.any(np.asarray(moving.shape) < 8) or
-            np.any(np.asarray(static.shape) < 8)):
+    if (np.any(np.asarray(moving.shape) < 8)
+            or np.any(np.asarray(static.shape) < 8)):
         raise ValueError("Current implementation of registration was prepared "
                          "with factors up to 8. Requires images with at least "
                          "8 voxels in each direction.")
@@ -397,7 +397,7 @@ def compute_snr(dwi, bval, bvec, b0_thr, mask, noise_mask=None, noise_map=None,
 
             # Add the upper half in order to delete the neck and shoulder
             # when inverting the mask
-            noise_mask[..., :noise_mask.shape[-1]//2] = 1
+            noise_mask[..., :noise_mask.shape[-1] // 2] = 1
 
             # Reverse the mask to get only noise
             noise_mask = (~noise_mask).astype(bool)

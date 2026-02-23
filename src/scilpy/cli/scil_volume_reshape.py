@@ -75,8 +75,8 @@ def main():
     assert_inputs_exist(parser, args.in_image, args.ref)
     assert_outputs_exist(parser, args, args.out_image)
 
-    if args.volume_size and (not len(args.volume_size) == 1 and
-                             not len(args.volume_size) == 3):
+    if args.volume_size and (not len(args.volume_size) == 1
+                             and not len(args.volume_size) == 3):
         parser.error('--volume_size takes in either 1 or 3 arguments.')
 
     logging.info('Loading raw data from %s', args.in_image)
