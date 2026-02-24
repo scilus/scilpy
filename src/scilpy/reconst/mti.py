@@ -5,8 +5,6 @@ import numpy as np
 import scipy.io
 import scipy.ndimage
 
-from scilpy.io.image import get_data_as_mask
-
 
 def py_fspecial_gauss(shape, sigma):
     """

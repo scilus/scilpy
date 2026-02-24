@@ -130,15 +130,17 @@ class StatefulImage(nib.Nifti1Image):
                 # If reference orientation != source orientation, reorient bvecs
                 ref_axcodes = reference.axcodes
                 source_axcodes_3d = nib.orientations.aff2axcodes(source.affine)
-                
+
                 if ref_axcodes[:3] != source_axcodes_3d:
                     # Strip 'T' etc. for nibabel
                     ref_axcodes_3d = ref_axcodes[:3]
 
                     # Use a temporary StatefulImage logic to reorient bvecs
                     start_ornt = nib.orientations.axcodes2ornt(ref_axcodes_3d)
-                    target_ornt = nib.orientations.axcodes2ornt(source_axcodes_3d)
-                    transform = nib.orientations.ornt_transform(start_ornt, target_ornt)
+                    target_ornt = nib.orientations.axcodes2ornt(
+                        source_axcodes_3d)
+                    transform = nib.orientations.ornt_transform(
+                        start_ornt, target_ornt)
                     axis_permutation = transform[:, 0].astype(int)
                     axis_flips = transform[:, 1]
                     bvecs = bvecs[:, axis_permutation] * axis_flips

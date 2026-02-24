@@ -27,7 +27,6 @@ import logging
 
 from dipy.core.gradients import gradient_table
 from dipy.reconst.dti import TensorModel
-import nibabel as nib
 import numpy as np
 from tqdm import tqdm
 
@@ -122,34 +121,35 @@ def main():
         for ii in range(3):
             flip = np.eye(3)
             flip[ii, ii] = -1
-            transforms[ii + i * NB_FLIPS + 1] = transforms[i * NB_FLIPS].dot(flip)
+            transforms[ii + i * NB_FLIPS +
+                       1] = transforms[i * NB_FLIPS].dot(flip)
 
     # Iterative refit and coherence calculation
     best_coherence = -1
     best_t = None
-    
+
     logging.info('Refitting DTI 24 times for gradient validation...')
     for t in tqdm(transforms):
         # Transform bvecs
         # Note: Dipy expects bvecs as (N, 3). We apply the transform to axes.
         # G' = G @ T
         bvecs_candidate = bvecs @ t
-        
-        gtab_candidate = gradient_table(bvals, bvecs=bvecs_candidate, 
+
+        gtab_candidate = gradient_table(bvals, bvecs=bvecs_candidate,
                                         b0_threshold=args.b0_threshold)
         tenmodel_candidate = TensorModel(gtab_candidate, fit_method='WLS',
                                          min_signal=np.min(data[data > 0]))
-        
+
         # Fit ONLY on the high-FA mask to save time
         tenfit_candidate = tenmodel_candidate.fit(data, mask=high_fa_mask)
-        
+
         # Extract the principal direction (v1)
         # evecs is (H, W, D, 3, 3), evecs[..., 0] is the first eigenvector (peak)
         peaks = tenfit_candidate.evecs[..., 0]
-        
+
         # Compute coherence
         coherence = compute_fiber_coherence(peaks, fa)
-        
+
         if coherence > best_coherence:
             best_coherence = coherence
             best_t = t

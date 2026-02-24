@@ -147,7 +147,7 @@ def main():
 
     new_img = nib.Nifti1Image(output_data, ref_img.affine,
                               header=ref_img.header)
-    
+
     # Use StatefulImage.create_from to ensure original orientation
     # ref_img is also a StatefulImage (loaded via load_img earlier)
     StatefulImage.create_from(new_img, ref_img).save(args.out_image)
