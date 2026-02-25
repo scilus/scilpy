@@ -89,17 +89,16 @@ class RAPSwitch(RAP):
 
         # Load parameters from JSON file
         with open(rap_params_file, 'r') as f:
-            rap_params = json.load(f)
-        cfg = rap_params
+            cfg = json.load(f)
 
         # Store original parameters
         self.original_step_size = propagator.step_size
         self.original_theta = propagator.theta
 
         # Store RAP parameters (convert step size to voxel space if needed)
-        self.rap_step_size = rap_params.get('step_size', self.original_step_size)
+        self.rap_step_size = cfg.get('step_size', self.original_step_size)
         # Convert theta from degrees to radians
-        self.rap_theta = math.radians(rap_params.get('theta',
+        self.rap_theta = math.radians(cfg.get('theta',
                                                      math.degrees(self.original_theta)))
         
         self.rap_mask = mask_rap

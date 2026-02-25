@@ -76,6 +76,8 @@ from scilpy.tracking.utils import (add_mandatory_options_tracking,
                                    verify_streamline_length_options,
                                    verify_seed_options)
 from scilpy.version import version_string
+from scilpy.image.labels import get_data_as_labels
+from scilpy.io.image import get_data_as_mask
 
 
 def _build_arg_parser():
@@ -302,19 +304,22 @@ def main():
     if args.rap_mask:
         logging.info("Loading RAP mask.")
         rap_img = nib.load(args.rap_mask)
-        rap_data = rap_img.get_fdata(caching='unchanged', dtype=float)
-        rap_res = rap_img.header.get_zooms()[:3]
-        rap_mask = DataVolume(rap_data, rap_res, args.mask_interp)
+        rap_mask_data = get_data_as_mask(rap_img)        
+        rap_mask_res = rap_img.header.get_zooms()[:3]
+        rap_mask = DataVolume(rap_mask_data, rap_mask_res, args.mask_interp)
 
     if args.rap_labels:
         logging.info("Loading RAP labels.")
         rap_label_img = nib.load(args.rap_labels)
 
-        rap_label_data = np.asanyarray(rap_label_img.dataobj).astype(np.uint8)
+        # Convert the rap_labels image to int if float
+        if np.issubdtype(rap_label_img.get_data_dtype(), np.floating):
+            int_data = np.round(rap_label_img.get_fdata()).astype(np.int16)
+            rap_label_img = nib.Nifti1Image(int_data, rap_label_img.affine)
+
+        rap_label_data = get_data_as_labels(rap_label_img)
         rap_label_res = rap_label_img.header.get_zooms()[:3]
         rap_labels = DataVolume(rap_label_data, rap_label_res, 'nearest')
-        rap_mask_from_labels = (rap_label_data > 0).astype(np.float32)
-        rap_mask = DataVolume(rap_mask_from_labels, rap_label_res, 'nearest')
 
     if args.rap_method == "continue":
         rap = RAPContinue(rap_mask, propagator, max_nbr_pts,

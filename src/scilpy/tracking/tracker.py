@@ -509,17 +509,15 @@ class Tracker(object):
             
             # Detect entering RAP region
             if is_currently_in_rap and not in_rap_region:
-                #print(f"Streamline entering RAP mask at position: {line[-1]}")
                 self.rap_entry_exit_coords.append((line[-1].copy(), 1))  # 1 for entry
                 in_rap_region = True
-                logging.debug(f"[TRACKER] step={step_count} ENTREE RAP pos={np.round(line[-1], 2)}")
+                logging.debug(f"[TRACKER] step={step_count} RAP ENTER pos={np.round(line[-1], 2)}")
             
             # Detect exiting RAP region
             elif not is_currently_in_rap and in_rap_region:
-                #print(f"Streamline exiting RAP mask at position: {line[-1]}")
                 self.rap_entry_exit_coords.append((line[-1].copy(), 2))  # 2 for exit
                 in_rap_region = False
-                logging.debug(f"[TRACKER] step={step_count} SORTIE RAP pos={np.round(line[-1], 2)} total_pts={len(line)}")
+                logging.debug(f"[TRACKER] step={step_count} RAP EXIT pos={np.round(line[-1], 2)} total_pts={len(line)}")
             
             if is_currently_in_rap:
                 prev_len = len(line)
@@ -568,7 +566,7 @@ class Tracker(object):
 
             previous_dir = new_dir
             step_count += 1
-        logging.debug(f"[TRACKER] end of propagation: {len(line)} total points")
+        logging.debug(f"[TRACKER] end of propagation: {len(line)} total points, last pos={np.round(line[-1], 2)}")
         return line
 
     def _verify_stopping_criteria(self, last_pos):
