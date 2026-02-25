@@ -83,7 +83,7 @@ def _get_stats_parse_function(stats, stats_over_population):
         return _parse_lesion
     elif type(first_bundle_substat) is dict:
         sub_keys = list(first_bundle_substat.keys())
-        if required_keys.issubset(sub_keys):  # when you used scil_json_merge_entries
+        if required_keys.issubset(sub_keys):  # when you have mean and std per stats
             if stats_over_population:
                 return _parse_per_label_population_stats
             else:
@@ -137,7 +137,7 @@ def _parse_scalar_meanstd(stats, subs, bundles):
     means = np.full((nb_subs, nb_bundles, nb_metrics), np.NaN)
     stddev = np.full((nb_subs, nb_bundles, nb_metrics), np.NaN)
     
-    found_keys = set()    
+    found_keys = set()    # when you used scil_json_merge_entries
     for sub_dict in stats.values():
         for bundle_dict in sub_dict.values():
             for m_stat in bundle_dict.values():
@@ -231,7 +231,7 @@ def _parse_scalar_lesions(stats, subs, bundles):
 
         dataframes.append(pd.DataFrame(data=stddev[:, :, metric_id],
                                        index=subs, columns=bundles))
-        df_names.append(metric_name + "_std")   
+        df_names.append(metric_name + "_std")
 
     return dataframes, df_names
 
