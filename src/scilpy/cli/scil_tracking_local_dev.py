@@ -322,7 +322,7 @@ def main():
     elif args.rap_method == "switch":
         rap = RAPSwitch(rap_mask, propagator, max_nbr_pts,
                         rap_params_file=args.rap_params, 
-                        rap_labels=rap_labels)
+                        rap_labels=rap_labels, tracking_mask=mask)
     else:
         rap = None
 
@@ -368,8 +368,7 @@ def main():
     sft = StatefulTractogram(streamlines, mask_img,
                              space=our_space, origin=our_origin,
                              data_per_streamline=data_per_streamline)
-    save_tractogram(sft, args.out_tractogram, bbox_valid_check=False
-    )
+    save_tractogram(sft, args.out_tractogram)
 
 
 if __name__ == "__main__":

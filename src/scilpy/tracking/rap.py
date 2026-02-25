@@ -67,7 +67,7 @@ class RAPContinue(RAP):
 
 class RAPSwitch(RAP):
     """RAP class that switches tracking parameters when inside the RAP mask."""
-    def __init__(self, mask_rap, propagator, max_nbr_pts, rap_params_file, rap_labels=None):
+    def __init__(self, mask_rap, propagator, max_nbr_pts, rap_params_file, rap_labels=None, tracking_mask=None):
         """
         Parameters
         ----------
@@ -85,6 +85,7 @@ class RAPSwitch(RAP):
             }
         """
         super().__init__(mask_rap, propagator, max_nbr_pts)
+        self.tracking_mask = tracking_mask
 
         # Load parameters from JSON file
         with open(rap_params_file, 'r') as f:
@@ -146,6 +147,7 @@ class RAPSwitch(RAP):
         """
         # Switch to RAP parameters
         is_line_valid = True
+        step_idx = 0
 
         # We allow RAP to extend the streamline while it stays inside the RAP region
         # In mask mode: "inside" means rap_mask > 0
@@ -157,13 +159,18 @@ class RAPSwitch(RAP):
             if self._mode == 'label':
                 label = self._get_label(curr_pos, self.propagator.space, self.propagator.origin)
                 if label <= 0:
+                    logging.debug(f"[RAP] step={step_idx} label=0, exit zone RAP")
                     break
                 cfg = self._merge_cfg(label)
             else:
                 # Classic binary RAP mask behaviour
                 if not self.is_in_rap_region(curr_pos, self.propagator.space, self.propagator.origin):
+                    logging.debug(f"[RAP] step={step_idx} out of RAP zone (mask mode)")
                     break
                 cfg = self.rap_cfg
+
+            logging.debug(f"[RAP] step={step_idx} label={label if self._mode == 'label' else 'N/A'} "
+                      f"cfg=algo:{cfg.get('algo')} theta:{cfg.get('theta')} step:{cfg.get('step_size')}")
 
             # Apply selected params for ONE step, then restore
             self._apply_cfg(cfg)
@@ -172,13 +179,32 @@ class RAPSwitch(RAP):
             finally:
                 self._restore_base()
 
-            is_line_valid = is_line_valid and valid
             if not valid:
+                logging.debug(f"[RAP] step={step_idx} invalid direction, stop") 
+                is_line_valid = False
                 break
+
+            if self.tracking_mask is not None:
+                if not self.tracking_mask.is_coordinate_in_bound(
+                        *new_pos,
+                        space=self.propagator.space,
+                        origin=self.propagator.origin):
+                    logging.debug(f"[RAP] step={step_idx} out of bounds, stop")
+                    break
+                in_mask = self.tracking_mask.get_value_at_coordinate(
+                    *new_pos,
+                    space=self.propagator.space,
+                    origin=self.propagator.origin
+                ) > 0
+                if not in_mask:
+                    logging.debug(f"[RAP] step={step_idx} out of mask, stop")
+                    break
 
             line.append(new_pos)
             prev_direction = new_dir
+            step_idx += 1
 
+        logging.debug(f"[RAP] end: {step_idx} RAP steps RAP completed")
         return line, prev_direction, is_line_valid
         
     def _get_label(self, curr_pos, space, origin):
