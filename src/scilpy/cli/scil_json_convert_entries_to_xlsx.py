@@ -17,7 +17,8 @@ from scilpy.io.utils import (add_overwrite_arg, add_verbose_arg,
 from scilpy.version import version_string
 
 dps_dpp = ['data_per_streamline_keys', 'data_per_point_keys']
-
+required_keys = {'mean', 'std'}
+optional_keys = {'ROI-name', 'nb-vx-roi', 'nb-vx-seed', 'max'}
 
 def _get_all_bundle_names(stats):
     bnames = set()
@@ -82,7 +83,7 @@ def _get_stats_parse_function(stats, stats_over_population):
         return _parse_lesion
     elif type(first_bundle_substat) is dict:
         sub_keys = list(first_bundle_substat.keys())
-        if set(sub_keys) == set(['mean', 'std']):  # when you have mean and std per stats
+        if required_keys.issubset(sub_keys):  # when you used scil_json_merge_entries
             if stats_over_population:
                 return _parse_per_label_population_stats
             else:
@@ -135,6 +136,21 @@ def _parse_scalar_meanstd(stats, subs, bundles):
 
     means = np.full((nb_subs, nb_bundles, nb_metrics), np.NaN)
     stddev = np.full((nb_subs, nb_bundles, nb_metrics), np.NaN)
+    
+    found_keys = set()    
+    for sub_dict in stats.values():
+        for bundle_dict in sub_dict.values():
+            for m_stat in bundle_dict.values():
+                if isinstance(m_stat, dict):
+                    found_keys.update(m_stat.keys())
+    keys_present = found_keys & optional_keys
+    
+    if 'nb-vx-roi' in keys_present:
+        nb_vx_roi = np.full((nb_subs, nb_bundles, nb_metrics), np.NaN)
+    if 'nb-vx-seed' in keys_present:
+        nb_vx_seed = np.full((nb_subs, nb_bundles, nb_metrics), np.NaN)
+    if 'max' in keys_present:
+        maxi = np.full((nb_subs, nb_bundles, nb_metrics), np.NaN)
 
     for sub_id, sub_name in enumerate(subs):
         for bundle_id, bundle_name in enumerate(bundles):
@@ -147,6 +163,12 @@ def _parse_scalar_meanstd(stats, subs, bundles):
                     if m_stat is not None:
                         means[sub_id, bundle_id, metric_id] = m_stat['mean']
                         stddev[sub_id, bundle_id, metric_id] = m_stat['std']
+                        if 'nb-vx-roi' in keys_present:
+                            nb_vx_roi[sub_id, bundle_id, metric_id] = m_stat.get('nb-vx-roi', np.nan)
+                        if 'nb-vx-seed' in keys_present:
+                            nb_vx_seed[sub_id, bundle_id, metric_id] = m_stat.get('nb-vx-seed', np.nan)
+                        if 'max' in keys_present:
+                            maxi[sub_id, bundle_id, metric_id] = m_stat.get('max', np.nan)
 
     dataframes = []
     df_names = []
@@ -157,8 +179,23 @@ def _parse_scalar_meanstd(stats, subs, bundles):
         df_names.append(metric_name + "_mean")
 
         dataframes.append(pd.DataFrame(data=stddev[:, :, metric_id],
-                                       index=subs, columns=bundles))
+                                        index=subs, columns=bundles))
         df_names.append(metric_name + "_std")
+        
+        if 'nb-vx-roi' in keys_present:
+            dataframes.append(pd.DataFrame(data=nb_vx_roi[:, :, metric_id],
+                                        index=subs, columns=bundles))
+            df_names.append(metric_name + "_nb-vx-roi")
+
+        if 'nb-vx-seed' in keys_present:
+            dataframes.append(pd.DataFrame(data=nb_vx_seed[:, :, metric_id],
+                                        index=subs, columns=bundles))
+            df_names.append(metric_name + "_nb-vx-seed")
+
+        if 'max' in keys_present:
+            dataframes.append(pd.DataFrame(data=maxi[:, :, metric_id],
+                                        index=subs, columns=bundles))
+            df_names.append(metric_name + "_max")
 
     return dataframes, df_names
 
@@ -194,7 +231,7 @@ def _parse_scalar_lesions(stats, subs, bundles):
 
         dataframes.append(pd.DataFrame(data=stddev[:, :, metric_id],
                                        index=subs, columns=bundles))
-        df_names.append(metric_name + "_std")
+        df_names.append(metric_name + "_std")   
 
     return dataframes, df_names
 
