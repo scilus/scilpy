@@ -497,7 +497,7 @@ class Tracker(object):
         invalid_direction_count = 0
         propagation_can_continue = True
         in_rap_region = False  # Track whether we're currently in RAP region
-        step_count = 0
+        step_count = 0 
 
         while len(line) < self.max_nbr_pts and propagation_can_continue:
 
@@ -519,25 +519,28 @@ class Tracker(object):
                 in_rap_region = False
                 logging.debug(f"[TRACKER] step={step_count} RAP EXIT pos={np.round(line[-1], 2)} total_pts={len(line)}")
             
+            # If we are in RAP, we track using RAPSwitch
             if is_currently_in_rap:
                 prev_len = len(line)
                 line, new_dir, is_line_valid = (
                     self.rap.rap_multistep_propagate(line, previous_dir))
-                
                 logging.debug(f"[TRACKER] RAP advanced of {len(line) - prev_len} points")
-
                 if not is_line_valid:
                     logging.debug(f"[TRACKER] RAP invalid, stop")
                     break
-
                 if len(line) == prev_len:
                     logging.debug(f"[TRACKER] RAP no progress, stop")
                     propagation_can_continue = False
                     break
-
-                invalid_direction_count = 0
                 new_pos = line[-1]
-            # Else, "normal" one-step propagation
+
+                # Verify that our RAP propagated point stays within the tracking mask
+                propagation_can_continue = self._verify_stopping_criteria(new_pos)
+                if not propagation_can_continue:
+                    logging.debug(f"[TRACKER] RAP out of mask, stop.")
+                    break
+
+            # Else, if we are not in RAP, we track 'normal' one-step propagation
             else:
                 new_pos, new_dir, is_direction_valid = \
                     self.propagator.propagate(line, previous_dir)
@@ -552,20 +555,18 @@ class Tracker(object):
                         logging.debug(f"[TRACKER] step={step_count} too many invalid directions, stop")
                         break
 
-            if is_currently_in_rap:
                 propagation_can_continue = self._verify_stopping_criteria(new_pos)
-                if not propagation_can_continue:
-                    logging.debug(f"[TRACKER] step={step_count} out of mask, stop. total_pts={len(line)}")
-                    break
-            else:
-                propagation_can_continue = self._verify_stopping_criteria(new_pos)
-                if not propagation_can_continue:
-                    logging.debug(f"[TRACKER] step={step_count} out of mask, stop. total_pts={len(line)}")
+
                 if propagation_can_continue or self.append_last_point:
                     line.append(new_pos)
 
+                if not propagation_can_continue:
+                    logging.debug(f"[TRACKER] out of mask, stop.")
+                    break
+                    
             previous_dir = new_dir
             step_count += 1
+        
         logging.debug(f"[TRACKER] end of propagation: {len(line)} total points, last pos={np.round(line[-1], 2)}")
         return line
 

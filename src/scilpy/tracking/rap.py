@@ -66,8 +66,8 @@ class RAPContinue(RAP):
 
 
 class RAPSwitch(RAP):
-    """RAP class that switches tracking parameters when inside the RAP mask."""
-    def __init__(self, mask_rap, propagator, max_nbr_pts, rap_params_file, rap_labels=None, tracking_mask=None):
+    """RAP class that switches tracking parameters when inside the RAP mask or RAP label."""
+    def __init__(self, mask_rap, propagator, max_nbr_pts, rap_params_file):
         """
         Parameters
         ----------
@@ -79,31 +79,26 @@ class RAPSwitch(RAP):
             Maximum number of points per streamline.
         rap_params_file : str
             Path to JSON file containing RAP parameters.
-            Expected format: {
+            Expected format if mode is mask: {
                 "step_size": float,
                 "theta": float (in degrees)
             }
+            Expected format if mode is label: {
+            "default": {"algo": str, "theta": float, "step_size": float},
+            "methods": {
+                "1": {"algo": str, "theta": float, "step_size": float},
+                "2": {"algo": str, "theta": float, "step_size": float},
+                ...
+            }
+        }
         """
         super().__init__(mask_rap, propagator, max_nbr_pts)
-        self.tracking_mask = tracking_mask
 
         # Load parameters from JSON file
         with open(rap_params_file, 'r') as f:
-            cfg = json.load(f)
-
-        # Store original parameters
-        self.original_step_size = propagator.step_size
-        self.original_theta = propagator.theta
-
-        # Store RAP parameters (convert step size to voxel space if needed)
-        self.rap_step_size = cfg.get('step_size', self.original_step_size)
-        # Convert theta from degrees to radians
-        self.rap_theta = math.radians(cfg.get('theta',
-                                                     math.degrees(self.original_theta)))
+            rap_params = json.load(f)
         
-        self.rap_mask = mask_rap
-        self.rap_labels = rap_labels
-        self._mode = 'label' if rap_labels is not None else 'mask'
+        self._mode = 'label' if 'methods' in rap_params else 'mask'
 
         self._base = {
             'step_size': propagator.step_size,
@@ -113,17 +108,14 @@ class RAPSwitch(RAP):
         }
 
         if self._mode == 'label':
-            self.default_cfg = cfg.get('default', {})
-            self.methods_cfg = cfg.get('methods', {})
+            self.default_cfg = rap_params.get('default', {})
+            self.methods_cfg = rap_params.get('methods', {})
         else:
-            self.rap_cfg = cfg
+            self.rap_cfg = rap_params
 
         logging.info("RAP parameters loaded:")
-        logging.info(f"  Original step_size: {self.original_step_size:.3f}, "
-                     f"RAP step_size: {self.rap_step_size:.3f}")
-        logging.info(f"  Original theta: {math.degrees(self.original_theta):.2f}°, "
-                     f"RAP theta: {math.degrees(self.rap_theta):.2f}°")
-
+        logging.info(f"  RAP mode: {self._mode}")
+        
     def rap_multistep_propagate(self, line, prev_direction):
         """
         Propagate within the RAP region using modified parameters.
@@ -145,81 +137,85 @@ class RAPSwitch(RAP):
             Whether the line is valid.
         """
         # Switch to RAP parameters
-        is_line_valid = True
-        step_idx = 0
+        if self._mode == 'label':
+            label = self._get_label(line[-1], self.propagator.space, self.propagator.origin)
+            if label <= 0:
+                return line, prev_direction, False
+            # Apply the parameters of the RAP labels
+            cfg = self._merge_cfg(label)
+        else:
+            cfg = self.rap_cfg
 
-        # We allow RAP to extend the streamline while it stays inside the RAP region
-        # In mask mode: "inside" means rap_mask > 0
-        # In label mode: "inside" means label > 0 and we can switch config per label
-        while len(line) < self.max_nbr_pts:
-            curr_pos = line[-1]
+        # Perform propagation with new parameters
+        self._apply_cfg(cfg)
+        new_pos, new_dir, is_direction_valid = self.propagator.propagate(line, prev_direction)
+        # Restore original parameters
+        self._restore_base()
 
-            # Select config depending on RAP mode
-            if self._mode == 'label':
-                label = self._get_label(curr_pos, self.propagator.space, self.propagator.origin)
-                if label <= 0:
-                    logging.debug(f"[RAP] step={step_idx} label=0, exit zone RAP")
-                    break
-                cfg = self._merge_cfg(label)
-            else:
-                # Classic binary RAP mask behaviour
-                if not self.is_in_rap_region(curr_pos, self.propagator.space, self.propagator.origin):
-                    logging.debug(f"[RAP] step={step_idx} out of RAP zone (mask mode)")
-                    break
-                cfg = self.rap_cfg
-
-            logging.debug(f"[RAP] step={step_idx} label={label if self._mode == 'label' else 'N/A'} "
-                      f"cfg=algo:{cfg.get('algo')} theta:{cfg.get('theta')} step:{cfg.get('step_size')}")
-
-            # Apply selected params for ONE step, then restore
-            self._apply_cfg(cfg)
-            try:
-                new_pos, new_dir, valid = self.propagator.propagate(line, prev_direction)
-            finally:
-                self._restore_base()
-
-            if not valid:
-                logging.debug(f"[RAP] step={step_idx} invalid direction, stop") 
-                is_line_valid = False
-                break
-
-            if self.tracking_mask is not None:
-                if not self.tracking_mask.is_coordinate_in_bound(
-                        *new_pos,
-                        space=self.propagator.space,
-                        origin=self.propagator.origin):
-                    logging.debug(f"[RAP] step={step_idx} out of bounds, stop")
-                    break
-                in_mask = self.tracking_mask.get_value_at_coordinate(
-                    *new_pos,
-                    space=self.propagator.space,
-                    origin=self.propagator.origin
-                ) > 0
-                if not in_mask:
-                    logging.debug(f"[RAP] step={step_idx} out of mask, stop")
-                    break
-
+        # Add the new point to the line
+        if is_direction_valid:
             line.append(new_pos)
-            prev_direction = new_dir
-            step_idx += 1
+            logging.debug(f"[RAP] label={label if self._mode == 'label' else 'N/A'} cfg=algo:{cfg.get('algo')} theta:{cfg.get('theta')} step:{cfg.get('step_size')}")
+            return line, new_dir, True
+        return line, prev_direction, False
+    
 
-        logging.debug(f"[RAP] end: {step_idx} RAP steps RAP completed")
-        return line, prev_direction, is_line_valid
-        
     def _get_label(self, curr_pos, space, origin):
-        v = self.rap_labels.get_value_at_coordinate(*curr_pos, space=space, origin=origin)
+        """
+        Receive label (int) at current position in RAP label volume.
+       
+        Parameters
+        ----------
+        curr_pos: np.ndarray
+            This is the current 3D position of the streamline.
+        
+        space: Space
+            Coordinate space (here Space.VOX.).
+
+        origin: Origin
+            Origin convention ('center').
+
+        Returns
+        -------
+        int
+            The integer label at current position. 
+        """
+        v = self.rap_mask.get_value_at_coordinate(*curr_pos, space=space, origin=origin)
         try:
             return int(v)
         except Exception:
             return int(np.round(v))
         
+
     def _merge_cfg(self, label):
+        """
+        Merge the default configuration with the label-specific cfg override from the JSON policy.
+
+        Parameters
+        ----------
+        label: int
+            Integer of label at current position.
+
+        Returns
+        -------
+        dict
+            Configuration dict with keys 'algo', 'theta', 'step_size'.
+        """
         cfg = deepcopy(self.default_cfg)
         override = self.methods_cfg.get(str(label), {})
         cfg.update(override)
         return cfg
     
+
     def _apply_cfg(self, cfg):
+        """
+        Temporarily apply a label configuration to the propagator.
+
+        Parameters
+        ----------
+        cfg: dict
+            Configuration dict with keys 'algo', 'theta', 'step_size'.
+        """
         if 'step_size' in cfg and cfg['step_size'] is not None:
             self.propagator.step_size = float(cfg['step_size'])
         if 'algo' in cfg and cfg['algo'] is not None:
@@ -231,31 +227,15 @@ class RAPSwitch(RAP):
             self.propagator.tracking_neighbours = get_sphere_neighbours(self.propagator.sphere, self.propagator.theta)
 
     def _restore_base(self):
+        """
+        Restore the propagator to its original params after RAP step.
+        """
         self.propagator.step_size = self._base['step_size']
         self.propagator.theta = self._base['theta']
         if self._base['algo'] is not None:
             self.propagator.algo = self._base['algo']
         if self._base['tracking_neighbours'] is not None:
             self.propagator.tracking_neighbours = self._base['tracking_neighbours']
-
-    def is_in_rap_region(self, curr_pos, space, origin):
-        """Override base class to support label-mode when rap_mask is None.
-        Tracker uses this to decide whether to enter/exit RAP.
-        - mask mode: inside if rap_mask > 0
-        - label mode: inside if rap_labels label > 0
-        """
-        if self._mode == 'label':
-            if self.rap_labels is None:
-                return False
-            val = self.rap_labels.get_value_at_coordinate(
-                *curr_pos, space=space, origin=origin)
-            return val > 0
-
-        # mask mode (legacy)
-        if self.rap_mask is None:
-            return False
-        return self.rap_mask.get_value_at_coordinate(
-            *curr_pos, space=space, origin=origin) > 0
 
 class RAPGraph(RAP):
     def __init__(self, mask_rap, propagator, max_nbr_pts, neighboorhood_size):

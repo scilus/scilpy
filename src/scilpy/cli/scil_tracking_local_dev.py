@@ -151,11 +151,15 @@ def _build_arg_parser():
                           "fixed --rng_seed.\nEx: If tractogram_1 was created "
                           "with -nt 1,000,000, \nyou can create tractogram_2 "
                           "with \n--skip 1,000,000.")
-
-    track_g.add_argument('--rap_mask', default=None,
+    rap_mode = track_g.add_mutually_exclusive_group()
+    rap_mode.add_argument('--rap_mask', default=None,
                          help='Region-Adaptive Propagation mask (.nii.gz).\n'
                               'Region-Adaptive Propagation tractography will start within '
                               'this mask.')
+    rap_mode.add_argument('--rap_labels', default=None,
+                         help='Region-Adaptive Propagation label volume (.nii.gz) .\n'
+                              'Voxel values are integer labels (0=background, 1..N=regions) .\n'
+                              'Used with --rap_method switch to select policies per label.')
     track_g.add_argument('--rap_method', default='None',
                          choices=['None', 'continue', 'switch'],
                          help="Region-Adaptive Propagation tractography method.\n"
@@ -169,10 +173,6 @@ def _build_arg_parser():
     track_g.add_argument('--rap_save_entry_exit', default=None,
                          help='Save RAP entry/exit coordinates as a binary mask.\n'
                               'Provide output filename (.nii.gz).')
-    track_g.add_argument('--rap_labels', default=None,
-                         help='Region-Adaptive Propagation label volume (.nii.gz) .\n'
-                              'Voxel values are integer labels (0=background, 1..N=regions) .\n'
-                              'Used with --rap_method switch to select policies per label.')
 
     m_g = p.add_argument_group('Memory options')
     add_processes_arg(m_g)
@@ -320,14 +320,14 @@ def main():
         rap_label_data = get_data_as_labels(rap_label_img)
         rap_label_res = rap_label_img.header.get_zooms()[:3]
         rap_labels = DataVolume(rap_label_data, rap_label_res, 'nearest')
+        rap_mask = rap_labels
 
     if args.rap_method == "continue":
         rap = RAPContinue(rap_mask, propagator, max_nbr_pts,
                           step_size=vox_step_size)
     elif args.rap_method == "switch":
         rap = RAPSwitch(rap_mask, propagator, max_nbr_pts,
-                        rap_params_file=args.rap_params, 
-                        rap_labels=rap_labels, tracking_mask=mask)
+                        rap_params_file=args.rap_params)
     else:
         rap = None
 
