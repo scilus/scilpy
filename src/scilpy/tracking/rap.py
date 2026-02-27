@@ -79,18 +79,16 @@ class RAPSwitch(RAP):
             Maximum number of points per streamline.
         rap_params_file : str
             Path to JSON file containing RAP parameters.
-            Expected format if mode is mask: {
-                "step_size": float,
-                "theta": float (in degrees)
+            "methods" is optionnal, if not provided, "default" will be applied
+            Expected format: 
+            {
+                "default": {"algo": str, "theta": float, "step_size": float},
+                "methods": {
+                  "1": {"algo": str, "theta": float, "step_size": float},
+                  "2": {"algo": str, "theta": float, "step_size": float},
+                  ...
+                }
             }
-            Expected format if mode is label: {
-            "default": {"algo": str, "theta": float, "step_size": float},
-            "methods": {
-                "1": {"algo": str, "theta": float, "step_size": float},
-                "2": {"algo": str, "theta": float, "step_size": float},
-                ...
-            }
-        }
         """
         super().__init__(mask_rap, propagator, max_nbr_pts)
 
@@ -98,8 +96,6 @@ class RAPSwitch(RAP):
         with open(rap_params_file, 'r') as f:
             rap_params = json.load(f)
         
-        self._mode = 'label' if 'methods' in rap_params else 'mask'
-
         self._base = {
             'step_size': propagator.step_size,
             'theta': propagator.theta,
@@ -107,14 +103,9 @@ class RAPSwitch(RAP):
             'tracking_neighbours' : getattr(propagator, 'tracking_neighbours', None)
         }
 
-        if self._mode == 'label':
-            self.default_cfg = rap_params.get('default', {})
-            self.methods_cfg = rap_params.get('methods', {})
-        else:
-            self.rap_cfg = rap_params
-
+        self.default_cfg = rap_params.get('default', {})
+        self.methods_cfg = rap_params.get('methods', {})
         logging.info("RAP parameters loaded:")
-        logging.info(f"  RAP mode: {self._mode}")
         
     def rap_multistep_propagate(self, line, prev_direction):
         """
@@ -137,14 +128,11 @@ class RAPSwitch(RAP):
             Whether the line is valid.
         """
         # Switch to RAP parameters
-        if self._mode == 'label':
-            label = self._get_label(line[-1], self.propagator.space, self.propagator.origin)
-            if label <= 0:
-                return line, prev_direction, False
-            # Apply the parameters of the RAP labels
-            cfg = self._merge_cfg(label)
-        else:
-            cfg = self.rap_cfg
+        label = self._get_label(line[-1], self.propagator.space, self.propagator.origin)
+        if label <= 0:
+            return line, prev_direction, False
+        # Apply the parameters of the RAP labels
+        cfg = self._merge_cfg(label)
 
         # Perform propagation with new parameters
         self._apply_cfg(cfg)
@@ -155,7 +143,7 @@ class RAPSwitch(RAP):
         # Add the new point to the line
         if is_direction_valid:
             line.append(new_pos)
-            logging.debug(f"[RAP] label={label if self._mode == 'label' else 'N/A'} cfg=algo:{cfg.get('algo')} theta:{cfg.get('theta')} step:{cfg.get('step_size')}")
+            logging.debug(f"[RAP] label={label} cfg=algo:{cfg.get('algo')} theta:{cfg.get('theta')} step:{cfg.get('step_size')}")
             return line, new_dir, True
         return line, prev_direction, False
     

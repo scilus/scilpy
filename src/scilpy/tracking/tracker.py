@@ -538,6 +538,7 @@ class Tracker(object):
                 propagation_can_continue = self._verify_stopping_criteria(new_pos)
                 if not propagation_can_continue:
                     logging.debug(f"[TRACKER] RAP out of mask, stop.")
+                    line.pop()
                     break
 
             # Else, if we are not in RAP, we track 'normal' one-step propagation
