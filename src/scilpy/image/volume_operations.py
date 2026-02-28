@@ -188,8 +188,11 @@ def apply_transform(transfo, reference,
         raise ValueError('Does not support this dataset (shape, type, etc)')
 
     moved_nib_img = nib.Nifti1Image(resampled.astype(orig_type), grid2world)
-    return StatefulImage.create_from(moved_nib_img,
-                                     StatefulImage.convert_to_simg(reference))
+    if isinstance(reference, StatefulImage):
+        return StatefulImage.create_from(moved_nib_img, reference)
+    else:
+        return StatefulImage.create_from(
+            moved_nib_img, StatefulImage.convert_to_simg(reference))
 
 
 def transform_dwi(reg_obj, static, dwi, interpolation='linear'):
