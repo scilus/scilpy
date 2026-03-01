@@ -220,10 +220,7 @@ def save_tractogram(
         original_axcodes = ref_img.axcodes
         ref_img.reorient_to_original()
 
-    voxel_size = ref_img.header.get_zooms()[0]
-
-    scaled_min_length = min_length / voxel_size
-    scaled_max_length = max_length / voxel_size
+    voxel_size = np.array(ref_img.header.get_zooms()[:3])
 
     # Tracking is expected to be returned in voxel space, origin `center`.
     def tracks_generator_wrapper():
@@ -232,7 +229,11 @@ def save_tractogram(
                                           total=total_nb_seeds,
                                           miniters=int(total_nb_seeds / 100),
                                           leave=False):
-            if (scaled_min_length <= length(strl) <= scaled_max_length):
+            # Compute length in mm space for filtering
+            # length() is euclidean distance, so we must be in mm
+            strl_mm = strl * voxel_size
+            strl_len = length(strl_mm)
+            if (min_length <= strl_len <= max_length):
                 # Seeds are saved with origin `center` by our own convention.
                 # Other scripts (e.g. scil_tractogram_seed_density_map) expect
                 # so.
@@ -241,27 +242,28 @@ def save_tractogram(
                     dps['seeds'] = seed
 
                 if compress:
-                    # compression threshold is given in mm, but we
-                    # are in voxel space
-                    strl = compress_streamlines(
-                        strl, compress / voxel_size)
-
+                    # compression threshold is given in mm, so we
+                    # must be in mm space to compress
+                    strl_mm = compress_streamlines(strl_mm, compress)
+                
                 if tracts_format is TrkFile:
-                    # Streamlines are dumped in mm space with
-                    # origin `corner`. This is what is expected by
-                    # LazyTractogram for .trk files (although this is not
-                    # specified anywhere in the doc)
-                    strl += 0.5
-                    strl *= voxel_size  # in mm.
+                    # Streamlines are dumped in mm space with origin `corner`.
+                    # (TrackVis space). 
+                    # Note: We use the already computed strl_mm (center origin)
+                    # and shift it by 0.5 * voxel_size to get corner origin.
+                    strl_to_save = strl_mm + 0.5 * voxel_size
                 else:
                     # Streamlines are dumped in true world space with
                     # origin center as expected by .tck files.
-                    strl = nib.affines.apply_affine(ref_img.affine, strl)
+                    strl_to_save = nib.affines.apply_affine(ref_img.affine, strl)
 
-                yield TractogramItem(strl, dps, {})
+                yield TractogramItem(strl_to_save, dps, {})
 
     tractogram = LazyTractogram.from_data_func(tracks_generator_wrapper)
-    tractogram.affine_to_rasmm = ref_img.affine
+    # Since the generator yields coordinates already in their final format-space
+    # (TrackVis for .trk, RASMM for .tck), we set the affine_to_rasmm to identity
+    # to prevent nibabel from applying any further transformation.
+    tractogram.affine_to_rasmm = np.eye(4)
 
     filetype = nib.streamlines.detect_format(out_tractogram)
     reference = get_reference_info(ref_img)
