@@ -423,6 +423,24 @@ class StatefulImage(nib.Nifti1Image):
         """Get the axis codes for the original image orientation."""
         return self._original_axcodes
 
+    @property
+    def original_affine(self):
+        """Get the original image affine."""
+        return self._original_affine
+
+    @property
+    def original_header(self):
+        """Get a header matching the original image orientation."""
+        # Create a copy of the current header but with original info
+        header = self.header.copy()
+        header.set_sform(self._original_affine)
+        header.set_qform(self._original_affine)
+        if self._original_voxel_sizes is not None:
+            header.set_zooms(self._original_voxel_sizes)
+        if self._original_dimensions is not None:
+            header.set_data_shape(self._original_dimensions)
+        return header
+
     def __str__(self):
         """Return a string representation of the image, including orientation."""
         base_str = super().__str__()

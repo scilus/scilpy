@@ -192,7 +192,7 @@ def save_tractogram(
         Streamlines generator.
     tracts_format : TrkFile or TckFile
         Tractogram format.
-    ref_img : nibabel.Nifti1Image
+    ref_img : nibabel.Nifti1Image or scilpy.io.stateful_image.StatefulImage
         Image used as reference.
     total_nb_seeds : int
         Total number of seeds.
@@ -211,6 +211,14 @@ def save_tractogram(
         If True, display progression bar.
 
     """
+    from scilpy.io.stateful_image import StatefulImage
+
+    # If ref_img is a StatefulImage, we want to save relative to its
+    # original on-disk orientation, not the internal (likely RAS) one.
+    is_stateful = isinstance(ref_img, StatefulImage)
+    if is_stateful:
+        original_axcodes = ref_img.axcodes
+        ref_img.reorient_to_original()
 
     voxel_size = ref_img.header.get_zooms()[0]
 
@@ -238,7 +246,6 @@ def save_tractogram(
                     strl = compress_streamlines(
                         strl, compress / voxel_size)
 
-                # TODO: Use nibabel utilities for dealing with spaces
                 if tracts_format is TrkFile:
                     # Streamlines are dumped in mm space with
                     # origin `corner`. This is what is expected by
@@ -249,8 +256,7 @@ def save_tractogram(
                 else:
                     # Streamlines are dumped in true world space with
                     # origin center as expected by .tck files.
-                    strl = np.dot(strl, ref_img.affine[:3, :3]) + \
-                        ref_img.affine[:3, 3]
+                    strl = nib.affines.apply_affine(ref_img.affine, strl)
 
                 yield TractogramItem(strl, dps, {})
 
@@ -263,6 +269,10 @@ def save_tractogram(
 
     # Use generator to save the streamlines on-the-fly
     nib.streamlines.save(tractogram, out_tractogram, header=header)
+
+    # Revert ref_img to its previous orientation
+    if is_stateful:
+        ref_img.reorient(original_axcodes)
 
 
 def get_direction_getter(img_data, algo, sphere, sub_sphere, theta, sh_basis,
