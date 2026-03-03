@@ -224,7 +224,7 @@ def _parse_scalar_lesions(stats, subs, bundles):
     return dataframes, df_names
 
 
-def _parse_stats(stats, subs, bundles):
+def _parse_stats(stats, subs, bundles, optional_keys=None):
     nb_subs = len(subs)
     nb_bundles = len(bundles)
 
@@ -497,7 +497,7 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
-    optional_keys = set(args.extra_key)
+    extra_keys = set(args.extra_key)
 
     assert_inputs_exist(parser, args.in_json)
     assert_outputs_exist(parser, args, args.out_xlsx)
@@ -507,7 +507,7 @@ def main():
                            sort_bundles=args.no_sort_bundles,
                            ignored_bundles_fpath=args.ignore_bundles,
                            stats_over_population=args.stats_over_population,
-                           optional_keys=optional_keys)
+                           optional_keys=extra_keys)
 
 
 if __name__ == "__main__":
