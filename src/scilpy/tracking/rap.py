@@ -4,7 +4,6 @@ import json
 import logging
 import numpy as np
 from copy import deepcopy
-from dipy.core.geometry import math
 from scilpy.tracking.propagator import get_sphere_neighbours
 
 
@@ -17,6 +16,9 @@ class RAP:
         self.rap_mask = mask_rap
         self.propagator = propagator
         self.max_nbr_pts = max_nbr_pts
+        self._current_label = None
+        self._total_steps = 0
+        self._current_cfg = {}
 
     def is_in_rap_region(self, curr_pos, space, origin):
         return self.rap_mask.get_value_at_coordinate(
@@ -95,13 +97,6 @@ class RAPSwitch(RAP):
         # Load parameters from JSON file
         with open(rap_params_file, 'r') as f:
             rap_params = json.load(f)
-        
-        self._base = {
-            'step_size': propagator.step_size,
-            'theta': propagator.theta,
-            'algo' : getattr(propagator, 'algo', None),
-            'tracking_neighbours' : getattr(propagator, 'tracking_neighbours', None)
-        }
 
         self.default_cfg = rap_params.get('default', {})
         self.methods_cfg = rap_params.get('methods', {})
@@ -137,13 +132,16 @@ class RAPSwitch(RAP):
         # Perform propagation with new parameters
         self._apply_cfg(cfg)
         new_pos, new_dir, is_direction_valid = self.propagator.propagate(line, prev_direction)
-        # Restore original parameters
-        self._restore_base()
 
         # Add the new point to the line
         if is_direction_valid:
             line.append(new_pos)
-            logging.debug(f"[RAP] label={label} cfg=algo:{cfg.get('algo')} theta:{cfg.get('theta')} step:{cfg.get('step_size')}")
+            if label != self._current_label:
+                if self._current_label is not None:
+                    logging.debug(f"STEP[{self._total_steps}] label={self._current_label} algo={self._current_cfg.get('algo')} theta={self._current_cfg.get('theta')} step={self._current_cfg.get('step_size')}")
+                self._current_label = label
+                self._current_cfg = cfg
+            self._total_steps += 1
             return line, new_dir, True
         return line, prev_direction, False
     
@@ -213,17 +211,6 @@ class RAPSwitch(RAP):
             self.propagator.theta = theta_rad
             # theta change => neighbours change
             self.propagator.tracking_neighbours = get_sphere_neighbours(self.propagator.sphere, self.propagator.theta)
-
-    def _restore_base(self):
-        """
-        Restore the propagator to its original params after RAP step.
-        """
-        self.propagator.step_size = self._base['step_size']
-        self.propagator.theta = self._base['theta']
-        if self._base['algo'] is not None:
-            self.propagator.algo = self._base['algo']
-        if self._base['tracking_neighbours'] is not None:
-            self.propagator.tracking_neighbours = self._base['tracking_neighbours']
 
 class RAPGraph(RAP):
     def __init__(self, mask_rap, propagator, max_nbr_pts, neighboorhood_size):
