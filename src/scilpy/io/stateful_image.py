@@ -155,6 +155,29 @@ class StatefulImage(nib.Nifti1Image):
                              gradients_original_order=False)
 
     @staticmethod
+    def from_data(data, reference):
+        """
+        Create a new StatefulImage from a numpy array, preserving the original
+        orientation information from a reference StatefulImage.
+
+        Parameters
+        ----------
+        data : numpy.ndarray
+            The image data to use for the new StatefulImage.
+        reference : StatefulImage
+            The reference image from which to copy original orientation
+            information.
+
+        Returns
+        -------
+        StatefulImage
+            A new StatefulImage with the data and the reference
+            image's original orientation information.
+        """
+        new_img = nib.Nifti1Image(data, reference.affine, reference.header)
+        return StatefulImage.create_from(new_img, reference)
+
+    @staticmethod
     def convert_to_simg(img, bvals=None, bvecs=None):
         """
         Initialize a StatefulImage from an existing Nifti1Image.
