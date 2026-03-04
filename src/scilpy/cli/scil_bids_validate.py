@@ -74,6 +74,13 @@ def _build_arg_parser():
     p.add_argument("--readout", type=float, default=0.062,
                    help="Default total readout time value [%(default)s].")
 
+    p.add_argument('--match_t1_run',
+                   action='store_true',
+                   help='If set, when multiple T1 files are found for a '
+                        'subject/session, select the one matching the DWI '
+                        'run entity. If not set, no T1 is selected in this '
+                        'ambiguous case.')
+
     add_verbose_arg(p)
     add_overwrite_arg(p)
 
@@ -127,7 +134,8 @@ def get_opposite_pe_direction(phase_encoding_direction):
         return phase_encoding_direction+'-'
 
 
-def get_data(layout, nSub, dwis, t1s, fs, default_readout, clean):
+def get_data(layout, nSub, dwis, t1s, fs, default_readout, clean,
+             match_t1_run):
     """ Return subject data
 
     Parameters
@@ -153,6 +161,10 @@ def get_data(layout, nSub, dwis, t1s, fs, default_readout, clean):
     clean: Boolean
         If True, if some critical files are missing it will
         remove this specific subject/session/run
+
+    match_t1_run: Boolean
+        If True, try matching T1 and DWI using the run entity when
+        multiple T1 files are found for the same subject/session.
 
     Returns
     -------
@@ -303,8 +315,24 @@ def get_data(layout, nSub, dwis, t1s, fs, default_readout, clean):
             logging.warning('No T1 file found.')
         else:
             t1_paths = [curr_t1.path for curr_t1 in t1_nSess]
-            logging.warning('More than one T1 file found.'
-                            ' [{}]'.format(','.join(t1_paths)))
+            if not match_t1_run:
+                logging.warning('More than one T1 file found. Matching the DWI with the T1 is ambiguous. '
+                                'No T1 will be assigned. [{}]'.format(','.join(t1_paths)))
+            elif 'run' not in curr_dwi.entities:
+                logging.warning('More than one T1 file found, but DWI has no run entity. '
+                                'No T1 will be assigned. [{}]'.format(','.join(t1_paths)))
+            else:
+                # Try to match T1 and DWI based on run entity
+                t1_run_match = [t for t in t1_nSess
+                                if 'run' in t.entities and
+                                t.entities['run'] == nRun]
+                if len(t1_run_match) == 1:
+                    logging.warning('Multiple T1 files found, but only one with the same run number as the DWI. '
+                                    'Using the T1 file with matching run number: [{}]'.format(t1_run_match[0].path))
+                    t1_path = t1_run_match[0].path
+                else:
+                    logging.warning('More than one T1 file found and run-based matching could not identify '
+                                    'a unique T1. No T1 will be assigned. [{}]'.format(','.join(t1_paths)))
 
     return {'subject': nSub,
             'session': nSess,
@@ -517,7 +545,8 @@ def main():
                                  t1s,
                                  fs_inputs,
                                  args.readout,
-                                 args.clean))
+                                 args.clean,
+                                 args.match_t1_run))
 
     if args.clean:
         data = [d for d in data if d]

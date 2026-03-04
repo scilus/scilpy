@@ -120,7 +120,7 @@ def get_data_as_mask(mask_img, dtype=np.uint8):
                       'with a mask.\n'
                       'To convert your data, you may use tools like mrconvert '
                       'or \n'
-                      '>> scil_volume_math.py convert IMG IMG '
+                      '>> scil_volume_math convert IMG IMG '
                       '--data_type uint8 -f'.format(basename, curr_type))
 
     return data

@@ -234,12 +234,11 @@ def _save_results(args, tmp_dir, ext, in_hdf5_file, offsets_list, sub_dir,
 
     # Simplifying output for streamlines and cleaning output directory
     streamline_weights = np.loadtxt(os.path.join(commit_results_dir,
-                                                 'streamline_weights.txt'))
-
+                                    'streamline_weights.txt'))
     # Loading the tractogram (we never did yet! Only sent the filename to
     # commit). Reminder. If input was a hdf5, we have changed
     # args.in_tractogram to our tmp_tractogram saved in tmp_dir.
-    if ext == '.trk' and args.reference is None:
+    if ext in ['.trk', '.h5'] and args.reference is None:
         args.reference = 'same'
     logging.debug('Loading tractogram from {} with reference {}.'
                   .format(args.in_tractogram, args.reference))
@@ -261,7 +260,7 @@ def _save_results(args, tmp_dir, ext, in_hdf5_file, offsets_list, sub_dir,
         'tot_commit_w'
     # Reload is needed because of COMMIT handling its file by itself
     sft.data_per_streamline[dps_key] = streamline_weights
-    sft.data_per_streamline[dps_key_tot] = streamline_weights * length_list
+    sft.data_per_streamline[dps_key_tot] = np.squeeze(streamline_weights) * length_list
 
     if args.keep_whole_tractogram:
         output_filename = os.path.join(out_dir, 'tractogram.trk')
@@ -391,7 +390,6 @@ def main():
 
     # Prepare tmp dir for all our intermediate files
     tmp_dir = tempfile.TemporaryDirectory()
-
     # === Loading ===
     dwi_img = nib.load(args.in_dwi)
 
@@ -443,8 +441,7 @@ def main():
 
         # Preparation for fitting
         commit.core.setup()
-        mit = commit.Evaluation('.', '.')
-
+        mit = commit.Evaluation('.', '.', dictionary_path=tmp_dir.name)
         # FIX for very small values during HCP processing
         # (based on order of magnitude of signal)
         data = dwi_img.get_fdata(dtype=np.float32)
@@ -476,7 +473,7 @@ def main():
             return
         mit.load_kernels()
         use_mask = args.in_tracking_mask is not None
-        mit.load_dictionary(tmp_dir.name, use_all_voxels_in_mask=use_mask)
+        mit.load_dictionary(None, use_all_voxels_in_mask=use_mask)
         mit.set_threads(args.nbr_processes)
         mit.set_verbose(False)
 
