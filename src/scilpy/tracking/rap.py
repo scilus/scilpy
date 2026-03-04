@@ -84,7 +84,6 @@ class RAPSwitch(RAP):
             "methods" is optionnal, if not provided, "default" will be applied
             Expected format: 
             {
-                "default": {"algo": str, "theta": float, "step_size": float},
                 "methods": {
                   "1": {"algo": str, "theta": float, "step_size": float},
                   "2": {"algo": str, "theta": float, "step_size": float},
@@ -98,7 +97,12 @@ class RAPSwitch(RAP):
         with open(rap_params_file, 'r') as f:
             rap_params = json.load(f)
 
-        self.default_cfg = rap_params.get('default', {})
+        self._base = {
+            'step_size': propagator.step_size,
+            'theta': propagator.theta,
+            'algo' : getattr(propagator, 'algo', None),
+            'tracking_neighbours' : getattr(propagator, 'tracking_neighbours', None)
+        }
         self.methods_cfg = rap_params.get('methods', {})
         logging.info("RAP parameters loaded:")
         
@@ -187,10 +191,16 @@ class RAPSwitch(RAP):
         dict
             Configuration dict with keys 'algo', 'theta', 'step_size'.
         """
-        cfg = deepcopy(self.default_cfg)
-        override = self.methods_cfg.get(str(label), {})
-        cfg.update(override)
-        return cfg
+        override = self.methods_cfg.get(str(label))
+        if override is None:
+            if label != 1 and label != self._current_label:
+                logging.warning(f"Label {label} not found in methods, base params used.")
+            return {
+                'step_size': self._base['step_size'],
+                'algo': self._base['algo'],
+                'theta': float(np.degrees(self._base['theta']))
+            }
+        return deepcopy(override)
     
 
     def _apply_cfg(self, cfg):
