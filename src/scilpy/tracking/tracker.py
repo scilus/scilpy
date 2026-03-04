@@ -497,6 +497,7 @@ class Tracker(object):
         invalid_direction_count = 0
         propagation_can_continue = True
         in_rap_region = False  # Track whether we're currently in RAP region
+        step_count = 0 
 
         while len(line) < self.max_nbr_pts and propagation_can_continue:
 
@@ -508,46 +509,34 @@ class Tracker(object):
             
             # Detect entering RAP region
             if is_currently_in_rap and not in_rap_region:
-                #print(f"Streamline entering RAP mask at position: {line[-1]}")
                 self.rap_entry_exit_coords.append((line[-1].copy(), 1))  # 1 for entry
                 in_rap_region = True
-            
-            # Detect exiting RAP region
-            elif not is_currently_in_rap and in_rap_region:
-                #print(f"Streamline exiting RAP mask at position: {line[-1]}")
-                self.rap_entry_exit_coords.append((line[-1].copy(), 2))  # 2 for exit
-                in_rap_region = False
+                logging.debug(f"TRACKER ENTERING pos={np.round(line[-1], 2)}")
             
             if is_currently_in_rap:
+                prev_len = len(line)
                 line, new_dir, is_line_valid = (
                     self.rap.rap_multistep_propagate(line, previous_dir))
+                if not is_line_valid:
+                    logging.debug(f"TRACKER invalid, stop")
+                    break
+                if len(line) == prev_len:
+                    logging.debug(f"TRACKER no progress, stop")
+                    propagation_can_continue = False
+                    break
+                new_pos = line[-1]
 
-                if is_line_valid:
-                    invalid_direction_count = 0
-                else:
+                # Verify that our RAP propagated point stays within the tracking mask
+                propagation_can_continue = self._verify_stopping_criteria(new_pos)
+                if not propagation_can_continue:
+                    logging.debug(f"TRACKER out of mask, stop.")
+                    line.pop()
                     break
 
-                new_pos = line[-1]
-            # Else, "normal" one-step propagation
-            else:
-                new_pos, new_dir, is_direction_valid = \
-                    self.propagator.propagate(line, previous_dir)
-
-                # Verifying if direction is valid
-                # If invalid: break. Else, verify tracking mask.
-                if is_direction_valid:
-                    invalid_direction_count = 0
-                else:
-                    invalid_direction_count += 1
-                    if invalid_direction_count > self.max_invalid_dirs:
-                        break
-
-            propagation_can_continue = self._verify_stopping_criteria(new_pos)
-            if propagation_can_continue or self.append_last_point:
-                line.append(new_pos)
-
-            previous_dir = new_dir
-
+                previous_dir = new_dir
+                step_count += 1
+        
+        logging.debug(f"TRACKER end of propagation: {len(line)} total points, last pos={np.round(line[-1], 2)}")
         return line
 
     def _verify_stopping_criteria(self, last_pos):
