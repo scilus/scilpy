@@ -16,12 +16,11 @@ Reference:
 import argparse
 import logging
 
-from dipy.io.gradients import read_bvals_bvecs
-import nibabel as nib
 import numpy as np
 
 from scilpy.gradients.bvec_bval_tools import check_b0_threshold
 from scilpy.io.image import get_data_as_mask
+from scilpy.io.stateful_image import StatefulImage
 from scilpy.io.utils import (add_b0_thresh_arg, add_overwrite_arg,
                              add_precision_arg,
                              add_skip_b0_check_arg, add_verbose_arg,
@@ -103,18 +102,31 @@ def main():
 
     roi_radii = assert_roi_radii_format(parser)
 
-    vol = nib.load(args.in_dwi)
-    data = vol.get_fdata(dtype=np.float32)
+    simg = StatefulImage.load(args.in_dwi)
+    simg.load_gradients(args.in_bval, args.in_bvec)
 
-    bvals, bvecs = read_bvals_bvecs(args.in_bval, args.in_bvec)
+    # FRF computation often expects RAS (via dipy)
+    simg.to_ras()
+
+    data = simg.get_fdata(dtype=np.float32)
+    bvals = simg.bvals
+    bvecs = simg.bvecs
+
     args.b0_threshold = check_b0_threshold(bvals.min(),
                                            b0_thr=args.b0_threshold,
                                            skip_b0_check=args.skip_b0_check)
 
-    mask = get_data_as_mask(nib.load(args.mask),
-                            dtype=bool) if args.mask else None
-    mask_wm = get_data_as_mask(nib.load(args.mask_wm),
-                               dtype=bool) if args.mask_wm else None
+    mask = None
+    if args.mask:
+        mask_simg = StatefulImage.load(args.mask)
+        mask_simg.reorient(simg.axcodes)
+        mask = get_data_as_mask(mask_simg, dtype=bool)
+
+    mask_wm = None
+    if args.mask_wm:
+        mask_wm_simg = StatefulImage.load(args.mask_wm)
+        mask_wm_simg.reorient(simg.axcodes)
+        mask_wm = get_data_as_mask(mask_wm_simg, dtype=bool)
 
     full_response = compute_ssst_frf(
         data, bvals, bvecs, args.b0_threshold, mask=mask,

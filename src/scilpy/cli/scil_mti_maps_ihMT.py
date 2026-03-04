@@ -108,6 +108,7 @@ import nibabel as nib
 import numpy as np
 
 from scilpy.io.mti import add_common_args_mti, load_and_verify_mti
+from scilpy.io.image import load_img, get_data_as_mask
 from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist, add_verbose_arg,
                              assert_output_dirs_exist_and_empty)
@@ -272,8 +273,14 @@ def main():
     # Apply thresholds on maps
     upper_thresholds = [100, 100, 10, 10]
     idx_contrast_lists = [[0, 1, 2, 3, 4], [3, 4], [0, 1, 2, 3], [3, 4]]
+
+    mask_data = None
+    if args.mask:
+        mask_img, _ = load_img(args.mask)
+        mask_data = get_data_as_mask(mask_img)
+
     for i, map in enumerate(img_data):
-        img_data[i] = threshold_map(map, args.mask, 0, upper_thresholds[i],
+        img_data[i] = threshold_map(map, mask_data, 0, upper_thresholds[i],
                                     idx_contrast_list=idx_contrast_lists[i],
                                     contrast_maps=contrast_maps)
 

@@ -180,7 +180,7 @@ def test_resample_volume():
 
     # Ref: 2x2x2, voxel size 3x3x3
     ref3d = np.ones((2, 2, 2))
-    ref_affine = np.eye(4)*3
+    ref_affine = np.eye(4) * 3
     ref_affine[-1, -1] = 1
 
     # 1) Option volume_shape: expecting an output of 2x2x2, which means
@@ -217,7 +217,7 @@ def test_resample_volume():
 def test_reshape_volume_pad():
     # 3D img
     simg = StatefulImage(
-        np.arange(1, (3**3)+1).reshape((3, 3, 3)).astype(float),
+        np.arange(1, (3**3) + 1).reshape((3, 3, 3)).astype(float),
         np.eye(4))
 
     # 1) Reshaping to 4x4x4, padding with 0
@@ -237,7 +237,7 @@ def test_reshape_volume_pad():
 
     # 4D img (2 "stacked" 3D volumes)
     simg = StatefulImage(
-        np.arange(1, ((3**3) * 2)+1).reshape((3, 3, 3, 2)).astype(float),
+        np.arange(1, ((3**3) * 2) + 1).reshape((3, 3, 3, 2)).astype(float),
         np.eye(4))
 
     # 2) Reshaping to 5x5x5, padding with 0
@@ -248,7 +248,7 @@ def test_reshape_volume_pad():
 def test_reshape_volume_crop():
     # 3D img
     simg = StatefulImage(
-        np.arange(1, (3**3)+1).reshape((3, 3, 3)).astype(float),
+        np.arange(1, (3**3) + 1).reshape((3, 3, 3)).astype(float),
         np.eye(4))
 
     # 1) Cropping to 1x1x1
@@ -265,7 +265,7 @@ def test_reshape_volume_crop():
 
     # 4D img
     simg = StatefulImage(
-        np.arange(1, ((3**3) * 2)+1).reshape((3, 3, 3, 2)).astype(float),
+        np.arange(1, ((3**3) * 2) + 1).reshape((3, 3, 3, 2)).astype(float),
         np.eye(4))
 
     # 2) Cropping to 2x2x2
@@ -278,7 +278,7 @@ def test_reshape_volume_crop():
 def test_reshape_volume_dtype():
     # 3D img
     simg = StatefulImage(
-        np.arange(1, (3**3)+1).reshape((3, 3, 3)).astype(np.uint16),
+        np.arange(1, (3**3) + 1).reshape((3, 3, 3)).astype(np.uint16),
         np.eye(4))
 
     # 1) Staying in 3x3x3, same dtype

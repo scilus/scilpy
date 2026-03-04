@@ -2,23 +2,15 @@
 # -*- coding: utf-8 -*-
 """
 Detect sign flips and/or axes swaps in the gradients table from a fiber
-coherence index [1]. The script takes as input the principal direction(s)
-at each voxel, the b-vectors and the fractional anisotropy map and outputs
-a corrected b-vectors file.
+coherence index [1]. The script takes as input the DWI, b-values and b-vectors
+and outputs a corrected b-vectors file.
 
 A typical pipeline could be:
->>> scil_dti_metrics dwi.nii.gz bval bvec --not_all --fa fa.nii.gz
-    --evecs peaks.nii.gz
->>> scil_gradients_validate_correct bvec peaks_v1.nii.gz fa.nii.gz bvec_corr
+>>> scil_gradients_validate_correct dwi.nii.gz bval bvec bvec_corr
 
-Note that peaks_v1.nii.gz is the file containing the direction associated
-to the highest eigenvalue at each voxel.
-
-It is also possible to use a file containing multiple principal directions per
-voxel, given that they are sorted by decreasing amplitude. In that case, the
-first direction (with the highest amplitude) will be chosen for validation.
-Only 4D data is supported, so the directions must be stored in a single
-dimension. For example, peaks.nii.gz from scil_fodf_metrics could be used.
+The script refits the DTI model 24 times (once for each possible axis
+permutation and flip) and chooses the one that maximizes the fiber coherence
+index. For performance, the fit is only performed on voxels with FA > 0.5.
 
 ------------------------------------------------------------------------------
 Reference:
@@ -30,17 +22,22 @@ Reference:
 """
 
 import argparse
+import itertools
 import logging
 
-from dipy.io.gradients import read_bvals_bvecs
+from dipy.core.gradients import gradient_table
+from dipy.reconst.dti import TensorModel
 import numpy as np
-import nibabel as nib
+from tqdm import tqdm
 
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              assert_outputs_exist, add_verbose_arg,
-                             assert_headers_compatible)
+                             add_b0_thresh_arg, add_skip_b0_check_arg)
 from scilpy.io.image import get_data_as_mask
-from scilpy.reconst.fiber_coherence import compute_coherence_table_for_transforms
+from scilpy.io.stateful_image import StatefulImage
+from scilpy.gradients.bvec_bval_tools import check_b0_threshold
+from scilpy.reconst.fiber_coherence import (compute_fiber_coherence,
+                                            NB_FLIPS)
 from scilpy.version import version_string
 
 
@@ -49,25 +46,24 @@ def _build_arg_parser():
                                 formatter_class=argparse.RawTextHelpFormatter,
                                 epilog=version_string)
 
+    p.add_argument('in_dwi',
+                   help='Path to the input DWI file.')
+    p.add_argument('in_bval',
+                   help='Path to the b-values file.')
     p.add_argument('in_bvec',
-                   help='Path to bvec file.')
-    p.add_argument('in_peaks',
-                   help='Path to peaks file.')
-    p.add_argument('in_FA',
-                   help='Path to the fractional anisotropy file.')
+                   help='Path to the b-vectors file to validate.')
     p.add_argument('out_bvec',
                    help='Path to corrected bvec file (FSL format).')
 
     p.add_argument('--mask',
-                   help='Path to an optional mask. If set, FA and Peaks will '
-                        'only be used inside the mask.')
-    p.add_argument('--fa_threshold', default=0.2, type=float,
+                   help='Path to an optional mask. If set, DTI fit will '
+                        'only be performed inside the mask.')
+    p.add_argument('--fa_threshold', default=0.5, type=float,
                    help='FA threshold. Only voxels with FA higher '
                         'than fa_threshold will be considered. [%(default)s]')
-    p.add_argument('--column_wise', action='store_true',
-                   help='Specify if input peaks are column-wise (..., 3, N) '
-                        'instead of row-wise (..., N, 3).')
 
+    add_b0_thresh_arg(p)
+    add_skip_b0_check_arg(p, will_overwrite_with_min=True)
     add_verbose_arg(p)
     add_overwrite_arg(p)
     return p
@@ -78,45 +74,94 @@ def main():
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
-    assert_inputs_exist(parser, [args.in_bvec, args.in_peaks, args.in_FA],
+    assert_inputs_exist(parser, [args.in_dwi, args.in_bval, args.in_bvec],
                         optional=args.mask)
     assert_outputs_exist(parser, args, args.out_bvec)
-    assert_headers_compatible(parser, [args.in_peaks, args.in_FA],
-                              optional=args.mask)
 
-    _, bvecs = read_bvals_bvecs(None, args.in_bvec)
-    fa = nib.load(args.in_FA).get_fdata()
-    peaks = nib.load(args.in_peaks).get_fdata()
+    # Loading data
+    simg = StatefulImage.load(args.in_dwi)
+    simg.load_gradients(args.in_bval, args.in_bvec)
+    simg.to_ras()
 
-    if peaks.shape[-1] > 3:
-        logging.info('More than one principal direction per voxel was given.')
-        peaks = peaks[..., 0:3]
-        logging.info('The first peak is assumed to be the biggest.')
+    data = simg.get_fdata(dtype=np.float32)
+    bvals = simg.bvals
+    bvecs = simg.bvecs
 
-    # convert peaks to a volume of shape (H, W, D, N, 3)
-    if args.column_wise:
-        peaks = np.reshape(peaks, peaks.shape[:3] + (3, -1))
-        peaks = np.transpose(peaks, axes=(0, 1, 2, 4, 3))
-    else:
-        peaks = np.reshape(peaks, peaks.shape[:3] + (-1, 3))
-
-    peaks = np.squeeze(peaks)
+    mask = None
     if args.mask:
-        mask = get_data_as_mask(nib.load(args.mask), ref_shape=peaks.shape)
-        fa[np.logical_not(mask)] = 0
-        peaks[np.logical_not(mask)] = 0
+        mask_simg = StatefulImage.load(args.mask)
+        mask_simg.reorient(simg.axcodes)
+        mask = get_data_as_mask(mask_simg, dtype=bool)
 
-    peaks[fa < args.fa_threshold] = 0
-    coherence, transform = compute_coherence_table_for_transforms(peaks, fa)
+    # Initial DTI fit to get FA and identify high-FA voxels
+    args.b0_threshold = check_b0_threshold(bvals.min(),
+                                           b0_thr=args.b0_threshold,
+                                           skip_b0_check=args.skip_b0_check)
+    gtab = gradient_table(bvals, bvecs=bvecs, b0_threshold=args.b0_threshold)
+    tenmodel = TensorModel(gtab, fit_method='WLS',
+                           min_signal=np.min(data[data > 0]))
+    tenfit = tenmodel.fit(data, mask=mask)
+    fa = tenfit.fa
 
-    best_t = transform[np.argmax(coherence)]
+    # Define high-FA mask for coherence calculation
+    high_fa_mask = fa > args.fa_threshold
+    if mask is not None:
+        high_fa_mask &= mask
+
+    if np.sum(high_fa_mask) == 0:
+        logging.error('No voxels found with FA > {}. Aborting.'
+                      .format(args.fa_threshold))
+        return
+
+    # Generate 24 possible permutation/flips of gradient directions
+    permutations = list(itertools.permutations([0, 1, 2]))
+    transforms = np.zeros((len(permutations) * NB_FLIPS, 3, 3))
+    for i in range(len(permutations)):
+        transforms[i * NB_FLIPS, np.arange(3), permutations[i]] = 1
+        for ii in range(3):
+            flip = np.eye(3)
+            flip[ii, ii] = -1
+            transforms[ii + i * NB_FLIPS +
+                       1] = transforms[i * NB_FLIPS].dot(flip)
+
+    # Iterative refit and coherence calculation
+    best_coherence = -1
+    best_t = None
+
+    logging.info('Refitting DTI 24 times for gradient validation...')
+    for t in tqdm(transforms):
+        # Transform bvecs
+        # Note: Dipy expects bvecs as (N, 3). We apply the transform to axes.
+        # G' = G @ T
+        bvecs_candidate = bvecs @ t
+
+        gtab_candidate = gradient_table(bvals, bvecs=bvecs_candidate,
+                                        b0_threshold=args.b0_threshold)
+        tenmodel_candidate = TensorModel(gtab_candidate, fit_method='WLS',
+                                         min_signal=np.min(data[data > 0]))
+
+        # Fit ONLY on the high-FA mask to save time
+        tenfit_candidate = tenmodel_candidate.fit(data, mask=high_fa_mask)
+
+        # Extract the principal direction (v1)
+        # evecs is (H, W, D, 3, 3), evecs[..., 0] is the first eigenvector (peak)
+        peaks = tenfit_candidate.evecs[..., 0]
+
+        # Compute coherence
+        coherence = compute_fiber_coherence(peaks, fa)
+
+        if coherence > best_coherence:
+            best_coherence = coherence
+            best_t = t
+
     if (best_t == np.eye(3)).all():
-        logging.info('b-vectors are already correct.')
+        logging.info('b-vectors are already correct. Coherence: {:.2f}'
+                     .format(best_coherence))
         correct_bvecs = bvecs
     else:
-        logging.info('Applying correction to b-vectors. '
-                     'Transform is: \n{0}.'.format(best_t))
-        correct_bvecs = np.dot(bvecs, best_t)
+        logging.info('Applying correction to b-vectors. Coherence: {:.2f} '
+                     '\nTransform is: \n{}.'.format(best_coherence, best_t))
+        correct_bvecs = bvecs @ best_t
 
     logging.info('Saving bvecs to file: {0}.'.format(args.out_bvec))
 

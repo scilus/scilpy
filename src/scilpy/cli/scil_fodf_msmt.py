@@ -22,15 +22,14 @@ import logging
 
 from dipy.core.gradients import gradient_table, unique_bvals_tolerance
 from dipy.data import get_sphere
-from dipy.io.gradients import read_bvals_bvecs
 from dipy.reconst.mcsd import MultiShellDeconvModel, multi_shell_fiber_response
-import nibabel as nib
 import numpy as np
 
 from scilpy.gradients.bvec_bval_tools import (check_b0_threshold,
                                               normalize_bvecs,
                                               is_normalized_bvecs)
 from scilpy.io.image import get_data_as_mask
+from scilpy.io.stateful_image import StatefulImage
 from scilpy.io.utils import (add_overwrite_arg, add_processes_arg,
                              assert_inputs_exist, assert_outputs_exist,
                              add_sh_basis_args, add_skip_b0_check_arg,
@@ -132,9 +131,20 @@ def main():
     wm_frf = np.loadtxt(args.in_wm_frf)
     gm_frf = np.loadtxt(args.in_gm_frf)
     csf_frf = np.loadtxt(args.in_csf_frf)
-    vol = nib.load(args.in_dwi)
-    data = vol.get_fdata(dtype=np.float32)
-    bvals, bvecs = read_bvals_bvecs(args.in_bval, args.in_bvec)
+
+    simg = StatefulImage.load(args.in_dwi)
+    simg.load_gradients(args.in_bval, args.in_bvec)
+
+    # Orientation standardization?
+    # Reconstruction logic (dipy/scilpy) often prefers a specific orientation or consistency.
+    # We reorient secondary inputs to match the primary one.
+    # If we want to be fully robust, we could force RAS here, but let's see.
+    # scil_frf_msmt used to_ras(), so let's be consistent.
+    simg.to_ras()
+
+    data = simg.get_fdata(dtype=np.float32)
+    bvals = simg.bvals
+    bvecs = simg.bvecs
 
     # Checking data and sh_order
     wm_frf, gm_frf, csf_frf = verify_frf_files(wm_frf, gm_frf, csf_frf)
@@ -142,8 +152,11 @@ def main():
     sh_basis, is_legacy = parse_sh_basis_arg(args)
 
     # Checking mask
-    mask = get_data_as_mask(nib.load(args.mask),
-                            dtype=bool) if args.mask else None
+    mask = None
+    if args.mask:
+        mask_simg = StatefulImage.load(args.mask)
+        mask_simg.reorient(simg.axcodes)
+        mask = get_data_as_mask(mask_simg, dtype=bool)
 
     # Checking bvals, bvecs values and loading gtab
     if not is_normalized_bvecs(bvecs):
@@ -206,8 +219,8 @@ def main():
                                     is_input_legacy=True,
                                     is_output_legacy=is_legacy,
                                     nbr_processes=args.nbr_processes)
-        nib.save(nib.Nifti1Image(wm_coeff.astype(np.float32),
-                                 vol.affine), args.wm_out_fODF)
+        res_simg = StatefulImage.from_data(wm_coeff.astype(np.float32), simg)
+        res_simg.save(args.wm_out_fODF)
 
     if args.gm_out_fODF:
         gm_coeff = shm_coeff[..., 1]
@@ -218,8 +231,8 @@ def main():
                                     is_input_legacy=True,
                                     is_output_legacy=is_legacy,
                                     nbr_processes=args.nbr_processes)
-        nib.save(nib.Nifti1Image(gm_coeff.astype(np.float32),
-                                 vol.affine), args.gm_out_fODF)
+        res_simg = StatefulImage.from_data(gm_coeff.astype(np.float32), simg)
+        res_simg.save(args.gm_out_fODF)
 
     if args.csf_out_fODF:
         csf_coeff = shm_coeff[..., 0]
@@ -230,18 +243,18 @@ def main():
                                      is_input_legacy=True,
                                      is_output_legacy=is_legacy,
                                      nbr_processes=args.nbr_processes)
-        nib.save(nib.Nifti1Image(csf_coeff.astype(np.float32),
-                                 vol.affine), args.csf_out_fODF)
+        res_simg = StatefulImage.from_data(csf_coeff.astype(np.float32), simg)
+        res_simg.save(args.csf_out_fODF)
 
     if args.vf:
-        nib.save(nib.Nifti1Image(vf.astype(np.float32),
-                                 vol.affine), args.vf)
+        res_simg = StatefulImage.from_data(vf.astype(np.float32), simg)
+        res_simg.save(args.vf)
 
     if args.vf_rgb:
         vf_rgb = vf / np.max(vf) * 255
         vf_rgb = np.clip(vf_rgb, 0, 255)
-        nib.save(nib.Nifti1Image(vf_rgb.astype(np.uint8),
-                                 vol.affine), args.vf_rgb)
+        res_simg = StatefulImage.from_data(vf_rgb.astype(np.uint8), simg)
+        res_simg.save(args.vf_rgb)
 
 
 if __name__ == "__main__":

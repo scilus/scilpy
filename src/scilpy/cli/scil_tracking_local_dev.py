@@ -50,15 +50,13 @@ import logging
 import time
 
 import dipy.core.geometry as gm
+from dipy.io.stateful_tractogram import Space, Origin
 import nibabel as nib
+from nibabel.streamlines import detect_format, TrkFile
 import numpy as np
 
-from dipy.io.stateful_tractogram import StatefulTractogram, Space
-from dipy.io.stateful_tractogram import Origin
-from dipy.io.streamline import save_tractogram
-from nibabel.streamlines import detect_format, TrkFile
-
-from scilpy.io.image import assert_same_resolution
+from scilpy.io.image import assert_same_resolution, get_data_as_mask
+from scilpy.io.stateful_image import StatefulImage
 from scilpy.io.utils import (add_processes_arg, add_sphere_arg,
                              add_verbose_arg,
                              assert_inputs_exist, assert_outputs_exist,
@@ -74,7 +72,8 @@ from scilpy.tracking.utils import (add_mandatory_options_tracking,
                                    add_tracking_options,
                                    get_theta,
                                    verify_streamline_length_options,
-                                   verify_seed_options)
+                                   verify_seed_options,
+                                   save_tractogram)
 from scilpy.version import version_string
 
 
@@ -213,15 +212,23 @@ def main():
     our_space = Space.VOX
     our_origin = Origin('center')
 
+    # ------- INSTANTIATING PROPAGATOR -------
+    logging.info("Loading ODF SH data.")
+    odf_sh_simg = StatefulImage.load(args.in_odf)
+    odf_sh_data = odf_sh_simg.get_fdata(caching='unchanged', dtype=float)
+    odf_sh_res = odf_sh_simg.header.get_zooms()[:3]
+    dataset = DataVolume(odf_sh_data, odf_sh_res, args.sh_interp)
+
     logging.info("Loading seeding mask.")
-    seed_img = nib.load(args.in_seed)
-    seed_data = seed_img.get_fdata(caching='unchanged', dtype=float)
+    seed_simg = StatefulImage.load(args.in_seed)
+    seed_simg.reorient(odf_sh_simg.axcodes)
+    seed_data = seed_simg.get_fdata(caching='unchanged', dtype=float)
     if np.count_nonzero(seed_data) == 0:
         raise IOError('The image {} is empty. '
                       'It can\'t be loaded as '
                       'seeding mask.'.format(args.in_seed))
 
-    seed_res = seed_img.header.get_zooms()[:3]
+    seed_res = seed_simg.header.get_zooms()[:3]
 
     # ------- INSTANTIATING SEED GENERATOR -------
     if args.in_custom_seeds:
@@ -248,24 +255,18 @@ def main():
                          ' value > 0.'.format(args.in_seed))
 
     logging.info("Loading tracking mask.")
-    mask_img = nib.load(args.in_mask)
-    mask_data = mask_img.get_fdata(caching='unchanged', dtype=float)
-    mask_res = mask_img.header.get_zooms()[:3]
+    mask_simg = StatefulImage.load(args.in_mask)
+    mask_simg.reorient(odf_sh_simg.axcodes)
+    mask_data = mask_simg.get_fdata(caching='unchanged', dtype=float)
+    mask_res = mask_simg.header.get_zooms()[:3]
     mask = DataVolume(mask_data, mask_res, args.mask_interp)
-
-    # ------- INSTANTIATING PROPAGATOR -------
-    logging.info("Loading ODF SH data.")
-    odf_sh_img = nib.load(args.in_odf)
-    odf_sh_data = odf_sh_img.get_fdata(caching='unchanged', dtype=float)
-    odf_sh_res = odf_sh_img.header.get_zooms()[:3]
-    dataset = DataVolume(odf_sh_data, odf_sh_res, args.sh_interp)
 
     logging.info("Instantiating propagator.")
     # Converting step size to vox space
     # We only support iso vox for now but allow slightly different vox 1e-3.
     assert np.allclose(np.mean(odf_sh_res[:3]),
                        odf_sh_res, atol=1e-03)
-    voxel_size = odf_sh_img.header.get_zooms()[0]
+    voxel_size = odf_sh_simg.header.get_zooms()[0]
     vox_step_size = args.step_size / voxel_size
 
     # Using space and origin in the propagator: vox and center, like
@@ -281,9 +282,10 @@ def main():
     # ------- INSTANTIATING RAP OBJECT -------
     if args.rap_mask:
         logging.info("Loading RAP mask.")
-        rap_img = nib.load(args.rap_mask)
-        rap_data = rap_img.get_fdata(caching='unchanged', dtype=float)
-        rap_res = rap_img.header.get_zooms()[:3]
+        rap_simg = StatefulImage.load(args.rap_mask)
+        rap_simg.reorient(odf_sh_simg.axcodes)
+        rap_data = rap_simg.get_fdata(caching='unchanged', dtype=float)
+        rap_res = rap_simg.header.get_zooms()[:3]
         rap_mask = DataVolume(rap_data, rap_res, args.mask_interp)
     else:
         rap_mask = None
@@ -295,11 +297,13 @@ def main():
         rap = None
 
     logging.info("Instantiating tracker.")
+    # We must force save_seeds=True so that Tracker returns (streamlines, seeds)
+    # as expected by scilpy.tracking.utils.save_tractogram
     tracker = Tracker(propagator, mask, seed_generator, nbr_seeds, min_nbr_pts,
                       max_nbr_pts, args.max_invalid_nb_points,
-                      compression_th=args.compress_th,
+                      compression_th=None,
                       nbr_processes=args.nbr_processes,
-                      save_seeds=args.save_seeds,
+                      save_seeds=True,
                       mmap_mode='r+', rng_seed=args.rng_seed,
                       track_forward_only=args.forward_only,
                       skip=args.skip,
@@ -315,24 +319,11 @@ def main():
                  "Now saving..."
                  .format(len(streamlines), nbr_seeds, str_time))
 
-    # save seeds if args.save_seeds is given
-    # We seeded (and tracked) in vox, center, which is what is expected for
-    # seeds.
-    if args.save_seeds:
-        data_per_streamline = {'seeds': seeds}
-    else:
-        data_per_streamline = {}
-
-    # Compared with scil_tracking_local, using sft rather than
-    # LazyTractogram to deal with space.
-    # Contrary to scilpy or dipy, where space after tracking is vox, here
-    # space after tracking is voxmm.
-    # Smallest possible streamline coordinate is (0,0,0), equivalent of
-    # corner origin (TrackVis)
-    sft = StatefulTractogram(streamlines, mask_img,
-                             space=our_space, origin=our_origin,
-                             data_per_streamline=data_per_streamline)
-    save_tractogram(sft, args.out_tractogram)
+    # save streamlines on-the-fly to file
+    save_tractogram(zip(streamlines, seeds), tracts_format,
+                    odf_sh_simg, nbr_seeds, args.out_tractogram,
+                    args.min_length, args.max_length, args.compress_th,
+                    args.save_seeds, args.verbose)
 
 
 if __name__ == "__main__":

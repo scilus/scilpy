@@ -192,7 +192,7 @@ def save_tractogram(
         Streamlines generator.
     tracts_format : TrkFile or TckFile
         Tractogram format.
-    ref_img : nibabel.Nifti1Image
+    ref_img : nibabel.Nifti1Image or scilpy.io.stateful_image.StatefulImage
         Image used as reference.
     total_nb_seeds : int
         Total number of seeds.
@@ -211,11 +211,16 @@ def save_tractogram(
         If True, display progression bar.
 
     """
+    from scilpy.io.stateful_image import StatefulImage
 
-    voxel_size = ref_img.header.get_zooms()[0]
+    # If ref_img is a StatefulImage, we want to save relative to its
+    # original on-disk orientation, not the internal (likely RAS) one.
+    is_stateful = isinstance(ref_img, StatefulImage)
+    if is_stateful:
+        original_axcodes = ref_img.axcodes
+        ref_img.reorient_to_original()
 
-    scaled_min_length = min_length / voxel_size
-    scaled_max_length = max_length / voxel_size
+    voxel_size = np.array(ref_img.header.get_zooms()[:3])
 
     # Tracking is expected to be returned in voxel space, origin `center`.
     def tracks_generator_wrapper():
@@ -224,7 +229,11 @@ def save_tractogram(
                                           total=total_nb_seeds,
                                           miniters=int(total_nb_seeds / 100),
                                           leave=False):
-            if (scaled_min_length <= length(strl) <= scaled_max_length):
+            # Compute length in mm space for filtering
+            # length() is euclidean distance, so we must be in mm
+            strl_mm = strl * voxel_size
+            strl_len = length(strl_mm)
+            if (min_length <= strl_len <= max_length):
                 # Seeds are saved with origin `center` by our own convention.
                 # Other scripts (e.g. scil_tractogram_seed_density_map) expect
                 # so.
@@ -233,29 +242,28 @@ def save_tractogram(
                     dps['seeds'] = seed
 
                 if compress:
-                    # compression threshold is given in mm, but we
-                    # are in voxel space
-                    strl = compress_streamlines(
-                        strl, compress / voxel_size)
-
-                # TODO: Use nibabel utilities for dealing with spaces
+                    # compression threshold is given in mm, so we
+                    # must be in mm space to compress
+                    strl_mm = compress_streamlines(strl_mm, compress)
+                
                 if tracts_format is TrkFile:
-                    # Streamlines are dumped in mm space with
-                    # origin `corner`. This is what is expected by
-                    # LazyTractogram for .trk files (although this is not
-                    # specified anywhere in the doc)
-                    strl += 0.5
-                    strl *= voxel_size  # in mm.
+                    # Streamlines are dumped in mm space with origin `corner`.
+                    # (TrackVis space). 
+                    # Note: We use the already computed strl_mm (center origin)
+                    # and shift it by 0.5 * voxel_size to get corner origin.
+                    strl_to_save = strl_mm + 0.5 * voxel_size
                 else:
                     # Streamlines are dumped in true world space with
                     # origin center as expected by .tck files.
-                    strl = np.dot(strl, ref_img.affine[:3, :3]) + \
-                        ref_img.affine[:3, 3]
+                    strl_to_save = nib.affines.apply_affine(ref_img.affine, strl)
 
-                yield TractogramItem(strl, dps, {})
+                yield TractogramItem(strl_to_save, dps, {})
 
     tractogram = LazyTractogram.from_data_func(tracks_generator_wrapper)
-    tractogram.affine_to_rasmm = ref_img.affine
+    # Since the generator yields coordinates already in their final format-space
+    # (TrackVis for .trk, RASMM for .tck), we set the affine_to_rasmm to identity
+    # to prevent nibabel from applying any further transformation.
+    tractogram.affine_to_rasmm = np.eye(4)
 
     filetype = nib.streamlines.detect_format(out_tractogram)
     reference = get_reference_info(ref_img)
@@ -264,8 +272,12 @@ def save_tractogram(
     # Use generator to save the streamlines on-the-fly
     nib.streamlines.save(tractogram, out_tractogram, header=header)
 
+    # Revert ref_img to its previous orientation
+    if is_stateful:
+        ref_img.reorient(original_axcodes)
 
-def get_direction_getter(in_img, algo, sphere, sub_sphere, theta, sh_basis,
+
+def get_direction_getter(img_data, algo, sphere, sub_sphere, theta, sh_basis,
                          voxel_size, sf_threshold, sh_to_pmf,
                          probe_length, probe_radius, probe_quality,
                          probe_count, support_exponent, is_legacy=True):
@@ -273,8 +285,8 @@ def get_direction_getter(in_img, algo, sphere, sub_sphere, theta, sh_basis,
 
     Parameters
     ----------
-    in_img: str
-        Path to the input odf file.
+    img_data: ndarray
+        The input odf data.
     algo: str
         Algorithm to use for tracking. Can be 'det', 'prob', 'ptt' or 'eudx'.
     sphere: str
@@ -319,8 +331,6 @@ def get_direction_getter(in_img, algo, sphere, sub_sphere, theta, sh_basis,
     dg: dipy.direction.DirectionGetter
         The direction getter object.
     """
-    img_data = nib.load(in_img).get_fdata(dtype=np.float32)
-
     sphere = HemiSphere.from_sphere(
         get_sphere(name=sphere)).subdivide(n=sub_sphere)
 
