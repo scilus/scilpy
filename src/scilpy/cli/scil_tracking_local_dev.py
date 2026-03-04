@@ -76,6 +76,8 @@ from scilpy.tracking.utils import (add_mandatory_options_tracking,
                                    verify_streamline_length_options,
                                    verify_seed_options)
 from scilpy.version import version_string
+from scilpy.image.labels import get_data_as_labels
+from scilpy.io.image import get_data_as_mask
 
 
 def _build_arg_parser():
@@ -149,11 +151,15 @@ def _build_arg_parser():
                           "fixed --rng_seed.\nEx: If tractogram_1 was created "
                           "with -nt 1,000,000, \nyou can create tractogram_2 "
                           "with \n--skip 1,000,000.")
-
-    track_g.add_argument('--rap_mask', default=None,
+    rap_mode = track_g.add_mutually_exclusive_group()
+    rap_mode.add_argument('--rap_mask', default=None,
                          help='Region-Adaptive Propagation mask (.nii.gz).\n'
                               'Region-Adaptive Propagation tractography will start within '
                               'this mask.')
+    rap_mode.add_argument('--rap_labels', default=None,
+                         help='Region-Adaptive Propagation label volume (.nii.gz) .\n'
+                              'Voxel values are integer labels (0=background, 1..N=regions) .\n'
+                              'Used with --rap_method switch to select policies per label.')
     track_g.add_argument('--rap_method', default='None',
                          choices=['None', 'continue', 'switch'],
                          help="Region-Adaptive Propagation tractography method.\n"
@@ -195,15 +201,16 @@ def main():
     verify_compression_th(args.compress_th)
     verify_seed_options(parser, args)
 
-    if args.rap_mask is not None and args.rap_method == "None":
+    if (args.rap_mask is not None or args.rap_labels is not None) and args.rap_method == "None":
         parser.error('No RAP method selected.')
-    if not args.rap_method == "None" and args.rap_mask is None:
-        parser.error('No RAP mask selected.')
+    if args.rap_method == 'continue' and args.rap_mask is None:
+        parser.error('RAP method "continue" requires --rap_mask.')
+    if args.rap_method == 'switch' and (args.rap_mask is None and args.rap_labels is None):
+        parser.error('RAP method "switch" requires --rap_mask or --rap_labels.')
     if args.rap_method == 'switch' and args.rap_params is None:
         parser.error('RAP method "switch" requires --rap_params to be specified.')
     if args.rap_params is not None and args.rap_method != 'switch':
         parser.error('--rap_params can only be used with --rap_method switch.')
-
     tracts_format = detect_format(args.out_tractogram)
     if tracts_format is not TrkFile:
         logging.warning("You have selected option --save_seeds but you are "
@@ -292,14 +299,28 @@ def main():
         space=our_space, origin=our_origin, is_legacy=is_legacy)
 
     # ------- INSTANTIATING RAP OBJECT -------
+    rap_mask = None
+    rap_labels = None
     if args.rap_mask:
         logging.info("Loading RAP mask.")
         rap_img = nib.load(args.rap_mask)
-        rap_data = rap_img.get_fdata(caching='unchanged', dtype=float)
-        rap_res = rap_img.header.get_zooms()[:3]
-        rap_mask = DataVolume(rap_data, rap_res, args.mask_interp)
-    else:
-        rap_mask = None
+        rap_mask_data = get_data_as_mask(rap_img)        
+        rap_mask_res = rap_img.header.get_zooms()[:3]
+        rap_mask = DataVolume(rap_mask_data, rap_mask_res, args.mask_interp)
+
+    if args.rap_labels:
+        logging.info("Loading RAP labels.")
+        rap_label_img = nib.load(args.rap_labels)
+
+        # Convert the rap_labels image to int if float
+        if np.issubdtype(rap_label_img.get_data_dtype(), np.floating):
+            int_data = np.round(rap_label_img.get_fdata()).astype(np.int16)
+            rap_label_img = nib.Nifti1Image(int_data, rap_label_img.affine)
+
+        rap_label_data = get_data_as_labels(rap_label_img)
+        rap_label_res = rap_label_img.header.get_zooms()[:3]
+        rap_labels = DataVolume(rap_label_data, rap_label_res, 'nearest')
+        rap_mask = rap_labels
 
     if args.rap_method == "continue":
         rap = RAPContinue(rap_mask, propagator, max_nbr_pts,
