@@ -66,7 +66,7 @@ from scilpy.io.utils import (add_processes_arg, add_sphere_arg,
                              load_matrix_in_any_format)
 from scilpy.image.volume_space_management import DataVolume
 from scilpy.tracking.propagator import ODFPropagator
-from scilpy.tracking.rap import RAPContinue
+from scilpy.tracking.rap import RAPContinue, RAPSwitch
 from scilpy.tracking.seed import SeedGenerator, CustomSeedsDispenser
 from scilpy.tracking.tracker import Tracker
 from scilpy.tracking.utils import (add_mandatory_options_tracking,
@@ -76,6 +76,8 @@ from scilpy.tracking.utils import (add_mandatory_options_tracking,
                                    verify_streamline_length_options,
                                    verify_seed_options)
 from scilpy.version import version_string
+from scilpy.image.labels import get_data_as_labels
+from scilpy.io.image import get_data_as_mask
 
 
 def _build_arg_parser():
@@ -149,15 +151,28 @@ def _build_arg_parser():
                           "fixed --rng_seed.\nEx: If tractogram_1 was created "
                           "with -nt 1,000,000, \nyou can create tractogram_2 "
                           "with \n--skip 1,000,000.")
-
-    track_g.add_argument('--rap_mask', default=None,
+    rap_mode = track_g.add_mutually_exclusive_group()
+    rap_mode.add_argument('--rap_mask', default=None,
                          help='Region-Adaptive Propagation mask (.nii.gz).\n'
                               'Region-Adaptive Propagation tractography will start within '
                               'this mask.')
+    rap_mode.add_argument('--rap_labels', default=None,
+                         help='Region-Adaptive Propagation label volume (.nii.gz) .\n'
+                              'Voxel values are integer labels (0=background, 1..N=regions) .\n'
+                              'Used with --rap_method switch to select policies per label.')
     track_g.add_argument('--rap_method', default='None',
-                         choices=['None', 'continue'],
-                         help="Region-Adaptive Propagation tractography method "
+                         choices=['None', 'continue', 'switch'],
+                         help="Region-Adaptive Propagation tractography method.\n"
+                              "'continue': continues tracking with same params,\n"
+                              "'switch': switches tracking params inside RAP mask.\n"
                               " [%(default)s]")
+    track_g.add_argument('--rap_params', default=None,
+                         help='JSON file containing RAP parameters.\n'
+                              'Required for rap_method=switch. Format:\n'
+                              '{"step_size": float, "theta": float (degrees)}')
+    track_g.add_argument('--rap_save_entry_exit', default=None,
+                         help='Save RAP entry/exit coordinates as a binary mask.\n'
+                              'Provide output filename (.nii.gz).')
 
     m_g = p.add_argument_group('Memory options')
     add_processes_arg(m_g)
@@ -186,11 +201,16 @@ def main():
     verify_compression_th(args.compress_th)
     verify_seed_options(parser, args)
 
-    if args.rap_mask is not None and args.rap_method == "None":
+    if (args.rap_mask is not None or args.rap_labels is not None) and args.rap_method == "None":
         parser.error('No RAP method selected.')
-    if not args.rap_method == "None" and args.rap_mask is None:
-        parser.error('No RAP mask selected.')
-
+    if args.rap_method == 'continue' and args.rap_mask is None:
+        parser.error('RAP method "continue" requires --rap_mask.')
+    if args.rap_method == 'switch' and (args.rap_mask is None and args.rap_labels is None):
+        parser.error('RAP method "switch" requires --rap_mask or --rap_labels.')
+    if args.rap_method == 'switch' and args.rap_params is None:
+        parser.error('RAP method "switch" requires --rap_params to be specified.')
+    if args.rap_params is not None and args.rap_method != 'switch':
+        parser.error('--rap_params can only be used with --rap_method switch.')
     tracts_format = detect_format(args.out_tractogram)
     if tracts_format is not TrkFile:
         logging.warning("You have selected option --save_seeds but you are "
@@ -279,18 +299,35 @@ def main():
         space=our_space, origin=our_origin, is_legacy=is_legacy)
 
     # ------- INSTANTIATING RAP OBJECT -------
+    rap_mask = None
+    rap_labels = None
     if args.rap_mask:
         logging.info("Loading RAP mask.")
         rap_img = nib.load(args.rap_mask)
-        rap_data = rap_img.get_fdata(caching='unchanged', dtype=float)
-        rap_res = rap_img.header.get_zooms()[:3]
-        rap_mask = DataVolume(rap_data, rap_res, args.mask_interp)
-    else:
-        rap_mask = None
+        rap_mask_data = get_data_as_mask(rap_img)        
+        rap_mask_res = rap_img.header.get_zooms()[:3]
+        rap_mask = DataVolume(rap_mask_data, rap_mask_res, args.mask_interp)
+
+    if args.rap_labels:
+        logging.info("Loading RAP labels.")
+        rap_label_img = nib.load(args.rap_labels)
+
+        # Convert the rap_labels image to int if float
+        if np.issubdtype(rap_label_img.get_data_dtype(), np.floating):
+            int_data = np.round(rap_label_img.get_fdata()).astype(np.int16)
+            rap_label_img = nib.Nifti1Image(int_data, rap_label_img.affine)
+
+        rap_label_data = get_data_as_labels(rap_label_img)
+        rap_label_res = rap_label_img.header.get_zooms()[:3]
+        rap_labels = DataVolume(rap_label_data, rap_label_res, 'nearest')
+        rap_mask = rap_labels
 
     if args.rap_method == "continue":
         rap = RAPContinue(rap_mask, propagator, max_nbr_pts,
                           step_size=vox_step_size)
+    elif args.rap_method == "switch":
+        rap = RAPSwitch(rap_mask, propagator, max_nbr_pts,
+                        rap_params_file=args.rap_params)
     else:
         rap = None
 
@@ -322,6 +359,10 @@ def main():
         data_per_streamline = {'seeds': seeds}
     else:
         data_per_streamline = {}
+
+    # Save RAP entry/exit mask if requested
+    if args.rap_save_entry_exit:
+        tracker.save_rap_entry_exit_mask(args.rap_save_entry_exit, mask_img)
 
     # Compared with scil_tracking_local, using sft rather than
     # LazyTractogram to deal with space.
