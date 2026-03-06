@@ -142,7 +142,7 @@ def _parse_scalar_meanstd(stats, subs, bundles, optional_keys):
             for m_stat in bundle_dict.values():
                 if isinstance(m_stat, dict):
                     found_keys.update(m_stat.keys())
-    keys_present = set(optional_keys) & found_keys
+    keys_present = set(optional_keys).intersection(found_keys)
     optional_arrays = {}
 
     for key in keys_present:
@@ -475,7 +475,7 @@ def _build_arg_parser():
                    help='If set, subjects won\'t be sorted alphabetically.')
     
     p.add_argument('--extra_key', nargs='+', default=[],
-                   help='Optional keys to export (only numeric values).')
+                   help='Optional keys to export (must be associated to numeric values only)')
 
     p.add_argument('--no_sort_bundles', action='store_false',
                    help='If set, bundles won\'t be sorted alphabetically.')
