@@ -16,6 +16,7 @@ from dipy.io.stateful_tractogram import set_sft_logger_level, \
     StatefulTractogram, Space
 from dipy.io.utils import get_reference_info, is_header_compatible
 from dipy.segment.clustering import qbx_and_merge
+from dipy.segment.fss import FastStreamlineSearch
 from dipy.tracking.streamline import transform_streamlines
 from dipy.tracking.streamlinespeed import compress_streamlines
 from nibabel.streamlines import TrkFile, TckFile
@@ -24,6 +25,7 @@ import numpy as np
 from numpy.polynomial.polynomial import Polynomial
 from scipy.ndimage import map_coordinates
 from scipy.spatial import cKDTree
+from scipy.sparse.csgraph import connected_components
 
 from scilpy.tractanalysis.bundle_operations import uniformize_bundle_sft
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
@@ -302,29 +304,43 @@ def perform_tractogram_operation_on_sft(op_name, sft_list, precision,
     return new_sft, indices_per_sft
 
 
-def perform_tractogram_operation_on_lines(operation, streamlines,
-                                          precision=None):
-    """Peforms an operation on a list of list of streamlines.
+def perform_tractogram_operation_on_lines(operation, streamlines, precision=None,
+                                          nb_resample_pts=None, bidirectional=None):
+    """Performs a set operation (union, intersection, difference) on a list of lists of streamlines.
 
-    Given a list of list of streamlines, this function applies the operation
-    to the first two lists of streamlines. The result in then used recursively
-    with the third, fourth, etc. lists of streamlines.
+    This function acts as a dispatcher for two types of streamline comparisons:
 
-    A valid operation is any function that takes two streamlines dict as input
-    and produces a new streamlines dict (see hash_streamlines). Union,
-    difference, and intersection are valid examples of operations.
+    1. Standard (Hash-based): Recursively applies the operation to the lists of 
+       streamlines (first two, then the result with the third, etc.) using a heuristic hash. 
+       To save memory and time, this method hashes only the coordinates of the streamline's 
+       extremities (first 5 and last 5 points). Valid operations take two streamline 
+       dictionaries as input and produce a new streamlines dict.
+
+    2. Robust (FastStreamlineSearch-based): If a "robust" operation is passed 
+       (e.g., `union_robust`), it processes all sets simultaneously using DIPY's
+       FastStreamlineSearch. This geometric clustering approach allows for soft 
+       comparisons, varying point counts, and flipped orientations.
 
     Parameters
     ----------
     operation: callable
-        A callable that takes two streamlines dicts as inputs and preduces a
-        new streamline dict.
-    streamlines: list of list of streamlines
-        The streamlines used in the operation.
+        A callable representing the set operation. Can be a standard hash-based 
+        function (e.g., `union`) or a robust geometric function (e.g., `union_robust`).
+    streamlines: list of lists of streamlines
+        The sets of streamlines used in the operation.
     precision: int, optional
-        The number of decimals to keep when hashing the points of the
-        streamlines. Allows a soft comparison of streamlines. If None, no
-        rounding is performed.
+        Determines the strictness of the comparison. For hash-based operations, 
+        it is the number of decimals to keep when rounding points. For robust 
+        operations, it defines the maximum allowed geometric distance threshold 
+        (epsilon = 10^-precision). If None, no rounding is performed for hashes, 
+        and robust defaults to 3.
+    nb_resample_pts: int, optional
+        Used only for 'robust' operations. The number of points to resample 
+        the streamlines to before using FastStreamlineSearch.
+    bidirectional: bool, optional
+        Used only for 'robust' operations. If True, two streamlines are considered 
+        similar if they are within the distance threshold, regardless of their 
+        anatomical orientation (A-to-B vs B-to-A).
 
     Returns
     -------
@@ -337,7 +353,13 @@ def perform_tractogram_operation_on_lines(operation, streamlines,
     if 'robust' in operation.__name__:
         if precision is None:
             precision = 3
-        return operation(streamlines, precision)
+        if nb_resample_pts is None:
+            nb_resample_pts = 64
+        if bidirectional is None:
+            bidirectional = True
+        return operation(streamlines, precision,
+                         nb_resample_pts=nb_resample_pts,
+                         bidirectional=bidirectional)
     else:
         # Hash the streamlines using the desired precision.
         indices = np.cumsum([0] + [len(s) for s in streamlines[:-1]])
@@ -352,53 +374,86 @@ def perform_tractogram_operation_on_lines(operation, streamlines,
     return streamlines, indices
 
 
-def intersection_robust(streamlines_list, precision=3):
-    """ Intersection of a list of StatefulTractogram """
+def intersection_robust(streamlines_list, precision=3,
+                        nb_resample_pts=64, bidirectional=True):
+    """ Intersection of a list of lists of streamlines """
     if not isinstance(streamlines_list, list):
         streamlines_list = [streamlines_list]
 
     streamlines_fused, indices = _find_identical_streamlines(
-        streamlines_list, epsilon=10**(-precision))
+        streamlines_list, epsilon=10**(-precision),
+        nb_resample_pts=nb_resample_pts, bidirectional=bidirectional)
     return streamlines_fused[indices], indices
 
 
-def difference_robust(streamlines_list, precision=3):
-    """ Difference of a list of StatefulTractogram from the first element """
+def difference_robust(streamlines_list, precision=3,
+                      nb_resample_pts=64, bidirectional=True):
+    """ Difference of a list of lists of streamlines from the first element """
     if not isinstance(streamlines_list, list):
         streamlines_list = [streamlines_list]
     streamlines_fused, indices = _find_identical_streamlines(
-        streamlines_list, epsilon=10**(-precision), difference_mode=True)
+        streamlines_list, epsilon=10**(-precision), difference_mode=True,
+        nb_resample_pts=nb_resample_pts, bidirectional=bidirectional)
     return streamlines_fused[indices], indices
 
 
-def union_robust(streamlines_list, precision=3):
-    """ Union of a list of StatefulTractogram """
+def union_robust(streamlines_list, precision=3,
+                 nb_resample_pts=64, bidirectional=True):
+    """ Union of a list of lists of streamlines """
     if not isinstance(streamlines_list, list):
         streamlines_list = [streamlines_list]
     streamlines_fused, indices = _find_identical_streamlines(
-        streamlines_list, epsilon=10**(-precision), union_mode=True)
+        streamlines_list, epsilon=10**(-precision), union_mode=True,
+        nb_resample_pts=nb_resample_pts, bidirectional=bidirectional,
+    )
     return streamlines_fused[indices], indices
 
 
 def _find_identical_streamlines(streamlines_list, epsilon=0.001,
-                                union_mode=False, difference_mode=False):
-    """ Return the intersection/union/difference from a list of list of
-    streamlines. Allows for a maximum distance for matching.
+                                union_mode=False, difference_mode=False,
+                                nb_resample_pts=64, bidirectional=True):
+    """ Finds identical streamlines across multiple sets and performs a set operation
+    (intersection, union, or difference) using DIPY's FastStreamlineSearch.
+
+    This function groups streamlines into connected components based on a maximum 
+    allowed geometric distance (epsilon). It then filters these groups based on 
+    the requested set operation.
+
+    Note: Regardless of the chosen mode (union, intersection, or difference), 
+    this function inherently deduplicates streamlines. It will never return 
+    multiple identical copies of a streamline; only a single representative 
+    from any matching group is kept.
 
     Parameters
     -----------
     streamlines_list: list
-        List of lists of streamlines or list of ArraySequences
-    epsilon: float
-        Maximum allowed distance (should not go above 1.0)
-    union_mode: bool
-        Perform the union of streamlines
-    difference_mode
-        Perform the difference of streamlines (from the first element)
+        List of lists of streamlines or list of ArraySequences.
+    epsilon: float, optional
+        Maximum allowed distance for matching streamlines (should not go above 1.0).
+        Defaults to 0.001.
+    union_mode: bool, optional
+        If True, performs the union of streamlines (keeps one representative per 
+        unique streamline across all sets). Defaults to False.
+    difference_mode: bool, optional
+        If True, performs the difference of streamlines (keeps unique streamlines 
+        that exist ONLY in the first set). Defaults to False.
+        Note: If both union_mode and difference_mode are False, the function 
+        defaults to intersection mode (keeps streamlines present in ALL sets).
+    nb_resample_pts: int, optional
+        Number of points to resample the streamlines to for the geometric comparison.
+        Defaults to 64.
+    bidirectional: bool, optional
+        If True, two streamlines are considered similar if one is within epsilon
+        of the other, regardless of their orientation. If False, the streamlines
+        must be aligned in the same direction. Defaults to True.
+
     Returns
     --------
-    Tuple, ArraySequence, np.ndarray
-        Returns the concatenated streamlines and the indices to pick from it
+    streamlines: ArraySequence
+        The concatenated list of all input streamlines.
+    indices: np.ndarray
+        The indices of the specific streamlines to keep from the concatenated list,
+        based on the selected set operation.
     """
     streamlines = ArraySequence(itertools.chain(*streamlines_list))
     nb_streamlines = np.cumsum([len(sft) for sft in streamlines_list])
@@ -409,104 +464,58 @@ def _find_identical_streamlines(streamlines_list, epsilon=0.001,
                          'same time.')
     intersect_mode = (not union_mode and not difference_mode)
 
-    all_tree = {}
-    all_tree_mapping = {}
-    first_points = np.array(streamlines.get_data()[streamlines._offsets])
-
-    # Uses the number of point to speed up the search in the ckdtree
-    for point_count in np.unique(streamlines._lengths):
-        same_length_ind = np.where(streamlines._lengths == point_count)[0]
-        all_tree[point_count] = cKDTree(first_points[same_length_ind])
-        all_tree_mapping[point_count] = same_length_ind
-
     inversion_val = 1 if union_mode or difference_mode else 0
     streamlines_to_keep = np.ones((len(streamlines),)) * inversion_val
-    average_match_distance = []
 
-    # Difference by design will never select streamlines that are not from the
-    # first set
     if difference_mode:
         streamlines_to_keep[nb_streamlines[1]:] = 0
-    for i, streamline in enumerate(streamlines):
-        # Unless we do a union, there is no point looking past the first set
-        if not union_mode and i >= nb_streamlines[1]:
-            break
 
-        # Find the closest (first) points
-        distance_ind = all_tree[len(streamline)].query_ball_point(
-            streamline[0], r=2*epsilon)
-        actual_ind = np.sort(all_tree_mapping[len(streamline)][distance_ind])
+    if len(streamlines) == 0:
+        return streamlines, np.array([], dtype=np.uint32)
 
-        # Intersection requires finding matches in all sets
-        if intersect_mode:
-            intersect_test = np.zeros((len(nb_streamlines)-1,))
+    fss = FastStreamlineSearch(streamlines,
+                               max_radius=epsilon,
+                               resampling=nb_resample_pts,
+                               bidirectional=bidirectional)
 
-            # The streamline's set itself is obviously already ok.
-            set_i = np.max(np.where(nb_streamlines <= i)[0])
-            intersect_test[set_i] = True
+    # adjacency[i, j] = 1 if streamline i is within epsilon of streamline j
+    adjacency = fss.radius_search(streamlines, radius=epsilon)
 
-        # Looking at similar streamlines only:
-        for j in actual_ind:
-            # 1) Yourself is never a match.
-            #    (For union : always kept)
-            #    (For difference: if another is found, we will remove i)
-            #    (For intersection: will be kept lower if others are found).
-            if i == j:
-                continue
+    # Compute connected components:
+    # If: A ~ B and B ~ C,
+    # then all 3 become one component.
+    n_components, labels = connected_components(
+        csgraph=adjacency, directed=False)
 
-            # Actual check of the whole streamline
-            sub_vector = streamline-streamlines[j]
-            norm = np.linalg.norm(sub_vector, axis=1)
-            average_match_distance.append(np.average(sub_vector, axis=0))
+    # Each iteration handles one group of identical streamlines
+    for comp_id in range(n_components):
 
-            if union_mode:
-                # 1) Yourself is not a match
-                # 2) If the streamline hasn't been selected (by another match)
-                # 3) The streamline is 'identical'
-                if streamlines_to_keep[i] == 1 and (norm < 2*epsilon).all():
-                    streamlines_to_keep[j] = 0
+        group = np.where(labels == comp_id)[0]
 
-            elif difference_mode:
-                # 1) Yourself is not a match
-                # 2) The streamline is 'identical'
-                if (norm < 2*epsilon).all():
-                    set_j = np.max(np.where(nb_streamlines <= j)[0])
+        # Determine which sets are present
+        sets_present = set(
+            np.searchsorted(nb_streamlines, idx, side='right') - 1
+            for idx in group)
 
-                    # If it is an identical streamline, but from the first set,
-                    # it needs to be removed, otherwise remove all instances
-                    if set_j == 0:
-                        # If it is the first 'encounter', keep it.
-                        # Else, remove it.
-                        if streamlines_to_keep[actual_ind].all():
-                            streamlines_to_keep[j] = 0
-                    else:
-                        streamlines_to_keep[actual_ind] = 0
-            else:  # intersect_mode
-                # 1) Yourself is not a match
-                # 2) An equivalent streamline has not been selected by another
-                #    match.
-                # 3) The streamline is 'identical'
-                if (not np.any(streamlines_to_keep[actual_ind])
-                        and (norm < 2*epsilon).all()):
-                    set_j = np.max(np.where(nb_streamlines <= j)[0])
-                    # If it is an identical streamline, but from the same set
-                    # it needs to be removed (keeping streamlines_to_keep at 0)
+        if union_mode:
+            # Keep first representative
+            streamlines_to_keep[group[1:]] = 0
 
-                    # Else: will be added only if it is found in all sets
-                    if set_i != set_j:
-                        intersect_test[set_j] = True
+        elif difference_mode:
+            # Keep only groups entirely inside first set (only unique streamlines from set 0 survive)
+            if not all(idx < nb_streamlines[1] for idx in group):
+                streamlines_to_keep[group] = 0
+            else:
+                # Deduplicate identical streamlines within the first set
+                streamlines_to_keep[group[1:]] = 0
 
-        # Verify that you actually found a match in each set
-        if intersect_mode and intersect_test.all():
-            # Keeping only the first one; i.
-            streamlines_to_keep[i] = 1
-
-    # To facilitate debugging and discovering shifts in data
-    if average_match_distance:
-        logging.info('Average matches distance: {}mm'.format(
-            np.round(np.average(average_match_distance, axis=0), 5)))
-    else:
-        logging.info('No matches found.')
+        elif intersect_mode:
+            # Keep one representative only if present in all sets
+            if len(sets_present) == len(streamlines_list):
+                rep = min(group)
+                streamlines_to_keep[rep] = 1
+            else:
+                streamlines_to_keep[group] = 0
 
     return streamlines, np.where(streamlines_to_keep > 0)[0].astype(np.uint32)
 
