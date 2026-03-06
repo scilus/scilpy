@@ -64,8 +64,11 @@ from scilpy.io.utils import (add_processes_arg, add_sphere_arg,
                              assert_inputs_exist, assert_outputs_exist,
                              parse_sh_basis_arg, verify_compression_th,
                              load_matrix_in_any_format)
+from scilpy.io.tensor import (convert_tensor_to_dipy_format,
+                              supported_tensor_formats,
+                              tensor_format_description)
 from scilpy.image.volume_space_management import DataVolume
-from scilpy.tracking.propagator import ODFPropagator
+from scilpy.tracking.propagator import ODFPropagator, TensorPropagator
 from scilpy.tracking.rap import RAPContinue
 from scilpy.tracking.seed import SeedGenerator, CustomSeedsDispenser
 from scilpy.tracking.tracker import Tracker
@@ -83,14 +86,37 @@ def _build_arg_parser():
                                 formatter_class=argparse.RawTextHelpFormatter,
                                 epilog=version_string)
 
+    # Input data options
+    data_g = p.add_argument_group('Input data options')
+    data_group = data_g.add_mutually_exclusive_group(required=True)
+    data_group.add_argument('--in_odf',
+                            help='Path to the ODF SH coefficient file (.nii.gz).\n'
+                                 'Use this for ODF-based tracking.')
+    data_group.add_argument('--in_tensor',
+                            help='Path to the DTI tensor file (.nii.gz).\n'
+                                 'Use this for tensor-based tracking.')
+    p.add_argument('in_seed',
+                   help='Seeding mask (.nii.gz).')
+    p.add_argument('in_mask',
+                   help='Tracking mask (.nii.gz).\n'
+                        'Tracking will stop outside this mask. The last point '
+                        'of each \nstreamline (triggering the stopping '
+                        'criteria) IS added to the streamline.')
+    p.add_argument('out_tractogram',
+                   help='Tractogram output file (must be .trk or .tck).')
+
     # Options common to both scripts
-    add_mandatory_options_tracking(p)
-    track_g = add_tracking_options(p)
     add_seeding_options(p)
+    track_g = add_tracking_options(p)
 
     # Options only for here.
     track_g.add_argument('--algo', default='prob', choices=['det', 'prob'],
                          help='Algorithm to use. [%(default)s]')
+    track_g.add_argument('--tensor_format', type=str, default='dipy',
+                         choices=supported_tensor_formats,
+                         help="Format of the input tensor file.\n"
+                              "Only used with --in_tensor. [%(default)s]\n" +
+                              tensor_format_description)
     add_sphere_arg(track_g, symmetric_only=False)
     track_g.add_argument('--sub_sphere',
                          type=int, default=0,
@@ -178,7 +204,11 @@ def main():
         parser.error('Invalid output streamline file format (must be trk or ' +
                      'tck): {0}'.format(args.out_tractogram))
 
-    inputs = [args.in_odf, args.in_seed, args.in_mask]
+    inputs = [args.in_seed, args.in_mask]
+    if args.in_odf:
+        inputs.append(args.in_odf)
+    if args.in_tensor:
+        inputs.append(args.in_tensor)
     assert_inputs_exist(parser, inputs)
     assert_outputs_exist(parser, args, args.out_tractogram)
 
@@ -205,7 +235,8 @@ def main():
     max_nbr_pts = int(args.max_length / args.step_size)
     min_nbr_pts = max(int(args.min_length / args.step_size), 1)
 
-    assert_same_resolution([args.in_mask, args.in_odf, args.in_seed])
+    input_data_file = args.in_odf if args.in_odf else args.in_tensor
+    assert_same_resolution([args.in_mask, input_data_file, args.in_seed])
 
     # Choosing our space and origin for this tracking
     # If save_seeds, space and origin must be vox, center. Choosing those
@@ -254,29 +285,45 @@ def main():
     mask = DataVolume(mask_data, mask_res, args.mask_interp)
 
     # ------- INSTANTIATING PROPAGATOR -------
-    logging.info("Loading ODF SH data.")
-    odf_sh_img = nib.load(args.in_odf)
-    odf_sh_data = odf_sh_img.get_fdata(caching='unchanged', dtype=float)
-    odf_sh_res = odf_sh_img.header.get_zooms()[:3]
-    dataset = DataVolume(odf_sh_data, odf_sh_res, args.sh_interp)
+    if args.in_odf:
+        logging.info("Loading ODF SH data.")
+        odf_sh_img = nib.load(args.in_odf)
+        odf_sh_data = odf_sh_img.get_fdata(caching='unchanged', dtype=float)
+        odf_sh_res = odf_sh_img.header.get_zooms()[:3]
+        dataset = DataVolume(odf_sh_data, odf_sh_res, args.sh_interp)
 
-    logging.info("Instantiating propagator.")
-    # Converting step size to vox space
-    # We only support iso vox for now but allow slightly different vox 1e-3.
-    assert np.allclose(np.mean(odf_sh_res[:3]),
-                       odf_sh_res, atol=1e-03)
-    voxel_size = odf_sh_img.header.get_zooms()[0]
-    vox_step_size = args.step_size / voxel_size
+        logging.info("Instantiating ODF propagator.")
+        voxel_size = odf_sh_img.header.get_zooms()[0]
+        vox_step_size = args.step_size / voxel_size
+        sh_basis, is_legacy = parse_sh_basis_arg(args)
 
-    # Using space and origin in the propagator: vox and center, like
-    # in dipy.
-    sh_basis, is_legacy = parse_sh_basis_arg(args)
+        propagator = ODFPropagator(
+            dataset, vox_step_size, args.rk_order, args.algo, sh_basis,
+            args.sf_threshold, args.sf_threshold_init, theta, args.sphere,
+            sub_sphere=args.sub_sphere,
+            space=our_space, origin=our_origin, is_legacy=is_legacy)
+    
+    else:  # args.in_tensor
+        logging.info("Loading DTI tensor data.")
+        tensor_img = nib.load(args.in_tensor)
+        tensor_data = tensor_img.get_fdata(caching='unchanged', dtype=float)
+        
+        # Convert tensor to dipy format if needed
+        if args.tensor_format != 'dipy':
+            logging.info(f"Converting tensor from {args.tensor_format} to dipy format.")
+            tensor_data = convert_tensor_to_dipy_format(tensor_data, args.tensor_format)
 
-    propagator = ODFPropagator(
-        dataset, vox_step_size, args.rk_order, args.algo, sh_basis,
-        args.sf_threshold, args.sf_threshold_init, theta, args.sphere,
-        sub_sphere=args.sub_sphere,
-        space=our_space, origin=our_origin, is_legacy=is_legacy)
+        logging.info(f"Tensor data shape: {tensor_data.shape}")
+        tensor_res = tensor_img.header.get_zooms()[:3]
+        dataset = DataVolume(tensor_data, tensor_res, args.mask_interp)
+
+        logging.info("Instantiating tensor propagator.")
+        voxel_size = tensor_img.header.get_zooms()[0]
+        vox_step_size = args.step_size / voxel_size
+
+        propagator = TensorPropagator(
+            dataset, vox_step_size, args.rk_order, args.algo,
+            theta, space=our_space, origin=our_origin)
 
     # ------- INSTANTIATING RAP OBJECT -------
     if args.rap_mask:
