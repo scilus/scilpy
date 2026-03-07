@@ -38,6 +38,9 @@ def _build_arg_parser():
     p.add_argument('--min_volume', type=float, default=7,
                    help='Minimum volume in mm3 [%(default)s],'
                         'Useful for lesions.')
+    p.add_argument('--min_distance', type=int, default=None,
+                   help='Minimum distance in voxels [%(default)s],'
+                        'Useful for confluent lesions.')
 
     add_verbose_arg(p)
     add_overwrite_arg(p)
@@ -57,11 +60,13 @@ def main():
     mask_data = get_data_as_mask(mask_img)
     voxel_volume = np.prod(np.diag(mask_img.affine)[:3])
     min_voxel_count = args.min_volume // voxel_volume
+    min_distance = args.min_distance
 
     # Get labels from mask
     label_map = get_labels_from_mask(
         mask_data, args.labels, args.background_label,
-        min_voxel_count=min_voxel_count)
+        min_voxel_count=min_voxel_count,
+        min_distance=min_distance)
     # Save result
     out_img = nib.Nifti1Image(label_map.astype(np.uint16), mask_img.affine)
     nib.save(out_img, args.out_labels)
