@@ -533,9 +533,26 @@ class Tracker(object):
                     line.pop()
                     break
 
-                previous_dir = new_dir
                 step_count += 1
-        
+            else:
+                new_pos, new_dir, is_direction_valid = \
+                    self.propagator.propagate(line, previous_dir)
+
+                # Verifying if direction is valid
+                # If invalid: break. Else, verify tracking mask.
+                if is_direction_valid:
+                    invalid_direction_count = 0
+                else:
+                    invalid_direction_count += 1
+                    if invalid_direction_count > self.max_invalid_dirs:
+                        break
+
+                propagation_can_continue = self._verify_stopping_criteria(new_pos)
+                if propagation_can_continue or self.append_last_point:
+                    line.append(new_pos)
+
+            previous_dir = new_dir
+
         logging.debug(f"TRACKER end of propagation: {len(line)} total points, last pos={np.round(line[-1], 2)}")
         return line
 

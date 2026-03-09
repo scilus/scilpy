@@ -8,12 +8,12 @@ from scilpy.tracking.propagator import get_sphere_neighbours
 
 
 class RAP:
-    def __init__(self, mask_rap, propagator, max_nbr_pts):
+    def __init__(self, rap_volume, propagator, max_nbr_pts):
         """
-        RAP_mask: DataVolume
+        rap_volume: DataVolume
             HRegion-Adaptive Propagation tractography volume.
         """
-        self.rap_mask = mask_rap
+        self.rap_volume = rap_volume
         self.propagator = propagator
         self.max_nbr_pts = max_nbr_pts
         self._current_label = None
@@ -21,7 +21,7 @@ class RAP:
         self._current_cfg = {}
 
     def is_in_rap_region(self, curr_pos, space, origin):
-        return self.rap_mask.get_value_at_coordinate(
+        return self.rap_volume.get_value_at_coordinate(
             *curr_pos, space=space, origin=origin) > 0
 
     def rap_multistep_propagate(self, line, prev_direction):
@@ -49,13 +49,13 @@ class RAP:
 
 class RAPContinue(RAP):
     """Dummy RAP class for tests. Goes straight"""
-    def __init__(self, mask_rap, propagator, max_nbr_pts, step_size):
+    def __init__(self, rap_volume, propagator, max_nbr_pts, step_size):
         """
         Step size: float
             The step size inside the RAP mask. Could be different from the step
             size elsewhere. In voxel world.
         """
-        super().__init__(mask_rap, propagator, max_nbr_pts)
+        super().__init__(rap_volume, propagator, max_nbr_pts)
         self.step_size = step_size
 
     def rap_multistep_propagate(self, line, prev_direction):
@@ -69,11 +69,11 @@ class RAPContinue(RAP):
 
 class RAPSwitch(RAP):
     """RAP class that switches tracking parameters when inside the RAP mask or RAP label."""
-    def __init__(self, mask_rap, propagator, max_nbr_pts, rap_params_file):
+    def __init__(self, rap_volume, propagator, max_nbr_pts, rap_params_file):
         """
         Parameters
         ----------
-        mask_rap : DataVolume
+        rap_volume : DataVolume
             Region-Adaptive Propagation mask.
         propagator : Propagator
             The propagator used for tracking.
@@ -91,7 +91,7 @@ class RAPSwitch(RAP):
                 }
             }
         """
-        super().__init__(mask_rap, propagator, max_nbr_pts)
+        super().__init__(rap_volume, propagator, max_nbr_pts)
 
         # Load parameters from JSON file
         with open(rap_params_file, 'r') as f:
@@ -170,7 +170,7 @@ class RAPSwitch(RAP):
         int
             The integer label at current position. 
         """
-        v = self.rap_mask.get_value_at_coordinate(*curr_pos, space=space, origin=origin)
+        v = self.rap_volume.get_value_at_coordinate(*curr_pos, space=space, origin=origin)
         try:
             return int(v)
         except Exception:

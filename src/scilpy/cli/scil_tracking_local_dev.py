@@ -299,16 +299,13 @@ def main():
         space=our_space, origin=our_origin, is_legacy=is_legacy)
 
     # ------- INSTANTIATING RAP OBJECT -------
-    rap_mask = None
-    rap_labels = None
     if args.rap_mask:
         logging.info("Loading RAP mask.")
         rap_img = nib.load(args.rap_mask)
         rap_mask_data = get_data_as_mask(rap_img)        
         rap_mask_res = rap_img.header.get_zooms()[:3]
-        rap_mask = DataVolume(rap_mask_data, rap_mask_res, args.mask_interp)
-
-    if args.rap_labels:
+        rap_volume = DataVolume(rap_mask_data, rap_mask_res, args.mask_interp)
+    elif args.rap_labels:
         logging.info("Loading RAP labels.")
         rap_label_img = nib.load(args.rap_labels)
 
@@ -319,14 +316,13 @@ def main():
 
         rap_label_data = get_data_as_labels(rap_label_img)
         rap_label_res = rap_label_img.header.get_zooms()[:3]
-        rap_labels = DataVolume(rap_label_data, rap_label_res, 'nearest')
-        rap_mask = rap_labels
+        rap_volume = DataVolume(rap_label_data, rap_label_res, 'nearest')
 
     if args.rap_method == "continue":
-        rap = RAPContinue(rap_mask, propagator, max_nbr_pts,
+        rap = RAPContinue(rap_volume, propagator, max_nbr_pts,
                           step_size=vox_step_size)
     elif args.rap_method == "switch":
-        rap = RAPSwitch(rap_mask, propagator, max_nbr_pts,
+        rap = RAPSwitch(rap_volume, propagator, max_nbr_pts,
                         rap_params_file=args.rap_params)
     else:
         rap = None
