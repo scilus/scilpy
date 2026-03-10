@@ -82,7 +82,7 @@ class RAPSwitch(RAP):
         rap_params_file : str
             Path to JSON file containing RAP parameters.
             "methods" is optionnal, if not provided, "default" will be applied
-            Expected format: 
+            Expected format:
             {
                 "methods": {
                   "1": {"algo": str, "theta": float, "step_size": float},
@@ -100,12 +100,26 @@ class RAPSwitch(RAP):
         self._base = {
             'step_size': propagator.step_size,
             'theta': propagator.theta,
-            'algo' : getattr(propagator, 'algo', None),
-            'tracking_neighbours' : getattr(propagator, 'tracking_neighbours', None)
+            'algo': getattr(propagator, 'algo', None),
+            'tracking_neighbours': getattr(propagator, 'tracking_neighbours', None)
         }
         self.methods_cfg = rap_params.get('methods', {})
         logging.info("RAP parameters loaded:")
-        
+
+        # Check if all labels in the volume are covered by the configuration
+        unique_labels = np.unique(rap_volume.data)
+        # Remove 0 (background) and convert to int
+        unique_labels = [int(label) for label in unique_labels if label > 0]
+
+        if unique_labels:
+            missing_labels = [label for label in unique_labels
+                              if str(label) not in self.methods_cfg]
+            if missing_labels:
+                logging.warning(
+                    f"Labels {missing_labels} found in RAP volume but not in "
+                    f"methods config. Base parameters will be used for these labels."
+                )
+
     def rap_multistep_propagate(self, line, prev_direction):
         """
         Propagate within the RAP region using modified parameters.
@@ -148,17 +162,16 @@ class RAPSwitch(RAP):
             self._total_steps += 1
             return line, new_dir, True
         return line, prev_direction, False
-    
 
     def _get_label(self, curr_pos, space, origin):
         """
         Receive label (int) at current position in RAP label volume.
-       
+
         Parameters
         ----------
         curr_pos: np.ndarray
             This is the current 3D position of the streamline.
-        
+
         space: Space
             Coordinate space (here Space.VOX.).
 
@@ -168,14 +181,13 @@ class RAPSwitch(RAP):
         Returns
         -------
         int
-            The integer label at current position. 
+            The integer label at current position.
         """
         v = self.rap_volume.get_value_at_coordinate(*curr_pos, space=space, origin=origin)
         try:
             return int(v)
         except Exception:
             return int(np.round(v))
-        
 
     def _merge_cfg(self, label):
         """
@@ -193,15 +205,12 @@ class RAPSwitch(RAP):
         """
         override = self.methods_cfg.get(str(label))
         if override is None:
-            if label != 1 and label != self._current_label:
-                logging.warning(f"Label {label} not found in methods, base params used.")
             return {
                 'step_size': self._base['step_size'],
                 'algo': self._base['algo'],
                 'theta': float(np.degrees(self._base['theta']))
             }
         return deepcopy(override)
-    
 
     def _apply_cfg(self, cfg):
         """
@@ -221,6 +230,7 @@ class RAPSwitch(RAP):
             self.propagator.theta = theta_rad
             # theta change => neighbours change
             self.propagator.tracking_neighbours = get_sphere_neighbours(self.propagator.sphere, self.propagator.theta)
+
 
 class RAPGraph(RAP):
     def __init__(self, mask_rap, propagator, max_nbr_pts, neighboorhood_size):
