@@ -75,3 +75,5 @@ venv/
 
 # Hidden folder
 .hidden/
+
+.DS_Store
