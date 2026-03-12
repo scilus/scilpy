@@ -66,7 +66,7 @@ from dipy.data import get_sphere
 from dipy.tracking import utils as track_utils
 from dipy.tracking.local_tracking import LocalTracking
 from dipy.tracking.stopping_criterion import BinaryStoppingCriterion
-from scilpy.io.image import get_data_as_mask
+from scilpy.io.image import get_data_as_mask, load_nifti_reorient
 from scilpy.io.utils import (add_sphere_arg, add_verbose_arg,
                              assert_headers_compatible, assert_inputs_exist,
                              assert_outputs_exist, parse_sh_basis_arg,
@@ -187,14 +187,19 @@ def main():
     # when providing information to dipy (i.e. working as if in voxel space)
     # will not yield correct results. Tracking is performed in voxel space
     # in both the GPU and CPU cases.
-    odf_sh_img = nib.load(args.in_odf)
+    # odf_sh_img = nib.load(args.in_odf)
+    odf_sh_img, flip_vector = load_nifti_reorient(args.in_odf, return_flip_vector=True)
+    odf_data = odf_sh_img.get_fdata(dtype=np.float32)
+
     if not np.allclose(np.mean(odf_sh_img.header.get_zooms()[:3]),
                        odf_sh_img.header.get_zooms()[0], atol=1e-03):
         parser.error(
             'ODF SH file is not isotropic. Tracking cannot be ran robustly.')
 
     logging.debug("Loading masks and finding seeds.")
-    mask_data = get_data_as_mask(nib.load(args.in_mask), dtype=bool)
+    # mask_img = nib.load(args.in_mask)
+    mask_img = load_nifti_reorient(args.in_mask)
+    mask_data = get_data_as_mask(mask_img, dtype=bool)
 
     if args.npv:
         nb_seeds = args.npv
@@ -208,7 +213,8 @@ def main():
 
     voxel_size = odf_sh_img.header.get_zooms()[0]
     vox_step_size = args.step_size / voxel_size
-    seed_img = nib.load(args.in_seed)
+    # seed_img = nib.load(args.in_seed)
+    seed_img = load_nifti_reorient(args.in_seed)
 
     sh_basis, is_legacy = parse_sh_basis_arg(args)
 
@@ -239,9 +245,9 @@ def main():
         logging.info("Starting CPU local tracking.")
         streamlines_generator = LocalTracking(
             get_direction_getter(
-                args.in_odf, args.algo, args.sphere,
+                odf_data, args.algo, args.sphere,
                 args.sub_sphere, args.theta, sh_basis,
-                voxel_size, args.sf_threshold, args.sh_to_pmf,
+                args.sf_threshold, args.sh_to_pmf,
                 args.probe_length, args.probe_radius,
                 args.probe_quality, args.probe_count,
                 args.support_exponent, is_legacy=is_legacy),
@@ -282,7 +288,7 @@ def main():
     save_tractogram(streamlines_generator, tracts_format,
                     odf_sh_img, total_nb_seeds, args.out_tractogram,
                     args.min_length, args.max_length, args.compress_th,
-                    args.save_seeds, args.verbose)
+                    args.save_seeds, args.verbose, flip_vector=flip_vector)
     # Final logging
     logging.info('Saved tractogram to {0}.'.format(args.out_tractogram))
 
