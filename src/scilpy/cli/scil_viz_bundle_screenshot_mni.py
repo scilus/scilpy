@@ -30,6 +30,7 @@ from nilearn import plotting
 import numpy as np
 from scipy.ndimage import map_coordinates
 
+from scilpy.image.volume_space_management import map_coordinates_in_volume
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
 from scilpy.io.utils import (add_overwrite_arg,
                              add_verbose_arg, assert_headers_compatible,
@@ -64,9 +65,9 @@ def _build_arg_parser():
                            metavar=('R', 'G', 'B'), type=float,
                            help='Color streamlines with uniform coloring.')
     sub_color.add_argument('--reference_coloring',
-                           metavar='COLORBAR',
-                           help='Color streamlines with reference coloring '
-                                '(0-255).')
+                           metavar='COLORMAP',
+                           help='Color streamlines with reference coloring. '
+                                'Name of a matlab colormap. (0-255).')
     p.add_argument('--roi', nargs='+', action='append',
                    help='Path to a ROI file (.nii or nii.gz).')
     p.add_argument('--right', action='store_true',
@@ -261,14 +262,16 @@ def main():
                   args.uniform_coloring[1] / 255.0,
                   args.uniform_coloring[2] / 255.0)
     elif args.reference_coloring:
+        # Sending to vox space, center origin for interpolation
         sft.to_vox()
-        streamlines_vox = sft.get_streamlines_copy()
+        coords_vox = np.vstack(sft.streamlines).T
+        # Back to normal space
         sft.to_rasmm()
+
         normalized_data = reference_data / np.max(reference_data)
         cmap = get_lookup_table(args.reference_coloring)
-        values = map_coordinates(normalized_data,
-                                 streamlines_vox.streamlines._data.T,
-                                 order=1, mode='nearest')
+        values = map_coordinates_in_volume(normalized_data, coords_vox,
+                                           order=1)
         colors = cmap(values)[:, 0:3]
     else:
         colors = None
