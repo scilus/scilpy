@@ -108,11 +108,9 @@ def test_operations():
 
 
 def test_robust_operations():
-    # -------------------------------------------------------------------------
     # PART 1: Shifted tractograms with loose precision (precision = 0)
     # Recommended in scil_tractogram_math: use precision 0 to manage shifted
     # tractograms. Testing here.
-    # -------------------------------------------------------------------------
     precision_shifted = 0
 
     same = sft.streamlines[0]
@@ -142,10 +140,8 @@ def test_robust_operations():
     assert len(output) == 2
     assert (indices == [0, 2]).all()
 
-    # -------------------------------------------------------------------------
     # PART 2: Strict set operations using synthetic X, Y, Z directional lines
     # Testing standard set logic with a tighter precision (precision = 3)
-    # -------------------------------------------------------------------------
     precision_strict = 3  # epsilon = 0.001
 
     # Create synthetic lines
@@ -182,11 +178,9 @@ def test_robust_operations():
     assert np.allclose(
         out_int[0], line_y), "Intersection did not return the Y line"
 
-    # -------------------------------------------------------------------------
     # PART 3: Bidirectional streamline testing
     # Verifying that a streamline and its reversed counterpart are treated
     # as identical by the FastStreamlineSearch logic.
-    # -------------------------------------------------------------------------
     line_a = np.array([[0., 0., 0.], [1., 1., 1.], [2., 2., 2.]])
     line_a_rev = line_a[::-1]  # Exact reverse of line_a
 
@@ -195,29 +189,30 @@ def test_robust_operations():
 
     # Intersection: should match the forward and reverse lines
     out_int_rev, ind_int_rev = perform_tractogram_operation_on_lines(
-        intersection_robust, [set_fwd, set_rev], precision=precision_strict
+        intersection_robust, [set_fwd, set_rev],
+        precision=precision_strict, bidirectional=True
     )
     assert len(
         out_int_rev) == 1, "Intersection failed to match reversed streamlines."
 
     # Difference: should yield nothing since they are identical
     out_diff_rev, ind_diff_rev = perform_tractogram_operation_on_lines(
-        difference_robust, [set_fwd, set_rev], precision=precision_strict
+        difference_robust, [set_fwd, set_rev],
+        precision=precision_strict, bidirectional=True
     )
     assert len(
         out_diff_rev) == 0, "Difference failed to remove reversed streamline."
 
     # Union: should yield exactly 1 line
     out_union_rev, ind_union_rev = perform_tractogram_operation_on_lines(
-        union_robust, [set_fwd, set_rev], precision=precision_strict
+        union_robust, [set_fwd, set_rev],
+        precision=precision_strict, bidirectional=True
     )
     assert len(out_union_rev) == 1, "Union failed to merge reversed streamlines."
 
-    # -------------------------------------------------------------------------
     # PART 4: Variable point count (resampling) testing
     # Verifying that geometrically identical streamlines with different
     # numbers of vertices are correctly matched via nb_resample_pts.
-    # -------------------------------------------------------------------------
     line_sparse = np.array([[0., 0., 0.], [1., 1., 1.], [2., 2., 2.]])
     line_dense = np.array([[0., 0., 0.], [0.5, 0.5, 0.5], [1., 1., 1.],
                            [1.5, 1.5, 1.5], [2., 2., 2.]])
@@ -227,8 +222,8 @@ def test_robust_operations():
 
     # Intersection: should match despite different point counts
     out_int_resample, ind_int_resample = perform_tractogram_operation_on_lines(
-        intersection_robust, [set_sparse,
-                              set_dense], precision=precision_strict
+        intersection_robust, [set_sparse, set_dense],
+        precision=precision_strict
     )
     assert len(
         out_int_resample) == 1, "Failed to match identical lines with different point counts."

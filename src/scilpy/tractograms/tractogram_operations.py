@@ -11,6 +11,8 @@ from functools import reduce
 import itertools
 import logging
 import random
+import time
+import warnings
 
 from dipy.io.stateful_tractogram import set_sft_logger_level, \
     StatefulTractogram, Space
@@ -24,7 +26,6 @@ from nibabel.streamlines.array_sequence import ArraySequence
 import numpy as np
 from numpy.polynomial.polynomial import Polynomial
 from scipy.ndimage import map_coordinates
-from scipy.spatial import cKDTree
 from scipy.sparse.csgraph import connected_components
 
 from scilpy.tractanalysis.bundle_operations import uniformize_bundle_sft
@@ -304,13 +305,12 @@ def perform_tractogram_operation_on_sft(op_name, sft_list, precision,
     return new_sft, indices_per_sft
 
 
-def perform_tractogram_operation_on_lines(operation, streamlines, precision=None,
-                                          nb_resample_pts=None, bidirectional=None):
+def perform_tractogram_operation_on_lines(operation, streamlines, precision=3, **kwargs):
     """Performs a set operation (union, intersection, difference) on a list of lists of streamlines.
 
     This function acts as a dispatcher for two types of streamline comparisons:
 
-    1. Standard (Hash-based): Recursively applies the operation to the lists of 
+    1. Standard (Hash-based): Cumulatively applies the operation to the lists of 
        streamlines (first two, then the result with the third, etc.) using a heuristic hash. 
        To save memory and time, this method hashes only the coordinates of the streamline's 
        extremities (first 5 and last 5 points). Valid operations take two streamline 
@@ -334,13 +334,10 @@ def perform_tractogram_operation_on_lines(operation, streamlines, precision=None
         operations, it defines the maximum allowed geometric distance threshold 
         (epsilon = 10^-precision). If None, no rounding is performed for hashes, 
         and robust defaults to 3.
-    nb_resample_pts: int, optional
-        Used only for 'robust' operations. The number of points to resample 
-        the streamlines to before using FastStreamlineSearch.
-    bidirectional: bool, optional
-        Used only for 'robust' operations. If True, two streamlines are considered 
-        similar if they are within the distance threshold, regardless of their 
-        anatomical orientation (A-to-B vs B-to-A).
+    **kwargs: dict
+        Additional keyword arguments passed to the robust operations 
+        (`nb_resample_pts`, `nb_mpts`, `bin_size`, `bidirectional`).
+
 
     Returns
     -------
@@ -351,15 +348,7 @@ def perform_tractogram_operation_on_lines(operation, streamlines, precision=None
         The indices of the streamlines that are used in the output.
     """
     if 'robust' in operation.__name__:
-        if precision is None:
-            precision = 3
-        if nb_resample_pts is None:
-            nb_resample_pts = 64
-        if bidirectional is None:
-            bidirectional = True
-        return operation(streamlines, precision,
-                         nb_resample_pts=nb_resample_pts,
-                         bidirectional=bidirectional)
+        return operation(streamlines, precision, **kwargs)
     else:
         # Hash the streamlines using the desired precision.
         indices = np.cumsum([0] + [len(s) for s in streamlines[:-1]])
@@ -374,44 +363,37 @@ def perform_tractogram_operation_on_lines(operation, streamlines, precision=None
     return streamlines, indices
 
 
-def intersection_robust(streamlines_list, precision=3,
-                        nb_resample_pts=64, bidirectional=True):
+def intersection_robust(streamlines_list, precision=3, **kwargs):
     """ Intersection of a list of lists of streamlines """
     if not isinstance(streamlines_list, list):
         streamlines_list = [streamlines_list]
-
     streamlines_fused, indices = _find_identical_streamlines(
-        streamlines_list, epsilon=10**(-precision),
-        nb_resample_pts=nb_resample_pts, bidirectional=bidirectional)
+        streamlines_list, epsilon=10**(-precision), **kwargs)
     return streamlines_fused[indices], indices
 
 
-def difference_robust(streamlines_list, precision=3,
-                      nb_resample_pts=64, bidirectional=True):
+def difference_robust(streamlines_list, precision=3, **kwargs):
     """ Difference of a list of lists of streamlines from the first element """
     if not isinstance(streamlines_list, list):
         streamlines_list = [streamlines_list]
     streamlines_fused, indices = _find_identical_streamlines(
-        streamlines_list, epsilon=10**(-precision), difference_mode=True,
-        nb_resample_pts=nb_resample_pts, bidirectional=bidirectional)
+        streamlines_list, epsilon=10**(-precision), difference_mode=True, **kwargs)
     return streamlines_fused[indices], indices
 
 
-def union_robust(streamlines_list, precision=3,
-                 nb_resample_pts=64, bidirectional=True):
+def union_robust(streamlines_list, precision=3, **kwargs):
     """ Union of a list of lists of streamlines """
     if not isinstance(streamlines_list, list):
         streamlines_list = [streamlines_list]
     streamlines_fused, indices = _find_identical_streamlines(
-        streamlines_list, epsilon=10**(-precision), union_mode=True,
-        nb_resample_pts=nb_resample_pts, bidirectional=bidirectional,
-    )
+        streamlines_list, epsilon=10**(-precision), union_mode=True, **kwargs)
     return streamlines_fused[indices], indices
 
 
 def _find_identical_streamlines(streamlines_list, epsilon=0.001,
                                 union_mode=False, difference_mode=False,
-                                nb_resample_pts=64, bidirectional=True):
+                                nb_mpts=2, bin_size=20,
+                                nb_resample_pts=4, bidirectional=False):
     """ Finds identical streamlines across multiple sets and performs a set operation
     (intersection, union, or difference) using DIPY's FastStreamlineSearch.
 
@@ -439,13 +421,18 @@ def _find_identical_streamlines(streamlines_list, epsilon=0.001,
         that exist ONLY in the first set). Defaults to False.
         Note: If both union_mode and difference_mode are False, the function 
         defaults to intersection mode (keeps streamlines present in ALL sets).
+    nb_mpts: int, optional
+        Number of mean points used to improve computation speed. 
+        Must be a factor of `nb_resample_pts`. Defaults to 2.
+    bin_size: float, optional
+        The spatial bin size used to separate streamlines into groups. 
+        Defaults to 20 (DIPY's default).
     nb_resample_pts: int, optional
-        Number of points to resample the streamlines to for the geometric comparison.
-        Defaults to 64.
+        The number of points to resample the streamlines to before using 
+        FastStreamlineSearch. Defaults to 4.
     bidirectional: bool, optional
-        If True, two streamlines are considered similar if one is within epsilon
-        of the other, regardless of their orientation. If False, the streamlines
-        must be aligned in the same direction. Defaults to True.
+        If True, two streamlines are considered similar if they are within the distance threshold, 
+        regardless of their anatomical orientation (A-to-B vs B-to-A). Defaults to False.
 
     Returns
     --------
@@ -455,6 +442,7 @@ def _find_identical_streamlines(streamlines_list, epsilon=0.001,
         The indices of the specific streamlines to keep from the concatenated list,
         based on the selected set operation.
     """
+    t_start = time.time()
     streamlines = ArraySequence(itertools.chain(*streamlines_list))
     nb_streamlines = np.cumsum([len(sft) for sft in streamlines_list])
     nb_streamlines = np.insert(nb_streamlines, 0, 0)
@@ -473,24 +461,48 @@ def _find_identical_streamlines(streamlines_list, epsilon=0.001,
     if len(streamlines) == 0:
         return streamlines, np.array([], dtype=np.uint32)
 
-    fss = FastStreamlineSearch(streamlines,
-                               max_radius=epsilon,
-                               resampling=nb_resample_pts,
-                               bidirectional=bidirectional)
+    t_fss = time.time()
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", category=UserWarning)
+        fss = FastStreamlineSearch(streamlines,
+                                   max_radius=epsilon,
+                                   nb_mpts=nb_mpts,
+                                   bin_size=bin_size,
+                                   resampling=nb_resample_pts,
+                                   bidirectional=bidirectional)
+    logging.debug(f"FSS instantiation: {time.time() - t_fss:.4f}s")
 
+    t_rs = time.time()
     # adjacency[i, j] = 1 if streamline i is within epsilon of streamline j
     adjacency = fss.radius_search(streamlines, radius=epsilon)
+    logging.debug(f"FSS radius search: {time.time() - t_rs:.4f}s")
 
+    t_cc = time.time()
     # Compute connected components:
     # If: A ~ B and B ~ C,
     # then all 3 become one component.
     n_components, labels = connected_components(
         csgraph=adjacency, directed=False)
+    logging.debug(
+        f"Connected components calculation: {time.time() - t_cc:.4f}s")
 
+    t_opt = time.time()
+    # Optimization: pre-calculate groups to avoid O(N^2) np.where calls
+    # Sorting labels allows us to find all indices for each component in one pass
+    sort_idx = np.argsort(labels)
+    sorted_labels = labels[sort_idx]
+
+    # Find the boundaries of each component in the sorted array
+    diff = np.diff(sorted_labels)
+    change_idx = np.where(diff != 0)[0] + 1
+    split_idx = np.concatenate(([0], change_idx, [len(labels)]))
+    logging.debug(
+        f"Label sorting and boundary extraction: {time.time() - t_opt:.4f}s")
+
+    t_loop = time.time()
     # Each iteration handles one group of identical streamlines
-    for comp_id in range(n_components):
-
-        group = np.where(labels == comp_id)[0]
+    for i in range(len(split_idx) - 1):
+        group = sort_idx[split_idx[i]:split_idx[i+1]]
 
         # Determine which sets are present
         sets_present = set(
@@ -516,6 +528,10 @@ def _find_identical_streamlines(streamlines_list, epsilon=0.001,
                 streamlines_to_keep[rep] = 1
             else:
                 streamlines_to_keep[group] = 0
+
+    logging.debug(f"Component loop evaluation: {time.time() - t_loop:.4f}s")
+    logging.debug(
+        f"Total _find_identical_streamlines runtime: {time.time() - t_start:.4f}s")
 
     return streamlines, np.where(streamlines_to_keep > 0)[0].astype(np.uint32)
 
