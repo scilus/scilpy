@@ -249,7 +249,7 @@ def union(left, right):
 
 
 def perform_tractogram_operation_on_sft(op_name, sft_list, precision,
-                                        no_metadata, fake_metadata):
+                                        no_metadata, fake_metadata, **kwargs):
     """Peforms an operation on a list of tractograms.
 
     Parameters
@@ -277,7 +277,7 @@ def perform_tractogram_operation_on_sft(op_name, sft_list, precision,
     """
     streamlines_list = [sft.streamlines for sft in sft_list]
     _, indices = perform_tractogram_operation_on_lines(
-        OPERATIONS[op_name], streamlines_list, precision=precision)
+        OPERATIONS[op_name], streamlines_list, precision=precision, **kwargs)
 
     # Current error in dipy prevents concatenation with empty SFT
     # (see PR here to fix: https://github.com/dipy/dipy/pull/2864)

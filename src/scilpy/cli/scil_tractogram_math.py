@@ -83,6 +83,9 @@ def _build_arg_parser():
                    help='Precision used to compare streamlines [%(default)s].')
     p.add_argument('--robust', '-r', action='store_true',
                    help='Use version robust to small translation/rotation.')
+    p.add_argument('--bidirectional', action='store_true',
+                   help='Allow matching streamlines with flipped orientations '
+                        '(only works with --robust).')
 
     p.add_argument('--no_metadata', '-n', action='store_true',
                    help='Strip the streamline metadata from the output.')
@@ -176,7 +179,8 @@ def main():
         logging.info('Performing operation \'{}\'.'.format(op_name))
         new_sft, indices_per_sft = perform_tractogram_operation_on_sft(
             op_name, sft_list, precision=args.precision,
-            no_metadata=args.no_metadata, fake_metadata=args.fake_metadata)
+            no_metadata=args.no_metadata, fake_metadata=args.fake_metadata,
+            bidirectional=args.bidirectional)
 
         if len(new_sft) == 0 and not args.save_empty:
             logging.info("Empty resulting tractogram. Not saving results.")
