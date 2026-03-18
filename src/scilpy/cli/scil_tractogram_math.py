@@ -152,6 +152,7 @@ def main():
         tmp_sft.to_voxmm()
         sft_list.append(tmp_sft)
 
+    # Sanity checks
     if np.all([len(sft) == 0 for sft in sft_list]):
         if args.save_empty:
             logging.info("All input tractograms are empty. Saving empty file.")
@@ -163,8 +164,22 @@ def main():
                             "Exiting, without saving results.")
         return
 
-    # Processing
+    if not args.robust and args.operation != 'concatenate':
+        for f, sft in zip(args.in_tractograms, sft_list):
+            if f.lower().endswith('.trk'):
+                rot_scale = sft.affine[:3, :3]
+                is_diagonal = np.allclose(
+                    rot_scale, np.diag(np.diag(rot_scale)), atol=1e-2)
 
+                if not is_diagonal:
+                    logging.warning(
+                        "The input TRK file(s) (e.g., '%s') have a rotated affine. "
+                        "Standard hashing might fail to match identical streamlines "
+                        "due to floating point errors. Consider using '--robust'.", f
+                    )
+                break
+    
+    # Processing
     if args.operation == 'concatenate':
         logging.info('Performing operation "concatenate"')
         sft_list = [s for s in sft_list if len(s) > 0]
