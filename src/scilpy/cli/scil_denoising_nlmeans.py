@@ -187,7 +187,10 @@ def main():
     if args.sigma is not None:
         logging.info('User supplied noise standard deviation is {}'
                      .format(args.sigma))
-        sigma = np.ones(vol_data.shape[:3]) * args.sigma
+        if nb_volumes > 1:
+            sigma = np.full(nb_volumes, args.sigma, dtype=np.float32)
+        else:
+            sigma = float(args.sigma)
     elif args.basic_sigma:
         if args.mask_sigma:
             mask_sigma = get_data_as_mask(nib.load(args.mask_sigma))
@@ -206,8 +209,8 @@ def main():
         sigma = np.median(sigma)  # Managing 4D data.
         logging.info('The median noise is: {}'.format(sigma))
 
-        # Broadcast the single value to a whole 3D volume for nlmeans
-        sigma = np.ones(vol_data.shape) * sigma
+        if nb_volumes > 1:
+            sigma = np.full(nb_volumes, sigma, dtype=np.float32)
     else:  # --piesno
         logging.info("Computing sigma: one value per slice.")
         sigma, mask_noise = estimate_piesno_sigma(vol_data, args.number_coils)
@@ -219,14 +222,22 @@ def main():
                                      header=vol.header),
                      args.save_piesno_mask)
 
-        # Broadcast the values per slice to a whole 3D volume for nlmeans
+        # Keep a 3D sigma map (one value per slice) for PIESNO.
         sigma = np.ones(vol_data.shape[:3]) * sigma[None, None, :]
 
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", category=DeprecationWarning)
-        data_denoised = nlmeans(
-            vol_data, sigma, mask=mask_denoise, rician=not args.gaussian,
-            num_threads=args.nbr_processes)
+        if vol_data.ndim == 4 and np.ndim(sigma) == 3:
+            data_denoised = np.empty_like(vol_data)
+            for vol_idx in range(vol_data.shape[-1]):
+                data_denoised[..., vol_idx] = nlmeans(
+                    vol_data[..., vol_idx], sigma,
+                    mask=mask_denoise, rician=not args.gaussian,
+                    num_threads=args.nbr_processes)
+        else:
+            data_denoised = nlmeans(
+                vol_data, sigma, mask=mask_denoise, rician=not args.gaussian,
+                num_threads=args.nbr_processes)
 
     # Saving
     nib.save(nib.Nifti1Image(data_denoised, vol.affine, header=vol.header),
