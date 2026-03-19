@@ -725,7 +725,8 @@ def convert_sh_to_sf(shm_coeff, sphere, mask=None, dtype="float32",
 
     sh_order = order_from_ncoef(shm_coeff.shape[-1],
                                 full_basis=input_full_basis)
-    B_in, _ = sh_to_sf_matrix(sphere, sh_order_max=sh_order, basis_type=input_basis,
+    B_in, _ = sh_to_sf_matrix(sphere, sh_order_max=sh_order,
+                              basis_type=input_basis,
                               full_basis=input_full_basis,
                               legacy=is_input_legacy)
     B_in = B_in.astype(dtype)
