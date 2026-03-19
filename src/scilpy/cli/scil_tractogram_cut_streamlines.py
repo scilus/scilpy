@@ -193,7 +193,7 @@ def main():
         new_sft = StatefulTractogram.from_sft(
             compressed_strs, sft, data_per_streamline=sft.data_per_streamline)
 
-    save_tractogram(new_sft, args.out_tractogram, args.no_empty)
+    save_tractogram(new_sft, args.out_tractogram, bbox_valid_check=args.no_empty)
 
 
 if __name__ == "__main__":
