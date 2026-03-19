@@ -66,6 +66,7 @@ from dipy.data import get_sphere
 from dipy.tracking import utils as track_utils
 from dipy.tracking.local_tracking import LocalTracking
 from dipy.tracking.stopping_criterion import BinaryStoppingCriterion
+from dipy.tracking.tracker import eudx_tracking
 from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_sphere_arg, add_verbose_arg,
                              assert_headers_compatible, assert_inputs_exist,
@@ -235,23 +236,44 @@ def main():
         # LocalTracking.maxlen is actually the maximum length
         # per direction, we need to filter post-tracking.
         max_steps_per_direction = int(args.max_length / args.step_size)
+        stopping_criterion = BinaryStoppingCriterion(mask_data)
 
         logging.info("Starting CPU local tracking.")
-        streamlines_generator = LocalTracking(
-            get_direction_getter(
-                args.in_odf, args.algo, args.sphere,
-                args.sub_sphere, args.theta, sh_basis,
-                voxel_size, args.sf_threshold, args.sh_to_pmf,
-                args.probe_length, args.probe_radius,
-                args.probe_quality, args.probe_count,
-                args.support_exponent, is_legacy=is_legacy),
-            BinaryStoppingCriterion(mask_data),
-            seeds, np.eye(4),
-            step_size=vox_step_size, max_cross=1,
-            maxlen=max_steps_per_direction,
-            fixedstep=True, return_all=True,
-            random_seed=args.seed,
-            save_seeds=True)
+        if args.algo == 'eudx':
+            streamlines_generator = eudx_tracking(
+                seeds,
+                stopping_criterion,
+                np.eye(4),
+                pam=get_direction_getter(
+                    args.in_odf, args.algo, args.sphere,
+                    args.sub_sphere, args.theta, sh_basis,
+                    voxel_size, args.sf_threshold, args.sh_to_pmf,
+                    args.probe_length, args.probe_radius,
+                    args.probe_quality, args.probe_count,
+                    args.support_exponent, is_legacy=is_legacy),
+                max_cross=1,
+                max_len=max_steps_per_direction,
+                step_size=vox_step_size,
+                max_angle=get_theta(args.theta, args.algo),
+                random_seed=args.seed if args.seed is not None else 0,
+                return_all=True,
+                save_seeds=True)
+        else:
+            streamlines_generator = LocalTracking(
+                get_direction_getter(
+                    args.in_odf, args.algo, args.sphere,
+                    args.sub_sphere, args.theta, sh_basis,
+                    voxel_size, args.sf_threshold, args.sh_to_pmf,
+                    args.probe_length, args.probe_radius,
+                    args.probe_quality, args.probe_count,
+                    args.support_exponent, is_legacy=is_legacy),
+                stopping_criterion,
+                seeds, np.eye(4),
+                step_size=vox_step_size, max_cross=1,
+                maxlen=max_steps_per_direction,
+                fixedstep=True, return_all=True,
+                random_seed=args.seed,
+                save_seeds=True)
 
     else:  # GPU tracking
         # we'll make our streamlines twice as long,
