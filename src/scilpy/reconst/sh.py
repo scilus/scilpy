@@ -448,7 +448,7 @@ def maps_from_sh(shm_coeff, peak_values, peak_indices, sphere,
         nufo_map, afd_max, afd_sum, rgb_map, gfa, qa
     """
     sh_order = order_from_ncoef(shm_coeff.shape[-1])
-    B, _ = sh_to_sf_matrix(sphere=sphere, sh_order_order=sh_order,
+    B, _ = sh_to_sf_matrix(sphere=sphere, sh_order_max=sh_order,
                            basis_type=sh_basis_type)
 
     data_shape = shm_coeff.shape
