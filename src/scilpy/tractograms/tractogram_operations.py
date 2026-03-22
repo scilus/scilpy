@@ -248,7 +248,7 @@ def union(left, right):
     return {**left, **right}
 
 
-def perform_tractogram_operation_on_sft(op_name, sft_list, precision=None,
+def perform_tractogram_operation_on_sft(op_name, sft_list, precision=4,
                                         no_metadata=False, fake_metadata=False, **kwargs):
     """Peforms an operation on a list of tractograms.
 
@@ -265,7 +265,7 @@ def perform_tractogram_operation_on_sft(op_name, sft_list, precision=None,
         operations, it defines the maximum allowed geometric distance threshold 
         (epsilon = 10^-precision). Precision should be in the same space as
         sfts (ex, mm). If None, no rounding is performed for hashes, 
-        and robust defaults to 3. Default: None.
+        and robust defaults to 4. Default: 4.
     no_metadata: bool
         If true, remove all metadata. Default: false.
     fake_metadata: bool
@@ -310,7 +310,7 @@ def perform_tractogram_operation_on_sft(op_name, sft_list, precision=None,
     return new_sft, indices_per_sft
 
 
-def perform_tractogram_operation_on_lines(operation, streamlines, precision=None, **kwargs):
+def perform_tractogram_operation_on_lines(operation, streamlines, precision=4, **kwargs):
     """Performs a set operation (union, intersection, difference) on a list of lists of streamlines.
 
     This function acts as a dispatcher for two types of streamline comparisons:
@@ -338,7 +338,7 @@ def perform_tractogram_operation_on_lines(operation, streamlines, precision=None
         it is the number of decimals to keep when rounding points. For robust 
         operations, it defines the maximum allowed geometric distance threshold 
         (epsilon = 10^-precision). If None, no rounding is performed for hashes, 
-        and robust defaults to 3. Default: None.
+        and robust defaults to 4. Default: 4.
     **kwargs: dict
         Additional keyword arguments passed to the robust operations 
         (`nb_resample_pts`, `nb_mpts`, `bin_size`, `bidirectional`).
@@ -354,7 +354,7 @@ def perform_tractogram_operation_on_lines(operation, streamlines, precision=None
     """
     if 'robust' in operation.__name__:
         if precision is None:
-            precision = 3
+            precision = 4
         return operation(streamlines, precision, **kwargs)
     else:
         # Hash the streamlines using the desired precision.
@@ -370,7 +370,7 @@ def perform_tractogram_operation_on_lines(operation, streamlines, precision=None
     return streamlines, indices
 
 
-def intersection_robust(streamlines_list, precision=3, **kwargs):
+def intersection_robust(streamlines_list, precision=4, **kwargs):
     """ Intersection of a list of lists of streamlines """
     if not isinstance(streamlines_list, list):
         streamlines_list = [streamlines_list]
@@ -379,7 +379,7 @@ def intersection_robust(streamlines_list, precision=3, **kwargs):
     return streamlines_fused[indices], indices
 
 
-def difference_robust(streamlines_list, precision=3, **kwargs):
+def difference_robust(streamlines_list, precision=4, **kwargs):
     """ Difference of a list of lists of streamlines from the first element """
     if not isinstance(streamlines_list, list):
         streamlines_list = [streamlines_list]
@@ -388,7 +388,7 @@ def difference_robust(streamlines_list, precision=3, **kwargs):
     return streamlines_fused[indices], indices
 
 
-def union_robust(streamlines_list, precision=3, **kwargs):
+def union_robust(streamlines_list, precision=4, **kwargs):
     """ Union of a list of lists of streamlines """
     if not isinstance(streamlines_list, list):
         streamlines_list = [streamlines_list]

@@ -24,11 +24,15 @@ duplicated streamlines.
 To allow a soft match, use the --precision option to increase the allowed
 threshold for similarity. A precision of 1 represents 10**(-1), so a
 maximum distance of 0.1mm is allowed. If the streamlines are identical, the
-default value of 3 (or 0.001mm distance) should work.
+default value of 4 (or 0.0001mm distance) should work.
 
 If there is a 0.5mm shift, use a precision of 0 (or 1mm distance) and the
 --robust option. Should make it work, but slightly slower. Will merge all
 streamlines similar when rounded to that precision level.
+
+If some streamlines are identical but have flipped orientations (e.g., A-to-B
+versus B-to-A), use the --bidirectional option to treat them as matches.
+Note that this option requires the --robust option.
 
 The metadata (data per point, data per streamline) of the streamlines that
 are kept in the output will be preserved. This requires that all input files
