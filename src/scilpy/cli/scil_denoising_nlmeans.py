@@ -78,6 +78,9 @@ def _build_arg_parser():
                    help="Path to a binary mask. Only the data inside the mask "
                         "will be denoised. If not provided, only non-zero "
                         "voxels will be denoised.")
+    p.add_argument('--algorithm',
+                   choices=['blockwise','classic'], default='blockwise',
+                   help='Algorithm to use for denoising. [%(default)s]')
     p.add_argument('--gaussian', action='store_true',
                    help="If you know that your data contains gaussian noise, "
                         "use this option. Otherwise, Rician is assumed.")
@@ -214,7 +217,6 @@ def main():
     else:  # --piesno
         logging.info("Computing sigma: one value per slice.")
         sigma, mask_noise = estimate_piesno_sigma(vol_data, args.number_coils)
-
         if args.save_piesno_mask:
             logging.info("Saving resulting Piesno noise mask in {}"
                          .format(args.save_piesno_mask))
@@ -223,21 +225,13 @@ def main():
                      args.save_piesno_mask)
 
         # Keep a 3D sigma map (one value per slice) for PIESNO.
-        sigma = np.ones(vol_data.shape[:3]) * sigma[None, None, :]
+        # sigma = np.ones(vol_data.shape[:3]) * sigma[None, None, :]
 
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore", category=DeprecationWarning)
-        if vol_data.ndim == 4 and np.ndim(sigma) == 3:
-            data_denoised = np.empty_like(vol_data)
-            for vol_idx in range(vol_data.shape[-1]):
-                data_denoised[..., vol_idx] = nlmeans(
-                    vol_data[..., vol_idx], sigma,
-                    mask=mask_denoise, rician=not args.gaussian,
-                    num_threads=args.nbr_processes)
-        else:
-            data_denoised = nlmeans(
-                vol_data, sigma, mask=mask_denoise, rician=not args.gaussian,
-                num_threads=args.nbr_processes)
+    data_denoised = nlmeans(vol_data, sigma, 
+                            mask=mask_denoise,
+                            rician=not args.gaussian,
+                            algorithm=args.algorithm,
+                            num_threads=args.nbr_processes)
 
     # Saving
     nib.save(nib.Nifti1Image(data_denoised, vol.affine, header=vol.header),
