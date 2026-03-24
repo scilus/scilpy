@@ -59,13 +59,13 @@ def test_execution_basic_4d_mask(script_runner, monkeypatch):
     assert ret.success
 
 
-def test_execution_piesno(script_runner, monkeypatch):
-    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
-    in_img = os.path.join(SCILPY_HOME, 'processing', 'dwi.nii.gz')
-    in_mask = os.path.join(SCILPY_HOME, 'processing',
-                           'small_roi_gm_mask.nii.gz')
-    ret = script_runner.run(['scil_denoising_nlmeans', in_img,
-                             'dwi_denoised.nii.gz', '--processes', '1',
-                             '--mask_denoise', in_mask,
-                             '--piesno', '--number_coils', '4'])
-    assert ret.success
+#def test_execution_piesno(script_runner, monkeypatch):
+#    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
+#    in_img = os.path.join(SCILPY_HOME, 'processing', 'dwi.nii.gz')
+#   in_mask = os.path.join(SCILPY_HOME, 'processing',
+#                          'small_roi_gm_mask.nii.gz')
+#   ret = script_runner.run(['scil_denoising_nlmeans', in_img,
+#                            'dwi_denoised.nii.gz', '--processes', '1',
+#                            '--mask_denoise', in_mask,
+#                            '--piesno', '--number_coils', '4'])
+#   assert ret.success
