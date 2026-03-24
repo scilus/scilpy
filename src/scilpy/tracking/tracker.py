@@ -105,7 +105,7 @@ class Tracker(object):
         self.track_forward_only = track_forward_only
         self.append_last_point = append_last_point
         self.skip = skip
-        
+
         # List to store RAP entry/exit coordinates as tuples (coord, type)
         # where type is 1 for entry and 2 for exit
         self.rap_entry_exit_coords = []
@@ -141,7 +141,7 @@ class Tracker(object):
         """
         Save RAP entry/exit coordinates as a nifti mask.
         Entry points have value 1, exit points have value 2.
-        
+
         Parameters
         ----------
         output_path : str
@@ -150,21 +150,21 @@ class Tracker(object):
             Reference image to get affine and shape for the output mask.
         """
         import nibabel as nib
-        
+
         if not self.rap_entry_exit_coords:
             logging.warning("No RAP entry/exit coordinates to save.")
             return
-        
+
         # Create empty mask with same shape as reference
         mask_data = np.zeros(reference_img.shape[:3], dtype=np.uint8)
-        
+
         # Convert coordinates to voxel space and set mask values
         # Each element is a tuple (coord, coord_type) where coord_type is 1 (entry) or 2 (exit)
         for coord, coord_type in self.rap_entry_exit_coords:
             # Coordinates are already in voxel space (VOX, center)
             # Round to nearest integer voxel
             vox_coord = np.round(coord).astype(int)
-            
+
             # Check bounds
             if (0 <= vox_coord[0] < mask_data.shape[0] and
                 0 <= vox_coord[1] < mask_data.shape[1] and
@@ -173,12 +173,12 @@ class Tracker(object):
                 # If both entry and exit occur at same voxel, exit (2) will prevail
                 mask_data[vox_coord[0], vox_coord[1], vox_coord[2]] = max(
                     mask_data[vox_coord[0], vox_coord[1], vox_coord[2]], coord_type)
-        
+
         # Create nifti image and save
-        mask_img = nib.Nifti1Image(mask_data, reference_img.affine, 
-                                    reference_img.header)
+        mask_img = nib.Nifti1Image(mask_data, reference_img.affine,
+                                   reference_img.header)
         nib.save(mask_img, output_path)
-        
+
         entry_count = sum(1 for _, t in self.rap_entry_exit_coords if t == 1)
         exit_count = sum(1 for _, t in self.rap_entry_exit_coords if t == 2)
         logging.info(f"Saved RAP entry/exit mask to {output_path}")
@@ -497,7 +497,7 @@ class Tracker(object):
         invalid_direction_count = 0
         propagation_can_continue = True
         in_rap_region = False  # Track whether we're currently in RAP region
-        step_count = 0 
+        step_count = 0
 
         while len(line) < self.max_nbr_pts and propagation_can_continue:
 
@@ -506,22 +506,22 @@ class Tracker(object):
             is_currently_in_rap = (propagation_can_continue and self.rap and
                                    self.rap.is_in_rap_region(
                                        line[-1], space=self.space, origin=self.origin))
-            
+
             # Detect entering RAP region
             if is_currently_in_rap and not in_rap_region:
                 self.rap_entry_exit_coords.append((line[-1].copy(), 1))  # 1 for entry
                 in_rap_region = True
                 logging.debug(f"TRACKER ENTERING pos={np.round(line[-1], 2)}")
-            
+
             if is_currently_in_rap:
                 prev_len = len(line)
                 line, new_dir, is_line_valid = (
                     self.rap.rap_multistep_propagate(line, previous_dir))
                 if not is_line_valid:
-                    logging.debug(f"TRACKER invalid, stop")
+                    logging.debug("TRACKER invalid, stop")
                     break
                 if len(line) == prev_len:
-                    logging.debug(f"TRACKER no progress, stop")
+                    logging.debug("TRACKER no progress, stop")
                     propagation_can_continue = False
                     break
                 new_pos = line[-1]
@@ -529,7 +529,7 @@ class Tracker(object):
                 # Verify that our RAP propagated point stays within the tracking mask
                 propagation_can_continue = self._verify_stopping_criteria(new_pos)
                 if not propagation_can_continue:
-                    logging.debug(f"TRACKER out of mask, stop.")
+                    logging.debug("TRACKER out of mask, stop.")
                     line.pop()
                     break
 
@@ -695,7 +695,7 @@ class GPUTracker():
         cl_kernel.set_define('FORWARD_ONLY',
                              'true' if self.forward_only else 'false')
         cl_kernel.set_define('PROBABILISTIC',
-                     'true' if self.probabilistic else 'false')
+                             'true' if self.probabilistic else 'false')
         cl_kernel.set_define('RNG_SEED', '{}u'.format(np.uint32(self.rng_seed)))
         cl_kernel.set_define('SF_THRESHOLD',
                              '{:.8f}f'.format(self.sf_threshold))
@@ -711,7 +711,7 @@ class GPUTracker():
         cl_manager.add_input_buffer('vertices', self.sphere.vertices)
 
         sh_order = find_order_from_nb_coeff(self.sh)
-        B_mat = sh_to_sf_matrix(self.sphere, sh_order_max=sh_order, 
+        B_mat = sh_to_sf_matrix(self.sphere, sh_order_max=sh_order,
                                 basis_type=self.sh_basis,
                                 return_inv=False, legacy=self.is_legacy)
         cl_manager.add_input_buffer('b_matrix', B_mat)

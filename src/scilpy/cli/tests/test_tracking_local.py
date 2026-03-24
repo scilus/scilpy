@@ -133,7 +133,6 @@ def test_algo_with_gpu(script_runner, monkeypatch):
     assert not ret.success
 
 
-
 def test_execution_tracking_fodf_no_compression(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_fodf = os.path.join(SCILPY_HOME, 'tracking', 'fodf.nii.gz')
