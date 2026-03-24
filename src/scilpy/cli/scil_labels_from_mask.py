@@ -38,9 +38,16 @@ def _build_arg_parser():
     p.add_argument('--min_volume', type=float, default=7,
                    help='Minimum volume in mm3 [%(default)s],'
                         'Useful for lesions.')
-    p.add_argument('--min_distance', type=int, default=None,
-                   help='Minimum distance in voxels [%(default)s],'
-                        'Useful for confluent lesions.')
+    p.add_argument('--watershed', metavar='MIN_DISTANCE', type=int,
+                   nargs='?', const=1,
+                   help='Use a watershed algorithm to separate confluent '
+                        'blobs (touching or overlapping lesions). The '
+                        'algorithm finds local maxima of the distance-to-'
+                        'background transform; MIN_DISTANCE sets how far '
+                        'apart (in voxels) two maxima must be to be treated '
+                        'as separate blobs. Increase it to merge nearby '
+                        'detections; decrease it (minimum: 1) to split more '
+                        'aggressively. [%(const)s]')
 
     add_verbose_arg(p)
     add_overwrite_arg(p)
@@ -60,7 +67,7 @@ def main():
     mask_data = get_data_as_mask(mask_img)
     voxel_volume = np.prod(np.diag(mask_img.affine)[:3])
     min_voxel_count = args.min_volume // voxel_volume
-    min_distance = args.min_distance
+    min_distance = args.watershed
 
     # Get labels from mask
     label_map = get_labels_from_mask(

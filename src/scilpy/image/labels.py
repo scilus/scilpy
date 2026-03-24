@@ -74,7 +74,7 @@ def get_binary_mask_from_labels(atlas, label_list):
 
 
 def get_labels_from_mask(mask_data, labels=None, background_label=0,
-                         min_voxel_count=0, min_distance=0):
+                         min_voxel_count=0, min_distance=None):
     """
     Get labels from a binary mask which contains multiple blobs. Each blob
     will be assigned a label, by default starting from 1. Background will
@@ -93,10 +93,13 @@ def get_labels_from_mask(mask_data, labels=None, background_label=0,
         Minimum number of voxels for a blob to be considered. Blobs with fewer
         voxels will be ignored.
     min_distance : int, optional
-        The minimum voxels separating the peaks of two 
-        neighboring blobs. If a confluent blob is detected, it will be 
-        split into multiple labels based on this distance. If None, no 
-        splitting is performed.
+        If set, triggers a watershed algorithm to separate confluent blobs.
+        The algorithm computes the Euclidean distance transform of the mask
+        and finds local maxima (blob centers). This parameter is the minimum
+        number of voxels separating two maxima for them to be considered
+        distinct blobs. Smaller values split more aggressively; larger values
+        merge nearby detections. If None, no watershed is performed and
+        connected components are used directly.
 
     Returns
     -------
@@ -104,7 +107,7 @@ def get_labels_from_mask(mask_data, labels=None, background_label=0,
         The labels.
     """
     # Get the number of structures and assign labels to each blob
-    if min_distance:
+    if min_distance is not None:
         distance = ndi.distance_transform_edt(mask_data)
         coords = peak_local_max(
             distance,
@@ -118,6 +121,8 @@ def get_labels_from_mask(mask_data, labels=None, background_label=0,
         label_map = watershed(-distance, markers, mask=mask_data)
         nb_structures = np.max(label_map)
     else:
+        # Any contiguous regions touching even by a single voxel will be
+        # considered a single label.
         label_map, nb_structures = ndi.label(mask_data)
 
     if min_voxel_count:
