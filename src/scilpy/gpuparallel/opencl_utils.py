@@ -3,6 +3,8 @@ import numpy as np
 import logging
 import inspect
 import os
+import tempfile
+import contextlib
 import warnings
 import scilpy
 
@@ -79,11 +81,31 @@ class CLManager(object):
         # SCILPY_OPENCL_BUILD_OPTIONS, e.g. "-cl-fast-relaxed-math".
         options = os.environ.get('SCILPY_OPENCL_BUILD_OPTIONS', '-w').split()
         compiler_warning = getattr(cl, 'CompilerWarning', Warning)
-        with warnings.catch_warnings():
-            warnings.simplefilter('ignore', category=compiler_warning)
-            program = cl.Program(self.context, cl_kernel.code_string).build(
-                options=options,
-                cache_dir=False)
+        with tempfile.TemporaryDirectory(prefix='scilpy-opencl-') as tmp_dir:
+            # Some OpenCL compilers create transient dependency files in TMPDIR
+            # and may emit non-fatal "Failed to read file: .../dep-*.d" messages.
+            build_env = {
+                'TMPDIR': tmp_dir,
+                'TMP': tmp_dir,
+                'TEMP': tmp_dir
+            }
+            old_env = {k: os.environ.get(k) for k in build_env}
+            os.environ.update(build_env)
+            try:
+                with warnings.catch_warnings():
+                    warnings.simplefilter('ignore', category=compiler_warning)
+                    with open(os.devnull, 'w') as devnull, \
+                            contextlib.redirect_stderr(devnull):
+                        program = cl.Program(
+                            self.context,
+                            cl_kernel.code_string
+                        ).build(options=options, cache_dir=False)
+            finally:
+                for key, value in old_env.items():
+                    if value is None:
+                        os.environ.pop(key, None)
+                    else:
+                        os.environ[key] = value
         self.kernel = cl.Kernel(program, cl_kernel.entry_point)
 
     class OutBuffer(object):
