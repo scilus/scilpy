@@ -225,12 +225,12 @@ def main():
                      args.save_piesno_mask)
 
         # Keep a 3D sigma map (one value per slice) for PIESNO.
-        # sigma = np.ones(vol_data.shape[:3]) * sigma[None, None, :]
+        sigma = np.ones(vol_data.shape[:3]) * sigma[None, None, :]
 
     data_denoised = nlmeans(vol_data, sigma, 
                             mask=mask_denoise,
                             rician=not args.gaussian,
-                            algorithm=args.algorithm,
+                            method=args.algorithm,
                             num_threads=args.nbr_processes)
 
     # Saving
