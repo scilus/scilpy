@@ -711,7 +711,8 @@ class GPUTracker():
         cl_manager.add_input_buffer('vertices', self.sphere.vertices)
 
         sh_order = find_order_from_nb_coeff(self.sh)
-        B_mat = sh_to_sf_matrix(self.sphere, sh_order, self.sh_basis,
+        B_mat = sh_to_sf_matrix(self.sphere, sh_order_max=sh_order, 
+                                basis_type=self.sh_basis,
                                 return_inv=False, legacy=self.is_legacy)
         cl_manager.add_input_buffer('b_matrix', B_mat)
 
