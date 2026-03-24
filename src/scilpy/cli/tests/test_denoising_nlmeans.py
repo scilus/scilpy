@@ -41,7 +41,7 @@ def test_execution_basic_3d_classic_algo(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_img = os.path.join(SCILPY_HOME, 'others', 't1_resample.nii.gz')
     ret = script_runner.run(['scil_denoising_nlmeans', in_img,
-                             't1_denoised.nii.gz', '--processes', '1',
+                             't1_denoised1.nii.gz', '--processes', '1',
                              '--basic_sigma', '--number_coils', 0,
                              '--algorithm', 'classic',
                              '--gaussian'])

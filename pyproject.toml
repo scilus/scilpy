@@ -31,7 +31,7 @@ dependencies = [
 "cvxpy==1.6.*",
 "cycler==0.12.*",
 "deepdiff>=8.1,<8.7",
-"dipy @ git+https://github.com/Stany87/dipy.git@d732537",
+"dipy @ git+https://github.com/Stany87/dipy.git@e109cb5",
 "dmri-amico==2.1.*",
 "dmri-commit>=2.4.2,<2.5.0",
 "docopt==0.6.*",
