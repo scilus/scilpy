@@ -5,11 +5,37 @@ import inspect
 import os
 import tempfile
 import contextlib
+import atexit
+import shutil
 import warnings
 import scilpy
 
 from dipy.utils.optpkg import optional_package
 cl, have_opencl, _ = optional_package('pyopencl')
+
+
+@contextlib.contextmanager
+def _redirect_fds_to_devnull(*fds):
+    """Temporarily redirect OS-level file descriptors to /dev/null."""
+    with open(os.devnull, 'w') as devnull:
+        saved_fds = []
+        try:
+            for fd in fds:
+                saved_fd = os.dup(fd)
+                saved_fds.append((fd, saved_fd))
+                os.dup2(devnull.fileno(), fd)
+            yield
+        finally:
+            for fd, saved_fd in reversed(saved_fds):
+                os.dup2(saved_fd, fd)
+                os.close(saved_fd)
+
+
+def _make_persistent_tmpdir(prefix):
+    """Create a temp dir and clean it at process exit."""
+    tmp_dir = tempfile.mkdtemp(prefix=prefix)
+    atexit.register(lambda: shutil.rmtree(tmp_dir, ignore_errors=True))
+    return tmp_dir
 
 
 def cl_device_type(device_type_str):
@@ -81,31 +107,31 @@ class CLManager(object):
         # SCILPY_OPENCL_BUILD_OPTIONS, e.g. "-cl-fast-relaxed-math".
         options = os.environ.get('SCILPY_OPENCL_BUILD_OPTIONS', '-w').split()
         compiler_warning = getattr(cl, 'CompilerWarning', Warning)
-        with tempfile.TemporaryDirectory(prefix='scilpy-opencl-') as tmp_dir:
-            # Some OpenCL compilers create transient dependency files in TMPDIR
-            # and may emit non-fatal "Failed to read file: .../dep-*.d" messages.
-            build_env = {
-                'TMPDIR': tmp_dir,
-                'TMP': tmp_dir,
-                'TEMP': tmp_dir
-            }
-            old_env = {k: os.environ.get(k) for k in build_env}
-            os.environ.update(build_env)
-            try:
-                with warnings.catch_warnings():
-                    warnings.simplefilter('ignore', category=compiler_warning)
-                    with open(os.devnull, 'w') as devnull, \
-                            contextlib.redirect_stderr(devnull):
-                        program = cl.Program(
-                            self.context,
-                            cl_kernel.code_string
-                        ).build(options=options, cache_dir=False)
-            finally:
-                for key, value in old_env.items():
-                    if value is None:
-                        os.environ.pop(key, None)
-                    else:
-                        os.environ[key] = value
+        # Some OpenCL compilers create transient dependency files in TMPDIR
+        # and may emit non-fatal "Failed to read file: .../dep-*.d" messages.
+        tmp_dir = _make_persistent_tmpdir('scilpy-opencl-')
+        build_env = {
+            'TMPDIR': tmp_dir,
+            'TMP': tmp_dir,
+            'TEMP': tmp_dir
+        }
+        old_env = {k: os.environ.get(k) for k in build_env}
+        os.environ.update(build_env)
+        try:
+            with warnings.catch_warnings():
+                warnings.simplefilter('ignore', category=compiler_warning)
+                # Redirect native writes (fd 1/2) from the OpenCL compiler.
+                with _redirect_fds_to_devnull(1, 2):
+                    program = cl.Program(
+                        self.context,
+                        cl_kernel.code_string
+                    ).build(options=options, cache_dir=False)
+        finally:
+            for key, value in old_env.items():
+                if value is None:
+                    os.environ.pop(key, None)
+                else:
+                    os.environ[key] = value
         self.kernel = cl.Kernel(program, cl_kernel.entry_point)
 
     class OutBuffer(object):
