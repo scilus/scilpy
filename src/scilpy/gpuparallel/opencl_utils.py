@@ -82,7 +82,8 @@ class CLManager(object):
         with warnings.catch_warnings():
             warnings.simplefilter('ignore', category=compiler_warning)
             program = cl.Program(self.context, cl_kernel.code_string).build(
-                options=options)
+                options=options,
+                cache_dir=False)
         self.kernel = cl.Kernel(program, cl_kernel.entry_point)
 
     class OutBuffer(object):
