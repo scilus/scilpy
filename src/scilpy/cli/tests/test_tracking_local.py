@@ -130,13 +130,8 @@ def test_algo_with_gpu(script_runner, monkeypatch):
     ret = script_runner.run(['scil_tracking_local', in_fodf,
                              in_mask, in_mask, 'gpu_det.trk', '--algo',
                              'det', '--use_gpu', '--nt', '100'])
+    assert not ret.success
 
-    # Deterministic GPU tracking is supported when OpenCL is available.
-    if ret.success:
-        assert ret.success
-    else:
-        err = '{} {}'.format(ret.stdout, ret.stderr).lower()
-        assert 'pyopencl is not installed' in err
 
 
 def test_execution_tracking_fodf_no_compression(script_runner, monkeypatch):
