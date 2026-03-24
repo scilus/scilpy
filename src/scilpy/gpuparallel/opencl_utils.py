@@ -3,6 +3,7 @@ import numpy as np
 import logging
 import inspect
 import os
+import warnings
 import scilpy
 
 from dipy.utils.optpkg import optional_package
@@ -69,7 +70,19 @@ class CLManager(object):
 
         self.context = cl.Context(devices=[best_device])
         self.queue = cl.CommandQueue(self.context)
-        program = cl.Program(self.context, cl_kernel.code_string).build()
+
+        # Avoid pyopencl cache dependency-file lookups that can emit
+        # noisy "Failed to read file: /tmp/dep-*.d" messages on some drivers.
+        os.environ.setdefault('PYOPENCL_NO_CACHE', '1')
+
+        # Keep OpenCL build logs quiet by default. Can be overridden with
+        # SCILPY_OPENCL_BUILD_OPTIONS, e.g. "-cl-fast-relaxed-math".
+        options = os.environ.get('SCILPY_OPENCL_BUILD_OPTIONS', '-w').split()
+        compiler_warning = getattr(cl, 'CompilerWarning', Warning)
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore', category=compiler_warning)
+            program = cl.Program(self.context, cl_kernel.code_string).build(
+                options=options)
         self.kernel = cl.Kernel(program, cl_kernel.entry_point)
 
     class OutBuffer(object):
