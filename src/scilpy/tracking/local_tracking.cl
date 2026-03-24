@@ -16,6 +16,8 @@ Tracking is performed in voxel space with origin corner.
 #define MAX_LENGTH 0
 #define SF_THRESHOLD 0.1f
 #define FORWARD_ONLY false
+#define PROBABILISTIC true
+#define RNG_SEED 0u
 #define SH_INTERP_NN false
 
 // CONSTANTS
@@ -230,6 +232,26 @@ bool is_valid_pos(__global const float* tracking_mask, const float3 pos)
 
 int sample_sf(const float* odf_sf, const float randv)
 {
+#if !PROBABILISTIC
+    (void)randv;
+    int max_index = -1;
+    float max_value = 0.0f;
+    for(int i = 0; i < N_DIRS; ++i)
+    {
+        if(odf_sf[i] > max_value)
+        {
+            max_value = odf_sf[i];
+            max_index = i;
+        }
+    }
+
+    if(max_value < NULL_SF_EPS)
+    {
+        return -1;
+    }
+
+    return max_index;
+#else
     float cumsum[N_DIRS];
     cumsum[0] = odf_sf[0];
     for(int i = 1; i < N_DIRS; ++i)
@@ -258,6 +280,26 @@ int sample_sf(const float* odf_sf, const float randv)
         ++index;
     }
     return index;
+#endif
+}
+
+uint hash_u32(uint x)
+{
+    // Lightweight integer hash for reproducible pseudo-random values.
+    x ^= x >> 16;
+    x *= 0x7feb352du;
+    x ^= x >> 15;
+    x *= 0x846ca68bu;
+    x ^= x >> 16;
+    return x;
+}
+
+float rand01(const size_t seed_indice, const int current_length)
+{
+    uint state = RNG_SEED;
+    state ^= (uint)(seed_indice + 1u) * 0x9e3779b9u;
+    state ^= (uint)(current_length + 1) * 0x85ebca6bu;
+    return (float)hash_u32(state) / 4294967296.0f;
 }
 
 int propagate(float3 last_pos, float3 last_dir, int current_length,
@@ -266,7 +308,6 @@ int propagate(float3 last_pos, float3 last_dir, int current_length,
               __global const float* tracking_mask,
               __global const float* sh_coeffs,
               __global const float* sf_max,
-              __global const float* rand_f,
               __global const float* vertices,
               __global const float* sh_to_sf_mat,
               __global float* out_streamlines)
@@ -296,8 +337,11 @@ int propagate(float3 last_pos, float3 last_dir, int current_length,
                  vertices, last_dir, max_cos_theta_local, odf_sf);
 
         // Sample distribution.
-        const float randv = rand_f[get_flat_index(seed_indice, current_length, 0, 0,
-                                                  n_seeds, MAX_LENGTH, 1)];
+    #if PROBABILISTIC
+        const float randv = rand01(seed_indice, current_length);
+    #else
+        const float randv = 0.0f;
+    #endif
         const int vert_indice = sample_sf(odf_sf, randv);
         if(vert_indice >= 0)
         {
@@ -343,7 +387,6 @@ int track(float3 seed_pos,
           __global const float* tracking_mask,
           __global const float* sh_coeffs,
           __global const float* sf_max,
-          __global const float* rand_f,
           __global const float* vertices,
           __global const float* sh_to_sf_mat,
           __global float* out_streamlines)
@@ -364,7 +407,7 @@ int track(float3 seed_pos,
     float3 last_dir;
     current_length = propagate(last_pos, last_dir, current_length, true,
                                seed_indice, n_seeds, max_cos_theta_local,
-                               tracking_mask, sh_coeffs, sf_max, rand_f, vertices,
+                               tracking_mask, sh_coeffs, sf_max, vertices,
                                sh_to_sf_mat, out_streamlines);
 
     // reverse streamline for backward tracking
@@ -378,7 +421,7 @@ int track(float3 seed_pos,
         // track backward
         current_length = propagate(last_pos, last_dir, current_length, false,
                                    seed_indice, n_seeds, max_cos_theta_local,
-                                   tracking_mask, sh_coeffs, sf_max, rand_f, vertices,
+                                   tracking_mask, sh_coeffs, sf_max, vertices,
                                    sh_to_sf_mat, out_streamlines);
     }
 #endif
@@ -392,7 +435,6 @@ __kernel void tracker(__global const float* sh_coeffs,
                       __global const float* tracking_mask,
                       __global const float* max_cos_theta,
                       __global const float* seed_positions,
-                      __global const float* rand_f,
                       __global float* out_streamlines,
                       __global float* out_nb_points)
 {
@@ -418,7 +460,7 @@ __kernel void tracker(__global const float* sh_coeffs,
 
     int current_length = track(seed_pos, seed_indice, n_seeds,
                                max_cos_theta_local, tracking_mask,
-                               sh_coeffs, sf_max, rand_f, vertices,
+                               sh_coeffs, sf_max, vertices,
                                sh_to_sf_mat, out_streamlines);
 
     out_nb_points[seed_indice] = (float)current_length;

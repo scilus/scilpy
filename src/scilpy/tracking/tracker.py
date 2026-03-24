@@ -571,11 +571,11 @@ class Tracker(object):
         return True
 
 
-class GPUTacker():
+class GPUTracker():
     """
-    Perform probabilistic tracking on a ODF field inside a binary mask. The
-    tracking is executed on the GPU using the OpenCL API. Tracking is performed
-    in voxel space with origin `corner`.
+    Perform local tracking on a ODF field inside a binary mask. The tracking is
+    executed on the GPU using the OpenCL API. Tracking is performed in voxel
+    space with origin `corner`.
 
     Streamlines are interrupted as soon as they reach maximum length and
     returned even if they end inside the tracking mask. The ODF image is
@@ -609,11 +609,15 @@ class GPUTacker():
         Seed for random number generator.
     sphere : int, optional
         Sphere to use for the tracking.
+    algo : {'prob', 'det'}, optional
+        GPU tracking mode. `prob` samples directions from the SF and `det`
+        follows the maximum SF direction.
     """
     def __init__(self, sh, mask, seeds, step_size, max_nbr_pts,
                  theta=20.0, sf_threshold=0.1, sh_interp='trilinear',
                  sh_basis='descoteaux07', is_legacy=True, batch_size=100000,
-                 forward_only=False, rng_seed=None, sphere=None):
+                 forward_only=False, rng_seed=None, sphere=None,
+                 algo='prob'):
         if not have_opencl:
             raise ImportError('pyopencl is not installed. In order to use'
                               'GPU tracker, you need to install it first.')
@@ -645,9 +649,17 @@ class GPUTacker():
         self.sh_basis = sh_basis
         self.is_legacy = is_legacy
         self.forward_only = forward_only
+        self.algo = algo
 
-        # Instantiate random number generator
-        self.rng = np.random.default_rng(rng_seed)
+        if self.algo not in ['prob', 'det']:
+            raise ValueError("Invalid GPU tracking algorithm '{}'. Expected "
+                             "'prob' or 'det'.".format(self.algo))
+        self.probabilistic = self.algo == 'prob'
+        if rng_seed is None:
+            self.rng_seed = int(np.random.default_rng().integers(
+                0, np.iinfo(np.uint32).max, dtype=np.uint32))
+        else:
+            self.rng_seed = int(np.uint32(rng_seed))
 
     def _get_max_amplitudes(self, B_mat):
         fodf_max = np.zeros(self.mask.shape,
@@ -682,6 +694,9 @@ class GPUTacker():
         cl_kernel.set_define('MAX_LENGTH', self.max_strl_points)
         cl_kernel.set_define('FORWARD_ONLY',
                              'true' if self.forward_only else 'false')
+        cl_kernel.set_define('PROBABILISTIC',
+                     'true' if self.probabilistic else 'false')
+        cl_kernel.set_define('RNG_SEED', '{}u'.format(np.uint32(self.rng_seed)))
         cl_kernel.set_define('SF_THRESHOLD',
                              '{:.8f}f'.format(self.sf_threshold))
         cl_kernel.set_define('SH_INTERP_NN',
@@ -707,23 +722,14 @@ class GPUTacker():
         cl_manager.add_input_buffer('max_cos_theta', max_cos_theta)
 
         cl_manager.add_input_buffer('seeds')
-        cl_manager.add_input_buffer('randvals')
 
         cl_manager.add_output_buffer('out_strl')
         cl_manager.add_output_buffer('out_lengths')
 
         # Generate streamlines in batches
         for seed_batch in self.seed_batches:
-            # Generate random values for sf sampling
-            # TODO: Implement random number generator directly
-            #       on the GPU to generate values on-the-fly.
-            rand_vals = self.rng.uniform(0.0, 1.0,
-                                         (len(seed_batch),
-                                          self.max_strl_points))
-
             # Update buffers
             cl_manager.update_input_buffer('seeds', seed_batch)
-            cl_manager.update_input_buffer('randvals', rand_vals)
 
             # output streamlines buffer
             cl_manager.update_output_buffer('out_strl',
