@@ -105,6 +105,10 @@ class Tracker(object):
         self.track_forward_only = track_forward_only
         self.append_last_point = append_last_point
         self.skip = skip
+        
+        # List to store RAP entry/exit coordinates as tuples (coord, type)
+        # where type is 1 for entry and 2 for exit
+        self.rap_entry_exit_coords = []
 
         self.origin = self.propagator.origin
         self.space = self.propagator.space
@@ -132,6 +136,55 @@ class Tracker(object):
         self.printing_frequency = 1000
         self.verbose = verbose
         self.min_iter = min_iter
+
+    def save_rap_entry_exit_mask(self, output_path, reference_img):
+        """
+        Save RAP entry/exit coordinates as a nifti mask.
+        Entry points have value 1, exit points have value 2.
+        
+        Parameters
+        ----------
+        output_path : str
+            Path to save the nifti mask file.
+        reference_img : nibabel.Nifti1Image
+            Reference image to get affine and shape for the output mask.
+        """
+        import nibabel as nib
+        
+        if not self.rap_entry_exit_coords:
+            logging.warning("No RAP entry/exit coordinates to save.")
+            return
+        
+        # Create empty mask with same shape as reference
+        mask_data = np.zeros(reference_img.shape[:3], dtype=np.uint8)
+        
+        # Convert coordinates to voxel space and set mask values
+        # Each element is a tuple (coord, coord_type) where coord_type is 1 (entry) or 2 (exit)
+        for coord, coord_type in self.rap_entry_exit_coords:
+            # Coordinates are already in voxel space (VOX, center)
+            # Round to nearest integer voxel
+            vox_coord = np.round(coord).astype(int)
+            
+            # Check bounds
+            if (0 <= vox_coord[0] < mask_data.shape[0] and
+                0 <= vox_coord[1] < mask_data.shape[1] and
+                0 <= vox_coord[2] < mask_data.shape[2]):
+                # Use max to handle overlapping entry/exit points
+                # If both entry and exit occur at same voxel, exit (2) will prevail
+                mask_data[vox_coord[0], vox_coord[1], vox_coord[2]] = max(
+                    mask_data[vox_coord[0], vox_coord[1], vox_coord[2]], coord_type)
+        
+        # Create nifti image and save
+        mask_img = nib.Nifti1Image(mask_data, reference_img.affine, 
+                                    reference_img.header)
+        nib.save(mask_img, output_path)
+        
+        entry_count = sum(1 for _, t in self.rap_entry_exit_coords if t == 1)
+        exit_count = sum(1 for _, t in self.rap_entry_exit_coords if t == 2)
+        logging.info(f"Saved RAP entry/exit mask to {output_path}")
+        logging.info(f"Entry coordinates: {entry_count}, Exit coordinates: {exit_count}")
+        logging.info(f"Unique voxels with entry (1): {np.sum(mask_data == 1)}, "
+                     f"exit (2): {np.sum(mask_data == 2)}")
 
     def track(self):
         """
@@ -443,24 +496,44 @@ class Tracker(object):
         """
         invalid_direction_count = 0
         propagation_can_continue = True
+        in_rap_region = False  # Track whether we're currently in RAP region
+        step_count = 0 
 
         while len(line) < self.max_nbr_pts and propagation_can_continue:
 
             # Call the RAP function if needed. Can advance of as many points
             # as they want.
-            if (propagation_can_continue and self.rap and
-                    self.rap.is_in_rap_region(
-                        line[-1], space=self.space, origin=self.origin)):
+            is_currently_in_rap = (propagation_can_continue and self.rap and
+                                   self.rap.is_in_rap_region(
+                                       line[-1], space=self.space, origin=self.origin))
+            
+            # Detect entering RAP region
+            if is_currently_in_rap and not in_rap_region:
+                self.rap_entry_exit_coords.append((line[-1].copy(), 1))  # 1 for entry
+                in_rap_region = True
+                logging.debug(f"TRACKER ENTERING pos={np.round(line[-1], 2)}")
+            
+            if is_currently_in_rap:
+                prev_len = len(line)
                 line, new_dir, is_line_valid = (
                     self.rap.rap_multistep_propagate(line, previous_dir))
+                if not is_line_valid:
+                    logging.debug(f"TRACKER invalid, stop")
+                    break
+                if len(line) == prev_len:
+                    logging.debug(f"TRACKER no progress, stop")
+                    propagation_can_continue = False
+                    break
+                new_pos = line[-1]
 
-                if is_line_valid:
-                    invalid_direction_count = 0
-                else:
+                # Verify that our RAP propagated point stays within the tracking mask
+                propagation_can_continue = self._verify_stopping_criteria(new_pos)
+                if not propagation_can_continue:
+                    logging.debug(f"TRACKER out of mask, stop.")
+                    line.pop()
                     break
 
-                new_pos = line[-1]
-            # Else, "normal" one-step propagation
+                step_count += 1
             else:
                 new_pos, new_dir, is_direction_valid = \
                     self.propagator.propagate(line, previous_dir)
@@ -474,12 +547,13 @@ class Tracker(object):
                     if invalid_direction_count > self.max_invalid_dirs:
                         break
 
-            propagation_can_continue = self._verify_stopping_criteria(new_pos)
-            if propagation_can_continue or self.append_last_point:
-                line.append(new_pos)
+                propagation_can_continue = self._verify_stopping_criteria(new_pos)
+                if propagation_can_continue or self.append_last_point:
+                    line.append(new_pos)
 
             previous_dir = new_dir
 
+        logging.debug(f"TRACKER end of propagation: {len(line)} total points, last pos={np.round(line[-1], 2)}")
         return line
 
     def _verify_stopping_criteria(self, last_pos):
