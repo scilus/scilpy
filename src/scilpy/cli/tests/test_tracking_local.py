@@ -130,6 +130,7 @@ def test_algo_with_gpu(script_runner, monkeypatch):
     ret = script_runner.run(['scil_tracking_local', in_fodf,
                              in_mask, in_mask, 'gpu_det.trk', '--algo',
                              'det', '--use_gpu', '--nt', '100'])
+
     assert not ret.success
 
 
