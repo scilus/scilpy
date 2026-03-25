@@ -518,10 +518,10 @@ class Tracker(object):
                 line, new_dir, is_line_valid = (
                     self.rap.rap_multistep_propagate(line, previous_dir))
                 if not is_line_valid:
-                    logging.debug(f"TRACKER invalid, stop")
+                    logging.debug("TRACKER invalid, stop")
                     break
                 if len(line) == prev_len:
-                    logging.debug(f"TRACKER no progress, stop")
+                    logging.debug("TRACKER no progress, stop")
                     propagation_can_continue = False
                     break
                 new_pos = line[-1]
@@ -529,7 +529,7 @@ class Tracker(object):
                 # Verify that our RAP propagated point stays within the tracking mask
                 propagation_can_continue = self._verify_stopping_criteria(new_pos)
                 if not propagation_can_continue:
-                    logging.debug(f"TRACKER out of mask, stop.")
+                    logging.debug("TRACKER out of mask, stop.")
                     line.pop()
                     break
 
@@ -571,7 +571,7 @@ class Tracker(object):
         return True
 
 
-class GPUTacker():
+class GPUTracker():
     """
     Perform probabilistic tracking on a ODF field inside a binary mask. The
     tracking is executed on the GPU using the OpenCL API. Tracking is performed

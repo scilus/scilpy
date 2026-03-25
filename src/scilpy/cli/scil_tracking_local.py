@@ -1,3 +1,4 @@
+
 #! /usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
@@ -33,8 +34,8 @@ DIPY. Below is a list of known divergences between the CPU and GPU
 implementations:
     * Backend: The CPU implementation uses DIPY's LocalTracking and the
         GPU implementation uses an in-house OpenCL implementation.
-    * Algo: For the GPU implementation, the only available algorithm is
-        Algo 'prob'.
+    * Algo: For the GPU implementation, available algorithms are Algo 'prob'
+        and Algo 'det'.
     * SH interpolation: For GPU tracking, SH interpolation can be set to either
         nearest neighbour or trilinear (default). With DIPY, the only available
         method is trilinear.
@@ -71,7 +72,7 @@ from scilpy.io.utils import (add_sphere_arg, add_verbose_arg,
                              assert_headers_compatible, assert_inputs_exist,
                              assert_outputs_exist, parse_sh_basis_arg,
                              verify_compression_th, load_matrix_in_any_format)
-from scilpy.tracking.tracker import GPUTacker
+from scilpy.tracking.tracker import GPUTracker
 from scilpy.tracking.utils import (add_mandatory_options_tracking,
                                    add_out_options, add_seeding_options,
                                    add_tracking_options,
@@ -114,7 +115,7 @@ def _build_arg_parser():
     add_tracking_ptt_options(p)
     gpu_g = p.add_argument_group('GPU options')
     gpu_g.add_argument('--use_gpu', action='store_true',
-                       help='Enable GPU tracking (experimental).')
+                       help='Enable GPU tracking.')
     gpu_g.add_argument('--sh_interp', default=None,
                        choices=['trilinear', 'nearest'],
                        help='SH image interpolation method. '
@@ -147,9 +148,9 @@ def main():
         batch_size = args.batch_size or DEFAULT_BATCH_SIZE
         sh_interp = args.sh_interp or DEFAULT_SH_INTERP
         forward_only = args.forward_only or DEFAULT_FWD_ONLY
-        if args.algo != 'prob':
+        if args.algo not in ['prob', 'det']:
             parser.error('Algo `{}` not supported for GPU tracking. '
-                         'Set --algo to `prob` for GPU tracking.'
+                         'Set --algo to `prob` or `det` for GPU tracking.'
                          .format(args.algo))
     else:
         if args.batch_size is not None:
@@ -265,7 +266,7 @@ def main():
         sphere = get_sphere(name=args.sphere).subdivide(n=args.sub_sphere)
 
         logging.info("Starting GPU local tracking.")
-        streamlines_generator = GPUTacker(
+        streamlines_generator = GPUTracker(
             odf_sh, mask_data, seeds,
             vox_step_size, max_strl_len,
             theta=get_theta(args.theta, args.algo),
@@ -276,7 +277,8 @@ def main():
             batch_size=batch_size,
             forward_only=forward_only,
             rng_seed=args.seed,
-            sphere=sphere)
+            sphere=sphere,
+            algo=args.algo)
 
     # save streamlines on-the-fly to file
     save_tractogram(streamlines_generator, tracts_format,
