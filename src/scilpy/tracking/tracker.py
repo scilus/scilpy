@@ -105,7 +105,7 @@ class Tracker(object):
         self.track_forward_only = track_forward_only
         self.append_last_point = append_last_point
         self.skip = skip
-
+        
         # List to store RAP entry/exit coordinates as tuples (coord, type)
         # where type is 1 for entry and 2 for exit
         self.rap_entry_exit_coords = []
@@ -141,7 +141,7 @@ class Tracker(object):
         """
         Save RAP entry/exit coordinates as a nifti mask.
         Entry points have value 1, exit points have value 2.
-
+        
         Parameters
         ----------
         output_path : str
@@ -150,21 +150,21 @@ class Tracker(object):
             Reference image to get affine and shape for the output mask.
         """
         import nibabel as nib
-
+        
         if not self.rap_entry_exit_coords:
             logging.warning("No RAP entry/exit coordinates to save.")
             return
-
+        
         # Create empty mask with same shape as reference
         mask_data = np.zeros(reference_img.shape[:3], dtype=np.uint8)
-
+        
         # Convert coordinates to voxel space and set mask values
         # Each element is a tuple (coord, coord_type) where coord_type is 1 (entry) or 2 (exit)
         for coord, coord_type in self.rap_entry_exit_coords:
             # Coordinates are already in voxel space (VOX, center)
             # Round to nearest integer voxel
             vox_coord = np.round(coord).astype(int)
-
+            
             # Check bounds
             if (0 <= vox_coord[0] < mask_data.shape[0] and
                 0 <= vox_coord[1] < mask_data.shape[1] and
@@ -173,12 +173,12 @@ class Tracker(object):
                 # If both entry and exit occur at same voxel, exit (2) will prevail
                 mask_data[vox_coord[0], vox_coord[1], vox_coord[2]] = max(
                     mask_data[vox_coord[0], vox_coord[1], vox_coord[2]], coord_type)
-
+        
         # Create nifti image and save
-        mask_img = nib.Nifti1Image(mask_data, reference_img.affine,
-                                   reference_img.header)
+        mask_img = nib.Nifti1Image(mask_data, reference_img.affine, 
+                                    reference_img.header)
         nib.save(mask_img, output_path)
-
+        
         entry_count = sum(1 for _, t in self.rap_entry_exit_coords if t == 1)
         exit_count = sum(1 for _, t in self.rap_entry_exit_coords if t == 2)
         logging.info(f"Saved RAP entry/exit mask to {output_path}")
@@ -497,7 +497,7 @@ class Tracker(object):
         invalid_direction_count = 0
         propagation_can_continue = True
         in_rap_region = False  # Track whether we're currently in RAP region
-        step_count = 0
+        step_count = 0 
 
         while len(line) < self.max_nbr_pts and propagation_can_continue:
 
@@ -506,13 +506,13 @@ class Tracker(object):
             is_currently_in_rap = (propagation_can_continue and self.rap and
                                    self.rap.is_in_rap_region(
                                        line[-1], space=self.space, origin=self.origin))
-
+            
             # Detect entering RAP region
             if is_currently_in_rap and not in_rap_region:
                 self.rap_entry_exit_coords.append((line[-1].copy(), 1))  # 1 for entry
                 in_rap_region = True
                 logging.debug(f"TRACKER ENTERING pos={np.round(line[-1], 2)}")
-
+            
             if is_currently_in_rap:
                 prev_len = len(line)
                 line, new_dir, is_line_valid = (
@@ -571,11 +571,11 @@ class Tracker(object):
         return True
 
 
-class GPUTracker():
+class GPUTacker():
     """
-    Perform local tracking on a ODF field inside a binary mask. The tracking is
-    executed on the GPU using the OpenCL API. Tracking is performed in voxel
-    space with origin `corner`.
+    Perform probabilistic tracking on a ODF field inside a binary mask. The
+    tracking is executed on the GPU using the OpenCL API. Tracking is performed
+    in voxel space with origin `corner`.
 
     Streamlines are interrupted as soon as they reach maximum length and
     returned even if they end inside the tracking mask. The ODF image is
@@ -609,15 +609,11 @@ class GPUTracker():
         Seed for random number generator.
     sphere : int, optional
         Sphere to use for the tracking.
-    algo : {'prob', 'det'}, optional
-        GPU tracking mode. `prob` samples directions from the SF and `det`
-        follows the maximum SF direction.
     """
     def __init__(self, sh, mask, seeds, step_size, max_nbr_pts,
                  theta=20.0, sf_threshold=0.1, sh_interp='trilinear',
                  sh_basis='descoteaux07', is_legacy=True, batch_size=100000,
-                 forward_only=False, rng_seed=None, sphere=None,
-                 algo='prob'):
+                 forward_only=False, rng_seed=None, sphere=None):
         if not have_opencl:
             raise ImportError('pyopencl is not installed. In order to use'
                               'GPU tracker, you need to install it first.')
@@ -649,17 +645,9 @@ class GPUTracker():
         self.sh_basis = sh_basis
         self.is_legacy = is_legacy
         self.forward_only = forward_only
-        self.algo = algo
 
-        if self.algo not in ['prob', 'det']:
-            raise ValueError("Invalid GPU tracking algorithm '{}'. Expected "
-                             "'prob' or 'det'.".format(self.algo))
-        self.probabilistic = self.algo == 'prob'
-        if rng_seed is None:
-            self.rng_seed = int(np.random.default_rng().integers(
-                0, np.iinfo(np.uint32).max, dtype=np.uint32))
-        else:
-            self.rng_seed = int(np.uint32(rng_seed))
+        # Instantiate random number generator
+        self.rng = np.random.default_rng(rng_seed)
 
     def _get_max_amplitudes(self, B_mat):
         fodf_max = np.zeros(self.mask.shape,
@@ -694,9 +682,6 @@ class GPUTracker():
         cl_kernel.set_define('MAX_LENGTH', self.max_strl_points)
         cl_kernel.set_define('FORWARD_ONLY',
                              'true' if self.forward_only else 'false')
-        cl_kernel.set_define('PROBABILISTIC',
-                             'true' if self.probabilistic else 'false')
-        cl_kernel.set_define('RNG_SEED', '{}u'.format(np.uint32(self.rng_seed)))
         cl_kernel.set_define('SF_THRESHOLD',
                              '{:.8f}f'.format(self.sf_threshold))
         cl_kernel.set_define('SH_INTERP_NN',
@@ -711,8 +696,7 @@ class GPUTracker():
         cl_manager.add_input_buffer('vertices', self.sphere.vertices)
 
         sh_order = find_order_from_nb_coeff(self.sh)
-        B_mat = sh_to_sf_matrix(self.sphere, sh_order_max=sh_order,
-                                basis_type=self.sh_basis,
+        B_mat = sh_to_sf_matrix(self.sphere, sh_order, self.sh_basis,
                                 return_inv=False, legacy=self.is_legacy)
         cl_manager.add_input_buffer('b_matrix', B_mat)
 
@@ -723,14 +707,23 @@ class GPUTracker():
         cl_manager.add_input_buffer('max_cos_theta', max_cos_theta)
 
         cl_manager.add_input_buffer('seeds')
+        cl_manager.add_input_buffer('randvals')
 
         cl_manager.add_output_buffer('out_strl')
         cl_manager.add_output_buffer('out_lengths')
 
         # Generate streamlines in batches
         for seed_batch in self.seed_batches:
+            # Generate random values for sf sampling
+            # TODO: Implement random number generator directly
+            #       on the GPU to generate values on-the-fly.
+            rand_vals = self.rng.uniform(0.0, 1.0,
+                                         (len(seed_batch),
+                                          self.max_strl_points))
+
             # Update buffers
             cl_manager.update_input_buffer('seeds', seed_batch)
+            cl_manager.update_input_buffer('randvals', rand_vals)
 
             # output streamlines buffer
             cl_manager.update_output_buffer('out_strl',
@@ -749,3 +742,146 @@ class GPUTracker():
                 # output is yielded so that we can use LazyTractogram.
                 # seed and strl with origin center (same as DIPY)
                 yield strl - 0.5, seed - 0.5
+
+
+# Backward-compatible alias with fixed typo.
+GPUTracker = GPUTacker
+
+
+class GPUPFTTracker():
+    """
+    GPU particle-filtering tracking using a dedicated OpenCL kernel.
+
+    This tracker uses include/exclude maps for endpoint acceptance and a
+    particle recovery stage controlled by `particle_count`,
+    `back_tracking_dist` and `front_tracking_dist`.
+    """
+
+    def __init__(self, sh, tracking_mask, include_map, exclude_map, seeds,
+                 step_size, max_nbr_pts, theta=20.0, sf_threshold=0.1,
+                 sh_interp='trilinear', sh_basis='descoteaux07',
+                 is_legacy=True, batch_size=100000, forward_only=False,
+                 rng_seed=None, sphere=None, particle_count=15,
+                 back_tracking_dist=2.0, front_tracking_dist=1.0,
+                 return_all=False):
+        if not have_opencl:
+            raise ImportError('pyopencl is not installed. In order to use '
+                              'GPU PFT tracker, install it first.')
+        if sh_interp not in ['nearest', 'trilinear']:
+            raise ValueError('Invalid SH interpolation mode: {}'
+                             .format(sh_interp))
+        if particle_count < 1:
+            raise ValueError('particle_count must be >= 1.')
+
+        self.sh = sh
+        self.tracking_mask = tracking_mask.astype(np.float32)
+        self.include_map = include_map.astype(np.float32)
+        self.exclude_map = exclude_map.astype(np.float32)
+        self.sh_interp_nn = sh_interp == 'nearest'
+
+        self.n_seeds = len(seeds)
+        self.seed_batches = np.array_split(
+            seeds + 0.5,
+            np.ceil(len(seeds) / batch_size))
+
+        if sphere is None:
+            self.sphere = get_sphere(name='repulsion724')
+        else:
+            self.sphere = sphere
+
+        self.step_size = step_size
+        self.sf_threshold = sf_threshold
+        self.max_strl_points = max_nbr_pts
+        self.theta = np.atleast_1d(theta)
+        self.sh_basis = sh_basis
+        self.is_legacy = is_legacy
+        self.forward_only = forward_only
+        self.return_all = return_all
+
+        self.particle_count = int(particle_count)
+        self.back_steps = max(1, int(np.round(back_tracking_dist / step_size)))
+        self.front_steps = max(1, int(np.round(front_tracking_dist / step_size)))
+        self.recovery_steps = self.back_steps + self.front_steps
+
+        self.rng = np.random.default_rng(rng_seed)
+
+    def _get_max_amplitudes(self, B_mat):
+        fodf_max = np.zeros(self.tracking_mask.shape, dtype=np.float32)
+        fodf_max[self.tracking_mask > 0] = np.max(
+            self.sh[self.tracking_mask > 0].dot(B_mat), axis=-1)
+        return fodf_max
+
+    def __iter__(self):
+        return self._track()
+
+    def _track(self):
+        max_cos_theta = np.cos(np.deg2rad(self.theta))
+
+        cl_kernel = CLKernel('pft_tracker', 'tracking', 'pft_tracking.cl')
+
+        cl_kernel.set_define('IM_X_DIM', self.sh.shape[0])
+        cl_kernel.set_define('IM_Y_DIM', self.sh.shape[1])
+        cl_kernel.set_define('IM_Z_DIM', self.sh.shape[2])
+        cl_kernel.set_define('IM_N_COEFFS', self.sh.shape[3])
+        cl_kernel.set_define('N_DIRS', len(self.sphere.vertices))
+
+        cl_kernel.set_define('N_THETAS', len(self.theta))
+        cl_kernel.set_define('STEP_SIZE', '{:.8f}f'.format(self.step_size))
+        cl_kernel.set_define('MAX_LENGTH', self.max_strl_points)
+        cl_kernel.set_define('FORWARD_ONLY',
+                             'true' if self.forward_only else 'false')
+        cl_kernel.set_define('SF_THRESHOLD',
+                             '{:.8f}f'.format(self.sf_threshold))
+        cl_kernel.set_define('SH_INTERP_NN',
+                             'true' if self.sh_interp_nn else 'false')
+        cl_kernel.set_define('PARTICLE_COUNT', self.particle_count)
+        cl_kernel.set_define('BACK_STEPS', self.back_steps)
+        cl_kernel.set_define('FRONT_STEPS', self.front_steps)
+        cl_kernel.set_define('RECOVERY_STEPS', self.recovery_steps)
+
+        cl_manager = CLManager(cl_kernel)
+
+        cl_manager.add_input_buffer('sh', self.sh)
+        cl_manager.add_input_buffer('vertices', self.sphere.vertices)
+
+        sh_order = find_order_from_nb_coeff(self.sh)
+        B_mat = sh_to_sf_matrix(self.sphere, sh_order, self.sh_basis,
+                                return_inv=False, legacy=self.is_legacy)
+        cl_manager.add_input_buffer('b_matrix', B_mat)
+
+        fodf_max = self._get_max_amplitudes(B_mat)
+        cl_manager.add_input_buffer('max_amplitudes', fodf_max)
+        cl_manager.add_input_buffer('mask', self.tracking_mask)
+        cl_manager.add_input_buffer('include_map', self.include_map)
+        cl_manager.add_input_buffer('exclude_map', self.exclude_map)
+
+        cl_manager.add_input_buffer('max_cos_theta', max_cos_theta)
+        cl_manager.add_input_buffer('seeds')
+        cl_manager.add_input_buffer('randvals')
+
+        cl_manager.add_output_buffer('out_strl')
+        cl_manager.add_output_buffer('out_lengths')
+        cl_manager.add_output_buffer('out_included')
+
+        for seed_batch in self.seed_batches:
+            rand_vals = self.rng.uniform(
+                0.0,
+                1.0,
+                (len(seed_batch), self.max_strl_points))
+
+            cl_manager.update_input_buffer('seeds', seed_batch)
+            cl_manager.update_input_buffer('randvals', rand_vals)
+
+            cl_manager.update_output_buffer(
+                'out_strl', (len(seed_batch), self.max_strl_points, 3))
+            cl_manager.update_output_buffer('out_lengths', (len(seed_batch), 1))
+            cl_manager.update_output_buffer('out_included', (len(seed_batch), 1))
+
+            tracks, n_points, included = cl_manager.run((len(seed_batch), 1, 1))
+            n_points = n_points.flatten().astype(np.int16)
+            included = included.flatten() > 0.5
+
+            for strl, seed, n_pts, inc in zip(tracks, seed_batch, n_points, included):
+                strl = strl[:n_pts]
+                if self.return_all or inc:
+                    yield strl - 0.5, seed - 0.5

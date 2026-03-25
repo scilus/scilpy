@@ -34,6 +34,7 @@ Reference:
 
 import argparse
 import logging
+from time import perf_counter
 
 from dipy.data import get_sphere, HemiSphere
 from dipy.direction import (ProbabilisticDirectionGetter,
@@ -56,7 +57,13 @@ from scilpy.io.utils import (add_overwrite_arg, add_sh_basis_args,
                              assert_headers_compatible, add_compression_arg,
                              verify_compression_th)
 from scilpy.tracking.utils import get_theta
+from scilpy.tracking.tracker import GPUPFTTracker
 from scilpy.version import version_string
+
+
+DEFAULT_BATCH_SIZE = 10000
+DEFAULT_SH_INTERP = 'trilinear'
+DEFAULT_FWD_ONLY = False
 
 
 def _build_arg_parser():
@@ -130,6 +137,21 @@ def _build_arg_parser():
                        help='Length of PFT forward tracking (mm). '
                             '[%(default)s]')
 
+    gpu_g = p.add_argument_group('GPU options')
+    gpu_g.add_argument('--use_gpu', action='store_true',
+                       help='Enable GPU particle-filtering tracking '
+                            '(experimental).')
+    gpu_g.add_argument('--sh_interp', default=None,
+                       choices=['trilinear', 'nearest'],
+                       help='SH image interpolation method for GPU mode. '
+                            '[{}]'.format(DEFAULT_SH_INTERP))
+    gpu_g.add_argument('--forward_only', action='store_true', default=None,
+                       help='Perform forward tracking only in GPU mode.')
+    gpu_g.add_argument('--batch_size', default=None, type=int,
+                       help='Approximate size of GPU batches (number of '
+                            'streamlines in parallel). [{}]'
+                            .format(DEFAULT_BATCH_SIZE))
+
     out_g = p.add_argument_group('Output options')
     out_g.add_argument('--all', dest='keep_all', action='store_true',
                        help='If set, keeps "excluded" streamlines.\n'
@@ -149,9 +171,25 @@ def _build_arg_parser():
 
 
 def main():
+    t_init = perf_counter()
     parser = _build_arg_parser()
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
+
+    if args.use_gpu:
+        batch_size = args.batch_size or DEFAULT_BATCH_SIZE
+        sh_interp = args.sh_interp or DEFAULT_SH_INTERP
+        forward_only = args.forward_only or DEFAULT_FWD_ONLY
+    else:
+        if args.batch_size is not None:
+            parser.error('Invalid argument --batch_size. '
+                         'Set --use_gpu to enable.')
+        if args.sh_interp is not None:
+            parser.error('Invalid argument --sh_interp. '
+                         'Set --use_gpu to enable.')
+        if args.forward_only is not None:
+            parser.error('Invalid argument --forward_only. '
+                         'Set --use_gpu to enable.')
 
     required = [args.in_sh, args.in_seed,
                 args.in_map_include, args.map_exclude_file]
@@ -212,8 +250,10 @@ def main():
     # pmf_threshold == clip pmf under this
     # relative_peak_threshold is for initial directions filtering
     # min_separation_angle is the initial separation angle for peak extraction
+    fodf_sh = fodf_sh_img.get_fdata(dtype=np.float32)
+
     dg = dgklass.from_shcoeff(
-        fodf_sh_img.get_fdata(dtype=np.float32),
+        fodf_sh,
         max_angle=theta,
         sphere=tracking_sphere,
         basis_type=sh_basis,
@@ -256,37 +296,78 @@ def main():
         seed_count_per_voxel=seed_per_vox,
         random_seed=args.seed)
 
-    # Note that max steps is used once for the forward pass, and
-    # once for the backwards. This doesn't, in fact, control the real
-    # max length
-    max_steps = int(args.max_length / args.step_size) + 1
-    pft_streamlines = ParticleFilteringTracking(
-        dg,
-        tissue_classifier,
-        seeds,
-        np.eye(4),
-        max_cross=1,
-        step_size=vox_step_size,
-        maxlen=max_steps,
-        pft_back_tracking_dist=args.back_tracking,
-        pft_front_tracking_dist=args.forward_tracking,
-        particle_count=args.particles,
-        return_all=args.keep_all,
-        random_seed=args.seed,
-        save_seeds=args.save_seeds)
+    if not args.use_gpu:
+        # Note that max steps is used once for the forward pass, and
+        # once for the backwards. This doesn't, in fact, control the real
+        # max length.
+        max_steps = int(args.max_length / args.step_size) + 1
+        pft_streamlines = ParticleFilteringTracking(
+            dg,
+            tissue_classifier,
+            seeds,
+            np.eye(4),
+            max_cross=1,
+            step_size=vox_step_size,
+            maxlen=max_steps,
+            pft_back_tracking_dist=args.back_tracking,
+            pft_front_tracking_dist=args.forward_tracking,
+            particle_count=args.particles,
+            return_all=args.keep_all,
+            random_seed=args.seed,
+            save_seeds=args.save_seeds)
+    else:
+        map_include = map_include_img.get_fdata(dtype=np.float32)
+        map_exclude = map_exclude_img.get_fdata(dtype=np.float32)
+
+        # Track in WM-like tissue while using include/exclude maps for PFT
+        # acceptance and particle recovery.
+        wm_like = np.clip(1.0 - map_include - map_exclude, 0.0, 1.0)
+        tracking_mask = wm_like > 0
+        if np.count_nonzero(tracking_mask) == 0:
+            parser.error('Computed GPU tracking mask is empty from PFT maps.')
+
+        max_strl_len = int(2.0 * args.max_length / args.step_size) + 1
+        full_sphere = get_sphere(name='repulsion724')
+
+        pft_streamlines = GPUPFTTracker(
+            fodf_sh,
+            tracking_mask,
+            map_include,
+            map_exclude,
+            seeds,
+            vox_step_size,
+            max_strl_len,
+            theta=theta,
+            sf_threshold=args.sf_threshold,
+            sh_interp=sh_interp,
+            sh_basis=sh_basis,
+            is_legacy=is_legacy,
+            batch_size=batch_size,
+            forward_only=forward_only,
+            rng_seed=args.seed,
+            sphere=full_sphere,
+            particle_count=args.particles,
+            back_tracking_dist=args.back_tracking,
+            front_tracking_dist=args.forward_tracking,
+            return_all=args.keep_all)
 
     scaled_min_length = args.min_length / voxel_size
     scaled_max_length = args.max_length / voxel_size
 
     if args.save_seeds:
-        filtered_streamlines, seeds = \
-            zip(*((s, p) for s, p in pft_streamlines
-                  if scaled_min_length <= length(s) <= scaled_max_length))
+        kept = ((s, p) for s, p in pft_streamlines
+            if scaled_min_length <= length(s) <= scaled_max_length)
+
+        kept = list(kept)
+        if kept:
+            filtered_streamlines, seeds = zip(*kept)
+        else:
+            filtered_streamlines, seeds = (), ()
         data_per_streamlines = {'seeds': lambda: seeds}
     else:
-        filtered_streamlines = \
-            (s for s in pft_streamlines
-             if scaled_min_length <= length(s) <= scaled_max_length)
+        filtered_streamlines = (
+            s for s in pft_streamlines
+            if scaled_min_length <= length(s) <= scaled_max_length)
         data_per_streamlines = {}
 
     if args.compress_th:
@@ -304,6 +385,9 @@ def main():
 
     # Use generator to save the streamlines on-the-fly
     nib.streamlines.save(tractogram, args.out_tractogram, header=header)
+
+    logging.info('Saved tractogram to %s.', args.out_tractogram)
+    logging.info('Total runtime of %.2fs.', perf_counter() - t_init)
 
 
 if __name__ == '__main__':
