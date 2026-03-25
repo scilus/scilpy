@@ -310,11 +310,11 @@ class CLKernel(object):
     def __init__(self, entrypoint, module, filename):
         path_to_kernel = self._get_kernel_path(module, filename)
         try:
-            f = open(path_to_kernel, 'r')
+            with open(path_to_kernel, 'r', encoding='utf-8') as f:
+                self.code = f.readlines()
         except Exception:
             raise ValueError('OpenCL file not found in {}'
                              .format(path_to_kernel))
-        self.code = f.readlines()
         self.entrypoint = entrypoint
 
     def _get_kernel_path(self, module, filename):
