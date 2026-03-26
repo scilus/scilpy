@@ -36,7 +36,7 @@ We highly encourage to install scilpy in a virtual environnement. Once done and 
 ## Install scilpy as a user
 
 ```
-# If you are using Python3.10 or Python3.11, export this variable before installing
+# If you are using Python3.11, export this variable before installing
 export SETUPTOOLS_USE_DISTUTILS=stdlib
 
 uv pip install scilpy # For the most recent release from PyPi
@@ -45,7 +45,7 @@ uv pip install scilpy # For the most recent release from PyPi
 ## Install scilpy as a developer
 
 ```
-# If you are using Python3.10 or Python3.11, export this variable before installing
+# If you are using Python3.11, export this variable before installing
 export SETUPTOOLS_USE_DISTUTILS=stdlib
 
 uv pip install -e . # Install from source code (for development)

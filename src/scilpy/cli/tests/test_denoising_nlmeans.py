@@ -4,6 +4,8 @@
 import os
 import tempfile
 
+import pytest
+
 from scilpy import SCILPY_HOME
 from scilpy.io.fetcher import fetch_data, get_testing_files_dict
 
@@ -37,6 +39,17 @@ def test_execution_basic_3d(script_runner, monkeypatch):
     assert ret.success
 
 
+def test_execution_basic_3d_classic_algo(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
+    in_img = os.path.join(SCILPY_HOME, 'others', 't1_resample.nii.gz')
+    ret = script_runner.run(['scil_denoising_nlmeans', in_img,
+                             't1_denoised1.nii.gz', '--processes', '1',
+                             '--basic_sigma', '--number_coils', 0,
+                             '--algorithm', 'classic',
+                             '--gaussian'])
+    assert ret.success
+
+
 def test_execution_basic_4d_mask(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_img = os.path.join(SCILPY_HOME, 'processing', 'dwi_crop_1000.nii.gz')
@@ -48,6 +61,7 @@ def test_execution_basic_4d_mask(script_runner, monkeypatch):
     assert ret.success
 
 
+@pytest.mark.skip(reason="Piesno is currently disabled in the main script.")
 def test_execution_piesno(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_img = os.path.join(SCILPY_HOME, 'processing', 'dwi.nii.gz')

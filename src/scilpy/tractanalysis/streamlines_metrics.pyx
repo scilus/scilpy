@@ -46,12 +46,12 @@ def compute_tract_counts_map(streamlines, vol_dims):
     # This array counts the number of different tracks going through each voxel.
     # Need to keep both the array and the memview on it to be able to
     # reshape and return in the end.
-    traversal_tags = np.zeros((n_voxels,), dtype=int)
-    cdef np.int_t[:] traversal_tags_v = traversal_tags
+    traversal_tags = np.zeros((n_voxels,), dtype=np.intp)
+    cdef np.intp_t[:] traversal_tags_v = traversal_tags
 
     # This array keeps track of whether the current track has already been
     # flagged in a specific voxel.
-    cdef np.int_t[:] touched_tags_v = np.zeros((n_voxels,), dtype=int)
+    cdef np.intp_t[:] touched_tags_v = np.zeros((n_voxels,), dtype=np.intp)
 
     cdef int streamlines_len = len(streamlines)
 
@@ -71,7 +71,7 @@ def compute_tract_counts_map(streamlines, vol_dims):
     cdef np.double_t[:] cur_edge = np.zeros(3, dtype=np.double)
 
     # Memview for the coordinates of the current voxel
-    cdef np.int_t[:] cur_voxel_coords = np.zeros(3, dtype=int)
+    cdef np.intp_t[:] cur_voxel_coords = np.zeros(3, dtype=np.intp)
 
     # various temporary loop and working variables
     #cdef:
