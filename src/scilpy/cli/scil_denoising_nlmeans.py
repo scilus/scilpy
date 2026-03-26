@@ -64,6 +64,8 @@ from scilpy.io.utils import (add_processes_arg,
                              assert_headers_compatible, ranged_type)
 from scilpy.version import version_string
 
+IS_DIPY_FIXED = False
+
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(description=__doc__,
@@ -94,11 +96,12 @@ def _build_arg_parser():
         '--basic_sigma', action='store_true',
         help="Use dipy's basic estimation of sigma.")
 
-# Put it back when dipy 1.13 is released, as there are some issues with the current version of dipy on github.
-#    g.add_argument(
-#        '--piesno', action='store_true',
-#        help="Estimate sigma using Piesno's method. If data is 4D, the noise "
-#             "is estimated for each slice (3rd dimension).")
+    # Put it back when dipy 1.13 is released, as there are some issues with the current version of dipy on github.
+    if IS_DIPY_FIXED:
+        g.add_argument(
+            '--piesno', action='store_true',
+            help="Estimate sigma using Piesno's method. If data is 4D, the noise "
+                 "is estimated for each slice (3rd dimension).")
 
     g = p.add_argument_group("Noise estimation options: piesno and basic")
     g.add_argument(
@@ -124,9 +127,10 @@ def _build_arg_parser():
         help="If set, all voxels are used for the --basic_sigma estimation, "
              "even zeros.")
 
-#    g = p.add_argument_group("Noise estimation options: piesno")
-#    g.add_argument('--save_piesno_mask', metavar='filepath',
-#                   help="If set, save piesno mask.")
+    if IS_DIPY_FIXED:
+        g = p.add_argument_group("Noise estimation options: piesno")
+        g.add_argument('--save_piesno_mask', metavar='filepath',
+                       help="If set, save piesno mask.")
 
     add_processes_arg(p)
     add_verbose_arg(p)
@@ -158,9 +162,9 @@ def main():
             parser.error("You selected --mask_sigma, but this is "
                          "only available for the --basic_sigma method.")
 
-#    if args.save_piesno_mask and not args.piesno:
-#        parser.error("Option --save_piesno_mask cannot be used when --pieno "
-#                     "is not selected.")
+    if IS_DIPY_FIXED and args.save_piesno_mask and not args.piesno:
+        parser.error("Option --save_piesno_mask cannot be used when --pieno "
+                     "is not selected.")
 
     assert_inputs_exist(parser, args.in_image,
                         [args.mask_denoise, args.mask_sigma])
@@ -174,8 +178,8 @@ def main():
     nb_volumes = 1 if (len(vol_data.shape) != 4 or vol_data.shape[3] == 1) \
         else vol_data.shape[-1]
 
-#    if args.piesno and nb_volumes == 1:
-#        parser.error("The piesno method requires 4D data.")
+    if IS_DIPY_FIXED and args.piesno and nb_volumes == 1:
+        parser.error("The piesno method requires 4D data.")
 
     # Denoising mask
     if args.mask_denoise is None:
@@ -216,18 +220,18 @@ def main():
 
         if nb_volumes > 1:
             sigma = np.full(nb_volumes, sigma, dtype=np.float32)
-#    else:  # --piesno
-#        logging.info("Computing sigma: one value per slice.")
-#        sigma, mask_noise = estimate_piesno_sigma(vol_data, args.number_coils)
-#        if args.save_piesno_mask:
-#            logging.info("Saving resulting Piesno noise mask in {}"
-#                         .format(args.save_piesno_mask))
-#            nib.save(nib.Nifti1Image(mask_noise, vol.affine,
-#                                     header=vol.header),
-#                     args.save_piesno_mask)
+    elif IS_DIPY_FIXED:  # --piesno
+        logging.info("Computing sigma: one value per slice.")
+        sigma, mask_noise = estimate_piesno_sigma(vol_data, args.number_coils)
+        if args.save_piesno_mask:
+            logging.info("Saving resulting Piesno noise mask in {}"
+                         .format(args.save_piesno_mask))
+            nib.save(nib.Nifti1Image(mask_noise, vol.affine,
+                                     header=vol.header),
+                     args.save_piesno_mask)
 
         # Keep a 3D sigma map (one value per slice) for PIESNO.
-#        sigma = np.ones(vol_data.shape[:3]) * sigma[None, None, :]
+        sigma = np.ones(vol_data.shape[:3]) * sigma[None, None, :]
 
     data_denoised = nlmeans(vol_data, sigma, 
                             mask=mask_denoise,
