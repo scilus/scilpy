@@ -74,7 +74,7 @@ def _get_docstring_from_script_path(script):
     docstring : str
         The file's docstring, or an empty string if there was no docstring.
     """
-    with open(script, 'r') as reader:
+    with open(script, 'r', encoding='utf-8') as reader:
         file_contents = reader.read()
     module = ast.parse(file_contents)
     docstring = ast.get_docstring(module) or ''
@@ -201,9 +201,9 @@ def _generate_help_file(args):
         return
     # Run the script with --h and capture the output
     result = subprocess.run(['python', script, '--h'],
-                            capture_output=True, text=True)
+                            capture_output=True, text=True, encoding='utf-8')
     # Save the output to the hidden file
-    with open(help_file, 'w') as f:
+    with open(help_file, 'w', encoding='utf-8') as f:
         f.write(result.stdout)
 
 
