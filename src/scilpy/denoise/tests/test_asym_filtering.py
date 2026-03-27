@@ -55,7 +55,9 @@ def test_cosine_filtering():
     sharpness = 1.0
 
     sh_order, full_basis = get_sh_order_and_fullness(in_sh.shape[-1])
-    out = cosine_filtering(in_sh, sh_order, sh_basis, full_basis, legacy,
-                           sharpness, sphere_str, sigma_spatial)
+    out = cosine_filtering(in_sh, sh_order=sh_order,
+                           sh_basis=sh_basis,
+                           in_full_basis=full_basis, is_legacy=legacy,
+                           dot_sharpness=sharpness, sphere_str=sphere_str, sigma=sigma_spatial)
 
     assert np.allclose(out, fodf_3x3_order8_descoteaux07_filtered_cosine)

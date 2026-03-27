@@ -38,3 +38,18 @@ def test_subdivide():
 
     # streamline 3 should be split into 11 (12 points)
     assert split[2].shape[0] == 12
+
+
+def test_subdivide_float64_streamlines():
+    streamline = np.asarray([[0.0, 0.0, 0.0],
+                             [1.2, 0.5, 0.0]], dtype=np.float64)
+
+    fake_ref = nib.Nifti1Image(np.zeros((3, 3, 3)), affine=np.eye(4))
+    sft = StatefulTractogram([streamline], reference=fake_ref,
+                             origin=Origin('corner'), space=Space('vox'))
+
+    split = subdivide_streamlines_at_voxel_faces(sft.streamlines)
+
+    assert split[0].dtype == np.float32
+    assert np.allclose(split[0][0], streamline[0])
+    assert np.allclose(split[0][-1], streamline[-1])

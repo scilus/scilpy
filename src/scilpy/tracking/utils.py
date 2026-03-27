@@ -395,8 +395,8 @@ def get_direction_getter(in_img, algo, sphere, sub_sphere, theta, sh_basis,
             peak_indices = np.full((img_shape_3d + (npeaks,)), -1,
                                    dtype='int')
             b_matrix, _ = sh_to_sf_matrix(sphere,
-                                          find_order_from_nb_coeff(img_data),
-                                          sh_basis, legacy=is_legacy)
+                                          sh_order_max=find_order_from_nb_coeff(img_data),
+                                          basis_type=sh_basis, legacy=is_legacy)
 
             for idx in np.argwhere(np.sum(img_data, axis=-1)):
                 idx = tuple(idx)
