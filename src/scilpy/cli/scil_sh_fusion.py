@@ -11,7 +11,6 @@ conserving the most relevant information.
 
 Based on [1] and [2].
 
-Formerly: scil_merge_sh.py
 ---------------------------------------------------------------------------------
 References:
 [1] Garyfallidis, E., Zucchelli, M., Houde, J-C., Descoteaux, M.

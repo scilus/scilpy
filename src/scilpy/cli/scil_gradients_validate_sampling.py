@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Validate the sampling of a gradient table, in terms of how well distributed on
 the sphere the b-vectors are.
@@ -22,7 +21,7 @@ The user might want to use the -v verbose option to see the computed energies.
 The --viz option displays both the input and optimal b-vectors on a single
 shell. The --save_viz option saves this image as png. If --save_viz is used
 without --viz, the image will be saved but not shown. For more options on
-visualization, please use scil_viz_gradients_screenshot.py.
+visualization, please use scil_viz_gradients_screenshot.
 ------------------------------------------------------------------------------
 Reference:
 [1] Emmanuel Caruyer, Christophe Lenglet, Guillermo Sapiro,
@@ -72,7 +71,7 @@ def _build_arg_parser():
     p.add_argument('--viz', action='store_true',
                    help='Visualize the inputed gradient scheme, then the '
                         'optimal one.')
-    p.add_argument('--save_viz', metavar='OUT_FOLDER',
+    p.add_argument('--save_viz', metavar='out_dir',
                    help='Save the input and optimal gradient schemes in '
                         'the specified folder. If --viz is not set, then '
                         'the window is not shown but will be saved.')

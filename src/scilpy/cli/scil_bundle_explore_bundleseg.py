@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 BundleSeg output visualization tool.
 
@@ -11,7 +10,7 @@ It includes tools to slice images, filter streamlines, and interactively
 visualize bundles and a reference image.
 
 This script is intended to be used after running BundleSeg:
-    scil_tractogram_segment_with_bundleseg.py
+    scil_tractogram_segment_with_bundleseg
 To explore thresholds the option --exploration_mode must be used to segment
 using a much higher distance threshold.
 """
@@ -479,11 +478,16 @@ def main():
     offset = 0
     count = 0
     for bundle in mapping.keys():
-        filename = glob.glob(f'{os.path.join(args.in_folder, bundle)}.t?k')[0]
-
-        if not os.path.exists(filename):
-            logging.warning(f'File {filename} not found.')
+        files = glob.glob(f'{os.path.join(args.in_folder, bundle)}.t?k')
+        if len(files) == 0:
+            logging.warning("Could not find any file fitting pattern {}"
+                            .format(os.path.join(args.in_folder, bundle)))
             continue
+        elif len(files) > 1:
+            logging.warning("Found two files for bundle {}. Selecting the "
+                            "first one. Verify your files!".format(bundle))
+
+        filename = files[0]
         count += 1
 
         tmp_sft = load_tractogram(filename, ref_img)

@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Compute the mean Apparent Fiber Density (AFD) and mean Radial fODF (radfODF)
 maps for every connections within a hdf5 (.h5) file.
@@ -10,7 +9,6 @@ of each connection, averaged at every voxel.
 
 Please use a hdf5 (.h5) file containing decomposed connections
 
-Formerly: scil_compute_fixel_afd_from_hdf5.py
 ----------------------------------------------------------------------------
 Reference:
 [1] Raffelt, D., Tournier, JD., Rose, S., Ridgway, GR., Henderson, R.,Crozier,

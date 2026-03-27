@@ -1,15 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Script to compute the Diffusion Kurtosis Imaging (DKI) and Mean Signal DKI
-(MSDKI) metrics. DKI is a multi-shell diffusion model. The input DWI needs
+(MSDKI) metrics. DKI is a multi-shell diffusion model [1]. The input DWI needs
 to be multi-shell, i.e. multi-bvalued.
 
 Since the diffusion kurtosis model involves the estimation of a large number
 of parameters and since the non-Gaussian components of the diffusion signal
 are more sensitive to artefacts, you should really denoise your DWI volume
-before using this DKI script (e.g. scil_denoising_nlmeans.py). Moreover, to
+before using this DKI script (e.g. scil_denoising_nlmeans). Moreover, to
 remove biases due to fiber dispersion, fiber crossings and other mesoscopic
 properties of the underlying tissue, MSDKI does a powder-average of DWI for all
 directions, thus removing the orientational dependencies and creating an
@@ -35,11 +34,16 @@ files flags" section. If --not_all is set, only the metrics specified
 explicitly by the flags will be output.
 
 This script directly comes from the DIPY example gallery and references
-therein.
-[1] examples_built/reconst_dki/#example-reconst-dki
-[2] examples_built/reconst_msdki/#example-reconst-msdki
+therein. [2], [3]
 
-Formerly: scil_compute_kurtosis_metrics.py
+-----
+[1] J.H. Jensen, J.A. Helpern, A. Ramani, H. Lu, and K. Kaczynski. Diffusional
+kurtosis imaging: The quantification of non-gaussian water diffusion by means
+of magnetic resonance imaging. Magnetic Resonance in Medicine, 53(6):1432–1440,
+2005. doi:https://doi.org/10.1002/mrm.20508.
+[2] https://docs.dipy.org/dev/examples_built/reconstruction/reconst_dki.html
+[3] https://docs.dipy.org/dev/examples_built/reconstruction/reconst_msdki.html
+
 """
 
 import argparse

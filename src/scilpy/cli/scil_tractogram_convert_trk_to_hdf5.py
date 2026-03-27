@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Save connections as TRK to HDF5.
 
@@ -9,8 +8,8 @@ HDF5 file. The HDF5 file will contain a group for each input file, with the
 streamlines stored in the specified space and origin (keep the default if you
 are going to use the connectivity scripts in scilpy).
 
-To make a file compatible with scil_tractogram_commit.py or
-scil_connectivity_compute_matrices.py you will have to follow this nomenclature
+To make a file compatible with scil_tractogram_commit or
+scil_connectivity_compute_matrices you will have to follow this nomenclature
 for the input files:
 in_dir/
     |-- LABEL1_LABEL1.trk

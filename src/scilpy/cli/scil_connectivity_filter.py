@@ -1,16 +1,15 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Script to facilitate filtering of connectivity matrices.
 The same could be achieved through a complex sequence of
-scil_connectivity_math.py.
+scil_connectivity_math.
 
 Can be used with any connectivity matrix from
-scil_connectivity_compute_matrices.py.
+scil_connectivity_compute_matrices.
 
 For example, a filtering as performed in [1] would be:
-scil_connectivity_filter.py out_mask.npy
+scil_connectivity_filter out_mask.npy
     --greater_than */sc.npy 1 0.90
     --lower_than */sim.npy 2 0.90
     --greater_than */len.npy 40 0.90 -v;
@@ -31,9 +30,8 @@ This script performs an intersection of all conditions, meaning that all
 conditions must be met in order to not be filtered.
 
 If the user wants to manually handle the requirements, --keep_condition_count
-can be used and manually binarized using scil_connectivity_math.py
+can be used and manually binarized using scil_connectivity_math
 
-Formerly: scil_filter_connectivity.py
 ----------------------------------------------------------------------------
 Reference:
 [1] Sidhu, J. (2022). Inter-lobar Connectivity of the Frontal Lobe Association
@@ -53,6 +51,7 @@ from scilpy.io.utils import (add_overwrite_arg, add_verbose_arg,
                              load_matrix_in_any_format,
                              save_matrix_in_any_format, assert_inputs_exist)
 from scilpy.version import version_string
+
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(description=__doc__,
@@ -141,9 +140,9 @@ def main():
         filter_mask = _filter(input_list, 'lower')
         output_mask[filter_mask] += 1
 
-    for input_list in args.lower_than:
+    for input_list in args.greater_than:
         condition_counter += 1
-        filter_mask = _filter(input_list, 'gteater')
+        filter_mask = _filter(input_list, 'greater')
         output_mask[filter_mask] += 1
 
     if not args.keep_condition_count:

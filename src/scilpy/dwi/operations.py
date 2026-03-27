@@ -111,7 +111,7 @@ def _rescale_dwi(in_data, bc_data):
 def compute_dwi_attenuation(dwi_weights: np.ndarray, b0: np.ndarray):
     """ Compute signal attenuation by dividing the dwi signal with the b0.
 
-    Parameters:
+    Parameters
     -----------
     dwi_weights : np.ndarray of shape (X, Y, Z, #gradients)
         Diffusion weighted images.

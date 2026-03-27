@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
 """
 Computes a very simple connectivity matrix, using the streamline count and the
 position of the streamlines' endpoints.
@@ -8,9 +7,9 @@ position of the streamlines' endpoints.
 This script is intented for exploration of your data. For a more thorough
 computation (using the longest streamline segment), and for more options about
 the weights of the matrix, see:
->> scil_connectivity_compute_matrices.py
+>> scil_connectivity_compute_matrices
 
-Contrary to scil_connectivity_compute_matrices.py, works with an incomplete
+Contrary to scil_connectivity_compute_matrices, works with an incomplete
 parcellation (i.e. with streamlines ending in the background).
 
 In the output figure, 4 matrices are shown, all using the streamline count:

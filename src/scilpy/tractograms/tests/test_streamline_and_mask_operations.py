@@ -72,13 +72,12 @@ def test_get_endpoints_density_map():
 
     sft, reference, *_ = _setup_files()
 
-    endpoints_map = get_endpoints_density_map(
-        sft, point_to_select=1)
+    endpoints_map = get_endpoints_density_map(sft, point_to_select=1)
 
+    # We have already computed the answer:
     in_result = os.path.join(SCILPY_HOME, 'tractograms',
                              'streamline_and_mask_operations',
                              'bundle_4_endpoints_1point.nii.gz')
-
     result = nib.load(in_result).get_fdata()
 
     assert np.allclose(endpoints_map, result)

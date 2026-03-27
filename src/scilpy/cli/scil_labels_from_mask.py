@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Script to obtain labels from a binary mask which contains multiple blobs.
 
@@ -8,7 +7,6 @@ The script will assign a label to each blob in the mask. The background label
 is excluded from the labels list. By default, the background label is 0 and
 the labels are assigned in increasing order starting from 1.
 """
-
 
 import argparse
 import logging

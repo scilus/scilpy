@@ -1,12 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Script to compute Constrained Spherical Deconvolution (CSD) fiber ODFs.
 
 See [Tournier et al. NeuroImage 2007]
 
-Formerly: scil_compute_ssst_fodf.py
 """
 
 import argparse

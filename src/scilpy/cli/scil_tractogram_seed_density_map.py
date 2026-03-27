@@ -1,19 +1,16 @@
 #! /usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Compute a density map of seeds saved in .trk file.
 
 * They are saved as a data_per_streamline 'seeds' when using our tractography
 scripts with option --save_seeds.
-- scil_tracking_local.py
-- scil_tracking_local_dev.py
-- scil_tracking_pft.py.
+- scil_tracking_local
+- scil_tracking_local_dev
+- scil_tracking_pft
 
 If you use your own tractograms, you can create a 'seeds' data_per_streamline.
 Don't forget to save the coordinates in voxel space, corner origin.
-
-Formerly: scil_compute_seed_density_map.py
 """
 
 import argparse

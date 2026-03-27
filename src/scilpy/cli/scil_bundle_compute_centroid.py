@@ -1,10 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Compute a single bundle centroid, using an 'infinite' QuickBundles threshold.
-
-Formerly: scil_compute_centroid.py
 """
 
 import argparse

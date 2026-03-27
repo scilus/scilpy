@@ -10,6 +10,13 @@ from scilpy.utils import is_float
 
 
 def load_img(arg):
+    """
+    Function to create the variable for scil_volume_math main function.
+    It can be a float or an image and if image it checks if it contains
+    integer values and its declared data type is integer or if it is containing
+    float values but declared as integer, in which case a warning is raised.
+    Parameters
+    """
     if is_float(arg):
         img = float(arg)
         dtype = np.float64
@@ -21,6 +28,16 @@ def load_img(arg):
         dtype = img.header.get_data_dtype()
         logging.info('Loaded {} of shape {} and data_type {}.'.format(
                      arg, shape, dtype))
+        data_as_float = img.get_fdata()
+        sum_float = float(np.sum(data_as_float))
+
+        if not sum_float.is_integer():
+            logging.warning('Image {} has an integer type but contains '
+                            'non-integer values. Loading, computating and saving '
+                            'will be done as float. Using an integer dtype '
+                            'will lead to data loss.'.format(arg))
+            dtype = np.float64
+            img.header.set_data_dtype(dtype)
 
         if len(shape) > 3:
             logging.warning('{} has {} dimensions, be careful.'.format(
@@ -103,7 +120,7 @@ def get_data_as_mask(mask_img, dtype=np.uint8):
                       'with a mask.\n'
                       'To convert your data, you may use tools like mrconvert '
                       'or \n'
-                      '>> scil_volume_math.py convert IMG IMG '
+                      '>> scil_volume_math convert IMG IMG '
                       '--data_type uint8 -f'.format(basename, curr_type))
 
     return data

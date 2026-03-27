@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Assign an hexadecimal RGB color to one or more Trackvis (.trk) tractogram.
 (If called with .tck, the output will always be .trk, because data_per_point
@@ -17,9 +16,7 @@ add it to the dictionnary. The new dictionnary will be saved in the same
 location as the input
 dictionnary with the following name: new_color_dict_[RND].json.
 
-See also: scil_tractogram_assign_custom_color.py
-
-Formerly: scil_assign_uniform_color_to_tractograms.py
+See also: scil_tractogram_assign_custom_color
 """
 
 import argparse

@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
 """
 The NAWM (Normal Appearing White Matter) is the white matter that is
 neighboring a lesion. It is used to compute metrics in the white matter

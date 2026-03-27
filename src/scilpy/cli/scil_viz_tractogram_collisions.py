@@ -1,6 +1,5 @@
 #! /usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Visualize collisions given by scil_tractogram_filter_collisions with
 the --save_colliding parameter.
@@ -30,13 +29,13 @@ def _build_arg_parser():
                    'streamlines that have been filtered, along their \n'
                    'collision point as data_per_streamline (must be \n'
                    '.trk). This file is obtained from the \n'
-                   'scil_tractogram_filter_collisions.py script.')
+                   'scil_tractogram_filter_collisions script.')
 
     p.add_argument('--in_tractogram_obstacle',
                    help='Tractogram file containing the streamlines that \n'
                    'that [in_tractogram_invalid] has collided with. Will \n'
                    'be overlaid in the viewing window. This file is \n'
-                   'obtained from the scil_tractogram_filter_collisions.py \n'
+                   'obtained from the scil_tractogram_filter_collisions \n'
                    'script.')
 
     p.add_argument('--ref_tractogram',

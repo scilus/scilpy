@@ -1,22 +1,19 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Reshape / reslice / resample *.nii or *.nii.gz using a reference.
 This script can be used to align freesurfer/civet output, as .mgz,
 to the original input image.
 
->>> scil_volume_reslice_to_reference.py wmparc.mgz t1.nii.gz wmparc_t1.nii.gz\\
+>>> scil_volume_reslice_to_reference wmparc.mgz t1.nii.gz wmparc_t1.nii.gz\\
     --interpolation nearest
 
 To
     - pad or crop the volume to match the desired shape, use
-      scil_volume_reshape.py.
+      scil_volume_reshape.
     - interpolate/reslice to an arbitrary voxel size, use
-      scil_volume_resample.py.
-    - crop a volume to remove empty space, use scil_volume_crop.py.
-
-Formerly: scil_reshape_to_reference.py
+      scil_volume_resample.
+    - crop a volume to remove empty space, use scil_volume_crop.
 """
 
 import argparse

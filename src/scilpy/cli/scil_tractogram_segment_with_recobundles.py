@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Segment a single bundle by computing a simple Recobundles (single-atlas &
 single-parameters).
 
 For multiple bundles segmentation (using RecobundlesX / BundleSeg), see instead
->>> scil_tractogram_segment_with_bundleseg.py
+>>> scil_tractogram_segment_with_bundleseg
 
 Hints:
 - The model needs to be cleaned and lightweight.
@@ -17,7 +16,6 @@ Hints:
   a warning will pop up. If there is no warning in both cases, it means the
   transformation is very close to identity and both 'directions' will work.
 
-Formerly: scil_recognize_single_bundles.py
 -------------------------------------------------------------------------------
 Reference:
 [1] Garyfallidis, E., Cote, M. A., Rheault, F., ... & Descoteaux, M. (2018).
@@ -114,8 +112,8 @@ def main():
     if args.tractogram_clustering_thr and args.in_pickle:
         parser.error("Option --tractogram_clustering_thr should not be "
                      "used with --in_pickle.")
-    else:
-        # Setting default value. (Will be ignored in args.in_pickle)
+    elif args.tractogram_clustering_thr is not None:
+        # Setting default value. (Will be ignored if args.in_pickle)
         args.tractogram_clustering_thr = 8.0
 
     # Loading

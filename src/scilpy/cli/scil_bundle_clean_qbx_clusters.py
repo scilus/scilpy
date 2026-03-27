@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
     Render clusters sequentially to either accept or reject them based on
     visual inspection. Useful for cleaning bundles for RBx, BST or for figures.
     The VTK window does not handle well opacity of streamlines, this is a
     normal rendering behavior.
-    Often use in pair with scil_tractogram_qbx.py.
+    Often use in pair with scil_tractogram_qbx.
 
     Key mapping:
     - a/A: accept displayed clusters
@@ -15,7 +14,6 @@
     - c/C: Stop rendering of the background concatenation of streamlines
     - q/Q: Early window exist, everything remaining will be rejected
 """
-
 
 import argparse
 import os

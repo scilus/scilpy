@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Uniformize streamlines' endpoints according to a defined axis.
 Useful for tractometry or models creation.
@@ -15,7 +14,6 @@ The --target_roi option will use the barycenter of the target mask to define
 the axis. The target mask can be a binary mask or an atlas. If an atlas is
 used, labels are expected in the form of --target_roi atlas.nii.gz 2 3 5:7.
 
-Formerly: scil_uniformize_streamlines_endpoints.py
 """
 
 import argparse

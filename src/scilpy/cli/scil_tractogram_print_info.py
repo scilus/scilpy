@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Prints information on a loaded tractogram: number of streamlines, and
 mean / min / max / std of
@@ -11,8 +10,8 @@ mean / min / max / std of
 For trk files: also prints the data_per_point and data_per_streamline keys.
 
 See also:
-    - scil_header_print_info.py to see the header, affine, volume dimension.
-    - scil_bundle_shape_measures.py to see bundle-specific information.
+    - scil_header_print_info to see the header, affine, volume dimension.
+    - scil_bundle_shape_measures to see bundle-specific information.
 """
 
 import argparse

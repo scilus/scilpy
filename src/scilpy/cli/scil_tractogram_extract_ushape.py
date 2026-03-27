@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 This script extracts streamlines depending on their U-shapeness.
 This script is a replica of Trackvis method.
@@ -9,8 +8,6 @@ When ufactor is close to:
 *  0 it defines straight streamlines
 *  1 it defines U-fibers
 * -1 it defines S-fibers
-
-Formerly: scil_extract_ushape.py
 """
 
 import argparse

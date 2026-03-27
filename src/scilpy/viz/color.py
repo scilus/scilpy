@@ -87,8 +87,9 @@ def get_lookup_table(name):
     Parameters
     ----------
     name : str
-        Name of the lookup table (colormap) or a list of named colors
-        (separated by a -) to form a lookup table (colormap) from.
+        Name of the lookup table (colormap), ex, jet, or:
+        Two named colors separated by a -, ex, red-blue, to form a lookup
+        table (colormap) from.
 
     Returns
     -------

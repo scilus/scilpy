@@ -1,13 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Script to flip a given surface (FreeSurfer or VTK supported).
 
 Can flip surface coordinates around a single or multiple axes
 Can also be used to reverse the orientation of the surface normals.
 
-Formerly: scil_flip_surface.py
 -----------------------------------------------------------------
 Reference:
 [1] St-Onge, E., Daducci, A., Girard, G. and Descoteaux, M. 2018.

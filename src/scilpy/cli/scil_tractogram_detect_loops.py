@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 This script can be used to remove loops in two types of streamline datasets:
 
@@ -13,9 +12,8 @@ This script can be used to remove loops in two types of streamline datasets:
     streamlines outside the bundle. For the sharp angle turn, use --qb option.
 
 See also:
-    scil_tractogram_filter_by_anatomy.py
+    scil_tractogram_filter_by_anatomy
 
-Formerly: scil_detect_streamlines_loops.py
 ------------------------------------------------------------------------------
 Reference:
 [1] QuickBundles, based on [Garyfallidis12] Frontiers in Neuroscience, 2012.

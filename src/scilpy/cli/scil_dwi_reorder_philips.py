@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Re-order gradient according to original table (Philips)
 This script is not needed for version 5.6 and higher
 
-Formerly: scil_reorder_dwi_philips.py
 """
 
 import argparse

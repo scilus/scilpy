@@ -33,7 +33,7 @@ class BundleSeg(object):
 
     References
     ----------
-    .. [Garyfallidis17] Garyfallidis et al. Recognition of white matter
+    [1] Garyfallidis et al. Recognition of white matter
         bundles using local and global streamline-based registration and
         clustering, Neuroimage, 2017.
     """

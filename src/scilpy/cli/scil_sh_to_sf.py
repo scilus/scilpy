@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Script to sample SF values from a Spherical Harmonics signal. Outputs a Nifti
 file with the SF values and an associated .bvec file with the chosen
@@ -9,8 +8,6 @@ directions.
 If converting from SH to a DWI-like SF volume, --in_bval and --in_b0 need
 to be provided to concatenate the b0 image to the SF, and to generate the new
 bvals file. Otherwise, no .bval file will be created.
-
-Formerly: scil_compute_sf_from_sh.py
 """
 
 import argparse

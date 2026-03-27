@@ -5,7 +5,7 @@ Script to compute fODF lobe-specific metrics derived from a Bingham
 distribution fit, as described in [1]. Resulting metrics are fiber density
 (FD), fiber spread (FS) and fiber fraction (FF) [2].
 
-The Bingham coefficients volume comes from scil_fodf_to_bingham.py.
+The Bingham coefficients volume comes from scil_fodf_to_bingham.
 
 A lobe's FD is the integral of the Bingham function on the sphere. It
 represents the density of fibers going through a given voxel for a given
@@ -16,7 +16,6 @@ FF is the ratio of its FD on the total FD in the voxel.
 Using 12 threads, the execution takes 10 minutes for FD estimation for a brain
 with 1mm isotropic resolution. Other metrics take less than a second.
 
-Formerly: scil_compute_lobe_specific_fodf_metrics.py
 ------------------------------------------------------------------------------
 References:
 [1] T. W. Riffert, J. Schreiber, A. Anwander, and T. R. Knösche, “Beyond

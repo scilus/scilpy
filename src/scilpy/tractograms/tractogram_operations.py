@@ -385,7 +385,7 @@ def _find_identical_streamlines(streamlines_list, epsilon=0.001,
     """ Return the intersection/union/difference from a list of list of
     streamlines. Allows for a maximum distance for matching.
 
-    Parameters:
+    Parameters
     -----------
     streamlines_list: list
         List of lists of streamlines or list of ArraySequences
@@ -395,7 +395,7 @@ def _find_identical_streamlines(streamlines_list, epsilon=0.001,
         Perform the union of streamlines
     difference_mode
         Perform the difference of streamlines (from the first element)
-    Returns:
+    Returns
     --------
     Tuple, ArraySequence, np.ndarray
         Returns the concatenated streamlines and the indices to pick from it

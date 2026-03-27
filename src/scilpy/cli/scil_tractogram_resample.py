@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Script to resample a tractogram to a set number of streamlines.
 
@@ -33,9 +32,9 @@ Downsampling:
     ensure that all clusters are represented in the final tractogram.
 
 Example usage:
-$ scil_tractogram_resample.py input.trk 1000 output.trk \
+$ scil_tractogram_resample input.trk 1000 output.trk \
       --point_wise_std 0.5 --gaussian 5 --keep_invalid_streamlines
-$ scil_viz_bundle.py output.trk --local_coloring --width=0.1
+$ scil_viz_bundle output.trk --local_coloring --width=0.1
 """
 
 import argparse

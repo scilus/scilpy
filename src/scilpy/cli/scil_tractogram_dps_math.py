@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Import, extract or delete dps (data_per_streamline) information to a tractogram
 file. Can be for example SIFT2 weights, processing information, bundle IDs,
 tracking seeds, etc.
 
-This script is not the same as the dps mode of scil_tractogram_dpp_math.py,
+This script is not the same as the dps mode of scil_tractogram_dpp_math,
 which performs operations on dpp (data_per_point) and saves the result as dps.
 Instead this script performs operations directly on dps values.
 
@@ -14,20 +13,20 @@ Input and output tractograms must be .trk, unless you are using the 'import'
 operation, in which case a .tck input tractogram is accepted.
 
 Usage examples:
-    > scil_tractogram_dps_math.py tractogram.trk import "bundle_ids"
-        --in_dps_file my_bundle_ids.txt
-    > scil_tractogram_dps_math.py tractogram.trk export "seeds"
+    > scil_tractogram_dps_math tractogram.trk import "bundle_ids"
+        --in_dps_file my_bundle_ids.txt --out_tractogram tractogram_ids.trk
+    > scil_tractogram_dps_math tractogram.trk export "seeds"
         --out_dps_file seeds.npy
 """
 
-import nibabel as nib
 import argparse
 import logging
 
-from dipy.io.streamline import save_tractogram, load_tractogram
-from scilpy.io.streamlines import load_tractogram_with_reference
+from dipy.io.streamline import save_tractogram
+import nibabel as nib
 import numpy as np
 
+from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg,
                              add_verbose_arg,
                              assert_inputs_exist,

@@ -8,11 +8,11 @@ ending properties (i.e. the anatomical tissue or region their endpoints lie
 in).
 
 See also:
-    - scil_tractogram_detect_loops.py
-    - scil_tractogram_filter_by_length.py
-    - scil_tractogram_filter_by_orientation.py
-    - scil_tractogram_filter_by_roi.py
-    - scil_labels_dilate.py
+    - scil_tractogram_detect_loops
+    - scil_tractogram_filter_by_length
+    - scil_tractogram_filter_by_orientation
+    - scil_tractogram_filter_by_roi
+    - scil_labels_dilate
     (This script is a combination of all these scripts, in one step).
 
 The filtering is performed sequentially in four steps, each step processing the
@@ -46,15 +46,13 @@ Usage examples:
 
 -  Filter out "bad streamlines" using length, looping angle and anatomical
 ending region (must end in the gray matter).
->>> scil_tractogram_filter_by_anatomy.py tractogram.trk wmparc.nii.gz
+>>> scil_tractogram_filter_by_anatomy tractogram.trk wmparc.nii.gz
     path/to/output/directory --minL 20 --maxL 200 --angle 300
 
 - Filter out "bad streamline" using only anatomical ending region, with WM
 dilation and provided CSF mask.
->>> scil_tractogram_filter_by_anatomy.py tractogram.trk wmparc.nii.gz
+>>> scil_tractogram_filter_by_anatomy tractogram.trk wmparc.nii.gz
     path/to/output/directory --csf_bin csf_bin.nii.gz --ctx_dilation_radius 2
-
-Formerly: scil_filter_streamlines_anatomically.py
 
 NOTE: As of version 2.0.0, the dilation of the cortical mask has changed; from
 an in-house process to scipy's dilation. Results may differ from previous

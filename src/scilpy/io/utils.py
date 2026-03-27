@@ -180,13 +180,17 @@ def assert_gradients_filenames_valid(parser, filename_list, input_is_fsl):
 
 
 def add_json_args(parser):
-    g1 = parser.add_argument_group(title='Json options')
-    g1.add_argument('--indent',
-                    type=int, default=2,
-                    help='Indent for json pretty print.')
-    g1.add_argument('--sort_keys',
-                    action='store_true',
-                    help='Sort keys in output json.')
+    if isinstance(parser, argparse._ArgumentGroup):
+        target = parser
+    else:
+        target = parser.add_argument_group(title='Json options')
+
+    target.add_argument('--indent',
+                        type=int, default=2,
+                        help='Indent for json pretty print.')
+    target.add_argument('--sort_keys',
+                        action='store_true',
+                        help='Sort keys in output json.')
 
 
 def add_processes_arg(parser):
@@ -298,7 +302,8 @@ def add_precision_arg(parser):
 
 def add_verbose_arg(parser):
     parser.add_argument('-v', default="WARNING", const='INFO', nargs='?',
-                        choices=['DEBUG', 'INFO', 'WARNING'], dest='verbose',
+                        choices=['DEBUG', 'INFO', 'WARNING', 'ERROR'],
+                        dest='verbose',
                         help='Produces verbose output depending on '
                              'the provided level. \nDefault level is warning, '
                              'default when using -v is info.')

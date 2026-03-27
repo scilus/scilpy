@@ -1,13 +1,12 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 This script computes a variety of measures in the form of connectivity
 matrices. This script only generates matrices in the form of array, it does not
 visualize or reorder the labels (node).
 
 See also
->> scil_connectivity_compute_simple_matrix.py
+>> scil_connectivity_compute_simple_matrix
 which simply computes the connectivity matrix (either binary or with the
 streamline count), directly from the endpoints.
 
@@ -19,7 +18,7 @@ A) Connections segmentations
 Segmenting a tractogram based on its endpoints is not as straighforward as one
 could imagine. The endpoints could be outside any labelled region. This script
 is made to follow
->> scil_tractogram_segment_connections_from_labels.py,
+>> scil_tractogram_segment_connections_from_labels,
 which already carefully segmented the connections.
 
 The current script uses 1) the same labels list as input, 2) the resulting
@@ -38,7 +37,7 @@ Each connection can be seen as a 'bundle'.
   - Volume-weighted: Volume of the bundle.
   - Similarity: mean density.
       Uses pre-computed density maps, which can be obtained with
-      >> scil_connectivity_hdf5_average_density_map.py
+      >> scil_connectivity_hdf5_average_density_map
       The bundles should be averaged version in the same space. This will
       compute the weighted-dice between each node and their homologuous average
       version.
@@ -51,8 +50,8 @@ Each connection can be seen as a 'bundle'.
       lesion_count.npy, lesion_vol.npy, and lesion_sc.npy. They represent the
       number of lesion, the total volume of lesion(s) and the total number of
       streamlines going through the lesion(s) for each bundle. See also:
-      >> scil_analyse_lesion_load.py
-      >> scil_lesions_info.py
+      >> scil_analyse_lesion_load
+      >> scil_lesions_info
   - Mean DPS: Mean values in the data_per_streamline of each streamline in the
       bundles.
 
@@ -64,8 +63,6 @@ See our other scripts to help you achieve your goals:
   - Compute a t-test between two groups of subjects using
     scil_connectivity_compare_populations.
   - See all our scripts starting with scil_connectivity_ for more ideas!
-
-Formerly: scil_compute_connectivity.py
 """
 
 import argparse

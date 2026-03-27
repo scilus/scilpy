@@ -9,11 +9,11 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "scilpy"
-version = "2.2.0"
+version = "2.3.0"
 description = "Scilpy: diffusion MRI tools and utilities"
 authors = [{ name = "SCIL Team" }]
 readme = "README.md"
-requires-python = ">=3.10, <3.13"
+requires-python = ">=3.11, <3.13"
 license-files = ["LICENSE"]
 classifiers = [
     "Development Status :: 3 - Alpha",
@@ -30,10 +30,10 @@ dependencies = [
 "coloredlogs==15.0.*",
 "cvxpy==1.6.*",
 "cycler==0.12.*",
-"deepdiff==8.1.*",
+"deepdiff>=8.1,<8.7",
 "dipy==1.12.*",
 "dmri-amico==2.1.*",
-"dmri-commit==2.3.*",
+"dmri-commit>=2.4.2,<2.5.0",
 "docopt==0.6.*",
 "dvc==3.59.*",
 "formulaic==0.5.*",
@@ -52,6 +52,7 @@ dependencies = [
 "numpy==1.26.*",
 "openpyxl==3.1.*",
 "packaging==24.*",
+"pathspec==0.12.*",
 "pybids==0.18.*",
 "PyMCubes==0.1.*",
 "pyparsing==3.2.*",
@@ -85,6 +86,11 @@ include-package-data = true
 [tool.setuptools.package-data]
 "scilpy.data" = ["src/scilpy/data"]
 
+[dependency-groups]
+dev = [
+    "pytest>=8.3.5",
+]
+
 [project.scripts]
 scil_aodf_metrics  = "scilpy.cli.scil_aodf_metrics:main"
 scil_bids_validate  = "scilpy.cli.scil_bids_validate:main"
@@ -96,7 +102,7 @@ scil_bundle_compute_centroid  = "scilpy.cli.scil_bundle_compute_centroid:main"
 scil_bundle_compute_endpoints_map  = "scilpy.cli.scil_bundle_compute_endpoints_map:main"
 scil_bundle_diameter  = "scilpy.cli.scil_bundle_diameter:main"
 scil_bundle_explore_bundleseg  = "scilpy.cli.scil_bundle_explore_bundleseg:main"
-scil_bundle_filter_by_occurence  = "scilpy.cli.scil_bundle_filter_by_occurence:main"
+scil_bundle_filter_by_occurrence  = "scilpy.cli.scil_bundle_filter_by_occurrence:main"
 scil_bundle_fixel_analysis  = "scilpy.cli.scil_bundle_fixel_analysis:main"
 scil_bundle_generate_priors  = "scilpy.cli.scil_bundle_generate_priors:main"
 scil_bundle_label_map  = "scilpy.cli.scil_bundle_label_map:main"
@@ -117,13 +123,14 @@ scil_connectivity_compute_matrices  = "scilpy.cli.scil_connectivity_compute_matr
 scil_connectivity_compute_pca  = "scilpy.cli.scil_connectivity_compute_pca:main"
 scil_connectivity_compute_simple_matrix  = "scilpy.cli.scil_connectivity_compute_simple_matrix:main"
 scil_connectivity_filter  = "scilpy.cli.scil_connectivity_filter:main"
-scil_connectivity_graph_measures  = "scilpy.cli.scil_connectivity_graph_measures:main"
+scil_connectivity_functional_graph_measures  = "scilpy.cli.scil_connectivity_functional_graph_measures:main"
 scil_connectivity_hdf5_average_density_map  = "scilpy.cli.scil_connectivity_hdf5_average_density_map:main"
 scil_connectivity_math  = "scilpy.cli.scil_connectivity_math:main"
 scil_connectivity_normalize  = "scilpy.cli.scil_connectivity_normalize:main"
 scil_connectivity_pairwise_agreement  = "scilpy.cli.scil_connectivity_pairwise_agreement:main"
 scil_connectivity_print_filenames  = "scilpy.cli.scil_connectivity_print_filenames:main"
 scil_connectivity_reorder_rois  = "scilpy.cli.scil_connectivity_reorder_rois:main"
+scil_connectivity_structural_graph_measures  = "scilpy.cli.scil_connectivity_structural_graph_measures:main"
 scil_data_download  = "scilpy.cli.scil_data_download:main"
 scil_denoising_nlmeans  = "scilpy.cli.scil_denoising_nlmeans:main"
 scil_dki_metrics  = "scilpy.cli.scil_dki_metrics:main"
@@ -280,3 +287,4 @@ scil_volume_reshape  = "scilpy.cli.scil_volume_reshape:main"
 scil_volume_reslice_to_reference  = "scilpy.cli.scil_volume_reslice_to_reference:main"
 scil_volume_stats_in_labels  = "scilpy.cli.scil_volume_stats_in_labels:main"
 scil_volume_stats_in_ROI  = "scilpy.cli.scil_volume_stats_in_ROI:main"
+scil_volume_validate_correct_strides  = "scilpy.cli.scil_volume_validate_correct_strides:main"

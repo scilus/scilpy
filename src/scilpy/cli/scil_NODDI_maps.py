@@ -1,11 +1,9 @@
 #! /usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Compute NODDI [1] maps using AMICO.
 Multi-shell DWI necessary.
 
-Formerly: scil_compute_NODDI.py
 ---------------------------------------------------------------
 Reference:
 [1] Zhang H, Schneider T, Wheeler-Kingshott CA, Alexander DC.
@@ -64,7 +62,7 @@ def _build_arg_parser():
                           b0_tol_name='--tolerance')
 
     g1 = p.add_argument_group(title='Model options')
-    g1.add_argument('--para_diff', type=float, default=1.7e-3,
+    g1.add_argument('--para_diff', type=float, default=1.5e-3,
                     help='Axial diffusivity (AD) in the CC. [%(default)s]')
     g1.add_argument('--iso_diff', type=float, default=3e-3,
                     help='Mean diffusivity (MD) in ventricles. [%(default)s]')
@@ -98,7 +96,7 @@ def main():
     if args.verbose == "WARNING":
         f = io.StringIO()
         redirected_stdout = redirect_stdout(f)
-        redirect_stdout_c() 
+        redirect_stdout_c()
     else:
         logging.getLogger().setLevel(logging.getLevelName(args.verbose))
         redirected_stdout = redirect_stdout(sys.stdout)

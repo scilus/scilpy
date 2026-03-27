@@ -1,19 +1,18 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Given a bundle and Bingham coefficients, compute the average Bingham
 metric at each voxel intersected by the bundle. Intersected voxels are
 found by computing the intersection between the voxel grid and each streamline
 in the input tractogram.
 
-This script behaves like scil_compute_mean_fixel_afd_from_bundles.py for fODFs,
+This script behaves like scil_bundle_mean_fixel_afd for fODFs,
 but here for Bingham distributions. These add the unique possibility to capture
 fixel-based fiber spread (FS) and fiber fraction (FF). FD from the bingham
 should be "equivalent" to the AFD_fixel we are used to.
 
-Bingham coefficients volume must come from scil_fodf_to_bingham.py
-and Bingham metrics comes from scil_bingham_metrics.py.
+Bingham coefficients volume must come from scil_fodf_to_bingham
+and Bingham metrics comes from scil_bingham_metrics.
 
 Bingham metrics are extracted from Bingham distributions fitted to fODF. There
 are as many values per voxel as there are lobes extracted. The values chosen
@@ -22,7 +21,6 @@ current streamline segment.
 
 Please use a bundle file rather than a whole tractogram.
 
-Formerly: scil_compute_mean_fixel_obe_metric_from_bundles.py
 """
 
 import argparse

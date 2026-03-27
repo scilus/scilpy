@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
 """
 Script to compute FA/MD/RD/AD for
 each Multi-ResolutionDiscrete-Search (MRDS) solution.
@@ -36,7 +35,7 @@ def _build_arg_parser():
                         'the first tensor (D_1), 4-6 with the second tensor '
                         '(D_2), 7-9 with the third tensor (D_3).\n'
                         'This file is one of the outputs of '
-                        'scil_mrds_select_number_of_tensors.py '
+                        'scil_mrds_select_number_of_tensors '
                         '(*_MRDS_evals.nii.gz).')
 
     p.add_argument('--mask',

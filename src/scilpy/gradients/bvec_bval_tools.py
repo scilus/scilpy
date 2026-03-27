@@ -228,7 +228,39 @@ def str_to_axis_index(axis):
     return None
 
 
-def flip_gradient_sampling(bvecs, axes, sampling_type):
+def find_flip_swap_from_order(order):
+    """
+    Find the flip and swap necessary to get the bvecs to the given order. This
+    assumes the original order of the bvecs is 1,2,3.
+
+    Parameters
+    ----------
+    order: list of int
+        List of axes to flip and swap.
+        Ex: to only flip y: [1, -2, 3]
+        Ex: to only swap x and y: [2, 1, 3]
+        Ex: to first flip x, then permute all three axes: [3, -1, 2]
+
+    Returns
+    -------
+    axes_to_flip: list of int
+        List of axes to flip (e.g. [0, 1]).
+    swapped_order: list of int
+        List of axes in the given order (e.g. [1, 0, 2]).
+    """
+    # Our scripts use axes as 0, 1, 2 rather than 1, 2, 3: adding -1.
+    axes_to_flip = []
+    swapped_order = []
+    for next_axis in order:
+        if next_axis in [1, 2, 3]:
+            swapped_order.append(next_axis - 1)
+        elif next_axis in [-1, -2, -3]:
+            axes_to_flip.append(abs(next_axis) - 1)
+            swapped_order.append(abs(next_axis) - 1)
+    return(axes_to_flip, swapped_order)
+
+
+def flip_gradient_axis(bvecs, axes, sampling_type):
     """
     Flip bvecs on chosen axis.
 

@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Script to compute powder average (mean diffusion weighted image) from set of
 diffusion images.
@@ -13,7 +12,6 @@ Specify --bvalue to output an image for a single shell
 Script currently does not take into account the diffusion gradient directions
 being averaged.
 
-Formerly: scil_compute_powder_average.py
 """
 
 import argparse

@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 Visualize 2-dimensional Bingham volume slice loaded from disk. The volume is
-assumed to be saved from scil_fodf_to_bingham.py.
+assumed to be saved from scil_fodf_to_bingham.
 
 Given an image of Bingham coefficients, this script displays a slice in a
 given orientation.

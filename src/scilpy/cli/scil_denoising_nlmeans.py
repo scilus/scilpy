@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Script to denoise a dataset with the Non-Local Means algorithm (from Dipy's
 package).
@@ -19,7 +18,7 @@ available:
      > varying noise profiles. Consider using --piesno to estimate sigma
      > instead if visual inaccuracies are apparent in the denoised result.
     (Note. We then use the median of the noise for all volumes)
-    3. Estimate it through using Dipy's "Piesno" method, as described in [3].
+    3. (disabled for now) Estimate it through using Dipy's "Piesno" method, as described in [3].
     Here are Dipy's note on this method:
      > It is expected that
      >   1. The data has a noisy, non-masked background and
@@ -44,10 +43,8 @@ through adaptive denoising. Medical image analysis, 32, 115-130.
 [4] Koay CG, Ozarslan E and Pierpaoli C. "Probabilistic Identification and
 Estimation of Noise (PIESNO): A self-consistent approach and its applications
 in MRI." Journal of Magnetic Resonance 2009; 199: 94-103.
-
-Formerly: scil_run_nlmeans.py
-
 """
+
 import argparse
 import logging
 import warnings
@@ -67,6 +64,8 @@ from scilpy.io.utils import (add_processes_arg,
                              assert_headers_compatible, ranged_type)
 from scilpy.version import version_string
 
+IS_DIPY_FIXED = False
+
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(description=__doc__,
@@ -81,6 +80,9 @@ def _build_arg_parser():
                    help="Path to a binary mask. Only the data inside the mask "
                         "will be denoised. If not provided, only non-zero "
                         "voxels will be denoised.")
+    p.add_argument('--algorithm',
+                   choices=['blockwise','classic'], default='blockwise',
+                   help='Algorithm to use for denoising. [%(default)s]')
     p.add_argument('--gaussian', action='store_true',
                    help="If you know that your data contains gaussian noise, "
                         "use this option. Otherwise, Rician is assumed.")
@@ -93,10 +95,13 @@ def _build_arg_parser():
     g.add_argument(
         '--basic_sigma', action='store_true',
         help="Use dipy's basic estimation of sigma.")
-    g.add_argument(
-        '--piesno', action='store_true',
-        help="Estimate sigma using Piesno's method. If data is 4D, the noise "
-             "is estimated for each slice (3rd dimension).")
+
+    # Put it back when dipy 1.13 is released, as there are some issues with the current version of dipy on github.
+    if IS_DIPY_FIXED:
+        g.add_argument(
+            '--piesno', action='store_true',
+            help="Estimate sigma using Piesno's method. If data is 4D, the noise "
+                 "is estimated for each slice (3rd dimension).")
 
     g = p.add_argument_group("Noise estimation options: piesno and basic")
     g.add_argument(
@@ -122,9 +127,10 @@ def _build_arg_parser():
         help="If set, all voxels are used for the --basic_sigma estimation, "
              "even zeros.")
 
-    g = p.add_argument_group("Noise estimation options: piesno")
-    g.add_argument('--save_piesno_mask', metavar='filepath',
-                   help="If set, save piesno mask.")
+    if IS_DIPY_FIXED:
+        g = p.add_argument_group("Noise estimation options: piesno")
+        g.add_argument('--save_piesno_mask', metavar='filepath',
+                       help="If set, save piesno mask.")
 
     add_processes_arg(p)
     add_verbose_arg(p)
@@ -144,11 +150,11 @@ def main():
                         "considered to have Gaussian noise, but you "
                         "did not select --gaussian. Proceed with care.")
 
-    if (args.basic_sigma or args.piesno) and args.number_coils is None:
+    if args.basic_sigma and args.number_coils is None:  # or args.piesno)
         parser.error("Please provide the number of coils for basic_sigma "
                      "and piesno options.")
 
-    if args.piesno or args.sigma:
+    if args.sigma: # args.piesno or 
         if args.sigma_from_all_voxels:
             parser.error("You selected --sigma_from_all_voxels, but this is "
                          "only available for the --basic_sigma method.")
@@ -156,13 +162,13 @@ def main():
             parser.error("You selected --mask_sigma, but this is "
                          "only available for the --basic_sigma method.")
 
-    if args.save_piesno_mask and not args.piesno:
+    if IS_DIPY_FIXED and args.save_piesno_mask and not args.piesno:
         parser.error("Option --save_piesno_mask cannot be used when --pieno "
                      "is not selected.")
 
     assert_inputs_exist(parser, args.in_image,
                         [args.mask_denoise, args.mask_sigma])
-    assert_outputs_exist(parser, args, args.out_image, args.save_piesno_mask)
+    assert_outputs_exist(parser, args, args.out_image) # , args.save_piesno_mask)
     assert_headers_compatible(parser, args.in_image,
                               [args.mask_denoise, args.mask_sigma])
 
@@ -172,7 +178,7 @@ def main():
     nb_volumes = 1 if (len(vol_data.shape) != 4 or vol_data.shape[3] == 1) \
         else vol_data.shape[-1]
 
-    if args.piesno and nb_volumes == 1:
+    if IS_DIPY_FIXED and args.piesno and nb_volumes == 1:
         parser.error("The piesno method requires 4D data.")
 
     # Denoising mask
@@ -190,7 +196,10 @@ def main():
     if args.sigma is not None:
         logging.info('User supplied noise standard deviation is {}'
                      .format(args.sigma))
-        sigma = np.ones(vol_data.shape[:3]) * args.sigma
+        if nb_volumes > 1:
+            sigma = np.full(nb_volumes, args.sigma, dtype=np.float32)
+        else:
+            sigma = float(args.sigma)
     elif args.basic_sigma:
         if args.mask_sigma:
             mask_sigma = get_data_as_mask(nib.load(args.mask_sigma))
@@ -209,12 +218,11 @@ def main():
         sigma = np.median(sigma)  # Managing 4D data.
         logging.info('The median noise is: {}'.format(sigma))
 
-        # Broadcast the single value to a whole 3D volume for nlmeans
-        sigma = np.ones(vol_data.shape) * sigma
-    else:  # --piesno
+        if nb_volumes > 1:
+            sigma = np.full(nb_volumes, sigma, dtype=np.float32)
+    elif IS_DIPY_FIXED:  # --piesno
         logging.info("Computing sigma: one value per slice.")
         sigma, mask_noise = estimate_piesno_sigma(vol_data, args.number_coils)
-
         if args.save_piesno_mask:
             logging.info("Saving resulting Piesno noise mask in {}"
                          .format(args.save_piesno_mask))
@@ -222,14 +230,14 @@ def main():
                                      header=vol.header),
                      args.save_piesno_mask)
 
-        # Broadcast the values per slice to a whole 3D volume for nlmeans
+        # Keep a 3D sigma map (one value per slice) for PIESNO.
         sigma = np.ones(vol_data.shape[:3]) * sigma[None, None, :]
 
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore", category=DeprecationWarning)
-        data_denoised = nlmeans(
-            vol_data, sigma, mask=mask_denoise, rician=not args.gaussian,
-            num_threads=args.nbr_processes)
+    data_denoised = nlmeans(vol_data, sigma, 
+                            mask=mask_denoise,
+                            rician=not args.gaussian,
+                            method=args.algorithm,
+                            num_threads=args.nbr_processes)
 
     # Saving
     nib.save(nib.Nifti1Image(data_denoised, vol.affine, header=vol.header),

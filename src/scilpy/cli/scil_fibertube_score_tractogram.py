@@ -1,6 +1,5 @@
 #! /usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Given ground-truth fibertubes and a tractogram obtained through fibertube
 tracking, computes metrics about the quality of individual fiber
@@ -41,9 +40,9 @@ Computed metrics:
         Median MAE for the tractogram.
 
 See also:
-    - scil_tractogram_filter_collisions.py to prepare data for fibertube
+    - scil_tractogram_filter_collisions to prepare data for fibertube
       tracking
-    - scil_fibertube_tracking.py to perform a fibertube tracking
+    - scil_fibertube_tracking to perform a fibertube tracking
     - docs/source/documentation/fibertube_tracking.rst
 """
 

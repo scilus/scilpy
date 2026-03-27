@@ -1,15 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Divide a tractogram into its various connections using a brain parcellation
 (labels). Allows using our connectivity scripts. See for instance:
->>> scil_connectivity_compute_matrices.py
+>>> scil_connectivity_compute_matrices
 
 The hdf5 output format allows to store other information required for
 connectivity, such as the associated labels. To visualize the segmented
 bundles, it is possible to convert the result using:
->>> scil_tractogram_convert_hdf5_to_trk.py
+>>> scil_tractogram_convert_hdf5_to_trk
 
 Cleaning your tractogram
 ------------------------
@@ -21,10 +20,10 @@ for a good freesurfer parcellation. With smaller parcels (brainnetome, glasser)
 the threshold should most likely be reduced.
 
 See also:
-    - scil_tractogram_filter_by_anatomy.py
-    - scil_tractogram_filter_by_length.py
-    - scil_tractogram_filter_by_roi.py
-    - scil_tractogram_detect_loops.py
+    - scil_tractogram_filter_by_anatomy
+    - scil_tractogram_filter_by_length
+    - scil_tractogram_filter_by_roi
+    - scil_tractogram_detect_loops
 
 The segmentation process
 ------------------------
@@ -58,9 +57,8 @@ The output file is a hdf5 (.h5) where each bundle is a group with key
 in a hdf5, so each group is composed of 'data', 'offsets' and 'lengths' from
 the array_sequence. The 'data' is stored in VOX/CORNER for simplicity and
 efficiency.
-
-Formerly: scil_decompose_connectivity.py
 """
+
 import argparse
 import logging
 import os
@@ -201,11 +199,11 @@ def _build_arg_parser():
                         'on disk (.trk) as well as in the hdf5.\n'
                         'If this is not set, you can also get the final '
                         'bundles later, using:\n'
-                        'scil_tractogram_convert_hdf5_to_trk.py.')
+                        'scil_tractogram_convert_hdf5_to_trk.')
 
     p.add_argument('--out_labels_list', metavar='OUT_FILE',
                    help='Save the labels list as text file.\n'
-                        'Needed for scil_connectivity_compute_matrices.py and '
+                        'Needed for scil_connectivity_compute_matrices and '
                         'others.')
 
     add_reference_arg(p)

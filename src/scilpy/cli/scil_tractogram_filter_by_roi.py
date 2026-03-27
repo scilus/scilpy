@@ -7,12 +7,12 @@ ROI (ex: keep streamlines whose endoints are inside the ROI, exclude
 streamlines not entirely included in a ROI, etc.)
 
 See also:
-    - scil_tractogram_detect_loops.py
-    - scil_tractogram_filter_by_anatomy.py
+    - scil_tractogram_detect_loops
+    - scil_tractogram_filter_by_anatomy
         (Can reject streamlines with endpoints in the WM or the CSF based on
         labels)
-    - scil_tractogram_filter_by_length.py
-    - scil_tractogram_filter_by_orientation.py
+    - scil_tractogram_filter_by_length
+    - scil_tractogram_filter_by_orientation
 
 Condition
 ---------
@@ -66,19 +66,17 @@ will have its DISTANCE value replaced.
 Usage examples:
 ---------------
 - Filter out "bad streamlines" that have points out of the brain mask.
->>> scil_tractogram_filter_by_roi.py my_tractogram.trk bettter_tractogram.trk \
+>>> scil_tractogram_filter_by_roi my_tractogram.trk bettter_tractogram.trk \
     --drawn_roi t1_bet_mask.nii.gz 'all' 'include'
 
 - Segment a bundle or reject outliers from a roughly segmented bundles by
 keeping only streamlines connecting region1 and region2 and entirely situated
 in the frontal part of the brain, not touching some lesion ROI.
->>> scil_tractogram_filter_by_roi.py my_tractogram.trk segmented_bundle.trk \
+>>> scil_tractogram_filter_by_roi my_tractogram.trk segmented_bundle.trk \
    --drawn_roi region1.nii.gz 'either_end' 'include' \
    --drawn_roi region2.nii.gz 'either_end' 'include' \
    --drawn_roi frontal_lobe.nii.gz 'all' 'include' \
    --drawn_roi lesion.nii.gz 'any' 'exclude'
-
-Formerly: scil_filter_tractogram.py
 """
 
 import argparse

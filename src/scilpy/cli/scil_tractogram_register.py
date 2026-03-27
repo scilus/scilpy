@@ -1,15 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Generate a linear transformation matrix from the registration of 2 tractograms.
-Typically, this script is run before scil_tractogram_apply_transform.py.
+Typically, this script is run before scil_tractogram_apply_transform
 
 For more information on how to use the various registration scripts, see the
 doc at:
 https://scilpy.readthedocs.io/en/latest/documentation/tractogram_registration.html
 
-Formerly: scil_register_tractogram.py
 ----------------------------------------------------------------------------------
 Reference:
 [1] E. Garyfallidis, O. Ocegueda, D. Wassermann, M. Descoteaux

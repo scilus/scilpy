@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Visualize seeds as 3D points, with heatmaps corresponding to seed density
 
 Example usages:
 
->>> scil_viz_tractogram_seeds_3d.py seeds.nii.gz --tractogram tractogram.trk
+>>> scil_viz_tractogram_seeds_3d seeds.nii.gz --tractogram tractogram.trk
 """
 
 import argparse
@@ -98,7 +97,7 @@ def main():
     scene.background(tuple(map(int, args.background)))
 
     seedroi_actor = actor.contour_from_label(
-        seed_map_data, seed_map_affine, color=colors)
+        seed_map_data, affine=seed_map_affine, color=colors)
     scene.add(seedroi_actor)
 
     # Load tractogram as tubes or lines, with color if specified

@@ -769,12 +769,12 @@ def generate_matched_points(sft):
     Generates an array where each element i is set to the index of the
     streamline to which it belongs
 
-    Parameters:
+    Parameters
     -----------
     sft : StatefulTractogram
         The stateful tractogram containing the streamlines.
 
-    Returns:
+    Returns
     --------
     matched_points : ndarray
         An array where each element is set to the index of the streamline
@@ -893,7 +893,7 @@ def remove_loops(streamlines, max_angle, num_processes=1):
         The list of streamlines from which to remove loops and sharp turns.
     max_angle: float
         Maximal winding angle a streamline can have before being classified as
-        a loop.
+        a loop (in degree).
     num_processes : int
         Split the calculation to a pool of children processes.
 
@@ -967,7 +967,7 @@ def remove_loops_and_sharp_turns(streamlines, max_angle, qb_threshold=None,
         The list of streamlines from which to remove loops and sharp turns.
     max_angle: float
         Maximal winding angle a streamline can have before being classified as
-        a loop.
+        a loop (in degree)
     qb_threshold: float, optional
         If not None, do the additional QuickBundles pass. This will help remove
         sharp turns. Should only be used on bundled streamlines, not on

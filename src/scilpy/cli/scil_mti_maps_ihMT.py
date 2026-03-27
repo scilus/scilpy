@@ -71,7 +71,7 @@ For both methods, the nominal value of the B1 map can be set with
   --B1_nominal value
 
 
->>> scil_mti_maps_ihMT.py path/to/output/directory
+>>> scil_mti_maps_ihMT path/to/output/directory
     --in_altnp path/to/echo*altnp.nii.gz --in_altpn path/to/echo*altpn.nii.gz
     --in_mtoff_pd path/to/echo*mtoff.nii.gz
     --in_negative path/to/echo*neg.nii.gz --in_positive path/to/echo*pos.nii.gz

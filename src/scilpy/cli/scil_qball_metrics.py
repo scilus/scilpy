@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
 """
 Script to compute the Constant Solid Angle (CSA) or Analytical Q-ball model,
 the generalized fractional anisotropy (GFA) and the peaks of the model.
@@ -13,9 +12,8 @@ output.
 
 See [Descoteaux et al MRM 2007, Aganj et al MRM 2009] for details and
 [Cote et al MEDIA 2013] for quantitative comparisons.
-
-Formerly: scil_compute_qball_metrics.py
 """
+
 import argparse
 import logging
 

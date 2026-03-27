@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Search through all SCILPY scripts and their docstrings to find matches for the
 provided keywords.
@@ -26,12 +25,12 @@ Keywords Highlighting:
 red.
 
 Examples:
-- scil_search_keywords.py tractogram filtering
-- scil_search_keywords.py "Spherical Harmonics"
-- scil_search_keywords.py --no_synonyms "Spherical Harmonics"
-- scil_search_keywords.py --search_category tractogram
-- scil_search_keywords.py -v sh
-- scil_search_keywords.py -v DEBUG sh
+- scil_search_keywords tractogram filtering
+- scil_search_keywords "Spherical Harmonics"
+- scil_search_keywords --no_synonyms "Spherical Harmonics"
+- scil_search_keywords --search_category tractogram
+- scil_search_keywords -v sh
+- scil_search_keywords -v DEBUG sh
 """
 
 # TODO harmonize variable names
@@ -63,9 +62,11 @@ from scilpy.utils.scilpy_bot import (
     _split_first_sentence, _highlight_keywords
 )
 from scilpy.utils.scilpy_bot import SPACING_LEN, VOCAB_FILE_PATH
-from scilpy.io.utils import add_verbose_arg
+from scilpy.io.utils import (add_processes_arg, add_verbose_arg,
+                             validate_nbr_processes)
 from scilpy.version import version_string
 from scilpy import SCILPY_HOME
+
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(description=__doc__,
@@ -84,6 +85,7 @@ def _build_arg_parser():
     p.add_argument('--regenerate_help_files', action='store_true',
                    help='Regenerate help files for all scripts.')
 
+    add_processes_arg(p)
     add_verbose_arg(p)
 
     return p
@@ -92,10 +94,24 @@ def _build_arg_parser():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
+
+    nbr_cpu = validate_nbr_processes(parser, args)
+
     if args.verbose == "WARNING":
         logging.getLogger().setLevel(logging.INFO)
     else:
         logging.getLogger().setLevel(logging.getLevelName(args.verbose))
+
+    hidden_dir = pathlib.Path(SCILPY_HOME) / ".hidden"
+    if not hidden_dir.exists():
+        hidden_dir.mkdir(parents=True, exist_ok=True)
+        logging.info("Folder '.hidden' created in SCILPY_HOME")
+
+    if args.regenerate_help_files:
+        shutil.rmtree(hidden_dir, ignore_errors=True)
+        hidden_dir.mkdir()
+        _generate_help_files(nbr_cpu)
+        return
 
     selected_object = None
     if args.search_category:
@@ -124,16 +140,11 @@ def main():
     stemmed_phrases = list(set([_stem_phrase(phrase) for phrase in phrases]))
 
     # Create a mapping of stemmed to original keywords
-    # This will be needed to display the occurence of the keywords
+    # This will be needed to display the occurrence of the keywords
     keyword_mapping = {stem: orig for orig,
                        stem in zip(keywords, stemmed_keywords)}
     phrase_mapping = {stem: orig for orig,
                       stem in zip(phrases, stemmed_phrases)}
-
-    hidden_dir = pathlib.Path(SCILPY_HOME) / ".hidden"
-
-    if args.regenerate_help_files:
-        shutil.rmtree(hidden_dir)
 
     if not hidden_dir.exists():
         hidden_dir.mkdir()
@@ -149,7 +160,7 @@ def main():
     for script in sorted(hidden_dir.glob(f'scil_{selected_object}*.help')):
         script_name = script.stem
 
-        with open(script, 'r') as f:
+        with open(script, 'r', encoding='utf-8') as f:
             search_text = f.read()
 
         score_details = _calculate_score(
@@ -157,7 +168,8 @@ def main():
             filename=script_name)
 
         scores_per_script = update_matches_and_scores(scores_per_script,
-                                                      script_name, score_details)
+                                                      script_name,
+                                                      score_details)
 
     # Search in additional keywords in the vocabulary file
     for script in vocab_data['scripts']:

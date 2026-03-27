@@ -6,7 +6,7 @@ on:
 
 jobs:
   freeze_requirements:
-    runs-on: scilus-runners
+    runs-on: scilus-default
     steps:
       - name: Checkout scilpy
         uses: actions/checkout@v3

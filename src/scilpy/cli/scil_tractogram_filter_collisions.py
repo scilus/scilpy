@@ -1,6 +1,5 @@
 #! /usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Given an input tractogram and a text file containing a diameter for each
 streamline, filters all intersecting streamlines and saves the resulting
@@ -12,10 +11,10 @@ this script relies on a KDTree to find all neighboring streamline segments of
 any given point. Because the search radius is set at the length of the longest
 fibertube segment, the performance drops significantly if they are not
 shortened to ~0.2mm.
-(see scil_tractogram_resample_nb_points.py)
+(see scil_tractogram_resample_nb_points)
 
 IMPORTANT: Some tractograms, especially if old, were created with a very high
-float precision. scil_tractogram_filter_collisions.py does not save its output
+float precision. scil_tractogram_filter_collisions does not save its output
 with such precision. This means that after filtering once and saving the
 result, new collisions may be created from saving at a lower float precision.
 It will require a second filtering to be truly collision-free.
@@ -66,7 +65,7 @@ If the --out_rotation_matrix option is provided, the following will be saved:
     - rotation_matrix
         4D transformation matrix representing the rotation to be applied on
         the tractogram to align max_voxel_rotated with the coordinate system
-        (see scil_tractogram_apply_transform.py).
+        (see scil_tractogram_apply_transform.
 
 See also:
     - docs/source/documentation/fibertube_tracking.rst
@@ -78,18 +77,18 @@ import argparse
 import logging
 import numpy as np
 
-from scilpy.tractograms.intersection_finder import IntersectionFinder
-from dipy.io.stateful_tractogram import StatefulTractogram
 from dipy.io.streamline import save_tractogram
+
 from scilpy.io.streamlines import load_tractogram_with_reference
-from scilpy.tractanalysis.fibertube_scoring import (min_external_distance,
-                                                    max_voxels,
-                                                    max_voxel_rotated)
 from scilpy.io.utils import (assert_inputs_exist,
                              assert_outputs_exist,
                              add_overwrite_arg,
                              add_verbose_arg,
                              add_json_args)
+from scilpy.tractanalysis.fibertube_scoring import (min_external_distance,
+                                                    max_voxels,
+                                                    max_voxel_rotated)
+from scilpy.tractograms.intersection_finder import IntersectionFinder
 from scilpy.version import version_string
 
 

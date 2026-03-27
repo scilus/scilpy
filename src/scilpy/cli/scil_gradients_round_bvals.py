@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Select b-values on specific b-value shells.
 
@@ -11,9 +10,7 @@ accepted interval around the targetted b-value.
 For example, a b-value of 2000 and a tolerance of 20 will select all b-values
 between [1980, 2020] and round them to the value of 2000.
 
->> scil_gradients_round_bvals.py bvals 0 1000 2000 newbvals --tolerance 20
-
-Formerly: scil_resample_bvals.py
+>> scil_gradients_round_bvals bvals 0 1000 2000 newbvals --tolerance 20
 """
 
 import argparse

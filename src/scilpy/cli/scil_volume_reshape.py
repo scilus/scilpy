@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Script to reshape a volume to match the resolution of another
 reference volume or to the resolution specified as in argument. The resulting
@@ -10,10 +9,10 @@ the specified resolution.
 This script will pad or crop the volume to match the desired shape.
 To
     - interpolate/reslice to an arbitrary voxel size, use
-      scil_volume_resample.py.
+      scil_volume_resample.
     - reslice a volume to match the shape of another, use
-      scil_volume_reshape.py.
-    - crop a volume to constrain the field of view, use scil_volume_crop.py.
+      scil_volume_reshape.
+    - crop a volume to constrain the field of view, use scil_volume_crop.
 
 We usually use this script to reshape the freesurfer output (ex: wmparc.nii.gz)
 with your orig data (rawavg.nii.gz).

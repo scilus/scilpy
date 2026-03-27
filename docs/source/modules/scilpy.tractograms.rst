@@ -10,6 +10,14 @@ scilpy.tractograms.dps\_and\_dpp\_management module
    :undoc-members:
    :show-inheritance:
 
+scilpy.tractograms.intersection\_finder module
+-------------------------------------------------------
+
+.. automodule:: scilpy.tractograms.intersection_finder
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 scilpy.tractograms.lazy\_tractogram\_operations module
 -------------------------------------------------------
 
@@ -22,6 +30,14 @@ scilpy.tractograms.streamline\_and\_mask\_operations module
 ------------------------------------------------------------
 
 .. automodule:: scilpy.tractograms.streamline_and_mask_operations
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+scilpy.tractograms.streamline\_operations module
+------------------------------------------------------
+
+.. automodule:: scilpy.tractograms.streamline_operations
    :members:
    :undoc-members:
    :show-inheritance:

@@ -1,12 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Extract B0s from DWI, based on the bval and bvec information.
 
 The default behavior is to save the first b0 of the series.
 
-Formerly: scil_extract_b0.py
 """
 
 import argparse

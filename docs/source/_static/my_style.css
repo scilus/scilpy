@@ -11,3 +11,18 @@
 .strike {
   text-decoration: line-through;
 }
+
+/* Make citations use full page width instead of narrow blocks */
+div.citation {
+    display: flex !important;
+}
+
+/* Default font size is 0.9rem. A bit small. Making it bigger. */
+div.citation a, p {
+    font-size: 1rem !important;
+}
+
+/* Making links from :ref: gray. With blue, it was becoming heavy */
+.internal {
+    color: #878787;
+}

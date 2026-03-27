@@ -1,13 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
 """
 Script to create a surface with marching cube from a mask or a label image.
 The surface will be readable with software like MI-Brain.
 
 Example : use wmparc.a2009s.nii.gz with some aseg.stats indices
 
-scil_surface_create.py out_surface.vtk \\
+scil_surface_create out_surface.vtk \\
     --in_labels s1a1/mask/S1-A1_wmparc.a2009s.nii.gz\\
     --list_indices 16:32 --opening 2 --smooth 2 -v
 -----------------------------------------------------------------

@@ -7,9 +7,9 @@ at each voxel, the b-vectors and the fractional anisotropy map and outputs
 a corrected b-vectors file.
 
 A typical pipeline could be:
->>> scil_dti_metrics.py dwi.nii.gz bval bvec --not_all --fa fa.nii.gz
+>>> scil_dti_metrics dwi.nii.gz bval bvec --not_all --fa fa.nii.gz
     --evecs peaks.nii.gz
->>> scil_gradients_validate_correct.py bvec peaks_v1.nii.gz fa.nii.gz bvec_corr
+>>> scil_gradients_validate_correct bvec peaks_v1.nii.gz fa.nii.gz bvec_corr
 
 Note that peaks_v1.nii.gz is the file containing the direction associated
 to the highest eigenvalue at each voxel.
@@ -18,9 +18,8 @@ It is also possible to use a file containing multiple principal directions per
 voxel, given that they are sorted by decreasing amplitude. In that case, the
 first direction (with the highest amplitude) will be chosen for validation.
 Only 4D data is supported, so the directions must be stored in a single
-dimension. For example, peaks.nii.gz from scil_fodf_metrics.py could be used.
+dimension. For example, peaks.nii.gz from scil_fodf_metrics could be used.
 
-Formerly: scil_validate_and_correct_bvecs.py
 ------------------------------------------------------------------------------
 Reference:
 [1] Schilling KG, Yeh FC, Nath V, Hansen C, Williams O, Resnick S, Anderson AW,

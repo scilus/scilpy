@@ -1,13 +1,15 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Compute a density map from a streamlines file. Can be binary.
 
 This script correctly handles compressed streamlines.
 
-Formerly: scil_compute_streamlines_density_map.py
+To get only a map of the endpoints, use option --endpoints_only. To get a
+separate map for the head and tail, see
+>> scil_bundle_compute_endpoints_map
 """
+
 import argparse
 import logging
 
@@ -19,6 +21,9 @@ from scilpy.io.utils import (add_overwrite_arg, add_reference_arg,
                              assert_inputs_exist, add_verbose_arg,
                              assert_outputs_exist)
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
+
+from scilpy.tractograms.streamline_and_mask_operations import \
+    get_endpoints_density_map
 from scilpy.version import version_string
 
 
@@ -27,7 +32,7 @@ def _build_arg_parser():
                                 formatter_class=argparse.RawTextHelpFormatter,
                                 epilog=version_string)
 
-    p.add_argument('in_bundle',
+    p.add_argument('in_tractogram',
                    help='Tractogram filename.')
     p.add_argument('out_img',
                    help='path of the output image file.')
@@ -43,7 +48,7 @@ def _build_arg_parser():
     p.add_argument('--endpoints_only', action='store_true',
                    help='If set, will only use the endpoints.\n'
                         'To get a head and a tail maps, see '
-                        'scil_bundle_compute_endpoints_map.py.')
+                        'scil_bundle_compute_endpoints_map.')
     add_reference_arg(p)
     add_verbose_arg(p)
     add_overwrite_arg(p)
@@ -56,7 +61,7 @@ def main():
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     # Verifications
-    assert_inputs_exist(parser, args.in_bundle, optional=args.reference)
+    assert_inputs_exist(parser, args.in_tractogram, optional=args.reference)
     assert_outputs_exist(parser, args, args.out_img)
 
     max_ = np.iinfo(np.int16).max
@@ -66,23 +71,21 @@ def main():
                      .format(args.binary, max_))
 
     # Loading
-    sft = load_tractogram_with_reference(parser, args, args.in_bundle)
+    sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
     sft.to_vox()
     sft.to_corner()
     transformation, dimensions, _, _ = sft.space_attributes
 
     # Processing
+    logging.info("Computing density map...")
     if args.endpoints_only:
-        streamline_count = np.zeros(dimensions, dtype=np.int32)
-        for s in sft.streamlines:
-            for p in [0, -1]:
-                endpoint_voxel = np.floor(s[p, :]).astype(int)
-                streamline_count[tuple(endpoint_voxel)] += 1
+        streamline_count = get_endpoints_density_map(sft)
     else:
         streamline_count = compute_tract_counts_map(sft.streamlines,
                                                     dimensions)
 
     # Saving
+    logging.info("Saving density map {}".format(args.out_img))
     dtype_to_use = np.int32
     if args.binary is not None:
         if args.binary == 1:

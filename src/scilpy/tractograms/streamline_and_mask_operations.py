@@ -23,7 +23,9 @@ class CuttingStyle(Enum):
     TRIM_ENDPOINTS = 2
 
 
-def get_endpoints_density_map(sft, point_to_select=1, to_millimeters=False):
+
+def get_endpoints_density_map(sft, point_to_select=1, to_millimeters=False,
+                              binary=False):
     """
     Compute an endpoints density map, supports selecting more than one points
     at each end.
@@ -39,19 +41,41 @@ def get_endpoints_density_map(sft, point_to_select=1, to_millimeters=False):
         Resample the streamlines to have a step size of 1 mm. This
         allows the user to compute endpoints with mms instead of points.
         Especially useful with compressed streamlines.
+    binary: bool
+        Return a binary mask.
 
     Returns
     -------
     np.ndarray: A np.ndarray where voxel values represent the density of
         endpoints.
     """
+    if point_to_select == 1 and to_millimeters is False:
+        # Very basic: selection of endpoints directly.
+        # Uses nearest neighbor interpolation. If sft is in vox space, corner
+        # origin, that's simply using the floor, or, even faster, casting to
+        # int.
+        endpoints_mask = np.zeros(sft.dimensions, dtype=int)
+        sft.to_vox()
+        sft.to_corner()
+        sft.streamlines._data = sft.streamlines._data
+        for streamline in sft.streamlines:
+            endpoints_mask[tuple(streamline[0].astype(np.int16))] += 1
+            endpoints_mask[tuple(streamline[-1].astype(np.int16))] += 1
+        mask=endpoints_mask
+    else:
 
-    endpoints_map_head, endpoints_map_tail = \
-        get_head_tail_density_maps(sft, point_to_select, to_millimeters)
-    return endpoints_map_head + endpoints_map_tail
+        # For more complex options, using head + tail
+        endpoints_map_head, endpoints_map_tail = \
+            get_head_tail_density_maps(sft, point_to_select, to_millimeters)
+        mask = endpoints_map_head + endpoints_map_tail
+
+    if binary:
+        mask = mask.astype(bool)
+    return mask
 
 
-def get_head_tail_density_maps(sft, point_to_select=1, to_millimeters=False):
+def get_head_tail_density_maps(sft, point_to_select=1, to_millimeters=False,
+                               binary=False, swap=False):
     """
     Compute two separate endpoints density maps for the head and tail of
     a list of streamlines.
@@ -67,14 +91,17 @@ def get_head_tail_density_maps(sft, point_to_select=1, to_millimeters=False):
         Resample the streamlines to have a step size of 1 mm. This
         allows the user to compute endpoints with mms instead of points.
         Especially useful with compressed streamlines.
+    binary: bool
+        Return binary maps
+    swap: bool
+        Swap head and tail conventions
 
     Returns
     -------
-    A tuple containing:
-    - np.ndarray: A np.ndarray where voxel values represent the density of
-        head endpoints.
-    - np.ndarray: A np.ndarray where voxel values represent the density of
-        tail endpoints.
+    endpoints_map_head: np.ndarray
+        A volume where voxel values represent the density of head endpoints.
+    endpoints_map_tail:np.ndarray
+        A volume where voxel values represent the density of tail endpoints.
     """
     sft.to_vox()
     sft.to_corner()
@@ -110,6 +137,15 @@ def get_head_tail_density_maps(sft, point_to_select=1, to_millimeters=False):
         # Note: np.add.at is used to support duplicate points
         np.add.at(endpoints_map_head, tuple(head_indices.T), 1)
         np.add.at(endpoints_map_tail, tuple(tail_indices.T), 1)
+
+    if binary:
+        endpoints_map_head = (endpoints_map_head > 0).astype(np.int16)
+        endpoints_map_tail = (endpoints_map_tail > 0).astype(np.int16)
+
+    if swap:
+        tmp = endpoints_map_head
+        endpoints_map_head = endpoints_map_tail
+        endpoints_map_tail = tmp
 
     return endpoints_map_head, endpoints_map_tail
 
@@ -319,12 +355,19 @@ def cut_streamlines_with_mask(sft, mask,
     else:
         trim_func = _trim_streamline_in_mask
 
-    # Trim streamlines with the mask and return the new streamlines
-    pool = Pool(processes)
-    lists_of_new_strmls = pool.starmap(
-        trim_func, [(i, s, pt, mask) for (i, s, pt) in zip(
-            indices, sft.streamlines, points_to_idx)])
-    pool.close()
+    # Trim streamlines with the mask and return the new streamlines.
+    # In single-process mode, avoid creating a multiprocessing pool.
+    if processes <= 1:
+        lists_of_new_strmls = [
+            trim_func(i, s, pt, mask)
+            for (i, s, pt) in zip(indices, sft.streamlines, points_to_idx)
+        ]
+    else:
+        with Pool(processes) as pool:
+            lists_of_new_strmls = pool.starmap(
+                trim_func, [(i, s, pt, mask) for (i, s, pt) in zip(
+                    indices, sft.streamlines, points_to_idx)])
+
     # Flatten the list of lists of new streamlines in a single list of
     # new streamlines
     new_strmls = ArraySequence([strml for list_of_strml in lists_of_new_strmls
@@ -410,15 +453,22 @@ def cut_streamlines_between_labels(
                          "--remove_single_point and "
                          "--remove_overlapping_points options.")
 
-    # Trim streamlines with the mask and return the new streamlines
-    pool = Pool(processes)
-    lists_of_new_strmls = pool.starmap(
-        _cut_streamline_with_labels, [(i, s, pt, label_data_1, label_data_2,
-                                       one_point_in_roi, no_point_in_roi)
-                                      for (i, s, pt) in zip(
-                                          indices, sft.streamlines,
-                                          points_to_idx)])
-    pool.close()
+    # Trim streamlines with the mask and return the new streamlines.
+    # In single-process mode, avoid creating a multiprocessing pool.
+    if processes <= 1:
+        lists_of_new_strmls = [
+            _cut_streamline_with_labels(i, s, pt, label_data_1, label_data_2,
+                                        one_point_in_roi, no_point_in_roi)
+            for (i, s, pt) in zip(indices, sft.streamlines, points_to_idx)
+        ]
+    else:
+        with Pool(processes) as pool:
+            lists_of_new_strmls = pool.starmap(
+                _cut_streamline_with_labels,
+                [(i, s, pt, label_data_1, label_data_2,
+                  one_point_in_roi, no_point_in_roi)
+                 for (i, s, pt) in zip(indices, sft.streamlines,
+                                       points_to_idx)])
     # Flatten the list of lists of new streamlines in a single list of
     # new streamlines
     list_of_new_strmls = [strml for strml in lists_of_new_strmls

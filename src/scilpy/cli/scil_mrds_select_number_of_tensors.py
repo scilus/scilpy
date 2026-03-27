@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Use the NUFO map information to select the plausible number of tensors
 in the Multi-Resolution Discrete Search (MRDS).
 https://link.springer.com/chapter/10.1007/978-3-031-47292-3_4
 
-scil_mrds_select_number_of_tensors.py uses the output from mdtmrds command.
+scil_mrds_select_number_of_tensors uses the output from mdtmrds command.
 Some mdtmrds output files will be named differently from the expected input:
     COMP_SIZE becomes signal_fraction
     NUM_COMP becomes num_tensors
@@ -25,7 +24,7 @@ Input:
 
 
     Example:
-        scil_mrds_select_number_of_tensors.py sub-01 nufo.nii.gz
+        scil_mrds_select_number_of_tensors sub-01 nufo.nii.gz
 """
 
 import argparse

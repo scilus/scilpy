@@ -17,18 +17,18 @@ scilpy.utils.metrics\_tools module
    :undoc-members:
    :show-inheritance:
 
-scilpy.utils.streamlines module
+scilpy.utils.scilpy\_bot module
 -------------------------------
 
-.. automodule:: scilpy.utils.streamlines
+.. automodule:: scilpy.utils.scilpy_bot
    :members:
    :undoc-members:
    :show-inheritance:
 
-scilpy.utils.util module
-------------------------
+scilpy.utils.spatial module
+---------------------------
 
-.. automodule:: scilpy.utils.util
+.. automodule:: scilpy.utils.spatial
    :members:
    :undoc-members:
    :show-inheritance:

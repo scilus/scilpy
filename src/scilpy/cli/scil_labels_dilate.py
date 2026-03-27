@@ -10,11 +10,10 @@ Dilate regions (with or without masking) from a labeled volume:
 - "mask" is where the dilation is allowed (constrained)
     in addition to "background_label" (logical AND)
 
->>> scil_labels_dilate.py wmparc_t1.nii.gz wmparc_dil.nii.gz \\
+>>> scil_labels_dilate wmparc_t1.nii.gz wmparc_dil.nii.gz \\
     --label_to_fill 0 5001 5002 \\
     --label_not_to_dilate 4 43 10 11 12 49 50 51
 
-Formerly: scil_dilate_labels.py
 -----------------------------------------------------------------------
 Reference:
 [1] Al-Sharif N.B., St-Onge E., Vogel J.W., Theaud G.,

@@ -2,13 +2,11 @@
 # -*- coding: utf-8 -*-
 """
 Computes the information from the input metrics for each cortical region
-(corresponding to an atlas). If more than one metric are provided, statistics are 
+(corresponding to an atlas). If more than one metric are provided, statistics are
 computed separately for each.
 
 Hint: For instance, this script could be useful if you have a seed map from a
 specific bundle, to know from which regions it originated.
-
-Formerly: scil_compute_seed_by_labels.py
 """
 
 import argparse

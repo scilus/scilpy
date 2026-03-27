@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Vizualisation for directions on a sphere, either from a gradient sampling (i.e.
 a list of b-vectors) or from a Dipy sphere.

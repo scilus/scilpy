@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Splits the DWI image at certain indices along the last dimension (b-values).
 Many indices can be given at once by specifying multiple values. The splited
@@ -11,7 +10,6 @@ This script can be useful for splitting images at places where a b-value
 extraction does not work. For instance, if one wants to split the x first
 b-1500s from the rest of the b-1500s in an image, simply put x as an index.
 
-Formerly: scil_split_image.py
 """
 
 import argparse

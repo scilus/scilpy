@@ -3,8 +3,8 @@ import numpy as np
 
 from scilpy.gradients.bvec_bval_tools import (
     check_b0_threshold, identify_shells, is_normalized_bvecs,
-    flip_gradient_sampling, normalize_bvecs, round_bvals_to_shell,
-    str_to_axis_index, swap_gradient_axis)
+    flip_gradient_axis, find_flip_swap_from_order, normalize_bvecs,
+    round_bvals_to_shell, str_to_axis_index, swap_gradient_axis)
 
 bvecs = np.asarray([[1.0, 1.0, 1.0],
                     [1.0, 0.0, 1.0],
@@ -79,9 +79,16 @@ def test_str_to_axis_index():
     assert str_to_axis_index('v') is None
 
 
-def test_flip_gradient_sampling():
+def test_find_flip_swap_from_order():
+    order = [1, -3, -2]
+    axes_to_flip, swapped_order = find_flip_swap_from_order(order)
+    assert np.array_equal(axes_to_flip, [2, 1])
+    assert np.array_equal(swapped_order, [0, 2, 1])
+
+
+def test_flip_gradient_axis():
     fsl_bvecs = bvecs.T
-    b = flip_gradient_sampling(fsl_bvecs, axes=[0], sampling_type='fsl')
+    b = flip_gradient_axis(fsl_bvecs, axes=[0], sampling_type='fsl')
     assert np.array_equal(b, np.asarray([[-1.0, 1.0, 1.0],
                                          [-1.0, 0.0, 1.0],
                                          [-0.0, 1.0, 0.0],

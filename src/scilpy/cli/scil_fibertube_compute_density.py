@@ -1,6 +1,5 @@
 #! /usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Estimates the per-voxel volumetric density of a set of fibertubes. In other
 words, how much space is occupied by fibertubes and how much is emptiness.
@@ -13,9 +12,9 @@ its total amount of samples.
 fibertubes, we can create a density map of the fibertube collisions.
 
 To form fibertubes from a set of streamlines, you can use the scripts:
-- scil_tractogram_filter_collisions.py to assign a diameter to each streamline
+- scil_tractogram_filter_collisions to assign a diameter to each streamline
   and remove all colliding fibertubes.
-- scil_tractogram_dps_math.py to assign a diameter without filtering.
+- scil_tractogram_dps_math to assign a diameter without filtering.
 
 See also:
     - docs/source/documentation/fibertube_tracking.rst

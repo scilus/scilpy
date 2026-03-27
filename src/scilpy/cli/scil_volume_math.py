@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Performs an operation on a list of images. The supported operations are
 listed below.
@@ -10,9 +9,7 @@ hundred images.
 
 Some operations such as multiplication or addition accept float value as
 parameters instead of images.
-> scil_volume_math.py multiplication img.nii.gz 10 mult_10.nii.gz
-
-Formerly: scil_image_math.py
+> scil_volume_math multiplication img.nii.gz 10 mult_10.nii.gz
 """
 
 import argparse
@@ -99,6 +96,8 @@ def main():
                 not is_header_compatible(ref_img, input_arg):
             parser.error('Inputs do not have a compatible header.')
         img, dtype = load_img(input_arg)
+        if not isinstance(img, float):
+            args.data_type = img.header.get_data_dtype() if args.data_type is None else args.data_type
 
         if isinstance(img, nib.Nifti1Image) and \
             dtype != ref_img.get_data_dtype() and \
@@ -137,11 +136,8 @@ def main():
         logging.error(msg)
         return
 
-    if args.data_type:
-        output_data = output_data.astype(args.data_type)
-        ref_img.header.set_data_dtype(args.data_type)
-    else:
-        output_data = output_data.astype(ref_img.get_data_dtype())
+    output_data = output_data.astype(args.data_type)
+    ref_img.header.set_data_dtype(args.data_type)
 
     if args.exclude_background:
         output_data[mask == 0] = 0

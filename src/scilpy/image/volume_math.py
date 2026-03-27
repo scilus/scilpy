@@ -55,6 +55,7 @@ def get_array_ops():
         ('subtraction', subtraction),
         ('multiplication', multiplication),
         ('division', division),
+        ('maximum', maximum),
         ('mean', mean),
         ('std', std),
         ('correlation', neighborhood_correlation),
@@ -196,7 +197,7 @@ def lower_threshold_otsu(input_list, ref_img):
         All values below or equal to the Otsu threshold will be set to zero.
         All values above the Otsu threshold will be set to one.
         (Otsu's method is an algorithm to perform automatic image thresholding
-         of the background.)
+        of the background.)
     """
     _validate_length(input_list, 1)
     _validate_type(input_list[0], nib.Nifti1Image)
@@ -440,6 +441,27 @@ def convert(input_list, ref_img):
     _validate_type(input_list[0], nib.Nifti1Image)
 
     return input_list[0].get_fdata(dtype=np.float64)
+
+
+def maximum(input_list, ref_img):
+    """
+    maximum: IMGs
+        Compute the voxel-wise maximum across images.
+    """
+    _validate_length(input_list, 2, at_least=True)
+    _validate_imgs_type(*input_list, all_imgs=False)
+    _validate_same_shape(*input_list, ref_img, all_imgs=False)
+
+    output_data = np.zeros(ref_img.header.get_data_shape(), dtype=np.float64)
+    for img in input_list:
+        if isinstance(img, nib.Nifti1Image):
+            data = img.get_fdata(dtype=np.float64)
+            output_data = np.maximum(output_data, data)
+            img.uncache()
+        else:
+            output_data = np.maximum(output_data, img)
+
+    return output_data
 
 
 def addition(input_list, ref_img):
@@ -739,26 +761,26 @@ def _corrcoef_no_nan(data):
 def neighborhood_correlation(input_list, ref_img):
     """
     correlation: IMGs
-        Computes the correlation of the 3x3x3 neighborhood of each voxel, for
-        all pair of input images. The final image is the average correlation
-        (through all pairs).
-        For a given pair of images
-        - Background is considered as 0. May lead to very high correlations
-        close to the border of the background regions, or very poor ones if the
-        background in both images differ.
-        - Images are zero-padded. For the same reason as higher, may lead to
-        very high correlations if you have data close to the border of the
-        image.
-        - NaN values (if a voxel's neighborhood is entirely uniform; std 0) are
-        replaced by
-           - 0 if at least one neighborhood was entirely containing background.
-           - 1 if the voxel's neighborhoods are uniform in both images
-           - 0 if the voxel's neighborhoods is uniform in one image, but not
-           the other.
 
-        UPDATE AS OF VERSION 2.0: Random noise was previously added in the
-        process to help avoid NaN values. Now replaced by either 0 or 1 as
-        explained above.
+    Computes the correlation of the 3x3x3 neighborhood of each voxel, for
+    all pair of input images. The final image is the average correlation
+    (through all pairs).
+    For a given pair of images
+    - Background is considered as 0. May lead to very high correlations
+    close to the border of the background regions, or very poor ones if the
+    background in both images differ.
+    - Images are zero-padded. For the same reason as higher, may lead to
+    very high correlations if you have data close to the border of the
+    image.
+    - NaN values (if a voxel's neighborhood is entirely uniform; std 0) are
+    replaced by
+        - 0 if at least one neighborhood was entirely containing background.
+        - 1 if the voxel's neighborhoods are uniform in both images
+        - 0 if the voxel's neighborhoods is uniform in one image, but not the other.
+
+    UPDATE AS OF VERSION 2.0: Random noise was previously added in the
+    process to help avoid NaN values. Now replaced by either 0 or 1 as
+    explained above.
     """
     _validate_length(input_list, 2, at_least=True)
     _validate_imgs_type(*input_list, ref_img)

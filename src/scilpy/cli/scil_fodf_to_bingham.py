@@ -12,7 +12,6 @@ SH of maximum order 8).
 Using 12 threads, the execution takes approximately 30 minutes for a brain with
 1mm isotropic resolution.
 
-Formerly: scil_fit_bingham_to_fodf.py
 -------------------------------------------------------------------------------
 References:
 [1] T. W. Riffert, J. Schreiber, A. Anwander, and T. R. Knösche, “Beyond
@@ -25,6 +24,7 @@ References:
     properties along fiber pathways,” NeuroImage, vol. 90, pp. 163-178, Apr.
     2014, doi: 10.1016/j.neuroimage.2014.01.002.
 -------------------------------------------------------------------------------
+
 """
 
 import nibabel as nib

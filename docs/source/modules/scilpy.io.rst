@@ -17,6 +17,14 @@ scilpy.io.deprecator module
    :undoc-members:
    :show-inheritance:
 
+scilpy.io.dvc module
+---------------------------
+
+.. automodule:: scilpy.io.dvc
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 scilpy.io.fetcher module
 ------------------------
 
@@ -33,10 +41,26 @@ scilpy.io.gradients module
    :undoc-members:
    :show-inheritance:
 
+scilpy.io.hdf5 module
+--------------------------
+
+.. automodule:: scilpy.io.hdf5
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 scilpy.io.image module
 ----------------------
 
 .. automodule:: scilpy.io.image
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+scilpy.io.mti module
+----------------------
+
+.. automodule:: scilpy.io.mti
    :members:
    :undoc-members:
    :show-inheritance:

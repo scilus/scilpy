@@ -1,17 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Script to filter streamlines based on their lengths.
 
 See also:
-    - scil_tractogram_detect_loops.py
-    - scil_tractogram_filter_by_anatomy.py
+    - scil_tractogram_detect_loops
+    - scil_tractogram_filter_by_anatomy
         (Filtering by length is its step1)
-    - scil_tractogram_filter_by_orientation.py
-    - scil_tractogram_filter_by_roi.py
-
-Formerly: scil_filter_streamlines_by_length.py
+    - scil_tractogram_filter_by_orientation
+    - scil_tractogram_filter_by_roi
 """
 
 import argparse

@@ -404,7 +404,8 @@ class ODFPropagator(PropagatorOnSphere):
             get_sh_order_and_fullness(self.datavolume.nb_coeffs)
         self.basis = basis
         self.is_legacy = is_legacy
-        self.B = sh_to_sf_matrix(self.sphere, sh_order_max=sh_order, basis_type=self.basis,
+        self.B = sh_to_sf_matrix(self.sphere, sh_order_max=sh_order,
+                                 basis_type=self.basis,
                                  smooth=0.006, return_inv=False,
                                  full_basis=full_basis, legacy=self.is_legacy)
 

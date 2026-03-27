@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
 """ Merge multiple json files into a single one.
 Typically used during the tractometry pipeline.
 
@@ -24,8 +23,6 @@ list.
 
 --average_last_layer option will average all entries (scalar) at the lowest
 layers, but instead of creating a list it creates a mean/std level.
-
-Formerly: scil_merge_json.py
 """
 
 import argparse

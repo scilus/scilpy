@@ -1,9 +1,8 @@
 #! /usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Implementation of the fibertube tracking environment using the
-architecture of scil_local_tracking_dev.py.
+architecture of scil_local_tracking_dev.
 
 Contrary to traditional white matter fiber tractography, fibertube
 tractography does not rely on a discretized grid of fODFs or peaks. It
@@ -23,9 +22,9 @@ by the previous tracking direction and the angular constraint.
 Seeding is done within the first segment of each fibertube.
 
 To form fibertubes from a set of streamlines, you can use the scripts:
-- scil_tractogram_filter_collisions.py to assign a diameter to each streamline
+- scil_tractogram_filter_collisions to assign a diameter to each streamline
   and remove all colliding fibertubes.
-- scil_tractogram_dps_math.py to assign a diameter without filtering.
+- scil_tractogram_dps_math to assign a diameter without filtering.
 
 For a better understanding of Fibertube Tracking please see:
     - docs/source/documentation/fibertube_tracking.rst

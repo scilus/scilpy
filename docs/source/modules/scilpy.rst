@@ -11,6 +11,8 @@ Modules
    scilpy.gradients
    scilpy.image
    scilpy.io
+   scilpy.maths
+   scilpy.ml
    scilpy.preprocessing
    scilpy.reconst
    scilpy.segment

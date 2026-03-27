@@ -38,7 +38,8 @@ def test_execution_along_profile(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
 
     ret = script_runner.run(['scil_tractogram_assign_custom_color',
-                             in_bundle, 'colored2.trk', '--along_profile'])
+                             in_bundle, 'colored2.trk', '--along_profile',
+                             '--colormap', 'red-blue'])
     assert ret.success
 
 

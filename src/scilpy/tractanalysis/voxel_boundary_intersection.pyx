@@ -45,13 +45,16 @@ def subdivide_streamlines_at_voxel_faces(streamlines):
         Updated streamline coordinates with added coordinate points
         at voxel boundaries.
     """
+    streamlines_data = np.ascontiguousarray(streamlines._data,
+                                            dtype=np.float32)
+
     cdef:
         cnp.npy_intp nb_streamlines = len(streamlines._lengths)
         cnp.npy_intp at_point = 0
 
         # Multiplying by 6 is simply a heuristic to avoiding resizing too many
         # times. In my bundles tests, I had either 0 or 1 resize.
-        cnp.npy_intp max_points = (streamlines.get_data().size // 6) * 12
+        cnp.npy_intp max_points = (streamlines_data.size // 6) * 12
 
     new_array_sequence = nib.streamlines.array_sequence.ArraySequence()
     new_array_sequence._lengths.resize(nb_streamlines)
@@ -61,7 +64,7 @@ def subdivide_streamlines_at_voxel_faces(streamlines):
     cdef:
         cnp.npy_intp[:] lengths_view_in = streamlines._lengths
         cnp.npy_intp[:] offsets_view_in = streamlines._offsets
-        float[:, :] data_view_in = streamlines._data
+        float[:, :] data_view_in = streamlines_data
         cnp.npy_intp[:] lengths_view_out = new_array_sequence._lengths
         cnp.npy_intp[:] offsets_view_out = new_array_sequence._offsets
         cnp.float32_t[:] data_view_out = new_array_sequence._data

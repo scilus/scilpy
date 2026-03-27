@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
 Script to compute all of the Diffusion Tensor Imaging (DTI) metrics.
 
@@ -21,7 +20,6 @@ signals, pulsation and misalignment artifacts, see
 [J-D Tournier, S. Mori, A. Leemans. Diffusion Tensor Imaging and Beyond.
 MRM 2011].
 
-Formerly: scil_compute_dti_metrics.py
 """
 
 import argparse

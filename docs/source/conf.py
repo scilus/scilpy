@@ -12,16 +12,20 @@
 #
 import os
 from os.path import join, abspath, dirname, isdir
+import inspect
 import shutil
 import sys
+import scilpy
 
-sys.path.insert(0, os.path.abspath("../.."))
-sys.path.insert(1, os.path.abspath("../../scripts"))
+
+module_path = inspect.getfile(scilpy)
+module_path = os.path.dirname(os.path.dirname(module_path))
+sys.path.insert(0, os.path.abspath(os.path.join(module_path, "cli")))
 
 # -- Project information -----------------------------------------------------
 
 project = 'scilpy'
-copyright = '2024, The SCIL developers'
+copyright = '2025, The SCIL developers'
 author = 'The SCIL developers'
 
 # The short X.Y version
@@ -43,7 +47,8 @@ extensions = [
     'sphinx.ext.coverage',
     'sphinx.ext.napoleon',
     'sphinx.ext.viewcode',
-    'sphinx.ext.mathjax'
+    'sphinx.ext.mathjax',
+    'sphinx_code_tabs'
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -63,7 +68,7 @@ master_doc = 'index'
 #
 # This is also used if you do content translation via gettext catalogs.
 # Usually you set "language" from the command line for these cases.
-language = None
+# language = 'english'
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
@@ -85,7 +90,7 @@ html_theme = 'sphinx_rtd_theme'
 # documentation.
 #
 html_theme_options = {
-    'display_version': True,
+    'collapse_navigation': False,
 }
 
 # Add any paths that contain custom static files (such as style sheets) here,
@@ -183,23 +188,45 @@ epub_exclude_files = ['search.html']
 
 
 def setup(app):
-    path_src = abspath(dirname(__file__))
-    path_script = abspath(join(path_src, "../../scripts"))
 
+    path_script = abspath(join(module_path, "scilpy/cli"))
+    sys.path.insert(0, path_script)
+
+    path_src = abspath(dirname(__file__))
     # Create script folder
     if isdir(join(path_src, "scripts")):
         shutil.rmtree(join(path_src, "scripts"))
     os.mkdir(join(path_src, "scripts"))
 
-    # Fake c files
+    # 1) Modules API documentation preparation.
+
+    # Adding fake c files
     for f in os.listdir(join(path_src, "fake_files")):
         shutil.copyfile(join(path_src, "fake_files", f),
-                        join(path_script, "../scilpy/tractanalysis/", f))
+                        join(module_path, "scilpy/tractanalysis/", f))
 
+    # Preparing a cleanup hook to delete these files later when the doc is
+    # finished building.
+    def cleanup_fake_files(app, exception):
+        """Delete fake C files after docs are built."""
+        for f in os.listdir(join(path_src, "fake_files")):
+            copied_file = join(module_path, "scilpy/tractanalysis/", f)
+            if os.path.exists(copied_file):
+                try:
+                    os.remove(copied_file)
+                except Exception as e:
+                    print(f"[cleanup] Could not remove {copied_file}: {e}")
+    app.connect('build-finished', cleanup_fake_files)
+
+    # 2) Scripts documentation
+    # We will want to run the --help (i.e. build the argparser) to show the
+    # help in the doc.  In some cases, this fails if some modules are not
+    # installed. Temporarily replacing lines in file on disk to use mock.
+    # Unchanged script (saved in "data" below) is then re-written on disk.
     commit_scripts = ["scil_tractogram_commit.py"]
-
     amico_scripts = ["scil_NODDI_maps.py",
                      "scil_freewater_maps.py"]
+    ml_scripts = ["scil_fodf_bundleparc.py"]
 
     with open(join(path_src, "scripts/modules.rst"), "w") as m:
 
@@ -210,13 +237,15 @@ def setup(app):
 
         # Loop over scripts
         for i in sorted(os.listdir(path_script)):
-            if 'scil' not in i:
+            if 'scil' not in i or i in ['scil_data_download.py',
+                                        'scil_freewater_priors.py']:
                 continue
             if not isdir(join(path_script, i)):
                 name, ext = i.split(".")
 
                 # To be safe, ignore fails
                 try:
+                    data = None
                     if i in commit_scripts:
                         with open(join(path_script, i), "r") as f:
                             data = f.readlines()
@@ -237,15 +266,47 @@ def setup(app):
                                     f.write("sys.modules['amico'] = Mock()\n")
                                 else:
                                     f.write(line)
+                    elif i in ml_scripts:
+                        with open(join(path_script, i), "r") as f:
+                            data = f.readlines()
+                        with open(join(path_script, i), "w") as f:
+                            for line in data:
+                                if 'scilpy.ml.utils' in line:
+                                    f.write("IMPORT_ERROR_MSG=''\n")
+                                elif 'import DEFAULT_BUNDLES' in line:
+                                    f.write("DEFAULT_BUNDLES=''\n")
+                                elif 'download_weights, get_model' in line:
+                                    f.write("from mock import Mock\n")
+                                    f.write("import sys\n")
+                                    f.write("sys.modules['torch'] = Mock()\n")
+                                elif "have_torch" in line or \
+                                     "optional_package" in line or \
+                                     "get_device, IMPORT_ERROR_MSG" in line or\
+                                     "import predict" in line:
+                                    f.write("\n")
+                                else:
+                                    f.write(line)
+
                     m.write("    {}\n".format(name))
                     script = __import__(name)
-                    with open(join(path_src, "scripts", "{}.rst".format(name)),
-                              "w") as s:
-                        s.write(i + "\n")
-                        s.write("=" * len(i) + "\n\n")
+
+                    script_rst = join(path_src, "scripts",
+                                      "{}.rst".format(name))
+                    with open(script_rst, "w") as s:
+                        s.write(".. _" + name  + ":\n\n")
+                        s.write(name + "\n")
+                        s.write("=" * len(name) + "\n\n")
                         help_text = script._build_arg_parser().format_help() \
                             .replace("sphinx-build", i)
+                        help_text.replace('.py', '')
                         s.write("::\n\n\t")
                         s.write("\t".join(help_text.splitlines(True)))
+
+                    if data is not None:
+                        # We have changed data on disk. Re-writing initial text
+                        with open(join(path_script, i), "w") as f:
+                            for line in data:
+                                f.write(line)
+
                 except Exception as e:
                     print(e)
