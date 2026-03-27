@@ -16,7 +16,7 @@ Installation
 
 .. code-block:: bash
 
-    # If you are using Python3.10 or Python3.11, export this variable before installing
+    # If you are using Python3.11, export this variable before installing
     export SETUPTOOLS_USE_DISTUTILS=stdlib
 
     uv pip install scilpy # For the most recent release from PyPi

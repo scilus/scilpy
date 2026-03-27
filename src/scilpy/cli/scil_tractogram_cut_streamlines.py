@@ -130,7 +130,7 @@ def _build_arg_parser():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
-    logging.getLogger().setLevel(logging.getLevelName(args.verbose))
+    logging.getLogger().setLevel(args.verbose)
 
     assert_inputs_exist(parser, args.in_tractogram, optional=[args.mask,
                                                               args.labels,
@@ -193,7 +193,8 @@ def main():
         new_sft = StatefulTractogram.from_sft(
             compressed_strs, sft, data_per_streamline=sft.data_per_streamline)
 
-    save_tractogram(new_sft, args.out_tractogram, args.no_empty)
+    if len(new_sft) or not args.no_empty:
+        save_tractogram(new_sft, args.out_tractogram)
 
 
 if __name__ == "__main__":
