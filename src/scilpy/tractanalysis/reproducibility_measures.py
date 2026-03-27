@@ -683,6 +683,7 @@ def tractogram_pairwise_comparison(sft_one, sft_two, mask, nbr_cpu=1,
     sh_data_2 = get_sh_from_todi(sft_2, mask)
     sft_2.to_center()
 
+    global B
     B, _ = sh_to_sf_matrix(get_sphere(name='repulsion724'),
                            sh_order_max=8, basis_type='descoteaux07')
 
