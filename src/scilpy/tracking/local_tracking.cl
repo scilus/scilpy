@@ -296,6 +296,11 @@ uint hash_u32(uint x)
 
 float rand01(const size_t seed_indice, const int current_length)
 {
+    // Reference constants:
+    // - 0x9e3779b9 (Knuth/golden-ratio hashing):
+    //   https://softwareengineering.stackexchange.com/a/402543
+    // - 0x85ebca6b (MurmurHash3 fmix32 finalizer):
+    //   https://github.com/aappleby/smhasher/blob/master/src/MurmurHash3.cpp
     uint state = RNG_SEED;
     state ^= (uint)(seed_indice + 1u) * 0x9e3779b9u;
     state ^= (uint)(current_length + 1) * 0x85ebca6bu;
