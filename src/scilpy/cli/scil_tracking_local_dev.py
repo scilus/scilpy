@@ -193,7 +193,7 @@ def main():
         parser.error('Invalid output streamline file format (must be trk or ' +
                      'tck): {0}'.format(args.out_tractogram))
 
-    inputs = [args.in_odf, args.in_seed, args.in_mask]
+    inputs = [args.in_odf, args.in_seed, args.in_mask] + args.extra_fodf
     assert_inputs_exist(parser, inputs)
     assert_outputs_exist(parser, args, args.out_tractogram)
 
@@ -290,13 +290,30 @@ def main():
 
     # Using space and origin in the propagator: vox and center, like
     # in dipy.
-    sh_basis, is_legacy = parse_sh_basis_arg(args)
+    sh_bases = parse_sh_basis_arg(args)
+    if not isinstance(sh_bases, list):
+        sh_bases = [sh_bases] * (1 + len(args.extra_fodf))
+    elif len(sh_bases) == 1:
+        sh_bases = sh_bases * (1 + len(args.extra_fodf))
+    sh_basis, is_legacy = sh_bases[0]
 
     propagator = ODFPropagator(
         dataset, vox_step_size, args.rk_order, args.algo, sh_basis,
         args.sf_threshold, args.sf_threshold_init, theta, args.sphere,
         sub_sphere=args.sub_sphere,
         space=our_space, origin=our_origin, is_legacy=is_legacy)
+    
+    extra_propagators = {'model1': propagator}
+    for i, odf_path in enumerate(args.extra_fodf, start=2):
+        sh_basis_i, is_legacy_i = sh_bases[i-1]
+        odf_img = nib.load(odf_path)
+        extra_dataset = DataVolume(odf_img.get_fdata(caching='unchanged', dtype=float),
+                                   odf_img.header.get_zooms()[:3], args.sh_interp)
+        extra_propagators[f'model{i}'] = ODFPropagator(
+            extra_dataset, vox_step_size, args.rk_order, args.algo,
+            sh_basis_i, args.sf_threshold, args.sf_threshold_init, 
+            theta, args.sphere, sub_sphere=args.sub_sphere,
+            space=our_space, origin=our_origin, is_legacy=is_legacy_i)
 
     # ------- INSTANTIATING RAP OBJECT -------
     if args.rap_mask:
@@ -322,7 +339,7 @@ def main():
         rap = RAPContinue(rap_volume, propagator, max_nbr_pts,
                           step_size=vox_step_size)
     elif args.rap_method == "switch":
-        rap = RAPSwitch(rap_volume, propagator, max_nbr_pts,
+        rap = RAPSwitch(rap_volume, extra_propagators, max_nbr_pts,
                         rap_params_file=args.rap_params)
     else:
         rap = None

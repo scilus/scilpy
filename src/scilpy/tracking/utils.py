@@ -37,11 +37,10 @@ def add_mandatory_options_tracking(p):
     Args that are required in both scil_tracking_local and
     scil_tracking_local_dev scripts.
     """
-    p.add_argument('in_odf', nargs='+',
-                   help='One or more files containing the orientation diffusion function \n'
-                        'as spherical harmonics (.nii.gz). Ex: ODF or '
-                        'fODF. If multiple files are provided, the first is the \n' \
-                        'default model.')
+    p.add_argument('in_odf',
+                   help='File containing the orientation diffusion function \n'
+                        'as spherical harmonics file (.nii.gz). Ex: ODF or '
+                        'fODF.')
     p.add_argument('in_seed',
                    help='Seeding mask (.nii.gz).')
     p.add_argument('in_mask',
@@ -51,6 +50,10 @@ def add_mandatory_options_tracking(p):
                         'criteria) IS added to the streamline.')
     p.add_argument('out_tractogram',
                    help='Tractogram output file (must be .trk or .tck).')
+    p.add_argument('--extra_fodf', nargs='+', default=[],
+                   help='Additional models for RAP multi-model tracking. \n' \
+                   'Used with --rap_method switch and "model" key in\n' \
+                   'rap_policies.json')
 
 
 def add_tracking_options(p):

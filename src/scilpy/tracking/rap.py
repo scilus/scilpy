@@ -5,6 +5,7 @@ import logging
 import numpy as np
 from copy import deepcopy
 from scilpy.tracking.propagator import get_sphere_neighbours
+from scilpy.tracking.propagator import ODFPropagator
 
 
 class RAP:
@@ -69,14 +70,16 @@ class RAPContinue(RAP):
 
 class RAPSwitch(RAP):
     """RAP class that switches tracking parameters when inside the RAP mask or RAP label."""
-    def __init__(self, rap_volume, propagator, max_nbr_pts, rap_params_file):
+    def __init__(self, rap_volume, propagators: dict, max_nbr_pts, rap_params_file):
         """
         Parameters
         ----------
         rap_volume : DataVolume
             Region-Adaptive Propagation mask.
-        propagator : Propagator
-            The propagator used for tracking.
+        propagators : dict
+            Dictionary of ODFPropagator instances keyed by model name
+            example : {'model1': propagator1, 'model2': propagator2})
+            'model1' is used as the default propagator.
         max_nbr_pts : int
             Maximum number of points per streamline.
         rap_params_file : str
@@ -91,17 +94,20 @@ class RAPSwitch(RAP):
                 }
             }
         """
-        super().__init__(rap_volume, propagator, max_nbr_pts)
+        super().__init__(rap_volume, propagators['model1'], max_nbr_pts)
+        self._propagators = propagators
 
         # Load parameters from JSON file
         with open(rap_params_file, 'r') as f:
             rap_params = json.load(f)
 
         self._base = {
-            'step_size': propagator.step_size,
-            'theta': propagator.theta,
-            'algo': getattr(propagator, 'algo', None),
-            'tracking_neighbours': getattr(propagator, 'tracking_neighbours', None)
+            'step_size': self.propagator.step_size,
+            'theta': self.propagator.theta,
+            'algo': getattr(self.propagator, 'algo', None),
+            'tracking_neighbours': getattr(self.propagator, 'tracking_neighbours', None),
+            'model': 'model1'
+
         }
         self.methods_cfg = rap_params.get('methods', {})
         logging.info("RAP parameters loaded:")
@@ -219,8 +225,11 @@ class RAPSwitch(RAP):
         Parameters
         ----------
         cfg: dict
-            Configuration dict with keys 'algo', 'theta', 'step_size'.
+            Configuration dict with keys 'model', 'algo', 'theta', 'step_size'.
         """
+        if 'model' in cfg and cfg['model'] is not None:
+            self._propagators[cfg['model']].line_rng_generator = self.propagator.line_rng_generator
+            self.propagator = self._propagators[cfg['model']]
         if 'step_size' in cfg and cfg['step_size'] is not None:
             self.propagator.step_size = float(cfg['step_size'])
         if 'algo' in cfg and cfg['algo'] is not None:
