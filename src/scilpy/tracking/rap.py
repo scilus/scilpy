@@ -228,8 +228,10 @@ class RAPSwitch(RAP):
             Configuration dict with keys 'model', 'algo', 'theta', 'step_size'.
         """
         if 'model' in cfg and cfg['model'] is not None:
-            self._propagators[cfg['model']].line_rng_generator = self.propagator.line_rng_generator
-            self.propagator = self._propagators[cfg['model']]
+            if self._propagators[cfg['model']] is not self.propagator:
+                self._propagators[cfg['model']].line_rng_generator = self.propagator.line_rng_generator
+                self.propagator = self._propagators[cfg['model']]
+                logging.debug(f"RAP model switched to {cfg['model']}")
         if 'step_size' in cfg and cfg['step_size'] is not None:
             self.propagator.step_size = float(cfg['step_size'])
         if 'algo' in cfg and cfg['algo'] is not None:
