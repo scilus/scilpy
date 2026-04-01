@@ -153,13 +153,13 @@ def _build_arg_parser():
                           "with \n--skip 1,000,000.")
     rap_mode = track_g.add_mutually_exclusive_group()
     rap_mode.add_argument('--rap_mask', default=None,
-                         help='Region-Adaptive Propagation mask (.nii.gz).\n'
-                              'Region-Adaptive Propagation tractography will start within '
-                              'this mask.')
+                          help='Region-Adaptive Propagation mask (.nii.gz).\n'
+                          'Region-Adaptive Propagation tractography will start within '
+                          'this mask.')
     rap_mode.add_argument('--rap_labels', default=None,
-                         help='Region-Adaptive Propagation label volume (.nii.gz) .\n'
-                              'Voxel values are integer labels (0=background, 1..N=regions) .\n'
-                              'Used with --rap_method switch to select policies per label.')
+                          help='Region-Adaptive Propagation label volume (.nii.gz) .\n'
+                          'Voxel values are integer labels (0=background, 1..N=regions) .\n'
+                          'Used with --rap_method switch to select policies per label.')
     track_g.add_argument('--rap_method', default='None',
                          choices=['None', 'continue', 'switch'],
                          help="Region-Adaptive Propagation tractography method.\n"
@@ -205,10 +205,13 @@ def main():
         parser.error('No RAP method selected.')
     if args.rap_method == 'continue' and args.rap_mask is None:
         parser.error('RAP method "continue" requires --rap_mask.')
-    if args.rap_method == 'switch' and (args.rap_mask is None and args.rap_labels is None):
-        parser.error('RAP method "switch" requires --rap_mask or --rap_labels.')
+    if args.rap_method == 'switch' and (
+            args.rap_mask is None and args.rap_labels is None):
+        parser.error(
+            'RAP method "switch" requires --rap_mask or --rap_labels.')
     if args.rap_method == 'switch' and args.rap_params is None:
-        parser.error('RAP method "switch" requires --rap_params to be specified.')
+        parser.error(
+            'RAP method "switch" requires --rap_params to be specified.')
     if args.rap_params is not None and args.rap_method != 'switch':
         parser.error('--rap_params can only be used with --rap_method switch.')
     tracts_format = detect_format(args.out_tractogram)
@@ -302,16 +305,16 @@ def main():
         args.sf_threshold, args.sf_threshold_init, theta, args.sphere,
         sub_sphere=args.sub_sphere,
         space=our_space, origin=our_origin, is_legacy=is_legacy)
-    
+
     extra_propagators = {'model1': propagator}
     for i, odf_path in enumerate(args.extra_fodf, start=2):
-        sh_basis_i, is_legacy_i = sh_bases[i-1]
+        sh_basis_i, is_legacy_i = sh_bases[i - 1]
         odf_img = nib.load(odf_path)
         extra_dataset = DataVolume(odf_img.get_fdata(caching='unchanged', dtype=float),
                                    odf_img.header.get_zooms()[:3], args.sh_interp)
         extra_propagators[f'model{i}'] = ODFPropagator(
             extra_dataset, vox_step_size, args.rk_order, args.algo,
-            sh_basis_i, args.sf_threshold, args.sf_threshold_init, 
+            sh_basis_i, args.sf_threshold, args.sf_threshold_init,
             theta, args.sphere, sub_sphere=args.sub_sphere,
             space=our_space, origin=our_origin, is_legacy=is_legacy_i)
 
@@ -319,7 +322,7 @@ def main():
     if args.rap_mask:
         logging.info("Loading RAP mask.")
         rap_img = nib.load(args.rap_mask)
-        rap_mask_data = get_data_as_mask(rap_img)        
+        rap_mask_data = get_data_as_mask(rap_img)
         rap_mask_res = rap_img.header.get_zooms()[:3]
         rap_volume = DataVolume(rap_mask_data, rap_mask_res, args.mask_interp)
     elif args.rap_labels:

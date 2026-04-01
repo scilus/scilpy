@@ -50,6 +50,7 @@ class RAP:
 
 class RAPContinue(RAP):
     """Dummy RAP class for tests. Goes straight"""
+
     def __init__(self, rap_volume, propagator, max_nbr_pts, step_size):
         """
         Step size: float
@@ -70,7 +71,9 @@ class RAPContinue(RAP):
 
 class RAPSwitch(RAP):
     """RAP class that switches tracking parameters when inside the RAP mask or RAP label."""
-    def __init__(self, rap_volume, propagators: dict, max_nbr_pts, rap_params_file):
+
+    def __init__(self, rap_volume, propagators: dict,
+                 max_nbr_pts, rap_params_file):
         """
         Parameters
         ----------
@@ -147,7 +150,9 @@ class RAPSwitch(RAP):
             Whether the line is valid.
         """
         # Switch to RAP parameters
-        label = self._get_label(line[-1], self.propagator.space, self.propagator.origin)
+        label = self._get_label(line[-1],
+                                self.propagator.space,
+                                self.propagator.origin)
         if label <= 0:
             return line, prev_direction, False
         # Apply the parameters of the RAP labels
@@ -155,14 +160,16 @@ class RAPSwitch(RAP):
 
         # Perform propagation with new parameters
         self._apply_cfg(cfg)
-        new_pos, new_dir, is_direction_valid = self.propagator.propagate(line, prev_direction)
+        new_pos, new_dir, is_direction_valid = self.propagator.propagate(
+            line, prev_direction)
 
         # Add the new point to the line
         if is_direction_valid:
             line.append(new_pos)
             if label != self._current_label:
                 if self._current_label is not None:
-                    logging.debug(f"STEP[{self._total_steps}] label={self._current_label} algo={self._current_cfg.get('algo')} theta={self._current_cfg.get('theta')} step={self._current_cfg.get('step_size')}")
+                    logging.debug(
+                        f"STEP[{self._total_steps}] label={self._current_label} algo={self._current_cfg.get('algo')} theta={self._current_cfg.get('theta')} step={self._current_cfg.get('step_size')}")
                 self._current_label = label
                 self._current_cfg = cfg
             self._total_steps += 1
@@ -189,7 +196,8 @@ class RAPSwitch(RAP):
         int
             The integer label at current position.
         """
-        v = self.rap_volume.get_value_at_coordinate(*curr_pos, space=space, origin=origin)
+        v = self.rap_volume.get_value_at_coordinate(
+            *curr_pos, space=space, origin=origin)
         try:
             return int(v)
         except Exception:
@@ -229,7 +237,8 @@ class RAPSwitch(RAP):
         """
         if 'model' in cfg and cfg['model'] is not None:
             if self._propagators[cfg['model']] is not self.propagator:
-                self._propagators[cfg['model']].line_rng_generator = self.propagator.line_rng_generator
+                self._propagators[cfg['model']
+                                  ].line_rng_generator = self.propagator.line_rng_generator
                 self.propagator = self._propagators[cfg['model']]
                 logging.debug(f"RAP model switched to {cfg['model']}")
         if 'step_size' in cfg and cfg['step_size'] is not None:
@@ -240,7 +249,8 @@ class RAPSwitch(RAP):
             theta_rad = np.deg2rad(float(cfg['theta']))
             self.propagator.theta = theta_rad
             # theta change => neighbours change
-            self.propagator.tracking_neighbours = get_sphere_neighbours(self.propagator.sphere, self.propagator.theta)
+            self.propagator.tracking_neighbours = get_sphere_neighbours(
+                self.propagator.sphere, self.propagator.theta)
 
 
 class RAPGraph(RAP):

@@ -152,8 +152,7 @@ def assert_gradients_filenames_valid(parser, filename_list, input_is_fsl):
                              '.bval and .bvec.')
 
             if basename_1 == basename_2:
-                curr_extensions = [ext_1, ext_2]
-                curr_extensions.sort()
+                curr_extensions = sorted([ext_1, ext_2])
                 if curr_extensions != valid_fsl_extensions:
                     parser.error('Your extensions ({}) doesn\'t follow BIDS '
                                  'convention.'.format(curr_extensions))
@@ -377,7 +376,7 @@ def add_sh_basis_args(parser, mandatory=False, input_output=False):
                         help=help_msg)
 
 
-def parse_sh_basis_arg(args, input_output= False):
+def parse_sh_basis_arg(args, input_output=False):
     """
     Parser the input from args.sh_basis. If two SH bases are given,
     both input/output sh_basis and is_legacy are returned.
