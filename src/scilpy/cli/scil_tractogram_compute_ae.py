@@ -8,7 +8,7 @@ underlying peak (for single peak files, e.g. the first eigen-vector of tensors
 for DTI) or with the closest peak (ex, with fODF peaks). AE is computed as the
 cosine difference.
 
-Currently, interpolation is not supported: peaks of  the closest voxel are used
+Currently, interpolation is not supported: peaks of the closest voxel are used
 (nearest neighbor).
 
 The AE is added as data_per_point (dpp) for each point, using the first point
