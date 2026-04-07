@@ -19,6 +19,11 @@ When using --save_mean_map, if you want to be sure that your streamlines have
 points in most voxels that they touch, you could resample your tractogram
 first, with a small step size. See scil_tractogram_resample_nb_points.
 
+Hints:
+  - If you want to see which streamlines have the best AE / worst AE, explore
+    the script scil_tractogram_filter_by_streamlines_properties.
+  - If you want to average the DPP into a mean DPS over each streamline, see
+    the script scil_tractogram_dpp_math.
 """
 
 import argparse
@@ -65,9 +70,6 @@ def _build_arg_parser():
                    help="If set, save the mean value of each streamline per "
                         "voxel. Name of the map file (nifti).\n"
                         "See also scil_tractogram_project_streamlines_to_map.")
-    g.add_argument('--save_worst', metavar='filename',
-                   help="If set, save the worst streamlines in a separate "
-                        "tractogram.")
 
     g = p.add_argument_group("Processing options")
     g.add_argument('--cmap_max', nargs='?', const=180,
@@ -95,8 +97,7 @@ def main():
                         args.reference)
     assert_headers_compatible(parser, [args.in_tractogram, args.in_peaks], [],
                               args.reference)
-    assert_outputs_exist(parser, args, args.out_tractogram, 
-                        [args.save_mean_map, args.save_worst])
+    assert_outputs_exist(parser, args, args.out_tractogram, args.save_mean_map)
 
     # -- Loading
     peaks = nib.load(args.in_peaks).get_fdata()
