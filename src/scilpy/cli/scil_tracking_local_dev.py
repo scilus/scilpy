@@ -48,6 +48,7 @@ Reference:
 import argparse
 import logging
 import time
+import json
 
 import dipy.core.geometry as gm
 import nibabel as nib
@@ -151,7 +152,8 @@ def _build_arg_parser():
                           "fixed --rng_seed.\nEx: If tractogram_1 was created "
                           "with -nt 1,000,000, \nyou can create tractogram_2 "
                           "with \n--skip 1,000,000.")
-    rap_mode = track_g.add_mutually_exclusive_group()
+    rap_g = p.add_argument_group('Region-Adaptive Propagation options')
+    rap_mode = rap_g.add_mutually_exclusive_group()
     rap_mode.add_argument('--rap_mask', default=None,
                           help='Region-Adaptive Propagation mask (.nii.gz).\n'
                           'Region-Adaptive Propagation tractography will start within '
@@ -160,17 +162,17 @@ def _build_arg_parser():
                           help='Region-Adaptive Propagation label volume (.nii.gz) .\n'
                           'Voxel values are integer labels (0=background, 1..N=regions) .\n'
                           'Used with --rap_method switch to select policies per label.')
-    track_g.add_argument('--rap_method', default='None',
+    rap_g.add_argument('--rap_method', default='None',
                          choices=['None', 'continue', 'switch'],
                          help="Region-Adaptive Propagation tractography method.\n"
                               "'continue': continues tracking with same params,\n"
                               "'switch': switches tracking params inside RAP mask.\n"
                               " [%(default)s]")
-    track_g.add_argument('--rap_params', default=None,
+    rap_g.add_argument('--rap_params', default=None,
                          help='JSON file containing RAP parameters.\n'
                               'Required for rap_method=switch. Format:\n'
                               '{"step_size": float, "theta": float (degrees)}')
-    track_g.add_argument('--rap_save_entry_exit', default=None,
+    rap_g.add_argument('--rap_save_entry_exit', default=None,
                          help='Save RAP entry/exit coordinates as a binary mask.\n'
                               'Provide output filename (.nii.gz).')
 
@@ -193,7 +195,9 @@ def main():
         parser.error('Invalid output streamline file format (must be trk or ' +
                      'tck): {0}'.format(args.out_tractogram))
 
-    inputs = [args.in_odf, args.in_seed, args.in_mask] + args.extra_fodf
+    inputs = [args.in_seed, args.in_mask]
+    if args.in_odf:
+        inputs.append(args.in_odf)
     assert_inputs_exist(parser, inputs)
     assert_outputs_exist(parser, args, args.out_tractogram)
 
@@ -227,8 +231,8 @@ def main():
 
     max_nbr_pts = int(args.max_length / args.step_size)
     min_nbr_pts = max(int(args.min_length / args.step_size), 1)
-
-    assert_same_resolution([args.in_mask, args.in_odf, args.in_seed])
+    if args.in_odf:
+        assert_same_resolution([args.in_mask, args.in_odf, args.in_seed])
 
     # Choosing our space and origin for this tracking
     # If save_seeds, space and origin must be vox, center. Choosing those
@@ -277,46 +281,60 @@ def main():
     mask = DataVolume(mask_data, mask_res, args.mask_interp)
 
     # ------- INSTANTIATING PROPAGATOR -------
-    logging.info("Loading ODF SH data.")
-    odf_sh_img = nib.load(args.in_odf)
-    odf_sh_data = odf_sh_img.get_fdata(caching='unchanged', dtype=float)
-    odf_sh_res = odf_sh_img.header.get_zooms()[:3]
-    dataset = DataVolume(odf_sh_data, odf_sh_res, args.sh_interp)
+    if args.in_odf:
+        logging.info("Loading ODF SH data.")
+        odf_sh_img = nib.load(args.in_odf)
+        odf_sh_data = odf_sh_img.get_fdata(caching='unchanged', dtype=float)
+        odf_sh_res = odf_sh_img.header.get_zooms()[:3]
+        dataset = DataVolume(odf_sh_data, odf_sh_res, args.sh_interp)
 
-    logging.info("Instantiating propagator.")
-    # Converting step size to vox space
-    # We only support iso vox for now but allow slightly different vox 1e-3.
-    assert np.allclose(np.mean(odf_sh_res[:3]),
-                       odf_sh_res, atol=1e-03)
-    voxel_size = odf_sh_img.header.get_zooms()[0]
-    vox_step_size = args.step_size / voxel_size
+        logging.info("Instantiating propagator.")
+        # Converting step size to vox space
+        # We only support iso vox for now but allow slightly different vox
+        # 1e-3.
+        assert np.allclose(np.mean(odf_sh_res[:3]),
+                           odf_sh_res, atol=1e-03)
+        voxel_size = odf_sh_img.header.get_zooms()[0]
+        vox_step_size = args.step_size / voxel_size
 
-    # Using space and origin in the propagator: vox and center, like
-    # in dipy.
-    sh_bases = parse_sh_basis_arg(args)
-    if not isinstance(sh_bases, list):
-        sh_bases = [sh_bases] * (1 + len(args.extra_fodf))
-    elif len(sh_bases) == 1:
-        sh_bases = sh_bases * (1 + len(args.extra_fodf))
-    sh_basis, is_legacy = sh_bases[0]
+        # Using space and origin in the propagator: vox and center, like
+        # in dipy.
+        sh_basis, is_legacy = parse_sh_basis_arg(args)
 
-    propagator = ODFPropagator(
-        dataset, vox_step_size, args.rk_order, args.algo, sh_basis,
-        args.sf_threshold, args.sf_threshold_init, theta, args.sphere,
-        sub_sphere=args.sub_sphere,
-        space=our_space, origin=our_origin, is_legacy=is_legacy)
+        propagator = ODFPropagator(
+            dataset, vox_step_size, args.rk_order, args.algo, sh_basis,
+            args.sf_threshold, args.sf_threshold_init, theta, args.sphere,
+            sub_sphere=args.sub_sphere,
+            space=our_space, origin=our_origin, is_legacy=is_legacy)
+        propagators = {args.in_odf: propagator}
 
-    extra_propagators = {'model1': propagator}
-    for i, odf_path in enumerate(args.extra_fodf, start=2):
-        sh_basis_i, is_legacy_i = sh_bases[i - 1]
-        odf_img = nib.load(odf_path)
-        extra_dataset = DataVolume(odf_img.get_fdata(caching='unchanged', dtype=float),
-                                   odf_img.header.get_zooms()[:3], args.sh_interp)
-        extra_propagators[f'model{i}'] = ODFPropagator(
-            extra_dataset, vox_step_size, args.rk_order, args.algo,
-            sh_basis_i, args.sf_threshold, args.sf_threshold_init,
-            theta, args.sphere, sub_sphere=args.sub_sphere,
-            space=our_space, origin=our_origin, is_legacy=is_legacy_i)
+    else:
+        propagator = None
+        propagators = {}
+        vox_step_size = args.step_size
+
+    # Load additional propagators from rap_policies.json if ODF key is present
+    if args.rap_params and args.rap_method == 'switch':
+        with open(args.rap_params, 'r') as f:
+            rap_params = json.load(f)
+        for label, cfg in rap_params.get('methods', {}).items():
+            if 'ODF' in cfg and cfg['ODF'] not in propagators:
+                sh_basis_name = cfg.get('sh_basis', 'descoteaux07_legacy')
+                sh_basis_i = 'descoteaux07' if 'descoteaux07' in sh_basis_name else 'tournier07'
+                is_legacy_i = 'legacy' in sh_basis_name
+                odf_img = nib.load(cfg['ODF'])
+                odf_sh_res_i = odf_img.header.get_zooms()[:3]
+                dataset_i = DataVolume(
+                    odf_img.get_fdata(caching='unchanged', dtype=float),
+                    odf_sh_res_i, args.sh_interp)
+                propagators[cfg['ODF']] = ODFPropagator(
+                    dataset_i, vox_step_size, args.rk_order, args.algo,
+                    sh_basis_i, args.sf_threshold, args.sf_threshold_init,
+                    theta, args.sphere, sub_sphere=args.sub_sphere,
+                    space=our_space, origin=our_origin, is_legacy=is_legacy_i)
+
+    if propagator is None and propagators:
+        propagator = next(iter(propagators.values()))
 
     # ------- INSTANTIATING RAP OBJECT -------
     if args.rap_mask:
@@ -342,8 +360,8 @@ def main():
         rap = RAPContinue(rap_volume, propagator, max_nbr_pts,
                           step_size=vox_step_size)
     elif args.rap_method == "switch":
-        rap = RAPSwitch(rap_volume, extra_propagators, max_nbr_pts,
-                        rap_params_file=args.rap_params)
+        rap = RAPSwitch(rap_volume, propagators, max_nbr_pts,
+                        rap_params=rap_params)
     else:
         rap = None
 

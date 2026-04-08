@@ -5,7 +5,6 @@ import logging
 import numpy as np
 from copy import deepcopy
 from scilpy.tracking.propagator import get_sphere_neighbours
-from scilpy.tracking.propagator import ODFPropagator
 
 
 class RAP:
@@ -73,45 +72,47 @@ class RAPSwitch(RAP):
     """RAP class that switches tracking parameters when inside the RAP mask or RAP label."""
 
     def __init__(self, rap_volume, propagators: dict,
-                 max_nbr_pts, rap_params_file):
+                 max_nbr_pts, rap_params: dict):
         """
         Parameters
         ----------
         rap_volume : DataVolume
             Region-Adaptive Propagation mask.
         propagators : dict
-            Dictionary of ODFPropagator instances keyed by model name
-            example : {'model1': propagator1, 'model2': propagator2})
-            'model1' is used as the default propagator.
+            Dictionary of ODFPropagator instances keyed by their ODF filepath.
+            If --in_odf is provided, contains {odf_path: propagator} as default.
+            Additional propagators are keyed by their ODF filepath, loaded
+            from the 'ODF' key in rap_policies.json.
         max_nbr_pts : int
             Maximum number of points per streamline.
-        rap_params_file : str
-            Path to JSON file containing RAP parameters.
-            "methods" is optionnal, if not provided, "default" will be applied
+        rap_params : dict
+            Dictionairy containing RAP parameters, loaded from the JSON policies file.
             Expected format:
             {
                 "methods": {
-                  "1": {"algo": str, "theta": float, "step_size": float},
-                  "2": {"algo": str, "theta": float, "step_size": float},
-                  ...
+                "1": {"ODF": str, "sh_basis": str, "algo": str, "theta": float, "step_size": float},
+                "2": {"ODF": str, "sh_basis": str, "algo": str, "theta": float, "step_size": float},
+                ...
                 }
             }
+            If 'ODF' is provided per lablel, the corresponding propagator is used.
+            'sh_basis' defaults to 'descoteaux07_legacy'.
         """
-        super().__init__(rap_volume, propagators['model1'], max_nbr_pts)
+        base_propagator = list(propagators.values())[
+            0] if propagators else None
+        super().__init__(rap_volume, base_propagator, max_nbr_pts)
         self._propagators = propagators
 
-        # Load parameters from JSON file
-        with open(rap_params_file, 'r') as f:
-            rap_params = json.load(f)
+        if self.propagator is not None:
+            self._base = {
+                'step_size': self.propagator.step_size,
+                'theta': self.propagator.theta,
+                'algo': getattr(self.propagator, 'algo', None),
+                'tracking_neighbours': getattr(self.propagator, 'tracking_neighbours', None)
+            }
+        else:
+            self._base = {}
 
-        self._base = {
-            'step_size': self.propagator.step_size,
-            'theta': self.propagator.theta,
-            'algo': getattr(self.propagator, 'algo', None),
-            'tracking_neighbours': getattr(self.propagator, 'tracking_neighbours', None),
-            'model': 'model1'
-
-        }
         self.methods_cfg = rap_params.get('methods', {})
         logging.info("RAP parameters loaded:")
 
@@ -235,12 +236,12 @@ class RAPSwitch(RAP):
         cfg: dict
             Configuration dict with keys 'model', 'algo', 'theta', 'step_size'.
         """
-        if 'model' in cfg and cfg['model'] is not None:
-            if self._propagators[cfg['model']] is not self.propagator:
-                self._propagators[cfg['model']
+        if 'ODF' in cfg and cfg['ODF'] is not None:
+            if self._propagators[cfg['ODF']] is not self.propagator:
+                self._propagators[cfg['ODF']
                                   ].line_rng_generator = self.propagator.line_rng_generator
-                self.propagator = self._propagators[cfg['model']]
-                logging.debug(f"RAP model switched to {cfg['model']}")
+                self.propagator = self._propagators[cfg['ODF']]
+                logging.debug(f"RAP model switched to {cfg['ODF']}")
         if 'step_size' in cfg and cfg['step_size'] is not None:
             self.propagator.step_size = float(cfg['step_size'])
         if 'algo' in cfg and cfg['algo'] is not None:
