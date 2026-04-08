@@ -38,7 +38,7 @@ Global connectivity metrics:
 
 import logging
 
-from multiprocessing import Pool
+from multiprocessing import Pool, Lock
 import numpy as np
 from tqdm import tqdm
 
@@ -49,35 +49,35 @@ from scilpy.tractograms.streamline_and_mask_operations import \
 
 def _compute_ae(args):
     """Used for multiprocessing in compute_ae below."""
-    process_id, start, end, dirs, coords, peaks = args
+    process_id, dirs, coords, peaks = args
 
-    ae_chunk = np.zeros(end - start)
+    nb_segments = len(dirs)
+    ae_chunk = np.zeros(nb_segments)
     nb_nan_chunk = 0
 
     # Hiding the segment number in the tqdm bar, not meaningful
-    format = '{desc}:{percentage:3.0f}%|{bar}|  '
-    format += '[{elapsed}<{remaining}, {rate_fmt}{postfix}'
+    _format = '{desc}:{percentage:3.0f}%|{bar}|  '
+    _format += '[{elapsed}<{remaining}, {rate_fmt}{postfix}'
 
-    for chunk_i, i in enumerate(tqdm(range(start, end), ncols=120, 
-                                     bar_format=format, leave=False,
-                                     desc="Process {}".format(process_id + 1),
-                                     position=process_id+1)):
+    for i in tqdm(range(nb_segments), ncols=120,
+                  bar_format=_format, position=process_id + 1,
+                  desc="Process {}.".format(process_id + 1)):
         current_peaks = peaks[coords[i][0], coords[i][1], coords[i][2], :, :]
 
         # Using only non-zero peaks. Dealing with buggy voxels: setting AE to 0
         current_peaks = current_peaks[np.any(current_peaks!=0, axis=-1)]
         if current_peaks.size == 0:
             nb_nan_chunk += 1
-            ae_chunk[chunk_i] = 0
+            ae_chunk[i] = 0
             continue
 
         # Using the abs value because vectors are undirected.
         cos_theta = np.abs(np.dot(current_peaks, dirs[i]))
         cos_theta = np.clip(cos_theta, 0, 1.0)  # numerical safety
         theta = np.rad2deg(np.arccos(cos_theta))
-        ae_chunk[chunk_i] = np.min(theta)
+        ae_chunk[i] = np.min(theta)
 
-    return start, ae_chunk, nb_nan_chunk
+    return ae_chunk, nb_nan_chunk
 
 
 def compute_ae(sft, peaks, nb_processes=1):
@@ -113,7 +113,8 @@ def compute_ae(sft, peaks, nb_processes=1):
     else:
         multi_peaks = True
         logging.info("Peaks seem to be multi-peaks (maybe coming from ODF, "
-                     "fODF, etc). Will verify alignment with closest peak.")
+                     "fODF, etc). We will verify alignment with the closest "
+                     "peak in each voxel.")
 
     # Sending sft to vox space, corner origin. Then nearest neighbor
     # interpolation is just the floor.
@@ -123,41 +124,61 @@ def compute_ae(sft, peaks, nb_processes=1):
     sft.to_corner()
 
     # Fixing peaks shape and normalizing
+    logging.info("Normalizing peaks")
     _norm = np.linalg.norm(peaks, axis=-1, keepdims=True)
     _norm[_norm == 0] = 1  # Making sure we don't divide by 0
     peaks = peaks / _norm
+    del _norm
 
-    # Getting segments and normalizing. Concatenating.
+    # Getting segments and normalizing.
+    # Concatenating all segments because the process is independant on each.
+    # Then we can launch multiprocessing by dividing the segments into
+    # the number of processes. Makes multiprocessing more equal.
+    # However, it duplicates the tractogram 3 times in memory: sft, dirs,
+    # coords. Fails with very large tractograms (ex, 10 millions).
+    logging.info("Preparing each streamline segment and normalizing")
     dirs = [np.diff(s, axis=0) for s in sft.streamlines]
     dirs = np.vstack(dirs)
     dirs = dirs / np.linalg.norm(dirs, axis=-1, keepdims=True)
 
     # Concatenating streamlines for faster processing + nearest neighbor
+    logging.info("Neareast-neighbor interpolation of streamline coordinates.")
     coords = np.floor(np.vstack([s[1:] for s in sft.streamlines])).astype(int)
+    nb_segments = len(coords)
 
     # Preparing multiprocessing
-    nb_items = len(coords)
-    chunk_size = (nb_items + nb_processes - 1) // nb_processes
-    split_indices = [(i, min(i + chunk_size, nb_items))
-                     for i in range(0, nb_items, chunk_size)]
+    chunk_size = (nb_segments + nb_processes - 1) // nb_processes
+    logging.info("Preparing multiprocessing. Nb processes = {}. "
+                 "Nb segments: {}. {} in each process."
+                 .format(nb_processes, nb_segments, chunk_size))
+    split_indices = [(i, min(i + chunk_size, nb_segments))
+                     for i in range(0, nb_segments, chunk_size)]
 
-    # Finding the angular difference with the closest peak
-    ae = np.zeros(len(coords))
+    # Finding the angular difference with the closest peak: multiprocessing
+    lock = Lock()
+    tqdm.set_lock(lock)
+    ae = []
     nb_nan = 0
     with Pool(processes=nb_processes) as pool:
-        for start, ae_chunk, nb_nan_chunk in pool.imap_unordered(
-            _compute_ae, [(i, start, end, dirs, coords, peaks)
+        for ae_chunk, nb_nan_chunk in pool.imap_unordered(
+            _compute_ae, [(i, dirs[start:end], coords[start:end], peaks)
                           for i, (start, end) in enumerate(split_indices)]):
-            ae[start:start + len(ae_chunk)] = ae_chunk
+            ae.append(ae_chunk)
             nb_nan += nb_nan_chunk
 
         pool.close()
         pool.join()
 
+    # Freeing memory
+    del dirs
+    del coords
+
     print(' ')  # Required because finishing sub-processes' tqdm is flaky
+    ae = np.hstack(ae)  # Stacking multiprocess results
+
     if nb_nan > 0:
         msg = "AE in these voxels was set to 0. Total number of segments " + \
-              "traversing these voxels: {} /{} .".format(nb_nan, nb_items)
+              "traversing these voxels: {} /{} .".format(nb_nan, nb_segments)
         if multi_peaks:
             logging.warning("Some voxels had 0 valid peaks out of the {} "
                             "possible peaks (they were all [0,0,0]). "

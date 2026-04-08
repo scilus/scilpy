@@ -55,7 +55,8 @@ def _build_arg_parser():
     p.add_argument('in_peaks',
                    help='Path of the input peaks file.')
     p.add_argument('out_tractogram',
-                   help='Path of the output tractogram file (trk or tck).')
+                   help='Path of the output tractogram file (trk or tck) with '
+                        'AE in dpp.')
     p.add_argument('--dpp_key', default="AE",
                    help="Name of the dpp key containg the AE in the output. "
                         "Default: AE")
@@ -63,7 +64,7 @@ def _build_arg_parser():
     g = p.add_argument_group("Optional outputs")
     g.add_argument('--save_as_color', action='store_true',
                    help="Save the AE as a color. Colors will range between "
-                        "black (0) and yellow (--cmax_max) \n"
+                        "black (0) and yellow (--cmap_max) \n"
                         "See also scil_tractogram_assign_custom_color, option "
                         "--use_dpp.")
     g.add_argument('--save_mean_map', metavar='filename',
@@ -71,12 +72,14 @@ def _build_arg_parser():
                         "voxel. Name of the map file (nifti).\n"
                         "See also scil_tractogram_project_streamlines_to_map.")
 
-    g = p.add_argument_group("Processing options")
-    g.add_argument('--cmap_max', nargs='?', const=180,
+    g = p.add_argument_group("Coloring options")
+    g.add_argument('--cmap', default='jet',
+                   help="Choice of matplotlib colormap. Default: jet.")
+    g.add_argument('--cmap_max', nargs='?', const=180, type=float,
                     help="If set, the maximum color on the colormap (yellow) "
                          "will be associated \nto this value. If not set, the "
-                         "maxium value found in the data will be used instead. "
-                         "Default if set: 180 degrees.")
+                         "maxium value found in the data will be used instead."
+                         "\nDefault if set: 180 degrees.")
 
     add_processes_arg(p)
     add_verbose_arg(p)
@@ -98,6 +101,10 @@ def main():
     assert_headers_compatible(parser, [args.in_tractogram, args.in_peaks], [],
                               args.reference)
     assert_outputs_exist(parser, args, args.out_tractogram, args.save_mean_map)
+
+    # cmap only used if --save_as_color but preparing now to make sure it
+    # exists.
+    cmap = get_lookup_table(args.cmap)
 
     # -- Loading
     peaks = nib.load(args.in_peaks).get_fdata()
@@ -144,7 +151,6 @@ def main():
         logging.info("Saving colors. The maxium color is assiociated to "
                      "value {}".format(max_cmap))
          
-        cmap = get_lookup_table('jet')
         sft, _, _ = add_data_as_color_dpp(sft, cmap, stacked_ae,
                                           min_cmap=0, max_cmap=max_cmap)
 

@@ -26,5 +26,6 @@ def test_execution(script_runner, monkeypatch):
     ret = script_runner.run(['scil_tractogram_compute_ae', in_bundle, in_peaks,
                              'out_bundle.trk', '--dpp_key', 'AE',
                              '--save_mean_map', 'out_map.nii.gz',
-                             '--save_as_color', '--processes', '4'])
+                             '--save_as_color', '--processes', '4',
+                             '--cmap_max', '70'])
     assert ret.success
