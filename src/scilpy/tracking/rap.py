@@ -79,9 +79,9 @@ class RAPSwitch(RAP):
         rap_volume : DataVolume
             Region-Adaptive Propagation mask.
         propagators : dict
-            Dictionary of ODFPropagator instances keyed by their ODF filepath.
+            Dictionary of ODFPropagator instances keyed by label (str).
             If --in_odf is provided, contains {odf_path: propagator} as default.
-            Additional propagators are keyed by their filepath, loaded
+            Additional propagators are keyed by their label, loaded
             from the 'filename' key in rap_policies.json.
         max_nbr_pts : int
             Maximum number of points per streamline.
@@ -161,6 +161,26 @@ class RAPSwitch(RAP):
         # Apply the parameters of the RAP labels
         cfg = self._merge_cfg(label)
 
+        # Logging debug when label changes
+        if label != self._current_label:
+            if self._current_label is not None:
+                logging.debug(f"STEP[{self._total_steps}] label={self._current_label}"
+                              f" algo={self._current_cfg.get('algo')}"
+                              f" theta={self._current_cfg.get('theta')}"
+                              f" step={self._current_cfg.get('step_size')}"
+                              f" -> switching label to label {label}")
+            self._current_label = label
+            self._current_cfg = cfg
+
+        # Switch propagator based on label
+        if str(label) in self._propagators:
+            new_propagator = self._propagators[str(label)]
+            if new_propagator is not self.propagator:
+                new_propagator.line_rng_generator = self.propagator.line_rng_generator
+                self.propagator = new_propagator
+                logging.debug(f"RAP propagator switched to label {label}, "
+                              f"filename {self.methods_cfg.get(str(label), {}).get('filename')}")
+
         # Perform propagation with new parameters
         self._apply_cfg(cfg)
         new_pos, new_dir, is_direction_valid = self.propagator.propagate(
@@ -169,12 +189,6 @@ class RAPSwitch(RAP):
         # Add the new point to the line
         if is_direction_valid:
             line.append(new_pos)
-            if label != self._current_label:
-                if self._current_label is not None:
-                    logging.debug(
-                        f"STEP[{self._total_steps}] label={self._current_label} algo={self._current_cfg.get('algo')} theta={self._current_cfg.get('theta')} step={self._current_cfg.get('step_size')}")
-                self._current_label = label
-                self._current_cfg = cfg
             self._total_steps += 1
             return line, new_dir, True
         return line, prev_direction, False
@@ -241,12 +255,6 @@ class RAPSwitch(RAP):
             'theta', 'step_size'. If 'propagator' is 'ODF', switches to the
             propagator corresponding to 'filename'.
         """
-        if cfg.get('propagator') == 'ODF' and cfg.get('filename') is not None:
-            if self._propagators[cfg['filename']] is not self.propagator:
-                self._propagators[cfg['filename']
-                                  ].line_rng_generator = self.propagator.line_rng_generator
-                self.propagator = self._propagators[cfg['filename']]
-                logging.debug(f"RAP propagator switched to {cfg['filename']}")
         if 'step_size' in cfg and cfg['step_size'] is not None:
             self.propagator.step_size = float(cfg['step_size'])
         if 'algo' in cfg and cfg['algo'] is not None:

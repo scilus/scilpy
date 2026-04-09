@@ -194,7 +194,7 @@ def main():
     if not nib.streamlines.is_supported(args.out_tractogram):
         parser.error('Invalid output streamline file format (must be trk or ' +
                      'tck): {0}'.format(args.out_tractogram))
-        
+
     if args.rap_params:
         with open(args.rap_params, 'r') as f:
             rap_params = json.load(f)
@@ -324,19 +324,21 @@ def main():
 
     # Load additional propagators from rap_policies.json if ODF key is present
     if args.rap_params and args.rap_method == 'switch':
+        loaded_datasets = {}
         for label, cfg in rap_params.get('methods', {}).items():
-            if cfg.get('propagator') == 'ODF' and cfg.get(
-                    'filename') not in propagators:
+            if cfg.get('propagator') == 'ODF':
+                filename = cfg['filename']
+                if filename not in loaded_datasets:
+                    odf_img = nib.load(filename)
+                    odf_sh_res = odf_img.header.get_zooms()[:3]
+                    loaded_datasets[filename] = DataVolume(
+                        odf_img.get_fdata(caching='unchanged', dtype=float),
+                        odf_sh_res, args.sh_interp)
                 sh_basis_name = cfg.get('sh_basis', 'descoteaux07_legacy')
                 sh_basis = 'descoteaux07' if 'descoteaux07' in sh_basis_name else 'tournier07'
                 is_legacy = 'legacy' in sh_basis_name
-                odf_img = nib.load(cfg['filename'])
-                odf_sh_res = odf_img.header.get_zooms()[:3]
-                dataset = DataVolume(
-                    odf_img.get_fdata(caching='unchanged', dtype=float),
-                    odf_sh_res, args.sh_interp)
-                propagators[cfg['filename']] = ODFPropagator(
-                    dataset, vox_step_size, args.rk_order, args.algo,
+                propagators[label] = ODFPropagator(
+                    loaded_datasets[filename], vox_step_size, args.rk_order, args.algo,
                     sh_basis, args.sf_threshold, args.sf_threshold_init,
                     theta, args.sphere, sub_sphere=args.sub_sphere,
                     space=our_space, origin=our_origin, is_legacy=is_legacy)
