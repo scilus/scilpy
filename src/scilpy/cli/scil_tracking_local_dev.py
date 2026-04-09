@@ -163,18 +163,18 @@ def _build_arg_parser():
                           'Voxel values are integer labels (0=background, 1..N=regions) .\n'
                           'Used with --rap_method switch to select policies per label.')
     rap_g.add_argument('--rap_method', default='None',
-                         choices=['None', 'continue', 'switch'],
-                         help="Region-Adaptive Propagation tractography method.\n"
-                              "'continue': continues tracking with same params,\n"
-                              "'switch': switches tracking params inside RAP mask.\n"
-                              " [%(default)s]")
+                       choices=['None', 'continue', 'switch'],
+                       help="Region-Adaptive Propagation tractography method.\n"
+                       "'continue': continues tracking with same params,\n"
+                       "'switch': switches tracking params inside RAP mask.\n"
+                       " [%(default)s]")
     rap_g.add_argument('--rap_params', default=None,
-                         help='JSON file containing RAP parameters.\n'
-                              'Required for rap_method=switch. Format:\n'
-                              '{"step_size": float, "theta": float (degrees)}')
+                       help='JSON file containing RAP parameters.\n'
+                       'Required for rap_method=switch. Format:\n'
+                       '{"step_size": float, "theta": float (degrees)}')
     rap_g.add_argument('--rap_save_entry_exit', default=None,
-                         help='Save RAP entry/exit coordinates as a binary mask.\n'
-                              'Provide output filename (.nii.gz).')
+                       help='Save RAP entry/exit coordinates as a binary mask.\n'
+                       'Provide output filename (.nii.gz).')
 
     m_g = p.add_argument_group('Memory options')
     add_processes_arg(m_g)
@@ -196,15 +196,17 @@ def main():
                      'tck): {0}'.format(args.out_tractogram))
 
     inputs = [args.in_seed, args.in_mask]
-    if args.in_odf:
-        inputs.append(args.in_odf)
-    assert_inputs_exist(parser, inputs)
+    assert_inputs_exist(parser, inputs, optional=args.in_odf)
     assert_outputs_exist(parser, args, args.out_tractogram)
 
     verify_streamline_length_options(parser, args)
     verify_compression_th(args.compress_th)
     verify_seed_options(parser, args)
 
+    if args.in_odf and args.rap_params:
+        parser.error('--in_odf and --rap_params are mutually exclusive.'
+                     'Use either --in_odf for single model tracking or'
+                     '--rap_params to specify fODF models per label.')
     if (args.rap_mask is not None or args.rap_labels is not None) and args.rap_method == "None":
         parser.error('No RAP method selected.')
     if args.rap_method == 'continue' and args.rap_mask is None:
@@ -318,16 +320,17 @@ def main():
         with open(args.rap_params, 'r') as f:
             rap_params = json.load(f)
         for label, cfg in rap_params.get('methods', {}).items():
-            if 'ODF' in cfg and cfg['ODF'] not in propagators:
+            if cfg.get('propagator') == 'ODF' and cfg.get(
+                    'filename') not in propagators:
                 sh_basis_name = cfg.get('sh_basis', 'descoteaux07_legacy')
                 sh_basis_i = 'descoteaux07' if 'descoteaux07' in sh_basis_name else 'tournier07'
                 is_legacy_i = 'legacy' in sh_basis_name
-                odf_img = nib.load(cfg['ODF'])
+                odf_img = nib.load(cfg['filename'])
                 odf_sh_res_i = odf_img.header.get_zooms()[:3]
                 dataset_i = DataVolume(
                     odf_img.get_fdata(caching='unchanged', dtype=float),
                     odf_sh_res_i, args.sh_interp)
-                propagators[cfg['ODF']] = ODFPropagator(
+                propagators[cfg['filename']] = ODFPropagator(
                     dataset_i, vox_step_size, args.rk_order, args.algo,
                     sh_basis_i, args.sf_threshold, args.sf_threshold_init,
                     theta, args.sphere, sub_sphere=args.sub_sphere,

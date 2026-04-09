@@ -81,21 +81,23 @@ class RAPSwitch(RAP):
         propagators : dict
             Dictionary of ODFPropagator instances keyed by their ODF filepath.
             If --in_odf is provided, contains {odf_path: propagator} as default.
-            Additional propagators are keyed by their ODF filepath, loaded
-            from the 'ODF' key in rap_policies.json.
+            Additional propagators are keyed by their filepath, loaded
+            from the 'filename' key in rap_policies.json.
         max_nbr_pts : int
             Maximum number of points per streamline.
         rap_params : dict
-            Dictionairy containing RAP parameters, loaded from the JSON policies file.
+            Dictionary containing RAP parameters, loaded from the JSON policies file.
             Expected format:
             {
                 "methods": {
-                "1": {"ODF": str, "sh_basis": str, "algo": str, "theta": float, "step_size": float},
-                "2": {"ODF": str, "sh_basis": str, "algo": str, "theta": float, "step_size": float},
+                "1": {"propagator": "ODF", "filename": str, "sh_basis": str,
+                        "algo": str, "theta": float, "step_size": float},
+                "2": {"propagator": "ODF", "filename": str, "sh_basis": str,
+                        "algo": str, "theta": float, "step_size": float},
                 ...
                 }
             }
-            If 'ODF' is provided per lablel, the corresponding propagator is used.
+            If 'propagator' is 'ODF', the fODF file specified in 'filename' is used.
             'sh_basis' defaults to 'descoteaux07_legacy'.
         """
         base_propagator = list(propagators.values())[
@@ -216,7 +218,8 @@ class RAPSwitch(RAP):
         Returns
         -------
         dict
-            Configuration dict with keys 'algo', 'theta', 'step_size'.
+            Configuration dict with keys 'propagator', 'filename', 'algo',
+            'theta', 'step_size'.
         """
         override = self.methods_cfg.get(str(label))
         if override is None:
@@ -234,14 +237,16 @@ class RAPSwitch(RAP):
         Parameters
         ----------
         cfg: dict
-            Configuration dict with keys 'model', 'algo', 'theta', 'step_size'.
+            Configuration dict with keys 'propagator', 'filename', 'algo',
+            'theta', 'step_size'. If 'propagator' is 'ODF', switches to the
+            propagator corresponding to 'filename'.
         """
-        if 'ODF' in cfg and cfg['ODF'] is not None:
-            if self._propagators[cfg['ODF']] is not self.propagator:
-                self._propagators[cfg['ODF']
+        if cfg.get('propagator') == 'ODF' and cfg.get('filename') is not None:
+            if self._propagators[cfg['filename']] is not self.propagator:
+                self._propagators[cfg['filename']
                                   ].line_rng_generator = self.propagator.line_rng_generator
-                self.propagator = self._propagators[cfg['ODF']]
-                logging.debug(f"RAP model switched to {cfg['ODF']}")
+                self.propagator = self._propagators[cfg['filename']]
+                logging.debug(f"RAP propagator switched to {cfg['filename']}")
         if 'step_size' in cfg and cfg['step_size'] is not None:
             self.propagator.step_size = float(cfg['step_size'])
         if 'algo' in cfg and cfg['algo'] is not None:
