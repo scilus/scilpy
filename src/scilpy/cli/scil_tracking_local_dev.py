@@ -321,7 +321,7 @@ def main():
             space=our_space, origin=our_origin, is_legacy=is_legacy)
         propagators = {args.in_odf: propagator}
 
-    else:
+    elif args.rap_method == "switch":
         propagator = None
         propagators = {}
         loaded_datasets = {}
