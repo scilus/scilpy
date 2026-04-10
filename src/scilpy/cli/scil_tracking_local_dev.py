@@ -324,27 +324,33 @@ def main():
     else:
         propagator = None
         propagators = {}
-        vox_step_size = args.step_size
-
-    # Load additional propagators from rap_policies.json if ODF key is present
-    if args.rap_params and args.rap_method == 'switch':
         loaded_datasets = {}
         for label, cfg in rap_params.get('methods', {}).items():
             if cfg.get('propagator').lower() == 'odf':
                 filename = cfg['filename']
+
+                # Load data if needed
                 if filename not in loaded_datasets:
-                    odf_img = nib.load(filename)
-                    odf_sh_res = odf_img.header.get_zooms()[:3]
+                    odf_sh_img = nib.load(filename)
+                    odf_sh_res = odf_sh_img.header.get_zooms()[:3]
+                    voxel_size = odf_sh_img.header.get_zooms()[0]
+                    vox_step_size = cfg.get('step_size', args.step_size) / voxel_size
                     loaded_datasets[filename] = DataVolume(
-                        odf_img.get_fdata(caching='unchanged', dtype=float),
+                        odf_sh_img.get_fdata(caching='unchanged', dtype=float),
                         odf_sh_res, args.sh_interp)
+
+                # Get params from rap_policies file
                 sh_basis_name = cfg.get('sh_basis', 'descoteaux07_legacy')
                 sh_basis = ('descoteaux07' if 'descoteaux07' in sh_basis_name
                             else 'tournier07')
+                algo = cfg.get('algo', args.algo)
+                theta = gm.math.radians(get_theta(cfg.get('theta', args.theta), algo))
                 is_legacy = 'legacy' in sh_basis_name
+
+                # Build propagator from rap_policies file
                 propagators[label] = ODFPropagator(
                     loaded_datasets[filename], vox_step_size, args.rk_order,
-                    args.algo, sh_basis, args.sf_threshold,
+                    algo, sh_basis, args.sf_threshold,
                     args.sf_threshold_init, theta, args.sphere,
                     sub_sphere=args.sub_sphere, space=our_space,
                     origin=our_origin, is_legacy=is_legacy)
@@ -386,8 +392,7 @@ def main():
         rap = RAPContinue(rap_volume, propagator, max_nbr_pts,
                           step_size=vox_step_size)
     elif args.rap_method == "switch":
-        rap = RAPSwitch(rap_volume, propagators, max_nbr_pts,
-                        rap_params=rap_params)
+        rap = RAPSwitch(rap_volume, propagators, max_nbr_pts)
     else:
         rap = None
 

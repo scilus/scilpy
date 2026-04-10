@@ -71,7 +71,7 @@ class RAPSwitch(RAP):
     """RAP class that switches tracking parameters when inside the RAP mask/label."""
 
     def __init__(self, rap_volume, propagators: dict,
-                 max_nbr_pts, rap_params: dict):
+                 max_nbr_pts):
         """
         Parameters
         ----------
@@ -117,9 +117,6 @@ class RAPSwitch(RAP):
         else:
             self._base = {}
 
-        self.methods_cfg = rap_params.get('methods', {})
-        logging.info("RAP parameters loaded:")
-
         # Check if all labels in the volume are covered by the configuration
         unique_labels = np.unique(rap_volume.data)
         # Remove 0 (background) and convert to int
@@ -127,7 +124,7 @@ class RAPSwitch(RAP):
 
         if unique_labels:
             missing_labels = [label for label in unique_labels
-                              if str(label) not in self.methods_cfg]
+                              if label not in self._propagators.keys()]
             if missing_labels:
                 logging.warning(
                     f"Labels {missing_labels} found in RAP volume but not in "
@@ -167,9 +164,9 @@ class RAPSwitch(RAP):
         if label != self._current_label:
             if self._current_label is not None:
                 logging.debug(f"STEP[{self._total_steps}] label={self._current_label}"
-                              f" algo={self._current_cfg.get('algo')}"
-                              f" theta={self._current_cfg.get('theta')}"
-                              f" step={self._current_cfg.get('step_size')}"
+                              f", algo={self._current_cfg.get('algo')}"
+                              f", Theta (rad)={self._current_cfg.get('theta')}"
+                              f", vox step size={self._current_cfg.get('step_size')}"
                               f" -> switching label to label {label}")
             self._current_label = label
             self._current_cfg = cfg
@@ -180,12 +177,11 @@ class RAPSwitch(RAP):
             if new_propagator is not self.propagator:
                 new_propagator.line_rng_generator = self.propagator.line_rng_generator
                 self.propagator = new_propagator
-                filename = self.methods_cfg.get(str(label), {}).get('filename')
-                logging.debug(f"RAP propagator switched to label {label}, "
-                              f"filename {filename}")
+                self.propagator.tracking_neighbours = get_sphere_neighbours(
+                    self.propagator.sphere, self.propagator.theta)
+                logging.debug(f"RAP propagator switched to label {label}")
 
         # Perform propagation with new parameters
-        self._apply_cfg(cfg)
         new_pos, new_dir, is_direction_valid = self.propagator.propagate(
             line, prev_direction)
 
@@ -238,7 +234,12 @@ class RAPSwitch(RAP):
             Configuration dict for the given label from the JSON policy,
             with keys 'algo', 'theta', 'step_size'.
         """
-        override = self.methods_cfg.get(str(label))
+        override = {
+                'step_size': self._propagators[str(label)].step_size,
+                'algo': self._propagators[str(label)].algo,
+                'theta': self._propagators[str(label)].theta
+            }
+
         if override is None:
             return {
                 'step_size': self._base['step_size'],
@@ -246,27 +247,6 @@ class RAPSwitch(RAP):
                 'theta': float(np.degrees(self._base['theta']))
             }
         return deepcopy(override)
-
-    def _apply_cfg(self, cfg):
-        """
-        Temporarily apply a label configuration to the propagator.
-
-        Parameters
-        ----------
-        cfg: dict
-            Configuration dict with keys 'algo', 'theta',
-            'step_size'.
-        """
-        if 'step_size' in cfg and cfg['step_size'] is not None:
-            self.propagator.step_size = float(cfg['step_size'])
-        if 'algo' in cfg and cfg['algo'] is not None:
-            self.propagator.algo = str(cfg['algo'])
-        if 'theta' in cfg and cfg['theta'] is not None:
-            theta_rad = np.deg2rad(float(cfg['theta']))
-            self.propagator.theta = theta_rad
-            # theta change => neighbours change
-            self.propagator.tracking_neighbours = get_sphere_neighbours(
-                self.propagator.sphere, self.propagator.theta)
 
 
 class RAPGraph(RAP):
