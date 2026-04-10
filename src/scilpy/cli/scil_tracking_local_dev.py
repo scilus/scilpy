@@ -37,6 +37,18 @@ A few notes on Runge-Kutta integration.
     2. As a rule of thumb, doubling the rk_order will double the computation
        time in the worst case.
 
+A few notes on Region-Adaptive Propagation (RAP):
+    RAP allows dynamic parameter switching during tracking based on a label 
+    volume (--rap_labels) or a binary mask (--rap_mask)
+    - Method 'continue': continues tracking with the same parameters inside the 
+      RAP region.
+    - Method 'switch': switches algo, theta, step_size, and fODF model per
+      label, based on a JSON policy file (--rap_params). --in_odf and 
+      --rap_params are mutually exclusive. Each label in the JSON must specify 
+      a propagator type, filename and sh_basis. Multiple labels can share the
+      fODF file without loading it twice in memory. See --rap_params help for 
+      expected JSON format
+
 -------------------------------------------------------------------------------
 Reference:
 [1] Girard, G., Whittingstall K., Deriche, R., and Descoteaux, M. (2014).
@@ -87,7 +99,7 @@ def _build_arg_parser():
                                 epilog=version_string)
 
     # Options common to both scripts
-    add_mandatory_options_tracking(p)
+    add_mandatory_options_tracking(p, fodf_optional=True)
     track_g = add_tracking_options(p)
     add_seeding_options(p)
 
@@ -168,10 +180,6 @@ def _build_arg_parser():
                        "'continue': continues tracking with same params,\n"
                        "'switch': switches tracking params inside RAP mask.\n"
                        " [%(default)s]")
-    rap_g.add_argument('--rap_params', default=None,
-                       help='JSON file containing RAP parameters.\n'
-                       'Required for rap_method=switch. Format:\n'
-                       '{"step_size": float, "theta": float (degrees)}')
     rap_g.add_argument('--rap_save_entry_exit', default=None,
                        help='Save RAP entry/exit coordinates as a binary mask.\n'
                        'Provide output filename (.nii.gz).')
@@ -210,10 +218,6 @@ def main():
     verify_compression_th(args.compress_th)
     verify_seed_options(parser, args)
 
-    if args.in_odf and args.rap_params:
-        parser.error('--in_odf and --rap_params are mutually exclusive.'
-                     'Use either --in_odf for single model tracking or'
-                     '--rap_params to specify fODF models per label.')
     if (args.rap_mask is not None or args.rap_labels is not None) and args.rap_method == "None":
         parser.error('No RAP method selected.')
     if args.rap_method == 'continue' and args.rap_mask is None:
@@ -326,7 +330,7 @@ def main():
     if args.rap_params and args.rap_method == 'switch':
         loaded_datasets = {}
         for label, cfg in rap_params.get('methods', {}).items():
-            if cfg.get('propagator') == 'ODF':
+            if cfg.get('propagator').lower() == 'odf':
                 filename = cfg['filename']
                 if filename not in loaded_datasets:
                     odf_img = nib.load(filename)
@@ -342,7 +346,14 @@ def main():
                     sh_basis, args.sf_threshold, args.sf_threshold_init,
                     theta, args.sphere, sub_sphere=args.sub_sphere,
                     space=our_space, origin=our_origin, is_legacy=is_legacy)
+            else:
+                raise ValueError(f"Unknown propagator type '{cfg.get('propagator')}"
+                                 f"for label {label}. Supported types: 'ODF")
         del loaded_datasets
+
+    if not propagators:
+        parser.error('No valid propagators found in rap_policies.json.'
+                     'Make sure at least one label has a valid propagator type.')
 
     if propagator is None and propagators:
         propagator = next(iter(propagators.values()))

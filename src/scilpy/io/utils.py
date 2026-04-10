@@ -340,7 +340,7 @@ def add_sh_basis_args(parser, mandatory=False, input_output=False):
         input_output_msg = ('\nBoth the input and output bases are '
                             'required, in that order.')
     else:
-        nargs = '+'
+        nargs = 1
         def_val = ['descoteaux07_legacy']
         input_output_msg = ''
 
@@ -412,11 +412,6 @@ def parse_sh_basis_arg(args, input_output=False):
             else 'tournier07'
         is_out_legacy = 'legacy' in sh_basis_name
         return sh_basis, is_legacy, out_sh_basis, is_out_legacy
-    elif len(args.sh_basis) >= 2:
-        def _parse_one(name):
-            basis = 'descoteaux07' if 'descoteaux07' in name else 'tournier07'
-            return basis, 'legacy' in name
-        return [_parse_one(b) for b in args.sh_basis]
     else:
         return sh_basis, is_legacy
 

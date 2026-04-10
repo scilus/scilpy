@@ -159,7 +159,7 @@ class RAPSwitch(RAP):
         if label <= 0:
             return line, prev_direction, False
         # Apply the parameters of the RAP labels
-        cfg = self._merge_cfg(label)
+        cfg = self._get_label_cfg(label)
 
         # Logging debug when label changes
         if label != self._current_label:
@@ -220,9 +220,9 @@ class RAPSwitch(RAP):
         except Exception:
             return int(np.round(v))
 
-    def _merge_cfg(self, label):
+    def _get_label_cfg(self, label):
         """
-        Merge the default configuration with the label-specific cfg override from the JSON policy.
+        Get the configuration for the given label from the JSON policy.
 
         Parameters
         ----------
@@ -232,8 +232,8 @@ class RAPSwitch(RAP):
         Returns
         -------
         dict
-            Configuration dict with keys 'propagator', 'filename', 'algo',
-            'theta', 'step_size'.
+            Configuration dict for the given label from the JSON policy,
+            with keys 'algo', 'theta', 'step_size'.
         """
         override = self.methods_cfg.get(str(label))
         if override is None:
@@ -251,9 +251,8 @@ class RAPSwitch(RAP):
         Parameters
         ----------
         cfg: dict
-            Configuration dict with keys 'propagator', 'filename', 'algo',
-            'theta', 'step_size'. If 'propagator' is 'ODF', switches to the
-            propagator corresponding to 'filename'.
+            Configuration dict with keys 'algo', 'theta', 
+            'step_size'.
         """
         if 'step_size' in cfg and cfg['step_size'] is not None:
             self.propagator.step_size = float(cfg['step_size'])
