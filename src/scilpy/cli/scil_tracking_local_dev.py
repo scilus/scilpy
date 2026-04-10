@@ -351,8 +351,8 @@ def main():
                                  f"for label {label}. Supported types: 'ODF")
         del loaded_datasets
 
-    if not propagators:
-        parser.error('No valid propagators found in rap_policies.json.'
+        if not propagators:
+            parser.error('No valid propagators found in rap_policies.json.'
                      'Make sure at least one label has a valid propagator type.')
 
     if propagator is None and propagators:
