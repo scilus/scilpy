@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-import json
 import logging
 import numpy as np
 from copy import deepcopy
@@ -69,7 +68,7 @@ class RAPContinue(RAP):
 
 
 class RAPSwitch(RAP):
-    """RAP class that switches tracking parameters when inside the RAP mask or RAP label."""
+    """RAP class that switches tracking parameters when inside the RAP mask/label."""
 
     def __init__(self, rap_volume, propagators: dict,
                  max_nbr_pts, rap_params: dict):
@@ -80,13 +79,14 @@ class RAPSwitch(RAP):
             Region-Adaptive Propagation mask.
         propagators : dict
             Dictionary of ODFPropagator instances keyed by label (str).
-            If --in_odf is provided, contains {odf_path: propagator} as default.
-            Additional propagators are keyed by their label, loaded
-            from the 'filename' key in rap_policies.json.
+            If --in_odf is provided, contains {odf_path: propagator}
+            as default. Additional propagators are keyed by their label,
+            loaded from the 'filename' key in rap_policies.json.
         max_nbr_pts : int
             Maximum number of points per streamline.
         rap_params : dict
-            Dictionary containing RAP parameters, loaded from the JSON policies file.
+            Dictionary containing RAP parameters, loaded from
+            the JSON policies file.
             Expected format:
             {
                 "methods": {
@@ -97,7 +97,8 @@ class RAPSwitch(RAP):
                 ...
                 }
             }
-            If 'propagator' is 'ODF', the fODF file specified in 'filename' is used.
+            If 'propagator' is 'ODF', the fODF file specified
+            in 'filename' is used.
             'sh_basis' defaults to 'descoteaux07_legacy'.
         """
         base_propagator = list(propagators.values())[
@@ -110,7 +111,8 @@ class RAPSwitch(RAP):
                 'step_size': self.propagator.step_size,
                 'theta': self.propagator.theta,
                 'algo': getattr(self.propagator, 'algo', None),
-                'tracking_neighbours': getattr(self.propagator, 'tracking_neighbours', None)
+                'tracking_neighbours': getattr(self.propagator,
+                                               'tracking_neighbours', None)
             }
         else:
             self._base = {}
@@ -129,7 +131,7 @@ class RAPSwitch(RAP):
             if missing_labels:
                 logging.warning(
                     f"Labels {missing_labels} found in RAP volume but not in "
-                    f"methods config. Base parameters will be used for these labels."
+                    f"methods config. Base params will be used for these labels."
                 )
 
     def rap_multistep_propagate(self, line, prev_direction):
@@ -178,8 +180,9 @@ class RAPSwitch(RAP):
             if new_propagator is not self.propagator:
                 new_propagator.line_rng_generator = self.propagator.line_rng_generator
                 self.propagator = new_propagator
+                filename = self.methods_cfg.get(str(label), {}).get('filename')
                 logging.debug(f"RAP propagator switched to label {label}, "
-                              f"filename {self.methods_cfg.get(str(label), {}).get('filename')}")
+                              f"filename {filename}")
 
         # Perform propagation with new parameters
         self._apply_cfg(cfg)

@@ -339,21 +339,25 @@ def main():
                         odf_img.get_fdata(caching='unchanged', dtype=float),
                         odf_sh_res, args.sh_interp)
                 sh_basis_name = cfg.get('sh_basis', 'descoteaux07_legacy')
-                sh_basis = 'descoteaux07' if 'descoteaux07' in sh_basis_name else 'tournier07'
+                sh_basis = ('descoteaux07' if 'descoteaux07' in sh_basis_name
+                            else 'tournier07')
                 is_legacy = 'legacy' in sh_basis_name
                 propagators[label] = ODFPropagator(
-                    loaded_datasets[filename], vox_step_size, args.rk_order, args.algo,
-                    sh_basis, args.sf_threshold, args.sf_threshold_init,
-                    theta, args.sphere, sub_sphere=args.sub_sphere,
-                    space=our_space, origin=our_origin, is_legacy=is_legacy)
+                    loaded_datasets[filename], vox_step_size, args.rk_order,
+                    args.algo, sh_basis, args.sf_threshold,
+                    args.sf_threshold_init, theta, args.sphere,
+                    sub_sphere=args.sub_sphere, space=our_space,
+                    origin=our_origin, is_legacy=is_legacy)
             else:
-                raise ValueError(f"Unknown propagator type '{cfg.get('propagator')}"
-                                 f"for label {label}. Supported types: 'ODF")
+                raise ValueError(
+                    f"Unknown propagator type '{cfg.get('propagator')}"
+                    f"for label {label}. Supported types: 'ODF")
         del loaded_datasets
 
         if not propagators:
             parser.error('No valid propagators found in rap_policies.json.'
-                         'Make sure at least one label has a valid propagator type.')
+                         'Make sure at least one label has a valid '
+                         'propagator type.')
 
     if propagator is None and propagators:
         propagator = next(iter(propagators.values()))

@@ -40,23 +40,31 @@ def add_mandatory_options_tracking(p, fodf_optional=False):
     if fodf_optional:
         odf_group = p.add_mutually_exclusive_group()
         odf_group.add_argument('--in_odf', default=None,
-                               help='File containing the orientation diffusion function \n'
-                               'as spherical harmonics file (.nii.gz). Ex: ODF or '
-                               'fODF. If not provided, fODF info must be specified \n'
-                               'in rap_policies.json.')
+                               help='File containing the orientation \n'
+                               'diffusion function as spherical harmonics \n'
+                               'file (.nii.gz). Ex: ODF or fODF. \n'
+                               'If not provided, fODF info must be \n'
+                               'specified in rap_policies.json.')
         odf_group.add_argument('--rap_params', default=None,
-                               help='JSON file containing RAP parameters, mutually exclusive with --in_odf.\n'
-                               'Required for --rap_method switch. Expected format:\n'
+                               help='JSON file containing RAP parameters, \n'
+                               'mutually exclusive with --in_odf.\n'
+                               'Required for --rap_method switch.\n'
+                               'Expected format:\n'
                                     '{\n'
                                     '  "methods": {\n'
-                                    '    "1": {"propagator": "ODF", "filename": str, "sh_basis": str, "algo": str, "theta": float, "step_size": float},\n'
-                                    '    "2": {"propagator": "ODF", "filename": str, "sh_basis": str, "algo": str, "theta": float, "step_size": float}\n'
+                                    '    "1": {"propagator": "ODF", "filename": str,\n'
+                                    '          "sh_basis": str, "algo": str,\n'
+                                    '          "theta": float, "step_size": float},\n'
+                                    '    "2": {"propagator": "ODF", "filename": str,\n'
+                                    '          "sh_basis": str, "algo": str,\n'
+                                    '          "theta": float, "step_size": float}\n'
                                     '  }\n'
                                     '}')
     else:
         p.add_argument('in_odf',
                        help='File containing the orientation diffusion function \n'
-                            'as spherical harmonics file (.nii.gz). Ex: ODF or fODF.')
+                            'as spherical harmonics file (.nii.gz). \n'
+                            'Ex: ODF or fODF.')
     p.add_argument('in_seed',
                    help='Seeding mask (.nii.gz).')
     p.add_argument('in_mask',
