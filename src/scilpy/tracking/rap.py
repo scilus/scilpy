@@ -251,7 +251,7 @@ class RAPSwitch(RAP):
         Parameters
         ----------
         cfg: dict
-            Configuration dict with keys 'algo', 'theta', 
+            Configuration dict with keys 'algo', 'theta',
             'step_size'.
         """
         if 'step_size' in cfg and cfg['step_size'] is not None:

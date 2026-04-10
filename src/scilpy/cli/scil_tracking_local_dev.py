@@ -38,15 +38,15 @@ A few notes on Runge-Kutta integration.
        time in the worst case.
 
 A few notes on Region-Adaptive Propagation (RAP):
-    RAP allows dynamic parameter switching during tracking based on a label 
+    RAP allows dynamic parameter switching during tracking based on a label
     volume (--rap_labels) or a binary mask (--rap_mask)
-    - Method 'continue': continues tracking with the same parameters inside the 
+    - Method 'continue': continues tracking with the same parameters inside the
       RAP region.
     - Method 'switch': switches algo, theta, step_size, and fODF model per
-      label, based on a JSON policy file (--rap_params). --in_odf and 
-      --rap_params are mutually exclusive. Each label in the JSON must specify 
+      label, based on a JSON policy file (--rap_params). --in_odf and
+      --rap_params are mutually exclusive. Each label in the JSON must specify
       a propagator type, filename and sh_basis. Multiple labels can share the
-      fODF file without loading it twice in memory. See --rap_params help for 
+      fODF file without loading it twice in memory. See --rap_params help for
       expected JSON format
 
 -------------------------------------------------------------------------------
@@ -353,7 +353,7 @@ def main():
 
         if not propagators:
             parser.error('No valid propagators found in rap_policies.json.'
-                     'Make sure at least one label has a valid propagator type.')
+                         'Make sure at least one label has a valid propagator type.')
 
     if propagator is None and propagators:
         propagator = next(iter(propagators.values()))
