@@ -25,8 +25,9 @@ def test_execution_tracking_fodf(script_runner, monkeypatch):
                            'fodf.nii.gz')
     in_mask = os.path.join(SCILPY_HOME, 'tracking',
                            'seeding_mask.nii.gz')
-    ret = script_runner.run(['scil_tracking_local_dev', in_fodf,
-                             in_mask, in_mask, 'local_prob.trk', '--nt', '10',
+    ret = script_runner.run(['scil_tracking_local_dev', in_mask, in_mask,
+                             '--in_odf', in_fodf, 'local_prob.trk',
+                             '--nt', '10',
                              '--compress', '0.1', '--sh_basis', 'descoteaux07',
                              '--min_length', '20', '--max_length', '200',
                              '--save_seeds', '--rng_seed', '0',
@@ -44,8 +45,9 @@ def test_execution_tracking_rap(script_runner, monkeypatch):
 
     in_rap_mask = os.path.join(SCILPY_HOME, 'tracking',
                                'seeding_mask.nii.gz')
-    ret = script_runner.run(['scil_tracking_local_dev', in_fodf,
+    ret = script_runner.run(['scil_tracking_local_dev',
                              in_mask, in_mask, 'local_prob_rap.trk',
+                             '--in_odf', in_fodf,
                              '--nt', '10',
                              '--compress', '0.1', '--sh_basis', 'descoteaux07',
                              '--min_length', '20', '--max_length', '200',
@@ -68,8 +70,9 @@ def test_execution_tracking_fodf_custom_seeds(script_runner, monkeypatch):
     custom_seeds = [[1., 1., 1.], [2., 2., 2.], [3., 3., 3.]]
     np.save(in_custom_seeds, custom_seeds)
 
-    ret = script_runner.run(['scil_tracking_local_dev', in_fodf,
+    ret = script_runner.run(['scil_tracking_local_dev',
                              in_mask, in_mask, 'local_prob2.trk',
+                             '--in_odf', in_fodf,
                              '--in_custom_seeds', in_custom_seeds,
                              '--compress', '0.1', '--sh_basis', 'descoteaux07',
                              '--min_length', '20', '--max_length', '200',
