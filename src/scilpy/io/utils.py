@@ -330,8 +330,7 @@ def add_sh_basis_args(parser, mandatory=False, input_output=False):
     input_output: bool
         Whether this argument should expect both input and output bases or not.
         If set, the sh_basis argument will expect first the input basis,
-        followed by the output basis. If not set, accepts one or more bases,
-        one per fODF model.
+        followed by the output basis.
     """
     if input_output:
         nargs = 2
@@ -375,7 +374,7 @@ def add_sh_basis_args(parser, mandatory=False, input_output=False):
                         help=help_msg)
 
 
-def parse_sh_basis_arg(args, input_output=False):
+def parse_sh_basis_arg(args):
     """
     Parser the input from args.sh_basis. If two SH bases are given,
     both input/output sh_basis and is_legacy are returned.
@@ -384,8 +383,6 @@ def parse_sh_basis_arg(args, input_output=False):
     ----------
     args : ArgumentParser.parse_args
         ArgumentParser.parse_args from a script.
-    input_output : bool, optional
-        If True, expects exactly 2 bases: input and output. Returns 4 values.
 
     Returns
     -------
@@ -394,18 +391,15 @@ def parse_sh_basis_arg(args, input_output=False):
             Spherical harmonic basis name.
         is_legacy : bool
             Whether the SH basis is in its legacy form.
-    if input_output (len(args.sh_basis) == 2):
-        Returns a tuple of 4 values:
+    else: (args.sh_basis is a list of two strings)
+        Returns a Tuple of 4 values:
         (sh_basis_in, is_legacy_in, sh_basis_out, is_legacy_out)
-    if len(args.sh_basis) >= 2:
-        Returns a list of (sh_basis, is_legacy) tuples, one per fODF model.
-
     """
     sh_basis_name = args.sh_basis[0]
     sh_basis = 'descoteaux07' if 'descoteaux07' in sh_basis_name \
         else 'tournier07'
     is_legacy = 'legacy' in sh_basis_name
-    if input_output:
+    if len(args.sh_basis) == 2:
         sh_basis_name = args.sh_basis[1]
         out_sh_basis = 'descoteaux07' if 'descoteaux07' in sh_basis_name \
             else 'tournier07'
