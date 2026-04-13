@@ -391,7 +391,7 @@ def parse_sh_basis_arg(args):
             Spherical harmonic basis name.
         is_legacy : bool
             Whether the SH basis is in its legacy form.
-    else: (args:sh_basis is a list of two strings)
+    else: (args.sh_basis is a list of two strings)
         Returns a Tuple of 4 values:
         (sh_basis_in, is_legacy_in, sh_basis_out, is_legacy_out)
     """
