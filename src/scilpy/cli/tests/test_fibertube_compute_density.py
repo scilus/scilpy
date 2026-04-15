@@ -27,8 +27,9 @@ def init_data():
     }
     mask_img = nib.Nifti1Image(mask, affine, header, extra)
 
-    sft_fibertubes = StatefulTractogram(streamlines, mask_img, Space.VOX,
-                                        Origin.NIFTI)
+    sft_fibertubes = StatefulTractogram(streamlines, mask_img,
+                                        Space.VOX,
+                                        origin=Origin.NIFTI)
     sft_fibertubes.data_per_streamline = {
         "diameters": np.array([0.2, 0.01])
     }

@@ -38,12 +38,167 @@ Global connectivity metrics:
 
 import logging
 
+from multiprocessing import Pool, Lock
 import numpy as np
+from tqdm import tqdm
 
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
-
 from scilpy.tractograms.streamline_and_mask_operations import \
     get_endpoints_density_map
+
+
+def _compute_ae(args):
+    """Used for multiprocessing in compute_ae below."""
+    process_id, dirs, coords, peaks = args
+
+    nb_segments = len(dirs)
+    ae_chunk = np.zeros(nb_segments)
+    nb_nan_chunk = 0
+
+    # Hiding the segment number in the tqdm bar, not meaningful
+    _format = '{desc}:{percentage:3.0f}%|{bar}|  '
+    _format += '[{elapsed}<{remaining}, {rate_fmt}{postfix}'
+
+    for i in tqdm(range(nb_segments), ncols=120,
+                  bar_format=_format, position=process_id + 1,
+                  desc="Process {}.".format(process_id + 1)):
+        current_peaks = peaks[coords[i][0], coords[i][1], coords[i][2], :, :]
+
+        # Using only non-zero peaks. Dealing with buggy voxels: setting AE to 0
+        current_peaks = current_peaks[np.any(current_peaks!=0, axis=-1)]
+        if current_peaks.size == 0:
+            nb_nan_chunk += 1
+            ae_chunk[i] = 0
+            continue
+
+        # Using the abs value because vectors are undirected.
+        cos_theta = np.abs(np.dot(current_peaks, dirs[i]))
+        cos_theta = np.clip(cos_theta, 0, 1.0)  # numerical safety
+        theta = np.rad2deg(np.arccos(cos_theta))
+        ae_chunk[i] = np.min(theta)
+
+    return ae_chunk, nb_nan_chunk
+
+
+def compute_ae(sft, peaks, nb_processes=1):
+    """
+    Computing the angular error for each segment. The direction is compared
+    with the underlying peak (for single peak files like DTI) or with the
+    closest peak (ex, with fODF peaks). Currently, interpolation is not
+    supported: peaks of the closest voxel are used (nearest neighbor). AE is
+    computed as the cosine difference.
+
+    Parameters
+    ----------
+    sft: StatefulTractogram
+        The tractogram
+    peaks: np.array of shape [x, y, z, nb_peaks, 3].
+        The peaks.
+    nb_processes: int
+        To use multiprocessing
+
+    Returns
+    -------
+    ae: list[np.array]
+        The angular error for each streamline, in degrees. The last point of
+        each streamline has an AE of zero.
+    """
+    # If there is only one peak, make sure we still have a 4th dimension = 1.
+    peaks = peaks.reshape(peaks.shape[:3] + (-1, 3))
+
+    if peaks.shape[3] == 1:
+        multi_peaks = False
+        logging.info("Peaks seem to be single-peaks (DTI, probably). Simple "
+                     "alignment measure.")
+    else:
+        multi_peaks = True
+        logging.info("Peaks seem to be multi-peaks (maybe coming from ODF, "
+                     "fODF, etc). We will verify alignment with the closest "
+                     "peak in each voxel.")
+
+    # Sending sft to vox space, corner origin. Then nearest neighbor
+    # interpolation is just the floor.
+    previous_space = sft.space
+    previous_origin = sft.origin
+    sft.to_vox()
+    sft.to_corner()
+
+    # Fixing peaks shape and normalizing
+    logging.info("Normalizing peaks")
+    _norm = np.linalg.norm(peaks, axis=-1, keepdims=True)
+    _norm[_norm == 0] = 1  # Making sure we don't divide by 0
+    peaks = peaks / _norm
+    del _norm
+
+    # Getting segments and normalizing.
+    # Concatenating all segments because the process is independant on each.
+    # Then we can launch multiprocessing by dividing the segments into
+    # the number of processes. Makes multiprocessing more equal.
+    # However, it duplicates the tractogram 3 times in memory: sft, dirs,
+    # coords. Fails with very large tractograms (ex, 10 millions).
+    logging.info("Preparing each streamline segment and normalizing")
+    dirs = [np.diff(s, axis=0) for s in sft.streamlines]
+    dirs = np.vstack(dirs)
+    dirs = dirs / np.linalg.norm(dirs, axis=-1, keepdims=True)
+
+    # Concatenating streamlines for faster processing + nearest neighbor
+    logging.info("Neareast-neighbor interpolation of streamline coordinates.")
+    coords = np.floor(np.vstack([s[1:] for s in sft.streamlines])).astype(int)
+    nb_segments = len(coords)
+
+    # Preparing multiprocessing
+    chunk_size = (nb_segments + nb_processes - 1) // nb_processes
+    logging.info("Preparing multiprocessing. Nb processes = {}. "
+                 "Nb segments: {}. {} in each process."
+                 .format(nb_processes, nb_segments, chunk_size))
+    split_indices = [(i, min(i + chunk_size, nb_segments))
+                     for i in range(0, nb_segments, chunk_size)]
+
+    # Finding the angular difference with the closest peak: multiprocessing
+    lock = Lock()
+    tqdm.set_lock(lock)
+    ae = []
+    nb_nan = 0
+    with Pool(processes=nb_processes) as pool:
+        for ae_chunk, nb_nan_chunk in pool.imap_unordered(
+            _compute_ae, [(i, dirs[start:end], coords[start:end], peaks)
+                          for i, (start, end) in enumerate(split_indices)]):
+            ae.append(ae_chunk)
+            nb_nan += nb_nan_chunk
+
+        pool.close()
+        pool.join()
+
+    # Freeing memory
+    del dirs
+    del coords
+
+    print(' ')  # Required because finishing sub-processes' tqdm is flaky
+    ae = np.hstack(ae)  # Stacking multiprocess results
+
+    if nb_nan > 0:
+        msg = "AE in these voxels was set to 0. Total number of segments " + \
+              "traversing these voxels: {} /{} .".format(nb_nan, nb_segments)
+        if multi_peaks:
+            logging.warning("Some voxels had 0 valid peaks out of the {} "
+                            "possible peaks (they were all [0,0,0]). "
+                            .format(peaks.shape[3]) + msg)
+        else:
+            logging.warning("Invalid peaks ([0,0,0]) were found in some "
+                            "voxels. " + msg)
+
+    # Split back streamlines
+    lengths = [len(s) - 1 for s in sft.streamlines]
+    ae = np.split(ae, np.cumsum(lengths)[:-1])
+
+    # Add value 0 as the last value of each streamline
+    ae = [np.append(line_ae, 0) for line_ae in ae]
+
+    # Sending back to previous space
+    sft.to_space(previous_space)
+    sft.to_origin(previous_origin)
+
+    return ae
 
 
 def compute_f1_score(overlap, overreach):

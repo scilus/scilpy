@@ -97,7 +97,7 @@ def main():
     scene.background(tuple(map(int, args.background)))
 
     seedroi_actor = actor.contour_from_label(
-        seed_map_data, seed_map_affine, color=colors)
+        seed_map_data, affine=seed_map_affine, color=colors)
     scene.add(seedroi_actor)
 
     # Load tractogram as tubes or lines, with color if specified
