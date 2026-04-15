@@ -13,7 +13,6 @@ import xml.etree.ElementTree as ET
 import nibabel as nib
 import numpy as np
 from dipy.data import SPHERE_FILES
-from dipy.io.stateful_tractogram import Space, Origin
 from dipy.io.utils import is_header_compatible
 from scipy.io import loadmat
 import six
@@ -157,8 +156,7 @@ def assert_gradients_filenames_valid(parser, filename_list, input_is_fsl):
                              '.bval and .bvec.')
 
             if basename_1 == basename_2:
-                curr_extensions = [ext_1, ext_2]
-                curr_extensions.sort()
+                curr_extensions = sorted([ext_1, ext_2])
                 if curr_extensions != valid_fsl_extensions:
                     parser.error('Your extensions ({}) doesn\'t follow BIDS '
                                  'convention.'.format(curr_extensions))
@@ -416,7 +414,7 @@ def parse_sh_basis_arg(args):
             Spherical harmonic basis name.
         is_legacy : bool
             Whether the SH basis is in its legacy form.
-    else: (args:sh_basis is a list of two strings)
+    else: (args.sh_basis is a list of two strings)
         Returns a Tuple of 4 values:
         (sh_basis_in, is_legacy_in, sh_basis_out, is_legacy_out)
     """
