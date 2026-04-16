@@ -1,4 +1,3 @@
-
 #! /usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
@@ -42,8 +41,8 @@ implementations:
     * Forward tracking: For GPU tracking, the `--forward_only` flag can be used
         to disable backward tracking. This option isn't available for CPU
         tracking.
-    * RNG stream: CPU and GPU use different RNG implementations, so the same
-        `--rng_seed` is reproducible within a backend but does not guarantee
+    * Random number generator seed (RNG): CPU and GPU use different RNG implementations,<
+        so the same `--seed` is reproducible within a backend but does not guarantee
         identical streamlines across CPU vs GPU tracking.
 
 All the input nifti files must be in isotropic resolution.
