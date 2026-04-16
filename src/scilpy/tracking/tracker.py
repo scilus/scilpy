@@ -606,7 +606,8 @@ class GPUTracker():
     forward_only: bool, optional
         If True, only forward tracking is performed.
     rng_seed : int, optional
-        Seed for random number generator.
+        Seed for GPU random number generator. Reproducible across GPU runs,
+        but not guaranteed to match CPU tracker results for the same seed.
     sphere : int, optional
         Sphere to use for the tracking.
     algo : {'prob', 'det'}, optional

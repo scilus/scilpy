@@ -233,6 +233,7 @@ bool is_valid_pos(__global const float* tracking_mask, const float3 pos)
 int sample_sf(const float* odf_sf, const float randv)
 {
 #if !PROBABILISTIC
+    // randv is only used in probabilistic mode; suppress unused warning here.
     (void)randv;
     int max_index = -1;
     float max_value = 0.0f;
@@ -285,7 +286,9 @@ int sample_sf(const float* odf_sf, const float randv)
 
 uint hash_u32(uint x)
 {
-    // Lightweight integer hash for reproducible pseudo-random values.
+    // 32-bit avalanche mix (hash-prospector constants):
+    // https://github.com/skeeto/hash-prospector
+    // This is used as a deterministic, stateless RNG mixer.
     x ^= x >> 16;
     x *= 0x7feb352du;
     x ^= x >> 15;
@@ -296,11 +299,13 @@ uint hash_u32(uint x)
 
 float rand01(const size_t seed_indice, const int current_length)
 {
+    // Stateless random value based on stream index and step index.
     // Reference constants:
-    // - 0x9e3779b9 (Knuth/golden-ratio hashing):
-    //   https://softwareengineering.stackexchange.com/a/402543
-    // - 0x85ebca6b (MurmurHash3 fmix32 finalizer):
+    // - 0x9e3779b9 (golden-ratio constant used in integer hashing)
+    // - 0x85ebca6b (MurmurHash3 fmix32 constant):
     //   https://github.com/aappleby/smhasher/blob/master/src/MurmurHash3.cpp
+    // Mapping uint32 to [0, 1) via division by 2^32 gives an even partition
+    // of the output space (non-cryptographic PRNG, suitable for sampling).
     uint state = RNG_SEED;
     state ^= (uint)(seed_indice + 1u) * 0x9e3779b9u;
     state ^= (uint)(current_length + 1) * 0x85ebca6bu;
