@@ -20,8 +20,7 @@ def test_help_option(script_runner):
 
 def test_execution_tractometry_euclidian(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
-    in_bundle = os.path.join(SCILPY_HOME, 'tractometry',
-                             'IFGWM.trk')
+    in_bundle = os.path.join(SCILPY_HOME, 'tractometry', 'IFGWM.trk')
     in_centroid = os.path.join(SCILPY_HOME, 'tractometry',
                                'IFGWM_uni_c_10.trk')
     ret = script_runner.run(['scil_bundle_label_map',
