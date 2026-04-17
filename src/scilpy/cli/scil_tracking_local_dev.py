@@ -162,7 +162,11 @@ def _build_arg_parser():
                               "given the \ninitial seed. The direction is "
                               "randomly drawn from the ODF/Tensor.")
 
-    add_tracking_sh_options(p)
+    sh_options = add_tracking_sh_options(p)
+    sh_options.add_argument('--sh_interp', default='trilinear',
+                            choices=['nearest', 'trilinear'],
+                            help="Spherical harmonic interpolation: "
+                              "nearest-neighbor \nor trilinear. [%(default)s]")
     add_tracking_tensor_options(p)
 
     rap_g = p.add_argument_group('Region-Adaptive Propagation options')

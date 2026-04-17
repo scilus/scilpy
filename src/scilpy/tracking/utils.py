@@ -114,15 +114,12 @@ def add_tracking_sh_options(p):
                               "for the step function.\n"
                               "For more information, refer to the note in the"
                               " script description. [%(default)s]")
-    sh_options.add_argument('--sh_interp', default='trilinear',
-                         choices=['nearest', 'trilinear'],
-                         help="Spherical harmonic interpolation: "
-                              "nearest-neighbor \nor trilinear. [%(default)s]")
     sh_options.add_argument('--sfthres', dest='sf_threshold', metavar='sf_th',
                          type=float, default=0.1,
                          help='Spherical function relative threshold. '
                               '[%(default)s]')
     add_sh_basis_args(sh_options)
+    return sh_options
 
 def add_tracking_ptt_options(p):
     track_g = p.add_argument_group('PTT options')
