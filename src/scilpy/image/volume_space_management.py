@@ -16,6 +16,25 @@ from scilpy.tractanalysis.todi_util import get_dir_to_sphere_id
 from dipy.reconst.shm import sf_to_sh
 
 
+"""
+Tensor interpolation notes
+--------------------------
+The tensor interpolation path supports a Log-Euclidean mode for 6-coefficient
+DTI volumes. This follows the idea of interpolating symmetric positive-definite
+matrices in the log-domain and then mapping the result back with the matrix
+exponential.
+
+References
+~~~~~~~~~~
+Arsigny, V., Fillard, P., Pennec, X., Ayache, N. (2007). Geometric Means in a
+Novel Vector Space Structure on Symmetric Positive-Definite Matrices. SIAM
+Journal on Matrix Analysis and Applications, 29(1), 328-347.
+
+Pennec, X., Fillard, P., Ayache, N. (2006). A Riemannian Framework for Tensor
+Computing. International Journal of Computer Vision, 66, 41-66.
+"""
+
+
 class DataVolume(object):
     """
     Class to access/interpolate data from nibabel object
@@ -296,6 +315,32 @@ class DataVolume(object):
         return eigvecs @ np.diag(np.exp(eigvals)) @ eigvecs.T
 
     def _log_euclidean_interpolate4d(self, coord):
+        """
+        Interpolate a 4D tensor volume using Log-Euclidean interpolation.
+
+        The input volume must store diffusion tensors in lower-triangular
+        6-coefficient form: [Dxx, Dxy, Dyy, Dxz, Dyz, Dzz]. Each tensor is
+        converted to a 3x3 SPD matrix, mapped to the log-domain, interpolated
+        with trilinear weights in that domain, and mapped back with the matrix
+        exponential.
+
+        Parameters
+        ----------
+        coord: ndarray shape (3,)
+            Coordinate in voxel space, already converted to center-origin
+            indexing.
+
+        Returns
+        -------
+        ndarray shape (6,)
+            Interpolated tensor coefficients in lower-triangular form.
+
+        Notes
+        -----
+        This implementation assumes SPD tensors. Eigenvalues are clamped to a
+        small positive epsilon before taking the logarithm to avoid numerical
+        issues on nearly-singular tensors.
+        """
         if self.data.shape[-1] != 6:
             raise ValueError("log_euclidean interpolation requires 6 tensor "
                              "coefficients per voxel.")
