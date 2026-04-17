@@ -37,6 +37,18 @@ A few notes on Runge-Kutta integration.
     2. As a rule of thumb, doubling the rk_order will double the computation
        time in the worst case.
 
+A few notes on Region-Adaptive Propagation (RAP):
+    RAP allows dynamic parameter switching during tracking based on a label
+    volume (--rap_labels) or a binary mask (--rap_mask)
+    - Method 'continue': continues tracking with the same parameters inside the
+      RAP region.
+    - Method 'switch': switches algo, theta, step_size, and fODF model per
+      label, based on a JSON policy file (--rap_params). --in_odf and
+      --rap_params are mutually exclusive. Each label in the JSON must specify
+      a propagator type, filename and sh_basis. Multiple labels can share the
+      fODF file without loading it twice in memory. See --rap_params help for
+      expected JSON format
+
 -------------------------------------------------------------------------------
 Reference:
 [1] Girard, G., Whittingstall K., Deriche, R., and Descoteaux, M. (2014).
@@ -48,6 +60,7 @@ Reference:
 import argparse
 import logging
 import time
+import json
 
 import dipy.core.geometry as gm
 import nibabel as nib
@@ -59,26 +72,28 @@ from dipy.io.streamline import save_tractogram
 from nibabel.streamlines import detect_format, TrkFile
 
 from scilpy.io.image import assert_same_resolution
-from scilpy.io.utils import (add_processes_arg, add_sphere_arg,
+from scilpy.io.utils import (add_processes_arg,
                              add_verbose_arg,
                              assert_inputs_exist, assert_outputs_exist,
                              parse_sh_basis_arg, verify_compression_th,
                              load_matrix_in_any_format)
-from scilpy.io.tensor import (convert_tensor_to_dipy_format,
-                              supported_tensor_formats,
-                              tensor_format_description)
+from scilpy.io.tensor import convert_tensor_to_dipy_format
 from scilpy.image.volume_space_management import DataVolume
 from scilpy.tracking.propagator import ODFPropagator, TensorPropagator
-from scilpy.tracking.rap import RAPContinue
+from scilpy.tracking.rap import RAPContinue, RAPSwitch
 from scilpy.tracking.seed import SeedGenerator, CustomSeedsDispenser
 from scilpy.tracking.tracker import Tracker
 from scilpy.tracking.utils import (add_mandatory_options_tracking,
                                    add_out_options, add_seeding_options,
                                    add_tracking_options,
+                                   add_tracking_tensor_options,
+                                   add_tracking_sh_options,
                                    get_theta,
                                    verify_streamline_length_options,
                                    verify_seed_options)
 from scilpy.version import version_string
+from scilpy.image.labels import get_data_as_labels
+from scilpy.io.image import get_data_as_mask
 
 
 def _build_arg_parser():
@@ -95,58 +110,30 @@ def _build_arg_parser():
     data_group.add_argument('--in_tensor',
                             help='Path to the DTI tensor file (.nii.gz).\n'
                                  'Use this for tensor-based tracking.')
-    p.add_argument('in_seed',
-                   help='Seeding mask (.nii.gz).')
-    p.add_argument('in_mask',
-                   help='Tracking mask (.nii.gz).\n'
-                        'Tracking will stop outside this mask. The last point '
-                        'of each \nstreamline (triggering the stopping '
-                        'criteria) IS added to the streamline.')
-    p.add_argument('out_tractogram',
-                   help='Tractogram output file (must be .trk or .tck).')
+    data_group.add_argument('--rap_params',
+                            help='Path to the JSON file containing RAP policies.\n'
+                                 'Use this for RAP with method "switch".\n'
+                                 'Expected format:\n'
+                                 '{\n'
+                                 '  "methods": {\n'
+                                 '    "1": {"propagator": "ODF", "filename": str,\n'
+                                 '          "sh_basis": str, "algo": str,\n'
+                                 '          "theta": float, "step_size": float},\n'
+                                 '    "2": {"propagator": "Tensor", "filename": str,\n'
+                                 '          "tensor_format": str, "tensor_interp": str,\n'
+                                 '          "algo": str, "theta": float,\n'
+                                 '          "step_size": float, "std": float}\n'
+                                 '  }\n'
+                                 '}')
 
-    # Options common to both scripts
-    add_seeding_options(p)
+    # Options common to ODF and tensor-based tracking
+    add_mandatory_options_tracking(p, fodf_mandatory=False)
     track_g = add_tracking_options(p)
+    add_seeding_options(p)
 
-    # Options only for here.
+    # Options only for all models.
     track_g.add_argument('--algo', default='prob', choices=['det', 'prob'],
                          help='Algorithm to use. [%(default)s]')
-    track_g.add_argument('--tensor_format', type=str, default='dipy',
-                         choices=supported_tensor_formats,
-                         help="Format of the input tensor file.\n"
-                              "Only used with --in_tensor. [%(default)s]\n" +
-                              tensor_format_description)
-    add_sphere_arg(track_g, symmetric_only=False)
-    track_g.add_argument('--sub_sphere',
-                         type=int, default=0,
-                         help='Subdivides each face of the sphere into 4^s new'
-                              ' faces. [%(default)s]')
-    track_g.add_argument('--sfthres_init', metavar='sf_th', type=float,
-                         default=0.5, dest='sf_threshold_init',
-                         help="Spherical function relative threshold value "
-                              "for the \ninitial direction. [%(default)s]")
-    track_g.add_argument('--rk_order', metavar="K", type=int, default=1,
-                         choices=[1, 2, 4],
-                         help="The order of the Runge-Kutta integration used "
-                              "for the step function.\n"
-                              "For more information, refer to the note in the"
-                              " script description. [%(default)s]")
-    track_g.add_argument('--max_invalid_nb_points', metavar='MAX', type=float,
-                         default=0,
-                         help="Maximum number of steps without valid "
-                              "direction, \nex: if threshold on ODF or max "
-                              "angles are reached.\n"
-                              "Default: 0, i.e. do not add points following "
-                              "an invalid direction.")
-    track_g.add_argument('--forward_only', action='store_true',
-                         help="If set, tracks in one direction only (forward) "
-                              "given the \ninitial seed. The direction is "
-                              "randomly drawn from the ODF.")
-    track_g.add_argument('--sh_interp', default='trilinear',
-                         choices=['nearest', 'trilinear'],
-                         help="Spherical harmonic interpolation: "
-                              "nearest-neighbor \nor trilinear. [%(default)s]")
     track_g.add_argument('--mask_interp', default='nearest',
                          choices=['nearest', 'trilinear'],
                          help="Mask interpolation: nearest-neighbor or "
@@ -163,9 +150,43 @@ def _build_arg_parser():
         help="By default, each seed position is used only once. This option\n"
              "allows for tracking from the exact same seed n_repeats_per_seed"
              "\ntimes. [%(default)s]")
+    track_g.add_argument('--max_invalid_nb_points', metavar='MAX', type=float,
+                         default=0,
+                         help="Maximum number of steps without valid "
+                              "direction, \nex: if threshold on ODF or max "
+                              "angles are reached.\n"
+                              "Default: 0, i.e. do not add points following "
+                              "an invalid direction.")
+    track_g.add_argument('--forward_only', action='store_true',
+                         help="If set, tracks in one direction only (forward) "
+                              "given the \ninitial seed. The direction is "
+                              "randomly drawn from the ODF/Tensor.")
+
+    add_tracking_sh_options(p)
+    add_tracking_tensor_options(p)
+
+    rap_g = p.add_argument_group('Region-Adaptive Propagation options')
+    rap_mode = rap_g.add_mutually_exclusive_group()
+    rap_mode.add_argument('--rap_mask', default=None,
+                          help='Region-Adaptive Propagation mask (.nii.gz).\n'
+                          'Region-Adaptive Propagation tractography will start within '
+                          'this mask.')
+    rap_mode.add_argument('--rap_labels', default=None,
+                          help='Region-Adaptive Propagation label volume (.nii.gz) .\n'
+                          'Voxel values are integer labels (0=background, 1..N=regions) .\n'
+                          'Used with --rap_method switch to select policies per label.')
+    rap_g.add_argument('--rap_method', default='None',
+                       choices=['None', 'continue', 'switch'],
+                       help="Region-Adaptive Propagation tractography method.\n"
+                       "'continue': continues tracking with same params,\n"
+                       "'switch': switches tracking params inside RAP mask.\n"
+                       " [%(default)s]")
+    rap_g.add_argument('--rap_save_entry_exit', default=None,
+                       help='Save RAP entry/exit coordinates as a binary mask.\n'
+                       'Provide output filename (.nii.gz).')
 
     r_g = p.add_argument_group('Random seeding options')
-    r_g.add_argument('--rng_seed', type=int, default=0,
+    r_g.add_argument('--rng_seed', type=int, default=None,
                      help='Initial value for the random number generator. '
                           '[%(default)s]')
     r_g.add_argument('--skip', type=int, default=0,
@@ -175,15 +196,6 @@ def _build_arg_parser():
                           "fixed --rng_seed.\nEx: If tractogram_1 was created "
                           "with -nt 1,000,000, \nyou can create tractogram_2 "
                           "with \n--skip 1,000,000.")
-
-    track_g.add_argument('--rap_mask', default=None,
-                         help='Region-Adaptive Propagation mask (.nii.gz).\n'
-                              'Region-Adaptive Propagation tractography will start within '
-                              'this mask.')
-    track_g.add_argument('--rap_method', default='None',
-                         choices=['None', 'continue'],
-                         help="Region-Adaptive Propagation tractography method "
-                              " [%(default)s]")
 
     m_g = p.add_argument_group('Memory options')
     add_processes_arg(m_g)
@@ -205,22 +217,37 @@ def main():
                      'tck): {0}'.format(args.out_tractogram))
 
     inputs = [args.in_seed, args.in_mask]
+    models = []
     if args.in_odf:
-        inputs.append(args.in_odf)
-    if args.in_tensor:
-        inputs.append(args.in_tensor)
-    assert_inputs_exist(parser, inputs)
+        models = [args.in_odf]
+    elif args.in_tensor:
+        models = [args.in_tensor]
+    elif args.rap_params:
+        with open(args.rap_params, 'r') as f:
+            rap_params = json.load(f)
+        models = [cfg['filename'] for cfg in rap_params.get('methods', {}).values()
+                     if 'filename' in cfg]
+    
+    assert_inputs_exist(parser, inputs + models)
     assert_outputs_exist(parser, args, args.out_tractogram)
 
     verify_streamline_length_options(parser, args)
     verify_compression_th(args.compress_th)
     verify_seed_options(parser, args)
 
-    if args.rap_mask is not None and args.rap_method == "None":
+    if (args.rap_mask is not None or args.rap_labels is not None) and args.rap_method == "None":
         parser.error('No RAP method selected.')
-    if not args.rap_method == "None" and args.rap_mask is None:
-        parser.error('No RAP mask selected.')
-
+    if args.rap_method == 'continue' and args.rap_mask is None:
+        parser.error('RAP method "continue" requires --rap_mask.')
+    if args.rap_method == 'switch' and (
+            args.rap_mask is None and args.rap_labels is None):
+        parser.error(
+            'RAP method "switch" requires --rap_mask or --rap_labels.')
+    if args.rap_method == 'switch' and args.rap_params is None:
+        parser.error(
+            'RAP method "switch" requires --rap_params to be specified.')
+    if args.rap_params is not None and args.rap_method != 'switch':
+        parser.error('--rap_params can only be used with --rap_method switch.')
     tracts_format = detect_format(args.out_tractogram)
     if tracts_format is not TrkFile:
         logging.warning("You have selected option --save_seeds but you are "
@@ -235,8 +262,7 @@ def main():
     max_nbr_pts = int(args.max_length / args.step_size)
     min_nbr_pts = max(int(args.min_length / args.step_size), 1)
 
-    input_data_file = args.in_odf if args.in_odf else args.in_tensor
-    assert_same_resolution([args.in_mask, input_data_file, args.in_seed])
+    assert_same_resolution(inputs + models)
 
     # Choosing our space and origin for this tracking
     # If save_seeds, space and origin must be vox, center. Choosing those
@@ -303,7 +329,7 @@ def main():
             sub_sphere=args.sub_sphere,
             space=our_space, origin=our_origin, is_legacy=is_legacy)
     
-    else:  # args.in_tensor
+    elif args.in_tensor:  # args.in_tensor
         logging.info("Loading DTI tensor data.")
         tensor_img = nib.load(args.in_tensor)
         tensor_data = tensor_img.get_fdata(caching='unchanged', dtype=float)
@@ -315,7 +341,7 @@ def main():
 
         logging.info(f"Tensor data shape: {tensor_data.shape}")
         tensor_res = tensor_img.header.get_zooms()[:3]
-        dataset = DataVolume(tensor_data, tensor_res, args.mask_interp)
+        dataset = DataVolume(tensor_data, tensor_res, args.tensor_interp)
 
         logging.info("Instantiating tensor propagator.")
         voxel_size = tensor_img.header.get_zooms()[0]
@@ -323,21 +349,112 @@ def main():
 
         propagator = TensorPropagator(
             dataset, vox_step_size, args.rk_order, args.algo,
-            theta, space=our_space, origin=our_origin)
+            theta, std=args.std, space=our_space, origin=our_origin)
+    elif args.rap_method == "switch":
+        propagator = None
+        propagators = {}
+        loaded_datasets = {}
+        for label, cfg in rap_params.get('methods', {}).items():
+            if cfg.get('propagator').lower() == 'odf':
+                filename = cfg['filename']
+
+                # Load data if needed
+                if filename not in loaded_datasets:
+                    odf_sh_img = nib.load(filename)
+                    odf_sh_res = odf_sh_img.header.get_zooms()[:3]
+                    voxel_size = odf_sh_img.header.get_zooms()[0]
+                    vox_step_size = cfg.get('step_size', args.step_size) / voxel_size
+                    loaded_datasets[filename] = DataVolume(
+                        odf_sh_img.get_fdata(caching='unchanged', dtype=float),
+                        odf_sh_res, args.sh_interp)
+
+                # Get params from rap_policies file
+                sh_basis_name = cfg.get('sh_basis', 'descoteaux07_legacy')
+                sh_basis = ('descoteaux07' if 'descoteaux07' in sh_basis_name
+                            else 'tournier07')
+                algo = cfg.get('algo', args.algo)
+                theta = gm.math.radians(get_theta(cfg.get('theta', args.theta), algo))
+                is_legacy = 'legacy' in sh_basis_name
+
+                # Build propagator from rap_policies file
+                propagators[label] = ODFPropagator(
+                    loaded_datasets[filename], vox_step_size, args.rk_order,
+                    algo, sh_basis, args.sf_threshold,
+                    args.sf_threshold_init, theta, args.sphere,
+                    sub_sphere=args.sub_sphere, space=our_space,
+                    origin=our_origin, is_legacy=is_legacy)
+            elif cfg.get('propagator').lower() == 'tensor':
+                filename = cfg['filename']
+                tensor_format = cfg.get('tensor_format', args.tensor_format)
+                tensor_interp = cfg.get('tensor_interp', args.tensor_interp)
+                dataset_key = (filename, tensor_format, tensor_interp)
+
+                # Load data if needed
+                if dataset_key not in loaded_datasets:
+                    tensor_img = nib.load(filename)
+                    tensor_data = tensor_img.get_fdata(caching='unchanged',
+                                                       dtype=float)
+
+                    if tensor_format != 'dipy':
+                        tensor_data = convert_tensor_to_dipy_format(
+                            tensor_data, tensor_format)
+
+                    tensor_res = tensor_img.header.get_zooms()[:3]
+                    loaded_datasets[dataset_key] = DataVolume(
+                        tensor_data, tensor_res, tensor_interp)
+
+                # Get params from rap_policies file
+                algo = cfg.get('algo', args.algo)
+                theta = gm.math.radians(get_theta(cfg.get('theta', args.theta),
+                                                  algo))
+                std = cfg.get('std', args.std)
+                voxel_size = loaded_datasets[dataset_key].voxres[0]
+                vox_step_size = cfg.get('step_size', args.step_size) / voxel_size
+
+                # Build propagator from rap_policies file
+                propagators[label] = TensorPropagator(
+                    loaded_datasets[dataset_key], vox_step_size,
+                    args.rk_order, algo, theta, std=std,
+                    space=our_space, origin=our_origin)
+            else:
+                raise ValueError(
+                    f"Unknown propagator type '{cfg.get('propagator')}"
+                    f"for label {label}. Supported types: 'ODF', 'Tensor'.")
+        del loaded_datasets
+
+        if not propagators:
+            parser.error('No valid propagators found in rap_policies.json.'
+                         'Make sure at least one label has a valid '
+                         'propagator type.')
+
+    if propagator is None and propagators:
+        propagator = next(iter(propagators.values()))
 
     # ------- INSTANTIATING RAP OBJECT -------
     if args.rap_mask:
         logging.info("Loading RAP mask.")
         rap_img = nib.load(args.rap_mask)
-        rap_data = rap_img.get_fdata(caching='unchanged', dtype=float)
-        rap_res = rap_img.header.get_zooms()[:3]
-        rap_mask = DataVolume(rap_data, rap_res, args.mask_interp)
-    else:
-        rap_mask = None
+        rap_mask_data = get_data_as_mask(rap_img)
+        rap_mask_res = rap_img.header.get_zooms()[:3]
+        rap_volume = DataVolume(rap_mask_data, rap_mask_res, args.mask_interp)
+    elif args.rap_labels:
+        logging.info("Loading RAP labels.")
+        rap_label_img = nib.load(args.rap_labels)
+
+        # Convert the rap_labels image to int if float
+        if np.issubdtype(rap_label_img.get_data_dtype(), np.floating):
+            int_data = np.round(rap_label_img.get_fdata()).astype(np.int16)
+            rap_label_img = nib.Nifti1Image(int_data, rap_label_img.affine)
+
+        rap_label_data = get_data_as_labels(rap_label_img)
+        rap_label_res = rap_label_img.header.get_zooms()[:3]
+        rap_volume = DataVolume(rap_label_data, rap_label_res, 'nearest')
 
     if args.rap_method == "continue":
-        rap = RAPContinue(rap_mask, propagator, max_nbr_pts,
+        rap = RAPContinue(rap_volume, propagator, max_nbr_pts,
                           step_size=vox_step_size)
+    elif args.rap_method == "switch":
+        rap = RAPSwitch(rap_volume, propagators, max_nbr_pts)
     else:
         rap = None
 
@@ -369,6 +486,10 @@ def main():
         data_per_streamline = {'seeds': seeds}
     else:
         data_per_streamline = {}
+
+    # Save RAP entry/exit mask if requested
+    if args.rap_save_entry_exit:
+        tracker.save_rap_entry_exit_mask(args.rap_save_entry_exit, mask_img)
 
     # Compared with scil_tracking_local, using sft rather than
     # LazyTractogram to deal with space.

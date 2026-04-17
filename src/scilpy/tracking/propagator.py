@@ -403,7 +403,8 @@ class ODFPropagator(PropagatorOnSphere):
             get_sh_order_and_fullness(self.datavolume.nb_coeffs)
         self.basis = basis
         self.is_legacy = is_legacy
-        self.B = sh_to_sf_matrix(self.sphere, sh_order, self.basis,
+        self.B = sh_to_sf_matrix(self.sphere, sh_order_max=sh_order,
+                                 basis_type=self.basis,
                                  smooth=0.006, return_inv=False,
                                  full_basis=full_basis, legacy=self.is_legacy)
 
@@ -700,7 +701,7 @@ class TensorPropagator(AbstractPropagator):
     eigenvector of the diffusion tensor.
     """
     def __init__(self, datavolume, step_size, rk_order, algo, theta,
-                 space=Space('vox'), origin=Origin('center')):
+                 std=None, space=Space('vox'), origin=Origin('center')):
         """
         Parameters
         ----------
@@ -728,9 +729,20 @@ class TensorPropagator(AbstractPropagator):
                 "in RASMM space.")
 
         self.algo = algo
+        if self.algo == "prob" and std is None:
+            self.std = 0.1
+        elif self.algo == "det":
+            self.std = 0
+        else:
+            self.std = std
+
         self.theta = theta
         self.normalize_directions = True
         self.line_rng_generator = None
+
+        logging.debug(f"Algo: ${self.algo}")
+        logging.debug(f"Theta: ${self.theta}")
+        logging.debug(f"Std: ${self.std}")
 
     def reset_data(self, new_data=None):
         return super().reset_data(new_data)
@@ -801,7 +813,7 @@ class TensorPropagator(AbstractPropagator):
         # For probabilistic tracking, add some noise
         if self.algo == 'prob' and self.line_rng_generator is not None:
             # Add gaussian noise to direction
-            noise = self.line_rng_generator.normal(0, 0.1, 3)
+            noise = self.line_rng_generator.normal(0, self.std, 3)
             direction = direction + noise
             direction = direction / np.linalg.norm(direction)
 

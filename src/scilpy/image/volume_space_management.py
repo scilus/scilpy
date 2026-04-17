@@ -38,10 +38,10 @@ class DataVolume(object):
         """
         self.interpolation = interpolation
         if self.interpolation:
-            if not (self.interpolation == 'trilinear' or
-                    self.interpolation == 'nearest'):
-                raise Exception("Interpolation must be 'trilinear' or "
-                                "'nearest'")
+            if self.interpolation not in ['trilinear', 'nearest',
+                                          'log_euclidean']:
+                raise Exception("Interpolation must be 'trilinear', "
+                                "'nearest' or 'log_euclidean'")
 
         self.data = data
         self.nb_coeffs = data.shape[-1]
@@ -255,6 +255,8 @@ class DataVolume(object):
                 # They use round(point), not floor. This is the equivalent of
                 # origin = 'center'.
                 result = nearestneighbor_interpolate(self.data, coord)
+            elif self.interpolation == 'log_euclidean':
+                result = self._log_euclidean_interpolate4d(coord)
             else:
                 # Trilinear
                 # They do not say it explicitly but they verify if
@@ -268,6 +270,81 @@ class DataVolume(object):
         else:
             raise Exception("No interpolation method was given, cannot run "
                             "this method..")
+
+    @staticmethod
+    def _lo_tri_to_tensor(lo_tri):
+        dxx, dxy, dyy, dxz, dyz, dzz = lo_tri
+        return np.array([[dxx, dxy, dxz],
+                         [dxy, dyy, dyz],
+                         [dxz, dyz, dzz]], dtype=np.float64)
+
+    @staticmethod
+    def _tensor_to_lo_tri(tensor):
+        return np.array([tensor[0, 0], tensor[0, 1], tensor[1, 1],
+                         tensor[0, 2], tensor[1, 2], tensor[2, 2]],
+                        dtype=np.float64)
+
+    @staticmethod
+    def _spd_logm(tensor, eps=1e-12):
+        eigvals, eigvecs = np.linalg.eigh(tensor)
+        eigvals = np.maximum(eigvals, eps)
+        return eigvecs @ np.diag(np.log(eigvals)) @ eigvecs.T
+
+    @staticmethod
+    def _spd_expm(sym_tensor):
+        eigvals, eigvecs = np.linalg.eigh(sym_tensor)
+        return eigvecs @ np.diag(np.exp(eigvals)) @ eigvecs.T
+
+    def _log_euclidean_interpolate4d(self, coord):
+        if self.data.shape[-1] != 6:
+            raise ValueError("log_euclidean interpolation requires 6 tensor "
+                             "coefficients per voxel.")
+
+        # Convert center-based coordinates ([-0.5, N-0.5)) to index space
+        # ([0, N)) for trilinear weights.
+        idx_coord = coord + 0.5
+
+        x0 = int(np.floor(idx_coord[0]))
+        y0 = int(np.floor(idx_coord[1]))
+        z0 = int(np.floor(idx_coord[2]))
+
+        x0 = np.clip(x0, 0, self.dim[0] - 1)
+        y0 = np.clip(y0, 0, self.dim[1] - 1)
+        z0 = np.clip(z0, 0, self.dim[2] - 1)
+
+        x1 = min(x0 + 1, self.dim[0] - 1)
+        y1 = min(y0 + 1, self.dim[1] - 1)
+        z1 = min(z0 + 1, self.dim[2] - 1)
+
+        dx = idx_coord[0] - x0
+        dy = idx_coord[1] - y0
+        dz = idx_coord[2] - z0
+
+        if x1 == x0:
+            dx = 0.0
+        if y1 == y0:
+            dy = 0.0
+        if z1 == z0:
+            dz = 0.0
+
+        weighted_log_tensor = np.zeros((3, 3), dtype=np.float64)
+        corners = [(x0, y0, z0, (1.0 - dx) * (1.0 - dy) * (1.0 - dz)),
+                   (x1, y0, z0, dx * (1.0 - dy) * (1.0 - dz)),
+                   (x0, y1, z0, (1.0 - dx) * dy * (1.0 - dz)),
+                   (x1, y1, z0, dx * dy * (1.0 - dz)),
+                   (x0, y0, z1, (1.0 - dx) * (1.0 - dy) * dz),
+                   (x1, y0, z1, dx * (1.0 - dy) * dz),
+                   (x0, y1, z1, (1.0 - dx) * dy * dz),
+                   (x1, y1, z1, dx * dy * dz)]
+
+        for i, j, k, w in corners:
+            if w == 0.0:
+                continue
+            tensor = self._lo_tri_to_tensor(self.data[i, j, k])
+            weighted_log_tensor += w * self._spd_logm(tensor)
+
+        interp_tensor = self._spd_expm(weighted_log_tensor)
+        return self._tensor_to_lo_tri(interp_tensor)
 
     def _is_vox_in_bound(self, x, y, z, origin):
         """
