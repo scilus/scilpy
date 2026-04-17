@@ -1,10 +1,7 @@
 # -*- coding: utf-8 -*-
 
-import json
 import logging
 import numpy as np
-from copy import deepcopy
-from scilpy.tracking.propagator import get_sphere_neighbours
 
 
 class RAP:
@@ -18,7 +15,6 @@ class RAP:
         self.max_nbr_pts = max_nbr_pts
         self._current_label = None
         self._total_steps = 0
-        self._current_cfg = {}
 
     def is_in_rap_region(self, curr_pos, space, origin):
         return self.rap_volume.get_value_at_coordinate(
@@ -49,6 +45,7 @@ class RAP:
 
 class RAPContinue(RAP):
     """Dummy RAP class for tests. Goes straight"""
+
     def __init__(self, rap_volume, propagator, max_nbr_pts, step_size):
         """
         Step size: float
@@ -68,43 +65,38 @@ class RAPContinue(RAP):
 
 
 class RAPSwitch(RAP):
-    """RAP class that switches tracking parameters when inside the RAP mask or RAP label."""
-    def __init__(self, rap_volume, propagator, max_nbr_pts, rap_params_file):
+    """RAP class that switches tracking parameters when inside the RAP mask/label."""
+
+    def __init__(self, rap_volume, propagators: dict,
+                 max_nbr_pts):
         """
         Parameters
         ----------
         rap_volume : DataVolume
             Region-Adaptive Propagation mask.
-        propagator : Propagator
-            The propagator used for tracking.
+        propagators : dict
+            Dictionary of ODFPropagator instances keyed by label (str).
+            If --in_odf is provided, contains {odf_path: propagator}
+            as default. Additional propagators are keyed by their label,
+            loaded from the 'filename' key in rap_policies.json.
         max_nbr_pts : int
             Maximum number of points per streamline.
-        rap_params_file : str
-            Path to JSON file containing RAP parameters.
-            "methods" is optionnal, if not provided, "default" will be applied
-            Expected format:
-            {
-                "methods": {
-                  "1": {"algo": str, "theta": float, "step_size": float},
-                  "2": {"algo": str, "theta": float, "step_size": float},
-                  ...
-                }
-            }
         """
-        super().__init__(rap_volume, propagator, max_nbr_pts)
+        base_propagator = list(propagators.values())[
+            0] if propagators else None
+        super().__init__(rap_volume, base_propagator, max_nbr_pts)
+        self._propagators = propagators
 
-        # Load parameters from JSON file
-        with open(rap_params_file, 'r') as f:
-            rap_params = json.load(f)
-
-        self._base = {
-            'step_size': propagator.step_size,
-            'theta': propagator.theta,
-            'algo': getattr(propagator, 'algo', None),
-            'tracking_neighbours': getattr(propagator, 'tracking_neighbours', None)
-        }
-        self.methods_cfg = rap_params.get('methods', {})
-        logging.info("RAP parameters loaded:")
+        if self.propagator is not None:
+            self._base = {
+                'step_size': self.propagator.step_size,
+                'theta': self.propagator.theta,
+                'algo': getattr(self.propagator, 'algo', None),
+                'tracking_neighbours': getattr(self.propagator,
+                                               'tracking_neighbours', None)
+            }
+        else:
+            self._base = {}
 
         # Check if all labels in the volume are covered by the configuration
         unique_labels = np.unique(rap_volume.data)
@@ -113,11 +105,11 @@ class RAPSwitch(RAP):
 
         if unique_labels:
             missing_labels = [label for label in unique_labels
-                              if str(label) not in self.methods_cfg]
+                              if str(label) not in self._propagators.keys()]
             if missing_labels:
                 logging.warning(
                     f"Labels {missing_labels} found in RAP volume but not in "
-                    f"methods config. Base parameters will be used for these labels."
+                    f"methods config. Base params will be used for these labels."
                 )
 
     def rap_multistep_propagate(self, line, prev_direction):
@@ -141,24 +133,43 @@ class RAPSwitch(RAP):
             Whether the line is valid.
         """
         # Switch to RAP parameters
-        label = self._get_label(line[-1], self.propagator.space, self.propagator.origin)
+        label = self._get_label(line[-1],
+                                self.propagator.space,
+                                self.propagator.origin)
         if label <= 0:
             return line, prev_direction, False
-        # Apply the parameters of the RAP labels
-        cfg = self._merge_cfg(label)
+
+        # Logging debug when label changes        # Apply the parameters of the RAP labels
+        if label != self._current_label:
+            if self._current_label is not None:
+                logging.debug(f"STEP[{self._total_steps}] label={self._current_label}"
+                              f", algo={self.propagator.algo}"
+                              f", theta (rad)={self.propagator.theta}"
+                              f", vox step size={self.propagator.step_size}"
+                              f" -> switching label to label {label}")
+            self._current_label = label
+
+        # Switch propagator based on label
+        if str(label) in self._propagators:
+            new_propagator = self._propagators[str(label)]
+            if new_propagator is not self.propagator:
+                new_propagator.line_rng_generator = self.propagator.line_rng_generator
+                self.propagator = new_propagator
+                logging.debug(f"RAP propagator switched to label {label}")
+        else:
+            new_propagator = self._propagators[self._propagators.keys()[0]]
+            if new_propagator is not self.propagator:
+                new_propagator.line_rng_generator = self.propagator.line_rng_generator
+                self.propagator = new_propagator
+                logging.debug(f"RAP propagator switched to default label {self._propagators.keys()[0]}")
 
         # Perform propagation with new parameters
-        self._apply_cfg(cfg)
-        new_pos, new_dir, is_direction_valid = self.propagator.propagate(line, prev_direction)
+        new_pos, new_dir, is_direction_valid = self.propagator.propagate(
+            line, prev_direction)
 
         # Add the new point to the line
         if is_direction_valid:
             line.append(new_pos)
-            if label != self._current_label:
-                if self._current_label is not None:
-                    logging.debug(f"STEP[{self._total_steps}] label={self._current_label} algo={self._current_cfg.get('algo')} theta={self._current_cfg.get('theta')} step={self._current_cfg.get('step_size')}")
-                self._current_label = label
-                self._current_cfg = cfg
             self._total_steps += 1
             return line, new_dir, True
         return line, prev_direction, False
@@ -183,53 +194,12 @@ class RAPSwitch(RAP):
         int
             The integer label at current position.
         """
-        v = self.rap_volume.get_value_at_coordinate(*curr_pos, space=space, origin=origin)
+        v = self.rap_volume.get_value_at_coordinate(
+            *curr_pos, space=space, origin=origin)
         try:
             return int(v)
         except Exception:
             return int(np.round(v))
-
-    def _merge_cfg(self, label):
-        """
-        Merge the default configuration with the label-specific cfg override from the JSON policy.
-
-        Parameters
-        ----------
-        label: int
-            Integer of label at current position.
-
-        Returns
-        -------
-        dict
-            Configuration dict with keys 'algo', 'theta', 'step_size'.
-        """
-        override = self.methods_cfg.get(str(label))
-        if override is None:
-            return {
-                'step_size': self._base['step_size'],
-                'algo': self._base['algo'],
-                'theta': float(np.degrees(self._base['theta']))
-            }
-        return deepcopy(override)
-
-    def _apply_cfg(self, cfg):
-        """
-        Temporarily apply a label configuration to the propagator.
-
-        Parameters
-        ----------
-        cfg: dict
-            Configuration dict with keys 'algo', 'theta', 'step_size'.
-        """
-        if 'step_size' in cfg and cfg['step_size'] is not None:
-            self.propagator.step_size = float(cfg['step_size'])
-        if 'algo' in cfg and cfg['algo'] is not None:
-            self.propagator.algo = str(cfg['algo'])
-        if 'theta' in cfg and cfg['theta'] is not None:
-            theta_rad = np.deg2rad(float(cfg['theta']))
-            self.propagator.theta = theta_rad
-            # theta change => neighbours change
-            self.propagator.tracking_neighbours = get_sphere_neighbours(self.propagator.sphere, self.propagator.theta)
 
 
 class RAPGraph(RAP):

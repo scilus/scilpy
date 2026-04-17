@@ -33,14 +33,17 @@ DIPY. Below is a list of known divergences between the CPU and GPU
 implementations:
     * Backend: The CPU implementation uses DIPY's LocalTracking and the
         GPU implementation uses an in-house OpenCL implementation.
-    * Algo: For the GPU implementation, the only available algorithm is
-        Algo 'prob'.
+    * Algo: For the GPU implementation, available algorithms are Algo 'prob'
+        and Algo 'det'.
     * SH interpolation: For GPU tracking, SH interpolation can be set to either
         nearest neighbour or trilinear (default). With DIPY, the only available
         method is trilinear.
     * Forward tracking: For GPU tracking, the `--forward_only` flag can be used
         to disable backward tracking. This option isn't available for CPU
         tracking.
+    * Random number generator seed (RNG): CPU and GPU use different RNG implementations,<
+        so the same `--seed` is reproducible within a backend but does not guarantee
+        identical streamlines across CPU vs GPU tracking.
 
 All the input nifti files must be in isotropic resolution.
 
@@ -66,12 +69,13 @@ from dipy.data import get_sphere
 from dipy.tracking import utils as track_utils
 from dipy.tracking.local_tracking import LocalTracking
 from dipy.tracking.stopping_criterion import BinaryStoppingCriterion
+from dipy.tracking.tracker import eudx_tracking
 from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_sphere_arg, add_verbose_arg,
                              assert_headers_compatible, assert_inputs_exist,
                              assert_outputs_exist, parse_sh_basis_arg,
                              verify_compression_th, load_matrix_in_any_format)
-from scilpy.tracking.tracker import GPUTacker
+from scilpy.tracking.tracker import GPUTracker
 from scilpy.tracking.utils import (add_mandatory_options_tracking,
                                    add_out_options, add_seeding_options,
                                    add_tracking_options,
@@ -114,7 +118,7 @@ def _build_arg_parser():
     add_tracking_ptt_options(p)
     gpu_g = p.add_argument_group('GPU options')
     gpu_g.add_argument('--use_gpu', action='store_true',
-                       help='Enable GPU tracking (experimental).')
+                       help='Enable GPU tracking.')
     gpu_g.add_argument('--sh_interp', default=None,
                        choices=['trilinear', 'nearest'],
                        help='SH image interpolation method. '
@@ -147,9 +151,9 @@ def main():
         batch_size = args.batch_size or DEFAULT_BATCH_SIZE
         sh_interp = args.sh_interp or DEFAULT_SH_INTERP
         forward_only = args.forward_only or DEFAULT_FWD_ONLY
-        if args.algo != 'prob':
+        if args.algo not in ['prob', 'det']:
             parser.error('Algo `{}` not supported for GPU tracking. '
-                         'Set --algo to `prob` for GPU tracking.'
+                         'Set --algo to `prob` or `det` for GPU tracking.'
                          .format(args.algo))
     else:
         if args.batch_size is not None:
@@ -235,23 +239,44 @@ def main():
         # LocalTracking.maxlen is actually the maximum length
         # per direction, we need to filter post-tracking.
         max_steps_per_direction = int(args.max_length / args.step_size)
+        stopping_criterion = BinaryStoppingCriterion(mask_data)
 
         logging.info("Starting CPU local tracking.")
-        streamlines_generator = LocalTracking(
-            get_direction_getter(
-                args.in_odf, args.algo, args.sphere,
-                args.sub_sphere, args.theta, sh_basis,
-                voxel_size, args.sf_threshold, args.sh_to_pmf,
-                args.probe_length, args.probe_radius,
-                args.probe_quality, args.probe_count,
-                args.support_exponent, is_legacy=is_legacy),
-            BinaryStoppingCriterion(mask_data),
-            seeds, np.eye(4),
-            step_size=vox_step_size, max_cross=1,
-            maxlen=max_steps_per_direction,
-            fixedstep=True, return_all=True,
-            random_seed=args.seed,
-            save_seeds=True)
+        if args.algo == 'eudx':
+            streamlines_generator = eudx_tracking(
+                seeds,
+                stopping_criterion,
+                np.eye(4),
+                pam=get_direction_getter(
+                    args.in_odf, args.algo, args.sphere,
+                    args.sub_sphere, args.theta, sh_basis,
+                    voxel_size, args.sf_threshold, args.sh_to_pmf,
+                    args.probe_length, args.probe_radius,
+                    args.probe_quality, args.probe_count,
+                    args.support_exponent, is_legacy=is_legacy),
+                max_cross=1,
+                max_len=max_steps_per_direction,
+                step_size=vox_step_size,
+                max_angle=get_theta(args.theta, args.algo),
+                random_seed=args.seed if args.seed is not None else 0,
+                return_all=True,
+                save_seeds=True)
+        else:
+            streamlines_generator = LocalTracking(
+                get_direction_getter(
+                    args.in_odf, args.algo, args.sphere,
+                    args.sub_sphere, args.theta, sh_basis,
+                    voxel_size, args.sf_threshold, args.sh_to_pmf,
+                    args.probe_length, args.probe_radius,
+                    args.probe_quality, args.probe_count,
+                    args.support_exponent, is_legacy=is_legacy),
+                stopping_criterion,
+                seeds, np.eye(4),
+                step_size=vox_step_size, max_cross=1,
+                maxlen=max_steps_per_direction,
+                fixedstep=True, return_all=True,
+                random_seed=args.seed,
+                save_seeds=True)
 
     else:  # GPU tracking
         # we'll make our streamlines twice as long,
@@ -265,7 +290,7 @@ def main():
         sphere = get_sphere(name=args.sphere).subdivide(n=args.sub_sphere)
 
         logging.info("Starting GPU local tracking.")
-        streamlines_generator = GPUTacker(
+        streamlines_generator = GPUTracker(
             odf_sh, mask_data, seeds,
             vox_step_size, max_strl_len,
             theta=get_theta(args.theta, args.algo),
@@ -276,7 +301,8 @@ def main():
             batch_size=batch_size,
             forward_only=forward_only,
             rng_seed=args.seed,
-            sphere=sphere)
+            sphere=sphere,
+            algo=args.algo)
 
     # save streamlines on-the-fly to file
     save_tractogram(streamlines_generator, tracts_format,
