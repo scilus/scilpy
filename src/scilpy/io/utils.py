@@ -13,6 +13,7 @@ import xml.etree.ElementTree as ET
 import nibabel as nib
 import numpy as np
 from dipy.data import SPHERE_FILES
+from dipy.io.stateful_tractogram import Origin, Space 
 from dipy.io.utils import is_header_compatible
 from scipy.io import loadmat
 import six
