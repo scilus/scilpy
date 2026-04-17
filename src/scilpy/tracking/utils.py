@@ -82,44 +82,46 @@ def add_tracking_options(p):
 def add_tracking_tensor_options(p):
     tensor_options = p.add_argument_group('Tensor options')
     tensor_options.add_argument('--tensor_format', type=str, default='dipy',
-                         choices=supported_tensor_formats,
-                         help="Format of the input tensor file.\n"
-                              "Only used with --in_tensor. [%(default)s]\n" +
-                              tensor_format_description)
+                                choices=supported_tensor_formats,
+                                help="Format of the input tensor file.\n"
+                                     "Only used with --in_tensor. [%(default)s]\n" +
+                                     tensor_format_description)
     tensor_options.add_argument('--tensor_interp', type=str,
-                          default='log_euclidean',
-                          choices=['nearest', 'trilinear',
-                                 'log_euclidean'],
-                          help="Tensor interpolation method. "
-                              "Only used with --in_tensor. "
-                              "[%(default)s]")
+                                default='log_euclidean',
+                                choices=['nearest', 'trilinear',
+                                         'log_euclidean'],
+                                help="Tensor interpolation method. "
+                                     "Only used with --in_tensor. "
+                                     "[%(default)s]")
     tensor_options.add_argument('--std', type=float, default=0.1,
                                 help="Standard deviation of the noise added "
                                      "to the direction for prob tensor-based tracking.")
+
 
 def add_tracking_sh_options(p):
     sh_options = p.add_argument_group('Spherical harmonics options')
     add_sphere_arg(sh_options, symmetric_only=False)
     sh_options.add_argument('--sub_sphere',
-                         type=int, default=0,
-                         help='Subdivides each face of the sphere into 4^s new'
-                              ' faces. [%(default)s]')
+                            type=int, default=0,
+                            help='Subdivides each face of the sphere into 4^s new'
+                                 ' faces. [%(default)s]')
     sh_options.add_argument('--sfthres_init', metavar='sf_th', type=float,
-                         default=0.5, dest='sf_threshold_init',
-                         help="Spherical function relative threshold value "
-                              "for the \ninitial direction. [%(default)s]")
+                            default=0.5, dest='sf_threshold_init',
+                            help="Spherical function relative threshold value "
+                                 "for the \ninitial direction. [%(default)s]")
     sh_options.add_argument('--rk_order', metavar="K", type=int, default=1,
-                         choices=[1, 2, 4],
-                         help="The order of the Runge-Kutta integration used "
-                              "for the step function.\n"
-                              "For more information, refer to the note in the"
-                              " script description. [%(default)s]")
+                            choices=[1, 2, 4],
+                            help="The order of the Runge-Kutta integration used "
+                                 "for the step function.\n"
+                                 "For more information, refer to the note in the"
+                                 " script description. [%(default)s]")
     sh_options.add_argument('--sfthres', dest='sf_threshold', metavar='sf_th',
-                         type=float, default=0.1,
-                         help='Spherical function relative threshold. '
-                              '[%(default)s]')
+                            type=float, default=0.1,
+                            help='Spherical function relative threshold. '
+                                 '[%(default)s]')
     add_sh_basis_args(sh_options)
     return sh_options
+
 
 def add_tracking_ptt_options(p):
     track_g = p.add_argument_group('PTT options')

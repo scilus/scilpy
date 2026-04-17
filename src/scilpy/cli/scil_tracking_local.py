@@ -41,9 +41,10 @@ implementations:
     * Forward tracking: For GPU tracking, the `--forward_only` flag can be used
         to disable backward tracking. This option isn't available for CPU
         tracking.
-    * Random number generator seed (RNG): CPU and GPU use different RNG implementations,<
-        so the same `--seed` is reproducible within a backend but does not guarantee
-        identical streamlines across CPU vs GPU tracking.
+    * Random number generator seed (RNG): CPU and GPU use different RNG
+        implementations, so the same `--seed` is reproducible within a
+        backend but does not guarantee identical streamlines
+        across CPU vs GPU tracking.
 
 All the input nifti files must be in isotropic resolution.
 
@@ -71,7 +72,7 @@ from dipy.tracking.local_tracking import LocalTracking
 from dipy.tracking.stopping_criterion import BinaryStoppingCriterion
 from dipy.tracking.tracker import eudx_tracking
 from scilpy.io.image import get_data_as_mask
-from scilpy.io.utils import (add_sphere_arg, add_verbose_arg,
+from scilpy.io.utils import (add_verbose_arg,
                              assert_headers_compatible, assert_inputs_exist,
                              assert_outputs_exist, parse_sh_basis_arg,
                              verify_compression_th, load_matrix_in_any_format)

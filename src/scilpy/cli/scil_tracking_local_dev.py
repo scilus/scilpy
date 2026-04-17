@@ -166,28 +166,28 @@ def _build_arg_parser():
     sh_options.add_argument('--sh_interp', default='trilinear',
                             choices=['nearest', 'trilinear'],
                             help="Spherical harmonic interpolation: "
-                              "nearest-neighbor \nor trilinear. [%(default)s]")
+                                 "nearest-neighbor \nor trilinear. [%(default)s]")
     add_tracking_tensor_options(p)
 
     rap_g = p.add_argument_group('Region-Adaptive Propagation options')
     rap_mode = rap_g.add_mutually_exclusive_group()
     rap_mode.add_argument('--rap_mask', default=None,
                           help='Region-Adaptive Propagation mask (.nii.gz).\n'
-                          'Region-Adaptive Propagation tractography will start within '
-                          'this mask.')
+                               'Region-Adaptive Propagation tractography will start within '
+                               'this mask.')
     rap_mode.add_argument('--rap_labels', default=None,
                           help='Region-Adaptive Propagation label volume (.nii.gz) .\n'
-                          'Voxel values are integer labels (0=background, 1..N=regions) .\n'
-                          'Used with --rap_method switch to select policies per label.')
+                               'Voxel values are integer labels (0=background, 1..N=regions) .\n'
+                               'Used with --rap_method switch to select policies per label.')
     rap_g.add_argument('--rap_method', default='None',
                        choices=['None', 'continue', 'switch'],
                        help="Region-Adaptive Propagation tractography method.\n"
-                       "'continue': continues tracking with same params,\n"
-                       "'switch': switches tracking params inside RAP mask.\n"
-                       " [%(default)s]")
+                            "'continue': continues tracking with same params,\n"
+                            "'switch': switches tracking params inside RAP mask.\n"
+                            " [%(default)s]")
     rap_g.add_argument('--rap_save_entry_exit', default=None,
                        help='Save RAP entry/exit coordinates as a binary mask.\n'
-                       'Provide output filename (.nii.gz).')
+                            'Provide output filename (.nii.gz).')
 
     r_g = p.add_argument_group('Random seeding options')
     r_g.add_argument('--rng_seed', type=int, default=None,
@@ -230,8 +230,8 @@ def main():
         with open(args.rap_params, 'r') as f:
             rap_params = json.load(f)
         models = [cfg['filename'] for cfg in rap_params.get('methods', {}).values()
-                     if 'filename' in cfg]
-    
+                  if 'filename' in cfg]
+
     assert_inputs_exist(parser, inputs + models)
     assert_outputs_exist(parser, args, args.out_tractogram)
 
@@ -332,12 +332,12 @@ def main():
             args.sf_threshold, args.sf_threshold_init, theta, args.sphere,
             sub_sphere=args.sub_sphere,
             space=our_space, origin=our_origin, is_legacy=is_legacy)
-    
+
     elif args.in_tensor:  # args.in_tensor
         logging.info("Loading DTI tensor data.")
         tensor_img = nib.load(args.in_tensor)
         tensor_data = tensor_img.get_fdata(caching='unchanged', dtype=float)
-        
+
         # Convert tensor to dipy format if needed
         if args.tensor_format != 'dipy':
             logging.info(f"Converting tensor from {args.tensor_format} to dipy format.")
