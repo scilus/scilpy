@@ -16,28 +16,25 @@ from scilpy.tractanalysis.todi_util import get_dir_to_sphere_id
 from dipy.reconst.shm import sf_to_sh
 
 
-"""
-Tensor interpolation notes
---------------------------
-The tensor interpolation path supports a Log-Euclidean mode for 6-coefficient
-DTI volumes. This follows the idea of interpolating symmetric positive-definite
-matrices in the log-domain and then mapping the result back with the matrix
-exponential.
-
-References
-~~~~~~~~~~
-Arsigny, V., Fillard, P., Pennec, X., Ayache, N. (2007). Geometric Means in a
-Novel Vector Space Structure on Symmetric Positive-Definite Matrices. SIAM
-Journal on Matrix Analysis and Applications, 29(1), 328-347.
-
-Pennec, X., Fillard, P., Ayache, N. (2006). A Riemannian Framework for Tensor
-Computing. International Journal of Computer Vision, 66, 41-66.
-"""
-
-
 class DataVolume(object):
     """
     Class to access/interpolate data from nibabel object
+
+    Tensor interpolation notes
+    --------------------------
+    The tensor interpolation path supports a Log-Euclidean mode for 6-coefficient
+    DTI volumes. This follows the idea of interpolating symmetric positive-definite
+    matrices in the log-domain and then mapping the result back with the matrix
+    exponential.
+
+    References
+    ~~~~~~~~~~
+    Arsigny, V., Fillard, P., Pennec, X., Ayache, N. (2007). Geometric Means in a
+    Novel Vector Space Structure on Symmetric Positive-Definite Matrices. SIAM
+    Journal on Matrix Analysis and Applications, 29(1), 328-347.
+
+    Pennec, X., Fillard, P., Ayache, N. (2006). A Riemannian Framework for Tensor
+    Computing. International Journal of Computer Vision, 66, 41-66.
     """
 
     def __init__(self, data, voxres, interpolation=None, must_be_3d=False):
@@ -49,8 +46,8 @@ class DataVolume(object):
         voxres: np.array(3,)
             The pixel resolution, ex, using img.header.get_zooms()[:3].
         interpolation: str or None
-            The interpolation choice amongst "trilinear" or "nearest". If
-            None, functions getting a coordinate in mm instead of voxel
+            The interpolation choice amongst "trilinear" or "nearest" or "log_euclidean".
+            If None, functions getting a coordinate in mm instead of voxel
             coordinates are not available.
         must_be_3d: bool
             If True, dataset can't be 4D.

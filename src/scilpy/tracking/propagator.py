@@ -716,6 +716,10 @@ class TensorPropagator(AbstractPropagator):
             Type of algorithm. Choices are 'det' or 'prob'
         theta: float
             Maximum angle (radians) between two steps.
+        std: float or None
+            Standard deviation for the Gaussian noise added to the principal
+            eigenvector in probabilistic tracking. If None, a default value of
+            0.1 is used. Ignored for deterministic tracking.
         space: dipy Space
             Space of the streamlines during tracking. Default: VOX.
         origin: dipy Origin
@@ -792,8 +796,9 @@ class TensorPropagator(AbstractPropagator):
         if tensor_data is None or np.all(tensor_data == 0):
             return None
 
-        # Get principal eigenvector
-        direction = self._get_direction_from_tensor(tensor_data)
+        # Get principal eigenvector and local eigenvalues.
+        direction, evals = self._get_direction_from_tensor(
+            tensor_data, return_evals=True)
 
         if direction is None:
             return None
@@ -812,30 +817,39 @@ class TensorPropagator(AbstractPropagator):
 
         # For probabilistic tracking, add some noise
         if self.algo == 'prob' and self.line_rng_generator is not None:
-            # Add gaussian noise to direction
-            noise = self.line_rng_generator.normal(0, self.std, 3)
+            # Scale angular perturbation by local anisotropy (FA).
+            # Rationale: principal direction is less stable in low-FA regions
+            # (crossing/isotropic tissue) and more stable in high-FA regions,
+            # so we use std_local = std_global * (1 - FA).
+            local_std = self._compute_local_std_from_evals(evals)
+            noise = self.line_rng_generator.normal(0, local_std, 3)
             direction = direction + noise
             direction = direction / np.linalg.norm(direction)
 
         return direction
 
-    def _get_direction_from_tensor(self, tensor_data):
+    def _get_direction_from_tensor(self, tensor_data, return_evals=False):
         """
-        Extract principal eigenvector and FA from tensor data.
+        Extract principal eigenvector from tensor data.
 
         Parameters
         ----------
         tensor_data : ndarray
             Tensor coefficients in lower triangular format (6 values).
+        return_evals: bool
+            If True, also return sorted eigenvalues.
 
         Returns
         -------
         direction : ndarray or None
             Principal eigenvector (3D direction).
+        evals : ndarray or None
+            Sorted eigenvalues (descending), returned only when
+            return_evals=True.
         """
         if len(tensor_data) != 6:
             logging.warning(f"Expected 6 tensor coefficients, got {len(tensor_data)}")
-            return None, 0.0
+            return (None, None) if return_evals else None
 
         logging.debug(f"Tensor data: {tensor_data}")
 
@@ -849,7 +863,7 @@ class TensorPropagator(AbstractPropagator):
             logging.debug(f"Eigenvalues: {evals}, Eigenvectors shape: {evecs.shape}")
         except Exception as e:
             logging.debug(f"Exception in eig_from_lo_tri: {e}")
-            return None
+            return (None, None) if return_evals else None
 
         # Sort by eigenvalue magnitude (largest first)
         order = np.argsort(evals)[::-1]
@@ -859,6 +873,46 @@ class TensorPropagator(AbstractPropagator):
         # Principal eigenvector (associated with largest eigenvalue)
         principal_evec = evecs[:, 0]
 
-        logging.debug(f"Principal eigenvector: {principal_evec}, Sorted eigenvalues: {evals}")        # Calculate FA
+        logging.debug(f"Principal eigenvector: {principal_evec}, Sorted eigenvalues: {evals}")
 
+        if return_evals:
+            return principal_evec, evals
         return principal_evec
+
+    def _compute_local_std_from_evals(self, evals):
+        """
+        Compute voxel-wise noise std from local eigenvalues.
+
+        Uses FA-derived scaling so that isotropic tensors get larger
+        perturbations and highly anisotropic tensors get smaller ones:
+
+        std_local = std_global * (1 - FA)
+
+        This is a pragmatic uncertainty proxy (not a full posterior model):
+        FA captures how strongly diffusion is oriented, so low FA implies less
+        directional confidence and therefore wider perturbation.
+
+        References
+        ----------
+        Basser, P. J., Mattiello, J., & LeBihan, D. (1994). MR diffusion
+        tensor spectroscopy and imaging. Biophysical Journal, 66(1), 259-267.
+
+        Pierpaoli, C., & Basser, P. J. (1996). Toward a quantitative
+        assessment of diffusion anisotropy. Magnetic Resonance in Medicine,
+        36(6), 893-906.
+        """
+        if evals is None:
+            return self.std
+
+        evals = np.asarray(evals, dtype=np.float64)
+        evals = np.maximum(evals, 0.0)
+        denom = np.sum(evals * evals)
+
+        if denom <= 0.0:
+            fa = 0.0
+        else:
+            mean_eval = np.mean(evals)
+            fa = np.sqrt(1.5 * np.sum((evals - mean_eval) ** 2) / denom)
+            fa = float(np.clip(fa, 0.0, 1.0))
+
+        return self.std * (1.0 - fa)
