@@ -3,10 +3,30 @@ import numpy as np
 import logging
 import inspect
 import os
+import tempfile
+import contextlib
+import warnings
 import scilpy
 
 from dipy.utils.optpkg import optional_package
 cl, have_opencl, _ = optional_package('pyopencl')
+
+
+@contextlib.contextmanager
+def _redirect_fds_to_devnull(*fds):
+    """Temporarily redirect OS-level file descriptors to /dev/null."""
+    with open(os.devnull, 'w') as devnull:
+        saved_fds = []
+        try:
+            for fd in fds:
+                saved_fd = os.dup(fd)
+                saved_fds.append((fd, saved_fd))
+                os.dup2(devnull.fileno(), fd)
+            yield
+        finally:
+            for fd, saved_fd in reversed(saved_fds):
+                os.dup2(saved_fd, fd)
+                os.close(saved_fd)
 
 
 def cl_device_type(device_type_str):
@@ -69,7 +89,40 @@ class CLManager(object):
 
         self.context = cl.Context(devices=[best_device])
         self.queue = cl.CommandQueue(self.context)
-        program = cl.Program(self.context, cl_kernel.code_string).build()
+
+        # Avoid pyopencl cache dependency-file lookups that can emit
+        # noisy "Failed to read file: /tmp/dep-*.d" messages on some drivers.
+        os.environ.setdefault('PYOPENCL_NO_CACHE', '1')
+
+        # Keep OpenCL build logs quiet by default. Can be overridden with
+        # SCILPY_OPENCL_BUILD_OPTIONS, e.g. "-cl-fast-relaxed-math".
+        options = os.environ.get('SCILPY_OPENCL_BUILD_OPTIONS', '-w').split()
+        compiler_warning = getattr(cl, 'CompilerWarning', Warning)
+        # Some OpenCL compilers create transient dependency files in TMPDIR
+        # and may emit non-fatal "Failed to read file: .../dep-*.d" messages.
+        with tempfile.TemporaryDirectory(prefix='scilpy-opencl-') as tmp_dir:
+            build_env = {
+                'TMPDIR': tmp_dir,
+                'TMP': tmp_dir,
+                'TEMP': tmp_dir
+            }
+            old_env = {k: os.environ.get(k) for k in build_env}
+            os.environ.update(build_env)
+            try:
+                with warnings.catch_warnings():
+                    warnings.simplefilter('ignore', category=compiler_warning)
+                    # Redirect native writes (fd 1/2) from the OpenCL compiler.
+                    with _redirect_fds_to_devnull(1, 2):
+                        program = cl.Program(
+                            self.context,
+                            cl_kernel.code_string
+                        ).build(options=options, cache_dir=False)
+            finally:
+                for key, value in old_env.items():
+                    if value is None:
+                        os.environ.pop(key, None)
+                    else:
+                        os.environ[key] = value
         self.kernel = cl.Kernel(program, cl_kernel.entry_point)
 
     class OutBuffer(object):
@@ -257,11 +310,11 @@ class CLKernel(object):
     def __init__(self, entrypoint, module, filename):
         path_to_kernel = self._get_kernel_path(module, filename)
         try:
-            f = open(path_to_kernel, 'r')
+            with open(path_to_kernel, 'r', encoding='utf-8') as f:
+                self.code = f.readlines()
         except Exception:
             raise ValueError('OpenCL file not found in {}'
                              .format(path_to_kernel))
-        self.code = f.readlines()
         self.entrypoint = entrypoint
 
     def _get_kernel_path(self, module, filename):
