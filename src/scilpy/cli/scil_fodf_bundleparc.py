@@ -170,7 +170,7 @@ def main():
         resampled_img.get_fdata(dtype=np.float32),
         n_coefs,
         label_function,
-        DEFAULT_BUNDLES,
+        args.bundles,
         args.min_blob_size,
         args.keep_biggest_blob,
         half_precision=args.half_precision,
