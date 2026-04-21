@@ -67,7 +67,8 @@ class Tracker(object):
             Memory-mapping mode. One of {None, 'r+', 'c'}. This value is passed
             to np.load() when loading the raw tracking data from a subprocess.
         rng_seed: int
-            The random "seed" for the random generator.
+            The random "seed" for the random generator. If None, a random
+            uint32 seed is generated at runtime.
         track_forward_only: bool
             If true, only the forward direction is computed.
         skip: int
@@ -101,7 +102,11 @@ class Tracker(object):
         self.compression_th = compression_th
         self.save_seeds = save_seeds
         self.mmap_mode = mmap_mode
-        self.rng_seed = rng_seed
+        if rng_seed is None:
+            self.rng_seed = int(np.random.default_rng().integers(
+                0, np.iinfo(np.uint32).max, dtype=np.uint32))
+        else:
+            self.rng_seed = int(np.uint32(rng_seed))
         self.track_forward_only = track_forward_only
         self.append_last_point = append_last_point
         self.skip = skip
