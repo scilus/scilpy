@@ -207,15 +207,12 @@ def main():
         with open(hidden_dir / f'{match}.help', 'r') as f:
             docstrings = f.read()
 
-        all_experessions = stemmed_keywords + keywords + phrases \
-            + stemmed_phrases
+        all_expressions = set(stemmed_keywords + keywords + phrases + stemmed_phrases)
         if not args.no_synonyms:
-            all_experessions += synonyms
-
-        all_experessions = set(all_experessions)
+            all_expressions.update(synonyms)
 
         highlighted_docstring = _highlight_keywords(docstrings,
-                                                    all_experessions)
+                                                    all_expressions)
         if args.verbose == 'INFO':
             first_sentence = _split_first_sentence(
                 highlighted_docstring)[0]
@@ -235,8 +232,8 @@ def main():
             original_word = keyword_mapping.get(
                 word, phrase_mapping.get(word, word))
             logging.info(
-                f"{Fore.LIGHTGREEN_EX}Occurrence of '{original_word}': ' \
-                f'{score}{Style.RESET_ALL}")
+                f"{Fore.LIGHTGREEN_EX}Occurrence of '{original_word}': "
+                f"{score}{Style.RESET_ALL}")
         logging.info(f"{Fore.LIGHTBLUE_EX}{'=' * SPACING_LEN}")
         logging.info("\n")
 

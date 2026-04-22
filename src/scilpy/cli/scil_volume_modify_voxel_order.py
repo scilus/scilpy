@@ -91,11 +91,13 @@ def main():
 
     simg.reorient(parsed_voxel_order)
 
+    # To enforce the new voxel order in the header, we need to convert create
+    # a new StatefulImage, which will update the header accordingly.
     new_simg = StatefulImage.convert_to_simg(simg, simg.bvals, simg.bvecs)
     new_simg.save(args.out_image)
 
     if args.in_bvec and args.out_bvec:
-        np.savetxt(args.out_bvec, simg.bvecs.T, fmt='%.8f')
+        np.savetxt(args.out_bvec, new_simg.bvecs.T, fmt='%.8f')
 
 
 if __name__ == "__main__":

@@ -32,15 +32,39 @@ class TrackingDirection(list):
         self.index = index
 
 
-def add_mandatory_options_tracking(p):
+def add_mandatory_options_tracking(p, fodf_optional=False):
     """
     Args that are required in both scil_tracking_local and
     scil_tracking_local_dev scripts.
     """
-    p.add_argument('in_odf',
-                   help='File containing the orientation diffusion function \n'
-                        'as spherical harmonics file (.nii.gz). Ex: ODF or '
-                        'fODF.')
+    if fodf_optional:
+        odf_group = p.add_mutually_exclusive_group()
+        odf_group.add_argument('--in_odf', default=None,
+                               help='File containing the orientation \n'
+                               'diffusion function as spherical harmonics \n'
+                               'file (.nii.gz). Ex: ODF or fODF. \n'
+                               'If not provided, fODF info must be \n'
+                               'specified in rap_policies.json.')
+        odf_group.add_argument('--rap_params', default=None,
+                               help='JSON file containing RAP parameters, \n'
+                               'mutually exclusive with --in_odf.\n'
+                               'Required for --rap_method switch.\n'
+                               'Expected format:\n'
+                                    '{\n'
+                                    '  "methods": {\n'
+                                    '    "1": {"propagator": "ODF", "filename": str,\n'
+                                    '          "sh_basis": str, "algo": str,\n'
+                                    '          "theta": float, "step_size": float},\n'
+                                    '    "2": {"propagator": "ODF", "filename": str,\n'
+                                    '          "sh_basis": str, "algo": str,\n'
+                                    '          "theta": float, "step_size": float}\n'
+                                    '  }\n'
+                                    '}')
+    else:
+        p.add_argument('in_odf',
+                       help='File containing the orientation diffusion function \n'
+                            'as spherical harmonics file (.nii.gz). \n'
+                            'Ex: ODF or fODF.')
     p.add_argument('in_seed',
                    help='Seeding mask (.nii.gz).')
     p.add_argument('in_mask',
@@ -405,8 +429,9 @@ def get_direction_getter(img_data, algo, sphere, sub_sphere, theta, sh_basis,
             peak_indices = np.full((img_shape_3d + (npeaks,)), -1,
                                    dtype='int')
             b_matrix, _ = sh_to_sf_matrix(sphere,
-                                          find_order_from_nb_coeff(img_data),
-                                          sh_basis, legacy=is_legacy)
+                                          sh_order_max=find_order_from_nb_coeff(
+                                              img_data),
+                                          basis_type=sh_basis, legacy=is_legacy)
 
             for idx in np.argwhere(np.sum(img_data, axis=-1)):
                 idx = tuple(idx)

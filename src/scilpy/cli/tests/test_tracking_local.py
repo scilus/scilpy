@@ -83,7 +83,7 @@ def test_execution_sphere_gpu(script_runner, monkeypatch):
                              '--use_gpu', '--sphere', 'symmetric362',
                              '--npv', '1'])
 
-    assert not ret.success
+    assert ret.success
 
 
 def test_sh_interp_without_gpu(script_runner, monkeypatch):
@@ -131,7 +131,7 @@ def test_algo_with_gpu(script_runner, monkeypatch):
                              in_mask, in_mask, 'gpu_det.trk', '--algo',
                              'det', '--use_gpu', '--nt', '100'])
 
-    assert not ret.success
+    assert ret.success
 
 
 def test_execution_tracking_fodf_no_compression(script_runner, monkeypatch):

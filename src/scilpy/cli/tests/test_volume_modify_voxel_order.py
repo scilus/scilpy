@@ -6,7 +6,11 @@ import nibabel as nib
 import numpy as np
 import tempfile
 
+from scilpy import SCILPY_HOME
+from scilpy.io.fetcher import fetch_data, get_testing_files_dict
 
+# If they already exist, this only takes 5 seconds (check md5sum)
+fetch_data(get_testing_files_dict(), keys=['processing.zip'])
 tmp_dir = tempfile.TemporaryDirectory()
 
 
@@ -125,3 +129,69 @@ def test_execution_with_gradients_numeric(script_runner, monkeypatch):
     saved_bvecs = np.loadtxt(out_bvec).T
     expected_bvecs = np.array([[0, 0, 0], [-1, 0, 0]])
     assert np.allclose(saved_bvecs, expected_bvecs)
+
+
+def test_execution_real_data(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
+    in_image = os.path.join(SCILPY_HOME, 'processing',
+                            'dwi_crop.nii.gz')
+
+    # Verify original orientation is RAS
+    img_in = nib.load(in_image)
+    assert nib.aff2axcodes(img_in.affine) == ('R', 'A', 'S')
+
+    # Test LPS
+    out_lps = 'real_lps.nii.gz'
+    ret = script_runner.run(['scil_volume_modify_voxel_order', in_image,
+                             out_lps, '--new_voxel_order=LPS', '-f'])
+    assert ret.success
+    img = nib.load(out_lps)
+    assert nib.aff2axcodes(img.affine) == ('L', 'P', 'S')
+
+    # Test RAS
+    out_ras = 'real_ras.nii.gz'
+    ret = script_runner.run(['scil_volume_modify_voxel_order', in_image,
+                             out_ras, '--new_voxel_order=RAS', '-f'])
+    assert ret.success
+    img = nib.load(out_ras)
+    assert nib.aff2axcodes(img.affine) == ('R', 'A', 'S')
+
+    # Test LPI
+    out_lpi = 'real_lpi.nii.gz'
+    ret = script_runner.run(['scil_volume_modify_voxel_order', in_image,
+                             out_lpi, '--new_voxel_order=LPI', '-f'])
+    assert ret.success
+    img = nib.load(out_lpi)
+    assert nib.aff2axcodes(img.affine) == ('L', 'P', 'I')
+
+
+def test_execution_with_bvec_real_data(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
+    in_image = os.path.join(SCILPY_HOME, 'processing',
+                            'dwi_crop.nii.gz')
+    in_bvec = os.path.join(SCILPY_HOME, 'processing',
+                           'dwi.bvec')
+
+    # Verify original orientation is RAS
+    img_in = nib.load(in_image)
+    assert nib.aff2axcodes(img_in.affine) == ('R', 'A', 'S')
+
+    # Test LPI
+    out_lpi = 'real_lpi_grad.nii.gz'
+    out_bvec = 'real_lpi_grad.bvec'
+    ret = script_runner.run(['scil_volume_modify_voxel_order', in_image,
+                             out_lpi, '--new_voxel_order=LPI',
+                             '--in_bvec', in_bvec, '--out_bvec', out_bvec, '-f'])
+    assert ret.success
+
+    # Verify image
+    img = nib.load(out_lpi)
+    assert nib.aff2axcodes(img.affine)[:3] == ('L', 'P', 'I')
+
+    # Verify bvec
+    assert os.path.exists(out_bvec)
+    old_bvecs = np.loadtxt(in_bvec)
+    new_bvecs = np.loadtxt(out_bvec)
+
+    # RAS to LPI: flip X, Y, Z
+    assert np.allclose(new_bvecs, -old_bvecs)

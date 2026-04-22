@@ -91,7 +91,8 @@ def _afd_and_rd_sums_along_streamlines(sft, fodf, fodf_basis,
     fodf_data = fodf.get_fdata(dtype=np.float32)
     order = find_order_from_nb_coeff(fodf_data)
     sphere = get_sphere(name='repulsion724')
-    b_matrix, _ = sh_to_sf_matrix(sphere, order, fodf_basis, legacy=is_legacy)
+    b_matrix, _ = sh_to_sf_matrix(sphere, sh_order_max=order,
+                                  basis_type=fodf_basis, legacy=is_legacy)
     _, n = sph_harm_ind_list(order)
     legendre0_at_n = legendre_p_all(order, 0)[0][n]
     sphere_norm = np.linalg.norm(sphere.vertices)
