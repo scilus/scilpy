@@ -72,13 +72,12 @@ def _build_arg_parser():
 
     return p
 
-import numpy as np
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
-    assert_inputs_exist(parser, [args.in_moving_surface, args.in_transfo],
+    assert_inputs_exist(parser, [args.in_moving_surface, args.in_target_reference, args.in_transfo],
                         args.in_deformation)
     assert_outputs_exist(parser, args, args.out_surface)
     convert_stateful_str_to_enum(args)

@@ -57,7 +57,7 @@ def apply_transform(sfs, linear_transfo, target_reference,
         ty = map_coordinates(deformation_data[..., 1], sfs.vertices.T, order=1)
         tz = map_coordinates(deformation_data[..., 2], sfs.vertices.T, order=1)
 
-    #     # Apply vertices translation in world coordinates
+        # Apply vertices translation in world coordinates
         new_sfs.to_rasmm()
         new_sfs.to_center()
 

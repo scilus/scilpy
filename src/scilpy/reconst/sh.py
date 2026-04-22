@@ -618,7 +618,7 @@ def convert_sh_basis(shm_coeff, sphere, mask=None,
                               basis_type=input_basis,
                               legacy=is_input_legacy)
     _, invB_out = sh_to_sf_matrix(sphere=sphere, sh_order_max=sh_order,
-                                  basis_type=output_basis, full_basis=False,
+                                  basis_type=output_basis,
                                   legacy=is_output_legacy)
 
     data_shape = shm_coeff.shape
