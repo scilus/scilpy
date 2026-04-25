@@ -61,7 +61,8 @@ def _build_arg_parser():
                         'existing shell. Above this limit, the b-value is '
                         'placed on a new shell. This includes b0s values.')
     p.add_argument('--replace_bad_voxels', type=float, default=None,
-                   help='Replace bad voxels (NaNs or infs) in the input DWI with the specified value.')
+                   help='Replace bad voxels (NaNs or infs) in the input DWI '
+                        'with the specified value.')
 
     g1 = p.add_argument_group(title='Model options')
     g1.add_argument('--para_diff', type=float, default=1.5e-3,

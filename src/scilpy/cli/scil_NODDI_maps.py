@@ -58,7 +58,8 @@ def _build_arg_parser():
                    help='Output directory for the NODDI results. '
                         '[%(default)s]')
     p.add_argument('--replace_bad_voxels', type=float, default=None,
-                   help='Replace bad voxels (NaNs or infs) in the input DWI with the specified value.')
+                   help='Replace bad voxels (NaNs or infs) in the input DWI '
+                        'with the specified value.')
     add_tolerance_arg(p)
     add_skip_b0_check_arg(p, will_overwrite_with_min=False,
                           b0_tol_name='--tolerance')
