@@ -33,6 +33,7 @@ def test_execution_commit_amico(script_runner, monkeypatch):
                              '--out_dir', 'noddi', '--tol', '30',
                              '--para_diff', '0.0017', '--iso_diff', '0.003',
                              '--lambda1', '0.5', '--lambda2', '0.001',
+                             '--replace_bad_voxels', '0',
                              '--processes', '1', '-f'])
     assert ret.success
 
