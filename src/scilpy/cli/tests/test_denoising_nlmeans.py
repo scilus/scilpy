@@ -61,7 +61,6 @@ def test_execution_basic_4d_mask(script_runner, monkeypatch):
     assert ret.success
 
 
-@pytest.mark.skip(reason="Piesno is currently disabled in the main script.")
 def test_execution_piesno(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_img = os.path.join(SCILPY_HOME, 'processing', 'dwi.nii.gz')
