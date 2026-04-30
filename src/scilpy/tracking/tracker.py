@@ -306,7 +306,6 @@ class Tracker(object):
             List of list of 3D positions (streamlines).
         """
         chunk_id, lock = params
-        global multiprocess_init_args
 
         self._reload_data_for_new_process(multiprocess_init_args)
         try:

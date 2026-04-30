@@ -237,7 +237,8 @@ def main():
         tensor_vals_reordered = convert_tensor_from_dipy_format(
             tensor_vals, final_format=args.tensor_format)
 
-        StatefulImage.from_data(tensor_vals_reordered.astype(np.float32), simg).save(args.tensor)
+        StatefulImage.from_data(tensor_vals_reordered.astype(np.float32),
+                                simg).save(args.tensor)
 
         del tensor_vals, tensor_vals_reordered
 
@@ -250,7 +251,8 @@ def main():
 
         if args.rgb:
             RGB = color_fa(FA, tenfit.evecs)
-            StatefulImage.from_data(np.array(255 * RGB, 'uint8'), simg).save(args.rgb)
+            StatefulImage.from_data(np.array(255 * RGB, 'uint8'),
+                                    simg).save(args.rgb)
 
     if args.ga:
         GA = geodesic_anisotropy(tenfit.evals)
@@ -278,7 +280,8 @@ def main():
         non_nan_indices = np.isfinite(inter_mode)
         mode_data = np.zeros(inter_mode.shape)
         mode_data[non_nan_indices] = inter_mode[non_nan_indices]
-        StatefulImage.from_data(mode_data.astype(np.float32), simg).save(args.mode)
+        StatefulImage.from_data(mode_data.astype(np.float32),
+                                simg).save(args.mode)
 
     if args.norm:
         NORM = norm(tenfit.quadratic_form)
@@ -310,7 +313,8 @@ def main():
         if args.mask is not None:
             pis_mask *= mask
 
-        StatefulImage.from_data(pis_mask.astype(np.int16), simg).save(args.p_i_signal)
+        StatefulImage.from_data(pis_mask.astype(np.int16),
+                                simg).save(args.p_i_signal)
 
     if args.pulsation:
         STD = np.std(data[..., ~gtab.b0s_mask], axis=-1)

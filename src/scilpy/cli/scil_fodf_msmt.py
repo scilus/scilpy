@@ -136,7 +136,7 @@ def main():
     simg.load_gradients(args.in_bval, args.in_bvec)
 
     # Orientation standardization?
-    # Reconstruction logic (dipy/scilpy) often prefers a specific orientation or consistency.
+    # Reconstruction logic (dipy/scilpy) often prefers specific orientation.
     # We reorient secondary inputs to match the primary one.
     # If we want to be fully robust, we could force RAS here, but let's see.
     # scil_frf_msmt used to_ras(), so let's be consistent.

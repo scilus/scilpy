@@ -61,6 +61,8 @@ def _build_arg_parser():
                    help='Path of the b-values file.')
     p.add_argument('--out_bvec',
                    help='Path of the modified b-vectors file to write.')
+    p.add_argument('--out_bval',
+                   help='Path of the modified b-values file to write.')
 
     add_verbose_arg(p)
     add_overwrite_arg(p)
@@ -93,21 +95,21 @@ def main():
 
     simg.reorient(parsed_voxel_order)
 
-    # To enforce the new voxel order in the header, we need to convert create
+    # To enforce the new voxel order in the header, we need to create
     # a new StatefulImage, which will update the header accordingly.
     new_simg = StatefulImage.convert_to_simg(simg, simg.bvals, simg.bvecs)
     new_simg.save(args.out_image)
 
     if args.in_bvec and args.out_bvec:
-        if args.in_bval:
-            simg.save_gradients(args.in_bval, args.out_bvec)
+        if args.in_bval and args.out_bval:
+            new_simg.save_gradients(args.out_bval, args.out_bvec)
         else:
-            # If no bval file, save only bvecs or handle as needed
-            # For now, let's assume if save_gradients requires both,
-            # we should avoid calling it if bval is missing.
-            # But based on the error, it's called with None.
-            # Let's save only bvecs if possible, or warn.
-            np.savetxt(args.out_bvec, simg.bvecs.T, fmt='%.8f')
+            # If no bval file or no output bval path, save only bvecs.
+            # new_simg.bvecs returns bvecs in the current (new) orientation.
+            np.savetxt(args.out_bvec, new_simg.bvecs.T, fmt='%.8f')
+            if args.in_bval and not args.out_bval:
+                logging.warning("b-values were provided but no output path "
+                                "was specified. b-values will not be saved.")
 
 
 if __name__ == "__main__":
