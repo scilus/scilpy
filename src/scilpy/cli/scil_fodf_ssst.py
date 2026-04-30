@@ -91,7 +91,7 @@ def main():
     mask = None
     if args.mask:
         mask_simg = StatefulImage.load(args.mask)
-        mask_simg.reorient(simg.axcodes)
+        mask_simg.to_ras()
         mask = get_data_as_mask(mask_simg, dtype=bool)
 
     sh_order = args.sh_order

@@ -36,6 +36,7 @@ from scilpy.io.utils import (add_overwrite_arg,
                              parse_sh_basis_arg,
                              assert_headers_compatible)
 from scilpy.io.image import assert_same_resolution, get_data_as_mask
+from scilpy.io.stateful_image import StatefulImage
 from scilpy.utils.spatial import RAS_AXES_NAMES
 from scilpy.version import version_string
 from scilpy.viz.backends.fury import (create_interactive_window,
@@ -220,7 +221,9 @@ def _get_data_from_inputs(args):
     Load data given by args. Perform checks to ensure dimensions agree
     between the data for mask, background, peaks and fODF.
     """
-    fodf = nib.load(args.in_fodf).get_fdata(dtype=np.float32)
+    fodf_simg = StatefulImage.load(args.in_fodf)
+    fodf_simg.to_ras()
+    fodf = fodf_simg.get_fdata(dtype=np.float32)
 
     # Optional:
     bg = None
@@ -231,16 +234,24 @@ def _get_data_from_inputs(args):
     variance = None
     if args.background:
         assert_same_resolution([args.background, args.in_fodf])
-        bg = nib.load(args.background).get_fdata()
+        bg_simg = StatefulImage.load(args.background)
+        bg_simg.reorient(fodf_simg.axcodes)
+        bg = bg_simg.get_fdata()
     if args.in_transparency_mask:
+        tm_simg = StatefulImage.load(args.in_transparency_mask)
+        tm_simg.reorient(fodf_simg.axcodes)
         transparency_mask = get_data_as_mask(
-            nib.load(args.in_transparency_mask), dtype=bool)
+            tm_simg, dtype=bool)
     if args.mask:
         assert_same_resolution([args.mask, args.in_fodf])
-        mask = get_data_as_mask(nib.load(args.mask), dtype=bool)
+        mask_simg = StatefulImage.load(args.mask)
+        mask_simg.reorient(fodf_simg.axcodes)
+        mask = get_data_as_mask(mask_simg, dtype=bool)
     if args.peaks:
         assert_same_resolution([args.peaks, args.in_fodf])
-        peaks = nib.load(args.peaks).get_fdata()
+        peaks_simg = StatefulImage.load(args.peaks)
+        peaks_simg.reorient(fodf_simg.axcodes)
+        peaks = peaks_simg.get_fdata()
         if len(peaks.shape) == 4:
             last_dim = peaks.shape[-1]
             if last_dim % 3 == 0:
@@ -252,11 +263,15 @@ def _get_data_from_inputs(args):
                                  .format(peaks.shape[-1]))
         if args.peaks_values:
             assert_same_resolution([args.peaks_values, args.in_fodf])
+            peak_vals_simg = StatefulImage.load(args.peaks_values)
+            peak_vals_simg.reorient(fodf_simg.axcodes)
             peak_vals =\
-                nib.load(args.peaks_values).get_fdata()
+                peak_vals_simg.get_fdata()
     if args.variance:
         assert_same_resolution([args.variance, args.in_fodf])
-        variance = nib.load(args.variance).get_fdata(dtype=np.float32)
+        variance_simg = StatefulImage.load(args.variance)
+        variance_simg.reorient(fodf_simg.axcodes)
+        variance = variance_simg.get_fdata(dtype=np.float32)
         if len(variance.shape) == 3:
             variance = np.reshape(variance, variance.shape + (1,))
         if variance.shape != fodf.shape:

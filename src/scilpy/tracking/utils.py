@@ -13,9 +13,10 @@ from dipy.data import get_sphere
 from dipy.direction import (DeterministicMaximumDirectionGetter,
                             ProbabilisticDirectionGetter, PTTDirectionGetter)
 from dipy.direction.peaks import PeaksAndMetrics
-from dipy.io.utils import create_tractogram_header, get_reference_info
+from dipy.io.utils import create_tractogram_header, get_reference_info, is_reference_info_valid
 from dipy.reconst.shm import sh_to_sf_matrix
 from dipy.tracking.streamlinespeed import compress_streamlines, length
+from vine import transform
 from scilpy.io.utils import (add_compression_arg, add_overwrite_arg,
                              add_sh_basis_args)
 from scilpy.reconst.utils import find_order_from_nb_coeff, get_maximas
@@ -235,19 +236,21 @@ def save_tractogram(
         If True, display progression bar.
 
     """
-    from scilpy.io.stateful_image import StatefulImage
-
+    voxel_size = np.array(ref_img.header.get_zooms()[:3])
     # If ref_img is a StatefulImage, we want to save relative to its
     # original on-disk orientation, not the internal (likely RAS) one.
+    from scilpy.io.stateful_image import StatefulImage
     is_stateful = isinstance(ref_img, StatefulImage)
-    if is_stateful:
-        original_axcodes = ref_img.axcodes
-        ref_img.reorient_to_original()
-
-    voxel_size = np.array(ref_img.header.get_zooms()[:3])
-
     # Tracking is expected to be returned in voxel space, origin `center`.
     def tracks_generator_wrapper():
+        if tracts_format is TrkFile:
+            if is_stateful:
+                affine_mod = ref_img.affine.copy()
+                affine_ori = ref_img._original_affine
+            else:
+                affine = ref_img.affine.copy()
+        else:
+            affine = ref_img.affine.copy()
         for strl, seed in tqdm_if_verbose(streamlines_generator,
                                           verbose=verbose,
                                           total=total_nb_seeds,
@@ -271,34 +274,42 @@ def save_tractogram(
                     strl_mm = compress_streamlines(strl_mm, compress)
                 
                 if tracts_format is TrkFile:
-                    # Streamlines are dumped in mm space with origin `corner`.
-                    # (TrackVis space). 
-                    # Note: We use the already computed strl_mm (center origin)
-                    # and shift it by 0.5 * voxel_size to get corner origin.
-                    strl_to_save = strl_mm + 0.5 * voxel_size
+                    # Revert to canonical RAS vox space, then go to rasmm and back
+                    # to vox space in the original orientation,
+                    # to save in the expected space for .trk files.
+                    strl_vox = strl_mm / voxel_size
+
+                    strl_rasmm = nib.affines.apply_affine(affine_mod,
+                                                            strl_vox)
+                    strl_old_vox = nib.affines.apply_affine(np.linalg.inv(affine_ori),
+                                                            strl_rasmm)
+                    strl_to_save = strl_old_vox * voxel_size + 0.5 * voxel_size
+                    
                 else:
                     # Streamlines are dumped in true world space with
                     # origin center as expected by .tck files.
-                    strl_to_save = nib.affines.apply_affine(ref_img.affine, strl)
+                    strl_vox = strl_mm / voxel_size
+                    strl_to_save = nib.affines.apply_affine(affine, strl_vox)
 
                 yield TractogramItem(strl_to_save, dps, {})
 
     tractogram = LazyTractogram.from_data_func(tracks_generator_wrapper)
-    # Since the generator yields coordinates already in their final format-space
-    # (TrackVis for .trk, RASMM for .tck), we set the affine_to_rasmm to identity
-    # to prevent nibabel from applying any further transformation.
     tractogram.affine_to_rasmm = np.eye(4)
 
     filetype = nib.streamlines.detect_format(out_tractogram)
-    reference = get_reference_info(ref_img)
-    header = create_tractogram_header(filetype, *reference)
+
+    if is_stateful:
+        reference = (ref_img._original_affine,
+                     ref_img._original_dimensions[:3],
+                     ref_img._original_voxel_sizes[:3],
+                     "".join(ref_img._original_axcodes[:3]))
+        header = create_tractogram_header(filetype, *reference)
+    else:
+        reference = get_reference_info(ref_img)
+        header = create_tractogram_header(filetype, *reference)
 
     # Use generator to save the streamlines on-the-fly
     nib.streamlines.save(tractogram, out_tractogram, header=header)
-
-    # Revert ref_img to its previous orientation
-    if is_stateful:
-        ref_img.reorient(original_axcodes)
 
 
 def get_direction_getter(img_data, algo, sphere, sub_sphere, theta, sh_basis,

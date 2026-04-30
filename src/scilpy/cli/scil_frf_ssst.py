@@ -105,7 +105,6 @@ def main():
     simg = StatefulImage.load(args.in_dwi)
     simg.load_gradients(args.in_bval, args.in_bvec)
 
-    # FRF computation often expects RAS (via dipy)
     simg.to_ras()
 
     data = simg.get_fdata(dtype=np.float32)
@@ -119,13 +118,13 @@ def main():
     mask = None
     if args.mask:
         mask_simg = StatefulImage.load(args.mask)
-        mask_simg.reorient(simg.axcodes)
+        mask_simg.to_ras()
         mask = get_data_as_mask(mask_simg, dtype=bool)
 
     mask_wm = None
     if args.mask_wm:
         mask_wm_simg = StatefulImage.load(args.mask_wm)
-        mask_wm_simg.reorient(simg.axcodes)
+        mask_wm_simg.to_ras()
         mask_wm = get_data_as_mask(mask_wm_simg, dtype=bool)
 
     full_response = compute_ssst_frf(

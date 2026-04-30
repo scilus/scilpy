@@ -123,7 +123,7 @@ class StatefulImage(nib.Nifti1Image):
         bvals = None
         bvecs = None
         if reference.bvals is not None and reference.bvecs is not None:
-            if source.ndim >= 4 and len(reference.bvals) == source.shape[3]:
+            if source.ndim == 4 and len(reference.bvals) == source.shape[3]:
                 bvals = reference.bvals
                 bvecs = reference.bvecs
 
@@ -354,28 +354,16 @@ class StatefulImage(nib.Nifti1Image):
 
         # Ensure target_axcodes has the same number of dimensions as self.shape
         # by padding with unique placeholder codes if necessary.
-        target_axcodes = list(target_axcodes)
-        if len(target_axcodes) < len(self.shape):
-            extra_codes = ['T', 'U', 'V', 'W', 'X', 'Y', 'Z']
-            for i in range(len(target_axcodes), len(self.shape)):
-                target_axcodes.append(extra_codes[i-3])
-        elif len(target_axcodes) > len(self.shape):
-            target_axcodes = target_axcodes[:len(self.shape)]
-        target_axcodes = tuple(target_axcodes)
+        target_axcodes = tuple(target_axcodes[:3])
 
-        validate_voxel_order(target_axcodes, dimensions=len(self.shape))
+        validate_voxel_order(target_axcodes, dimensions=3)
 
-        current_axcodes = self.axcodes
-        if current_axcodes == tuple(target_axcodes):
+        current_axcodes = self.axcodes[:3]
+        if current_axcodes == target_axcodes:
             return
 
-        # Nibabel only handles 3D orientations. If 4D, we assume the 4th
-        # dimension is time/gradients and doesn't need reorientation.
-        target_axcodes_3d = [c for c in target_axcodes if c != 'T']
-        current_axcodes_3d = [c for c in current_axcodes if c != 'T']
-
-        start_ornt = nib.orientations.axcodes2ornt(current_axcodes_3d)
-        target_ornt = nib.orientations.axcodes2ornt(target_axcodes_3d)
+        start_ornt = nib.orientations.axcodes2ornt(current_axcodes)
+        target_ornt = nib.orientations.axcodes2ornt(target_axcodes)
         transform = nib.orientations.ornt_transform(start_ornt, target_ornt)
 
         reoriented_img = self.as_reoriented(transform)
