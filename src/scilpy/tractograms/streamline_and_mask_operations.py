@@ -353,12 +353,19 @@ def cut_streamlines_with_mask(sft, mask,
     else:
         trim_func = _trim_streamline_in_mask
 
-    # Trim streamlines with the mask and return the new streamlines
-    pool = Pool(processes)
-    lists_of_new_strmls = pool.starmap(
-        trim_func, [(i, s, pt, mask) for (i, s, pt) in zip(
-            indices, sft.streamlines, points_to_idx)])
-    pool.close()
+    # Trim streamlines with the mask and return the new streamlines.
+    # In single-process mode, avoid creating a multiprocessing pool.
+    if processes <= 1:
+        lists_of_new_strmls = [
+            trim_func(i, s, pt, mask)
+            for (i, s, pt) in zip(indices, sft.streamlines, points_to_idx)
+        ]
+    else:
+        with Pool(processes) as pool:
+            lists_of_new_strmls = pool.starmap(
+                trim_func, [(i, s, pt, mask) for (i, s, pt) in zip(
+                    indices, sft.streamlines, points_to_idx)])
+
     # Flatten the list of lists of new streamlines in a single list of
     # new streamlines
     new_strmls = ArraySequence([strml for list_of_strml in lists_of_new_strmls
@@ -444,15 +451,22 @@ def cut_streamlines_between_labels(
                          "--remove_single_point and "
                          "--remove_overlapping_points options.")
 
-    # Trim streamlines with the mask and return the new streamlines
-    pool = Pool(processes)
-    lists_of_new_strmls = pool.starmap(
-        _cut_streamline_with_labels, [(i, s, pt, label_data_1, label_data_2,
-                                       one_point_in_roi, no_point_in_roi)
-                                      for (i, s, pt) in zip(
-                                          indices, sft.streamlines,
-                                          points_to_idx)])
-    pool.close()
+    # Trim streamlines with the mask and return the new streamlines.
+    # In single-process mode, avoid creating a multiprocessing pool.
+    if processes <= 1:
+        lists_of_new_strmls = [
+            _cut_streamline_with_labels(i, s, pt, label_data_1, label_data_2,
+                                        one_point_in_roi, no_point_in_roi)
+            for (i, s, pt) in zip(indices, sft.streamlines, points_to_idx)
+        ]
+    else:
+        with Pool(processes) as pool:
+            lists_of_new_strmls = pool.starmap(
+                _cut_streamline_with_labels,
+                [(i, s, pt, label_data_1, label_data_2,
+                  one_point_in_roi, no_point_in_roi)
+                 for (i, s, pt) in zip(indices, sft.streamlines,
+                                       points_to_idx)])
     # Flatten the list of lists of new streamlines in a single list of
     # new streamlines
     list_of_new_strmls = [strml for strml in lists_of_new_strmls

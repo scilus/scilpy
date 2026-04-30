@@ -16,7 +16,7 @@ Installation
 
 .. code-block:: bash
 
-    # If you are using Python3.10 or Python3.11, export this variable before installing
+    # If you are using Python3.11, export this variable before installing
     export SETUPTOOLS_USE_DISTUTILS=stdlib
 
     uv pip install scilpy # For the most recent release from PyPi
@@ -29,7 +29,7 @@ In order to follow the tutorials we highly encourage you to download this archiv
 
 .. code-block:: bash
 
-      gdown https://drive.google.com/file/d/1DYQ1LHgqB_wloKmUmIcc6ORaHld0U972/view?usp=sharing --fuzzy
+      gdown https://drive.google.com/file/d/1kbKvj0DdCExXcx9s3tTw3pKcY9IaAsvF/view?usp=sharing --fuzzy
       unzip data_for_test.zip
       rm data_for_test.zip
 

@@ -34,5 +34,6 @@ def test_execution_commit_amico(script_runner, monkeypatch):
                              '--perp_diff_min', '0.0001',
                              '--perp_diff_max', '0.0007',
                              '--lambda1', '0.0', '--lambda2', '0.001',
+                             '--replace_bad_voxels', '0',
                              '--processes', '1'])
     assert ret.success
