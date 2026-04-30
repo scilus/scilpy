@@ -105,7 +105,7 @@ class Tracker(object):
         self.track_forward_only = track_forward_only
         self.append_last_point = append_last_point
         self.skip = skip
-        
+
         # List to store RAP entry/exit coordinates as tuples (coord, type)
         # where type is 1 for entry and 2 for exit
         self.rap_entry_exit_coords = []
@@ -141,7 +141,7 @@ class Tracker(object):
         """
         Save RAP entry/exit coordinates as a nifti mask.
         Entry points have value 1, exit points have value 2.
-        
+
         Parameters
         ----------
         output_path : str
@@ -150,21 +150,21 @@ class Tracker(object):
             Reference image to get affine and shape for the output mask.
         """
         import nibabel as nib
-        
+
         if not self.rap_entry_exit_coords:
             logging.warning("No RAP entry/exit coordinates to save.")
             return
-        
+
         # Create empty mask with same shape as reference
         mask_data = np.zeros(reference_img.shape[:3], dtype=np.uint8)
-        
+
         # Convert coordinates to voxel space and set mask values
         # Each element is a tuple (coord, coord_type) where coord_type is 1 (entry) or 2 (exit)
         for coord, coord_type in self.rap_entry_exit_coords:
             # Coordinates are already in voxel space (VOX, center)
             # Round to nearest integer voxel
             vox_coord = np.round(coord).astype(int)
-            
+
             # Check bounds
             if (0 <= vox_coord[0] < mask_data.shape[0] and
                 0 <= vox_coord[1] < mask_data.shape[1] and
@@ -173,12 +173,12 @@ class Tracker(object):
                 # If both entry and exit occur at same voxel, exit (2) will prevail
                 mask_data[vox_coord[0], vox_coord[1], vox_coord[2]] = max(
                     mask_data[vox_coord[0], vox_coord[1], vox_coord[2]], coord_type)
-        
+
         # Create nifti image and save
-        mask_img = nib.Nifti1Image(mask_data, reference_img.affine, 
-                                    reference_img.header)
+        mask_img = nib.Nifti1Image(mask_data, reference_img.affine,
+                                   reference_img.header)
         nib.save(mask_img, output_path)
-        
+
         entry_count = sum(1 for _, t in self.rap_entry_exit_coords if t == 1)
         exit_count = sum(1 for _, t in self.rap_entry_exit_coords if t == 2)
         logging.info(f"Saved RAP entry/exit mask to {output_path}")
@@ -497,7 +497,7 @@ class Tracker(object):
         invalid_direction_count = 0
         propagation_can_continue = True
         in_rap_region = False  # Track whether we're currently in RAP region
-        step_count = 0 
+        step_count = 0
 
         while len(line) < self.max_nbr_pts and propagation_can_continue:
 
@@ -506,22 +506,22 @@ class Tracker(object):
             is_currently_in_rap = (propagation_can_continue and self.rap and
                                    self.rap.is_in_rap_region(
                                        line[-1], space=self.space, origin=self.origin))
-            
+
             # Detect entering RAP region
             if is_currently_in_rap and not in_rap_region:
                 self.rap_entry_exit_coords.append((line[-1].copy(), 1))  # 1 for entry
                 in_rap_region = True
                 logging.debug(f"TRACKER ENTERING pos={np.round(line[-1], 2)}")
-            
+
             if is_currently_in_rap:
                 prev_len = len(line)
                 line, new_dir, is_line_valid = (
                     self.rap.rap_multistep_propagate(line, previous_dir))
                 if not is_line_valid:
-                    logging.debug(f"TRACKER invalid, stop")
+                    logging.debug("TRACKER invalid, stop")
                     break
                 if len(line) == prev_len:
-                    logging.debug(f"TRACKER no progress, stop")
+                    logging.debug("TRACKER no progress, stop")
                     propagation_can_continue = False
                     break
                 new_pos = line[-1]
@@ -529,7 +529,7 @@ class Tracker(object):
                 # Verify that our RAP propagated point stays within the tracking mask
                 propagation_can_continue = self._verify_stopping_criteria(new_pos)
                 if not propagation_can_continue:
-                    logging.debug(f"TRACKER out of mask, stop.")
+                    logging.debug("TRACKER out of mask, stop.")
                     line.pop()
                     break
 
@@ -571,11 +571,11 @@ class Tracker(object):
         return True
 
 
-class GPUTacker():
+class GPUTracker():
     """
-    Perform probabilistic tracking on a ODF field inside a binary mask. The
-    tracking is executed on the GPU using the OpenCL API. Tracking is performed
-    in voxel space with origin `corner`.
+    Perform local tracking on a ODF field inside a binary mask. The tracking is
+    executed on the GPU using the OpenCL API. Tracking is performed in voxel
+    space with origin `corner`.
 
     Streamlines are interrupted as soon as they reach maximum length and
     returned even if they end inside the tracking mask. The ODF image is
@@ -606,14 +606,19 @@ class GPUTacker():
     forward_only: bool, optional
         If True, only forward tracking is performed.
     rng_seed : int, optional
-        Seed for random number generator.
+        Seed for GPU random number generator. Reproducible across GPU runs,
+        but not guaranteed to match CPU tracker results for the same seed.
     sphere : int, optional
         Sphere to use for the tracking.
+    algo : {'prob', 'det'}, optional
+        GPU tracking mode. `prob` samples directions from the SF and `det`
+        follows the maximum SF direction.
     """
     def __init__(self, sh, mask, seeds, step_size, max_nbr_pts,
                  theta=20.0, sf_threshold=0.1, sh_interp='trilinear',
                  sh_basis='descoteaux07', is_legacy=True, batch_size=100000,
-                 forward_only=False, rng_seed=None, sphere=None):
+                 forward_only=False, rng_seed=None, sphere=None,
+                 algo='prob'):
         if not have_opencl:
             raise ImportError('pyopencl is not installed. In order to use'
                               'GPU tracker, you need to install it first.')
@@ -645,9 +650,17 @@ class GPUTacker():
         self.sh_basis = sh_basis
         self.is_legacy = is_legacy
         self.forward_only = forward_only
+        self.algo = algo
 
-        # Instantiate random number generator
-        self.rng = np.random.default_rng(rng_seed)
+        if self.algo not in ['prob', 'det']:
+            raise ValueError("Invalid GPU tracking algorithm '{}'. Expected "
+                             "'prob' or 'det'.".format(self.algo))
+        self.probabilistic = self.algo == 'prob'
+        if rng_seed is None:
+            self.rng_seed = int(np.random.default_rng().integers(
+                0, np.iinfo(np.uint32).max, dtype=np.uint32))
+        else:
+            self.rng_seed = int(np.uint32(rng_seed))
 
     def _get_max_amplitudes(self, B_mat):
         fodf_max = np.zeros(self.mask.shape,
@@ -682,6 +695,9 @@ class GPUTacker():
         cl_kernel.set_define('MAX_LENGTH', self.max_strl_points)
         cl_kernel.set_define('FORWARD_ONLY',
                              'true' if self.forward_only else 'false')
+        cl_kernel.set_define('PROBABILISTIC',
+                             'true' if self.probabilistic else 'false')
+        cl_kernel.set_define('RNG_SEED', '{}u'.format(np.uint32(self.rng_seed)))
         cl_kernel.set_define('SF_THRESHOLD',
                              '{:.8f}f'.format(self.sf_threshold))
         cl_kernel.set_define('SH_INTERP_NN',
@@ -708,23 +724,14 @@ class GPUTacker():
         cl_manager.add_input_buffer('max_cos_theta', max_cos_theta)
 
         cl_manager.add_input_buffer('seeds')
-        cl_manager.add_input_buffer('randvals')
 
         cl_manager.add_output_buffer('out_strl')
         cl_manager.add_output_buffer('out_lengths')
 
         # Generate streamlines in batches
         for seed_batch in self.seed_batches:
-            # Generate random values for sf sampling
-            # TODO: Implement random number generator directly
-            #       on the GPU to generate values on-the-fly.
-            rand_vals = self.rng.uniform(0.0, 1.0,
-                                         (len(seed_batch),
-                                          self.max_strl_points))
-
             # Update buffers
             cl_manager.update_input_buffer('seeds', seed_batch)
-            cl_manager.update_input_buffer('randvals', rand_vals)
 
             # output streamlines buffer
             cl_manager.update_output_buffer('out_strl',
