@@ -41,6 +41,7 @@ from dipy.direction import (ProbabilisticDirectionGetter,
 from dipy.tracking.local_tracking import ParticleFilteringTracking
 from dipy.tracking.stopping_criterion import (ActStoppingCriterion,
                                               CmcStoppingCriterion)
+from dipy.io.stateful_tractogram import Space
 from dipy.tracking import utils as track_utils
 import nibabel as nib
 from nibabel.streamlines import detect_format
@@ -242,15 +243,12 @@ def main():
         nb_seeds = 1
         seed_per_vox = True
 
-    voxel_size = fodf_sh_simg.header.get_zooms()[0]
-    vox_step_size = args.step_size / voxel_size
-    
     seed_simg = StatefulImage.load(args.in_seed)
     seed_simg.reorient(fodf_sh_simg.axcodes)
     
     seeds = track_utils.random_seeds_from_mask(
         get_data_as_mask(seed_simg, dtype=bool),
-        np.eye(4),
+        fodf_sh_simg.affine,
         seeds_count=nb_seeds,
         seed_count_per_voxel=seed_per_vox,
         random_seed=args.seed)
@@ -266,9 +264,9 @@ def main():
         dg,
         tissue_classifier,
         seeds,
-        np.eye(4),
+        fodf_sh_simg.affine,
         max_cross=1,
-        step_size=vox_step_size,
+        step_size=args.step_size,
         maxlen=max_steps,
         pft_back_tracking_dist=args.back_tracking,
         pft_front_tracking_dist=args.forward_tracking,
@@ -283,7 +281,7 @@ def main():
     save_tractogram(pft_streamlines, tracts_format,
                     fodf_sh_simg, total_nb_seeds, args.out_tractogram,
                     args.min_length, args.max_length, args.compress_th,
-                    args.save_seeds, args.verbose)
+                    args.save_seeds, args.verbose, space=Space.RASMM)
 
 
 if __name__ == '__main__':

@@ -85,7 +85,7 @@ def main():
 
     data = simg.get_fdata(dtype=np.float32)
     bvals = simg.bvals
-    bvecs = simg.bvecs
+    bvecs = simg.world_bvecs
 
     # Checking mask
     mask = None

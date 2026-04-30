@@ -109,7 +109,7 @@ def main():
 
     data = simg.get_fdata(dtype=np.float32)
     bvals = simg.bvals
-    bvecs = simg.bvecs
+    bvecs = simg.world_bvecs
 
     args.b0_threshold = check_b0_threshold(bvals.min(),
                                            b0_thr=args.b0_threshold,

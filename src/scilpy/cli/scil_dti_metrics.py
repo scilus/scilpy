@@ -193,7 +193,7 @@ def main():
     data = simg.get_fdata(dtype=np.float32)
     affine = simg.affine
     bvals = simg.bvals
-    bvecs = simg.bvecs
+    bvecs = simg.world_bvecs
 
     if not is_normalized_bvecs(bvecs):
         logger.warning('Your b-vectors do not seem normalized...')

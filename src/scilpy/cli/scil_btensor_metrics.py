@@ -46,6 +46,7 @@ import numpy as np
 from scilpy.image.utils import extract_affine
 from scilpy.io.btensor import generate_btensor_input
 from scilpy.io.image import get_data_as_mask
+from scilpy.io.stateful_image import StatefulImage
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              assert_outputs_exist, add_processes_arg,
                              add_verbose_arg, add_skip_b0_check_arg,
@@ -178,7 +179,9 @@ def main():
         raise ValueError(msg)
 
     # Loading
-    affine = extract_affine(args.in_dwis)
+    simg = StatefulImage.load(args.in_dwis[0])
+    simg.to_ras()
+    affine = simg.affine
 
     # Note. This script does not currently allow using a separate b0_threshold
     # for the b0s. Using the tolerance. To change this, we would have to
@@ -199,11 +202,14 @@ def main():
             'No mask provided. The fit might not converge due to noise. '
             'Please provide a mask if it is the case.')
     else:
-        mask = get_data_as_mask(nib.load(args.mask), dtype=bool)
+        mask_simg = StatefulImage.load(args.mask)
+        mask_simg.to_ras()
+        mask = get_data_as_mask(mask_simg, dtype=bool)
 
     if args.fa is not None:
-        vol = nib.load(args.fa)
-        FA = vol.get_fdata(dtype=np.float32)
+        fa_simg = StatefulImage.load(args.fa)
+        fa_simg.to_ras()
+        FA = fa_simg.get_fdata(dtype=np.float32)
 
     # Processing
     parameters = fit_gamma(data, gtab_infos, mask=mask,

@@ -66,6 +66,7 @@ import numpy as np
 from nibabel.streamlines import TrkFile, detect_format
 
 from dipy.data import get_sphere
+from dipy.io.stateful_tractogram import Space
 from dipy.tracking import utils as track_utils
 from dipy.tracking.local_tracking import LocalTracking
 from dipy.tracking.stopping_criterion import BinaryStoppingCriterion
@@ -225,15 +226,22 @@ def main():
                       'It can\'t be loaded as '
                       'seeding mask.'.format(args.in_seed))
 
-    # Note. Seeds are in voxel world, center origin.
-    # (See the examples in random_seeds_from_mask).
+    # Note. Seeds are in world space (RASMM) for CPU, and voxel space for GPU.
+    # Both use center origin.
     logging.info("Preparing seeds.")
+    if args.use_gpu:
+        tracking_space = Space.VOX
+        tracking_affine = np.eye(4)
+    else:
+        tracking_space = Space.RASMM
+        tracking_affine = odf_sh_simg.affine
+
     if args.in_custom_seeds:
         seeds = np.squeeze(load_matrix_in_any_format(args.in_custom_seeds))
     else:
         seeds = track_utils.random_seeds_from_mask(
             seed_simg.get_fdata(dtype=np.float32),
-            np.eye(4),
+            tracking_affine,
             seeds_count=nb_seeds,
             seed_count_per_voxel=seed_per_vox,
             random_seed=args.seed)
@@ -253,7 +261,7 @@ def main():
             streamlines_generator = eudx_tracking(
                 seeds,
                 stopping_criterion,
-                np.eye(4),
+                tracking_affine,
                 pam=get_direction_getter(
                     odf_sh_data, args.algo, args.sphere,
                     args.sub_sphere, args.theta, sh_basis,
@@ -262,7 +270,7 @@ def main():
                     args.probe_quality, args.probe_count,
                     args.support_exponent, is_legacy=is_legacy),
                 max_len=max_steps_per_direction,
-                step_size=vox_step_size,
+                step_size=args.step_size,
                 max_angle=get_theta(args.theta, args.algo),
                 random_seed=args.seed if args.seed is not None else 0,
                 return_all=True,
@@ -277,8 +285,8 @@ def main():
                     args.probe_quality, args.probe_count,
                     args.support_exponent, is_legacy=is_legacy),
                 stopping_criterion,
-                seeds, np.eye(4),
-                step_size=vox_step_size, max_cross=1,
+                seeds, tracking_affine,
+                step_size=args.step_size, max_cross=1,
                 maxlen=max_steps_per_direction,
                 fixedstep=True, return_all=True,
                 random_seed=args.seed,
@@ -311,7 +319,7 @@ def main():
     save_tractogram(streamlines_generator, tracts_format,
                     odf_sh_simg, total_nb_seeds, args.out_tractogram,
                     args.min_length, args.max_length, args.compress_th,
-                    args.save_seeds, args.verbose)
+                    args.save_seeds, args.verbose, space=tracking_space)
     # Final logging
     logging.info('Saved tractogram to {0}.'.format(args.out_tractogram))
 

@@ -279,14 +279,15 @@ def _get_data_from_inputs(args):
                              'variance {1}.'
                              .format(fodf.shape, variance.shape))
 
-    return fodf, bg, transparency_mask, mask, peaks, peak_vals, variance
+    return (fodf, bg, transparency_mask, mask, peaks, peak_vals, variance,
+            fodf_simg.affine)
 
 
 def main():
     parser = _build_arg_parser()
     args = _parse_args(parser)
     (fodf, bg, transparency_mask, mask, peaks, peaks_values,
-     variance) = _get_data_from_inputs(args)
+     variance, affine) = _get_data_from_inputs(args)
     sph = get_sphere(name=args.sphere)
     sh_order, full_basis = get_sh_order_and_fullness(fodf.shape[-1])
     sh_basis, is_legacy = parse_sh_basis_arg(args)
@@ -307,7 +308,7 @@ def main():
         sh_variance=variance, mask=mask, nb_subdivide=args.sph_subdivide,
         radial_scale=not args.radial_scale_off, norm=not args.norm_off,
         colormap=args.colormap or color_rgb, variance_k=args.variance_k,
-        variance_color=var_color, is_legacy=is_legacy)
+        variance_color=var_color, is_legacy=is_legacy, affine=affine)
     actors.append(odf_actor)
 
     # Instantiate a variance slicer actor if a variance image is supplied
@@ -323,7 +324,8 @@ def main():
                                          value_range=args.bg_range,
                                          opacity=args.bg_opacity,
                                          offset=args.bg_offset,
-                                         interpolation=args.bg_interpolation)
+                                         interpolation=args.bg_interpolation,
+                                         affine=affine)
         actors.append(bg_actor)
 
     # Instantiate a peaks slicer actor if peaks are supplied
@@ -338,7 +340,8 @@ def main():
                                           color=args.peaks_color,
                                           peaks_width=args.peaks_width,
                                           opacity=args.peaks_opacity,
-                                          symmetric=not full_basis)
+                                          symmetric=not full_basis,
+                                          affine=affine)
 
         actors.append(peaks_actor)
 
@@ -347,20 +350,23 @@ def main():
                          args.slice_index,
                          fodf.shape[:3],
                          args.win_dims[0] / args.win_dims[1],
-                         bg_color=args.bg_color)
+                         bg_color=args.bg_color,
+                         affine=affine)
 
     mask_scene = None
     if transparency_mask is not None:
         mask_actor = create_texture_slicer(transparency_mask.astype("uint8"),
                                            args.axis_name,
                                            args.slice_index,
-                                           offset=0.0)
+                                           offset=0.0,
+                                           affine=affine)
 
         mask_scene = create_scene([mask_actor], args.axis_name,
                                   args.slice_index,
                                   transparency_mask.shape,
                                   args.win_dims[0] / args.win_dims[1],
-                                  bg_color=args.bg_color)
+                                  bg_color=args.bg_color,
+                                  affine=affine)
 
     if not args.silent:
         create_interactive_window(scene, args.win_dims, args.interactor)

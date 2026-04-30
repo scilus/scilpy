@@ -12,13 +12,14 @@ from scilpy.io.stateful_image import StatefulImage
 
 
 @contextmanager
-def create_dummy_nifti_with_gradients(filename="test.nii.gz", n_volumes=5):
+def create_dummy_nifti_with_gradients(filename="test.nii.gz", n_volumes=5, affine=None):
     """
     Create a dummy NIfTI file and gradient files for testing.
     """
     with tempfile.TemporaryDirectory() as tmpdir:
         shape = (10, 10, 10, n_volumes)
-        affine = np.eye(4)
+        if affine is None:
+            affine = np.eye(4)
         data = np.random.rand(*shape).astype(np.float32)
         img = nib.Nifti1Image(data, affine)
 
@@ -96,8 +97,8 @@ def test_save_gradients():
         assert np.allclose(saved_bvals, bvals)
         assert np.allclose(saved_bvecs, bvecs)
 
-        # StatefulImage itself should now be in RAS
-        assert simg.axcodes == ("R", "A", "S", "T")
+        # StatefulImage itself should still be in LPS
+        assert simg.axcodes == ("L", "P", "S", "T")
 
 
 def test_create_from_with_gradients():
@@ -181,3 +182,84 @@ def test_gradient_consistency_across_orientations():
 
                 # Go back to RAS for next iteration
                 simg_ras.to_ras()
+
+
+def test_world_bvecs_non_diagonal_affine():
+    # Create a rotation matrix (45 degrees around Z)
+    theta = np.pi / 4
+    R = np.array([
+        [np.cos(theta), -np.sin(theta), 0],
+        [np.sin(theta), np.cos(theta), 0],
+        [0, 0, 1]
+    ])
+    affine = np.eye(4)
+    affine[:3, :3] = R
+
+    with create_dummy_nifti_with_gradients(affine=affine) as (img_p, bval_p, bvec_p, bvals, bvecs):
+        simg = StatefulImage.load(img_p)
+        simg.attach_gradients(bvals, bvecs)
+
+        # world_bvecs should be (bvecs * [-1, 1, 1]) * R.T because det(R) > 0
+        bvecs_flipped = bvecs.copy()
+        bvecs_flipped[:, 0] *= -1
+        expected_world_bvecs = np.dot(bvecs_flipped, R.T)
+        assert np.allclose(simg.world_bvecs, expected_world_bvecs)
+
+        # bvecs property should return original bvecs (voxel space)
+        assert np.allclose(simg.bvecs, bvecs)
+
+        # Save and reload
+        tmp_dir = os.path.dirname(img_p)
+        out_bval = os.path.join(tmp_dir, "out.bval")
+        out_bvec = os.path.join(tmp_dir, "out.bvec")
+        simg.save_gradients(out_bval, out_bvec)
+
+        saved_bvecs = np.loadtxt(out_bvec).T
+        assert np.allclose(saved_bvecs, bvecs)
+
+
+def test_world_bvecs_negative_det_affine():
+    # LAS affine (det < 0)
+    affine = np.diag([-1, 1, 1, 1])
+
+    with create_dummy_nifti_with_gradients(affine=affine) as (img_p, bval_p, bvec_p, bvals, bvecs):
+        simg = StatefulImage.load(img_p)
+        simg.attach_gradients(bvals, bvecs)
+
+        # world_bvecs should be bvecs * R.T because det(R) < 0
+        R = simg._get_rotation_matrix(affine)
+        expected_world_bvecs = np.dot(bvecs, R.T)
+        assert np.allclose(simg.world_bvecs, expected_world_bvecs)
+
+        # Verify that bvecs property returns original bvecs
+        assert np.allclose(simg.bvecs, bvecs)
+
+
+def test_world_bvecs_reorientation_roundtrip():
+    # Start with LAS (det < 0)
+    affine_las = np.diag([-1, 1, 1, 1])
+
+    with create_dummy_nifti_with_gradients(affine=affine_las) as (img_p, bval_p, bvec_p, bvals, bvecs_las):
+        simg = StatefulImage.load(img_p)
+        simg.attach_gradients(bvals, bvecs_las)
+
+        # Reorient to RAS (det > 0)
+        simg.to_ras()
+        assert simg.axcodes == ("R", "A", "S", "T")
+
+        # world_bvecs should remain the same
+        R_las = simg._get_rotation_matrix(affine_las)
+        expected_world_bvecs = np.dot(bvecs_las, R_las.T)
+        assert np.allclose(simg.world_bvecs, expected_world_bvecs)
+
+        # bvecs in RAS should be flipped in X compared to world_bvecs * R_ras
+        # because det(RAS) > 0.
+        # Since R_ras = I, bvecs_ras = world_bvecs * [-1, 1, 1]
+        expected_bvecs_ras = expected_world_bvecs.copy()
+        expected_bvecs_ras[:, 0] *= -1
+        assert np.allclose(simg.bvecs, expected_bvecs_ras)
+
+        # Reorient back to LAS
+        simg.reorient("LAS")
+        assert np.allclose(simg.bvecs, bvecs_las)
+        assert np.allclose(simg.world_bvecs, expected_world_bvecs)

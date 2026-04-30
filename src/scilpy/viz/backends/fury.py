@@ -20,7 +20,8 @@ class CamParams(Enum):
     PARA_SCALE = 'parallel_scale'
 
 
-def initialize_camera(orientation, slice_index, volume_shape, aspect_ratio):
+def initialize_camera(orientation, slice_index, volume_shape, aspect_ratio,
+                      affine=None):
     """
     Initialize a camera for a given orientation. The camera's focus
     (VIEW_CENTER) is set to the slice_index along the chosen orientation, at
@@ -58,6 +59,8 @@ def initialize_camera(orientation, slice_index, volume_shape, aspect_ratio):
         Shape of the sliced volume.
     aspect_ratio : float
         Ratio between viewport's width and height.
+    affine : np.ndarray, optional
+        Voxel-to-world affine matrix.
 
     Returns
     -------
@@ -88,11 +91,30 @@ def initialize_camera(orientation, slice_index, volume_shape, aspect_ratio):
     camera[CamParams.VIEW_UP] = np.zeros((3,))
     camera[CamParams.VIEW_UP][vert_idx] = -1.0
 
+    if affine is not None:
+        # Transform VIEW_CENTER
+        center = np.append(camera[CamParams.VIEW_CENTER], 1.0)
+        camera[CamParams.VIEW_CENTER] = np.dot(affine, center)[:3]
+
+        # Transform VIEW_POS
+        pos = np.append(camera[CamParams.VIEW_POS], 1.0)
+        camera[CamParams.VIEW_POS] = np.dot(affine, pos)[:3]
+
+        # Transform VIEW_UP
+        up = np.append(camera[CamParams.VIEW_UP], 0.0)
+        camera[CamParams.VIEW_UP] = np.dot(affine, up)[:3]
+        camera[CamParams.VIEW_UP] /= np.linalg.norm(camera[CamParams.VIEW_UP])
+
     # Based on : https://stackoverflow.com/questions/6565703/
     # math-algorithm-fit-image-to-screen-retain-aspect-ratio
-    remain_axis = np.delete(volume_shape, [axis_index, vert_idx], 0)
-    ref_height = volume_shape[vert_idx]
-    if remain_axis[0] / volume_shape[vert_idx] > aspect_ratio:
+    voxel_size = np.ones(3)
+    if affine is not None:
+        voxel_size = np.linalg.norm(affine[:3, :3], axis=0)
+
+    world_shape = np.array(volume_shape) * voxel_size
+    remain_axis = np.delete(world_shape, [axis_index, vert_idx], 0)
+    ref_height = world_shape[vert_idx]
+    if remain_axis[0] / world_shape[vert_idx] > aspect_ratio:
         ref_height = remain_axis[0] / aspect_ratio
 
     # From vtkCamera documentation, see SetViewAngle and SetParallelScale
@@ -129,7 +151,8 @@ def set_display_extent(slicer_actor, orientation, volume_shape, slice_index):
     slicer_actor.display_extent(*extents)
 
 
-def set_viewport(scene, orientation, slice_index, volume_shape, aspect_ratio):
+def set_viewport(scene, orientation, slice_index, volume_shape, aspect_ratio,
+                 affine=None):
     """
     Place the camera in the scene to capture all its content at a given
     slice_index.
@@ -146,11 +169,13 @@ def set_viewport(scene, orientation, slice_index, volume_shape, aspect_ratio):
         Shape of the sliced volume.
     aspect_ratio : float
         Ratio between viewport's width and height.
+    affine : np.ndarray, optional
+        Voxel-to-world affine matrix.
     """
 
     scene.projection(proj_type='parallel')
     camera = initialize_camera(
-        orientation, slice_index, volume_shape, aspect_ratio)
+        orientation, slice_index, volume_shape, aspect_ratio, affine=affine)
     scene.set_camera(position=camera[CamParams.VIEW_POS],
                      focal_point=camera[CamParams.VIEW_CENTER],
                      view_up=camera[CamParams.VIEW_UP])
@@ -162,7 +187,7 @@ def set_viewport(scene, orientation, slice_index, volume_shape, aspect_ratio):
 
 
 def create_scene(actors, orientation, slice_index, volume_shape, aspect_ratio,
-                 *, bg_color=(0, 0, 0)):
+                 *, bg_color=(0, 0, 0), affine=None):
     """
     Create a 3D scene containing actors fitting inside a grid. The camera is
     placed based on the orientation supplied by the user. The projection mode
@@ -182,6 +207,8 @@ def create_scene(actors, orientation, slice_index, volume_shape, aspect_ratio,
         Ratio between viewport's width and height.
     bg_color: tuple
         Background color expressed as RGB triplet in the range [0, 1].
+    affine : np.ndarray, optional
+        Voxel-to-world affine matrix.
 
     Returns
     -------
@@ -196,7 +223,8 @@ def create_scene(actors, orientation, slice_index, volume_shape, aspect_ratio,
     for _actor in actors:
         scene.add(_actor)
 
-    set_viewport(scene, orientation, slice_index, volume_shape, aspect_ratio)
+    set_viewport(scene, orientation, slice_index, volume_shape, aspect_ratio,
+                 affine=affine)
 
     return scene
 
@@ -328,7 +356,8 @@ def create_contours_actor(contours, opacity=1., linewidth=3.,
 
 def create_odf_actors(sf_fodf, sphere, scale, sf_variance=None, mask=None,
                       radial_scale=False, norm=False, colormap=None,
-                      variance_k=1.0, variance_color=None, B_mat=None):
+                      variance_k=1.0, variance_color=None, B_mat=None,
+                      affine=None):
     """
     Create an ODF slicer actor displaying a fODF slice. The input volume is a
     3-dimensional grid containing the SH coefficients of the fODF at each
@@ -361,6 +390,8 @@ def create_odf_actors(sf_fodf, sphere, scale, sf_variance=None, mask=None,
         Optional SH to SF matrix for projecting `odfs` given in SH
         coefficients on the `sphere`. If None, then the input is assumed
         to be expressed in SF coefficients.
+    affine : np.ndarray, optional
+        Voxel-to-world affine matrix.
 
     Returns
     -------
@@ -387,7 +418,8 @@ def create_odf_actors(sf_fodf, sphere, scale, sf_variance=None, mask=None,
         var_actor = actor.odf_slicer(fodf_uncertainty, mask=mask, norm=False,
                                      radial_scale=radial_scale,
                                      sphere=sphere, scale=scale,
-                                     colormap=variance_color)
+                                     colormap=variance_color,
+                                     affine=affine)
 
         var_actor.GetProperty().SetDiffuse(0.0)
         var_actor.GetProperty().SetAmbient(1.0)
@@ -396,14 +428,16 @@ def create_odf_actors(sf_fodf, sphere, scale, sf_variance=None, mask=None,
     odf_actor = actor.odf_slicer(sf_fodf, mask=mask, norm=False,
                                  radial_scale=radial_scale,
                                  sphere=sphere, scale=scale,
-                                 colormap=colormap, B_matrix=B_mat)
+                                 colormap=colormap, B_matrix=B_mat,
+                                 affine=affine)
 
     return odf_actor, var_actor
 
 
 def create_peaks_actor(peaks, mask, opacity=1.0, linewidth=1.0, color=None,
                        symmetric=False, lut_values=None, lod=False,
-                       lod_nb_points=10000, lod_points_size=3):
+                       lod_nb_points=10000, lod_points_size=3,
+                       affine=None):
     """
     Create a Peaks actor from a N-dimensional array. Data can be from 2D
     (M 3D peaks) to 5D (XxYxZxM 3D peaks). Color is None by default so coloring
@@ -433,6 +467,8 @@ def create_peaks_actor(peaks, mask, opacity=1.0, linewidth=1.0, color=None,
         Number of points to use for level of detail rendering.
     lod_points_size : int
         Size of the points for level of detail rendering.
+    affine : np.ndarray, optional
+        Voxel-to-world affine matrix.
 
     Returns
     -------
@@ -440,7 +476,10 @@ def create_peaks_actor(peaks, mask, opacity=1.0, linewidth=1.0, color=None,
         Fury object containing the peaks' information.
     """
 
-    return actor.peak_slicer(peaks, mask=mask, affine=np.eye(4),
+    if affine is None:
+        affine = np.eye(4)
+
+    return actor.peak_slicer(peaks, mask=mask, affine=affine,
                              colors=color, opacity=opacity,
                              linewidth=linewidth, symmetric=symmetric,
                              peaks_values=lut_values,

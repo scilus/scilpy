@@ -13,6 +13,7 @@ from dipy.data import get_sphere
 from dipy.direction import (DeterministicMaximumDirectionGetter,
                             ProbabilisticDirectionGetter, PTTDirectionGetter)
 from dipy.direction.peaks import PeaksAndMetrics
+from dipy.io.stateful_tractogram import Origin, Space
 from dipy.io.utils import create_tractogram_header, get_reference_info, is_reference_info_valid
 from dipy.reconst.shm import sh_to_sf_matrix
 from dipy.tracking.streamlinespeed import compress_streamlines, length
@@ -204,7 +205,8 @@ def tqdm_if_verbose(generator: Iterable, verbose: bool, *args, **kwargs):
 
 def save_tractogram(
         streamlines_generator, tracts_format, ref_img, total_nb_seeds,
-        out_tractogram, min_length, max_length, compress, save_seeds, verbose
+        out_tractogram, min_length, max_length, compress, save_seeds, verbose,
+        space=Space.VOX, origin=Origin.NIFTI
 ):
     """ Save the streamlines on-the-fly using a generator. Tracts are
     filtered according to their length and compressed if requested. Seeds
@@ -234,6 +236,10 @@ def save_tractogram(
         data_per_streamline property.
     verbose : bool
         If True, display progression bar.
+    space : Space
+        Space in which the streamlines are generated.
+    origin : Origin
+        Origin in which the streamlines are generated.
 
     """
     voxel_size = np.array(ref_img.header.get_zooms()[:3])
@@ -241,24 +247,30 @@ def save_tractogram(
     # original on-disk orientation, not the internal (likely RAS) one.
     from scilpy.io.stateful_image import StatefulImage
     is_stateful = isinstance(ref_img, StatefulImage)
-    # Tracking is expected to be returned in voxel space, origin `center`.
+
     def tracks_generator_wrapper():
-        if tracts_format is TrkFile:
-            if is_stateful:
-                affine_mod = ref_img.affine.copy()
-                affine_ori = ref_img._original_affine
-            else:
-                affine = ref_img.affine.copy()
+        if is_stateful:
+            affine_mod = ref_img.affine.copy()
+            affine_ori = ref_img._original_affine
         else:
-            affine = ref_img.affine.copy()
+            affine_mod = ref_img.affine.copy()
+            affine_ori = ref_img.affine.copy()
+
         for strl, seed in tqdm_if_verbose(streamlines_generator,
                                           verbose=verbose,
                                           total=total_nb_seeds,
                                           miniters=int(total_nb_seeds / 100),
                                           leave=False):
             # Compute length in mm space for filtering
-            # length() is euclidean distance, so we must be in mm
-            strl_mm = strl * voxel_size
+            if space == Space.VOX:
+                strl_mm = strl * voxel_size
+            elif space == Space.VOXMM:
+                strl_mm = strl
+            elif space == Space.RASMM:
+                strl_mm = strl
+            else:
+                raise ValueError("Unknown space")
+
             strl_len = length(strl_mm)
             if (min_length <= strl_len <= max_length):
                 # Seeds are saved with origin `center` by our own convention.
@@ -272,24 +284,38 @@ def save_tractogram(
                     # compression threshold is given in mm, so we
                     # must be in mm space to compress
                     strl_mm = compress_streamlines(strl_mm, compress)
-                
+
                 if tracts_format is TrkFile:
                     # Revert to canonical RAS vox space, then go to rasmm and back
                     # to vox space in the original orientation,
                     # to save in the expected space for .trk files.
-                    strl_vox = strl_mm / voxel_size
+                    if space == Space.VOX:
+                        strl_vox = strl_mm / voxel_size
+                    elif space == Space.VOXMM:
+                        strl_vox = strl_mm / voxel_size
+                    elif space == Space.RASMM:
+                        strl_vox = nib.affines.apply_affine(
+                            np.linalg.inv(affine_mod), strl_mm)
 
                     strl_rasmm = nib.affines.apply_affine(affine_mod,
                                                             strl_vox)
-                    strl_old_vox = nib.affines.apply_affine(np.linalg.inv(affine_ori),
-                                                            strl_rasmm)
+                    strl_old_vox = nib.affines.apply_affine(
+                        np.linalg.inv(affine_ori), strl_rasmm)
                     strl_to_save = strl_old_vox * voxel_size + 0.5 * voxel_size
-                    
+
                 else:
                     # Streamlines are dumped in true world space with
                     # origin center as expected by .tck files.
-                    strl_vox = strl_mm / voxel_size
-                    strl_to_save = nib.affines.apply_affine(affine, strl_vox)
+                    if space == Space.VOX:
+                        strl_vox = strl_mm / voxel_size
+                        strl_to_save = nib.affines.apply_affine(affine_mod,
+                                                                strl_vox)
+                    elif space == Space.VOXMM:
+                        strl_vox = strl_mm / voxel_size
+                        strl_to_save = nib.affines.apply_affine(affine_mod,
+                                                                strl_vox)
+                    elif space == Space.RASMM:
+                        strl_to_save = strl_mm
 
                 yield TractogramItem(strl_to_save, dps, {})
 

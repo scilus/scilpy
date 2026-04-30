@@ -127,3 +127,92 @@ def test_scil_save_tractogram_alignment(tmp_path, affine_type, ext):
     for orig, loaded in zip(vox_streamlines, loaded_vox):
         # Using a slightly larger tolerance because TRK/TCK might have some precision loss or 0.5 offset handling differences
         assert np.allclose(orig, loaded, atol=1e-3)
+
+
+def test_tck_trk_physical_alignment(tmp_path):
+    # Rotation 45 deg around X
+    theta = np.radians(45)
+    c, s = np.cos(theta), np.sin(theta)
+    R = np.array([
+        [1, 0, 0],
+        [0, c, -s],
+        [0, s,  c]
+    ])
+    affine = np.eye(4)
+    affine[:3, :3] = R
+
+    img = create_fake_header(affine)
+    img_path = str(tmp_path / "ref.nii.gz")
+    nib.save(img, img_path)
+
+    vox_streamlines = [np.array([
+        [0, 0, 0],
+        [1, 2, 3],
+        [5, 5, 5]
+    ], dtype=float)]
+
+    sft = StatefulTractogram(vox_streamlines, img, Space.VOX)
+
+    trk_path = str(tmp_path / "tracto.trk")
+    tck_path = str(tmp_path / "tracto.tck")
+
+    save_tractogram(sft, trk_path)
+    save_tractogram(sft, tck_path)
+
+    sft_trk = load_tractogram(trk_path, img_path)
+    sft_tck = load_tractogram(tck_path, img_path)
+
+    sft_trk.to_rasmm()
+    sft_tck.to_rasmm()
+
+    for s_trk, s_tck in zip(sft_trk.streamlines, sft_tck.streamlines):
+        assert np.allclose(s_trk, s_tck, atol=1e-3)
+
+
+def test_negative_det_alignment(tmp_path):
+    # LAS affine (det < 0)
+    affine = np.diag([-1, 1, 1, 1])
+    # Add some translation to make it more interesting
+    affine[:3, 3] = [100, 100, 100]
+
+    img = create_fake_header(affine)
+    img_path = str(tmp_path / "ref.nii.gz")
+    nib.save(img, img_path)
+
+    vox_streamlines = [np.array([
+        [0, 0, 0],
+        [1, 2, 3],
+        [5, 5, 5]
+    ], dtype=float)]
+
+    sft = StatefulTractogram(vox_streamlines, img, Space.VOX)
+
+    trk_path = str(tmp_path / "tracto.trk")
+    tck_path = str(tmp_path / "tracto.tck")
+
+    save_tractogram(sft, trk_path)
+    save_tractogram(sft, tck_path)
+
+    sft_trk = load_tractogram(trk_path, img_path)
+    sft_tck = load_tractogram(tck_path, img_path)
+
+    sft_trk.to_rasmm()
+    sft_tck.to_rasmm()
+
+    # Verify they align in RASMM
+    for s_trk, s_tck in zip(sft_trk.streamlines, sft_tck.streamlines):
+        assert np.allclose(s_trk, s_tck, atol=1e-3)
+
+    # Verify RASMM coordinates manually
+    # v_rasmm = R * v_vox + T
+    # For LAS: R = [[-1, 0, 0], [0, 1, 0], [0, 0, 1]], T = [100, 100, 100]
+    # [0,0,0] -> [-1*0+100, 1*0+100, 1*0+100] = [100, 100, 100]
+    # [1,2,3] -> [-1*1+100, 1*2+100, 1*3+100] = [99, 102, 103]
+    expected_rasmm = [np.array([
+        [100, 100, 100],
+        [99, 102, 103],
+        [95, 105, 105]
+    ], dtype=float)]
+
+    for s_trk, s_exp in zip(sft_trk.streamlines, expected_rasmm):
+        assert np.allclose(s_trk, s_exp, atol=1e-3)

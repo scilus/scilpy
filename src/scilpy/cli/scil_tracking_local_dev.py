@@ -247,10 +247,8 @@ def main():
         assert_same_resolution([args.in_mask, args.in_odf, args.in_seed])
 
     # Choosing our space and origin for this tracking
-    # If save_seeds, space and origin must be vox, center. Choosing those
-    # values.
-    our_space = Space.VOX
-    our_origin = Origin('center')
+    our_space = Space.RASMM
+    our_origin = Origin.NIFTI
 
     logging.info("Loading seeding mask.")
     seed_simg = StatefulImage.load(args.in_seed)
@@ -270,6 +268,7 @@ def main():
         nbr_seeds = len(seeds)
     else:
         seed_generator = SeedGenerator(seed_data, seed_res,
+                                       affine=seed_simg.affine,
                                        space=our_space, origin=our_origin,
                                        n_repeats=args.n_repeats_per_seed)
 
@@ -291,7 +290,8 @@ def main():
     mask_simg.reorient(seed_simg.axcodes)
     mask_data = mask_simg.get_fdata(caching='unchanged', dtype=float)
     mask_res = mask_simg.header.get_zooms()[:3]
-    mask = DataVolume(mask_data, mask_res, args.mask_interp)
+    mask = DataVolume(mask_data, mask_res, affine=mask_simg.affine,
+                      interpolation=args.mask_interp)
 
     # ------- INSTANTIATING PROPAGATOR -------
     if args.in_odf:
@@ -300,7 +300,8 @@ def main():
         odf_sh_simg.reorient(seed_simg.axcodes)
         odf_sh_data = odf_sh_simg.get_fdata(caching='unchanged', dtype=float)
         odf_sh_res = odf_sh_simg.header.get_zooms()[:3]
-        dataset = DataVolume(odf_sh_data, odf_sh_res, args.sh_interp)
+        dataset = DataVolume(odf_sh_data, odf_sh_res, affine=odf_sh_simg.affine,
+                             interpolation=args.sh_interp)
 
         logging.info("Instantiating propagator.")
         # Converting step size to vox space
@@ -308,15 +309,12 @@ def main():
         # 1e-3.
         assert np.allclose(np.mean(odf_sh_res[:3]),
                            odf_sh_res, atol=1e-03)
-        voxel_size = odf_sh_simg.header.get_zooms()[0]
-        vox_step_size = args.step_size / voxel_size
-
-        # Using space and origin in the propagator: vox and center, like
-        # in dipy.
+        
+        # Using space and origin in the propagator: RASMM and NIFTI.
         sh_basis, is_legacy = parse_sh_basis_arg(args)
 
         propagator = ODFPropagator(
-            dataset, vox_step_size, args.rk_order, args.algo, sh_basis,
+            dataset, args.step_size, args.rk_order, args.algo, sh_basis,
             args.sf_threshold, args.sf_threshold_init, theta, args.sphere,
             sub_sphere=args.sub_sphere,
             space=our_space, origin=our_origin, is_legacy=is_legacy)
@@ -336,22 +334,21 @@ def main():
                     odf_sh_res = odf_sh_img.header.get_zooms()[:3]
                     loaded_datasets[filename] = DataVolume(
                         odf_sh_img.get_fdata(caching='unchanged', dtype=float),
-                        odf_sh_res, args.sh_interp)
+                        odf_sh_res, affine=odf_sh_img.affine,
+                        interpolation=args.sh_interp)
 
                 # Get params from rap_policies file
-                voxel_size = loaded_datasets[filename].voxres[0]
-                vox_step_size = cfg.get('step_size', args.step_size) / voxel_size
+                algo = cfg.get('algo', args.algo)
+                theta = gm.math.radians(get_theta(cfg.get('theta', args.theta), algo))
                 sh_basis_name = cfg.get('sh_basis', 'descoteaux07_legacy')
                 sh_basis = ('descoteaux07' if 'descoteaux07' in sh_basis_name
                             else 'tournier07')
-                algo = cfg.get('algo', args.algo)
-                theta = gm.math.radians(get_theta(cfg.get('theta', args.theta), algo))
                 is_legacy = 'legacy' in sh_basis_name
 
                 # Build propagator from rap_policies file
                 propagators[label] = ODFPropagator(
-                    loaded_datasets[filename], vox_step_size, args.rk_order,
-                    algo, sh_basis, args.sf_threshold,
+                    loaded_datasets[filename], cfg.get('step_size', args.step_size),
+                    args.rk_order, algo, sh_basis, args.sf_threshold,
                     args.sf_threshold_init, theta, args.sphere,
                     sub_sphere=args.sub_sphere, space=our_space,
                     origin=our_origin, is_legacy=is_legacy)
@@ -375,7 +372,9 @@ def main():
         rap_img = nib.load(args.rap_mask)
         rap_mask_data = get_data_as_mask(rap_img)
         rap_mask_res = rap_img.header.get_zooms()[:3]
-        rap_volume = DataVolume(rap_mask_data, rap_mask_res, args.mask_interp)
+        rap_volume = DataVolume(rap_mask_data, rap_mask_res,
+                                affine=rap_img.affine,
+                                interpolation=args.mask_interp)
     elif args.rap_labels:
         logging.info("Loading RAP labels.")
         rap_label_img = nib.load(args.rap_labels)
@@ -387,11 +386,13 @@ def main():
 
         rap_label_data = get_data_as_labels(rap_label_img)
         rap_label_res = rap_label_img.header.get_zooms()[:3]
-        rap_volume = DataVolume(rap_label_data, rap_label_res, 'nearest')
+        rap_volume = DataVolume(rap_label_data, rap_label_res,
+                                affine=rap_label_img.affine,
+                                interpolation='nearest')
 
     if args.rap_method == "continue":
         rap = RAPContinue(rap_volume, propagator, max_nbr_pts,
-                          step_size=vox_step_size)
+                          step_size=args.step_size)
     elif args.rap_method == "switch":
         rap = RAPSwitch(rap_volume, propagators, max_nbr_pts)
     else:
@@ -421,8 +422,6 @@ def main():
                  .format(len(streamlines), nbr_seeds, str_time))
 
     # save seeds if args.save_seeds is given
-    # We seeded (and tracked) in vox, center, which is what is expected for
-    # seeds.
     if args.save_seeds:
         data_per_streamline = {'seeds': seeds}
     else:
@@ -436,7 +435,7 @@ def main():
     save_tractogram(zip(streamlines, seeds), tracts_format,
                     odf_sh_simg, nbr_seeds, args.out_tractogram,
                     args.min_length, args.max_length, args.compress_th,
-                    args.save_seeds, args.verbose)
+                    args.save_seeds, args.verbose, space=our_space)
 
 
 if __name__ == "__main__":

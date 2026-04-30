@@ -112,10 +112,6 @@ class Tracker(object):
 
         self.origin = self.propagator.origin
         self.space = self.propagator.space
-        if self.space == Space.RASMM:
-            raise NotImplementedError(
-                "This version of the Tracker is not ready to work in RASMM "
-                "space.")
         if (seed_generator.origin != propagator.origin or
                 seed_generator.space != propagator.space):
             raise ValueError("Seed generator and propagator must work with "

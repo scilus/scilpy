@@ -85,12 +85,12 @@ def main():
 
     data = simg.get_fdata(dtype=np.float32)
     bvals = simg.bvals
-    bvecs = simg.bvecs
+    bvecs = simg.world_bvecs
 
     mask = None
     if args.mask:
         mask_simg = StatefulImage.load(args.mask)
-        mask_simg.reorient(simg.axcodes)
+        mask_simg.to_ras()
         mask = get_data_as_mask(mask_simg, dtype=bool)
 
     # Initial DTI fit to get FA and identify high-FA voxels
@@ -165,8 +165,9 @@ def main():
 
     logging.info('Saving bvecs to file: {0}.'.format(args.out_bvec))
 
-    # FSL format (3, N)
-    np.savetxt(args.out_bvec, correct_bvecs.T, '%.8f')
+    # Save using StatefulImage to ensure they are in the original voxel space
+    simg.attach_gradients(bvals, correct_bvecs, original_order=False)
+    simg.save_gradients(args.in_bval, args.out_bvec)
 
 
 if __name__ == "__main__":
