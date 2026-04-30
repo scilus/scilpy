@@ -57,6 +57,9 @@ def _build_arg_parser():
     p.add_argument('--out_dir', default="results",
                    help='Output directory for the NODDI results. '
                         '[%(default)s]')
+    p.add_argument('--replace_bad_voxels', type=float, default=None,
+                   help='Replace bad voxels (NaNs or infs) in the input DWI '
+                        'with the specified value.')
     add_tolerance_arg(p)
     add_skip_b0_check_arg(p, will_overwrite_with_min=False,
                           b0_tol_name='--tolerance')
@@ -144,7 +147,8 @@ def main():
         # Load the data
         amico.core.setup()
         ae = amico.Evaluation('.', '.')
-        ae.load_data(args.in_dwi, tmp_scheme_filename, mask_filename=args.mask)
+        ae.load_data(args.in_dwi, tmp_scheme_filename, mask_filename=args.mask,
+                     replace_bad_voxels=args.replace_bad_voxels)
 
         # Compute the response functions
         ae.set_model("NODDI")

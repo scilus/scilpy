@@ -60,6 +60,9 @@ def _build_arg_parser():
                    help='Limit value to consider that a b-value is on an '
                         'existing shell. Above this limit, the b-value is '
                         'placed on a new shell. This includes b0s values.')
+    p.add_argument('--replace_bad_voxels', type=float, default=None,
+                   help='Replace bad voxels (NaNs or infs) in the input DWI '
+                        'with the specified value.')
 
     g1 = p.add_argument_group(title='Model options')
     g1.add_argument('--para_diff', type=float, default=1.5e-3,
@@ -139,7 +142,8 @@ def main():
         # Load the data
         ae.load_data(args.in_dwi,
                      scheme_filename=tmp_scheme_filename,
-                     mask_filename=args.mask)
+                     mask_filename=args.mask,
+                     replace_bad_voxels=args.replace_bad_voxels)
 
         # Compute the response functions
         ae.set_model("FreeWater")
