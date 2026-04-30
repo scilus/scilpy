@@ -85,7 +85,7 @@ def parse_voxel_order(order_str, dimensions=3):
                     raise ValueError("Flipping the 4th dimension is not "
                                      "supported.")
                 if int(numeric_parts[3]) != 4:
-                    raise ValueError("The 4th dimension must be 4.")
+                    raise ValueError("The 4th dimension must be 4 or -4.")
         else:
             ras_map = {1: 'R', 2: 'A', 3: 'S'}
             flip_map = {'R': 'L', 'A': 'P', 'S': 'I'}

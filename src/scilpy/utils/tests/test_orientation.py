@@ -104,6 +104,10 @@ def test_parse_voxel_order_4d_invalid_numeric():
         parse_voxel_order("1,2,3,5", dimensions=4)
 
     with pytest.raises(ValueError,
+                       match="Flipping the 4th dimension is not supported."):
+        parse_voxel_order("1,2,3,-4", dimensions=4)
+
+    with pytest.raises(ValueError,
                        match="Voxel order string must have 3 or 4 numbers."):
         parse_voxel_order("1,2", dimensions=4)
 
