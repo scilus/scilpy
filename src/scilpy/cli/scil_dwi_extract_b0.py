@@ -12,12 +12,12 @@ import logging
 import os
 
 from dipy.core.gradients import gradient_table
-from dipy.io.gradients import read_bvals_bvecs
 
 import nibabel as nib
 import numpy as np
 
 from scilpy.dwi.utils import extract_b0
+from scilpy.io.stateful_image import StatefulImage
 from scilpy.io.utils import (add_b0_thresh_arg, add_overwrite_arg,
                              add_skip_b0_check_arg, add_verbose_arg,
                              assert_inputs_exist)
@@ -93,7 +93,10 @@ def main():
     # Outputs are not checked, since multiple use cases
     # are possible and hard to check
 
-    bvals, bvecs = read_bvals_bvecs(args.in_bval, args.in_bvec)
+    simg = StatefulImage.load(args.in_dwi)
+    simg.load_gradients(args.in_bval, args.in_bvec)
+    bvals = simg.bvals
+    bvecs = simg.world_bvecs
 
     args.b0_threshold = check_b0_threshold(bvals.min(),
                                            b0_thr=args.b0_threshold,
@@ -112,16 +115,13 @@ def main():
     elif args.cluster_first:
         extract_in_cluster = True
 
-    image = nib.load(args.in_dwi)
-
     b0_volumes = extract_b0(
-        image, gtab.b0s_mask, extract_in_cluster, strategy, args.block_size)
+        simg, gtab.b0s_mask, extract_in_cluster, strategy, args.block_size)
 
     if len(b0_volumes.shape) > 3 and not args.single_image:
-        _split_time_steps(b0_volumes, image.affine, image.header, args.out_b0)
+        _split_time_steps(b0_volumes, simg.affine, simg.header, args.out_b0)
     else:
-        nib.save(nib.Nifti1Image(b0_volumes, image.affine, image.header),
-                 args.out_b0)
+        StatefulImage.from_data(b0_volumes, simg).save(args.out_b0)
 
 
 if __name__ == '__main__':

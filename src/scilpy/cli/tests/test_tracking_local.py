@@ -2,11 +2,13 @@
 # -*- coding: utf-8 -*-
 
 import os
+import pytest
 import tempfile
 import numpy as np
 
 from scilpy import SCILPY_HOME
 from scilpy.io.fetcher import fetch_data, get_testing_files_dict
+from scilpy.gpuparallel.opencl_utils import have_opencl
 
 # If they already exist, this only takes 5 seconds (check md5sum)
 fetch_data(get_testing_files_dict(), keys=['tracking.zip'])
@@ -73,6 +75,7 @@ def test_execution_sphere_subdivide(script_runner, monkeypatch):
     assert ret.success
 
 
+@pytest.mark.skipif(not have_opencl, reason='pyopencl not installed')
 def test_execution_sphere_gpu(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_fodf = os.path.join(SCILPY_HOME, 'tracking', 'fodf.nii.gz')
@@ -122,6 +125,7 @@ def test_batch_size_without_gpu(script_runner, monkeypatch):
     assert not ret.success
 
 
+@pytest.mark.skipif(not have_opencl, reason='pyopencl not installed')
 def test_algo_with_gpu(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_fodf = os.path.join(SCILPY_HOME, 'tracking', 'fodf.nii.gz')

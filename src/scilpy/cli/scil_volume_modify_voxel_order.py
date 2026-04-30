@@ -57,6 +57,8 @@ def _build_arg_parser():
 
     p.add_argument('--in_bvec',
                    help='Path of the b-vectors file.')
+    p.add_argument('--in_bval',
+                   help='Path of the b-values file.')
     p.add_argument('--out_bvec',
                    help='Path of the modified b-vectors file to write.')
 
@@ -97,7 +99,15 @@ def main():
     new_simg.save(args.out_image)
 
     if args.in_bvec and args.out_bvec:
-        np.savetxt(args.out_bvec, new_simg.bvecs.T, fmt='%.8f')
+        if args.in_bval:
+            simg.save_gradients(args.in_bval, args.out_bvec)
+        else:
+            # If no bval file, save only bvecs or handle as needed
+            # For now, let's assume if save_gradients requires both,
+            # we should avoid calling it if bval is missing.
+            # But based on the error, it's called with None.
+            # Let's save only bvecs if possible, or warn.
+            np.savetxt(args.out_bvec, simg.bvecs.T, fmt='%.8f')
 
 
 if __name__ == "__main__":

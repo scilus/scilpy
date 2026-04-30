@@ -22,7 +22,6 @@ any bug, please report it to our team or use --silent.
 import argparse
 import logging
 
-import nibabel as nib
 import numpy as np
 
 from dipy.data import get_sphere

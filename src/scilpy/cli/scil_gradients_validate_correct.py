@@ -166,7 +166,7 @@ def main():
     logging.info('Saving bvecs to file: {0}.'.format(args.out_bvec))
 
     # Save using StatefulImage to ensure they are in the original voxel space
-    simg.attach_gradients(bvals, correct_bvecs, original_order=False)
+    simg.attach_world_gradients(bvals, correct_bvecs)
     simg.save_gradients(args.in_bval, args.out_bvec)
 
 

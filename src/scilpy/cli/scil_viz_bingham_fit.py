@@ -14,8 +14,6 @@ any bug, please report it to our team or use --silent.
 import argparse
 import logging
 
-import nibabel as nib
-
 from dipy.data import get_sphere, SPHERE_FILES
 
 from scilpy.io.utils import (add_overwrite_arg,
@@ -24,6 +22,7 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_outputs_exist)
 from scilpy.utils.spatial import RAS_AXES_NAMES
 from scilpy.utils.spatial import get_axis_index
+from scilpy.io.stateful_image import StatefulImage
 
 from scilpy.version import version_string
 from scilpy.viz.backends.fury import (create_interactive_window,
@@ -95,7 +94,8 @@ def _get_data_from_inputs(args):
     """
     Load data given by args.
     """
-    bingham = nib.load(args.in_bingham).get_fdata()
+    simg = StatefulImage.load(args.in_bingham)
+    bingham = simg.get_fdata()
     if not args.slice_index:
         slice_index = bingham.shape[get_axis_index(args.axis_name)] // 2
     else:
@@ -103,7 +103,7 @@ def _get_data_from_inputs(args):
     bingham = bingham[_get_slicing_for_axis(args.axis_name,
                                             slice_index,
                                             bingham.shape)]
-    return bingham
+    return bingham, simg.affine
 
 
 def main():
@@ -118,18 +118,20 @@ def main():
     assert_inputs_exist(parser, args.in_bingham)
     assert_outputs_exist(parser, args, [], args.output)
 
-    data = _get_data_from_inputs(args)
+    data, affine = _get_data_from_inputs(args)
     sph = get_sphere(name=args.sphere)
 
     actors = create_bingham_slicer(data, args.axis_name,
                                    args.slice_index, sph,
-                                   color_per_lobe=args.color_per_lobe)
+                                   color_per_lobe=args.color_per_lobe,
+                                   affine=affine)
 
     # Prepare and display the scene
     scene = create_scene(actors, args.axis_name,
                          args.slice_index,
                          data.shape[:3],
-                         args.win_dims[0] / args.win_dims[1])
+                         args.win_dims[0] / args.win_dims[1],
+                         affine=affine)
 
     if not args.silent:
         create_interactive_window(

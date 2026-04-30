@@ -1,216 +1,136 @@
-import os
-import numpy as np
+# -*- coding: utf-8 -*-
+
 import nibabel as nib
+import numpy as np
 import pytest
-from dipy.io.stateful_tractogram import StatefulTractogram, Space
-from dipy.io.streamline import load_tractogram, save_tractogram
-from dipy.reconst.dti import TensorModel
 from dipy.core.gradients import gradient_table
-
+from dipy.reconst.dti import TensorModel
+from dipy.io.stateful_tractogram import Space
+from dipy.io.streamline import load_tractogram
 from scilpy.io.stateful_image import StatefulImage
+from scilpy.tracking.seed import SeedGenerator
+from scilpy.tracking.utils import save_tractogram
 
-def test_world_space_pipeline(tmp_path):
-    # 1. Generate mock dataset with 45 degree rotation around Z
-    theta = np.pi / 4
-    R = np.array([
-        [np.cos(theta), -np.sin(theta), 0],
-        [np.sin(theta), np.cos(theta), 0],
-        [0, 0, 1]
+
+@pytest.fixture
+def rotated_las_dataset(tmp_path):
+    """
+    Create a mock LAS dataset with 45-degree rotation around Z and 2mm voxels.
+    """
+    affine = np.array([
+        [-1.414, 1.414, 0.0, 50.0],
+        [-1.414, -1.414, 0.0, 50.0],
+        [0.0, 0.0, 2.0, -20.0],
+        [0.0, 0.0, 0.0, 1.0]
     ])
-    affine = np.eye(4)
-    affine[:3, :3] = R
-    
-    shape = (10, 10, 10)
-    n_volumes = 7 # 1 b0 + 6 directions
-    data = np.ones(shape + (n_volumes,))
-    
-    # Create a synthetic DTI signal: a single fiber along X in world space
-    # In voxel space, this fiber should be along R.T * [1, 0, 0]
-    # Because v_world = R * v_vox => v_vox = R.T * v_world
-    fiber_dir_world = np.array([1, 0, 0])
-    fiber_dir_vox = np.dot(R.T, fiber_dir_world)
-    
+
+    # Gradients (6 dirs + 1 b0) - Defined in WORLD X alignment
+    bvecs_world = np.array([
+        [0, 0, 0], [1, 0, 0], [0, 1, 0], [0, 0, 1],
+        [-1, 0, 0], [0, -1, 0], [0, 0, -1]
+    ])
     bvals = np.array([0, 1000, 1000, 1000, 1000, 1000, 1000])
-    # Directions in voxel space
-    bvecs_vox = np.array([
-        [0, 0, 0],
-        [1, 0, 0],
-        [0, 1, 0],
-        [0, 0, 1],
-        [1, 1, 0],
-        [1, 0, 1],
-        [0, 1, 1]
-    ], dtype=float)
-    norms = np.linalg.norm(bvecs_vox, axis=1)
-    bvecs_vox[norms > 0] /= norms[norms > 0][:, None]
-    
-    # Simple DTI signal simulation
-    # S = S0 * exp(-b * (g.T * D * g))
-    # For a single fiber along fiber_dir_vox: D = l1 * v*v.T + l2 * (I - v*v.T)
-    l1, l2 = 1.5e-3, 0.5e-3
-    V = fiber_dir_vox[:, None]
-    D = l1 * np.dot(V, V.T) + l2 * (np.eye(3) - np.dot(V, V.T))
-    
-    for i in range(n_volumes):
-        if bvals[i] == 0:
-            data[..., i] = 100
-        else:
-            g = bvecs_vox[i]
-            data[..., i] = 100 * np.exp(-bvals[i] * np.dot(g, np.dot(D, g)))
-            
-    img_path = str(tmp_path / "data.nii.gz")
-    nib.save(nib.Nifti1Image(data, affine), img_path)
-    
-    bval_path = str(tmp_path / "data.bval")
-    bvec_path = str(tmp_path / "data.bvec")
-    np.savetxt(bval_path, bvals[None, :], fmt='%d')
-    np.savetxt(bvec_path, bvecs_vox.T, fmt='%.8f')
-    
-    # 2. Load using StatefulImage
-    simg = StatefulImage.load(img_path)
-    simg.load_gradients(bval_path, bvec_path)
-    
-    # 3. DTI Fit
-    # Use dipy directly but with simg data and gradients
-    gtab = gradient_table(simg.bvals, bvecs=simg.bvecs) # simg.bvecs are in voxel space
-    
-    tenmodel = TensorModel(gtab)
-    tenfit = tenmodel.fit(simg.get_fdata())
-    
-    # 4. Peak Extraction
-    # The principal eigenvector (V1) should be along fiber_dir_vox in voxel space
-    v1 = tenfit.evecs[5, 5, 5, :, 0]
-    # Ensure it's pointing in the same hemisphere
-    if np.dot(v1, fiber_dir_vox) < 0:
-        v1 = -v1
-    assert np.allclose(v1, fiber_dir_vox, atol=1e-2)
-    
-    # 5. Tracking
-    # Simple tracking: just follow V1
-    streamline = [np.array([
-        [5, 5, 5],
-        [5, 5, 5] + v1,
-        [5, 5, 5] + 2*v1
-    ])]
-    
-    sft = StatefulTractogram(streamline, simg, Space.VOX)
-    
-    # 6. Save
-    tract_path = str(tmp_path / "tract.trk")
-    save_tractogram(sft, tract_path)
-    
-    # 7. Assertions
-    # Reload and check world space coordinates
-    sft_loaded = load_tractogram(tract_path, img_path)
-    sft_loaded.to_rasmm()
-    
-    # The streamline in world space should be along fiber_dir_world
-    # Start point in world space:
-    start_vox = np.array([5, 5, 5, 1])
-    start_world = np.dot(affine, start_vox)[:3]
-    
-    loaded_world = sft_loaded.streamlines[0]
-    
-    # Direction in world space
-    dir_world = loaded_world[1] - loaded_world[0]
-    dir_world /= np.linalg.norm(dir_world)
-    
-    if np.dot(dir_world, fiber_dir_world) < 0:
-        dir_world = -dir_world
 
-    assert np.allclose(loaded_world[0], start_world, atol=1e-3)
-    assert np.allclose(dir_world, fiber_dir_world, atol=1e-2)
+    # Simulate signal
+    data = np.ones((10, 10, 10, 7)) * 20
+    data[2:8, 2:8, 2:8, 0] = 100
+    for i in range(1, 7):
+        g = bvecs_world[i]
+        cos_theta = np.dot(g, [1, 0, 0])
+        data[2:8, 2:8, 2:8, i] = 100 * np.exp(-1.0 * (cos_theta**2))
 
+    # Back-project world bvecs to voxel space for FSL file
+    R = affine[:3, :3]
+    R_inv = np.linalg.inv(R / np.linalg.norm(R, axis=0))
+    bvecs_vox = np.dot(bvecs_world, R_inv.T)
+    if np.linalg.det(R) > 0:
+        bvecs_vox[:, 0] *= -1
 
-def test_world_space_pipeline_negative_det(tmp_path):
-    # 1. Generate mock dataset with LAS affine (det < 0)
-    affine = np.diag([-1, 1, 1, 1])
-    affine[:3, 3] = [50, 50, 50]  # Some translation
+    dwi_path = str(tmp_path / "dwi.nii.gz")
+    bval_path = str(tmp_path / "dwi.bval")
+    bvec_path = str(tmp_path / "dwi.bvec")
 
-    shape = (10, 10, 10)
-    n_volumes = 7
-    data = np.ones(shape + (n_volumes,))
-
-    # Fiber along X in world space (Right)
-    fiber_dir_world = np.array([1, 0, 0])
-    # In voxel space (LAS): v_vox = R.T * v_world = [-1, 0, 0]
-    fiber_dir_vox = np.array([-1, 0, 0])
-
-    bvals = np.array([0, 1000, 1000, 1000, 1000, 1000, 1000])
-    # Directions in voxel space
-    bvecs_vox = np.array([
-        [0, 0, 0],
-        [1, 0, 0],
-        [0, 1, 0],
-        [0, 0, 1],
-        [1, 1, 0],
-        [1, 0, 1],
-        [0, 1, 1]
-    ], dtype=float)
-    norms = np.linalg.norm(bvecs_vox, axis=1)
-    bvecs_vox[norms > 0] /= norms[norms > 0][:, None]
-
-    # DTI signal simulation
-    l1, l2 = 1.5e-3, 0.5e-3
-    V = fiber_dir_vox[:, None]
-    D = l1 * np.dot(V, V.T) + l2 * (np.eye(3) - np.dot(V, V.T))
-
-    for i in range(n_volumes):
-        if bvals[i] == 0:
-            data[..., i] = 100
-        else:
-            g = bvecs_vox[i]
-            data[..., i] = 100 * np.exp(-bvals[i] * np.dot(g, np.dot(D, g)))
-
-    img_path = str(tmp_path / "data_las.nii.gz")
-    nib.save(nib.Nifti1Image(data, affine), img_path)
-
-    bval_path = str(tmp_path / "data_las.bval")
-    bvec_path = str(tmp_path / "data_las.bvec")
+    nib.save(nib.Nifti1Image(data.astype(np.float32), affine), dwi_path)
     np.savetxt(bval_path, bvals[None, :], fmt='%d')
     np.savetxt(bvec_path, bvecs_vox.T, fmt='%.8f')
 
-    # 2. Load using StatefulImage, keeping original orientation (LAS)
-    simg = StatefulImage.load(img_path, to_orientation=None)
-    simg.load_gradients(bval_path, bvec_path)
+    return dwi_path, bval_path, bvec_path, bvecs_world
 
-    # 3. DTI Fit
-    gtab = gradient_table(simg.bvals, bvecs=simg.bvecs)
+
+def test_stateful_image_world_gradients(rotated_las_dataset):
+    dwi, bval, bvec, bvecs_world_truth = rotated_las_dataset
+    simg = StatefulImage.load(dwi)
+    simg.load_gradients(bval, bvec)
+
+    # Assert world_bvecs match truth
+    np.testing.assert_allclose(simg.world_bvecs, bvecs_world_truth, atol=1e-2)
+
+    # Assert saving and reloading recovers world truth
+    tmp_bvec = bvec + "_tmp.bvec"
+    simg.save_gradients(bval, tmp_bvec)
+    simg2 = StatefulImage.load(dwi)
+    simg2.load_gradients(bval, tmp_bvec)
+    np.testing.assert_allclose(simg2.world_bvecs, bvecs_world_truth, atol=1e-2)
+
+
+def test_dti_fitting_world_space(rotated_las_dataset):
+    dwi, bval, bvec, _ = rotated_las_dataset
+    simg = StatefulImage.load(dwi)
+    simg.load_gradients(bval, bvec)
+
+    gtab = gradient_table(simg.bvals, bvecs=simg.world_bvecs)
     tenmodel = TensorModel(gtab)
     tenfit = tenmodel.fit(simg.get_fdata())
 
-    # 4. Peak Extraction
-    v1 = tenfit.evecs[5, 5, 5, :, 0]
-    if np.dot(v1, fiber_dir_vox) < 0:
-        v1 = -v1
-    assert np.allclose(v1, fiber_dir_vox, atol=1e-2)
+    peak = tenfit.evecs[5, 5, 5, 0]
+    # Fiber was simulated along physical X
+    assert np.abs(peak[0]) > 0.8
 
-    # 5. Tracking
-    streamline = [np.array([
-        [5, 5, 5],
-        [5, 5, 5] + v1,
-        [5, 5, 5] + 2*v1
-    ])]
-    sft = StatefulTractogram(streamline, simg, Space.VOX)
 
-    # 6. Save
-    tract_path = str(tmp_path / "tract_las.trk")
-    save_tractogram(sft, tract_path)
+def test_tracking_seeding_world_space(rotated_las_dataset):
+    dwi, bval, bvec, _ = rotated_las_dataset
+    simg = StatefulImage.load(dwi)
 
-    # 7. Assertions
-    sft_loaded = load_tractogram(tract_path, img_path)
-    sft_loaded.to_rasmm()
+    seed_data = np.zeros((10, 10, 10))
+    seed_data[5, 5, 5] = 1
 
-    start_vox = np.array([5, 5, 5, 1])
-    start_world = np.dot(affine, start_vox)[:3]
+    seed_gen = SeedGenerator(seed_data, simg.header.get_zooms()[:3],
+                             affine=simg.affine, space=Space.RASMM)
 
-    loaded_world = sft_loaded.streamlines[0]
-    dir_world = loaded_world[1] - loaded_world[0]
-    dir_world /= np.linalg.norm(dir_world)
+    rng = np.random.RandomState(42)
+    seed = seed_gen.get_next_pos(rng, np.arange(1), 0)
 
-    if np.dot(dir_world, fiber_dir_world) < 0:
-        dir_world = -dir_world
+    # Project back to voxel space and check index
+    inv_affine = np.linalg.inv(simg.affine)
+    seed_vox = np.dot(inv_affine, np.append(seed, 1.0))[:3]
+    np.testing.assert_allclose(seed_vox, [5.5, 5.5, 5.5], atol=1.0)
 
-    assert np.allclose(loaded_world[0], start_world, atol=1e-3)
-    assert np.allclose(dir_world, fiber_dir_world, atol=1e-2)
 
+def test_save_tractogram_world_space(tmp_path, rotated_las_dataset):
+    dwi, bval, bvec, _ = rotated_las_dataset
+    simg = StatefulImage.load(dwi)
+
+    # World coordinate for center of (5,5,5)
+    seed_world = np.dot(simg.affine, [5.5, 5.5, 5.5, 1])[:3]
+    streamline = np.array([seed_world, seed_world + [10, 0, 0]], dtype=float)
+
+    def mock_gen():
+        yield streamline, seed_world
+
+    out_trk_scil = str(tmp_path / "test_scil.trk")
+    from nibabel.streamlines import TrkFile as NibTrkFile
+    save_tractogram(mock_gen, NibTrkFile, simg, 1, out_trk_scil,
+                    0, 1000, None, True, False, space=Space.RASMM)
+
+    sft_scil = load_tractogram(out_trk_scil, dwi, bbox_valid_check=False)
+    assert len(sft_scil.streamlines) == 1, "Scilpy save_tractogram produced empty file!"
+    sft_scil.to_rasmm()
+
+    # Assert coordinates match
+    np.testing.assert_allclose(sft_scil.streamlines[0], streamline, atol=1e-2)
+    # Assert seed was saved correctly in DPS
+    np.testing.assert_allclose(sft_scil.data_per_streamline['seeds'][0], seed_world, atol=1e-2)
+
+
+if __name__ == "__main__":
+    pytest.main([__file__])

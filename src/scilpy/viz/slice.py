@@ -262,7 +262,7 @@ def create_odf_slicer(sh_fodf, orientation, slice_index, sphere, sh_order,
     if nb_subdivide is not None:
         sphere = sphere.subdivide(n=nb_subdivide)
 
-    fodf = sh_to_sf(sh_fodf, sphere, 
+    fodf = sh_to_sf(sh_fodf, sphere,
                     sh_order_max=sh_order,
                     basis_type=sh_basis,
                     full_basis=full_basis, legacy=is_legacy)
@@ -296,7 +296,7 @@ def create_odf_slicer(sh_fodf, orientation, slice_index, sphere, sh_order,
 
 
 def create_bingham_slicer(data, orientation, slice_index,
-                          sphere, color_per_lobe=False):
+                          sphere, color_per_lobe=False, affine=None):
     """
     Create a bingham fit slicer using a combination of odf_slicer actors
 
@@ -315,6 +315,8 @@ def create_bingham_slicer(data, orientation, slice_index,
     color_per_lobe: bool
         If true, each Bingham distribution is colored using a disting color.
         Else, Bingham distributions are colored by their orientation.
+    affine: np.ndarray, optional
+        Voxel-to-world affine matrix.
 
     Return
     ------
@@ -340,7 +342,7 @@ def create_bingham_slicer(data, orientation, slice_index,
         color = colors[nn] if color_per_lobe else None
 
         odf_actor, _ = create_odf_actors(sf, sphere, 0.5, colormap=color,
-                                         radial_scale=True)
+                                         radial_scale=True, affine=affine)
 
         set_display_extent(odf_actor, orientation, shape[:3], slice_index)
         actors.append(odf_actor)

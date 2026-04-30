@@ -49,10 +49,10 @@ import numpy as np
 
 from scilpy.io.image import get_data_as_mask
 from scilpy.io.stateful_image import StatefulImage
-from scilpy.io.utils import (add_overwrite_arg, add_sh_basis_args,
+from scilpy.io.utils import (add_sh_basis_args,
                              add_verbose_arg, assert_inputs_exist,
                              assert_outputs_exist, parse_sh_basis_arg,
-                             assert_headers_compatible, add_compression_arg,
+                             assert_headers_compatible,
                              verify_compression_th)
 from scilpy.tracking.utils import (add_out_options, get_theta,
                                    save_tractogram)
@@ -219,7 +219,7 @@ def main():
     map_include_simg.reorient(fodf_sh_simg.axcodes)
     map_exclude_simg = StatefulImage.load(args.map_exclude_file)
     map_exclude_simg.reorient(fodf_sh_simg.axcodes)
-    
+
     voxel_size = np.average(map_include_simg.header['pixdim'][1:4])
 
     if not args.act:
@@ -245,7 +245,7 @@ def main():
 
     seed_simg = StatefulImage.load(args.in_seed)
     seed_simg.reorient(fodf_sh_simg.axcodes)
-    
+
     seeds = track_utils.random_seeds_from_mask(
         get_data_as_mask(seed_simg, dtype=bool),
         fodf_sh_simg.affine,

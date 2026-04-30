@@ -1,14 +1,17 @@
 import numpy as np
 import nibabel as nib
 import pytest
-from dipy.io.stateful_tractogram import StatefulTractogram, Space
+
 from dipy.io.streamline import load_tractogram
+
 from scilpy.tracking.utils import save_tractogram as scil_save_tractogram
+
 
 def create_fake_header(affine, shape=(10, 10, 10)):
     data = np.zeros(shape)
     img = nib.Nifti1Image(data, affine)
     return img
+
 
 @pytest.mark.parametrize("affine_type", ["iso_1mm", "iso_2mm", "aniso", "complex"])
 @pytest.mark.parametrize("ext", [".trk", ".tck"])
@@ -51,7 +54,7 @@ def test_scil_save_tractogram_alignment(tmp_path, affine_type, ext):
 
     output_path = str(tmp_path / f"scil_tracto{ext}")
     tracts_format = nib.streamlines.detect_format(output_path)
-    
+
     # scil_save_tractogram(streamlines_generator, tracts_format, ref_img, total_nb_seeds,
     #                    out_tractogram, min_length, max_length, compress, save_seeds, verbose)
     scil_save_tractogram(stream_gen_list, tracts_format, img, len(vox_streamlines),

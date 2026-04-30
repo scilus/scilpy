@@ -231,7 +231,7 @@ def create_scene(actors, orientation, slice_index, volume_shape, aspect_ratio,
 
 def create_interactive_window(scene, window_size, interactor, *,
                               title="Viewer", open_window=True
-                              ): # pragma: no cover
+                              ):  # pragma: no cover
     # (Function ignored from coverage statistics)
     """
     Create a 3D window with the content of scene, equiped with an interactor.
@@ -324,7 +324,7 @@ def snapshot_scenes(scenes, window_size):
 
 
 def create_contours_actor(contours, opacity=1., linewidth=3.,
-                          color=[255, 0, 0]):
+                          color=[255, 0, 0], affine=None):
     """
     Create an actor from a vtkPolyData of contours
 
@@ -338,6 +338,8 @@ def create_contours_actor(contours, opacity=1., linewidth=3.,
         Thickness of the contour line.
     color : tuple, list of int
         Color of the contour in RGB [0, 255].
+    affine : np.ndarray, optional
+        Voxel-to-world affine matrix.
 
     Returns
     -------
@@ -345,7 +347,24 @@ def create_contours_actor(contours, opacity=1., linewidth=3.,
         Fury object containing the contours' information.
     """
 
-    contours_actor = get_actor_from_polydata(contours)
+    if affine is not None:
+        import vtk
+        vtk_matrix = vtk.vtkMatrix4x4()
+        for i in range(4):
+            for j in range(4):
+                vtk_matrix.SetElement(i, j, affine[i, j])
+
+        transform = vtk.vtkTransform()
+        transform.SetMatrix(vtk_matrix)
+
+        transform_filter = vtk.vtkTransformPolyDataFilter()
+        transform_filter.SetTransform(transform)
+        transform_filter.SetInputData(contours)
+        transform_filter.Update()
+        contours_actor = get_actor_from_polydata(transform_filter.GetOutput())
+    else:
+        contours_actor = get_actor_from_polydata(contours)
+
     contours_actor.GetMapper().ScalarVisibilityOff()
     contours_actor.GetProperty().SetLineWidth(linewidth)
     contours_actor.GetProperty().SetColor(color)

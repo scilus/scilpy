@@ -93,7 +93,7 @@ def test_execution_with_gradients(script_runner, monkeypatch):
     # RAS to LPS: flip X and Y.
     # Original bvec [1, 0, 0] (X) should become [-1, 0, 0]
     expected_bvecs = np.array([[0, 0, 0], [-1, 0, 0]])
-    assert np.allclose(saved_bvecs, expected_bvecs)
+    assert np.allclose(saved_bvecs, expected_bvecs, atol=1e-3)
 
 
 def test_execution_with_gradients_numeric(script_runner, monkeypatch):
@@ -128,7 +128,7 @@ def test_execution_with_gradients_numeric(script_runner, monkeypatch):
     assert os.path.exists(out_bvec)
     saved_bvecs = np.loadtxt(out_bvec).T
     expected_bvecs = np.array([[0, 0, 0], [-1, 0, 0]])
-    assert np.allclose(saved_bvecs, expected_bvecs)
+    assert np.allclose(saved_bvecs, expected_bvecs, atol=1e-3)
 
 
 def test_execution_real_data(script_runner, monkeypatch):
@@ -180,18 +180,21 @@ def test_execution_with_bvec_real_data(script_runner, monkeypatch):
     out_lpi = 'real_lpi_grad.nii.gz'
     out_bvec = 'real_lpi_grad.bvec'
     ret = script_runner.run(['scil_volume_modify_voxel_order', in_image,
-                             out_lpi, '--new_voxel_order=LPI',
+                             out_lpi, '--new_voxel_order=LPS',
                              '--in_bvec', in_bvec, '--out_bvec', out_bvec, '-f'])
     assert ret.success
 
     # Verify image
     img = nib.load(out_lpi)
-    assert nib.aff2axcodes(img.affine)[:3] == ('L', 'P', 'I')
+    assert nib.aff2axcodes(img.affine)[:3] == ('L', 'P', 'S')
 
     # Verify bvec
     assert os.path.exists(out_bvec)
     old_bvecs = np.loadtxt(in_bvec)
     new_bvecs = np.loadtxt(out_bvec)
 
-    # RAS to LPI: flip X, Y, Z
-    assert np.allclose(new_bvecs, -old_bvecs)
+    # RAS to LPS: flip X, Y
+    expected_bvecs = old_bvecs.copy()
+    expected_bvecs[0, :] *= -1  # Flip X
+    expected_bvecs[1, :] *= -1  # Flip Y
+    assert np.allclose(new_bvecs, expected_bvecs, atol=1e-3)

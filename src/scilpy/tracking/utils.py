@@ -14,10 +14,10 @@ from dipy.direction import (DeterministicMaximumDirectionGetter,
                             ProbabilisticDirectionGetter, PTTDirectionGetter)
 from dipy.direction.peaks import PeaksAndMetrics
 from dipy.io.stateful_tractogram import Origin, Space
-from dipy.io.utils import create_tractogram_header, get_reference_info, is_reference_info_valid
+from dipy.io.utils import create_tractogram_header, get_reference_info
 from dipy.reconst.shm import sh_to_sf_matrix
 from dipy.tracking.streamlinespeed import compress_streamlines, length
-from vine import transform
+
 from scilpy.io.utils import (add_compression_arg, add_overwrite_arg,
                              add_sh_basis_args)
 from scilpy.reconst.utils import find_order_from_nb_coeff, get_maximas
@@ -248,76 +248,62 @@ def save_tractogram(
     from scilpy.io.stateful_image import StatefulImage
     is_stateful = isinstance(ref_img, StatefulImage)
 
-    def tracks_generator_wrapper():
-        if is_stateful:
-            affine_mod = ref_img.affine.copy()
-            affine_ori = ref_img._original_affine
-        else:
-            affine_mod = ref_img.affine.copy()
-            affine_ori = ref_img.affine.copy()
+    if is_stateful:
+        affine_mod = ref_img.affine.copy()
+        affine_ori = ref_img._original_affine
+        original_voxel_size = np.array(ref_img._original_voxel_sizes[:3])
+    else:
+        affine_mod = ref_img.affine.copy()
+        affine_ori = ref_img.affine.copy()
+        original_voxel_size = voxel_size
 
-        for strl, seed in tqdm_if_verbose(streamlines_generator,
+    def tracks_generator_wrapper():
+        # If streamlines_generator is a callable, call it to get a new generator.
+        # This allows re-iterating if LazyTractogram needs it.
+        if callable(streamlines_generator):
+            iterable = streamlines_generator()
+        else:
+            iterable = streamlines_generator
+
+        for strl, seed in tqdm_if_verbose(iterable,
                                           verbose=verbose,
                                           total=total_nb_seeds,
-                                          miniters=int(total_nb_seeds / 100),
+                                          miniters=int(
+                                              total_nb_seeds / 100) if total_nb_seeds >= 100 else 1,
                                           leave=False):
-            # Compute length in mm space for filtering
+            # 1. Get to RASMM (physical world space) for filtering and compression
             if space == Space.VOX:
-                strl_mm = strl * voxel_size
+                strl_rasmm = nib.affines.apply_affine(affine_mod, strl)
             elif space == Space.VOXMM:
-                strl_mm = strl
+                strl_rasmm = nib.affines.apply_affine(
+                    affine_mod, strl / voxel_size)
             elif space == Space.RASMM:
-                strl_mm = strl
+                strl_rasmm = strl
             else:
                 raise ValueError("Unknown space")
 
-            strl_len = length(strl_mm)
+            strl_len = length(strl_rasmm)
             if (min_length <= strl_len <= max_length):
-                # Seeds are saved with origin `center` by our own convention.
-                # Other scripts (e.g. scil_tractogram_seed_density_map) expect
-                # so.
-                dps = {}
+                # Prepare DPS for this streamline
+                strl_dps = {}
                 if save_seeds:
-                    dps['seeds'] = seed
+                    strl_dps['seeds'] = seed
 
                 if compress:
-                    # compression threshold is given in mm, so we
-                    # must be in mm space to compress
-                    strl_mm = compress_streamlines(strl_mm, compress)
+                    strl_rasmm = compress_streamlines(strl_rasmm, compress)
 
                 if tracts_format is TrkFile:
-                    # Revert to canonical RAS vox space, then go to rasmm and back
-                    # to vox space in the original orientation,
-                    # to save in the expected space for .trk files.
-                    if space == Space.VOX:
-                        strl_vox = strl_mm / voxel_size
-                    elif space == Space.VOXMM:
-                        strl_vox = strl_mm / voxel_size
-                    elif space == Space.RASMM:
-                        strl_vox = nib.affines.apply_affine(
-                            np.linalg.inv(affine_mod), strl_mm)
-
-                    strl_rasmm = nib.affines.apply_affine(affine_mod,
-                                                            strl_vox)
-                    strl_old_vox = nib.affines.apply_affine(
+                    # TRK expects VOXMM relative to original orientation
+                    strl_vox = nib.affines.apply_affine(
                         np.linalg.inv(affine_ori), strl_rasmm)
-                    strl_to_save = strl_old_vox * voxel_size + 0.5 * voxel_size
-
+                    # Add half-voxel shift to go from scilpy center-origin
+                    # to nibabel corner-origin in voxmm.
+                    strl_to_save = (strl_vox + 0.5) * original_voxel_size
                 else:
-                    # Streamlines are dumped in true world space with
-                    # origin center as expected by .tck files.
-                    if space == Space.VOX:
-                        strl_vox = strl_mm / voxel_size
-                        strl_to_save = nib.affines.apply_affine(affine_mod,
-                                                                strl_vox)
-                    elif space == Space.VOXMM:
-                        strl_vox = strl_mm / voxel_size
-                        strl_to_save = nib.affines.apply_affine(affine_mod,
-                                                                strl_vox)
-                    elif space == Space.RASMM:
-                        strl_to_save = strl_mm
+                    # TCK expects RASMM
+                    strl_to_save = strl_rasmm
 
-                yield TractogramItem(strl_to_save, dps, {})
+                yield TractogramItem(strl_to_save, strl_dps, {})
 
     tractogram = LazyTractogram.from_data_func(tracks_generator_wrapper)
     tractogram.affine_to_rasmm = np.eye(4)

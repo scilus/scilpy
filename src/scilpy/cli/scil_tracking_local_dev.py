@@ -68,7 +68,7 @@ import nibabel as nib
 from nibabel.streamlines import detect_format, TrkFile
 import numpy as np
 
-from scilpy.io.image import assert_same_resolution, get_data_as_mask
+from scilpy.io.image import assert_same_resolution
 from scilpy.io.stateful_image import StatefulImage
 from scilpy.io.utils import (add_processes_arg, add_sphere_arg,
                              add_verbose_arg,
@@ -309,7 +309,6 @@ def main():
         # 1e-3.
         assert np.allclose(np.mean(odf_sh_res[:3]),
                            odf_sh_res, atol=1e-03)
-        
         # Using space and origin in the propagator: RASMM and NIFTI.
         sh_basis, is_legacy = parse_sh_basis_arg(args)
 
@@ -422,10 +421,6 @@ def main():
                  .format(len(streamlines), nbr_seeds, str_time))
 
     # save seeds if args.save_seeds is given
-    if args.save_seeds:
-        data_per_streamline = {'seeds': seeds}
-    else:
-        data_per_streamline = {}
 
     # Save RAP entry/exit mask if requested
     if args.rap_save_entry_exit:

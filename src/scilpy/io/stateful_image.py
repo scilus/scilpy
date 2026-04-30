@@ -142,12 +142,8 @@ class StatefulImage(nib.Nifti1Image):
                 R_source = reference._get_rotation_matrix(source.affine)
                 bvecs = np.dot(reference.world_bvecs, R_source)
 
-                # According to BIDS/MRtrix convention, if the determinant of the
-                # affine is positive (neurological), the x-component of the bvecs
-                # must be flipped.
-                if np.linalg.det(source.affine[:3, :3]) > 0:
+                if StatefulImage.needs_fsl_flip(source.affine):
                     bvecs[:, 0] *= -1
-
         return StatefulImage(source.dataobj, source.affine,
                              header=source.header,
                              original_affine=reference._original_affine,
@@ -208,6 +204,19 @@ class StatefulImage(nib.Nifti1Image):
                              original_axcodes=original_axcodes,
                              bvals=bvals, bvecs=bvecs)
 
+    @staticmethod
+    def needs_fsl_flip(affine):
+        """
+        According to BIDS/MRtrix convention, if the determinant of the
+        3x3 rotation/scaling part of the affine is positive (neurological),
+        the x-component of the FSL-format bvecs must be flipped.
+        """
+        return np.linalg.det(affine[:3, :3]) > 0
+
+    @property
+    def _needs_fsl_flip(self):
+        return StatefulImage.needs_fsl_flip(self.affine)
+
     @property
     def bvals(self):
         """Get the current b-values."""
@@ -223,10 +232,7 @@ class StatefulImage(nib.Nifti1Image):
         # v_voxel = v_world * R
         bvecs = np.dot(self._world_bvecs, R)
 
-        # According to BIDS/MRtrix convention, if the determinant of the
-        # affine is positive (neurological), the x-component of the bvecs
-        # must be flipped.
-        if np.linalg.det(self.affine[:3, :3]) > 0:
+        if self._needs_fsl_flip:
             bvecs[:, 0] *= -1
 
         return bvecs
@@ -277,13 +283,37 @@ class StatefulImage(nib.Nifti1Image):
 
         R = self._get_rotation_matrix(ref_affine)
 
-        # According to BIDS/MRtrix convention, if the determinant of the
-        # affine is positive (neurological), the x-component of the bvecs
-        # must be flipped.
-        if np.linalg.det(ref_affine[:3, :3]) > 0:
+        # Apply BIDS flip if needed
+        if StatefulImage.needs_fsl_flip(ref_affine):
             bvecs[:, 0] *= -1
 
         self._world_bvecs = np.dot(bvecs, R.T)
+
+        # Normalize
+        norms = np.linalg.norm(self._world_bvecs, axis=1)
+        self._world_bvecs[norms > 1e-6] /= norms[norms > 1e-6][:, None]
+
+    def attach_world_gradients(self, bvals, world_bvecs):
+        """
+        Attach b-values and world-space b-vectors to the image.
+
+        Parameters
+        ----------
+        bvals : array-like
+            B-values.
+        world_bvecs : array-like
+            B-vectors in world space (RAS mm).
+        """
+        self._bvals = np.asanyarray(bvals)
+        self._world_bvecs = np.asanyarray(world_bvecs).copy()
+
+        # Validate shapes
+        if self._bvals.ndim != 1:
+            raise ValueError("bvals must be a 1D array.")
+        if self._world_bvecs.ndim != 2 or self._world_bvecs.shape[1] != 3:
+            raise ValueError("world_bvecs must be an (N, 3) array.")
+        if len(self._bvals) != len(self._world_bvecs):
+            raise ValueError("bvals and world_bvecs must have the same length.")
 
         # Normalize
         norms = np.linalg.norm(self._world_bvecs, axis=1)
@@ -327,7 +357,7 @@ class StatefulImage(nib.Nifti1Image):
         # According to BIDS/MRtrix convention, if the determinant of the
         # affine is positive (neurological), the x-component of the bvecs
         # must be flipped.
-        if np.linalg.det(ref_affine[:3, :3]) > 0:
+        if StatefulImage.needs_fsl_flip(ref_affine):
             bvecs_to_save[:, 0] *= -1
 
         np.savetxt(bvec_path, bvecs_to_save.T, fmt='%.8f')
@@ -397,7 +427,7 @@ class StatefulImage(nib.Nifti1Image):
             # According to BIDS/MRtrix convention, if the determinant of the
             # affine is positive (neurological), the x-component of the bvecs
             # must be flipped.
-            if np.linalg.det(reoriented_img.affine[:3, :3]) > 0:
+            if StatefulImage.needs_fsl_flip(reoriented_img.affine):
                 new_voxel_bvecs[:, 0] *= -1
 
         self.__init__(reoriented_img.dataobj, reoriented_img.affine,

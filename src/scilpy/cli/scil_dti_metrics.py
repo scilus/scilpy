@@ -25,7 +25,6 @@ MRM 2011].
 import argparse
 import logging
 
-import nibabel as nib
 import numpy as np
 
 from dipy.core.gradients import gradient_table
@@ -191,7 +190,6 @@ def main():
     simg.to_ras()
 
     data = simg.get_fdata(dtype=np.float32)
-    affine = simg.affine
     bvals = simg.bvals
     bvecs = simg.world_bvecs
 
@@ -239,46 +237,37 @@ def main():
         tensor_vals_reordered = convert_tensor_from_dipy_format(
             tensor_vals, final_format=args.tensor_format)
 
-        fiber_tensors = nib.Nifti1Image(
-            tensor_vals_reordered.astype(np.float32), affine)
-        # Use StatefulImage.create_from to ensure original orientation
-        StatefulImage.create_from(fiber_tensors, simg).save(args.tensor)
+        StatefulImage.from_data(tensor_vals_reordered.astype(np.float32), simg).save(args.tensor)
 
-        del tensor_vals, fiber_tensors, tensor_vals_reordered
+        del tensor_vals, tensor_vals_reordered
 
     if args.fa or args.rgb:
         FA = fractional_anisotropy(tenfit.evals)
         FA[np.isnan(FA)] = 0
         FA = np.clip(FA, 0, 1)
         if args.fa:
-            fa_img = nib.Nifti1Image(FA.astype(np.float32), affine)
-            StatefulImage.create_from(fa_img, simg).save(args.fa)
+            StatefulImage.from_data(FA.astype(np.float32), simg).save(args.fa)
 
         if args.rgb:
             RGB = color_fa(FA, tenfit.evecs)
-            rgb_img = nib.Nifti1Image(np.array(255 * RGB, 'uint8'), affine)
-            StatefulImage.create_from(rgb_img, simg).save(args.rgb)
+            StatefulImage.from_data(np.array(255 * RGB, 'uint8'), simg).save(args.rgb)
 
     if args.ga:
         GA = geodesic_anisotropy(tenfit.evals)
         GA[np.isnan(GA)] = 0
-        ga_img = nib.Nifti1Image(GA.astype(np.float32), affine)
-        StatefulImage.create_from(ga_img, simg).save(args.ga)
+        StatefulImage.from_data(GA.astype(np.float32), simg).save(args.ga)
 
     if args.md:
         MD = mean_diffusivity(tenfit.evals)
-        md_img = nib.Nifti1Image(MD.astype(np.float32), affine)
-        StatefulImage.create_from(md_img, simg).save(args.md)
+        StatefulImage.from_data(MD.astype(np.float32), simg).save(args.md)
 
     if args.ad:
         AD = axial_diffusivity(tenfit.evals)
-        ad_img = nib.Nifti1Image(AD.astype(np.float32), affine)
-        StatefulImage.create_from(ad_img, simg).save(args.ad)
+        StatefulImage.from_data(AD.astype(np.float32), simg).save(args.ad)
 
     if args.rd:
         RD = radial_diffusivity(tenfit.evals)
-        rd_img = nib.Nifti1Image(RD.astype(np.float32), affine)
-        StatefulImage.create_from(rd_img, simg).save(args.rd)
+        StatefulImage.from_data(RD.astype(np.float32), simg).save(args.rd)
 
     if args.mode:
         # Compute tensor mode
@@ -289,34 +278,28 @@ def main():
         non_nan_indices = np.isfinite(inter_mode)
         mode_data = np.zeros(inter_mode.shape)
         mode_data[non_nan_indices] = inter_mode[non_nan_indices]
-        mode_img = nib.Nifti1Image(mode_data.astype(np.float32), affine)
-        StatefulImage.create_from(mode_img, simg).save(args.mode)
+        StatefulImage.from_data(mode_data.astype(np.float32), simg).save(args.mode)
 
     if args.norm:
         NORM = norm(tenfit.quadratic_form)
-        norm_img = nib.Nifti1Image(NORM.astype(np.float32), affine)
-        StatefulImage.create_from(norm_img, simg).save(args.norm)
+        StatefulImage.from_data(NORM.astype(np.float32), simg).save(args.norm)
 
     if args.evecs:
         evecs_data = tenfit.evecs.astype(np.float32)
-        evecs_img = nib.Nifti1Image(evecs_data, affine)
-        StatefulImage.create_from(evecs_img, simg).save(args.evecs)
+        StatefulImage.from_data(evecs_data, simg).save(args.evecs)
 
         # save individual e-vectors also
         for i in range(3):
-            ev_img = nib.Nifti1Image(evecs_data[..., i], affine)
-            StatefulImage.create_from(ev_img, simg).save(
+            StatefulImage.from_data(evecs_data[..., i], simg).save(
                 add_filename_suffix(args.evecs, '_v'+str(i+1)))
 
     if args.evals:
         evals_data = tenfit.evals.astype(np.float32)
-        evals_img = nib.Nifti1Image(evals_data, affine)
-        StatefulImage.create_from(evals_img, simg).save(args.evals)
+        StatefulImage.from_data(evals_data, simg).save(args.evals)
 
         # save individual e-values also
         for i in range(3):
-            eval_img = nib.Nifti1Image(evals_data[..., i], affine)
-            StatefulImage.create_from(eval_img, simg).save(
+            StatefulImage.from_data(evals_data[..., i], simg).save(
                 add_filename_suffix(args.evals, '_e' + str(i+1)))
 
     if args.p_i_signal:
@@ -327,8 +310,7 @@ def main():
         if args.mask is not None:
             pis_mask *= mask
 
-        pis_img = nib.Nifti1Image(pis_mask.astype(np.int16), affine)
-        StatefulImage.create_from(pis_img, simg).save(args.p_i_signal)
+        StatefulImage.from_data(pis_mask.astype(np.int16), simg).save(args.p_i_signal)
 
     if args.pulsation:
         STD = np.std(data[..., ~gtab.b0s_mask], axis=-1)
@@ -336,8 +318,7 @@ def main():
         if args.mask is not None:
             STD *= mask
 
-        std_img = nib.Nifti1Image(STD.astype(np.float32), affine)
-        StatefulImage.create_from(std_img, simg).save(
+        StatefulImage.from_data(STD.astype(np.float32), simg).save(
             add_filename_suffix(args.pulsation, '_std_dwi'))
 
         if np.sum(gtab.b0s_mask) <= 1:
@@ -353,8 +334,7 @@ def main():
             if args.mask is not None:
                 STD *= mask
 
-            std_b0_img = nib.Nifti1Image(STD.astype(np.float32), affine)
-            StatefulImage.create_from(std_b0_img, simg).save(
+            StatefulImage.from_data(STD.astype(np.float32), simg).save(
                 add_filename_suffix(args.pulsation, '_std_b0'))
 
     if args.residual:
@@ -378,8 +358,7 @@ def main():
         R, data_diff = compute_residuals(
             predicted_data=tenfit2_predict.astype(np.float32),
             real_data=data, b0s_mask=gtab.b0s_mask, mask=mask)
-        res_img = nib.Nifti1Image(R.astype(np.float32), affine)
-        StatefulImage.create_from(res_img, simg).save(args.residual)
+        StatefulImage.from_data(R.astype(np.float32), simg).save(args.residual)
 
         # Each volume's residual statistics
         R_k, q1, q3, iqr, std = compute_residuals_statistics(data_diff)

@@ -12,7 +12,7 @@ import argparse
 import logging
 
 from scilpy.io.streamlines import (load_tractogram_with_reference,
-                                    save_tractogram)
+                                   save_tractogram)
 from scilpy.io.utils import (add_bbox_arg,
                              add_reference_arg,
                              add_verbose_arg,

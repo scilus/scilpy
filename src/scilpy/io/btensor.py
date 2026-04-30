@@ -1,5 +1,3 @@
-import logging
-
 from dipy.core.gradients import (gradient_table,
                                  unique_bvals_tolerance, get_bval_indices)
 import numpy as np
@@ -112,7 +110,6 @@ def generate_btensor_input(in_dwis, in_bvals, in_bvecs, in_bdeltas,
             simg.load_gradients(bvalsf, bvecsf)
             simg.to_ras()
 
-            data = simg.get_fdata(dtype=np.float32)
             bvals = simg.bvals
             bvecs = simg.world_bvecs
 
