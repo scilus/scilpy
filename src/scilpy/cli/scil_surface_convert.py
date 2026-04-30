@@ -22,7 +22,7 @@ import os
 
 from dipy.io.surface import save_surface
 
-from scilpy.io.surfaces import load_surface_with_reference
+from scilpy.io.surfaces import load_surface_with_reference, vtk_ext
 from scilpy.io.utils import (add_vtk_legacy_arg,
                              add_overwrite_arg,
                              add_surface_spatial_arg,
@@ -79,7 +79,7 @@ def main():
     convert_stateful_str_to_enum(args)
 
     _, ext = os.path.splitext(args.out_surface)
-    if ext not in ['.vtk', '.vtp', '.fib', '.ply', '.stl', '.xml', '.obj']:
+    if ext not in vtk_ext:
         if args.destination_space or args.destination_origin:
             parser.error('The destination space and destination origin can '
                          'not be changed for FreeSurfer surfaces')

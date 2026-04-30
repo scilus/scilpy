@@ -6,6 +6,9 @@ from dipy.io.surface import load_surface
 
 from scilpy.io.utils import is_argument_set
 
+vtk_ext = ['.vtk', '.vtp', '.fib', '.ply', '.stl', '.xml', '.obj']
+
+
 def load_surface_with_reference(parser, args, filepath, arg_name=None):
     """
     Parameters
@@ -27,7 +30,6 @@ def load_surface_with_reference(parser, args, filepath, arg_name=None):
         bbox_check = True
 
     _, ext = os.path.splitext(filepath)
-    vtk_ext = ['.vtk', '.vtp', '.fib', '.ply', '.stl', '.xml', '.obj']
     if ext not in vtk_ext:
         if args.reference is None:
             parser.error('The reference image is required for FreeSurfer '
