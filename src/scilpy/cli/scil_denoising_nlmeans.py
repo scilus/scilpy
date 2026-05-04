@@ -145,11 +145,11 @@ def main():
                         "considered to have Gaussian noise, but you "
                         "did not select --gaussian. Proceed with care.")
 
-    if args.basic_sigma and args.number_coils is None:  # or args.piesno)
+    if (args.basic_sigma or args.piesno) and args.number_coils is None:
         parser.error("Please provide the number of coils for basic_sigma "
                      "and piesno options.")
 
-    if args.sigma: # args.piesno or 
+    if args.sigma or args.piesno:
         if args.sigma_from_all_voxels:
             parser.error("You selected --sigma_from_all_voxels, but this is "
                          "only available for the --basic_sigma method.")
@@ -161,9 +161,18 @@ def main():
         parser.error("Option --save_piesno_mask cannot be used when --pieno "
                      "is not selected.")
 
+    if args.piesno and (not args.number_coils or args.number_coils < 1):
+        parser.error("PIESNO method requires a positive number of coils." \
+                     "The number of phase array coils of the MRI scanner."
+                     "If your scanner does a SENSE reconstruction, ALWAYS use N=1, as the "
+                     "noise profile is always Rician."
+                     "If your scanner does a GRAPPA reconstruction, set N as the number "
+                     "of phase array coils.")
+    
+
     assert_inputs_exist(parser, args.in_image,
                         [args.mask_denoise, args.mask_sigma])
-    assert_outputs_exist(parser, args, args.out_image) # , args.save_piesno_mask)
+    assert_outputs_exist(parser, args, args.out_image, args.save_piesno_mask)
     assert_headers_compatible(parser, args.in_image,
                               [args.mask_denoise, args.mask_sigma])
 
