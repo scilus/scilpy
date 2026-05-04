@@ -184,6 +184,7 @@ def main():
         elif args.color_from_points:
             color = subsample(
                 tractogram_gen.data_per_point[args.color_from_points])
+            color = np.asarray(color, dtype=object) / 255
         elif args.uniform_coloring:  # Assign uniform coloring to streamlines
             color = tuple(np.asarray(args.uniform_coloring) / 255)
         elif args.local_coloring:  # Compute coloring from local orientations
