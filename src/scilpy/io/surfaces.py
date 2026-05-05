@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import logging
 import os
 
 from dipy.io.surface import load_surface
@@ -36,8 +37,9 @@ def load_surface_with_reference(parser, args, filepath, arg_name=None):
                          'surfaces.')
 
         if args.source_space or args.source_origin:
-            print('The source space and source origin can not be changed for '
-                  'FreeSurfer surfaces. Will be ignored.')
+            logging.warning('The source space and source origin can not be '
+                            'changed for FreeSurfer surfaces.\n'
+                            'These will be ignored.')
         sfs = load_surface(filepath, args.reference,
                            bbox_valid_check=bbox_check)
     elif ext in vtk_ext:

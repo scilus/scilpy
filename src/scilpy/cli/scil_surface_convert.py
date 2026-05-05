@@ -22,6 +22,16 @@ import os
 
 from dipy.io.surface import save_surface
 
+# Monkeypatch DIPY 1.12.dev NameError and VTK version check
+import dipy.io.surface as dipy_surf
+try:
+    import vtk
+    import vtk.util.numpy_support as ns
+    dipy_surf.ns = ns
+    dipy_surf.vtk = vtk
+except ImportError:
+    pass
+
 from scilpy.io.surfaces import load_surface_with_reference, vtk_ext
 from scilpy.io.utils import (add_vtk_legacy_arg,
                              add_overwrite_arg,
@@ -47,18 +57,19 @@ def _build_arg_parser():
                    help='Input a surface (FreeSurfer or supported by VTK).')
     p.add_argument('out_surface',
                    help='Output surface (formats supported by VTK).\n'
-                        'Recommended extension: .vtk or .ply')
+                        'Recommended extension: .vtk or .ply.')
     p.add_argument('--reference',
                    help='Reference image to extract the transformation matrix\n'
                         'to align the freesurfer surface with the T1.')
 
     r = p.add_mutually_exclusive_group()
     r.add_argument('--ref_pial',
-                   help='Reference pial surface to extract the transformation\n'
-                   'matrix to align the freesurfer surface with the T1.')
+                   help='Reference pial surface to extract the\n'
+                        'transformation matrix to align the freesurfer\n'
+                        'surface with the T1.')
     r.add_argument('--ref_gii',
-                   help='Reference gii surface to extract the header '
-                   'information to be valid')
+                   help='Reference gii surface to extract the header\n'
+                        'information to be valid.')
 
     add_vtk_legacy_arg(p)
     add_surface_spatial_arg(p)

@@ -2,7 +2,16 @@
 # -*- coding: utf-8 -*-
 
 """
+Assign a uniform color to one or many surfaces.
 
+The color can be provided as an hexadecimal string or via a JSON dictionary
+mapping surface basenames to colors.
+
+Example:
+    scil_surface_assign_uniform_color surf.vtk --fill_color 0xFF0000 \
+        --out_surface colored.vtk
+    scil_surface_assign_uniform_color surf1.vtk surf2.vtk \
+        --dict_colors colors.json --out_suffix _colored
 """
 
 import argparse
@@ -12,6 +21,16 @@ import os
 
 from dipy.io.surface import load_surface, save_surface
 import numpy as np
+
+# Monkeypatch DIPY 1.12.dev NameError and VTK version check
+import dipy.io.surface as dipy_surf
+try:
+    import vtk
+    import vtk.util.numpy_support as ns
+    dipy_surf.ns = ns
+    dipy_surf.vtk = vtk
+except ImportError:
+    pass
 
 from scilpy.io.utils import (assert_inputs_exist,
                              assert_outputs_exist,
@@ -38,9 +57,9 @@ def _build_arg_parser():
                     help='Can be hexadecimal (ie. either "#RRGGBB" '
                          'or 0xRRGGBB).')
     p1.add_argument('--dict_colors', metavar='file.json',
-                    help="Json file: dictionnary mapping each tractogram's "
-                         "basename to a color.\nDo not put your file's "
-                         "extension in your dict.\n"
+                    help="Json file: dictionary mapping each surface's "
+                         "basename to a color.\n"
+                         "Do not put your file's extension in your dict.\n"
                          "Same convention as --fill_color.")
 
     g2 = p.add_argument_group(title='Output options')
@@ -49,7 +68,7 @@ def _build_arg_parser():
                     metavar='suffix',
                     help='Specify suffix to append to input basename.\n'
                          'Mandatory choice if you run this script on multiple '
-                         'tractograms.\nMandatory choice with --dict_colors.\n'
+                         'surfaces.\nMandatory choice with --dict_colors.\n'
                          '[%(default)s]')
     p2.add_argument('--out_surface', metavar='FILE',
                     help='Output filename of colored Surface (VTK supported).')
@@ -75,7 +94,8 @@ def main():
     if args.dict_colors and args.out_surface:
         parser.error('Using --dict_colors, use --out_suffix.')
 
-    assert_inputs_exist(parser, args.in_surfaces, args.reference)
+    assert_inputs_exist(parser, args.in_surfaces,
+                        optional=[args.reference, args.dict_colors])
     convert_stateful_str_to_enum(args)
 
     if args.reference is None:
@@ -87,7 +107,6 @@ def main():
 
     if args.out_surface:
         out_filenames = [args.out_surface]
-        _, ext = os.path.splitext(args.out_surface)
     else:  # args.out_suffix
         out_filenames = []
         for filename in args.in_surfaces:
@@ -96,7 +115,7 @@ def main():
                                  .format(base, args.out_suffix, ext))
     assert_outputs_exist(parser, args, out_filenames)
 
-    # Loading (except tractograms, in loop)
+    # Loading (except surfaces, in loop)
     dict_colors = None
     if args.dict_colors:
         with open(args.dict_colors, 'r') as data:
@@ -129,7 +148,7 @@ def main():
 
         colors = np.tile([red, green, blue], (len(sfs.vertices), 1))
 
-        sfs.data_per_point['RGB'] = colors
+        sfs.data_per_vertex['RGB'] = colors
         save_surface(sfs, out_filenames[i],
                      to_space=args.destination_space,
                      to_origin=args.destination_origin,
