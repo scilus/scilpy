@@ -22,10 +22,10 @@ import sys
 import tempfile
 
 import amico
-from dipy.io.gradients import read_bvals_bvecs
 import numpy as np
 
 from scilpy.io.gradients import fsl2mrtrix
+from scilpy.io.stateful_image import StatefulImage
 from scilpy.io.utils import (add_overwrite_arg,
                              add_processes_arg,
                              add_verbose_arg,
@@ -117,7 +117,11 @@ def main():
     assert_headers_compatible(parser, args.in_dwi, optional=args.mask)
 
     # Generate a scheme file from the bvals and bvecs files
-    bvals, _ = read_bvals_bvecs(args.in_bval, args.in_bvec)
+    simg = StatefulImage.load(args.in_dwi)
+    simg.load_gradients(args.in_bval, args.in_bvec)
+    bvals = simg.bvals
+    world_bvecs = simg.world_bvecs
+
     _ = check_b0_threshold(bvals.min(), b0_thr=args.tolerance,
                            skip_b0_check=args.skip_b0_check,
                            overwrite_with_min=False)
@@ -135,13 +139,16 @@ def main():
     logging.info('Will compute NODDI with AMICO on {} shells at found at {}.'
                  .format(len(shells_centroids), np.sort(shells_centroids)))
 
-    # Save the resulting bvals to a temporary file
+    # Save the resulting bvals and bvecs to temporary files
     tmp_dir = tempfile.TemporaryDirectory()
     tmp_scheme_filename = os.path.join(tmp_dir.name, 'gradients.b')
     tmp_bval_filename = os.path.join(tmp_dir.name, 'bval')
+    tmp_bvec_filename = os.path.join(tmp_dir.name, 'bvec')
     np.savetxt(tmp_bval_filename, shells_centroids[indices_shells],
                newline=' ', fmt='%i')
-    fsl2mrtrix(tmp_bval_filename, args.in_bvec, tmp_scheme_filename)
+    # Use world_bvecs for the MRTrix scheme file to ensure consistency
+    np.savetxt(tmp_bvec_filename, world_bvecs.T, fmt='%.8f')
+    fsl2mrtrix(tmp_bval_filename, tmp_bvec_filename, tmp_scheme_filename)
 
     with redirected_stdout:
         # Load the data

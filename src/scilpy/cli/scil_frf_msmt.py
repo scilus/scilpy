@@ -26,13 +26,12 @@ import argparse
 import logging
 
 from dipy.core.gradients import unique_bvals_tolerance
-from dipy.io.gradients import read_bvals_bvecs
-import nibabel as nib
 import numpy as np
 
 from scilpy.dwi.utils import extract_dwi_shell
 from scilpy.gradients.bvec_bval_tools import check_b0_threshold
 from scilpy.io.image import get_data_as_mask
+from scilpy.io.stateful_image import StatefulImage
 from scilpy.io.utils import (add_overwrite_arg, add_precision_arg,
                              add_skip_b0_check_arg,
                              add_verbose_arg, assert_inputs_exist,
@@ -157,9 +156,15 @@ def main():
     roi_radii = assert_roi_radii_format(parser)
 
     # Loading
-    vol = nib.load(args.in_dwi)
-    data = vol.get_fdata(dtype=np.float32)
-    bvals, bvecs = read_bvals_bvecs(args.in_bval, args.in_bvec)
+    simg = StatefulImage.load(args.in_dwi)
+    simg.load_gradients(args.in_bval, args.in_bvec)
+
+    # FRF computation often expects RAS (via dipy)
+    simg.to_ras()
+
+    data = simg.get_fdata(dtype=np.float32)
+    bvals = simg.bvals
+    bvecs = simg.world_bvecs
 
     dti_lim = args.dti_bval_limit
 
@@ -172,7 +177,7 @@ def main():
     list_bvals = unique_bvals_tolerance(bvals, tol=args.tolerance)
     if not np.all(list_bvals <= dti_lim):
         _, data_dti, bvals_dti, bvecs_dti = extract_dwi_shell(
-            vol, bvals, bvecs, list_bvals[list_bvals <= dti_lim],
+            simg, bvals, bvecs, list_bvals[list_bvals <= dti_lim],
             tol=args.tolerance)
         bvals_dti = np.squeeze(bvals_dti)
     else:
@@ -180,14 +185,29 @@ def main():
         bvals_dti = None
         bvecs_dti = None
 
-    mask = get_data_as_mask(nib.load(args.mask),
-                            dtype=bool) if args.mask else None
-    mask_wm = get_data_as_mask(nib.load(args.mask_wm),
-                               dtype=bool) if args.mask_wm else None
-    mask_gm = get_data_as_mask(nib.load(args.mask_gm),
-                               dtype=bool) if args.mask_gm else None
-    mask_csf = get_data_as_mask(nib.load(args.mask_csf),
-                                dtype=bool) if args.mask_csf else None
+    mask = None
+    if args.mask:
+        mask_simg = StatefulImage.load(args.mask)
+        mask_simg.reorient(simg.axcodes)
+        mask = get_data_as_mask(mask_simg, dtype=bool)
+
+    mask_wm = None
+    if args.mask_wm:
+        mask_wm_simg = StatefulImage.load(args.mask_wm)
+        mask_wm_simg.reorient(simg.axcodes)
+        mask_wm = get_data_as_mask(mask_wm_simg, dtype=bool)
+
+    mask_gm = None
+    if args.mask_gm:
+        mask_gm_simg = StatefulImage.load(args.mask_gm)
+        mask_gm_simg.reorient(simg.axcodes)
+        mask_gm = get_data_as_mask(mask_gm_simg, dtype=bool)
+
+    mask_csf = None
+    if args.mask_csf:
+        mask_csf_simg = StatefulImage.load(args.mask_csf)
+        mask_csf_simg.reorient(simg.axcodes)
+        mask_csf = get_data_as_mask(mask_csf_simg, dtype=bool)
 
     # Processing
     responses, frf_masks = compute_msmt_frf(data, bvals, bvecs,
@@ -208,10 +228,10 @@ def main():
 
     # Saving
     masks_files = [args.wm_frf_mask, args.gm_frf_mask, args.csf_frf_mask]
-    for mask, mask_file in zip(frf_masks, masks_files):
+    for frf_mask, mask_file in zip(frf_masks, masks_files):
         if mask_file:
-            nib.save(nib.Nifti1Image(mask.astype(np.uint8), vol.affine),
-                     mask_file)
+            res_simg = StatefulImage.from_data(frf_mask.astype(np.uint8), simg)
+            res_simg.save(mask_file)
 
     frf_out = [args.out_wm_frf, args.out_gm_frf, args.out_csf_frf]
 

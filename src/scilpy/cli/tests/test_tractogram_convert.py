@@ -24,5 +24,7 @@ def test_execution_surface_vtk_fib(script_runner, monkeypatch):
     in_fa = os.path.join(SCILPY_HOME, 'surface_vtk_fib',
                          'fa.nii.gz')
     ret = script_runner.run(['scil_tractogram_convert', in_fib,
-                            'gyri_fanning.trk', '--reference', in_fa])
+                             'gyri_fanning.trk', '--reference', in_fa,
+                             '--no_bbox_check'])
+
     assert ret.success

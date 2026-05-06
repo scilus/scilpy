@@ -9,10 +9,9 @@ import argparse
 import logging
 
 from dipy.core.gradients import gradient_table
-from dipy.io.gradients import read_bvals_bvecs
-import nibabel as nib
 import numpy as np
 
+from scilpy.io.stateful_image import StatefulImage
 from scilpy.gradients.bvec_bval_tools import check_b0_threshold
 from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_b0_thresh_arg, add_overwrite_arg,
@@ -68,10 +67,12 @@ def main():
     assert_outputs_exist(parser, args, args.out_sh)
     assert_headers_compatible(parser, args.in_dwi, args.mask)
 
-    vol = nib.load(args.in_dwi)
-    dwi = vol.get_fdata(dtype=np.float32)
+    simg = StatefulImage.load(args.in_dwi)
+    simg.load_gradients(args.in_bval, args.in_bvec)
+    dwi = simg.get_fdata(dtype=np.float32)
 
-    bvals, bvecs = read_bvals_bvecs(args.in_bval, args.in_bvec)
+    bvals = simg.bvals
+    bvecs = simg.world_bvecs
 
     # gtab.b0s_mask in used in compute_sh_coefficients to get the b0s.
     args.b0_threshold = check_b0_threshold(bvals.min(),
@@ -81,15 +82,18 @@ def main():
 
     sh_basis, is_legacy = parse_sh_basis_arg(args)
 
-    mask = get_data_as_mask(nib.load(args.mask),
-                            dtype=bool) if args.mask else None
+    mask = None
+    if args.mask:
+        mask_simg = StatefulImage.load(args.mask)
+        mask_simg.to_ras()
+        mask = get_data_as_mask(mask_simg, dtype=bool)
 
     sh = compute_sh_coefficients(dwi, gtab, args.b0_threshold,
                                  args.sh_order, sh_basis, args.smooth,
                                  use_attenuation=args.use_attenuation,
                                  mask=mask, is_legacy=is_legacy)
 
-    nib.save(nib.Nifti1Image(sh.astype(np.float32), vol.affine), args.out_sh)
+    StatefulImage.from_data(sh.astype(np.float32), simg).save(args.out_sh)
 
 
 if __name__ == "__main__":

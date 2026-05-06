@@ -354,7 +354,7 @@ def peaks_from_sh(shm_coeff, sphere, mask=None, relative_peak_threshold=0.5,
     # Bring back to the original shape
     peak_dirs_array = np.zeros(data_shape[0:3] + (npeaks, 3))
     peak_values_array = np.zeros(data_shape[0:3] + (npeaks,))
-    peak_indices_array = np.zeros(data_shape[0:3] + (npeaks,))
+    peak_indices_array = np.full(data_shape[0:3] + (npeaks,), -1, dtype=np.int32)
     peak_dirs_array[mask] = tmp_peak_dirs_array
     peak_values_array[mask] = tmp_peak_values_array
     peak_indices_array[mask] = tmp_peak_indices_array

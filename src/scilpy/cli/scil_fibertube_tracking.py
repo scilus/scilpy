@@ -263,7 +263,8 @@ def main():
     # Since the scilpy Tracker requires a mask, we provide a fake one that will
     # never interfere.
     fake_mask_data = np.ones(in_sft.dimensions)
-    fake_mask = DataVolume(fake_mask_data, in_sft.voxel_sizes, 'nearest')
+    fake_mask = DataVolume(fake_mask_data, in_sft.voxel_sizes, in_sft.affine,
+                           interpolation='nearest')
 
     if args.use_ftODF:
         logging.debug("Instantiating FTODF datavolume")

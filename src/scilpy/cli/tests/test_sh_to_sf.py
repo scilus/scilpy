@@ -29,7 +29,7 @@ def test_execution_in_sphere(script_runner, monkeypatch):
                              in_bval, '--in_b0', in_b0, '--out_bval',
                              'sf_724.bval', '--out_bvec', 'sf_724.bvec',
                              '--sphere', 'symmetric724', '--dtype', 'float32',
-                             '--processes', '1'])
+                             '--processes', '1', '-f'])
     assert ret.success
 
 

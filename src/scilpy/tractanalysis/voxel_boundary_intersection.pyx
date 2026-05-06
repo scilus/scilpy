@@ -51,23 +51,23 @@ def subdivide_streamlines_at_voxel_faces(streamlines):
     cdef:
         cnp.npy_intp nb_streamlines = len(streamlines._lengths)
         cnp.npy_intp at_point = 0
+        cnp.float32_t[:, :] data_view_in = streamlines_data
 
         # Multiplying by 6 is simply a heuristic to avoiding resizing too many
         # times. In my bundles tests, I had either 0 or 1 resize.
         cnp.npy_intp max_points = (streamlines_data.size // 6) * 12
 
     new_array_sequence = nib.streamlines.array_sequence.ArraySequence()
-    new_array_sequence._lengths.resize(nb_streamlines)
-    new_array_sequence._offsets.resize(nb_streamlines)
+    new_array_sequence._lengths.resize(nb_streamlines, refcheck=False)
+    new_array_sequence._offsets.resize(nb_streamlines, refcheck=False)
     new_array_sequence._data = np.empty(max_points * 3, np.float32)
 
     cdef:
         cnp.npy_intp[:] lengths_view_in = streamlines._lengths
         cnp.npy_intp[:] offsets_view_in = streamlines._offsets
-        float[:, :] data_view_in = streamlines_data
         cnp.npy_intp[:] lengths_view_out = new_array_sequence._lengths
         cnp.npy_intp[:] offsets_view_out = new_array_sequence._offsets
-        cnp.float32_t[:] data_view_out = new_array_sequence._data
+        cnp.float32_t[:] data_view_out = np.asarray(new_array_sequence._data, dtype=np.float32)
 
     cdef Pointers pointers
     pointers.lengths_in = &lengths_view_in[0]

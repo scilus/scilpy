@@ -21,7 +21,8 @@ class DataVolume(object):
     Class to access/interpolate data from nibabel object
     """
 
-    def __init__(self, data, voxres, interpolation=None, must_be_3d=False):
+    def __init__(self, data, voxres, affine=None, interpolation=None,
+                 must_be_3d=False):
         """
         Parameters
         ----------
@@ -29,6 +30,8 @@ class DataVolume(object):
             The data, ex, loaded from nibabel img.get_fdata().
         voxres: np.array(3,)
             The pixel resolution, ex, using img.header.get_zooms()[:3].
+        affine: np.array(4,4)
+            The affine matrix mapping voxel coordinates to RASMM.
         interpolation: str or None
             The interpolation choice amongst "trilinear" or "nearest". If
             None, functions getting a coordinate in mm instead of voxel
@@ -46,6 +49,11 @@ class DataVolume(object):
         self.data = data
         self.nb_coeffs = data.shape[-1]
         self.voxres = voxres
+        self.affine = affine
+        if affine is not None:
+            self.inv_affine = np.linalg.inv(affine)
+        else:
+            self.inv_affine = None
 
         if must_be_3d and self.data.ndim != 3:
             raise Exception("Data should have been 3D but data dimension is:"
@@ -88,7 +96,7 @@ class DataVolume(object):
         x, y, z: floats
             Voxel coordinates along each axis.
         space: dipy Space
-            'vox' or 'voxmm'.
+            'vox', 'voxmm' or 'rasmm'.
         origin: dipy Origin
             'corner' or 'center'.
 
@@ -101,9 +109,10 @@ class DataVolume(object):
             return self._vox_to_value(x, y, z, origin)
         elif space == Space.VOXMM:
             return self._voxmm_to_value(x, y, z, origin)
+        elif space == Space.RASMM:
+            return self._rasmm_to_value(x, y, z, origin)
         else:
-            raise NotImplementedError("We have not prepared the DataVolume to "
-                                      "work in RASMM space yet.")
+            raise ValueError("Space should be a choice of Dipy Space.")
 
     def is_idx_in_bound(self, i, j, k):
         """
@@ -132,7 +141,7 @@ class DataVolume(object):
         x, y, z: floats
             Voxel coordinates along each axis.
         space: dipy Space
-            'vox' or 'voxmm'.
+            'vox', 'voxmm' or 'rasmm'.
         origin: dipy Origin
             'corner' or 'center'.
 
@@ -145,9 +154,10 @@ class DataVolume(object):
             return self._is_vox_in_bound(x, y, z, origin)
         elif space == Space.VOXMM:
             return self._is_voxmm_in_bound(x, y, z, origin)
+        elif space == Space.RASMM:
+            return self._is_rasmm_in_bound(x, y, z, origin)
         else:
-            raise NotImplementedError("We have not prepared the DataVolume to "
-                                      "work in RASMM space yet.")
+            raise ValueError("Space should be a choice of Dipy Space.")
 
     def _clip_idx_to_bound(self, i, j, k):
         """
@@ -369,6 +379,94 @@ class DataVolume(object):
         """
         return self.is_idx_in_bound(*self.voxmm_to_idx(x, y, z, origin))
 
+    def rasmm_to_vox(self, x, y, z, origin):
+        """
+        Get voxel space coordinates at position x, y, z (rasmm).
+
+        Parameters
+        ----------
+        x, y, z: floats
+            Position coordinate (rasmm) along x, y, z axis.
+        origin: dipy Origin
+            'corner' or 'center'.
+
+        Return
+        ------
+        x, y, z: floats
+            Voxel space coordinates for position x, y, z.
+        """
+        if self.inv_affine is None:
+            raise ValueError("Affine matrix is required for RASMM space.")
+
+        vox_corner = np.dot(self.inv_affine, [x, y, z, 1])[:3]
+        if origin == Origin('center'):
+            return vox_corner - 0.5
+        return vox_corner
+
+    def vox_to_rasmm(self, x, y, z, origin):
+        """
+        Get RASMM space coordinates at position x, y, z (vox).
+
+        Parameters
+        ----------
+        x, y, z: floats
+            Position coordinate (vox) along x, y, z axis.
+        origin: dipy Origin
+            'corner' or 'center'.
+
+        Return
+        ------
+        x, y, z: floats
+            RASMM space coordinates for position x, y, z.
+        """
+        if self.affine is None:
+            raise ValueError("Affine matrix is required for RASMM space.")
+
+        if origin == Origin('center'):
+            x, y, z = x + 0.5, y + 0.5, z + 0.5
+
+        return np.dot(self.affine, [x, y, z, 1])[:3]
+
+    def _rasmm_to_value(self, x, y, z, origin):
+        """
+        Get the voxel value at voxel position x, y, z (rasmm) in the dataset.
+        If the coordinates are out of bound, the nearest voxel value is taken.
+        Value is interpolated based on the value of self.interpolation.
+
+        Parameters
+        ----------
+        x, y, z: floats
+            Position coordinate (rasmm) along x, y, z axis.
+        origin: dipy Space
+            'center' or 'corner'.
+
+        Return
+        ------
+        value: ndarray (self.dims[-1],) or float
+            Interpolated value at position x, y, z (rasmm). If the last
+            dimension is of length 1, return a scalar value.
+        """
+        return self._vox_to_value(*self.rasmm_to_vox(x, y, z, origin), origin)
+
+    def _is_rasmm_in_bound(self, x, y, z, origin):
+        """
+        Test if the position x, y, z rasmm is in the dataset range.
+
+        Parameters
+        ----------
+        x, y, z: floats
+            Position coordinate (rasmm) along x, y, z axis.
+        origin: dipy Space
+            'center' or 'corner'.
+
+        Return
+        ------
+        value: bool
+            True if position is in dataset range and false otherwise.
+        """
+        return self.is_idx_in_bound(*self.vox_to_idx(
+            *self.rasmm_to_vox(x, y, z, origin), origin))
+
 
 class FibertubeDataVolume(DataVolume):
     """
@@ -442,15 +540,18 @@ class FibertubeDataVolume(DataVolume):
             return self._voxmm_to_value(*self.vox_to_voxmm(x, y, z), origin)
         elif space == Space.VOXMM:
             return self._voxmm_to_value(x, y, z, origin)
+        elif space == Space.RASMM:
+            return self._voxmm_to_value(*self.rasmm_to_voxmm(x, y, z), origin)
         else:
-            raise NotImplementedError("We have not prepared the DataVolume "
-                                      "to work in RASMM space yet.")
+            raise ValueError("Space should be a choice of Dipy Space.")
 
     def is_idx_in_bound(self, i, j, k):
         return super().is_idx_in_bound(i, j, k)
 
     def is_coordinate_in_bound(self, x, y, z, space, origin):
         FibertubeDataVolume._validate_origin(origin)
+        if space == Space.RASMM:
+            return self._is_rasmm_in_bound(x, y, z, origin)
         return super().is_coordinate_in_bound(x, y, z, space, origin)
 
     @staticmethod
@@ -485,6 +586,24 @@ class FibertubeDataVolume(DataVolume):
         return [x * self.voxres[0],
                 y * self.voxres[1],
                 z * self.voxres[2]]
+
+    def rasmm_to_voxmm(self, x, y, z):
+        """
+        Get voxmm space coordinates at position x, y, z (rasmm).
+
+        Parameters
+        ----------
+        x, y, z: floats
+            Position coordinate (rasmm) along x, y, z axis.
+
+        Return
+        ------
+        x, y, z: floats
+            voxmm space coordinates for position x, y, z.
+        """
+        # FibertubeDataVolume only supports origin center (NIFTI)
+        vox = self.rasmm_to_vox(x, y, z, Origin.NIFTI)
+        return self.vox_to_voxmm(*vox)
 
     def _clip_voxmm_to_bound(self, x, y, z, origin):
         return self.vox_to_voxmm(*self._clip_vox_to_bound(

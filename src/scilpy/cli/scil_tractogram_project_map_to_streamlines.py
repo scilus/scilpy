@@ -136,7 +136,8 @@ def main():
         else:
             interp = "nearest"
 
-        map_volume = DataVolume(map_data, map_res, interp)
+        map_volume = DataVolume(map_data, map_res, map_img.affine,
+                                interpolation=interp)
 
         logging.info("Projecting map onto streamlines")
         streamline_data = project_map_to_streamlines(

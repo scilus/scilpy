@@ -373,11 +373,6 @@ class ODFPropagator(PropagatorOnSphere):
         super().__init__(datavolume, step_size, rk_order, dipy_sphere,
                          sub_sphere, space, origin)
 
-        if self.space == Space.RASMM:
-            raise NotImplementedError(
-                "This version of the propagator on ODF is not ready to work "
-                "in RASMM space.")
-
         # Warn user if the rk order does not match the algo
         if rk_order != 1 and algo == 'prob':
             logging.warning('Probabilistic tracking with RK order != 1 is '

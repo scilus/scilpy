@@ -11,10 +11,10 @@ have them fit in the tools.
 import argparse
 import logging
 
-from dipy.io.streamline import save_tractogram
-
-from scilpy.io.streamlines import load_tractogram_with_reference
-from scilpy.io.utils import (add_reference_arg,
+from scilpy.io.streamlines import (load_tractogram_with_reference,
+                                   save_tractogram)
+from scilpy.io.utils import (add_bbox_arg,
+                             add_reference_arg,
                              add_verbose_arg,
                              add_overwrite_arg,
                              assert_inputs_exist,
@@ -39,6 +39,7 @@ def _build_arg_parser():
                         'and y axes use: x y.')
 
     add_reference_arg(p)
+    add_bbox_arg(p)
     add_verbose_arg(p)
     add_overwrite_arg(p)
 
@@ -58,7 +59,8 @@ def main():
     sft.to_corner()
 
     new_sft = flip_sft(sft, args.axes)
-    save_tractogram(new_sft, args.out_tractogram)
+    save_tractogram(new_sft, args.out_tractogram, False,
+                    bbox_valid_check=args.bbox_check)
 
 
 if __name__ == "__main__":

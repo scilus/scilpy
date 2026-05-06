@@ -13,14 +13,13 @@ bvals file. Otherwise, no .bval file will be created.
 import argparse
 import logging
 
-import nibabel as nib
 import numpy as np
-from dipy.core.gradients import gradient_table
 from dipy.core.sphere import Sphere
 from dipy.data import SPHERE_FILES, get_sphere
 from dipy.io import read_bvals_bvecs
 
 from scilpy.gradients.bvec_bval_tools import DEFAULT_B0_THRESHOLD
+from scilpy.io.stateful_image import StatefulImage
 from scilpy.io.utils import (add_overwrite_arg, add_processes_arg,
                              add_sh_basis_args, add_verbose_arg,
                              assert_inputs_exist, assert_outputs_exist,
@@ -145,18 +144,31 @@ def main():
         bvals, _ = read_bvals_bvecs(args.in_bval, None)
 
     # Load SH
-    vol_sh = nib.load(args.in_sh)
-    data_sh = vol_sh.get_fdata(dtype=np.float32)
+    simg_sh = StatefulImage.load(args.in_sh)
+    data_sh = simg_sh.get_fdata(dtype=np.float32)
 
     # Sample SF from SH
     if args.sphere:
         sphere = get_sphere(name=args.sphere)
     else:  # args.in_bvec is set.
-        gtab = gradient_table(bvals, bvecs=bvecs,
-                              b0_threshold=args.b0_threshold)
-        # Remove bvecs corresponding to b0 images
-        bvecs = bvecs[np.logical_not(gtab.b0s_mask)]
-        sphere = Sphere(xyz=bvecs)
+        # Manually rotate bvecs to world space instead of using load_gradients
+        # because the number of volumes in SH (e.g. 15) does not match the
+        # number of gradients (e.g. 21).
+        ref_affine = simg_sh._original_affine \
+            if simg_sh._original_affine is not None else simg_sh.affine
+        R = simg_sh._get_rotation_matrix(ref_affine)
+
+        if StatefulImage.needs_fsl_flip(ref_affine):
+            bvecs[:, 0] *= -1
+
+        world_bvecs = np.dot(bvecs, R.T)
+        # Normalize
+        norms = np.linalg.norm(world_bvecs, axis=1)
+        world_bvecs[norms > 1e-6] /= norms[norms > 1e-6][:, None]
+
+        # Use world_bvecs for projection to ensure world-space alignment
+        bvecs_to_use = world_bvecs[np.logical_not(bvals <= args.b0_threshold)]
+        sphere = Sphere(xyz=bvecs_to_use)
 
     sf = convert_sh_to_sf(data_sh, sphere,
                           input_basis=sh_basis,
@@ -178,8 +190,9 @@ def main():
     # Add b0 images to SF (and bvals if necessary) if --in_b0 was provided
     if args.in_b0:
         # Load b0
-        vol_b0 = nib.load(args.in_b0)
-        data_b0 = vol_b0.get_fdata(dtype=args.dtype)
+        simg_b0 = StatefulImage.load(args.in_b0)
+        simg_b0.reorient(simg_sh.axcodes)
+        data_b0 = simg_b0.get_fdata(dtype=args.dtype)
         if data_b0.ndim == 3:
             data_b0 = data_b0[..., np.newaxis]
 
@@ -206,10 +219,24 @@ def main():
 
     # Save new bvecs
     if args.out_bvec:
-        np.savetxt(args.out_bvec, new_bvecs.T, fmt='%.8f')
+        # We need to save bvecs in the original voxel space for FSL compatibility.
+        # If we used a sphere from bvecs, they were world_bvecs.
+        # We should use simg_sh to transform them back.
+        if not args.sphere:
+            # Reconstruct world bvecs with b0s if necessary
+            full_world_bvecs = np.zeros((len(new_bvecs), 3))
+            start_idx = data_b0.shape[-1] if args.in_b0 else 0
+            full_world_bvecs[start_idx:] = sphere.vertices
+
+            # Use a dummy StatefulImage to save them in voxel space
+            simg_out = StatefulImage.from_data(sf, simg_sh)
+            simg_out.attach_world_gradients([0]*len(new_bvecs), full_world_bvecs)
+            simg_out.save_gradients(args.out_bval, args.out_bvec)
+        else:
+            np.savetxt(args.out_bvec, new_bvecs.T, fmt='%.8f')
 
     # Save SF
-    nib.save(nib.Nifti1Image(sf, vol_sh.affine), args.out_sf)
+    StatefulImage.from_data(sf, simg_sh).save(args.out_sf)
 
 
 if __name__ == "__main__":

@@ -1,6 +1,10 @@
 # -*- coding: utf-8 -*-
 
 import nibabel as nib
+import numpy as np
+from scipy.linalg import polar
+
+from dipy.io.gradients import read_bvals_bvecs
 from dipy.io.utils import get_reference_info
 from scilpy.utils.orientation import validate_voxel_order
 
@@ -18,7 +22,8 @@ class StatefulImage(nib.Nifti1Image):
     def __init__(self, dataobj, affine, header=None, extra=None,
                  file_map=None, original_affine=None,
                  original_dimensions=None, original_voxel_sizes=None,
-                 original_axcodes=None):
+                 original_axcodes=None, bvals=None, bvecs=None,
+                 gradients_original_order=True):
         """
         Initialize a StatefulImage object.
 
@@ -31,6 +36,24 @@ class StatefulImage(nib.Nifti1Image):
         self._original_dimensions = original_dimensions
         self._original_voxel_sizes = original_voxel_sizes
         self._original_axcodes = original_axcodes
+
+        # Store gradient information
+        self._bvals = None
+        self._world_bvecs = None
+        if bvals is not None and bvecs is not None:
+            self.attach_gradients(bvals, bvecs, gradients_original_order)
+
+    def _get_rotation_matrix(self, affine):
+        """
+        Extract the pure rotation component from a 4x4 affine matrix.
+        """
+        # Extract 3x3 part
+        A = affine[:3, :3]
+        # Polar decomposition: A = P * R
+        # R is the closest orthogonal matrix to A.
+        # We want the orthogonal part that matches the image's orientation.
+        R, P = polar(A)
+        return R
 
     @classmethod
     def load(cls, filename, to_orientation="RAS"):
@@ -87,8 +110,20 @@ class StatefulImage(nib.Nifti1Image):
                 "with StatefulImage.load() or that original_axcodes was"
                 "provided when creating the StatefulImage instance.")
 
-        self.reorient_to_original()
-        nib.save(self, filename)
+        current_axcodes = self.axcodes[:3]
+        target_axcodes = self._original_axcodes[:3]
+
+        if current_axcodes == target_axcodes:
+            nib.save(self, filename)
+        else:
+            start_ornt = nib.orientations.axcodes2ornt(current_axcodes)
+            target_ornt = nib.orientations.axcodes2ornt(target_axcodes)
+            transform = nib.orientations.ornt_transform(start_ornt,
+                                                        target_ornt)
+            # Use Nifti1Image.as_reoriented to get a temporary object
+            # in the original orientation for saving.
+            reoriented_img = nib.Nifti1Image.as_reoriented(self, transform)
+            nib.save(reoriented_img, filename)
 
     @staticmethod
     def create_from(source, reference):
@@ -110,15 +145,53 @@ class StatefulImage(nib.Nifti1Image):
             A new StatefulImage with the source image's data and the reference
             image's original orientation information.
         """
+        bvals = None
+        bvecs = None
+        if reference.bvals is not None and reference.world_bvecs is not None:
+            if source.ndim == 4 and len(reference.bvals) == source.shape[3]:
+                bvals = reference.bvals
+                # Transform world-space bvecs to source voxel space
+                R_source = reference._get_rotation_matrix(source.affine)
+                bvecs = np.dot(reference.world_bvecs, R_source)
+
+                if StatefulImage.needs_fsl_flip(source.affine):
+                    bvecs[:, 0] *= -1
+        orig_dims = reference._original_dimensions
+        orig_vox = reference._original_voxel_sizes
         return StatefulImage(source.dataobj, source.affine,
                              header=source.header,
                              original_affine=reference._original_affine,
-                             original_dimensions=reference._original_dimensions,
-                             original_voxel_sizes=reference._original_voxel_sizes,
-                             original_axcodes=reference._original_axcodes)
+                             original_dimensions=orig_dims,
+                             original_voxel_sizes=orig_vox,
+                             original_axcodes=reference._original_axcodes,
+                             bvals=bvals, bvecs=bvecs,
+                             gradients_original_order=False)
 
     @staticmethod
-    def convert_to_simg(img):
+    def from_data(data, reference):
+        """
+        Create a new StatefulImage from a numpy array, preserving the original
+        orientation information from a reference StatefulImage.
+
+        Parameters
+        ----------
+        data : numpy.ndarray
+            The image data to use for the new StatefulImage.
+        reference : StatefulImage
+            The reference image from which to copy original orientation
+            information.
+
+        Returns
+        -------
+        StatefulImage
+            A new StatefulImage with the data and the reference
+            image's original orientation information.
+        """
+        new_img = nib.Nifti1Image(data, reference.affine, reference.header)
+        return StatefulImage.create_from(new_img, reference)
+
+    @staticmethod
+    def convert_to_simg(img, bvals=None, bvecs=None):
         """
         Initialize a StatefulImage from an existing Nifti1Image.
 
@@ -129,13 +202,190 @@ class StatefulImage(nib.Nifti1Image):
         ----------
         img : nib.Nifti1Image
             The Nifti1Image to initialize from.
+        bvals : array-like, optional
+            B-values.
+        bvecs : array-like, optional
+            B-vectors.
         """
+        original_axcodes = nib.orientations.aff2axcodes(img.affine)
+        if len(img.shape) == 4:
+            original_axcodes += ('T',)
+
         return StatefulImage(img.dataobj, img.affine, header=img.header,
                              original_affine=img.affine.copy(),
                              original_dimensions=img.header.get_data_shape(),
                              original_voxel_sizes=img.header.get_zooms(),
-                             original_axcodes=nib.orientations.aff2axcodes(
-                                 img.affine))
+                             original_axcodes=original_axcodes,
+                             bvals=bvals, bvecs=bvecs)
+
+    @staticmethod
+    def needs_fsl_flip(affine):
+        """
+        According to BIDS/MRtrix convention, if the determinant of the
+        3x3 rotation/scaling part of the affine is positive (neurological),
+        the x-component of the FSL-format bvecs must be flipped.
+        """
+        return np.linalg.det(affine[:3, :3]) > 0
+
+    @property
+    def _needs_fsl_flip(self):
+        return StatefulImage.needs_fsl_flip(self.affine)
+
+    @property
+    def bvals(self):
+        """Get the current b-values."""
+        return self._bvals
+
+    @property
+    def bvecs(self):
+        """Get the current (reoriented) b-vectors in voxel space."""
+        if self._world_bvecs is None:
+            return None
+        # Transform from world space to current voxel space
+        R = self._get_rotation_matrix(self.affine)
+        # v_voxel = v_world * R
+        bvecs = np.dot(self._world_bvecs, R)
+
+        if self._needs_fsl_flip:
+            bvecs[:, 0] *= -1
+
+        return bvecs
+
+    @property
+    def world_bvecs(self):
+        """Get the current b-vectors in world space."""
+        return self._world_bvecs
+
+    def attach_gradients(self, bvals, bvecs, original_order=True):
+        """
+        Attach b-values and b-vectors to the image.
+        Gradients are stored internally in world space.
+
+        Parameters
+        ----------
+        bvals : array-like
+            B-values.
+        bvecs : array-like
+            B-vectors.
+        original_order : bool, optional
+            If True, assumes b-vectors are in the original voxel order.
+            If False, assumes b-vectors match current in-memory orientation.
+            Default is True.
+        """
+        self._bvals = np.asanyarray(bvals)
+        bvecs = np.asanyarray(bvecs).copy()
+
+        # Validate shapes
+        if self._bvals.ndim != 1:
+            raise ValueError("bvals must be a 1D array.")
+        if bvecs.ndim != 2 or bvecs.shape[1] != 3:
+            raise ValueError("bvecs must be an (N, 3) array.")
+        if len(self._bvals) != len(bvecs):
+            raise ValueError("bvals and bvecs must have the same length.")
+
+        # Validate against image data
+        if len(self._bvals) != self.shape[3]:
+            raise ValueError(f"Number of gradients ({len(self._bvals)}) does "
+                             f"not match number of volumes ({self.shape[3]}).")
+
+        if original_order:
+            # Transform from original voxel space to world space
+            ref_affine = self._original_affine \
+                if self._original_affine is not None else self.affine
+        else:
+            # Transform from current voxel space to world space
+            ref_affine = self.affine
+
+        R = self._get_rotation_matrix(ref_affine)
+
+        # Apply BIDS flip if needed
+        if StatefulImage.needs_fsl_flip(ref_affine):
+            bvecs[:, 0] *= -1
+
+        self._world_bvecs = np.dot(bvecs, R.T)
+
+        # Normalize
+        norms = np.linalg.norm(self._world_bvecs, axis=1)
+        self._world_bvecs[norms > 1e-6] /= norms[norms > 1e-6][:, None]
+
+    def attach_world_gradients(self, bvals, world_bvecs):
+        """
+        Attach b-values and world-space b-vectors to the image.
+
+        Parameters
+        ----------
+        bvals : array-like
+            B-values.
+        world_bvecs : array-like
+            B-vectors in world space (RAS mm).
+        """
+        self._bvals = np.asanyarray(bvals)
+        self._world_bvecs = np.asanyarray(world_bvecs).copy()
+
+        # Validate shapes
+        if self._bvals.ndim != 1:
+            raise ValueError("bvals must be a 1D array.")
+        if self._world_bvecs.ndim != 2 or self._world_bvecs.shape[1] != 3:
+            raise ValueError("world_bvecs must be an (N, 3) array.")
+        if len(self._bvals) != len(self._world_bvecs):
+            raise ValueError(
+                "bvals and world_bvecs must have the same length.")
+
+        # Normalize
+        norms = np.linalg.norm(self._world_bvecs, axis=1)
+        self._world_bvecs[norms > 1e-6] /= norms[norms > 1e-6][:, None]
+
+    def load_gradients(self, bval_path, bvec_path):
+        """
+        Load b-values and b-vectors from FSL-formatted files.
+
+        Parameters
+        ----------
+        bval_path : str
+            Path to the bvals file.
+        bvec_path : str
+            Path to the bvecs file.
+        """
+        bvals, bvecs = read_bvals_bvecs(bval_path, bvec_path)
+        self.attach_gradients(bvals, bvecs)
+
+    def save_gradients(self, bval_path, bvec_path):
+        """
+        Save b-values and b-vectors to FSL-formatted files.
+        Ensures b-vectors match the original voxel order.
+
+        Parameters
+        ----------
+        bval_path : str
+            Path to save the bvals file.
+        bvec_path : str
+            Path to save the bvecs file.
+        """
+        if self._bvals is None or self._world_bvecs is None:
+            raise ValueError("No gradients attached to this StatefulImage.")
+
+        # Transform from world space back to original voxel space
+        ref_affine = self._original_affine \
+            if self._original_affine is not None else self.affine
+        R = self._get_rotation_matrix(ref_affine)
+        # v_voxel = v_world * R
+        bvecs_to_save = np.dot(self._world_bvecs, R)
+
+        # According to BIDS/MRtrix convention, if the determinant of the
+        # affine is positive (neurological), the x-component of the bvecs
+        # must be flipped.
+        if StatefulImage.needs_fsl_flip(ref_affine):
+            bvecs_to_save[:, 0] *= -1
+
+        np.savetxt(bvec_path, bvecs_to_save.T, fmt='%.8f')
+        np.savetxt(bval_path, self._bvals[None, :], fmt='%.3f')
+
+    def _reorient_gradients(self, start_axcodes, target_axcodes):
+        """
+        Internal helper to reorient b-vectors.
+        Now that b-vectors are in world space, this does nothing.
+        """
+        pass
 
     def reorient_to_original(self):
         """
@@ -150,8 +400,8 @@ class StatefulImage(nib.Nifti1Image):
         """
         if self._original_axcodes is None:
             raise ValueError(
-                "Original axis codes are not set cannot reorient to original"
-                "orientation.")
+                "Original axis codes are not set. Cannot reorient to original"
+                " orientation.")
         self.reorient(self._original_axcodes)
 
     def reorient(self, target_axcodes):
@@ -163,40 +413,31 @@ class StatefulImage(nib.Nifti1Image):
         target_axcodes : str or tuple
             The target orientation axis codes (e.g., "LPS", ("R", "A", "S")).
         """
-        validate_voxel_order(target_axcodes)
+        if target_axcodes is None:
+            raise ValueError("Axis codes cannot be None.")
 
-        current_axcodes = nib.orientations.aff2axcodes(self.affine)
-        if current_axcodes == tuple(target_axcodes):
+        # Ensure target_axcodes has the same number of dimensions as self.shape
+        # by padding with unique placeholder codes if necessary.
+        target_axcodes = tuple(target_axcodes[:3])
+
+        validate_voxel_order(target_axcodes, dimensions=3)
+
+        current_axcodes = self.axcodes[:3]
+        if current_axcodes == target_axcodes:
             return
-
-        # Check unique are only valid axis codes
-        valid_codes = {'L', 'R', 'A', 'P', 'S', 'I'}
-        for code in target_axcodes:
-            if code not in valid_codes:
-                raise ValueError(f"Invalid axis code '{code}' in target.")
-
-        # Check L/R, A/P, S/I pairs are not both present
-        pairs = [('L', 'R'), ('A', 'P'), ('S', 'I')]
-        for pair in pairs:
-            if pair[0] in target_axcodes and pair[1] in target_axcodes:
-                raise ValueError(f"Conflicting axis codes '{pair[0]}' and "
-                                 f"'{pair[1]}' in target.")
-
-        # Check no repeated axis codes (LL, RR, etc.)
-        if len(set(target_axcodes)) != 3:
-            raise ValueError("Target axis codes must be unique.")
 
         start_ornt = nib.orientations.axcodes2ornt(current_axcodes)
         target_ornt = nib.orientations.axcodes2ornt(target_axcodes)
         transform = nib.orientations.ornt_transform(start_ornt, target_ornt)
 
-        reoriented_img = self.as_reoriented(transform)
-        self.__init__(reoriented_img.dataobj, reoriented_img.affine,
-                      reoriented_img.header,
-                      original_affine=self._original_affine,
-                      original_dimensions=self._original_dimensions,
-                      original_voxel_sizes=self._original_voxel_sizes,
-                      original_axcodes=self._original_axcodes)
+        # Use Nifti1Image.as_reoriented to get a temporary object
+        # with the new orientation.
+        reoriented_img = nib.Nifti1Image.as_reoriented(self, transform)
+
+        # Update Nifti1Image attributes in-place
+        self._dataobj = reoriented_img.dataobj
+        self._affine = reoriented_img.affine
+        self._header = reoriented_img.header
 
     def to_ras(self):
         """Convenience method to reorient in-memory data to RAS."""
@@ -214,7 +455,7 @@ class StatefulImage(nib.Nifti1Image):
         Parameters
         ----------
         obj : object
-            Reference object from which orientation information can be obtained.
+            Reference object from which orientation information is obtained.
             Must not be an instance of ``StatefulImage``.
 
         Raises
@@ -227,20 +468,43 @@ class StatefulImage(nib.Nifti1Image):
             raise TypeError('Reference object must not be a StatefulImage.')
 
         _, _, _, voxel_order = get_reference_info(obj)
-        self.reorient(voxel_order)
+        self.reorient(voxel_order[:3])
 
     @property
     def axcodes(self):
         """Get the axis codes for the current image orientation."""
-        return nib.orientations.aff2axcodes(self.affine)
+        codes = list(nib.orientations.aff2axcodes(self.affine))
+        if len(self.shape) > 3:
+            extra_codes = ['T', 'U', 'V', 'W', 'X', 'Y', 'Z']
+            for i in range(3, len(self.shape)):
+                codes.append(extra_codes[i-3])
+        return tuple(codes)
 
     @property
     def original_axcodes(self):
         """Get the axis codes for the original image orientation."""
         return self._original_axcodes
 
+    @property
+    def original_affine(self):
+        """Get the original image affine."""
+        return self._original_affine
+
+    @property
+    def original_header(self):
+        """Get a header matching the original image orientation."""
+        # Create a copy of the current header but with original info
+        header = self.header.copy()
+        header.set_sform(self._original_affine)
+        header.set_qform(self._original_affine)
+        if self._original_voxel_sizes is not None:
+            header.set_zooms(self._original_voxel_sizes)
+        if self._original_dimensions is not None:
+            header.set_data_shape(self._original_dimensions)
+        return header
+
     def __str__(self):
-        """Return a string representation of the image, including orientation."""
+        """Return a string representation including orientation information."""
         base_str = super().__str__()
         current_axcodes = self.axcodes
         reoriented = current_axcodes != self._original_axcodes
