@@ -16,7 +16,9 @@ from dipy.reconst.csdeconv import ConstrainedSphericalDeconvModel
 import nibabel as nib
 import numpy as np
 
+from scilpy.dwi.operations import compute_dwi_attenuation
 from scilpy.gradients.bvec_bval_tools import (check_b0_threshold,
+                                              identify_shells,
                                               normalize_bvecs,
                                               is_normalized_bvecs)
 from scilpy.io.image import get_data_as_mask
@@ -54,6 +56,11 @@ def _build_arg_parser():
         '--mask', metavar='',
         help='Path to a binary mask. Only the data inside the mask will be '
              'used \nfor computations and reconstruction.')
+    p.add_argument(
+        '--voxel_wise_s0', action='store_true',
+        help='If set, performs voxel-wise S0 normalization before '
+             'deconvolution. \nIn this case, the mean_b0_val from the '
+             'FRF file is ignored.')
 
     add_b0_thresh_arg(p)
     add_skip_b0_check_arg(p, will_overwrite_with_min=True)
@@ -97,14 +104,6 @@ def main():
     sh_order = args.sh_order
     sh_basis, is_legacy = parse_sh_basis_arg(args)
 
-    # Checking data and sh_order
-    if data.shape[-1] < (sh_order + 1) * (sh_order + 2) / 2:
-        logging.warning(
-            'We recommend having at least {} unique DWI volumes, but you '
-            'currently have {} volumes. Try lowering the parameter sh_order '
-            'in case of non convergence.'.format(
-                (sh_order + 1) * (sh_order + 2) / 2, data.shape[-1]))
-
     # Checking bvals, bvecs values and loading gtab
     if not is_normalized_bvecs(bvecs):
         logging.warning('Your b-vectors do not seem normalized...')
@@ -116,12 +115,48 @@ def main():
                                            skip_b0_check=args.skip_b0_check)
     gtab = gradient_table(bvals, bvecs=bvecs, b0_threshold=args.b0_threshold)
 
+    # Checking data and sh_order
+    num_dwi = np.sum(~gtab.b0s_mask)
+    if num_dwi < (sh_order + 1) * (sh_order + 2) / 2:
+        logging.warning(
+            'We recommend having at least {} unique DWI volumes, but you '
+            'currently have {} volumes (excluding b0). Try lowering the '
+            'parameter sh_order in case of non convergence.'.format(
+                (sh_order + 1) * (sh_order + 2) / 2, num_dwi))
+
+    # Checking shells
+    centroids, _ = identify_shells(bvals, tol=args.b0_threshold)
+    dwi_shells = centroids[centroids > args.b0_threshold]
+    if len(dwi_shells) > 1:
+        if np.max(dwi_shells) - np.min(dwi_shells) > 500:
+            logging.warning(
+                'Multiple shells detected ({}) with a large gap ({}). '
+                'SSST CSD is not recommended for multi-shell data. '
+                'Consider using scil_fodf_msmt.py.'.format(
+                    dwi_shells, np.max(dwi_shells) - np.min(dwi_shells)))
+
+    if len(dwi_shells) > 0 and np.max(dwi_shells) < 1200 and sh_order > 4:
+        logging.warning(
+            'Your maximum b-value ({}) is relatively low. '
+            'High SH order ({}) might be unstable. '
+            'Consider using --sh_order 4.'.format(np.max(dwi_shells), sh_order))
+
     # Checking full_frf and separating it
     if not full_frf.shape[0] == 4:
         raise ValueError('FRF file did not contain 4 elements. '
                          'Invalid or deprecated FRF format')
     frf = full_frf[0:3]
     mean_b0_val = full_frf[3]
+
+    if args.voxel_wise_s0:
+        if np.any(gtab.b0s_mask):
+            logging.info("Applying voxel-wise S0 normalization.")
+            b0_mean = np.mean(data[..., gtab.b0s_mask], axis=-1)
+            data = compute_dwi_attenuation(data, b0_mean)
+            mean_b0_val = 1.0
+        else:
+            logging.warning("Voxel-wise S0 normalization requested but no b0 "
+                            "volumes found. Skipping normalization.")
 
     # Loading the sphere
     reg_sphere = get_sphere(name='symmetric362')
