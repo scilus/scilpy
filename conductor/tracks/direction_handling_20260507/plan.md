@@ -1,15 +1,15 @@
 # Implementation Plan - Directional Orientation Management
 
-## Phase 1: Core Implementation (StatefulImage)
-- [ ] Task: Implement `rotate_sh` utility in `scilpy.reconst.sh` (or verify existing one) to handle coefficient rotation.
-- [ ] Task: Add `to_voxel_direction()` to `StatefulImage`.
-    - [ ] Write Tests: Verify RAS-to-Voxel rotation for a known 90-degree rotation.
-    - [ ] Implement: Use rotation component of affine to rotate directions/coefficients.
-- [ ] Task: Add `to_world_direction()` to `StatefulImage`.
-    - [ ] Write Tests: Verify Voxel-to-RAS rotation.
-    - [ ] Implement: Use inverse rotation of affine.
-- [ ] Task: Update `StatefulImage.load()` with `is_direction_image` and `is_world_space` parameters.
-- [ ] Task: Conductor - User Manual Verification 'Phase 1: Core Implementation' (Protocol in workflow.md)
+## Phase 1: Core Implementation (StatefulImage) [checkpoint: 87f3afb]
+- [x] Task: Implement `rotate_sh` utility in `scilpy.reconst.sh` (or verify existing one) to handle coefficient rotation.
+- [x] Task: Add `to_voxel_direction()` to `StatefulImage`.
+    - [x] Write Tests: Verify RAS-to-Voxel rotation for a known 90-degree rotation.
+    - [x] Implement: Use rotation component of affine to rotate directions/coefficients.
+- [x] Task: Add `to_world_direction()` to `StatefulImage`.
+    - [x] Write Tests: Verify Voxel-to-RAS rotation.
+    - [x] Implement: Use inverse rotation of affine.
+- [x] Task: Update `StatefulImage.load()` with `is_direction_image` and `is_world_space` parameters.
+- [x] Task: Conductor - User Manual Verification 'Phase 1: Core Implementation' (Protocol in workflow.md)
 
 ## Phase 2: Tracking Integration
 - [ ] Task: Analyze `scil_tracking_local.py` for fODF/Peak loading.
