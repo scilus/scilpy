@@ -1,3 +1,6 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
 """
 Assign a custom color to a surface based on a data per point (dpp) file
 or an anatomical image.

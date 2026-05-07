@@ -8,6 +8,7 @@ from dipy.io.surface import load_surface
 from scilpy.io.utils import is_argument_set
 
 vtk_ext = ['.vtk', '.vtp', '.fib', '.ply', '.stl', '.xml', '.obj']
+fs_ext = [".gii", ".gii.gz", ".pial", ".nofix", ".orig", ".smoothwm", ".T1"]
 
 
 def load_surface_with_reference(parser, args, filepath, arg_name=None):
@@ -31,18 +32,18 @@ def load_surface_with_reference(parser, args, filepath, arg_name=None):
         bbox_check = True
 
     _, ext = os.path.splitext(filepath)
-    if ext not in vtk_ext:
+    if ext in fs_ext:
         if args.reference is None:
             parser.error('The reference image is required for FreeSurfer '
                          'surfaces.')
 
         if args.source_space or args.source_origin:
-            logging.warning('The source space and source origin can not be '
-                            'changed for FreeSurfer surfaces.\n'
-                            'These will be ignored.')
+            logging.info('The source space and source origin can not be '
+                         'changed for FreeSurfer surfaces.\n'
+                         'These will be ignored.')
         sfs = load_surface(filepath, args.reference,
                            bbox_valid_check=bbox_check)
-    else:
+    elif ext in vtk_ext:
         if (not is_argument_set(args, 'reference')) or args.reference is None:
             parser.error('--reference is required for this file format '
                          '{}.'.format(filepath))
