@@ -140,7 +140,7 @@ def create_peaks_slicer(data, orientation, slice_index, *, peak_values=None,
 
     Parameters
     ----------
-    data : np.ndarray
+    data : np.ndarray or StatefulImage
         Peaks data.
     orientation : str
         Name of the axis to visualize. Choices are axial, coronal and sagittal.
@@ -169,6 +169,10 @@ def create_peaks_slicer(data, orientation, slice_index, *, peak_values=None,
     slicer_actor : actor.peak_slicer
         Fury object containing the peaks information.
     """
+
+    from scilpy.io.stateful_image import StatefulImage
+    if isinstance(data, StatefulImage):
+        data = data.to_voxel_direction()
 
     # Reshape peaks volume to XxYxZxNx3
     data = data.reshape(data.shape[:3] + (-1, 3))
@@ -212,7 +216,7 @@ def create_odf_slicer(sh_fodf, orientation, slice_index, sphere, sh_order,
 
     Parameters
     ----------
-    sh_fodf : np.ndarray
+    sh_fodf : np.ndarray or StatefulImage
         Spherical harmonics of fODF data.
     orientation : str
         Name of the axis to visualize. Choices are axial, coronal and sagittal.
@@ -228,7 +232,7 @@ def create_odf_slicer(sh_fodf, orientation, slice_index, sphere, sh_order,
         Boolean indicating if the basis is full or not.
     scale : float
         Scaling factor for FODF.
-    sh_variance : np.ndarray, optional
+    sh_variance : np.ndarray or StatefulImage, optional
         Spherical harmonics of the variance fODF data.
     mask : np.ndarray, optional
         Only the data inside the mask will be displayed. Defaults to None.
@@ -257,6 +261,13 @@ def create_odf_slicer(sh_fodf, orientation, slice_index, sphere, sh_order,
     var_actor : actor.odf_slicer
         Fury object containing the odf variance information.
     """
+
+    from scilpy.io.stateful_image import StatefulImage
+    if isinstance(sh_fodf, StatefulImage):
+        sh_fodf = sh_fodf.to_voxel_direction()
+
+    if isinstance(sh_variance, StatefulImage):
+        sh_variance = sh_variance.to_voxel_direction()
 
     # Subdivide the spheres if nb_subdivide is provided
     if nb_subdivide is not None:
@@ -302,7 +313,7 @@ def create_bingham_slicer(data, orientation, slice_index,
 
     Parameters
     ----------
-    data: Array
+    data: Array or StatefulImage
         Volume of shape (X, Y, Z, N_LOBES, NB_PARAMS) containing
         the Bingham distributions parameters. Note, NB_PARAMS is usually 7.
         One of X, Y, Z should be of value 1 (one slice).
@@ -323,6 +334,11 @@ def create_bingham_slicer(data, orientation, slice_index,
     actors: list of fury odf_slicer actors
         ODF slicer actors representing the Bingham distributions.
     """
+
+    from scilpy.io.stateful_image import StatefulImage
+    if isinstance(data, StatefulImage):
+        data = data.to_voxel_direction()
+
     shape = data.shape
     if len(shape) != 5:
         raise ValueError('Expecting bingham data to be 5D '

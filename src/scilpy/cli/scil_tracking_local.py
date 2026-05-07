@@ -193,7 +193,8 @@ def main():
     # when providing information to dipy (i.e. working as if in voxel space)
     # will not yield correct results. Tracking is performed in voxel space
     # in both the GPU and CPU cases.
-    odf_sh_simg = StatefulImage.load(args.in_odf)
+    odf_sh_simg = StatefulImage.load(args.in_odf, is_orientation=True,
+                                     is_world_space=not args.is_voxel_space)
     if not np.allclose(np.mean(odf_sh_simg.header.get_zooms()[:3]),
                        odf_sh_simg.header.get_zooms()[0], atol=1e-03):
         parser.error(
@@ -229,16 +230,15 @@ def main():
     # Note. Seeds are in world space (RASMM) for CPU, and voxel space for GPU.
     # Both use center origin.
     logging.info("Preparing seeds.")
-    if args.use_gpu:
-        tracking_space = Space.VOX
-        tracking_affine = np.eye(4)
-    else:
-        tracking_space = Space.RASMM
-        tracking_affine = odf_sh_simg.affine
+    # Always track in voxel space to avoid affine-related orientation issues
+    # and match the voxel-oriented ODF data.
+    tracking_space = Space.VOX
+    tracking_affine = np.eye(4)
 
     if args.in_custom_seeds:
         seeds = np.squeeze(load_matrix_in_any_format(args.in_custom_seeds))
     else:
+        # Use identity affine to get seeds in voxel space
         seeds = track_utils.random_seeds_from_mask(
             seed_simg.get_fdata(dtype=np.float32),
             tracking_affine,
@@ -248,7 +248,7 @@ def main():
     total_nb_seeds = len(seeds)
 
     # ODF data
-    odf_sh_data = odf_sh_simg.get_fdata(dtype=np.float32)
+    odf_sh_data = odf_sh_simg.to_voxel_direction()
 
     if not args.use_gpu:
         # LocalTracking.maxlen is actually the maximum length
@@ -270,7 +270,7 @@ def main():
                     args.probe_quality, args.probe_count,
                     args.support_exponent, is_legacy=is_legacy),
                 max_len=max_steps_per_direction,
-                step_size=args.step_size,
+                step_size=vox_step_size,
                 max_angle=get_theta(args.theta, args.algo),
                 random_seed=args.seed if args.seed is not None else 0,
                 return_all=True,
@@ -286,7 +286,7 @@ def main():
                     args.support_exponent, is_legacy=is_legacy),
                 stopping_criterion,
                 seeds, tracking_affine,
-                step_size=args.step_size, max_cross=1,
+                step_size=vox_step_size, max_cross=1,
                 maxlen=max_steps_per_direction,
                 fixedstep=True, return_all=True,
                 random_seed=args.seed,

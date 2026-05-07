@@ -209,6 +209,9 @@ def rotate_sh(sh_coeffs, rotation_matrix, basis_type='descoteaux07',
     rotated_sh : np.ndarray
         Rotated SH coefficients.
     """
+    if np.allclose(rotation_matrix, np.eye(3), atol=1e-6):
+        return sh_coeffs.copy()
+
     from dipy.reconst.shm import sh_to_sf, sf_to_sh
     from dipy.core.sphere import Sphere
     from scilpy.reconst.utils import get_sh_order_and_fullness
@@ -216,8 +219,12 @@ def rotate_sh(sh_coeffs, rotation_matrix, basis_type='descoteaux07',
     sh_order, full_basis = get_sh_order_and_fullness(sh_coeffs.shape[-1])
 
     # Dense sphere to minimize aliasing/error
-    from dipy.data import get_sphere
-    sphere = get_sphere(name='repulsion724')
+    from dipy.core.sphere import Sphere
+    from dipy.core.subdivide_octahedron import create_unit_sphere
+    # Level 6 octahedron subdivision gives 2562 vertices, which is much better
+    # for preserving sharp peaks during rotation.
+    sphere = create_unit_sphere(6)
+
 
     # To rotate the function f by R, we want g(x) = f(R^-1 x).
     # We sample g at points x_j (the sphere vertices).

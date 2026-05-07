@@ -241,13 +241,9 @@ def main():
     # ------- PREPARING DATA -------
     theta = gm.math.radians(get_theta(args.theta, args.algo))
 
-    max_nbr_pts = int(args.max_length / args.step_size)
-    min_nbr_pts = max(int(args.min_length / args.step_size), 1)
-    if args.in_odf:
-        assert_same_resolution([args.in_mask, args.in_odf, args.in_seed])
-
-    # Choosing our space and origin for this tracking
-    our_space = Space.RASMM
+    # Always track in voxel space to avoid affine-related orientation issues
+    # and match the voxel-oriented ODF data.
+    our_space = Space.VOX
     our_origin = Origin.NIFTI
 
     logging.info("Loading seeding mask.")
@@ -259,6 +255,13 @@ def main():
                       'seeding mask.'.format(args.in_seed))
 
     seed_res = seed_simg.header.get_zooms()[:3]
+    voxel_size = np.average(seed_res)
+    vox_step_size = args.step_size / voxel_size
+
+    max_nbr_pts = int(args.max_length / args.step_size)
+    min_nbr_pts = max(int(args.min_length / args.step_size), 1)
+    if args.in_odf:
+        assert_same_resolution([args.in_mask, args.in_odf, args.in_seed])
 
     # ------- INSTANTIATING SEED GENERATOR -------
     if args.in_custom_seeds:
@@ -267,8 +270,9 @@ def main():
                                               origin=our_origin)
         nbr_seeds = len(seeds)
     else:
+        # Use identity affine for voxel space seeding
         seed_generator = SeedGenerator(seed_data, seed_res,
-                                       affine=seed_simg.affine,
+                                       affine=np.eye(4),
                                        space=our_space, origin=our_origin,
                                        n_repeats=args.n_repeats_per_seed)
 
@@ -290,17 +294,20 @@ def main():
     mask_simg.reorient(seed_simg.axcodes)
     mask_data = mask_simg.get_fdata(caching='unchanged', dtype=float)
     mask_res = mask_simg.header.get_zooms()[:3]
-    mask = DataVolume(mask_data, mask_res, affine=mask_simg.affine,
+    # Use identity affine for DataVolume to match voxel space tracking
+    mask = DataVolume(mask_data, mask_res, affine=np.eye(4),
                       interpolation=args.mask_interp)
 
     # ------- INSTANTIATING PROPAGATOR -------
     if args.in_odf:
         logging.info("Loading ODF SH data.")
-        odf_sh_simg = StatefulImage.load(args.in_odf)
+        odf_sh_simg = StatefulImage.load(args.in_odf, is_orientation=True,
+                                         is_world_space=not args.is_voxel_space)
         odf_sh_simg.reorient(seed_simg.axcodes)
-        odf_sh_data = odf_sh_simg.get_fdata(caching='unchanged', dtype=float)
+        odf_sh_data = odf_sh_simg.to_voxel_direction()
         odf_sh_res = odf_sh_simg.header.get_zooms()[:3]
-        dataset = DataVolume(odf_sh_data, odf_sh_res, affine=odf_sh_simg.affine,
+        # Use identity affine for DataVolume to match voxel space tracking
+        dataset = DataVolume(odf_sh_data, odf_sh_res, affine=np.eye(4),
                              interpolation=args.sh_interp)
 
         logging.info("Instantiating propagator.")
@@ -309,11 +316,11 @@ def main():
         # 1e-3.
         assert np.allclose(np.mean(odf_sh_res[:3]),
                            odf_sh_res, atol=1e-03)
-        # Using space and origin in the propagator: RASMM and NIFTI.
+        # Using space and origin in the propagator: VOX and NIFTI.
         sh_basis, is_legacy = parse_sh_basis_arg(args)
 
         propagator = ODFPropagator(
-            dataset, args.step_size, args.rk_order, args.algo, sh_basis,
+            dataset, vox_step_size, args.rk_order, args.algo, sh_basis,
             args.sf_threshold, args.sf_threshold_init, theta, args.sphere,
             sub_sphere=args.sub_sphere,
             space=our_space, origin=our_origin, is_legacy=is_legacy)
@@ -331,9 +338,10 @@ def main():
                 if filename not in loaded_datasets:
                     odf_sh_img = nib.load(filename)
                     odf_sh_res = odf_sh_img.header.get_zooms()[:3]
+                    # Use identity affine for DataVolume to match voxel space tracking
                     loaded_datasets[filename] = DataVolume(
                         odf_sh_img.get_fdata(caching='unchanged', dtype=float),
-                        odf_sh_res, affine=odf_sh_img.affine,
+                        odf_sh_res, affine=np.eye(4),
                         interpolation=args.sh_interp)
 
                 # Get params from rap_policies file
@@ -346,7 +354,7 @@ def main():
 
                 # Build propagator from rap_policies file
                 propagators[label] = ODFPropagator(
-                    loaded_datasets[filename], cfg.get('step_size', args.step_size),
+                    loaded_datasets[filename], cfg.get('step_size', args.step_size) / voxel_size,
                     args.rk_order, algo, sh_basis, args.sf_threshold,
                     args.sf_threshold_init, theta, args.sphere,
                     sub_sphere=args.sub_sphere, space=our_space,
@@ -371,8 +379,9 @@ def main():
         rap_img = nib.load(args.rap_mask)
         rap_mask_data = get_data_as_mask(rap_img)
         rap_mask_res = rap_img.header.get_zooms()[:3]
+        # Use identity affine for DataVolume to match voxel space tracking
         rap_volume = DataVolume(rap_mask_data, rap_mask_res,
-                                affine=rap_img.affine,
+                                affine=np.eye(4),
                                 interpolation=args.mask_interp)
     elif args.rap_labels:
         logging.info("Loading RAP labels.")
@@ -385,13 +394,14 @@ def main():
 
         rap_label_data = get_data_as_labels(rap_label_img)
         rap_label_res = rap_label_img.header.get_zooms()[:3]
+        # Use identity affine for DataVolume to match voxel space tracking
         rap_volume = DataVolume(rap_label_data, rap_label_res,
-                                affine=rap_label_img.affine,
+                                affine=np.eye(4),
                                 interpolation='nearest')
 
     if args.rap_method == "continue":
         rap = RAPContinue(rap_volume, propagator, max_nbr_pts,
-                          step_size=args.step_size)
+                          step_size=vox_step_size)
     elif args.rap_method == "switch":
         rap = RAPSwitch(rap_volume, propagators, max_nbr_pts)
     else:

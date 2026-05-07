@@ -77,6 +77,11 @@ def _build_arg_parser():
                    help='Color each bingham distribution with a '
                         'different color. [%(default)s]')
 
+    p.add_argument('--is_voxel_space', action='store_true',
+                   help='If set, assumes the input Bingham parameters are '
+                        'already in \nvoxel space. Default assumes world '
+                        'space (RAS).')
+
     return p
 
 
@@ -94,8 +99,9 @@ def _get_data_from_inputs(args):
     """
     Load data given by args.
     """
-    simg = StatefulImage.load(args.in_bingham)
-    bingham = simg.get_fdata()
+    simg = StatefulImage.load(args.in_bingham, is_orientation=True,
+                              is_world_space=not args.is_voxel_space)
+    bingham = simg.to_voxel_direction()
     if not args.slice_index:
         slice_index = bingham.shape[get_axis_index(args.axis_name)] // 2
     else:
@@ -124,14 +130,14 @@ def main():
     actors = create_bingham_slicer(data, args.axis_name,
                                    args.slice_index, sph,
                                    color_per_lobe=args.color_per_lobe,
-                                   affine=affine)
+                                   affine=None)
 
     # Prepare and display the scene
     scene = create_scene(actors, args.axis_name,
                          args.slice_index,
                          data.shape[:3],
                          args.win_dims[0] / args.win_dims[1],
-                         affine=affine)
+                         affine=None)
 
     if not args.silent:
         create_interactive_window(

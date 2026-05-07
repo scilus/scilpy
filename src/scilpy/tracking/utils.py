@@ -395,10 +395,10 @@ def get_direction_getter(img_data, algo, sphere, sub_sphere, theta, sh_basis,
         kwargs = {}
         if algo == 'ptt':
             dg_class = PTTDirectionGetter
-            # Considering the step size usually used, the probe length
-            # can be set as the voxel size.
-            kwargs = {'probe_length': probe_length,
-                      'probe_radius': probe_radius,
+            # Probe length and radius are in mm, convert to voxel units
+            # since tracking is performed in voxel space (identity affine).
+            kwargs = {'probe_length': probe_length / voxel_size,
+                      'probe_radius': probe_radius / voxel_size,
                       'probe_quality': probe_quality,
                       'probe_count': probe_count,
                       'data_support_exponent': support_exponent}

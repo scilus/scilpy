@@ -181,7 +181,8 @@ def main():
     if args.nt and args.nt <= 0:
         parser.error('Total number of seeds must be > 0.')
 
-    fodf_sh_simg = StatefulImage.load(args.in_sh)
+    fodf_sh_simg = StatefulImage.load(args.in_sh, is_orientation=True,
+                                      is_world_space=not args.is_voxel_space)
     if not np.allclose(np.mean(fodf_sh_simg.header.get_zooms()[:3]),
                        fodf_sh_simg.header.get_zooms()[0], atol=1e-03):
         parser.error(
@@ -207,7 +208,7 @@ def main():
     # relative_peak_threshold is for initial directions filtering
     # min_separation_angle is the initial separation angle for peak extraction
     dg = dgklass.from_shcoeff(
-        fodf_sh_simg.get_fdata(dtype=np.float32),
+        fodf_sh_simg.to_voxel_direction(),
         max_angle=theta,
         sphere=tracking_sphere,
         basis_type=sh_basis,
@@ -220,14 +221,23 @@ def main():
     map_exclude_simg = StatefulImage.load(args.map_exclude_file)
     map_exclude_simg.reorient(fodf_sh_simg.axcodes)
 
-    voxel_size = np.average(map_include_simg.header['pixdim'][1:4])
+    voxel_size = np.average(fodf_sh_simg.header.get_zooms()[:3])
+    vox_step_size = args.step_size / voxel_size
+
+    # Always track in voxel space to avoid affine-related orientation issues
+    # and match the voxel-oriented ODF data.
+    tracking_space = Space.VOX
+    tracking_affine = np.eye(4)
 
     if not args.act:
+        # tissue_classifier expects parameters in the tracking space.
+        # Since we track in voxel space (identity affine), we use
+        # vox_step_size and average_voxel_size = 1.0.
         tissue_classifier = CmcStoppingCriterion(
             map_include_simg.get_fdata(dtype=np.float32),
             map_exclude_simg.get_fdata(dtype=np.float32),
-            step_size=args.step_size,
-            average_voxel_size=voxel_size)
+            step_size=vox_step_size,
+            average_voxel_size=1.0)
     else:
         tissue_classifier = ActStoppingCriterion(
             map_include_simg.get_fdata(dtype=np.float32),
@@ -248,7 +258,7 @@ def main():
 
     seeds = track_utils.random_seeds_from_mask(
         get_data_as_mask(seed_simg, dtype=bool),
-        fodf_sh_simg.affine,
+        tracking_affine,
         seeds_count=nb_seeds,
         seed_count_per_voxel=seed_per_vox,
         random_seed=args.seed)
@@ -264,12 +274,12 @@ def main():
         dg,
         tissue_classifier,
         seeds,
-        fodf_sh_simg.affine,
+        tracking_affine,
         max_cross=1,
-        step_size=args.step_size,
+        step_size=vox_step_size,
         maxlen=max_steps,
-        pft_back_tracking_dist=args.back_tracking,
-        pft_front_tracking_dist=args.forward_tracking,
+        pft_back_tracking_dist=args.back_tracking / voxel_size,
+        pft_front_tracking_dist=args.forward_tracking / voxel_size,
         particle_count=args.particles,
         return_all=args.keep_all,
         random_seed=args.seed,
@@ -281,7 +291,7 @@ def main():
     save_tractogram(pft_streamlines, tracts_format,
                     fodf_sh_simg, total_nb_seeds, args.out_tractogram,
                     args.min_length, args.max_length, args.compress_th,
-                    args.save_seeds, args.verbose, space=Space.RASMM)
+                    args.save_seeds, args.verbose, space=tracking_space)
 
 
 if __name__ == '__main__':

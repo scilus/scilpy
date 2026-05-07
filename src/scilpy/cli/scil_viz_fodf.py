@@ -220,9 +220,10 @@ def _get_data_from_inputs(args):
     Load data given by args. Perform checks to ensure dimensions agree
     between the data for mask, background, peaks and fODF.
     """
-    fodf_simg = StatefulImage.load(args.in_fodf)
+    fodf_simg = StatefulImage.load(args.in_fodf, is_orientation=True,
+                                   is_world_space=not args.is_voxel_space)
     fodf_simg.to_ras()
-    fodf = fodf_simg.get_fdata(dtype=np.float32)
+    fodf = fodf_simg.to_voxel_direction()
 
     # Optional:
     bg = None
@@ -248,9 +249,10 @@ def _get_data_from_inputs(args):
         mask = get_data_as_mask(mask_simg, dtype=bool)
     if args.peaks:
         assert_same_resolution([args.peaks, args.in_fodf])
-        peaks_simg = StatefulImage.load(args.peaks)
+        peaks_simg = StatefulImage.load(args.peaks, is_orientation=True,
+                                        is_world_space=not args.is_voxel_space)
         peaks_simg.reorient(fodf_simg.axcodes)
-        peaks = peaks_simg.get_fdata()
+        peaks = peaks_simg.to_voxel_direction()
         if len(peaks.shape) == 4:
             last_dim = peaks.shape[-1]
             if last_dim % 3 == 0:
@@ -260,17 +262,18 @@ def _get_data_from_inputs(args):
                 raise ValueError('Peaks volume last dimension ({0}) cannot '
                                  'be reshaped as (npeaks, 3).'
                                  .format(peaks.shape[-1]))
-        if args.peaks_values:
-            assert_same_resolution([args.peaks_values, args.in_fodf])
-            peak_vals_simg = StatefulImage.load(args.peaks_values)
-            peak_vals_simg.reorient(fodf_simg.axcodes)
-            peak_vals =\
-                peak_vals_simg.get_fdata()
+    if args.peaks_values:
+        assert_same_resolution([args.peaks_values, args.in_fodf])
+        peak_vals_simg = StatefulImage.load(args.peaks_values)
+        peak_vals_simg.reorient(fodf_simg.axcodes)
+        peak_vals =\
+            peak_vals_simg.get_fdata()
     if args.variance:
         assert_same_resolution([args.variance, args.in_fodf])
-        variance_simg = StatefulImage.load(args.variance)
+        variance_simg = StatefulImage.load(args.variance, is_orientation=True,
+                                           is_world_space=not args.is_voxel_space)
         variance_simg.reorient(fodf_simg.axcodes)
-        variance = variance_simg.get_fdata(dtype=np.float32)
+        variance = variance_simg.to_voxel_direction()
         if len(variance.shape) == 3:
             variance = np.reshape(variance, variance.shape + (1,))
         if variance.shape != fodf.shape:
@@ -280,7 +283,6 @@ def _get_data_from_inputs(args):
 
     return (fodf, bg, transparency_mask, mask, peaks, peak_vals, variance,
             fodf_simg.affine)
-
 
 def main():
     parser = _build_arg_parser()
@@ -307,7 +309,7 @@ def main():
         sh_variance=variance, mask=mask, nb_subdivide=args.sph_subdivide,
         radial_scale=not args.radial_scale_off, norm=not args.norm_off,
         colormap=args.colormap or color_rgb, variance_k=args.variance_k,
-        variance_color=var_color, is_legacy=is_legacy, affine=affine)
+        variance_color=var_color, is_legacy=is_legacy, affine=None)
     actors.append(odf_actor)
 
     # Instantiate a variance slicer actor if a variance image is supplied
@@ -324,7 +326,7 @@ def main():
                                          opacity=args.bg_opacity,
                                          offset=args.bg_offset,
                                          interpolation=args.bg_interpolation,
-                                         affine=affine)
+                                         affine=None)
         actors.append(bg_actor)
 
     # Instantiate a peaks slicer actor if peaks are supplied
@@ -340,7 +342,7 @@ def main():
                                           peaks_width=args.peaks_width,
                                           opacity=args.peaks_opacity,
                                           symmetric=not full_basis,
-                                          affine=affine)
+                                          affine=None)
 
         actors.append(peaks_actor)
 
@@ -350,7 +352,7 @@ def main():
                          fodf.shape[:3],
                          args.win_dims[0] / args.win_dims[1],
                          bg_color=args.bg_color,
-                         affine=affine)
+                         affine=None)
 
     mask_scene = None
     if transparency_mask is not None:
@@ -358,14 +360,14 @@ def main():
                                            args.axis_name,
                                            args.slice_index,
                                            offset=0.0,
-                                           affine=affine)
+                                           affine=None)
 
         mask_scene = create_scene([mask_actor], args.axis_name,
                                   args.slice_index,
                                   transparency_mask.shape,
                                   args.win_dims[0] / args.win_dims[1],
                                   bg_color=args.bg_color,
-                                  affine=affine)
+                                  affine=None)
 
     if not args.silent:
         create_interactive_window(scene, args.win_dims, args.interactor)
