@@ -42,7 +42,7 @@ def load_surface_with_reference(parser, args, filepath, arg_name=None):
                             'These will be ignored.')
         sfs = load_surface(filepath, args.reference,
                            bbox_valid_check=bbox_check)
-    elif ext in vtk_ext:
+    else:
         if (not is_argument_set(args, 'reference')) or args.reference is None:
             parser.error('--reference is required for this file format '
                          '{}.'.format(filepath))
