@@ -103,7 +103,8 @@ def _afd_and_rd_sums_along_streamlines(sft, fodf, fodf_basis,
     rd_sum_map = np.zeros(shape=fodf_data.shape[:-1])
     weight_map = np.zeros(shape=fodf_data.shape[:-1])
 
-    all_split_streamlines =\
+    sft.streamlines._data = sft.streamlines._data.astype(np.float32)
+    all_split_streamlines = \
         subdivide_streamlines_at_voxel_faces(sft.streamlines)
     for split_streamlines in all_split_streamlines:
         # Get the direction of each segment
