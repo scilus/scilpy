@@ -1,0 +1,8 @@
+{
+  "track_id": "direction_handling_20260507",
+  "type": "feature",
+  "status": "new",
+  "created_at": "2026-05-07T14:00:00Z",
+  "updated_at": "2026-05-07T14:00:00Z",
+  "description": "Implement StatefulImage direction space transformation and integrate into viz/tracking scripts"
+}
