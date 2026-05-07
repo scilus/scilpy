@@ -12,15 +12,15 @@
 - [x] Task: Conductor - User Manual Verification 'Phase 1: Core Implementation' (Protocol in workflow.md)
 
 ## Phase 2: Tracking Integration
-- [ ] Task: Analyze `scil_tracking_local.py` for fODF/Peak loading.
-- [ ] Task: Integrate `to_voxel_direction()` call after loading directional images.
-    - [ ] Write Tests: Regression test for tracking through an oblique affine.
-    - [ ] Implement: Apply transformation to loaded `StatefulImage`.
-- [ ] Task: Conductor - User Manual Verification 'Phase 2: Tracking Integration' (Protocol in workflow.md)
+- [x] Task: Analyze `scil_tracking_local.py` for fODF/Peak loading.
+- [x] Task: Integrate `to_voxel_direction()` call after loading directional images.
+    - [x] Write Tests: Regression test for tracking through an oblique affine.
+    - [x] Implement: Apply transformation to loaded `StatefulImage`.
+- [x] Task: Conductor - User Manual Verification 'Phase 2: Tracking Integration' (Protocol in workflow.md)
 
 ## Phase 3: Visualization Integration
-- [ ] Task: Analyze `scilpy/viz/backends/fury.py` and `scil_viz_bundle.py`.
-- [ ] Task: Integrate `to_voxel_direction()` in ODF/Peak actor creation.
-    - [ ] Write Tests: Visual verification script (save screenshot or manual check).
-    - [ ] Implement: Apply transformation before passing data to Fury actors.
-- [ ] Task: Conductor - User Manual Verification 'Phase 3: Visualization Integration' (Protocol in workflow.md)
+- [x] Task: Analyze `scilpy/viz/backends/fury.py` and `scil_viz_bundle.py`.
+- [x] Task: Integrate `to_voxel_direction()` in ODF/Peak actor creation.
+    - [x] Write Tests: Visual verification script (save screenshot or manual check).
+    - [x] Implement: Apply transformation before passing data to Fury actors.
+- [x] Task: Conductor - User Manual Verification 'Phase 3: Visualization Integration' (Protocol in workflow.md)
