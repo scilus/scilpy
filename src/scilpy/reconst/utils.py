@@ -57,3 +57,31 @@ def get_sphere_neighbours(sphere, max_angle):
                     np.outer(zs, zs))
     neighbours = scalar_prods >= np.cos(max_angle)
     return neighbours
+
+
+def is_data_peaks(img_data):
+    """
+    Heuristic to find out if the input are peaks or fodf.
+    fodf are always around 0.15 and peaks around 0.75.
+    Peaks have more zero values than fodf. The first value of fodf is
+    usually the highest.
+
+    Parameters
+    ----------
+    img_data : np.ndarray
+        4D image data where the last dimension contains directional info.
+
+    Returns
+    -------
+    is_peaks : bool
+        True if data is likely peaks, False if likely fODF (SH).
+    """
+    non_zeros_mask = np.sum(img_data, axis=-1) != 0
+    non_zeros_count = np.count_nonzero(non_zeros_mask)
+    if non_zeros_count == 0:
+        return False
+
+    # Filter only non-zero voxels for more accurate argmax
+    non_first_val_count = np.count_nonzero(np.argmax(img_data[non_zeros_mask],
+                                                     axis=-1))
+    return non_first_val_count / non_zeros_count > 0.5

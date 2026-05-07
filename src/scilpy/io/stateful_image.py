@@ -56,7 +56,8 @@ class StatefulImage(nib.Nifti1Image):
         return R
 
     @classmethod
-    def load(cls, filename, to_orientation="RAS"):
+    def load(cls, filename, to_orientation="RAS",
+             is_orientation=False, is_world_space=True):
         """
         Load a NIfTI image, store its original orientation, and reorient it.
 
@@ -66,6 +67,12 @@ class StatefulImage(nib.Nifti1Image):
             Path to the NIfTI file.
         to_orientation : str or tuple, optional
             The target orientation for the in-memory data. Default is "RAS".
+        is_orientation : bool, optional
+            Whether the image contains directional data (SH, Peaks, SF).
+            Default is False.
+        is_world_space : bool, optional
+            Whether the directional data is already in world space.
+            Only used if is_orientation is True. Default is True.
 
         Returns
         -------
@@ -89,11 +96,111 @@ class StatefulImage(nib.Nifti1Image):
         else:
             reoriented_img = img
 
-        return cls(reoriented_img.dataobj, reoriented_img.affine,
+        simg = cls(reoriented_img.dataobj, reoriented_img.affine,
                    reoriented_img.header, original_affine=original_affine,
                    original_dimensions=original_dims,
                    original_voxel_sizes=original_voxel_sizes,
                    original_axcodes=original_axcodes)
+
+        if is_orientation and not is_world_space:
+            # Move from original voxel space to world space
+            # Note: We use original_affine because the data was loaded
+            # in that space.
+            data = simg.get_fdata(dtype=np.float32)
+            R = simg._get_rotation_matrix(original_affine)
+            rotated_data = simg._rotate_direction_data(data, R)
+            simg = cls.from_data(rotated_data, simg)
+
+        return simg
+
+    def to_voxel_direction(self, data=None):
+        """
+        Transform directional data from world space to current voxel space.
+
+        Parameters
+        ----------
+        data : np.ndarray, optional
+            The directional data to transform. If None, uses the image data.
+
+        Returns
+        -------
+        np.ndarray
+            The transformed directional data in voxel space.
+        """
+        if data is None:
+            data = self.get_fdata(dtype=np.float32)
+
+        # R_world_to_voxel = R_voxel_to_world.T
+        R = self._get_rotation_matrix(self.affine).T
+        return self._rotate_direction_data(data, R)
+
+    def to_world_direction(self, data=None):
+        """
+        Transform directional data from voxel space to world space.
+
+        Parameters
+        ----------
+        data : np.ndarray, optional
+            The directional data to transform. If None, uses the image data.
+
+        Returns
+        -------
+        np.ndarray
+            The transformed directional data in world space.
+        """
+        if data is None:
+            data = self.get_fdata(dtype=np.float32)
+
+        R = self._get_rotation_matrix(self.affine)
+        return self._rotate_direction_data(data, R)
+
+    def _rotate_direction_data(self, data, R):
+        """
+        Internal helper to rotate SH or Peaks data.
+        """
+        from scilpy.reconst.utils import (get_sh_order_and_fullness,
+                                          is_data_peaks)
+
+        last_dim = data.shape[-1]
+
+        # Heuristic to identify directional data type
+        is_sh = False
+        if last_dim == 3:
+            # Always Peaks if dim is 3
+            is_sh = False
+        else:
+            try:
+                order, full = get_sh_order_and_fullness(last_dim)
+                # Symmetric SH must be even order
+                if not full and order % 2 != 0:
+                    is_sh = False
+                else:
+                    # It matches a valid SH number of coefficients.
+                    # Use the data-based heuristic to be sure it's not
+                    # a large number of peaks (e.g., 15 coeffs could be 5 peaks).
+                    if is_data_peaks(data):
+                        is_sh = False
+                    else:
+                        is_sh = True
+            except ValueError:
+                is_sh = False
+
+        if is_sh:
+            from scilpy.reconst.sh import rotate_sh
+            # SH data can be 4D (XxYxZxN)
+            return rotate_sh(data, R)
+        elif last_dim % 3 == 0:
+            # Assume Peaks (N*3)
+            # Reshape to (..., N, 3), rotate, and reshape back
+            original_shape = data.shape
+            reshaped_data = data.reshape(-1, 3)
+            rotated_data = np.dot(reshaped_data, R.T)
+            return rotated_data.reshape(original_shape)
+        else:
+            raise ValueError(
+                f"Could not identify directional data type for "
+                f"shape {data.shape}. Not SH (wrong #coeffs) and "
+                f"not Peaks (not a multiple of 3).")
 
     def save(self, filename):
         """

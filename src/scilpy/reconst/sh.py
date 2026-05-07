@@ -178,8 +178,66 @@ def compute_rish(sh, mask=None, full_basis=False):
         rish *= mask[..., None]
 
     orders = sorted(np.unique(order_ids))
-
     return rish, orders
+
+
+def rotate_sh(sh_coeffs, rotation_matrix, basis_type='descoteaux07',
+              full_basis=False, is_legacy=True):
+    """
+    Rotate SH coefficients using a rotation matrix.
+
+    This implementation uses a discrete approach:
+    1. Sample SH to SF on a dense sphere.
+    2. Rotate the sphere points by the inverse rotation.
+    3. Fit back to SH.
+
+    Parameters
+    ----------
+    sh_coeffs : np.ndarray
+        SH coefficients. Can be 1D or 4D (XxYxZxN).
+    rotation_matrix : np.ndarray (3, 3)
+        Rotation matrix.
+    basis_type : str, optional
+        SH basis type.
+    full_basis : bool, optional
+        Whether the SH basis is full.
+    is_legacy : bool, optional
+        Whether the SH basis is legacy.
+
+    Returns
+    -------
+    rotated_sh : np.ndarray
+        Rotated SH coefficients.
+    """
+    from dipy.reconst.shm import sh_to_sf, sf_to_sh
+    from dipy.core.sphere import Sphere
+    from scilpy.reconst.utils import get_sh_order_and_fullness
+
+    sh_order, full_basis = get_sh_order_and_fullness(sh_coeffs.shape[-1])
+
+    # Dense sphere to minimize aliasing/error
+    from dipy.data import get_sphere
+    sphere = get_sphere(name='repulsion724')
+
+    # To rotate the function f by R, we want g(x) = f(R^-1 x).
+    # We sample g at points x_j (the sphere vertices).
+    # g(x_j) = f(R^-1 x_j).
+    # R^-1 x_j are the "rotated" sphere vertices.
+    inv_R = np.linalg.inv(rotation_matrix)
+    rotated_xyz = np.dot(sphere.vertices, inv_R.T)
+    rotated_sphere = Sphere(xyz=rotated_xyz)
+
+    # Sample original SH at rotated positions
+    sf = sh_to_sf(sh_coeffs, rotated_sphere, sh_order, basis_type,
+                  full_basis, is_legacy)
+
+    # Fit these values back to SH using the ORIGINAL sphere (the canonical basis)
+    rotated_sh = sf_to_sh(sf, sphere, sh_order_max=sh_order,
+                          basis_type=basis_type, full_basis=full_basis,
+                          legacy=is_legacy)
+
+    return rotated_sh
+
 
 
 def _peaks_from_sh_parallel(args):
