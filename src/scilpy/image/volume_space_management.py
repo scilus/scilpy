@@ -1,8 +1,11 @@
 # -*- coding: utf-8 -*-
-import numpy as np
+import logging
 
+import numpy as np
 from numba_kdtree import KDTree
 from numba import njit
+from scipy.ndimage import map_coordinates
+
 from scilpy.tracking.fibertube_utils import (streamlines_to_segments,
                                              point_in_cylinder,
                                              sphere_cylinder_intersection)
@@ -14,6 +17,39 @@ from dipy.io.stateful_tractogram import Origin, Space
 from dipy.data import get_sphere
 from scilpy.tractanalysis.todi_util import get_dir_to_sphere_id
 from dipy.reconst.shm import sf_to_sh
+
+
+def map_coordinates_in_volume(data, points, order):
+    """
+    Uses map_coordinates, from scipy. But by default, in scipy, half of the
+    border voxels are considered out-of-bound. Using mode=nearest to make sure
+    we interpolate correctly in border voxels. Verifying if some coordinates
+    are *actually* out-of-bound first.
+    See here for more explanation: https://github.com/scilus/scilpy/pull/1102
+
+    An alternative is to use dipy's trilinear function, but in some cases
+    scipy's function is easier to use.
+
+    Parameters
+    ----------
+    data: np.ndarray
+        The volume
+    points: np.ndarray
+        The coordinates in vox space, center origin. Shape: [3, N]
+    order: int
+        The order of the interpolation
+
+    Returns
+    -------
+    data: np.ndarray
+        The interpolated data.
+    """
+    if (np.any(np.logical_or(points[0] < 0, points[0] > data.shape[0])) or
+        np.any(np.logical_or(points[1] < 0, points[1] > data.shape[1])) or
+        np.any(np.logical_or(points[2] < 0,points[2] > data.shape[2]))) :
+        logging.warning("Careful! You are interpolating outside of boundaries "
+                        "of your volume. Using padding to nearest value.")
+    return map_coordinates(data, points, order=order, mode='nearest')
 
 
 class DataVolume(object):

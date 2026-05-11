@@ -12,6 +12,7 @@ from scipy.ndimage import map_coordinates, gaussian_filter
 from scipy.spatial import cKDTree
 from sklearn.cluster import KMeans
 
+from scilpy.image.volume_space_management import map_coordinates_in_volume
 from scilpy.maths.utils import fit_circle_planar
 from scilpy.tractograms.streamline_and_mask_operations import \
     get_endpoints_density_map
@@ -433,9 +434,10 @@ def compute_bundle_diameter(sft, data_labels, fitting_func):
 
     counter = 0
     labels_dict = {label: ([], []) for label in unique_labels}
-    pts_labels = map_coordinates(data_labels,
-                                 sft.streamlines._data.T - 0.5,
-                                 order=0, mode='nearest')
+
+    # Must bring data to vox space, center origin to use map_coordinates
+    pts_labels = map_coordinates_in_volume(
+        data_labels, sft.streamlines._data.T - 0.5, order=0)
 
     # For each label, all positions and directions are needed to get
     # a tube estimation per label.
