@@ -298,13 +298,17 @@ def main():
     mask = DataVolume(mask_data, mask_res, affine=np.eye(4),
                       interpolation=args.mask_interp)
 
+    sh_basis, is_legacy = parse_sh_basis_arg(args)
+
     # ------- INSTANTIATING PROPAGATOR -------
     if args.in_odf:
         logging.info("Loading ODF SH data.")
         odf_sh_simg = StatefulImage.load(args.in_odf, is_orientation=True,
-                                         is_world_space=not args.is_voxel_space)
+                                         is_world_space=not args.is_voxel_space,
+                                         sh_basis=sh_basis)
         odf_sh_simg.reorient(seed_simg.axcodes)
-        odf_sh_data = odf_sh_simg.to_voxel_direction()
+        odf_sh_data = odf_sh_simg.to_voxel_direction(
+            sh_basis=sh_basis).astype(np.float32)
         odf_sh_res = odf_sh_simg.header.get_zooms()[:3]
         # Use identity affine for DataVolume to match voxel space tracking
         dataset = DataVolume(odf_sh_data, odf_sh_res, affine=np.eye(4),
@@ -317,7 +321,6 @@ def main():
         assert np.allclose(np.mean(odf_sh_res[:3]),
                            odf_sh_res, atol=1e-03)
         # Using space and origin in the propagator: VOX and NIFTI.
-        sh_basis, is_legacy = parse_sh_basis_arg(args)
 
         propagator = ODFPropagator(
             dataset, vox_step_size, args.rk_order, args.algo, sh_basis,

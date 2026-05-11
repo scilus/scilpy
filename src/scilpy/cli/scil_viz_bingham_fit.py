@@ -101,6 +101,7 @@ def _get_data_from_inputs(args):
     """
     simg = StatefulImage.load(args.in_bingham, is_orientation=True,
                               is_world_space=not args.is_voxel_space)
+    simg.to_ras()
     bingham = simg.to_voxel_direction()
     if not args.slice_index:
         slice_index = bingham.shape[get_axis_index(args.axis_name)] // 2

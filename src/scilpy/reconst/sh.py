@@ -212,8 +212,6 @@ def rotate_sh(sh_coeffs, rotation_matrix, basis_type='descoteaux07',
     if np.allclose(rotation_matrix, np.eye(3), atol=1e-6):
         return sh_coeffs.copy()
 
-    from dipy.reconst.shm import sh_to_sf, sf_to_sh
-    from dipy.core.sphere import Sphere
     from scilpy.reconst.utils import get_sh_order_and_fullness
 
     sh_order, full_basis = get_sh_order_and_fullness(sh_coeffs.shape[-1])
@@ -221,10 +219,8 @@ def rotate_sh(sh_coeffs, rotation_matrix, basis_type='descoteaux07',
     # Dense sphere to minimize aliasing/error
     from dipy.core.sphere import Sphere
     from dipy.core.subdivide_octahedron import create_unit_sphere
-    # Level 6 octahedron subdivision gives 2562 vertices, which is much better
-    # for preserving sharp peaks during rotation.
-    sphere = create_unit_sphere(6)
-
+    # Level 5 octahedron subdivision gives 1026 vertices.
+    sphere = create_unit_sphere(recursion_level=5)
 
     # To rotate the function f by R, we want g(x) = f(R^-1 x).
     # We sample g at points x_j (the sphere vertices).
@@ -234,16 +230,30 @@ def rotate_sh(sh_coeffs, rotation_matrix, basis_type='descoteaux07',
     rotated_xyz = np.dot(sphere.vertices, inv_R.T)
     rotated_sphere = Sphere(xyz=rotated_xyz)
 
+    # Handle 1D vs 4D data
+    original_shape = sh_coeffs.shape
+    if len(original_shape) == 1:
+        sh_coeffs = sh_coeffs[None, None, None, :]
+
     # Sample original SH at rotated positions
-    sf = sh_to_sf(sh_coeffs, rotated_sphere, sh_order, basis_type,
-                  full_basis, is_legacy)
+    # Use scilpy's convert_sh_to_sf for memory efficiency (masking)
+    sf = convert_sh_to_sf(sh_coeffs.astype(np.float32), rotated_sphere,
+                          input_basis=basis_type,
+                          input_full_basis=full_basis,
+                          is_input_legacy=is_legacy,
+                          dtype="float32")
 
     # Fit these values back to SH using the ORIGINAL sphere (the canonical basis)
+    # sf_to_sh also supports masking if we pass it 4D data?
+    # Actually dipy's sf_to_sh handles ND data by flattening.
     rotated_sh = sf_to_sh(sf, sphere, sh_order_max=sh_order,
                           basis_type=basis_type, full_basis=full_basis,
                           legacy=is_legacy)
 
-    return rotated_sh
+    if len(original_shape) == 1:
+        return rotated_sh.reshape(-1).astype(sh_coeffs.dtype)
+
+    return rotated_sh.astype(sh_coeffs.dtype)
 
 
 

@@ -23,7 +23,9 @@ class StatefulImage(nib.Nifti1Image):
                  file_map=None, original_affine=None,
                  original_dimensions=None, original_voxel_sizes=None,
                  original_axcodes=None, bvals=None, bvecs=None,
-                 gradients_original_order=True):
+                 gradients_original_order=True,
+                 sh_basis='descoteaux07', is_legacy=True,
+                 is_orientation=False, is_world_space=True):
         """
         Initialize a StatefulImage object.
 
@@ -36,6 +38,12 @@ class StatefulImage(nib.Nifti1Image):
         self._original_dimensions = original_dimensions
         self._original_voxel_sizes = original_voxel_sizes
         self._original_axcodes = original_axcodes
+
+        # Directional information
+        self._sh_basis = sh_basis
+        self._is_legacy = is_legacy
+        self._is_orientation = is_orientation
+        self._is_world_space = is_world_space
 
         # Store gradient information
         self._bvals = None
@@ -57,7 +65,8 @@ class StatefulImage(nib.Nifti1Image):
 
     @classmethod
     def load(cls, filename, to_orientation="RAS",
-             is_orientation=False, is_world_space=True):
+             is_orientation=False, is_world_space=True,
+             sh_basis='descoteaux07', is_legacy=True):
         """
         Load a NIfTI image, store its original orientation, and reorient it.
 
@@ -108,12 +117,15 @@ class StatefulImage(nib.Nifti1Image):
             # in that space.
             data = simg.get_fdata(dtype=np.float32)
             R = simg._get_rotation_matrix(original_affine)
-            rotated_data = simg._rotate_direction_data(data, R)
+            rotated_data = simg._rotate_direction_data(data, R,
+                                                       sh_basis=sh_basis,
+                                                       is_legacy=is_legacy)
             simg = cls.from_data(rotated_data, simg)
 
         return simg
 
-    def to_voxel_direction(self, data=None):
+    def to_voxel_direction(self, data=None, sh_basis=None,
+                           is_legacy=None):
         """
         Transform directional data from world space to current voxel space.
 
@@ -121,6 +133,10 @@ class StatefulImage(nib.Nifti1Image):
         ----------
         data : np.ndarray, optional
             The directional data to transform. If None, uses the image data.
+        sh_basis : str, optional
+            The SH basis of the directional data. Defaults to self.sh_basis.
+        is_legacy : bool, optional
+            Whether the SH basis is legacy. Defaults to self.is_legacy.
 
         Returns
         -------
@@ -130,11 +146,18 @@ class StatefulImage(nib.Nifti1Image):
         if data is None:
             data = self.get_fdata(dtype=np.float32)
 
+        if sh_basis is None:
+            sh_basis = self.sh_basis
+        if is_legacy is None:
+            is_legacy = self.is_legacy
+
         # R_world_to_voxel = R_voxel_to_world.T
         R = self._get_rotation_matrix(self.affine).T
-        return self._rotate_direction_data(data, R)
+        return self._rotate_direction_data(data, R, sh_basis=sh_basis,
+                                           is_legacy=is_legacy)
 
-    def to_world_direction(self, data=None):
+    def to_world_direction(self, data=None, sh_basis=None,
+                           is_legacy=None):
         """
         Transform directional data from voxel space to world space.
 
@@ -142,6 +165,10 @@ class StatefulImage(nib.Nifti1Image):
         ----------
         data : np.ndarray, optional
             The directional data to transform. If None, uses the image data.
+        sh_basis : str, optional
+            The SH basis of the directional data. Defaults to self.sh_basis.
+        is_legacy : bool, optional
+            Whether the SH basis is legacy. Defaults to self.is_legacy.
 
         Returns
         -------
@@ -151,10 +178,17 @@ class StatefulImage(nib.Nifti1Image):
         if data is None:
             data = self.get_fdata(dtype=np.float32)
 
-        R = self._get_rotation_matrix(self.affine)
-        return self._rotate_direction_data(data, R)
+        if sh_basis is None:
+            sh_basis = self.sh_basis
+        if is_legacy is None:
+            is_legacy = self.is_legacy
 
-    def _rotate_direction_data(self, data, R):
+        R = self._get_rotation_matrix(self.affine)
+        return self._rotate_direction_data(data, R, sh_basis=sh_basis,
+                                           is_legacy=is_legacy)
+
+    def _rotate_direction_data(self, data, R, sh_basis='descoteaux07',
+                               is_legacy=True):
         """
         Internal helper to rotate SH or Peaks data.
         """
@@ -194,7 +228,9 @@ class StatefulImage(nib.Nifti1Image):
         if is_sh:
             from scilpy.reconst.sh import rotate_sh
             # SH data can be 4D (XxYxZxN)
-            return rotate_sh(data, R)
+            order, full = get_sh_order_and_fullness(last_dim)
+            return rotate_sh(data, R, basis_type=sh_basis,
+                             full_basis=full, is_legacy=is_legacy)
         elif last_dim % 3 == 0:
             # Assume Peaks (N*3)
             # Reshape to (..., N, 3), rotate, and reshape back
@@ -288,7 +324,11 @@ class StatefulImage(nib.Nifti1Image):
                              original_voxel_sizes=orig_vox,
                              original_axcodes=reference._original_axcodes,
                              bvals=bvals, bvecs=bvecs,
-                             gradients_original_order=False)
+                             gradients_original_order=False,
+                             sh_basis=reference.sh_basis,
+                             is_legacy=reference.is_legacy,
+                             is_orientation=reference.is_orientation,
+                             is_world_space=reference.is_world_space)
 
     @staticmethod
     def from_data(data, reference):
@@ -353,6 +393,26 @@ class StatefulImage(nib.Nifti1Image):
     @property
     def _needs_fsl_flip(self):
         return StatefulImage.needs_fsl_flip(self.affine)
+
+    @property
+    def sh_basis(self):
+        """Get the SH basis."""
+        return self._sh_basis
+
+    @property
+    def is_legacy(self):
+        """Get whether the SH basis is legacy."""
+        return self._is_legacy
+
+    @property
+    def is_orientation(self):
+        """Get whether the image contains directional data."""
+        return self._is_orientation
+
+    @property
+    def is_world_space(self):
+        """Get whether the directional data is in world space."""
+        return self._is_world_space
 
     @property
     def bvals(self):

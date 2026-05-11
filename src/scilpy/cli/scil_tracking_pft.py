@@ -181,8 +181,11 @@ def main():
     if args.nt and args.nt <= 0:
         parser.error('Total number of seeds must be > 0.')
 
+    sh_basis, is_legacy = parse_sh_basis_arg(args)
+
     fodf_sh_simg = StatefulImage.load(args.in_sh, is_orientation=True,
-                                      is_world_space=not args.is_voxel_space)
+                                      is_world_space=not args.is_voxel_space,
+                                      sh_basis=sh_basis)
     if not np.allclose(np.mean(fodf_sh_simg.header.get_zooms()[:3]),
                        fodf_sh_simg.header.get_zooms()[0], atol=1e-03):
         parser.error(
@@ -193,8 +196,6 @@ def main():
     # Check if sphere is unit, since we couldn't find such check in Dipy.
     if not np.allclose(np.linalg.norm(tracking_sphere.vertices, axis=1), 1.):
         raise RuntimeError('Tracking sphere should be unit normed.')
-
-    sh_basis, is_legacy = parse_sh_basis_arg(args)
 
     if args.algo == 'det':
         dgklass = DeterministicMaximumDirectionGetter
@@ -208,7 +209,7 @@ def main():
     # relative_peak_threshold is for initial directions filtering
     # min_separation_angle is the initial separation angle for peak extraction
     dg = dgklass.from_shcoeff(
-        fodf_sh_simg.to_voxel_direction(),
+        fodf_sh_simg.to_voxel_direction(sh_basis=sh_basis),
         max_angle=theta,
         sphere=tracking_sphere,
         basis_type=sh_basis,

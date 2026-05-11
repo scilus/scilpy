@@ -220,10 +220,12 @@ def _get_data_from_inputs(args):
     Load data given by args. Perform checks to ensure dimensions agree
     between the data for mask, background, peaks and fODF.
     """
+    sh_basis, is_legacy = parse_sh_basis_arg(args)
     fodf_simg = StatefulImage.load(args.in_fodf, is_orientation=True,
-                                   is_world_space=not args.is_voxel_space)
+                                   is_world_space=not args.is_voxel_space,
+                                   sh_basis=sh_basis, is_legacy=is_legacy)
     fodf_simg.to_ras()
-    fodf = fodf_simg.to_voxel_direction()
+    fodf = fodf_simg.to_voxel_direction(sh_basis=sh_basis, is_legacy=is_legacy)
 
     # Optional:
     bg = None
@@ -271,9 +273,11 @@ def _get_data_from_inputs(args):
     if args.variance:
         assert_same_resolution([args.variance, args.in_fodf])
         variance_simg = StatefulImage.load(args.variance, is_orientation=True,
-                                           is_world_space=not args.is_voxel_space)
+                                           is_world_space=not args.is_voxel_space,
+                                           sh_basis=sh_basis, is_legacy=is_legacy)
         variance_simg.reorient(fodf_simg.axcodes)
-        variance = variance_simg.to_voxel_direction()
+        variance = variance_simg.to_voxel_direction(sh_basis=sh_basis,
+                                                    is_legacy=is_legacy)
         if len(variance.shape) == 3:
             variance = np.reshape(variance, variance.shape + (1,))
         if variance.shape != fodf.shape:

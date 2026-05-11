@@ -46,7 +46,7 @@ class DataVolume(object):
                 raise Exception("Interpolation must be 'trilinear' or "
                                 "'nearest'")
 
-        self.data = data
+        self.data = data.astype(np.float64, copy=False)
         self.nb_coeffs = data.shape[-1]
         self.voxres = voxres
         self.affine = affine

@@ -22,6 +22,7 @@ import nibabel as nib
 import numpy as np
 
 from scilpy.io.image import get_data_as_mask
+from scilpy.io.stateful_image import StatefulImage
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg,
                              add_reference_arg,
@@ -104,10 +105,15 @@ def main():
     assert_outputs_exist(parser, args, required)
 
     # Loading
-    img_sh = nib.load(args.in_fodf)
-    sh_shape = img_sh.shape
-    sh_order = find_order_from_nb_coeff(sh_shape)
     sh_basis, is_legacy = parse_sh_basis_arg(args)
+    simg_sh = StatefulImage.load(args.in_fodf, is_orientation=True,
+                                 sh_basis=sh_basis, is_legacy=is_legacy)
+    # Bring to voxel space for multiplication with TODI (which is in vox space)
+    input_sh_3d = simg_sh.to_voxel_direction().astype(np.float32)
+
+    sh_shape = input_sh_3d.shape
+    sh_order = find_order_from_nb_coeff(sh_shape)
+
     img_mask = nib.load(args.in_mask)
     mask_data = get_data_as_mask(img_mask)
 
@@ -124,17 +130,22 @@ def main():
 
     # SF to SH
     # Memory friendly saving, as soon as possible saving then delete
-    priors_3d = np.zeros(sh_shape)
+    priors_3d = np.zeros(sh_shape, dtype=np.float32)
     sphere = get_sphere(name='repulsion724')
     priors_3d[sub_mask_3d] = sf_to_sh(todi_sf, sphere,
                                       sh_order_max=sh_order,
                                       basis_type=sh_basis,
-                                      legacy=is_legacy)
-    nib.save(nib.Nifti1Image(priors_3d, img_mask.affine), out_priors)
+                                      legacy=is_legacy).astype(np.float32)
+
+    simg_priors = StatefulImage(priors_3d, img_mask.affine,
+                                sh_basis=sh_basis, is_legacy=is_legacy,
+                                is_orientation=True, is_world_space=False)
+    simg_priors.to_world_direction()
+    nib.save(simg_priors, out_priors)
     del priors_3d
 
     # Back to SF
-    input_sh_3d = img_sh.get_fdata(dtype=np.float32)
+    # input_sh_3d is already in voxel space
     input_sf_1d = sh_to_sf(input_sh_3d[sub_mask_3d],
                            sphere, sh_order_max=sh_order,
                            basis_type=sh_basis, legacy=is_legacy)
@@ -155,8 +166,13 @@ def main():
     input_sh_3d[sub_mask_3d] = sf_to_sh(mult_sf_1d, sphere,
                                         sh_order_max=sh_order,
                                         basis_type=sh_basis,
-                                        legacy=is_legacy)
-    nib.save(nib.Nifti1Image(input_sh_3d, img_mask.affine), out_efod)
+                                        legacy=is_legacy).astype(np.float32)
+
+    simg_efod = StatefulImage(input_sh_3d, img_mask.affine,
+                              sh_basis=sh_basis, is_legacy=is_legacy,
+                              is_orientation=True, is_world_space=False)
+    simg_efod.to_world_direction()
+    nib.save(simg_efod, out_efod)
     del input_sh_3d
 
     nib.save(nib.Nifti1Image(sub_mask_3d.astype(np.uint8), img_mask.affine),

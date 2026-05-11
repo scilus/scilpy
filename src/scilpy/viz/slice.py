@@ -264,10 +264,10 @@ def create_odf_slicer(sh_fodf, orientation, slice_index, sphere, sh_order,
 
     from scilpy.io.stateful_image import StatefulImage
     if isinstance(sh_fodf, StatefulImage):
-        sh_fodf = sh_fodf.to_voxel_direction()
+        sh_fodf = sh_fodf.to_voxel_direction(sh_basis=sh_basis)
 
     if isinstance(sh_variance, StatefulImage):
-        sh_variance = sh_variance.to_voxel_direction()
+        sh_variance = sh_variance.to_voxel_direction(sh_basis=sh_basis)
 
     # Subdivide the spheres if nb_subdivide is provided
     if nb_subdivide is not None:

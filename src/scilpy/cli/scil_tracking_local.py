@@ -189,12 +189,15 @@ def main():
                         "Ignoring.")
         args.save_seeds = False
 
+    sh_basis, is_legacy = parse_sh_basis_arg(args)
+
     # Make sure the data is isotropic. Else, the strategy used
     # when providing information to dipy (i.e. working as if in voxel space)
     # will not yield correct results. Tracking is performed in voxel space
     # in both the GPU and CPU cases.
     odf_sh_simg = StatefulImage.load(args.in_odf, is_orientation=True,
-                                     is_world_space=not args.is_voxel_space)
+                                     is_world_space=not args.is_voxel_space,
+                                     sh_basis=sh_basis)
     if not np.allclose(np.mean(odf_sh_simg.header.get_zooms()[:3]),
                        odf_sh_simg.header.get_zooms()[0], atol=1e-03):
         parser.error(
@@ -219,8 +222,6 @@ def main():
     vox_step_size = args.step_size / voxel_size
     seed_simg = StatefulImage.load(args.in_seed)
     seed_simg.reorient(odf_sh_simg.axcodes)
-
-    sh_basis, is_legacy = parse_sh_basis_arg(args)
 
     if np.count_nonzero(seed_simg.get_fdata(dtype=np.float32)) == 0:
         raise IOError('The image {} is empty. '
@@ -248,7 +249,8 @@ def main():
     total_nb_seeds = len(seeds)
 
     # ODF data
-    odf_sh_data = odf_sh_simg.to_voxel_direction()
+    odf_sh_data = odf_sh_simg.to_voxel_direction(
+        sh_basis=sh_basis).astype(np.float32)
 
     if not args.use_gpu:
         # LocalTracking.maxlen is actually the maximum length
