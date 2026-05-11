@@ -59,6 +59,9 @@ def _build_arg_parser():
                    help='Smooth the orientation histogram.')
     p.add_argument('--sf_threshold', default=0.2, type=float,
                    help='Relative threshold for sf masking (0.0-1.0).')
+    p.add_argument('--is_voxel_space', action='store_true',
+                   help='If set, assumes the input fODF is already in '
+                        'voxel space.\nDefault assumes world space (RAS).')
     p.add_argument('--out_prefix', default='',
                    help='Add a prefix to all output filenames, default is no '
                         'prefix.\n'
@@ -107,9 +110,11 @@ def main():
     # Loading
     sh_basis, is_legacy = parse_sh_basis_arg(args)
     simg_sh = StatefulImage.load(args.in_fodf, is_orientation=True,
+                                 is_world_space=not args.is_voxel_space,
                                  sh_basis=sh_basis, is_legacy=is_legacy)
     # Bring to voxel space for multiplication with TODI (which is in vox space)
-    input_sh_3d = simg_sh.to_voxel_direction().astype(np.float32)
+    input_sh_3d = simg_sh.to_voxel_direction(sh_basis=sh_basis,
+                                             is_legacy=is_legacy).astype(np.float32)
 
     sh_shape = input_sh_3d.shape
     sh_order = find_order_from_nb_coeff(sh_shape)

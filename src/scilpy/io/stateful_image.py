@@ -109,7 +109,10 @@ class StatefulImage(nib.Nifti1Image):
                    reoriented_img.header, original_affine=original_affine,
                    original_dimensions=original_dims,
                    original_voxel_sizes=original_voxel_sizes,
-                   original_axcodes=original_axcodes)
+                   original_axcodes=original_axcodes,
+                   sh_basis=sh_basis, is_legacy=is_legacy,
+                   is_orientation=is_orientation,
+                   is_world_space=is_world_space)
 
         if is_orientation and not is_world_space:
             # Move from original voxel space to world space
@@ -132,7 +135,8 @@ class StatefulImage(nib.Nifti1Image):
         Parameters
         ----------
         data : np.ndarray, optional
-            The directional data to transform. If None, uses the image data.
+            The directional data to transform. If None, uses the image data
+            and updates it in-place.
         sh_basis : str, optional
             The SH basis of the directional data. Defaults to self.sh_basis.
         is_legacy : bool, optional
@@ -143,13 +147,25 @@ class StatefulImage(nib.Nifti1Image):
         np.ndarray
             The transformed directional data in voxel space.
         """
-        if data is None:
-            data = self.get_fdata(dtype=np.float32)
-
         if sh_basis is None:
             sh_basis = self.sh_basis
         if is_legacy is None:
             is_legacy = self.is_legacy
+
+        if data is None:
+            if not self.is_orientation:
+                raise ValueError("Image is not marked as directional.")
+            if not self.is_world_space:
+                return self.get_fdata(dtype=np.float32)
+
+            data = self.get_fdata(dtype=np.float32)
+            R = self._get_rotation_matrix(self.affine).T
+            rotated_data = self._rotate_direction_data(data, R,
+                                                       sh_basis=sh_basis,
+                                                       is_legacy=is_legacy)
+            self._dataobj = rotated_data
+            self._is_world_space = False
+            return rotated_data
 
         # R_world_to_voxel = R_voxel_to_world.T
         R = self._get_rotation_matrix(self.affine).T
@@ -164,7 +180,8 @@ class StatefulImage(nib.Nifti1Image):
         Parameters
         ----------
         data : np.ndarray, optional
-            The directional data to transform. If None, uses the image data.
+            The directional data to transform. If None, uses the image data
+            and updates it in-place.
         sh_basis : str, optional
             The SH basis of the directional data. Defaults to self.sh_basis.
         is_legacy : bool, optional
@@ -175,13 +192,25 @@ class StatefulImage(nib.Nifti1Image):
         np.ndarray
             The transformed directional data in world space.
         """
-        if data is None:
-            data = self.get_fdata(dtype=np.float32)
-
         if sh_basis is None:
             sh_basis = self.sh_basis
         if is_legacy is None:
             is_legacy = self.is_legacy
+
+        if data is None:
+            if not self.is_orientation:
+                raise ValueError("Image is not marked as directional.")
+            if self.is_world_space:
+                return self.get_fdata(dtype=np.float32)
+
+            data = self.get_fdata(dtype=np.float32)
+            R = self._get_rotation_matrix(self.affine)
+            rotated_data = self._rotate_direction_data(data, R,
+                                                       sh_basis=sh_basis,
+                                                       is_legacy=is_legacy)
+            self._dataobj = rotated_data
+            self._is_world_space = True
+            return rotated_data
 
         R = self._get_rotation_matrix(self.affine)
         return self._rotate_direction_data(data, R, sh_basis=sh_basis,

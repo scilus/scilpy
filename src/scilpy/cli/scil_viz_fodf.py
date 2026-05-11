@@ -119,6 +119,11 @@ def _build_arg_parser():
     p.add_argument('--norm_off', action='store_true',
                    help='Disable normalization of ODF slicer.')
 
+    p.add_argument('--is_voxel_space', action='store_true',
+                   help='If set, assumes the input directional data (fODF, '
+                        'Peaks) is already in \nvoxel space. Default assumes '
+                        'world space (RAS).')
+
     add_verbose_arg(p)
 
     # Background image options
