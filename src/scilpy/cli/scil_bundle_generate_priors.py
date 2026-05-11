@@ -59,9 +59,6 @@ def _build_arg_parser():
                    help='Smooth the orientation histogram.')
     p.add_argument('--sf_threshold', default=0.2, type=float,
                    help='Relative threshold for sf masking (0.0-1.0).')
-    p.add_argument('--is_voxel_space', action='store_true',
-                   help='If set, assumes the input fODF is already in '
-                        'voxel space.\nDefault assumes world space (RAS).')
     p.add_argument('--out_prefix', default='',
                    help='Add a prefix to all output filenames, default is no '
                         'prefix.\n'
