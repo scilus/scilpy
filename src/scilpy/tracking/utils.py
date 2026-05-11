@@ -101,8 +101,18 @@ def add_tracking_options(p):
                               '["eudx"=60, "det"=45, "prob"=20, "ptt"=20]')
     track_g.add_argument('--sfthres', dest='sf_threshold', metavar='sf_th',
                          type=float, default=0.1,
-                         help='Spherical function relative threshold. '
-                              '[%(default)s]')
+                         help='Spherical function relative threshold '
+                              'within each voxel. [%(default)s]')
+    global_sf_g = track_g.add_mutually_exclusive_group()
+    global_sf_g.add_argument('--global_sf_rel_thr', metavar='FACTOR',
+                             type=float, nargs='?', const=0.1, default=None,
+                             help='Global SF relative threshold factor. If set, masks voxels where \n'
+                                  'max SF amplitude < FACTOR * max global SF amplitude. \n'
+                                  'If used without a value, default is [%(const)s].')
+    global_sf_g.add_argument('--global_sf_abs_thr', metavar='ABS_THR',
+                             type=float,
+                             help='Global SF absolute threshold. If set, masks voxels where \n'
+                                  'max SF amplitude < ABS_THR.')
     add_sh_basis_args(track_g)
 
     return track_g

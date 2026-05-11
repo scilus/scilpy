@@ -208,6 +208,27 @@ def main():
     mask_simg.reorient(odf_sh_simg.axcodes)
     mask_data = get_data_as_mask(mask_simg, dtype=bool)
 
+    # ODF data
+    odf_sh_data = odf_sh_simg.to_voxel_direction(
+        sh_basis=sh_basis).astype(np.float32)
+
+    if args.global_sf_rel_thr is not None or args.global_sf_abs_thr is not None:
+        from scilpy.reconst.utils import compute_sf_threshold_mask
+        sphere = get_sphere(name=args.sphere)
+        sf_mask, global_max, threshold = compute_sf_threshold_mask(
+            odf_sh_data, sphere, relative_factor=args.global_sf_rel_thr,
+            absolute_threshold=args.global_sf_abs_thr, basis=sh_basis,
+            is_legacy=is_legacy)
+        logging.info("Global SF threshold mask: Global Max SF amplitude: {:.4f}"
+                     .format(global_max))
+        if args.global_sf_rel_thr is not None:
+            logging.info("Global SF threshold mask: Computed threshold: {:.4f} "
+                         "(Factor: {})".format(threshold, args.global_sf_rel_thr))
+        else:
+            logging.info("Global SF threshold mask: Absolute threshold: {:.4f}"
+                         .format(args.global_sf_abs_thr))
+        mask_data = np.logical_and(mask_data, sf_mask)
+
     if args.npv:
         nb_seeds = args.npv
         seed_per_vox = True
