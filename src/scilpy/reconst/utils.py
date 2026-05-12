@@ -2,6 +2,7 @@
 
 from dipy.direction.peaks import peak_directions
 import numpy as np
+from scipy.ndimage import binary_closing, binary_fill_holes
 
 
 def find_order_from_nb_coeff(data):
@@ -33,7 +34,9 @@ def get_maximas(data, sphere, b_matrix, threshold, absolute_threshold,
     spherical_func = np.dot(data, b_matrix.T)
     spherical_func[np.nonzero(spherical_func < absolute_threshold)] = 0.
     return peak_directions(
-        spherical_func, sphere, threshold, min_separation_angle)
+        spherical_func, sphere,
+        relative_peak_threshold=threshold,
+        min_separation_angle=min_separation_angle)
 
 
 def get_sphere_neighbours(sphere, max_angle):
@@ -123,26 +126,84 @@ def is_data_peaks(img_data):
     # Default to SH
     return False
 
-def compute_sh_threshold_mask(data, relative_factor=None,
-                              absolute_threshold=None):
+def compute_max_sf_amplitude(data, sh_basis, is_legacy,
+                             sphere_name='repulsion100', mask=None):
     """
-    Compute a binary mask based on a global SH energy threshold.
+    Compute the maximum SF amplitude for each voxel.
+    Only computes SF for voxels where data is non-zero (or in mask) to save RAM.
+
+    Parameters
+    ----------
+    data : np.ndarray
+        ODF data (SH).
+    sh_basis : str
+        SH basis ('tournier07' or 'descoteaux07').
+    is_legacy : bool
+        Whether the SH basis is legacy.
+    sphere_name : str or dipy.core.sphere.Sphere, optional
+        Sphere name for SF conversion or Sphere object.
+    mask : np.ndarray, optional
+        Binary mask. If provided, only voxels in mask are computed.
+
+    Returns
+    -------
+    max_sf : np.ndarray
+        Maximum SF amplitude per voxel.
+    """
+    from dipy.data import get_sphere
+    from dipy.reconst.shm import sh_to_sf_matrix
+    from dipy.core.sphere import Sphere
+
+    if mask is None:
+        mask = np.any(data, axis=-1)
+
+    order = find_order_from_nb_coeff(data)
+    if isinstance(sphere_name, (Sphere,)):
+        sphere = sphere_name
+    else:
+        sphere = get_sphere(name=sphere_name)
+
+    b_matrix, _ = sh_to_sf_matrix(sphere, sh_order_max=order,
+                                  basis_type=sh_basis, legacy=is_legacy)
+
+    max_sf = np.zeros(data.shape[:-1], dtype=np.float32)
+    if np.any(mask):
+        # Vectorized SF computation for masked voxels
+        sf = np.dot(data[mask], b_matrix)
+        max_sf[mask] = np.max(sf, axis=-1)
+
+    return max_sf
+
+
+def compute_sf_threshold_mask(data, sphere_name='repulsion100',
+                              relative_factor=None,
+                              absolute_threshold=None,
+                              sh_basis='descoteaux07',
+                              is_legacy=True, postprocess_mask=True):
+    """
+    Compute a binary mask based on a global SF amplitude threshold.
 
     Parameters
     ----------
     data : np.ndarray
         ODF data (SH or Peaks).
+    sphere_name : str or dipy.core.sphere.Sphere, optional
+        Sphere name for SF conversion or Sphere object.
     relative_factor : float, optional
         Factor between 0 and 1. Threshold is factor * global_max_sf.
     absolute_threshold : float, optional
         Absolute threshold on SF amplitude.
+    sh_basis : str, optional
+        SH basis ('tournier07' or 'descoteaux07').
+    is_legacy : bool, optional
+        Whether the SH basis is legacy.
 
     Returns
     -------
     mask : np.ndarray
         Binary mask.
     global_max : float
-        Global maximum SF amplitude (useful if relative_factor was used).
+        Global maximum SF amplitude.
     threshold : float
         Computed threshold value.
     """
@@ -157,10 +218,11 @@ def compute_sh_threshold_mask(data, relative_factor=None,
         norms = np.linalg.norm(peaks, axis=-1)
         # maximum amplitude/norm across peaks
         max_amp = np.max(norms, axis=-1)
-        global_max = np.max(max_amp)
     else:
-        max_amp = np.sum(np.abs(data), axis=-1)
-        global_max = np.max(max_amp)
+        max_amp = compute_max_sf_amplitude(data, sh_basis, is_legacy,
+                                           sphere_name=sphere_name)
+
+    global_max = np.max(max_amp)
 
     if absolute_threshold is not None:
         threshold = absolute_threshold
@@ -168,4 +230,11 @@ def compute_sh_threshold_mask(data, relative_factor=None,
         threshold = relative_factor * global_max
 
     mask = max_amp >= threshold
+
+    if postprocess_mask:
+        # Post-process to remove single voxels and fill single voxel holes
+        mask = binary_closing(mask, structure=np.ones((3, 3, 3)))
+        # Invert the image to fill holes in the mask, then invert back
+        mask = np.logical_not(binary_fill_holes(np.logical_not(mask)))
+
     return mask, global_max, threshold

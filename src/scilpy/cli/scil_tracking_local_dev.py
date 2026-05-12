@@ -76,7 +76,7 @@ from scilpy.io.utils import (add_processes_arg, add_sphere_arg,
                              assert_inputs_exist, assert_outputs_exist,
                              parse_sh_basis_arg, verify_compression_th,
                              load_matrix_in_any_format)
-from scilpy.reconst.utils import compute_sh_threshold_mask
+from scilpy.reconst.utils import compute_sf_threshold_mask
 from scilpy.image.volume_space_management import DataVolume
 from scilpy.tracking.propagator import ODFPropagator
 from scilpy.tracking.rap import RAPContinue, RAPSwitch
@@ -314,10 +314,10 @@ def main():
 
         sf_mask = None
         if args.global_sf_rel_thr is not None or args.global_sf_abs_thr is not None:
-            sphere = get_sphere(name=args.sphere)
-            sf_mask, global_max, threshold = compute_sh_threshold_mask(
-                odf_sh_data, sphere, relative_factor=args.global_sf_rel_thr,
-                absolute_threshold=args.global_sf_abs_thr, basis=sh_basis,
+            sf_mask, global_max, threshold = compute_sf_threshold_mask(
+                odf_sh_data, sphere_name=args.sphere,
+                relative_factor=args.global_sf_rel_thr,
+                absolute_threshold=args.global_sf_abs_thr, sh_basis=sh_basis,
                 is_legacy=is_legacy)
             logging.info("Global SF threshold mask: Global Max SF amplitude: {:.4f}"
                          .format(global_max))

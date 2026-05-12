@@ -67,7 +67,7 @@ from nibabel.streamlines import TrkFile, detect_format
 
 from dipy.data import get_sphere
 from dipy.io.stateful_tractogram import Space
-from scilpy.reconst.utils import compute_sh_threshold_mask
+from scilpy.reconst.utils import compute_sf_threshold_mask
 from dipy.tracking import utils as track_utils
 from dipy.tracking.local_tracking import LocalTracking
 from dipy.tracking.stopping_criterion import BinaryStoppingCriterion
@@ -215,10 +215,10 @@ def main():
 
     sf_mask = None
     if args.global_sf_rel_thr is not None or args.global_sf_abs_thr is not None:
-        sphere = get_sphere(name=args.sphere)
-        sf_mask, global_max, threshold = compute_sh_threshold_mask(
-            odf_sh_data, sphere, relative_factor=args.global_sf_rel_thr,
-            absolute_threshold=args.global_sf_abs_thr, basis=sh_basis,
+        sf_mask, global_max, threshold = compute_sf_threshold_mask(
+            odf_sh_data, sphere_name=args.sphere,
+            relative_factor=args.global_sf_rel_thr,
+            absolute_threshold=args.global_sf_abs_thr, sh_basis=sh_basis,
             is_legacy=is_legacy)
         logging.info("Global SF threshold mask: Global Max SF amplitude: {:.4f}"
                      .format(global_max))

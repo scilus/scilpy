@@ -54,7 +54,7 @@ from scilpy.io.utils import (add_sh_basis_args,
                              assert_outputs_exist, parse_sh_basis_arg,
                              assert_headers_compatible,
                              verify_compression_th)
-from scilpy.reconst.utils import compute_sh_threshold_mask
+from scilpy.reconst.utils import compute_sf_threshold_mask
 from scilpy.tracking.utils import (add_out_options, get_theta,
                                    save_tractogram)
 from scilpy.version import version_string
@@ -111,7 +111,7 @@ def _build_arg_parser():
                               'within each voxel for the \ninitial direction. [%(default)s]')
 
     global_sf_g = track_g.add_mutually_exclusive_group()
-    global_sf_g.add_argument('--global_sf_thr_rel', metavar='FACTOR',
+    global_sf_g.add_argument('--global_sf_rel_thr', metavar='FACTOR',
                              type=float, nargs='?', const=0.1, default=None,
                              help='Global SF relative threshold factor. If set, masks voxels where \n'
                                   'max SF amplitude < FACTOR * max global SF amplitude. \n'
@@ -238,11 +238,12 @@ def main():
     map_include_data = map_include_simg.get_fdata(dtype=np.float32)
     map_exclude_data = map_exclude_simg.get_fdata(dtype=np.float32)
 
+    sf_mask = None
     if args.global_sf_rel_thr is not None or args.global_sf_abs_thr is not None:
-        sf_mask, global_max, threshold = compute_sh_threshold_mask(
+        sf_mask, global_max, threshold = compute_sf_threshold_mask(
             fodf_sh_simg.to_voxel_direction(sh_basis=sh_basis),
-            tracking_sphere, relative_factor=args.global_sf_rel_thr,
-            absolute_threshold=args.global_sf_abs_thr, basis=sh_basis,
+            sphere_name=tracking_sphere, relative_factor=args.global_sf_rel_thr,
+            absolute_threshold=args.global_sf_abs_thr, sh_basis=sh_basis,
             is_legacy=is_legacy)
         logging.info("Global SF threshold mask: Global Max SF amplitude: {:.4f}"
                      .format(global_max))
@@ -255,8 +256,9 @@ def main():
 
     # In PFT, exclude map = 1 and include map = 0 ensures stopping and excluding.
     # Apply to maps only for stopping criterion.
-    map_include_data[~sf_mask] = 0
-    map_exclude_data[~sf_mask] = 1
+    if sf_mask is not None:
+        map_include_data[~sf_mask] = 0
+        map_exclude_data[~sf_mask] = 1
 
     voxel_size = np.average(fodf_sh_simg.header.get_zooms()[:3])
     vox_step_size = args.step_size / voxel_size
