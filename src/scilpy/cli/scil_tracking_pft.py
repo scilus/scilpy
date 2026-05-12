@@ -54,6 +54,7 @@ from scilpy.io.utils import (add_sh_basis_args,
                              assert_outputs_exist, parse_sh_basis_arg,
                              assert_headers_compatible,
                              verify_compression_th)
+from scilpy.reconst.utils import compute_sh_threshold_mask
 from scilpy.tracking.utils import (add_out_options, get_theta,
                                    save_tractogram)
 from scilpy.version import version_string
@@ -238,8 +239,7 @@ def main():
     map_exclude_data = map_exclude_simg.get_fdata(dtype=np.float32)
 
     if args.global_sf_rel_thr is not None or args.global_sf_abs_thr is not None:
-        from scilpy.reconst.utils import compute_sf_threshold_mask
-        sf_mask, global_max, threshold = compute_sf_threshold_mask(
+        sf_mask, global_max, threshold = compute_sh_threshold_mask(
             fodf_sh_simg.to_voxel_direction(sh_basis=sh_basis),
             tracking_sphere, relative_factor=args.global_sf_rel_thr,
             absolute_threshold=args.global_sf_abs_thr, basis=sh_basis,

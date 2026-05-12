@@ -118,6 +118,7 @@ class StatefulImage(nib.Nifti1Image):
             # Move from original voxel space to world space
             # Note: We use original_affine because the data was loaded
             # in that space.
+            print("-------------------")
             data = simg.get_fdata(dtype=np.float32)
             R = simg._get_rotation_matrix(original_affine)
             rotated_data = simg._rotate_direction_data(data, R,
@@ -231,29 +232,7 @@ class StatefulImage(nib.Nifti1Image):
             data = data.reshape(original_shape[0:3] + (-1,))
 
         last_dim = data.shape[-1]
-
-        # Heuristic to identify directional data type
-        is_sh = False
-        if last_dim == 3:
-            # Always Peaks if dim is 3
-            is_sh = False
-        else:
-            try:
-                order, full = get_sh_order_and_fullness(last_dim)
-                # Symmetric SH must be even order
-                if not full and order % 2 != 0:
-                    is_sh = False
-                else:
-                    # It matches a valid SH number of coefficients.
-                    # Use the data-based heuristic to be sure it's not
-                    # a large number of peaks (e.g., 15 coeffs could be 5 peaks).
-                    if is_data_peaks(data):
-                        is_sh = False
-                    else:
-                        is_sh = True
-            except ValueError:
-                is_sh = False
-
+        is_sh = not is_data_peaks(data)
         if is_sh:
             from scilpy.reconst.sh import rotate_sh
             # SH data can be 4D (XxYxZxN)
