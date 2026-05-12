@@ -212,6 +212,7 @@ def main():
     odf_sh_data = odf_sh_simg.to_voxel_direction(
         sh_basis=sh_basis).astype(np.float32)
 
+    sf_mask = None
     if args.global_sf_rel_thr is not None or args.global_sf_abs_thr is not None:
         from scilpy.reconst.utils import compute_sf_threshold_mask
         sphere = get_sphere(name=args.sphere)
@@ -227,7 +228,6 @@ def main():
         else:
             logging.info("Global SF threshold mask: Absolute threshold: {:.4f}"
                          .format(args.global_sf_abs_thr))
-        mask_data = np.logical_and(mask_data, sf_mask)
 
     if args.npv:
         nb_seeds = args.npv
@@ -269,15 +269,16 @@ def main():
             random_seed=args.seed)
     total_nb_seeds = len(seeds)
 
-    # ODF data
-    odf_sh_data = odf_sh_simg.to_voxel_direction(
-        sh_basis=sh_basis).astype(np.float32)
-
     if not args.use_gpu:
         # LocalTracking.maxlen is actually the maximum length
         # per direction, we need to filter post-tracking.
         max_steps_per_direction = int(args.max_length / args.step_size)
-        stopping_criterion = BinaryStoppingCriterion(mask_data)
+
+        combined_mask = mask_data
+        if sf_mask is not None:
+            combined_mask = np.logical_and(mask_data, sf_mask)
+
+        stopping_criterion = BinaryStoppingCriterion(combined_mask)
 
         logging.info("Starting CPU local tracking.")
         if args.algo == 'eudx':

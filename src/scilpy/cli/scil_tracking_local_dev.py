@@ -310,6 +310,7 @@ def main():
         odf_sh_data = odf_sh_simg.to_voxel_direction(
             sh_basis=sh_basis).astype(np.float32)
 
+        sf_mask = None
         if args.global_sf_rel_thr is not None or args.global_sf_abs_thr is not None:
             from scilpy.reconst.utils import compute_sf_threshold_mask
             from dipy.data import get_sphere
@@ -326,10 +327,16 @@ def main():
             else:
                 logging.info("Global SF threshold mask: Absolute threshold: {:.4f}"
                              .format(args.global_sf_abs_thr))
-            mask_data = np.logical_and(mask_data, sf_mask)
-            # Re-instantiate DataVolume with updated mask_data
-            mask = DataVolume(mask_data, mask_res, affine=np.eye(4),
-                              interpolation=args.mask_interp)
+
+        # Re-instantiate DataVolume with original mask_data
+        mask = DataVolume(mask_data, mask_res, affine=np.eye(4),
+                          interpolation=args.mask_interp)
+
+        if sf_mask is not None:
+             # Mask the stopping criterion
+             mask_data = np.logical_and(mask_data, sf_mask)
+             mask = DataVolume(mask_data, mask_res, affine=np.eye(4),
+                               interpolation=args.mask_interp)
 
         odf_sh_res = odf_sh_simg.header.get_zooms()[:3]
         # Use identity affine for DataVolume to match voxel space tracking

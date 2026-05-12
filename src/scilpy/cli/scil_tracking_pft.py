@@ -253,10 +253,10 @@ def main():
             logging.info("Global SF threshold mask: Absolute threshold: {:.4f}"
                          .format(args.global_sf_abs_thr))
 
-        # Outside the mask, we want to stop and exclude.
-        # In PFT, exclude map = 1 and include map = 0 ensures stopping and excluding.
-        map_include_data[~sf_mask] = 0
-        map_exclude_data[~sf_mask] = 1
+    # In PFT, exclude map = 1 and include map = 0 ensures stopping and excluding.
+    # Apply to maps only for stopping criterion.
+    map_include_data[~sf_mask] = 0
+    map_exclude_data[~sf_mask] = 1
 
     voxel_size = np.average(fodf_sh_simg.header.get_zooms()[:3])
     vox_step_size = args.step_size / voxel_size
