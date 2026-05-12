@@ -91,42 +91,33 @@ def is_data_peaks(img_data):
         order, full = get_sh_order_and_fullness(last_dim)
         # Symmetric SH must be even order
         if not full and order % 2 != 0:
-            print("/")
             return False
     except ValueError:
         # If not a valid SH number of coefficients, and not 3,
         # it might be something else, but if it's a multiple of 3
         # it's likely Peaks.
         if last_dim % 3 == 0:
-            print("*")
             return True
-        print("()")
         return False
 
     data_nz = img_data[non_zeros_mask]
 
-    # Heuristic 1: Argmax distribution.
-    # In Peaks (sorted), the max is always in the first triplet (index 0, 1, 2).
-    # In SH, the max can be anywhere (DC at 0, or higher orders for sharp ODFs)
-    argmax_indices = np.argmax(np.abs(data_nz), axis=-1)
-
     # If all triplets have the same norm, it is likely peaks, otherwise SH.
-    if np.all(np.isclose(np.linalg.norm(data_nz.reshape(-1, 3), axis=-1),
-                          np.linalg.norm(data_nz.reshape(-1, 3), axis=-1)[0])):
-        print("-")
-        return True
+    if last_dim % 3 == 0:
+        if np.all(np.isclose(np.linalg.norm(data_nz.reshape(-1, 3), axis=-1),
+                             np.linalg.norm(data_nz.reshape(-1, 3), axis=-1)[0])):
+            return True
 
     # If the max is in the first triplet but not at index 0, it's likely Peaks.
     # Smoothed SH almost always has max at index 0
-    if np.mean(np.logical_or(argmax_indices == 1, argmax_indices == 2)) > 0.1:
-        print("&")
+    argmax_indices = np.argmax(np.abs(data_nz), axis=-1)
+    if last_dim % 3 == 0 and np.mean(np.logical_or(argmax_indices == 1, argmax_indices == 2)) > 0.1:
         return True
 
-    # Heuristic 2: Exact zeros. SH almost never has exact zeros in real data.
+    # Exact zeros. SH almost never has exact zeros in real data.
     # Peaks often have exact zeros for unused lobes
     zero_ratio = np.mean(data_nz == 0)
     if zero_ratio > 0.05:
-        print("!")
         return True
 
     # Default to SH

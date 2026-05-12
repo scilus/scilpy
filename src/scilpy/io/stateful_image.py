@@ -128,7 +128,7 @@ class StatefulImage(nib.Nifti1Image):
         return simg
 
     def to_voxel_direction(self, data=None, sh_basis=None,
-                           is_legacy=None):
+                           is_legacy=None, nbr_processes=None):
         """
         Transform directional data from world space to current voxel space.
 
@@ -141,6 +141,8 @@ class StatefulImage(nib.Nifti1Image):
             The SH basis of the directional data. Defaults to self.sh_basis.
         is_legacy : bool, optional
             Whether the SH basis is legacy. Defaults to self.is_legacy.
+        nbr_processes : int, optional
+            Number of processes to use for rotation.
 
         Returns
         -------
@@ -162,7 +164,8 @@ class StatefulImage(nib.Nifti1Image):
             R = self._get_rotation_matrix(self.affine).T
             rotated_data = self._rotate_direction_data(data, R,
                                                        sh_basis=sh_basis,
-                                                       is_legacy=is_legacy)
+                                                       is_legacy=is_legacy,
+                                                       nbr_processes=nbr_processes)
             self._dataobj = rotated_data
             self._is_world_space = False
             return rotated_data
@@ -170,10 +173,11 @@ class StatefulImage(nib.Nifti1Image):
         # R_world_to_voxel = R_voxel_to_world.T
         R = self._get_rotation_matrix(self.affine).T
         return self._rotate_direction_data(data, R, sh_basis=sh_basis,
-                                           is_legacy=is_legacy)
+                                           is_legacy=is_legacy,
+                                           nbr_processes=nbr_processes)
 
     def to_world_direction(self, data=None, sh_basis=None,
-                           is_legacy=None):
+                           is_legacy=None, nbr_processes=None):
         """
         Transform directional data from voxel space to world space.
 
@@ -186,6 +190,8 @@ class StatefulImage(nib.Nifti1Image):
             The SH basis of the directional data. Defaults to self.sh_basis.
         is_legacy : bool, optional
             Whether the SH basis is legacy. Defaults to self.is_legacy.
+        nbr_processes : int, optional
+            Number of processes to use for rotation.
 
         Returns
         -------
@@ -207,17 +213,19 @@ class StatefulImage(nib.Nifti1Image):
             R = self._get_rotation_matrix(self.affine)
             rotated_data = self._rotate_direction_data(data, R,
                                                        sh_basis=sh_basis,
-                                                       is_legacy=is_legacy)
+                                                       is_legacy=is_legacy,
+                                                       nbr_processes=nbr_processes)
             self._dataobj = rotated_data
             self._is_world_space = True
             return rotated_data
 
         R = self._get_rotation_matrix(self.affine)
         return self._rotate_direction_data(data, R, sh_basis=sh_basis,
-                                           is_legacy=is_legacy)
+                                           is_legacy=is_legacy,
+                                           nbr_processes=nbr_processes)
 
     def _rotate_direction_data(self, data, R, sh_basis='descoteaux07',
-                               is_legacy=True):
+                               is_legacy=True, nbr_processes=None):
         """
         Internal helper to rotate SH or Peaks data.
         """
@@ -244,13 +252,13 @@ class StatefulImage(nib.Nifti1Image):
 
         last_dim = data.shape[-1]
         is_sh = not is_data_peaks(data)
-        print("adsaslkd", is_sh)
         if is_sh:
             from scilpy.reconst.sh import rotate_sh
             # SH data can be 4D (XxYxZxN)
             order, full = get_sh_order_and_fullness(last_dim)
             return rotate_sh(data, R, basis_type=sh_basis,
-                             full_basis=full, is_legacy=is_legacy)
+                             full_basis=full, is_legacy=is_legacy,
+                             nbr_processes=nbr_processes)
         elif last_dim % 3 == 0:
             # Assume Peaks (N*3)
             # Reshape to (..., N, 3), rotate, and reshape back

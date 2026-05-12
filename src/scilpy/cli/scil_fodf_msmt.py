@@ -148,7 +148,6 @@ def main():
 
     # Checking data and sh_order
     wm_frf, gm_frf, csf_frf = verify_frf_files(wm_frf, gm_frf, csf_frf)
-    verify_data_vs_sh_order(data, args.sh_order)
     sh_basis, is_legacy = parse_sh_basis_arg(args)
 
     # Checking mask
@@ -173,6 +172,9 @@ def main():
                            skip_b0_check=args.skip_b0_check,
                            overwrite_with_min=False)
     gtab = gradient_table(bvals, bvecs=bvecs, b0_threshold=args.tolerance)
+
+    # Checking data and sh_order
+    verify_data_vs_sh_order(data, args.sh_order, gtab=gtab)
 
     # Loading spheres
     reg_sphere = get_sphere(name='symmetric362')

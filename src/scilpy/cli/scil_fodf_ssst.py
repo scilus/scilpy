@@ -29,7 +29,7 @@ from scilpy.io.utils import (add_b0_thresh_arg, add_overwrite_arg,
                              assert_inputs_exist, assert_outputs_exist,
                              parse_sh_basis_arg, assert_headers_compatible)
 from scilpy.reconst.fodf import fit_from_model
-from scilpy.reconst.sh import convert_sh_basis
+from scilpy.reconst.sh import convert_sh_basis, verify_data_vs_sh_order
 from scilpy.version import version_string
 
 
@@ -116,13 +116,7 @@ def main():
     gtab = gradient_table(bvals, bvecs=bvecs, b0_threshold=args.b0_threshold)
 
     # Checking data and sh_order
-    num_dwi = np.sum(~gtab.b0s_mask)
-    if num_dwi < (sh_order + 1) * (sh_order + 2) / 2:
-        logging.warning(
-            'We recommend having at least {} unique DWI volumes, but you '
-            'currently have {} volumes (excluding b0). Try lowering the '
-            'parameter sh_order in case of non convergence.'.format(
-                (sh_order + 1) * (sh_order + 2) / 2, num_dwi))
+    verify_data_vs_sh_order(data, sh_order, gtab=gtab)
 
     # Checking shells
     shells_centroids, _ = identify_shells(bvals, args.b0_threshold,
@@ -133,7 +127,7 @@ def main():
     max_non_b0_delta = np.ediff1d(shells_centroids)[0] if len(shells_centroids) > 1 else 0
     if max_non_b0_delta >= min_non_b0_shell:
         logging.warning(
-            'Your shells seem to be very far apart (max delta: {}, min non-b0 shell: {}). '
+             'Your shells seem to be very far apart (max delta: {}, min non-b0 shell: {}). '
              'This might cause problems for the estimation of the FRF. '
              'Consider using scil_frf_msmt.py.'.format(max_non_b0_delta, min_non_b0_shell))
 

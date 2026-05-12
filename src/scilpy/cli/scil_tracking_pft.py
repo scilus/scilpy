@@ -220,7 +220,7 @@ def main():
     # relative_peak_threshold is for initial directions filtering
     # min_separation_angle is the initial separation angle for peak extraction
     dg = dgklass.from_shcoeff(
-        fodf_sh_simg.to_voxel_direction(sh_basis=sh_basis),
+        fodf_sh_simg.to_voxel_direction(sh_basis=sh_basis, nbr_processes=1),
         max_angle=theta,
         sphere=tracking_sphere,
         basis_type=sh_basis,

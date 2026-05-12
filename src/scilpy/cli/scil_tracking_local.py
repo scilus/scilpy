@@ -212,7 +212,7 @@ def main():
 
     # ODF data
     odf_sh_data = odf_sh_simg.to_voxel_direction(
-        sh_basis=sh_basis).astype(np.float32)
+        sh_basis=sh_basis, nbr_processes=1).astype(np.float32)
 
     sf_mask = None
     if args.global_sf_rel_thr is not None or args.global_sf_abs_thr is not None:
