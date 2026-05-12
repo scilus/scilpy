@@ -18,7 +18,8 @@ import logging
 
 import numpy as np
 
-from scilpy.gradients.bvec_bval_tools import check_b0_threshold
+from scilpy.gradients.bvec_bval_tools import (check_b0_threshold,
+                                              identify_shells)
 from scilpy.io.image import get_data_as_mask
 from scilpy.io.stateful_image import StatefulImage
 from scilpy.io.utils import (add_b0_thresh_arg, add_overwrite_arg,
@@ -114,6 +115,17 @@ def main():
     args.b0_threshold = check_b0_threshold(bvals.min(),
                                            b0_thr=args.b0_threshold,
                                            skip_b0_check=args.skip_b0_check)
+
+    shells_centroids, _ = identify_shells(bvals, args.b0_threshold,
+                                          round_centroids=True)
+    shells_centroids = list(sorted(shells_centroids[shells_centroids > args.b0_threshold]))
+    min_non_b0_shell = np.min(shells_centroids) if len(shells_centroids) > 0 else 0
+    max_non_b0_delta = np.ediff1d(shells_centroids)[0] if len(shells_centroids) > 1 else 0
+    if max_non_b0_delta >= min_non_b0_shell:
+        logging.warning(
+            'Your shells seem to be very far apart (max delta: {}, min non-b0 shell: {}). '
+             'This might cause problems for the estimation of the FRF. '
+             'Consider using scil_frf_msmt.py.'.format(max_non_b0_delta, min_non_b0_shell))
 
     mask = None
     if args.mask:

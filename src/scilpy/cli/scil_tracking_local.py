@@ -42,6 +42,7 @@ implementations:
         to disable backward tracking. This option isn't available for CPU
         tracking.
     * Random number generator seed (RNG): CPU and GPU use different RNG implementations,<
+                             assert_inputs_exist,
         so the same `--seed` is reproducible within a backend but does not guarantee
         identical streamlines across CPU vs GPU tracking.
 

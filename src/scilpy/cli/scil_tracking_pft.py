@@ -54,7 +54,6 @@ from scilpy.io.utils import (add_sh_basis_args,
                              assert_outputs_exist, parse_sh_basis_arg,
                              assert_headers_compatible,
                              verify_compression_th)
-from scilpy.reconst.utils import compute_sf_threshold_mask
 from scilpy.tracking.utils import (add_out_options, get_theta,
                                    save_tractogram)
 from scilpy.version import version_string
@@ -121,7 +120,6 @@ def _build_arg_parser():
                              help='Global SF absolute threshold. If set, masks voxels where \n'
                                   'max SF amplitude < ABS_THR.')
     add_sh_basis_args(track_g)
-
 
     seed_group = p.add_argument_group(
         'Seeding options',
@@ -239,20 +237,6 @@ def main():
     map_exclude_data = map_exclude_simg.get_fdata(dtype=np.float32)
 
     sf_mask = None
-    if args.global_sf_rel_thr is not None or args.global_sf_abs_thr is not None:
-        sf_mask, global_max, threshold = compute_sf_threshold_mask(
-            fodf_sh_simg.to_voxel_direction(sh_basis=sh_basis),
-            sphere_name=tracking_sphere, relative_factor=args.global_sf_rel_thr,
-            absolute_threshold=args.global_sf_abs_thr, sh_basis=sh_basis,
-            is_legacy=is_legacy)
-        logging.info("Global SF threshold mask: Global Max SF amplitude: {:.4f}"
-                     .format(global_max))
-        if args.global_sf_rel_thr is not None:
-            logging.info("Global SF threshold mask: Computed threshold: {:.4f} "
-                         "(Factor: {})".format(threshold, args.global_sf_rel_thr))
-        else:
-            logging.info("Global SF threshold mask: Absolute threshold: {:.4f}"
-                         .format(args.global_sf_abs_thr))
 
     # In PFT, exclude map = 1 and include map = 0 ensures stopping and excluding.
     # Apply to maps only for stopping criterion.

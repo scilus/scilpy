@@ -305,7 +305,7 @@ def main():
         logging.debug("Instantiating ODF propagator")
         propagator = ODFPropagator(
             datavolume, args.step_size, args.rk_order, args.algo, sh_basis,
-            args.sf_threshold, args.sf_threshold_init, theta, args.sphere,
+            args.sf_threshold, args.sfthres_init, theta, args.sphere,
             sub_sphere=args.sub_sphere,
             space=our_space, origin=our_origin, is_legacy=is_legacy)
     else:

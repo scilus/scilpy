@@ -125,17 +125,19 @@ def main():
                 (sh_order + 1) * (sh_order + 2) / 2, num_dwi))
 
     # Checking shells
-    centroids, _ = identify_shells(bvals, tol=args.b0_threshold)
-    dwi_shells = centroids[centroids > args.b0_threshold]
-    if len(dwi_shells) > 1:
-        if np.max(dwi_shells) - np.min(dwi_shells) > 500:
-            logging.warning(
-                'Multiple shells detected ({}) with a large gap ({}). '
-                'SSST CSD is not recommended for multi-shell data. '
-                'Consider using scil_fodf_msmt.py.'.format(
-                    dwi_shells, np.max(dwi_shells) - np.min(dwi_shells)))
+    shells_centroids, _ = identify_shells(bvals, args.b0_threshold,
+                                          round_centroids=True)
+    dwi_shells = shells_centroids[shells_centroids > args.b0_threshold]
+    shells_centroids = list(sorted(shells_centroids[shells_centroids > args.b0_threshold]))
+    min_non_b0_shell = np.min(shells_centroids) if len(shells_centroids) > 0 else 0
+    max_non_b0_delta = np.ediff1d(shells_centroids)[0] if len(shells_centroids) > 1 else 0
+    if max_non_b0_delta >= min_non_b0_shell:
+        logging.warning(
+            'Your shells seem to be very far apart (max delta: {}, min non-b0 shell: {}). '
+             'This might cause problems for the estimation of the FRF. '
+             'Consider using scil_frf_msmt.py.'.format(max_non_b0_delta, min_non_b0_shell))
 
-    if len(dwi_shells) > 0 and np.max(dwi_shells) < 1200 and sh_order > 4:
+    if len(dwi_shells) > 0 and np.max(dwi_shells) < 900 and sh_order > 4:
         logging.warning(
             'Your maximum b-value ({}) is relatively low. '
             'High SH order ({}) might be unstable. '

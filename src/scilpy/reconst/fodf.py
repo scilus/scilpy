@@ -4,12 +4,9 @@ import logging
 import multiprocessing
 import numpy as np
 
-from dipy.data import get_sphere
 from dipy.reconst.mcsd import MSDeconvFit
 from dipy.reconst.multi_voxel import MultiVoxelFit
-from dipy.reconst.shm import sh_to_sf_matrix
 
-from scilpy.reconst.utils import find_order_from_nb_coeff
 
 from dipy.utils.optpkg import optional_package
 cvx, have_cvxpy, _ = optional_package("cvxpy")
@@ -84,7 +81,7 @@ def get_ventricles_max_fodf(data, fa, md, zoom, sh_basis,
     else:
         max_number_of_voxels = 1000
     logging.debug("Searching for ventricle voxels, up to a maximum of {} "
-                  "voxels.".format(max_number_of_voxels))
+                  f"voxels: {max_number_of_voxels}")
 
     # In the case of 2D-like data (3D data with one dimension size of 1), or
     # a small 3D dataset, the full range of data is scanned.
@@ -136,14 +133,14 @@ def get_ventricles_max_fodf(data, fa, md, zoom, sh_basis,
     list_of_max = list_of_max[ventricle_mask]
     out_mask = ventricle_mask.astype(float)
 
-    logging.info('Number of voxels detected: {}'.format(len(list_of_max)))
+    logging.info(f'Number of voxels detected: {len(list_of_max)}')
     if len(list_of_max) == 0:
         logging.warning('No voxels found for evaluation! Change your fa '
                         'and/or md thresholds')
         return 0, out_mask
 
-    logging.info('Average max fodf value: {}'.format(np.mean(list_of_max)))
-    logging.info('Median max fodf value: {}'.format(np.median(list_of_max)))
+    logging.info(f'Average max fodf value: {np.mean(list_of_max)}')
+    logging.info(f'Median max fodf value: {np.median(list_of_max)}')
     if use_median:
         return np.median(list_of_max), out_mask
     else:

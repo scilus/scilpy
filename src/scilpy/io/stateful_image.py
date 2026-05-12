@@ -118,7 +118,6 @@ class StatefulImage(nib.Nifti1Image):
             # Move from original voxel space to world space
             # Note: We use original_affine because the data was loaded
             # in that space.
-            print("-------------------")
             data = simg.get_fdata(dtype=np.float32)
             R = simg._get_rotation_matrix(original_affine)
             rotated_data = simg._rotate_direction_data(data, R,
@@ -225,14 +224,27 @@ class StatefulImage(nib.Nifti1Image):
         from scilpy.reconst.utils import (get_sh_order_and_fullness,
                                           is_data_peaks)
 
-        # Handle 5D data (e.g., Bingham: X, Y, Z, N_LOBES, 7)
         original_shape = data.shape
+        if len(original_shape) == 5 and original_shape[-1] == 7:
+            # Bingham-like data: [amp, mu1_x, mu1_y, mu1_z, mu2_x, mu2_y, mu2_z]
+            # We rotate mu1 and mu2
+            bingham_data = data.copy()
+            mu1 = bingham_data[..., 1:4].reshape(-1, 3)
+            mu2 = bingham_data[..., 4:7].reshape(-1, 3)
+            rotated_mu1 = np.dot(mu1, R.T)
+            rotated_mu2 = np.dot(mu2, R.T)
+            bingham_data[..., 1:4] = rotated_mu1.reshape(original_shape[:4] + (3,))
+            bingham_data[..., 4:7] = rotated_mu2.reshape(original_shape[:4] + (3,))
+            return bingham_data
+
+        # Handle 5D data
         if len(original_shape) == 5:
             # We treat each "lobe" independently for rotation if it's not SH
             data = data.reshape(original_shape[0:3] + (-1,))
 
         last_dim = data.shape[-1]
         is_sh = not is_data_peaks(data)
+        print("adsaslkd", is_sh)
         if is_sh:
             from scilpy.reconst.sh import rotate_sh
             # SH data can be 4D (XxYxZxN)
@@ -245,17 +257,6 @@ class StatefulImage(nib.Nifti1Image):
             reshaped_data = data.reshape(-1, 3)
             rotated_data = np.dot(reshaped_data, R.T)
             return rotated_data.reshape(original_shape)
-        elif len(original_shape) == 5 and original_shape[-1] == 7:
-            # Bingham-like data: [amp, mu1_x, mu1_y, mu1_z, mu2_x, mu2_y, mu2_z]
-            # We rotate mu1 and mu2
-            bingham_data = data.reshape(original_shape)
-            mu1 = bingham_data[..., 1:4].reshape(-1, 3)
-            mu2 = bingham_data[..., 4:7].reshape(-1, 3)
-            rotated_mu1 = np.dot(mu1, R.T)
-            rotated_mu2 = np.dot(mu2, R.T)
-            bingham_data[..., 1:4] = rotated_mu1.reshape(original_shape[:4] + (3,))
-            bingham_data[..., 4:7] = rotated_mu2.reshape(original_shape[:4] + (3,))
-            return bingham_data
         else:
             raise ValueError(
                 f"Could not identify directional data type for "

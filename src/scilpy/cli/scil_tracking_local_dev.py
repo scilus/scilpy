@@ -63,7 +63,6 @@ import time
 import json
 
 import dipy.core.geometry as gm
-from dipy.data import get_sphere
 from dipy.io.stateful_tractogram import Space, Origin
 import nibabel as nib
 from nibabel.streamlines import detect_format, TrkFile
@@ -333,10 +332,10 @@ def main():
                           interpolation=args.mask_interp)
 
         if sf_mask is not None:
-             # Mask the stopping criterion
-             mask_data = np.logical_and(mask_data, sf_mask)
-             mask = DataVolume(mask_data, mask_res, affine=np.eye(4),
-                               interpolation=args.mask_interp)
+            # Mask the stopping criterion
+            mask_data = np.logical_and(mask_data, sf_mask)
+            mask = DataVolume(mask_data, mask_res, affine=np.eye(4),
+                              interpolation=args.mask_interp)
 
         odf_sh_res = odf_sh_simg.header.get_zooms()[:3]
         # Use identity affine for DataVolume to match voxel space tracking

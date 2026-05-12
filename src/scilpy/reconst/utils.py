@@ -2,7 +2,6 @@
 
 from dipy.direction.peaks import peak_directions
 import numpy as np
-from scipy.ndimage import binary_closing, binary_fill_holes
 
 
 def find_order_from_nb_coeff(data):
@@ -92,13 +91,16 @@ def is_data_peaks(img_data):
         order, full = get_sh_order_and_fullness(last_dim)
         # Symmetric SH must be even order
         if not full and order % 2 != 0:
+            print("/")
             return False
     except ValueError:
         # If not a valid SH number of coefficients, and not 3,
         # it might be something else, but if it's a multiple of 3
         # it's likely Peaks.
         if last_dim % 3 == 0:
+            print("*")
             return True
+        print("()")
         return False
 
     data_nz = img_data[non_zeros_mask]
@@ -108,23 +110,28 @@ def is_data_peaks(img_data):
     # In SH, the max can be anywhere (DC at 0, or higher orders for sharp ODFs)
     argmax_indices = np.argmax(np.abs(data_nz), axis=-1)
 
-    # If the max is frequently outside the first triplet, it's likely SH
-    if np.mean(argmax_indices > 2) > 0.1:
-        return False
+    # If all triplets have the same norm, it is likely peaks, otherwise SH.
+    if np.all(np.isclose(np.linalg.norm(data_nz.reshape(-1, 3), axis=-1),
+                          np.linalg.norm(data_nz.reshape(-1, 3), axis=-1)[0])):
+        print("-")
+        return True
 
     # If the max is in the first triplet but not at index 0, it's likely Peaks.
     # Smoothed SH almost always has max at index 0
     if np.mean(np.logical_or(argmax_indices == 1, argmax_indices == 2)) > 0.1:
+        print("&")
         return True
 
     # Heuristic 2: Exact zeros. SH almost never has exact zeros in real data.
     # Peaks often have exact zeros for unused lobes
     zero_ratio = np.mean(data_nz == 0)
     if zero_ratio > 0.05:
+        print("!")
         return True
 
     # Default to SH
     return False
+
 
 def compute_max_sf_amplitude(data, sh_basis, is_legacy,
                              sphere_name='repulsion100', mask=None):
@@ -232,9 +239,23 @@ def compute_sf_threshold_mask(data, sphere_name='repulsion100',
     mask = max_amp >= threshold
 
     if postprocess_mask:
-        # Post-process to remove single voxels and fill single voxel holes
-        mask = binary_closing(mask, structure=np.ones((3, 3, 3)))
-        # Invert the image to fill holes in the mask, then invert back
-        mask = np.logical_not(binary_fill_holes(np.logical_not(mask)))
+        import scipy.ndimage as ndi
+        # Postprocess to labels all elements and count voxels for each label
+        labels = ndi.label(mask)[0]
+        label_counts = np.bincount(labels.ravel())
+        # Find the largest connected component (excluding background)
+        largest_label = np.argmax(label_counts[1:]) + 1  # +1 to skip background
+        # Create a mask for the largest connected component
+        mask = labels == largest_label
+        inverted_mask = ~mask
+
+        # Remove isolated voxels in the inverted mask (holes in the main mask)
+        labels_inverted = ndi.label(inverted_mask)[0]
+        label_counts_inverted = np.bincount(labels_inverted.ravel())
+        for label, count in enumerate(label_counts_inverted):
+            if label == 0:
+                continue  # Skip background
+            if count < 100:  # Threshold for filling holes (can be adjusted)
+                mask[labels_inverted == label] = True
 
     return mask, global_max, threshold
