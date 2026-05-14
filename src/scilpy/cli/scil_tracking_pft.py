@@ -49,12 +49,12 @@ import numpy as np
 
 from scilpy.io.image import get_data_as_mask
 from scilpy.io.stateful_image import StatefulImage
-from scilpy.io.utils import (add_sh_basis_args,
-                             add_verbose_arg, assert_inputs_exist,
+from scilpy.io.utils import (add_verbose_arg, assert_inputs_exist,
                              assert_outputs_exist, parse_sh_basis_arg,
                              assert_headers_compatible,
                              verify_compression_th)
 from scilpy.tracking.utils import (add_out_options, get_theta,
+                                   add_tracking_options,
                                    save_tractogram)
 from scilpy.version import version_string
 
@@ -81,45 +81,18 @@ def _build_arg_parser():
     p.add_argument('out_tractogram',
                    help='Tractogram output file (must be .trk or .tck).')
 
-    track_g = p.add_argument_group('Tracking options')
+    track_g = add_tracking_options(p)
     track_g.add_argument('--algo', default='prob', choices=['det', 'prob'],
                          help='Algorithm to use (must be "det" or "prob"). '
                               '[%(default)s]')
-    track_g.add_argument('--step', dest='step_size', type=float, default=0.2,
-                         help='Step size in mm. [%(default)s]')
-    track_g.add_argument('--min_length', type=float, default=10.,
-                         help='Minimum length of a streamline in mm. '
-                              '[%(default)s]')
-    track_g.add_argument('--max_length', type=float, default=300.,
-                         help='Maximum length of a streamline in mm. '
-                              '[%(default)s]')
-    track_g.add_argument('--theta', type=float,
-                         help='Maximum angle between 2 steps. '
-                              '["det"=45, "prob"=20]')
     track_g.add_argument('--act', action='store_true',
                          help='If set, uses anatomically-constrained '
                               'tractography (ACT) \ninstead of continuous map '
                               'criterion (CMC).')
-    track_g.add_argument('--sfthres', dest='sf_threshold', metavar='sf_th',
-                         type=float, default=0.1,
-                         help='Spherical function relative threshold '
-                              'within each voxel. [%(default)s]')
     track_g.add_argument('--sfthres_init', dest='sf_threshold_init',
                          type=float, default=0.5,
                          help='Spherical function relative threshold value '
                               'within each voxel for the \ninitial direction. [%(default)s]')
-
-    global_sf_g = track_g.add_mutually_exclusive_group()
-    global_sf_g.add_argument('--global_sf_rel_thr', metavar='FACTOR',
-                             type=float, nargs='?', const=0.1, default=None,
-                             help='Global SF relative threshold factor. If set, masks voxels where \n'
-                                  'max SF amplitude < FACTOR * max global SF amplitude. \n'
-                                  'If used without a value, default is [%(const)s].')
-    global_sf_g.add_argument('--global_sf_abs_thr', metavar='ABS_THR',
-                             type=float,
-                             help='Global SF absolute threshold. If set, masks voxels where \n'
-                                  'max SF amplitude < ABS_THR.')
-    add_sh_basis_args(track_g)
 
     seed_group = p.add_argument_group(
         'Seeding options',

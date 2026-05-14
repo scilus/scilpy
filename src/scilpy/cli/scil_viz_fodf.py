@@ -288,6 +288,7 @@ def _get_data_from_inputs(args):
     return (fodf, bg, transparency_mask, mask, peaks, peak_vals, variance,
             fodf_simg.affine)
 
+
 def main():
     parser = _build_arg_parser()
     args = _parse_args(parser)

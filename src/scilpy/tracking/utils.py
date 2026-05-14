@@ -106,12 +106,14 @@ def add_tracking_options(p):
     global_sf_g = track_g.add_mutually_exclusive_group()
     global_sf_g.add_argument('--global_sf_rel_thr', metavar='FACTOR',
                              type=float, nargs='?', const=0.1, default=None,
-                             help='Global SF relative threshold factor. If set, masks voxels where \n'
-                                  'max SF amplitude < FACTOR * max global SF amplitude. \n'
-                                  'If used without a value, default is [%(const)s].')
+                             help='Global SF relative threshold factor.' \
+                             'If set, masks voxels where\nmax SF amplitude < '
+                             'FACTOR * max global SF amplitude. \n'
+                             'If used without a value, default is [%(const)s].')
     global_sf_g.add_argument('--global_sf_abs_thr', metavar='ABS_THR',
                              type=float,
-                             help='Global SF absolute threshold. If set, masks voxels where \n'
+                             help='Global SF absolute threshold.'
+                                  'If set, masks voxels where \n'
                                   'max SF amplitude < ABS_THR.')
     add_sh_basis_args(track_g)
 
@@ -275,11 +277,11 @@ def save_tractogram(
         else:
             iterable = streamlines_generator
 
+        miniters = int(total_nb_seeds / 100) if total_nb_seeds >= 100 else 1
         for strl, seed in tqdm_if_verbose(iterable,
                                           verbose=verbose,
                                           total=total_nb_seeds,
-                                          miniters=int(
-                                              total_nb_seeds / 100) if total_nb_seeds >= 100 else 1,
+                                          miniters=miniters,
                                           leave=False):
             # 1. Get to RASMM (physical world space) for filtering and compression
             if space == Space.VOX:

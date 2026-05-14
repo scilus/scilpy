@@ -104,14 +104,16 @@ def is_data_peaks(img_data):
 
     # If all triplets have the same norm, it is likely peaks, otherwise SH.
     if last_dim % 3 == 0:
-        if np.all(np.isclose(np.linalg.norm(data_nz.reshape(-1, 3), axis=-1),
-                             np.linalg.norm(data_nz.reshape(-1, 3), axis=-1)[0])):
+        norm = np.linalg.norm(data_nz.reshape(-1, 3), axis=-1)
+        if np.all(np.isclose(norm, norm[0])):
             return True
 
     # If the max is in the first triplet but not at index 0, it's likely Peaks.
     # Smoothed SH almost always has max at index 0
     argmax_indices = np.argmax(np.abs(data_nz), axis=-1)
-    if last_dim % 3 == 0 and np.mean(np.logical_or(argmax_indices == 1, argmax_indices == 2)) > 0.1:
+    if last_dim % 3 == 0 and \
+            np.mean(np.logical_or(argmax_indices == 1,
+                                  argmax_indices == 2)) > 0.1:
         return True
 
     # Exact zeros. SH almost never has exact zeros in real data.

@@ -470,7 +470,6 @@ def add_peaks_screenshot_args(parser, default_width=3.0, default_alpha=1.0,
                           '(RAS).')
 
 
-
 def add_overlays_screenshot_args(parser, default_alpha=0.5,
                                  rendering_parsing_group=None):
     """

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from dipy.reconst.shm import sh_to_sf, sh_to_sf_matrix
+from dipy.reconst.shm import sh_to_sf
 from fury import actor
 import numpy as np
 

@@ -118,14 +118,18 @@ def main():
 
     shells_centroids, _ = identify_shells(bvals, args.b0_threshold,
                                           round_centroids=True)
-    shells_centroids = list(sorted(shells_centroids[shells_centroids > args.b0_threshold]))
-    min_non_b0_shell = np.min(shells_centroids) if len(shells_centroids) > 0 else 0
-    max_non_b0_delta = np.ediff1d(shells_centroids)[0] if len(shells_centroids) > 1 else 0
+    shells_centroids = list(sorted(
+        shells_centroids[shells_centroids > args.b0_threshold]))
+    min_non_b0_shell = np.min(shells_centroids) \
+        if len(shells_centroids) > 0 else 0
+    max_non_b0_delta = np.ediff1d(shells_centroids)[0] \
+        if len(shells_centroids) > 1 else 0
     if max_non_b0_delta >= min_non_b0_shell:
         logging.warning(
-            'Your shells seem to be very far apart (max delta: {}, min non-b0 shell: {}). '
-             'This might cause problems for the estimation of the FRF. '
-             'Consider using scil_frf_msmt.py.'.format(max_non_b0_delta, min_non_b0_shell))
+            'Your shells seem to be very far apart (max delta: {}, '
+            'min non-b0 shell: {}). This might cause problems for the '
+            'estimation of the FRF. Consider using scil_frf_msmt.py.'
+            .format(max_non_b0_delta, min_non_b0_shell))
 
     mask = None
     if args.mask:

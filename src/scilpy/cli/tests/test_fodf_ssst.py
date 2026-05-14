@@ -50,8 +50,8 @@ def test_execution_voxel_wise_s0(script_runner, monkeypatch):
                            '3000.bvec')
     in_frf = os.path.join(SCILPY_HOME, 'processing',
                           'frf.txt')
-    ret = script_runner.run(['scil_fodf_ssst', in_dwi, in_bval,
-                            in_bvec, in_frf, 'fodf_vw.nii.gz', '--sh_order', '4',
-                            '--sh_basis', 'tournier07', '--processes', '1',
-                            '--voxel_wise_s0'])
+    ret = script_runner.run(['scil_fodf_ssst', in_dwi, in_bval, in_bvec,
+                             in_frf, 'fodf_vw.nii.gz', '--sh_order', '4',
+                             '--sh_basis', 'tournier07', '--processes', '1',
+                             '--voxel_wise_s0'])
     assert ret.success

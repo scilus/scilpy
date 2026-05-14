@@ -155,7 +155,8 @@ class Tracker(object):
         mask_data = np.zeros(reference_img.shape[:3], dtype=np.uint8)
 
         # Convert coordinates to voxel space and set mask values
-        # Each element is a tuple (coord, coord_type) where coord_type is 1 (entry) or 2 (exit)
+        # Each element is a tuple (coord, coord_type) where coord_type is 1
+        # (entry) or 2 (exit)
         for coord, coord_type in self.rap_entry_exit_coords:
             # Coordinates are already in voxel space (VOX, center)
             # Round to nearest integer voxel
@@ -553,7 +554,8 @@ class Tracker(object):
             previous_dir = new_dir
 
         logging.debug(
-            f"TRACKER end of propagation: {len(line)} total points, last pos={np.round(line[-1], 2)}")
+            "TRACKER end of propagation: {} total points, last pos={}"
+            .format(len(line), np.round(line[-1], 2)))
         return line
 
     def _verify_stopping_criteria(self, last_pos):

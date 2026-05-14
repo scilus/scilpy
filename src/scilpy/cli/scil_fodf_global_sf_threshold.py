@@ -63,7 +63,7 @@ def main():
 
     logging.info("Loading ODF data.")
     simg = StatefulImage.load(args.in_odf, is_orientation=True,
-                               sh_basis=sh_basis, is_legacy=is_legacy)
+                              sh_basis=sh_basis, is_legacy=is_legacy)
 
     data = simg.to_voxel_direction(sh_basis=sh_basis,
                                    is_legacy=is_legacy).astype(np.float32)
@@ -76,8 +76,8 @@ def main():
 
     logging.info("Global max SF amplitude: {:.4f}".format(global_max))
     if args.relative is not None:
-        logging.info("Relative threshold: {:.4f} (Factor: {})".format(threshold,
-                                                                     args.relative))
+        logging.info("Relative threshold: {:.4f} (Factor: {})"
+                     .format(threshold, args.relative))
     else:
         logging.info("Absolute threshold used: {:.4f}".format(args.absolute))
 

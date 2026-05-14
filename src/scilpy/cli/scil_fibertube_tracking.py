@@ -154,15 +154,14 @@ def _build_arg_parser():
                         help='Subdivides each face of the sphere into 4^s new'
                              ' faces. [%(default)s]')
     ftod_g.add_argument('--sfthres', dest='sf_threshold', metavar='sf_th',
-                         type=float, default=0.1,
-                         help='Spherical function relative threshold '
-                              'within each voxel. [%(default)s]')
+                        type=float, default=0.1,
+                        help='Spherical function relative threshold '
+                             'within each voxel. [%(default)s]')
     ftod_g.add_argument('--sfthres_init', metavar='sf_th', type=float,
                         default=0.5,
                         help='Spherical function relative threshold '
                              'within each voxel for the \n'
                              'initial direction. [%(default)s]')
-
 
     seed_group = p.add_argument_group(
         'Seeding options')
