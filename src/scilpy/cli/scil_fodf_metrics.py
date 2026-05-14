@@ -40,6 +40,7 @@ from dipy.data import get_sphere
 from dipy.direction.peaks import reshape_peaks_for_visualization
 
 from scilpy.io.image import get_data_as_mask
+from scilpy.io.stateful_image import StatefulImage
 from scilpy.io.utils import (add_overwrite_arg, add_sh_basis_args,
                              add_processes_arg, add_verbose_arg,
                              assert_inputs_exist, assert_outputs_exist,
@@ -138,11 +139,14 @@ def main():
     assert_headers_compatible(parser, args.in_fODF, args.mask)
 
     # Loading
-    vol = nib.load(args.in_fODF)
-    data = vol.get_fdata(dtype=np.float32)
-    affine = vol.affine
-    mask = get_data_as_mask(nib.load(args.mask),
-                            dtype=bool) if args.mask else None
+    simg = StatefulImage.load(args.in_fODF)
+    data = simg.get_fdata(dtype=np.float32)
+    affine = simg.affine
+    mask = None
+    if args.mask:
+        mask_simg = StatefulImage.load(args.mask)
+        mask_simg.reorient(simg.axcodes)
+        mask = get_data_as_mask(mask_simg, dtype=bool)
 
     sphere = get_sphere(name=args.sphere)
     sh_basis, is_legacy = parse_sh_basis_arg(args)
@@ -168,26 +172,26 @@ def main():
 
         # Save result
         if args.nufo:
-            nib.save(nib.Nifti1Image(nufo_map.astype(np.float32), affine),
-                     args.nufo)
+            nufo_img = nib.Nifti1Image(nufo_map.astype(np.float32), affine)
+            StatefulImage.create_from(nufo_img, simg).save(args.nufo)
 
         if args.afd_max:
-            nib.save(nib.Nifti1Image(afd_max.astype(np.float32), affine),
-                     args.afd_max)
+            afd_max_img = nib.Nifti1Image(afd_max.astype(np.float32), affine)
+            StatefulImage.create_from(afd_max_img, simg).save(args.afd_max)
 
         if args.afd_total:
             # this is the analytical afd total
             afd_tot = data[:, :, :, 0]
-            nib.save(nib.Nifti1Image(afd_tot.astype(np.float32), affine),
-                     args.afd_total)
+            afd_tot_img = nib.Nifti1Image(afd_tot.astype(np.float32), affine)
+            StatefulImage.create_from(afd_tot_img, simg).save(args.afd_total)
 
         if args.afd_sum:
-            nib.save(nib.Nifti1Image(afd_sum.astype(np.float32), affine),
-                     args.afd_sum)
+            afd_sum_img = nib.Nifti1Image(afd_sum.astype(np.float32), affine)
+            StatefulImage.create_from(afd_sum_img, simg).save(args.afd_sum)
 
         if args.rgb:
-            nib.save(nib.Nifti1Image(rgb_map.astype('uint8'), affine),
-                     args.rgb)
+            rgb_img = nib.Nifti1Image(rgb_map.astype('uint8'), affine)
+            StatefulImage.create_from(rgb_img, simg).save(args.rgb)
 
     if args.peaks or args.peak_values:
         if not args.abs_peaks_and_values:
@@ -196,15 +200,19 @@ def main():
                                     where=peak_values[..., 0, None] != 0)
             peak_dirs[...] *= peak_values[..., :, None]
         if args.peaks:
-            nib.save(nib.Nifti1Image(
+            peaks_img = nib.Nifti1Image(
                 reshape_peaks_for_visualization(peak_dirs),
-                affine), args.peaks)
+                affine)
+            StatefulImage.create_from(peaks_img, simg).save(args.peaks)
         if args.peak_values:
-            nib.save(nib.Nifti1Image(peak_values, vol.affine),
-                     args.peak_values)
+            peak_vals_img = nib.Nifti1Image(peak_values, affine)
+            StatefulImage.create_from(peak_vals_img, simg).save(
+                args.peak_values)
 
     if args.peak_indices:
-        nib.save(nib.Nifti1Image(peak_indices, vol.affine), args.peak_indices)
+        peak_indices_img = nib.Nifti1Image(peak_indices, affine)
+        StatefulImage.create_from(peak_indices_img, simg).save(
+            args.peak_indices)
 
 
 if __name__ == "__main__":

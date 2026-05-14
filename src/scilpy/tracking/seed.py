@@ -10,15 +10,12 @@ class SeedGenerator:
     """
     Class to get seeding positions.
 
-    Generated seeds are in voxmm space, origin=corner. Ex: a seed sampled
-    exactly at voxel i,j,k = (0,1,2), with resolution 3x3x3mm will have
-    coordinates x,y,z = (0, 3, 6).
-
-    Using get_next_pos, seeds are placed randomly within the voxel. In the same
-    example as above, seed sampled in voxel i,j,k = (0,1,2) will be somewhere
-    in the range x = [0, 3], y = [3, 6], z = [6, 9].
+    Generated seeds are in the specified space (default Space.VOX) and
+    origin (default Origin.CENTER). For tracking in physical space,
+    Space.RASMM should be used.
     """
-    def __init__(self, data, voxres,
+
+    def __init__(self, data, voxres, affine=None,
                  space=Space('vox'), origin=Origin('center'), n_repeats=1):
         """
         Parameters
@@ -28,21 +25,25 @@ class SeedGenerator:
             to find all voxels with values > 0, but will not be kept in memory.
         voxres: np.ndarray(3,)
             The pixel resolution, ex, using img.header.get_zooms()[:3].
+        affine: np.ndarray(4,4)
+            The affine matrix mapping voxel coordinates to RASMM.
         n_repeats: int
             Number of times a same seed position is returned.
             If used, we supposed that calls to either get_next_pos or
             get_next_n_pos are used sequentially. Not verified.
         """
         self.voxres = voxres
+        self.affine = affine
         self.n_repeats = n_repeats
         self.origin = origin
         self.space = space
-        if space == Space.RASMM:
-            raise NotImplementedError("We do not support rasmm space.")
-        elif space not in [Space.VOX, Space.VOXMM]:
+        if space not in [Space.VOX, Space.VOXMM, Space.RASMM]:
             raise ValueError("Space should be a choice of Dipy Space.")
         if origin not in [Origin.NIFTI, Origin.TRACKVIS]:
             raise ValueError("Origin should be a choice of Dipy Origin.")
+
+        if space == Space.RASMM and affine is None:
+            raise ValueError("Affine matrix is required for RASMM space.")
 
         # self.seed are all the voxels where a seed could be placed
         # (voxel space, origin=corner, int numbers).
@@ -112,8 +113,14 @@ class SeedGenerator:
             return x, y, z
         elif self.space == Space.VOXMM:
             return x * self.voxres[0], y * self.voxres[1], z * self.voxres[2]
+        elif self.space == Space.RASMM:
+            # If origin is center, we need to add 0.5 to get back to corner
+            # before applying the affine.
+            if self.origin == Origin('center'):
+                x, y, z = x + 0.5, y + 0.5, z + 0.5
+            return np.dot(self.affine, [x, y, z, 1])[:3]
         else:
-            raise NotImplementedError("We do not support rasmm space.")
+            raise ValueError("Space should be a choice of Dipy Space.")
 
     def get_next_n_pos(self, random_generator, shuffled_indices,
                        which_seed_start, n):
@@ -209,8 +216,14 @@ class SeedGenerator:
                 seed = [x * self.voxres[0],
                         y * self.voxres[1],
                         z * self.voxres[2]]
+            elif self.space == Space.RASMM:
+                # If origin is center, we need to add 0.5 to get back to corner
+                # before applying the affine.
+                if self.origin == Origin('center'):
+                    x, y, z = x + 0.5, y + 0.5, z + 0.5
+                seed = np.dot(self.affine, [x, y, z, 1])[:3]
             else:
-                raise NotImplementedError("We do not support rasmm space.")
+                raise ValueError("Space should be a choice of Dipy Space.")
             seeds.append(seed)
 
         return seeds
@@ -274,8 +287,9 @@ class FibertubeSeedGenerator(SeedGenerator):
     fibertube tracking. Generates a given number of seed within the first
     segment of a given number of fibertubes.
     """
+
     def __init__(self, centerlines, diameters, nb_seeds_per_fibertube,
-                    local_seeding: Literal['center', 'random']):
+                 local_seeding: Literal['center', 'random']):
         """
         Parameters
         ----------
@@ -387,6 +401,7 @@ class CustomSeedsDispenser(SeedGenerator):
     Adaptation of the scilpy.tracking.seed.SeedGenerator interface for
     using already generated, custom seeds.
     """
+
     def __init__(self, custom_seeds, space=Space('vox'),
                  origin=Origin('center')):
         """

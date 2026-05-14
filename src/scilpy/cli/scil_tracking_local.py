@@ -42,6 +42,7 @@ implementations:
         to disable backward tracking. This option isn't available for CPU
         tracking.
     * Random number generator seed (RNG): CPU and GPU use different RNG implementations,<
+                             assert_inputs_exist,
         so the same `--seed` is reproducible within a backend but does not guarantee
         identical streamlines across CPU vs GPU tracking.
 
@@ -66,11 +67,14 @@ import numpy as np
 from nibabel.streamlines import TrkFile, detect_format
 
 from dipy.data import get_sphere
+from dipy.io.stateful_tractogram import Space
+from scilpy.reconst.utils import compute_sf_threshold_mask
 from dipy.tracking import utils as track_utils
 from dipy.tracking.local_tracking import LocalTracking
 from dipy.tracking.stopping_criterion import BinaryStoppingCriterion
 from dipy.tracking.tracker import eudx_tracking
 from scilpy.io.image import get_data_as_mask
+from scilpy.io.stateful_image import StatefulImage
 from scilpy.io.utils import (add_sphere_arg, add_verbose_arg,
                              assert_headers_compatible, assert_inputs_exist,
                              assert_outputs_exist, parse_sh_basis_arg,
@@ -187,18 +191,44 @@ def main():
                         "Ignoring.")
         args.save_seeds = False
 
+    sh_basis, is_legacy = parse_sh_basis_arg(args)
+
     # Make sure the data is isotropic. Else, the strategy used
     # when providing information to dipy (i.e. working as if in voxel space)
     # will not yield correct results. Tracking is performed in voxel space
     # in both the GPU and CPU cases.
-    odf_sh_img = nib.load(args.in_odf)
-    if not np.allclose(np.mean(odf_sh_img.header.get_zooms()[:3]),
-                       odf_sh_img.header.get_zooms()[0], atol=1e-03):
+    odf_sh_simg = StatefulImage.load(args.in_odf, is_orientation=True,
+                                     is_world_space=not args.is_voxel_space,
+                                     sh_basis=sh_basis)
+    if not np.allclose(np.mean(odf_sh_simg.header.get_zooms()[:3]),
+                       odf_sh_simg.header.get_zooms()[0], atol=1e-03):
         parser.error(
             'ODF SH file is not isotropic. Tracking cannot be ran robustly.')
 
     logging.debug("Loading masks and finding seeds.")
-    mask_data = get_data_as_mask(nib.load(args.in_mask), dtype=bool)
+    mask_simg = StatefulImage.load(args.in_mask)
+    mask_simg.reorient(odf_sh_simg.axcodes)
+    mask_data = get_data_as_mask(mask_simg, dtype=bool)
+
+    # ODF data
+    odf_sh_data = odf_sh_simg.to_voxel_direction(
+        sh_basis=sh_basis, nbr_processes=1).astype(np.float32)
+
+    sf_mask = None
+    if args.global_sf_rel_thr is not None or args.global_sf_abs_thr is not None:
+        sf_mask, global_max, threshold = compute_sf_threshold_mask(
+            odf_sh_data, sphere_name=args.sphere,
+            relative_factor=args.global_sf_rel_thr,
+            absolute_threshold=args.global_sf_abs_thr, sh_basis=sh_basis,
+            is_legacy=is_legacy)
+        logging.info("Global SF threshold mask: Global Max SF amplitude: {:.4f}"
+                     .format(global_max))
+        if args.global_sf_rel_thr is not None:
+            logging.info("Global SF threshold mask: Computed threshold: {:.4f} "
+                         "(Factor: {})".format(threshold, args.global_sf_rel_thr))
+        else:
+            logging.info("Global SF threshold mask: Absolute threshold: {:.4f}"
+                         .format(args.global_sf_abs_thr))
 
     if args.npv:
         nb_seeds = args.npv
@@ -210,26 +240,31 @@ def main():
         nb_seeds = 1
         seed_per_vox = True
 
-    voxel_size = odf_sh_img.header.get_zooms()[0]
+    voxel_size = odf_sh_simg.header.get_zooms()[0]
     vox_step_size = args.step_size / voxel_size
-    seed_img = nib.load(args.in_seed)
+    seed_simg = StatefulImage.load(args.in_seed)
+    seed_simg.reorient(odf_sh_simg.axcodes)
 
-    sh_basis, is_legacy = parse_sh_basis_arg(args)
-
-    if np.count_nonzero(seed_img.get_fdata(dtype=np.float32)) == 0:
+    if np.count_nonzero(seed_simg.get_fdata(dtype=np.float32)) == 0:
         raise IOError('The image {} is empty. '
                       'It can\'t be loaded as '
                       'seeding mask.'.format(args.in_seed))
 
-    # Note. Seeds are in voxel world, center origin.
-    # (See the examples in random_seeds_from_mask).
+    # Note. Seeds are in world space (RASMM) for CPU, and voxel space for GPU.
+    # Both use center origin.
     logging.info("Preparing seeds.")
+    # Always track in voxel space to avoid affine-related orientation issues
+    # and match the voxel-oriented ODF data.
+    tracking_space = Space.VOX
+    tracking_affine = np.eye(4)
+
     if args.in_custom_seeds:
         seeds = np.squeeze(load_matrix_in_any_format(args.in_custom_seeds))
     else:
+        # Use identity affine to get seeds in voxel space
         seeds = track_utils.random_seeds_from_mask(
-            seed_img.get_fdata(dtype=np.float32),
-            np.eye(4),
+            seed_simg.get_fdata(dtype=np.float32),
+            tracking_affine,
             seeds_count=nb_seeds,
             seed_count_per_voxel=seed_per_vox,
             random_seed=args.seed)
@@ -239,22 +274,26 @@ def main():
         # LocalTracking.maxlen is actually the maximum length
         # per direction, we need to filter post-tracking.
         max_steps_per_direction = int(args.max_length / args.step_size)
-        stopping_criterion = BinaryStoppingCriterion(mask_data)
+
+        combined_mask = mask_data
+        if sf_mask is not None:
+            combined_mask = np.logical_and(mask_data, sf_mask)
+
+        stopping_criterion = BinaryStoppingCriterion(combined_mask)
 
         logging.info("Starting CPU local tracking.")
         if args.algo == 'eudx':
             streamlines_generator = eudx_tracking(
                 seeds,
                 stopping_criterion,
-                np.eye(4),
+                tracking_affine,
                 pam=get_direction_getter(
-                    args.in_odf, args.algo, args.sphere,
+                    odf_sh_data, args.algo, args.sphere,
                     args.sub_sphere, args.theta, sh_basis,
                     voxel_size, args.sf_threshold, args.sh_to_pmf,
                     args.probe_length, args.probe_radius,
                     args.probe_quality, args.probe_count,
                     args.support_exponent, is_legacy=is_legacy),
-                max_cross=1,
                 max_len=max_steps_per_direction,
                 step_size=vox_step_size,
                 max_angle=get_theta(args.theta, args.algo),
@@ -264,14 +303,14 @@ def main():
         else:
             streamlines_generator = LocalTracking(
                 get_direction_getter(
-                    args.in_odf, args.algo, args.sphere,
+                    odf_sh_data, args.algo, args.sphere,
                     args.sub_sphere, args.theta, sh_basis,
                     voxel_size, args.sf_threshold, args.sh_to_pmf,
                     args.probe_length, args.probe_radius,
                     args.probe_quality, args.probe_count,
                     args.support_exponent, is_legacy=is_legacy),
                 stopping_criterion,
-                seeds, np.eye(4),
+                seeds, tracking_affine,
                 step_size=vox_step_size, max_cross=1,
                 maxlen=max_steps_per_direction,
                 fixedstep=True, return_all=True,
@@ -283,15 +322,12 @@ def main():
         # to agree with DIPY's implementation
         max_strl_len = int(2.0 * args.max_length / args.step_size) + 1
 
-        # data volume
-        odf_sh = odf_sh_img.get_fdata(dtype=np.float32)
-
         # GPU tracking needs the full sphere
         sphere = get_sphere(name=args.sphere).subdivide(n=args.sub_sphere)
 
         logging.info("Starting GPU local tracking.")
         streamlines_generator = GPUTracker(
-            odf_sh, mask_data, seeds,
+            odf_sh_data, mask_data, seeds,
             vox_step_size, max_strl_len,
             theta=get_theta(args.theta, args.algo),
             sf_threshold=args.sf_threshold,
@@ -306,9 +342,9 @@ def main():
 
     # save streamlines on-the-fly to file
     save_tractogram(streamlines_generator, tracts_format,
-                    odf_sh_img, total_nb_seeds, args.out_tractogram,
+                    odf_sh_simg, total_nb_seeds, args.out_tractogram,
                     args.min_length, args.max_length, args.compress_th,
-                    args.save_seeds, args.verbose)
+                    args.save_seeds, args.verbose, space=tracking_space)
     # Final logging
     logging.info('Saved tractogram to {0}.'.format(args.out_tractogram))
 

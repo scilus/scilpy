@@ -103,7 +103,7 @@ def screenshot_peaks(img, orientation, slice_ids, size, mask_img=None):
 
     Parameters
     ----------
-    img : nib.Nifti1Image
+    img : nib.Nifti1Image or StatefulImage
         Peaks volume image.
     orientation : str
         Slicing axis name.
@@ -122,7 +122,13 @@ def screenshot_peaks(img, orientation, slice_ids, size, mask_img=None):
     if mask_img:
         mask = mask_img.get_fdata().astype(bool)
 
-    peaks_actor = create_peaks_slicer(img.get_fdata(), orientation, 0,
+    from scilpy.io.stateful_image import StatefulImage
+    if isinstance(img, StatefulImage):
+        data = img.to_voxel_direction()
+    else:
+        data = img.get_fdata()
+
+    peaks_actor = create_peaks_slicer(data, orientation, 0,
                                       mask=mask)
 
     return snapshot_slices([peaks_actor], slice_ids, orientation,

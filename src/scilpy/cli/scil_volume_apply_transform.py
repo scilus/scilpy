@@ -10,7 +10,6 @@ https://scilpy.readthedocs.io/en/latest/documentation/tractogram_registration.ht
 import argparse
 import logging
 
-import nibabel as nib
 import numpy as np
 
 from scilpy.image.volume_operations import apply_transform

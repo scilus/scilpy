@@ -69,13 +69,13 @@ def streamlines_to_voxel_coordinates(streamlines, return_mapping=False):
         cnp.npy_intp max_points = (streamlines._data.size // 3)
 
     new_array_sequence = nib.streamlines.array_sequence.ArraySequence()
-    new_array_sequence._lengths.resize(nb_streamlines)
-    new_array_sequence._offsets.resize(nb_streamlines)
+    new_array_sequence._lengths.resize(nb_streamlines, refcheck=False)
+    new_array_sequence._offsets.resize(nb_streamlines, refcheck=False)
     new_array_sequence._data = np.empty(max_points * 3, np.uint16)
 
     points_to_index = nib.streamlines.array_sequence.ArraySequence()
-    points_to_index._lengths.resize(nb_streamlines)
-    points_to_index._offsets.resize(nb_streamlines)
+    points_to_index._lengths.resize(nb_streamlines, refcheck=False)
+    points_to_index._offsets.resize(nb_streamlines, refcheck=False)
     points_to_index._data = np.zeros(int(streamlines._data.size / 3), np.uint16)
 
     cdef:

@@ -17,7 +17,6 @@ To:
 import argparse
 import logging
 
-import nibabel as nib
 import numpy as np
 
 from scilpy.io.utils import (add_verbose_arg, add_overwrite_arg,
@@ -86,12 +85,12 @@ def main():
     if args.enforce_voxel_size and not args.voxel_size:
         parser.error("Cannot enforce voxel size without a voxel size.")
 
-    if args.volume_size and (not len(args.volume_size) == 1 and
-                             not len(args.volume_size) == 3):
+    if args.volume_size and (not len(args.volume_size) == 1
+                             and not len(args.volume_size) == 3):
         parser.error('Invalid dimensions for --volume_size.')
 
-    if args.voxel_size and (not len(args.voxel_size) == 1 and
-                            not len(args.voxel_size) == 3):
+    if args.voxel_size and (not len(args.voxel_size) == 1
+                            and not len(args.voxel_size) == 3):
         parser.error('Invalid dimensions for --voxel_size.')
 
     logging.info('Loading raw data from %s', args.in_image)
@@ -100,15 +99,15 @@ def main():
 
     ref_img = None
     if args.ref:
-        ref_img = nib.load(args.ref)
+        ref_img = StatefulImage.load(args.ref)
 
         # Must not verify that headers are compatible. But can verify that, at
         # least, the first columns of their affines are compatible.
-        img_zoom_invert = [1 / zoom for zoom in ref_img.header.get_zooms()[:3]]
+        img_zoom_invert = [1 / zoom for zoom in simg.header.get_zooms()[:3]]
         ref_zoom_invert = [1 / zoom for zoom in ref_img.header.get_zooms()[:3]]
 
-        img_affine = np.dot(simg.affine[:3, :3], img_zoom_invert)
-        ref_affine = np.dot(ref_img.affine[:3, :3], ref_zoom_invert)
+        img_affine = np.dot(simg.affine[:3, :3], np.diag(img_zoom_invert))
+        ref_affine = np.dot(ref_img.affine[:3, :3], np.diag(ref_zoom_invert))
 
         if not np.allclose(img_affine, ref_affine):
             parser.error("The --ref image should have the same affine as the "

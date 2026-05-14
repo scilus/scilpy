@@ -228,7 +228,7 @@ def _prepare_B1_map(args, flip_angles, extended_dir, affine):
     """
     B1_map = None
     if args.in_B1_map and args.in_mtoff_t1:
-        B1_img = nib.load(args.in_B1_map)
+        B1_img, _ = load_img(args.in_B1_map)
         B1_map = B1_img.get_fdata(dtype=np.float32)
         B1_map = adjust_B1_map_intensities(B1_map, nominal=args.B1_nominal)
         B1_map = smooth_B1_map(B1_map, wdims=args.B1_smooth_dims)

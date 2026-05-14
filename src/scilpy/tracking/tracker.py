@@ -112,10 +112,6 @@ class Tracker(object):
 
         self.origin = self.propagator.origin
         self.space = self.propagator.space
-        if self.space == Space.RASMM:
-            raise NotImplementedError(
-                "This version of the Tracker is not ready to work in RASMM "
-                "space.")
         if (seed_generator.origin != propagator.origin or
                 seed_generator.space != propagator.space):
             raise ValueError("Seed generator and propagator must work with "
@@ -159,7 +155,8 @@ class Tracker(object):
         mask_data = np.zeros(reference_img.shape[:3], dtype=np.uint8)
 
         # Convert coordinates to voxel space and set mask values
-        # Each element is a tuple (coord, coord_type) where coord_type is 1 (entry) or 2 (exit)
+        # Each element is a tuple (coord, coord_type) where coord_type is 1
+        # (entry) or 2 (exit)
         for coord, coord_type in self.rap_entry_exit_coords:
             # Coordinates are already in voxel space (VOX, center)
             # Round to nearest integer voxel
@@ -168,7 +165,7 @@ class Tracker(object):
             # Check bounds
             if (0 <= vox_coord[0] < mask_data.shape[0] and
                 0 <= vox_coord[1] < mask_data.shape[1] and
-                0 <= vox_coord[2] < mask_data.shape[2]):
+                    0 <= vox_coord[2] < mask_data.shape[2]):
                 # Use max to handle overlapping entry/exit points
                 # If both entry and exit occur at same voxel, exit (2) will prevail
                 mask_data[vox_coord[0], vox_coord[1], vox_coord[2]] = max(
@@ -182,7 +179,8 @@ class Tracker(object):
         entry_count = sum(1 for _, t in self.rap_entry_exit_coords if t == 1)
         exit_count = sum(1 for _, t in self.rap_entry_exit_coords if t == 2)
         logging.info(f"Saved RAP entry/exit mask to {output_path}")
-        logging.info(f"Entry coordinates: {entry_count}, Exit coordinates: {exit_count}")
+        logging.info(
+            f"Entry coordinates: {entry_count}, Exit coordinates: {exit_count}")
         logging.info(f"Unique voxels with entry (1): {np.sum(mask_data == 1)}, "
                      f"exit (2): {np.sum(mask_data == 2)}")
 
@@ -309,7 +307,6 @@ class Tracker(object):
             List of list of 3D positions (streamlines).
         """
         chunk_id, lock = params
-        global multiprocess_init_args
 
         self._reload_data_for_new_process(multiprocess_init_args)
         try:
@@ -392,7 +389,7 @@ class Tracker(object):
             # on current process ID.
             eps = s + chunk_id / (self.nbr_processes + 1)
             line_generator = np.random.default_rng(
-                np.abs(hash((seed + (eps, eps, eps), self.rng_seed))))
+                np.abs(hash((tuple(seed + (eps, eps, eps)), self.rng_seed))))
 
             # Forward and backward tracking
             line = self._get_line_both_directions(seed, line_generator)
@@ -509,7 +506,8 @@ class Tracker(object):
 
             # Detect entering RAP region
             if is_currently_in_rap and not in_rap_region:
-                self.rap_entry_exit_coords.append((line[-1].copy(), 1))  # 1 for entry
+                self.rap_entry_exit_coords.append(
+                    (line[-1].copy(), 1))  # 1 for entry
                 in_rap_region = True
                 logging.debug(f"TRACKER ENTERING pos={np.round(line[-1], 2)}")
 
@@ -527,7 +525,8 @@ class Tracker(object):
                 new_pos = line[-1]
 
                 # Verify that our RAP propagated point stays within the tracking mask
-                propagation_can_continue = self._verify_stopping_criteria(new_pos)
+                propagation_can_continue = self._verify_stopping_criteria(
+                    new_pos)
                 if not propagation_can_continue:
                     logging.debug("TRACKER out of mask, stop.")
                     line.pop()
@@ -547,13 +546,16 @@ class Tracker(object):
                     if invalid_direction_count > self.max_invalid_dirs:
                         break
 
-                propagation_can_continue = self._verify_stopping_criteria(new_pos)
+                propagation_can_continue = self._verify_stopping_criteria(
+                    new_pos)
                 if propagation_can_continue or self.append_last_point:
                     line.append(new_pos)
 
             previous_dir = new_dir
 
-        logging.debug(f"TRACKER end of propagation: {len(line)} total points, last pos={np.round(line[-1], 2)}")
+        logging.debug(
+            "TRACKER end of propagation: {} total points, last pos={}"
+            .format(len(line), np.round(line[-1], 2)))
         return line
 
     def _verify_stopping_criteria(self, last_pos):
@@ -614,6 +616,7 @@ class GPUTracker():
         GPU tracking mode. `prob` samples directions from the SF and `det`
         follows the maximum SF direction.
     """
+
     def __init__(self, sh, mask, seeds, step_size, max_nbr_pts,
                  theta=20.0, sf_threshold=0.1, sh_interp='trilinear',
                  sh_basis='descoteaux07', is_legacy=True, batch_size=100000,
@@ -697,7 +700,8 @@ class GPUTracker():
                              'true' if self.forward_only else 'false')
         cl_kernel.set_define('PROBABILISTIC',
                              'true' if self.probabilistic else 'false')
-        cl_kernel.set_define('RNG_SEED', '{}u'.format(np.uint32(self.rng_seed)))
+        cl_kernel.set_define(
+            'RNG_SEED', '{}u'.format(np.uint32(self.rng_seed)))
         cl_kernel.set_define('SF_THRESHOLD',
                              '{:.8f}f'.format(self.sf_threshold))
         cl_kernel.set_define('SH_INTERP_NN',

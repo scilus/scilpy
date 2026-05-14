@@ -24,6 +24,7 @@ import nibabel as nib
 import numpy as np
 
 from scilpy.io.image import get_data_as_mask
+from scilpy.io.stateful_image import StatefulImage
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg, add_reference_arg,
                              add_sh_basis_args, add_verbose_arg,
@@ -139,12 +140,15 @@ def main():
 
     if args.out_todi_sh:
         sh_basis, is_legacy = parse_sh_basis_arg(args)
-        img = todi_obj.get_sh(sh_basis, args.sh_order,
-                              full_basis=args.asymmetric,
-                              is_legacy=is_legacy)
-        img = todi_obj.reshape_to_3d(img)
-        img = nib.Nifti1Image(img.astype(np.float32), affine)
-        img.to_filename(args.out_todi_sh)
+        data = todi_obj.get_sh(sh_basis, args.sh_order,
+                               full_basis=args.asymmetric,
+                               is_legacy=is_legacy)
+        data = todi_obj.reshape_to_3d(data).astype(np.float32)
+        simg = StatefulImage(data, affine, sh_basis=sh_basis,
+                             is_legacy=is_legacy, is_orientation=True,
+                             is_world_space=False)
+        simg.to_world_direction()
+        nib.save(simg, args.out_todi_sh)
 
     if args.out_tdi:
         img = todi_obj.get_tdi()
@@ -153,6 +157,7 @@ def main():
         img.to_filename(args.out_tdi)
 
     if args.out_todi_sf:
+        # SF rotation is not yet supported in StatefulImage
         img = todi_obj.get_todi()
         img = todi_obj.reshape_to_3d(img)
         img = nib.Nifti1Image(img.astype(np.float32), affine)

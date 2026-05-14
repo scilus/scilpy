@@ -32,6 +32,7 @@ reference.
 import argparse
 import logging
 import nibabel as nib
+import numpy as np
 
 from scilpy.io.utils import (add_overwrite_arg,
                              add_verbose_arg,
@@ -54,6 +55,15 @@ def _build_arg_parser():
     p.add_argument('--new_voxel_order', required=True,
                    help='The new voxel order (e.g., "RAS", "1,2,3").')
 
+    p.add_argument('--in_bvec',
+                   help='Path of the b-vectors file.')
+    p.add_argument('--in_bval',
+                   help='Path of the b-values file.')
+    p.add_argument('--out_bvec',
+                   help='Path of the modified b-vectors file to write.')
+    p.add_argument('--out_bval',
+                   help='Path of the modified b-values file to write.')
+
     add_verbose_arg(p)
     add_overwrite_arg(p)
 
@@ -65,18 +75,41 @@ def main():
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
-    assert_inputs_exist(parser, args.in_image)
-    assert_outputs_exist(parser, args, args.out_image)
+    assert_inputs_exist(parser, args.in_image, args.in_bvec)
+    assert_outputs_exist(parser, args, args.out_image, args.out_bvec)
 
     img = nib.load(args.in_image)
     simg = StatefulImage.load(args.in_image)
+
+    if args.in_bvec:
+        bvecs = np.loadtxt(args.in_bvec)
+        if bvecs.shape[0] == 3 and bvecs.shape[1] != 3:
+            bvecs = bvecs.T
+
+        # Create dummy bvals to satisfy StatefulImage validation
+        bvals = np.zeros(len(bvecs))
+        simg.attach_gradients(bvals, bvecs)
 
     parsed_voxel_order = parse_voxel_order(args.new_voxel_order,
                                            dimensions=len(img.shape))
 
     simg.reorient(parsed_voxel_order)
 
-    nib.save(simg, args.out_image)
+    # To enforce the new voxel order in the header, we need to create
+    # a new StatefulImage, which will update the header accordingly.
+    new_simg = StatefulImage.convert_to_simg(simg, simg.bvals, simg.bvecs)
+    new_simg.save(args.out_image)
+
+    if args.in_bvec and args.out_bvec:
+        if args.in_bval and args.out_bval:
+            new_simg.save_gradients(args.out_bval, args.out_bvec)
+        else:
+            # If no bval file or no output bval path, save only bvecs.
+            # new_simg.bvecs returns bvecs in the current (new) orientation.
+            np.savetxt(args.out_bvec, new_simg.bvecs.T, fmt='%.8f')
+            if args.in_bval and not args.out_bval:
+                logging.warning("b-values were provided but no output path "
+                                "was specified. b-values will not be saved.")
 
 
 if __name__ == "__main__":

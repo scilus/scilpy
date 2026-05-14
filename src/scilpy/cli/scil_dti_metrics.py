@@ -25,12 +25,10 @@ MRM 2011].
 import argparse
 import logging
 
-import nibabel as nib
 import numpy as np
 
 from dipy.core.gradients import gradient_table
 import dipy.denoise.noise_estimate as ne
-from dipy.io.gradients import read_bvals_bvecs
 from dipy.reconst.dti import (TensorModel, color_fa, fractional_anisotropy,
                               geodesic_anisotropy, mean_diffusivity,
                               axial_diffusivity, norm,
@@ -41,6 +39,7 @@ from dipy.reconst.dti import mode as dipy_mode
 from scilpy.dwi.operations import compute_residuals, \
     compute_residuals_statistics
 from scilpy.io.image import get_data_as_mask
+from scilpy.io.stateful_image import StatefulImage
 from scilpy.io.utils import (add_b0_thresh_arg, add_overwrite_arg,
                              add_skip_b0_check_arg, add_verbose_arg,
                              assert_inputs_exist, assert_outputs_exist,
@@ -184,18 +183,27 @@ def main():
     assert_headers_compatible(parser, args.in_dwi, args.mask)
 
     # Loading
-    img = nib.load(args.in_dwi)
-    data = img.get_fdata(dtype=np.float32)
-    affine = img.affine
-    mask = get_data_as_mask(nib.load(args.mask),
-                            dtype=bool) if args.mask else None
+    simg = StatefulImage.load(args.in_dwi)
+    simg.load_gradients(args.in_bval, args.in_bvec)
 
-    logging.info('Tensor estimation with the {} method...'.format(args.method))
-    bvals, bvecs = read_bvals_bvecs(args.in_bval, args.in_bvec)
+    # Reorient to RAS for DIPY
+    simg.to_ras()
+
+    data = simg.get_fdata(dtype=np.float32)
+    bvals = simg.bvals
+    bvecs = simg.world_bvecs
 
     if not is_normalized_bvecs(bvecs):
-        logging.warning('Your b-vectors do not seem normalized...')
+        logger.warning('Your b-vectors do not seem normalized...')
         bvecs = normalize_bvecs(bvecs)
+
+    mask = None
+    if args.mask:
+        mask_simg = StatefulImage.load(args.mask)
+        mask_simg.reorient(simg.axcodes)
+        mask = get_data_as_mask(mask_simg, dtype=bool)
+
+    logging.info('Tensor estimation with the {} method...'.format(args.method))
 
     # How the b0_threshold is used: gtab.b0s_mask is used
     # 1) In TensorModel in Dipy:
@@ -229,40 +237,39 @@ def main():
         tensor_vals_reordered = convert_tensor_from_dipy_format(
             tensor_vals, final_format=args.tensor_format)
 
-        fiber_tensors = nib.Nifti1Image(
-            tensor_vals_reordered.astype(np.float32), affine)
-        nib.save(fiber_tensors, args.tensor)
+        StatefulImage.from_data(tensor_vals_reordered.astype(np.float32),
+                                simg).save(args.tensor)
 
-        del tensor_vals, fiber_tensors, tensor_vals_reordered
+        del tensor_vals, tensor_vals_reordered
 
     if args.fa or args.rgb:
         FA = fractional_anisotropy(tenfit.evals)
         FA[np.isnan(FA)] = 0
         FA = np.clip(FA, 0, 1)
         if args.fa:
-            nib.save(nib.Nifti1Image(FA.astype(np.float32), affine), args.fa)
+            StatefulImage.from_data(FA.astype(np.float32), simg).save(args.fa)
 
         if args.rgb:
             RGB = color_fa(FA, tenfit.evecs)
-            nib.save(nib.Nifti1Image(np.array(255 * RGB, 'uint8'), affine),
-                     args.rgb)
+            StatefulImage.from_data(np.array(255 * RGB, 'uint8'),
+                                    simg).save(args.rgb)
 
     if args.ga:
         GA = geodesic_anisotropy(tenfit.evals)
         GA[np.isnan(GA)] = 0
-        nib.save(nib.Nifti1Image(GA.astype(np.float32), affine), args.ga)
+        StatefulImage.from_data(GA.astype(np.float32), simg).save(args.ga)
 
     if args.md:
         MD = mean_diffusivity(tenfit.evals)
-        nib.save(nib.Nifti1Image(MD.astype(np.float32), affine), args.md)
+        StatefulImage.from_data(MD.astype(np.float32), simg).save(args.md)
 
     if args.ad:
         AD = axial_diffusivity(tenfit.evals)
-        nib.save(nib.Nifti1Image(AD.astype(np.float32), affine), args.ad)
+        StatefulImage.from_data(AD.astype(np.float32), simg).save(args.ad)
 
     if args.rd:
         RD = radial_diffusivity(tenfit.evals)
-        nib.save(nib.Nifti1Image(RD.astype(np.float32), affine), args.rd)
+        StatefulImage.from_data(RD.astype(np.float32), simg).save(args.rd)
 
     if args.mode:
         # Compute tensor mode
@@ -271,31 +278,32 @@ def main():
         # Since the mode computation can generate NANs when not masked,
         # we need to remove them.
         non_nan_indices = np.isfinite(inter_mode)
-        mode = np.zeros(inter_mode.shape)
-        mode[non_nan_indices] = inter_mode[non_nan_indices]
-        nib.save(nib.Nifti1Image(mode.astype(np.float32), affine), args.mode)
+        mode_data = np.zeros(inter_mode.shape)
+        mode_data[non_nan_indices] = inter_mode[non_nan_indices]
+        StatefulImage.from_data(mode_data.astype(np.float32),
+                                simg).save(args.mode)
 
     if args.norm:
         NORM = norm(tenfit.quadratic_form)
-        nib.save(nib.Nifti1Image(NORM.astype(np.float32), affine), args.norm)
+        StatefulImage.from_data(NORM.astype(np.float32), simg).save(args.norm)
 
     if args.evecs:
-        evecs = tenfit.evecs.astype(np.float32)
-        nib.save(nib.Nifti1Image(evecs, affine), args.evecs)
+        evecs_data = tenfit.evecs.astype(np.float32)
+        StatefulImage.from_data(evecs_data, simg).save(args.evecs)
 
         # save individual e-vectors also
         for i in range(3):
-            nib.save(nib.Nifti1Image(evecs[..., i], affine),
-                     add_filename_suffix(args.evecs, '_v'+str(i+1)))
+            StatefulImage.from_data(evecs_data[..., i], simg).save(
+                add_filename_suffix(args.evecs, '_v'+str(i+1)))
 
     if args.evals:
-        evals = tenfit.evals.astype(np.float32)
-        nib.save(nib.Nifti1Image(evals, affine), args.evals)
+        evals_data = tenfit.evals.astype(np.float32)
+        StatefulImage.from_data(evals_data, simg).save(args.evals)
 
         # save individual e-values also
         for i in range(3):
-            nib.save(nib.Nifti1Image(evals[..., i], affine),
-                     add_filename_suffix(args.evals, '_e' + str(i+1)))
+            StatefulImage.from_data(evals_data[..., i], simg).save(
+                add_filename_suffix(args.evals, '_e' + str(i+1)))
 
     if args.p_i_signal:
         S0 = np.mean(data[..., gtab.b0s_mask], axis=-1, keepdims=True)
@@ -305,8 +313,8 @@ def main():
         if args.mask is not None:
             pis_mask *= mask
 
-        nib.save(nib.Nifti1Image(pis_mask.astype(np.int16), affine),
-                 args.p_i_signal)
+        StatefulImage.from_data(pis_mask.astype(np.int16),
+                                simg).save(args.p_i_signal)
 
     if args.pulsation:
         STD = np.std(data[..., ~gtab.b0s_mask], axis=-1)
@@ -314,8 +322,8 @@ def main():
         if args.mask is not None:
             STD *= mask
 
-        nib.save(nib.Nifti1Image(STD.astype(np.float32), affine),
-                 add_filename_suffix(args.pulsation, '_std_dwi'))
+        StatefulImage.from_data(STD.astype(np.float32), simg).save(
+            add_filename_suffix(args.pulsation, '_std_dwi'))
 
         if np.sum(gtab.b0s_mask) <= 1:
             logger.info('Not enough b=0 images to output standard '
@@ -330,8 +338,8 @@ def main():
             if args.mask is not None:
                 STD *= mask
 
-            nib.save(nib.Nifti1Image(STD.astype(np.float32), affine),
-                     add_filename_suffix(args.pulsation, '_std_b0'))
+            StatefulImage.from_data(STD.astype(np.float32), simg).save(
+                add_filename_suffix(args.pulsation, '_std_b0'))
 
     if args.residual:
         if mask is None:
@@ -354,7 +362,7 @@ def main():
         R, data_diff = compute_residuals(
             predicted_data=tenfit2_predict.astype(np.float32),
             real_data=data, b0s_mask=gtab.b0s_mask, mask=mask)
-        nib.save(nib.Nifti1Image(R.astype(np.float32), affine), args.residual)
+        StatefulImage.from_data(R.astype(np.float32), simg).save(args.residual)
 
         # Each volume's residual statistics
         R_k, q1, q3, iqr, std = compute_residuals_statistics(data_diff)

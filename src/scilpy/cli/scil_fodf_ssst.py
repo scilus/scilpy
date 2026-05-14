@@ -12,22 +12,24 @@ import logging
 
 from dipy.core.gradients import gradient_table
 from dipy.data import get_sphere
-from dipy.io.gradients import read_bvals_bvecs
 from dipy.reconst.csdeconv import ConstrainedSphericalDeconvModel
 import nibabel as nib
 import numpy as np
 
+from scilpy.dwi.operations import compute_dwi_attenuation
 from scilpy.gradients.bvec_bval_tools import (check_b0_threshold,
+                                              identify_shells,
                                               normalize_bvecs,
                                               is_normalized_bvecs)
 from scilpy.io.image import get_data_as_mask
+from scilpy.io.stateful_image import StatefulImage
 from scilpy.io.utils import (add_b0_thresh_arg, add_overwrite_arg,
                              add_processes_arg, add_sh_basis_args,
                              add_skip_b0_check_arg, add_verbose_arg,
                              assert_inputs_exist, assert_outputs_exist,
                              parse_sh_basis_arg, assert_headers_compatible)
 from scilpy.reconst.fodf import fit_from_model
-from scilpy.reconst.sh import convert_sh_basis
+from scilpy.reconst.sh import convert_sh_basis, verify_data_vs_sh_order
 from scilpy.version import version_string
 
 
@@ -54,6 +56,11 @@ def _build_arg_parser():
         '--mask', metavar='',
         help='Path to a binary mask. Only the data inside the mask will be '
              'used \nfor computations and reconstruction.')
+    p.add_argument(
+        '--voxel_wise_s0', action='store_true',
+        help='If set, performs voxel-wise S0 normalization before '
+             'deconvolution. \nIn this case, the mean_b0_val from the '
+             'FRF file is ignored.')
 
     add_b0_thresh_arg(p)
     add_skip_b0_check_arg(p, will_overwrite_with_min=True)
@@ -77,24 +84,25 @@ def main():
 
     # Loading data
     full_frf = np.loadtxt(args.frf_file)
-    vol = nib.load(args.in_dwi)
-    data = vol.get_fdata(dtype=np.float32)
-    bvals, bvecs = read_bvals_bvecs(args.in_bval, args.in_bvec)
+    simg = StatefulImage.load(args.in_dwi)
+    simg.load_gradients(args.in_bval, args.in_bvec)
+
+    # Reorient to RAS for DIPY
+    simg.to_ras()
+
+    data = simg.get_fdata(dtype=np.float32)
+    bvals = simg.bvals
+    bvecs = simg.world_bvecs
 
     # Checking mask
-    mask = get_data_as_mask(nib.load(args.mask),
-                            dtype=bool) if args.mask else None
+    mask = None
+    if args.mask:
+        mask_simg = StatefulImage.load(args.mask)
+        mask_simg.to_ras()
+        mask = get_data_as_mask(mask_simg, dtype=bool)
 
     sh_order = args.sh_order
     sh_basis, is_legacy = parse_sh_basis_arg(args)
-
-    # Checking data and sh_order
-    if data.shape[-1] < (sh_order + 1) * (sh_order + 2) / 2:
-        logging.warning(
-            'We recommend having at least {} unique DWI volumes, but you '
-            'currently have {} volumes. Try lowering the parameter sh_order '
-            'in case of non convergence.'.format(
-                (sh_order + 1) * (sh_order + 2) / 2, data.shape[-1]))
 
     # Checking bvals, bvecs values and loading gtab
     if not is_normalized_bvecs(bvecs):
@@ -107,12 +115,44 @@ def main():
                                            skip_b0_check=args.skip_b0_check)
     gtab = gradient_table(bvals, bvecs=bvecs, b0_threshold=args.b0_threshold)
 
+    # Checking data and sh_order
+    verify_data_vs_sh_order(data, sh_order, gtab=gtab)
+
+    # Checking shells
+    shells_centroids, _ = identify_shells(bvals, args.b0_threshold,
+                                          round_centroids=True)
+    dwi_shells = shells_centroids[shells_centroids > args.b0_threshold]
+    shells_centroids = list(sorted(shells_centroids[shells_centroids > args.b0_threshold]))
+    min_non_b0_shell = np.min(shells_centroids) if len(shells_centroids) > 0 else 0
+    max_non_b0_delta = np.ediff1d(shells_centroids)[0] if len(shells_centroids) > 1 else 0
+    if max_non_b0_delta >= min_non_b0_shell:
+        logging.warning(
+             'Your shells seem to be very far apart (max delta: {}, min non-b0 shell: {}). '
+             'This might cause problems for the estimation of the FRF. '
+             'Consider using scil_frf_msmt.py.'.format(max_non_b0_delta, min_non_b0_shell))
+
+    if len(dwi_shells) > 0 and np.max(dwi_shells) < 900 and sh_order > 4:
+        logging.warning(
+            'Your maximum b-value ({}) is relatively low. '
+            'High SH order ({}) might be unstable. '
+            'Consider using --sh_order 4.'.format(np.max(dwi_shells), sh_order))
+
     # Checking full_frf and separating it
     if not full_frf.shape[0] == 4:
         raise ValueError('FRF file did not contain 4 elements. '
                          'Invalid or deprecated FRF format')
     frf = full_frf[0:3]
     mean_b0_val = full_frf[3]
+
+    if args.voxel_wise_s0:
+        if np.any(gtab.b0s_mask):
+            logging.info("Applying voxel-wise S0 normalization.")
+            b0_mean = np.mean(data[..., gtab.b0s_mask], axis=-1)
+            data = compute_dwi_attenuation(data, b0_mean)
+            mean_b0_val = 1.0
+        else:
+            logging.warning("Voxel-wise S0 normalization requested but no b0 "
+                            "volumes found. Skipping normalization.")
 
     # Loading the sphere
     reg_sphere = get_sphere(name='symmetric362')
@@ -134,9 +174,11 @@ def main():
                                  is_input_legacy=True,
                                  is_output_legacy=is_legacy,
                                  nbr_processes=args.nbr_processes)
-    nib.save(nib.Nifti1Image(shm_coeff.astype(np.float32),
-                             affine=vol.affine,
-                             header=vol.header), args.out_fODF)
+
+    fodf_img = nib.Nifti1Image(shm_coeff.astype(np.float32),
+                               affine=simg.affine,
+                               header=simg.header)
+    StatefulImage.create_from(fodf_img, simg).save(args.out_fODF)
 
 
 if __name__ == "__main__":
