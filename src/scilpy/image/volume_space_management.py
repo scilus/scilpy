@@ -19,6 +19,22 @@ from dipy.reconst.shm import sf_to_sh
 class DataVolume(object):
     """
     Class to access/interpolate data from nibabel object
+
+    Tensor interpolation notes
+    --------------------------
+    The tensor interpolation path supports a Log-Euclidean mode for 6-coefficient
+    DTI volumes. This follows the idea of interpolating symmetric positive-definite
+    matrices in the log-domain and then mapping the result back with the matrix
+    exponential.
+
+    References
+    ~~~~~~~~~~
+    Arsigny, V., Fillard, P., Pennec, X., Ayache, N. (2007). Geometric Means in a
+    Novel Vector Space Structure on Symmetric Positive-Definite Matrices. SIAM
+    Journal on Matrix Analysis and Applications, 29(1), 328-347.
+
+    Pennec, X., Fillard, P., Ayache, N. (2006). A Riemannian Framework for Tensor
+    Computing. International Journal of Computer Vision, 66, 41-66.
     """
 
     def __init__(self, data, voxres, interpolation=None, must_be_3d=False):
@@ -30,18 +46,18 @@ class DataVolume(object):
         voxres: np.array(3,)
             The pixel resolution, ex, using img.header.get_zooms()[:3].
         interpolation: str or None
-            The interpolation choice amongst "trilinear" or "nearest". If
-            None, functions getting a coordinate in mm instead of voxel
+            The interpolation choice amongst "trilinear" or "nearest" or "log_euclidean".
+            If None, functions getting a coordinate in mm instead of voxel
             coordinates are not available.
         must_be_3d: bool
             If True, dataset can't be 4D.
         """
         self.interpolation = interpolation
         if self.interpolation:
-            if not (self.interpolation == 'trilinear' or
-                    self.interpolation == 'nearest'):
-                raise Exception("Interpolation must be 'trilinear' or "
-                                "'nearest'")
+            if self.interpolation not in ['trilinear', 'nearest',
+                                          'log_euclidean']:
+                raise Exception("Interpolation must be 'trilinear', "
+                                "'nearest' or 'log_euclidean'")
 
         self.data = data
         self.nb_coeffs = data.shape[-1]
@@ -255,6 +271,8 @@ class DataVolume(object):
                 # They use round(point), not floor. This is the equivalent of
                 # origin = 'center'.
                 result = nearestneighbor_interpolate(self.data, coord)
+            elif self.interpolation == 'log_euclidean':
+                result = self._log_euclidean_interpolate4d(coord)
             else:
                 # Trilinear
                 # They do not say it explicitly but they verify if
@@ -268,6 +286,107 @@ class DataVolume(object):
         else:
             raise Exception("No interpolation method was given, cannot run "
                             "this method..")
+
+    @staticmethod
+    def _lo_tri_to_tensor(lo_tri):
+        dxx, dxy, dyy, dxz, dyz, dzz = lo_tri
+        return np.array([[dxx, dxy, dxz],
+                         [dxy, dyy, dyz],
+                         [dxz, dyz, dzz]], dtype=np.float64)
+
+    @staticmethod
+    def _tensor_to_lo_tri(tensor):
+        return np.array([tensor[0, 0], tensor[0, 1], tensor[1, 1],
+                         tensor[0, 2], tensor[1, 2], tensor[2, 2]],
+                        dtype=np.float64)
+
+    @staticmethod
+    def _spd_logm(tensor, eps=1e-12):
+        eigvals, eigvecs = np.linalg.eigh(tensor)
+        eigvals = np.maximum(eigvals, eps)
+        return eigvecs @ np.diag(np.log(eigvals)) @ eigvecs.T
+
+    @staticmethod
+    def _spd_expm(sym_tensor):
+        eigvals, eigvecs = np.linalg.eigh(sym_tensor)
+        return eigvecs @ np.diag(np.exp(eigvals)) @ eigvecs.T
+
+    def _log_euclidean_interpolate4d(self, coord):
+        """
+        Interpolate a 4D tensor volume using Log-Euclidean interpolation.
+
+        The input volume must store diffusion tensors in lower-triangular
+        6-coefficient form: [Dxx, Dxy, Dyy, Dxz, Dyz, Dzz]. Each tensor is
+        converted to a 3x3 SPD matrix, mapped to the log-domain, interpolated
+        with trilinear weights in that domain, and mapped back with the matrix
+        exponential.
+
+        Parameters
+        ----------
+        coord: ndarray shape (3,)
+            Coordinate in voxel space, already converted to center-origin
+            indexing.
+
+        Returns
+        -------
+        ndarray shape (6,)
+            Interpolated tensor coefficients in lower-triangular form.
+
+        Notes
+        -----
+        This implementation assumes SPD tensors. Eigenvalues are clamped to a
+        small positive epsilon before taking the logarithm to avoid numerical
+        issues on nearly-singular tensors.
+        """
+        if self.data.shape[-1] != 6:
+            raise ValueError("log_euclidean interpolation requires 6 tensor "
+                             "coefficients per voxel.")
+
+        # Convert center-based coordinates ([-0.5, N-0.5)) to index space
+        # ([0, N)) for trilinear weights.
+        idx_coord = coord + 0.5
+
+        x0 = int(np.floor(idx_coord[0]))
+        y0 = int(np.floor(idx_coord[1]))
+        z0 = int(np.floor(idx_coord[2]))
+
+        x0 = np.clip(x0, 0, self.dim[0] - 1)
+        y0 = np.clip(y0, 0, self.dim[1] - 1)
+        z0 = np.clip(z0, 0, self.dim[2] - 1)
+
+        x1 = min(x0 + 1, self.dim[0] - 1)
+        y1 = min(y0 + 1, self.dim[1] - 1)
+        z1 = min(z0 + 1, self.dim[2] - 1)
+
+        dx = idx_coord[0] - x0
+        dy = idx_coord[1] - y0
+        dz = idx_coord[2] - z0
+
+        if x1 == x0:
+            dx = 0.0
+        if y1 == y0:
+            dy = 0.0
+        if z1 == z0:
+            dz = 0.0
+
+        weighted_log_tensor = np.zeros((3, 3), dtype=np.float64)
+        corners = [(x0, y0, z0, (1.0 - dx) * (1.0 - dy) * (1.0 - dz)),
+                   (x1, y0, z0, dx * (1.0 - dy) * (1.0 - dz)),
+                   (x0, y1, z0, (1.0 - dx) * dy * (1.0 - dz)),
+                   (x1, y1, z0, dx * dy * (1.0 - dz)),
+                   (x0, y0, z1, (1.0 - dx) * (1.0 - dy) * dz),
+                   (x1, y0, z1, dx * (1.0 - dy) * dz),
+                   (x0, y1, z1, (1.0 - dx) * dy * dz),
+                   (x1, y1, z1, dx * dy * dz)]
+
+        for i, j, k, w in corners:
+            if w == 0.0:
+                continue
+            tensor = self._lo_tri_to_tensor(self.data[i, j, k])
+            weighted_log_tensor += w * self._spd_logm(tensor)
+
+        interp_tensor = self._spd_expm(weighted_log_tensor)
+        return self._tensor_to_lo_tri(interp_tensor)
 
     def _is_vox_in_bound(self, x, y, z, origin):
         """

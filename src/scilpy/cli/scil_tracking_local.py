@@ -41,9 +41,10 @@ implementations:
     * Forward tracking: For GPU tracking, the `--forward_only` flag can be used
         to disable backward tracking. This option isn't available for CPU
         tracking.
-    * Random number generator seed (RNG): CPU and GPU use different RNG implementations,<
-        so the same `--seed` is reproducible within a backend but does not guarantee
-        identical streamlines across CPU vs GPU tracking.
+    * Random number generator seed (RNG): CPU and GPU use different RNG
+        implementations, so the same `--seed` is reproducible within a
+        backend but does not guarantee identical streamlines
+        across CPU vs GPU tracking.
 
 All the input nifti files must be in isotropic resolution.
 
@@ -71,12 +72,13 @@ from dipy.tracking.local_tracking import LocalTracking
 from dipy.tracking.stopping_criterion import BinaryStoppingCriterion
 from dipy.tracking.tracker import eudx_tracking
 from scilpy.io.image import get_data_as_mask
-from scilpy.io.utils import (add_sphere_arg, add_verbose_arg,
+from scilpy.io.utils import (add_verbose_arg,
                              assert_headers_compatible, assert_inputs_exist,
                              assert_outputs_exist, parse_sh_basis_arg,
                              verify_compression_th, load_matrix_in_any_format)
 from scilpy.tracking.tracker import GPUTracker
 from scilpy.tracking.utils import (add_mandatory_options_tracking,
+                                   add_tracking_sh_options,
                                    add_out_options, add_seeding_options,
                                    add_tracking_options,
                                    add_tracking_ptt_options,
@@ -100,6 +102,7 @@ def _build_arg_parser():
     # Options that are the same in this script and scil_tracking_local_dev:
     add_mandatory_options_tracking(p)
     track_g = add_tracking_options(p)
+    add_tracking_sh_options(p)
     add_seeding_options(p)
 
     # Other options, only available in this script:
@@ -110,11 +113,7 @@ def _build_arg_parser():
     track_g.add_argument('--algo', default='prob',
                          choices=['det', 'prob', 'ptt', 'eudx'],
                          help='Algorithm to use. [%(default)s]')
-    add_sphere_arg(track_g, symmetric_only=False)
-    track_g.add_argument('--sub_sphere',
-                         type=int, default=0,
-                         help='Subdivides each face of the sphere into 4^s new'
-                              ' faces. [%(default)s]')
+
     add_tracking_ptt_options(p)
     gpu_g = p.add_argument_group('GPU options')
     gpu_g.add_argument('--use_gpu', action='store_true',
@@ -131,7 +130,6 @@ def _build_arg_parser():
                             ' [{}]'.format(DEFAULT_BATCH_SIZE))
 
     out_g = add_out_options(p)
-
     out_g.add_argument('--seed', type=int,
                        help='Random number generator seed.')
 

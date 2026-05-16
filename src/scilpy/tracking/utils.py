@@ -17,7 +17,9 @@ from dipy.io.utils import create_tractogram_header, get_reference_info
 from dipy.reconst.shm import sh_to_sf_matrix
 from dipy.tracking.streamlinespeed import compress_streamlines, length
 from scilpy.io.utils import (add_compression_arg, add_overwrite_arg,
-                             add_sh_basis_args)
+                             add_sh_basis_args, add_sphere_arg)
+from scilpy.io.tensor import (supported_tensor_formats,
+                              tensor_format_description)
 from scilpy.reconst.utils import find_order_from_nb_coeff, get_maximas
 
 
@@ -32,35 +34,12 @@ class TrackingDirection(list):
         self.index = index
 
 
-def add_mandatory_options_tracking(p, fodf_optional=False):
+def add_mandatory_options_tracking(p, fodf_mandatory=True):
     """
     Args that are required in both scil_tracking_local and
     scil_tracking_local_dev scripts.
     """
-    if fodf_optional:
-        odf_group = p.add_mutually_exclusive_group()
-        odf_group.add_argument('--in_odf', default=None,
-                               help='File containing the orientation \n'
-                               'diffusion function as spherical harmonics \n'
-                               'file (.nii.gz). Ex: ODF or fODF. \n'
-                               'If not provided, fODF info must be \n'
-                               'specified in rap_policies.json.')
-        odf_group.add_argument('--rap_params', default=None,
-                               help='JSON file containing RAP parameters, \n'
-                               'mutually exclusive with --in_odf.\n'
-                               'Required for --rap_method switch.\n'
-                               'Expected format:\n'
-                                    '{\n'
-                                    '  "methods": {\n'
-                                    '    "1": {"propagator": "ODF", "filename": str,\n'
-                                    '          "sh_basis": str, "algo": str,\n'
-                                    '          "theta": float, "step_size": float},\n'
-                                    '    "2": {"propagator": "ODF", "filename": str,\n'
-                                    '          "sh_basis": str, "algo": str,\n'
-                                    '          "theta": float, "step_size": float}\n'
-                                    '  }\n'
-                                    '}')
-    else:
+    if fodf_mandatory:
         p.add_argument('in_odf',
                        help='File containing the orientation diffusion function \n'
                             'as spherical harmonics file (.nii.gz). \n'
@@ -97,13 +76,51 @@ def add_tracking_options(p):
                               'too big, streamline is \nstopped and the '
                               'following point is NOT included.\n'
                               '["eudx"=60, "det"=45, "prob"=20, "ptt"=20]')
-    track_g.add_argument('--sfthres', dest='sf_threshold', metavar='sf_th',
-                         type=float, default=0.1,
-                         help='Spherical function relative threshold. '
-                              '[%(default)s]')
-    add_sh_basis_args(track_g)
-
     return track_g
+
+
+def add_tracking_tensor_options(p):
+    tensor_options = p.add_argument_group('Tensor options')
+    tensor_options.add_argument('--tensor_format', type=str, default='dipy',
+                                choices=supported_tensor_formats,
+                                help="Format of the input tensor file.\n"
+                                     "Only used with --in_tensor. [%(default)s]\n" +
+                                     tensor_format_description)
+    tensor_options.add_argument('--tensor_interp', type=str,
+                                default='log_euclidean',
+                                choices=['nearest', 'trilinear',
+                                         'log_euclidean'],
+                                help="Tensor interpolation method. "
+                                     "Only used with --in_tensor. "
+                                     "[%(default)s]")
+    tensor_options.add_argument('--std', type=float, default=0.1,
+                                help="Standard deviation of the noise added "
+                                     "to the direction for prob tensor-based tracking.")
+
+
+def add_tracking_sh_options(p):
+    sh_options = p.add_argument_group('Spherical harmonics options')
+    add_sphere_arg(sh_options, symmetric_only=False)
+    sh_options.add_argument('--sub_sphere',
+                            type=int, default=0,
+                            help='Subdivides each face of the sphere into 4^s new'
+                                 ' faces. [%(default)s]')
+    sh_options.add_argument('--sfthres_init', metavar='sf_th', type=float,
+                            default=0.5, dest='sf_threshold_init',
+                            help="Spherical function relative threshold value "
+                                 "for the \ninitial direction. [%(default)s]")
+    sh_options.add_argument('--rk_order', metavar="K", type=int, default=1,
+                            choices=[1, 2, 4],
+                            help="The order of the Runge-Kutta integration used "
+                                 "for the step function.\n"
+                                 "For more information, refer to the note in the"
+                                 " script description. [%(default)s]")
+    sh_options.add_argument('--sfthres', dest='sf_threshold', metavar='sf_th',
+                            type=float, default=0.1,
+                            help='Spherical function relative threshold. '
+                                 '[%(default)s]')
+    add_sh_basis_args(sh_options)
+    return sh_options
 
 
 def add_tracking_ptt_options(p):

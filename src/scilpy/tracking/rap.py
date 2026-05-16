@@ -163,6 +163,25 @@ class RAPSwitch(RAP):
                 self.propagator = new_propagator
                 logging.debug(f"RAP propagator switched to default label {self._propagators.keys()[0]}")
 
+        # Normalize previous direction representation when switching
+        # propagator families.
+        #
+        # ODF propagators rely on TrackingDirection.index to lookup angular
+        # neighborhoods on the discrete sphere (tracking_neighbours). Tensor
+        # propagators only need the Cartesian direction and can operate on a
+        # plain ndarray.
+        #
+        # Therefore:
+        # - Tensor -> ODF: wrap/quantize direction using prepare_backward so
+        #   an index is available on the target ODF sphere.
+        # - ODF -> Tensor: drop the index and keep only Cartesian components
+        #   to avoid carrying stale sphere metadata across models.
+        prev_direction_has_index = getattr(prev_direction, 'index', None) is not None
+        if hasattr(self.propagator, 'tracking_neighbours') and not prev_direction_has_index:
+            prev_direction = self.propagator.prepare_backward(line, prev_direction)
+        elif not hasattr(self.propagator, 'tracking_neighbours') and prev_direction_has_index:
+            prev_direction = np.asarray(prev_direction)
+
         # Perform propagation with new parameters
         new_pos, new_dir, is_direction_valid = self.propagator.propagate(
             line, prev_direction)
