@@ -30,9 +30,9 @@ def recursive_update(d, u, from_existing=False):
                                         from_existing=from_existing)
         else:
             if not from_existing:
-                d[k] = float('nan')
+                d[k] = float("nan")
             elif k not in d:
-                d[k] = float('nan')
+                d[k] = float("nan")
     return d
 
 

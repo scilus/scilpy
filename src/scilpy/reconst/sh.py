@@ -5,19 +5,20 @@ import multiprocessing
 import numpy as np
 
 from dipy.core.sphere import Sphere
+from dipy.core.subdivide_octahedron import create_unit_sphere
 from dipy.direction.peaks import peak_directions
 from dipy.reconst.odf import gfa
 from dipy.reconst.shm import (sh_to_sf_matrix, order_from_ncoef, sf_to_sh,
                               sph_harm_ind_list)
-
 from scilpy.gradients.bvec_bval_tools import (identify_shells,
                                               is_normalized_bvecs,
                                               normalize_bvecs,
                                               DEFAULT_B0_THRESHOLD)
 from scilpy.dwi.operations import compute_dwi_attenuation
+from scilpy.reconst.utils import get_sh_order_and_fullness
 
 
-def verify_data_vs_sh_order(data, sh_order):
+def verify_data_vs_sh_order(data, sh_order, gtab=None):
     """
     Raises a warning if the dwi data shape is not enough for the chosen
     sh_order.
@@ -28,13 +29,24 @@ def verify_data_vs_sh_order(data, sh_order):
         Diffusion signal as weighted images (4D).
     sh_order: int
         SH order to fit, by default 4.
+    gtab: GradientTable, optional
+        Dipy object that contains all bvals and bvecs.
     """
-    if data.shape[-1] < (sh_order + 1) * (sh_order + 2) / 2:
-        logging.warning(
-            'We recommend having at least {} unique DWIs volumes, but you '
-            'currently have {} volumes. Try lowering the parameter --sh_order '
-            'in case of non convergence.'.format(
-                (sh_order + 1) * (sh_order + 2) / 2, data.shape[-1]))
+    if gtab is not None:
+        num_dwi = np.sum(~gtab.b0s_mask)
+        if num_dwi < (sh_order + 1) * (sh_order + 2) / 2:
+            logging.warning(
+                'We recommend having at least {} unique DWI volumes, but you '
+                'currently have {} volumes (excluding b0). Try lowering the '
+                'parameter --sh_order in case of non convergence.'.format(
+                    (sh_order + 1) * (sh_order + 2) / 2, num_dwi))
+    else:
+        if data.shape[-1] < (sh_order + 1) * (sh_order + 2) / 2:
+            logging.warning(
+                'We recommend having at least {} unique DWIs volumes, but you '
+                'currently have {} volumes. Try lowering the parameter --sh_order '
+                'in case of non convergence.'.format(
+                    (sh_order + 1) * (sh_order + 2) / 2, data.shape[-1]))
 
 
 def compute_sh_coefficients(dwi, gradient_table,
@@ -178,8 +190,111 @@ def compute_rish(sh, mask=None, full_basis=False):
         rish *= mask[..., None]
 
     orders = sorted(np.unique(order_ids))
-
     return rish, orders
+
+
+def rotate_sh(sh_coeffs, rotation_matrix, basis_type='descoteaux07',
+              full_basis=False, is_legacy=True, nbr_processes=1,
+              in_place=False):
+    """
+    Rotate SH coefficients using a rotation matrix.
+
+    This implementation uses a discrete approach:
+    1. Sample SH to SF on a dense sphere.
+    2. Rotate the sphere points by the inverse rotation.
+    3. Fit back to SH.
+
+    Parameters
+    ----------
+    sh_coeffs : np.ndarray
+        SH coefficients. Can be 1D or 4D (XxYxZxN).
+    rotation_matrix : np.ndarray (3, 3)
+        Rotation matrix.
+    basis_type : str, optional
+        SH basis type.
+    full_basis : bool, optional
+        Whether the SH basis is full.
+    is_legacy : bool, optional
+        Whether the SH basis is legacy.
+    nbr_processes : int, optional
+        Number of processes to use for rotation.
+        Default: 1. This is to avoid RAM problems and using all CPU for loading
+        FODFs by default.
+    in_place : bool, optional
+        If True, applies the rotation in-place directly on sh_coeffs
+        to save memory. Note: this alters the input array.
+        Default: False
+
+    Returns
+    -------
+    rotated_sh : np.ndarray
+        Rotated SH coefficients.
+    """
+    if np.allclose(rotation_matrix, np.eye(3), atol=1e-6):
+        if not in_place:
+            return sh_coeffs.copy()
+        return sh_coeffs
+
+    sh_order, full_basis = get_sh_order_and_fullness(sh_coeffs.shape[-1])
+
+    if nbr_processes is None or nbr_processes <= 0:
+        nbr_processes = 1
+
+    # Dense sphere to minimize aliasing/error
+
+    # Level 5 octahedron subdivision gives 1026 vertices.
+    sphere = create_unit_sphere(recursion_level=5)
+
+    # To rotate the function f by R, we want g(x) = f(R^-1 x).
+    # We sample g at points x_j (the sphere vertices).
+    # g(x_j) = f(R^-1 x_j).
+    # R^-1 x_j are the "rotated" sphere vertices.
+    inv_R = np.linalg.inv(rotation_matrix)
+    rotated_xyz = np.dot(sphere.vertices, inv_R.T)
+    rotated_sphere = Sphere(xyz=rotated_xyz)
+
+    # Handle 1D vs 4D data
+    original_shape = sh_coeffs.shape
+    if len(original_shape) == 1:
+        sh_coeffs = sh_coeffs[None, None, None, :]
+
+    if not in_place:
+        sh_coeffs = sh_coeffs.copy()
+
+    # Compute mask to save memory on large volumes
+    mask = np.any(sh_coeffs, axis=-1)
+
+    indices = np.nonzero(mask)
+    num_non_zero = indices[0].shape[0]
+
+    CHUNK_SIZE = 50000
+    for start_idx in range(0, num_non_zero, CHUNK_SIZE):
+        end_idx = min(start_idx + CHUNK_SIZE, num_non_zero)
+
+        chunk_idx = tuple(idx[start_idx:end_idx] for idx in indices)
+        sh_chunk = sh_coeffs[chunk_idx]
+
+        # Sample original SH at rotated positions
+        # Use scilpy's convert_sh_to_sf for memory efficiency (masking)
+        sf_chunk = convert_sh_to_sf(sh_chunk.astype(np.float32), rotated_sphere,
+                                    input_basis=basis_type,
+                                    input_full_basis=full_basis,
+                                    is_input_legacy=is_legacy,
+                                    mask=None,
+                                    dtype="float32",
+                                    nbr_processes=nbr_processes)
+
+        # Fit these values back to SH using the ORIGINAL sphere (the canonical basis)
+        rotated_sh_chunk = sf_to_sh(sf_chunk, sphere, sh_order_max=sh_order,
+                                    basis_type=basis_type, full_basis=full_basis,
+                                    legacy=is_legacy)
+
+        sh_coeffs[chunk_idx] = rotated_sh_chunk.astype(sh_coeffs.dtype)
+
+    if len(original_shape) == 1:
+        return sh_coeffs.reshape(-1)
+
+    return sh_coeffs
 
 
 def _peaks_from_sh_parallel(args):
@@ -213,10 +328,11 @@ def _peaks_from_sh_loop(shm_coeff, B, sphere, relative_peak_threshold,
             odf = np.dot(shm_coeff[idx], B)
             odf[odf < absolute_threshold] = 0.
 
-            dirs, peaks, ind = peak_directions(odf, sphere,
-                                               relative_peak_threshold=relative_peak_threshold,
-                                               min_separation_angle=min_separation_angle,
-                                               is_symmetric=is_symmetric)
+            dirs, peaks, ind = peak_directions(
+                odf, sphere,
+                relative_peak_threshold=relative_peak_threshold,
+                min_separation_angle=min_separation_angle,
+                is_symmetric=is_symmetric)
 
             if peaks.shape[0] != 0:
                 n = min(npeaks, peaks.shape[0])
@@ -354,7 +470,7 @@ def peaks_from_sh(shm_coeff, sphere, mask=None, relative_peak_threshold=0.5,
     # Bring back to the original shape
     peak_dirs_array = np.zeros(data_shape[0:3] + (npeaks, 3))
     peak_values_array = np.zeros(data_shape[0:3] + (npeaks,))
-    peak_indices_array = np.zeros(data_shape[0:3] + (npeaks,))
+    peak_indices_array = np.full(data_shape[0:3] + (npeaks,), -1, dtype=np.int32)
     peak_dirs_array[mask] = tmp_peak_dirs_array
     peak_values_array[mask] = tmp_peak_values_array
     peak_indices_array[mask] = tmp_peak_indices_array
@@ -555,14 +671,13 @@ def _convert_sh_basis_parallel(args):
 
 def _convert_sh_basis_loop(sh, B_in, invB_out):
     """
-    Loops on 2D (ravelled) data and fits each voxel separately.
+    Vectorized SH basis conversion.
     For a more complete description of parameters, see convert_sh_basis.
     """
     # Data: Ravelled 4D data. Shape [N, X] where N is the number of voxels.
-    for idx in range(sh.shape[0]):
-        if sh[idx].any():
-            sf = np.dot(sh[idx], B_in)
-            sh[idx] = np.dot(sf, invB_out)
+    if sh.any():
+        sf = np.dot(sh, B_in)
+        sh = np.dot(sf, invB_out)
     return sh
 
 
@@ -623,15 +738,14 @@ def convert_sh_basis(shm_coeff, sphere, mask=None,
 
     data_shape = shm_coeff.shape
     if mask is None:
-        mask = np.sum(shm_coeff, axis=3).astype(bool)
+        mask = np.sum(shm_coeff, axis=-1).astype(bool)
 
     nbr_processes = multiprocessing.cpu_count() \
         if nbr_processes is None or nbr_processes < 0 else nbr_processes
 
-    # Ravel the first 3 dimensions while keeping the 4th intact, like a list of
-    # 1D time series voxels.
+    # Ravel the first N-1 dimensions while keeping the last one intact.
     shm_coeff = shm_coeff[mask].reshape(
-        (np.count_nonzero(mask), data_shape[3]))
+        (np.count_nonzero(mask), data_shape[-1]))
 
     # Separating the case nbr_processes=1 to help get good coverage metrics
     # (codecov does not deal well with multiprocessing)
@@ -642,19 +756,18 @@ def convert_sh_basis(shm_coeff, sphere, mask=None,
         shm_coeff_chunks = np.array_split(shm_coeff, nbr_processes)
 
         pool = multiprocessing.Pool(nbr_processes)
-        results = pool.map(_convert_sh_basis_parallel,
-                           zip(shm_coeff_chunks,
-                               itertools.repeat(B_in),
-                               itertools.repeat(invB_out),
-                               np.arange(len(shm_coeff_chunks))))
-        pool.close()
-        pool.join()
-
-        # Re-assemble the chunk together.
         chunk_len = np.cumsum([0] + [len(c) for c in shm_coeff_chunks])
         tmp_shm_coeff_array = np.zeros((np.count_nonzero(mask), data_shape[3]))
-        for i, new_shm_coeff in results:
+
+        for i, new_shm_coeff in pool.imap_unordered(_convert_sh_basis_parallel,
+                                                    zip(shm_coeff_chunks,
+                                                        itertools.repeat(B_in),
+                                                        itertools.repeat(invB_out),
+                                                        np.arange(len(shm_coeff_chunks)))):
             tmp_shm_coeff_array[chunk_len[i]:chunk_len[i+1], :] = new_shm_coeff
+
+        pool.close()
+        pool.join()
 
     # Bring back to the original shape
     shm_coeff_array = np.zeros(data_shape)
@@ -671,15 +784,11 @@ def _convert_sh_to_sf_parallel(args):
 
 def _convert_sh_to_sf_loop(sh, new_output_dim, B_in):
     """
-    Loops on 2D data and fits each voxel separately.
+    Vectorized matrix multiplication for SH to SF conversion.
     See convert_sh_to_sf for more information.
     """
     # Data: Ravelled 4D data. Shape [N, X] where N is the number of voxels.
-    sf = np.zeros((sh.shape[0], new_output_dim), dtype=np.float32)
-
-    for idx in range(sh.shape[0]):
-        if sh[idx].any():
-            sf[idx] = np.dot(sh[idx], B_in)
+    sf = np.dot(sh, B_in).astype(np.float32)
 
     return sf
 
@@ -687,7 +796,7 @@ def _convert_sh_to_sf_loop(sh, new_output_dim, B_in):
 def convert_sh_to_sf(shm_coeff, sphere, mask=None, dtype="float32",
                      input_basis='descoteaux07', input_full_basis=False,
                      is_input_legacy=True,
-                     nbr_processes=multiprocessing.cpu_count()):
+                     nbr_processes=None):
     """Converts spherical harmonic coefficients to an SF sphere
 
     Parameters
@@ -733,15 +842,17 @@ def convert_sh_to_sf(shm_coeff, sphere, mask=None, dtype="float32",
 
     data_shape = shm_coeff.shape
     if mask is None:
-        mask = np.sum(shm_coeff, axis=3).astype(bool)
+        mask = np.sum(shm_coeff, axis=-1).astype(bool)
+
+    nbr_processes = multiprocessing.cpu_count() if nbr_processes is None \
+        or nbr_processes <= 0 else nbr_processes
 
     output_dim = len(sphere.vertices)
-    new_shape = data_shape[:3] + (output_dim,)
+    new_shape = data_shape[:-1] + (output_dim,)
 
-    # Ravel the first 3 dimensions while keeping the 4th intact, like a list of
-    # 1D time series voxels.
+    # Ravel the first N-1 dimensions while keeping the last one intact.
     shm_coeff = shm_coeff[mask].reshape(
-        (np.count_nonzero(mask), data_shape[3]))
+        (np.count_nonzero(mask), data_shape[-1]))
 
     # Separating the case nbr_processes=1 to help get good coverage metrics
     # (codecov does not deal well with multiprocessing)
@@ -752,20 +863,19 @@ def convert_sh_to_sf(shm_coeff, sphere, mask=None, dtype="float32",
         shm_coeff_chunks = np.array_split(shm_coeff, nbr_processes)
 
         pool = multiprocessing.Pool(nbr_processes)
-        results = pool.map(_convert_sh_to_sf_parallel,
-                           zip(shm_coeff_chunks,
-                               itertools.repeat(B_in),
-                               itertools.repeat(output_dim),
-                               np.arange(len(shm_coeff_chunks))))
+        chunk_len = np.cumsum([0] + [len(c) for c in shm_coeff_chunks])
+        tmp_sf_array = np.zeros((np.count_nonzero(mask), new_shape[-1]),
+                                dtype=dtype)
+
+        for i, new_sf in pool.imap_unordered(_convert_sh_to_sf_parallel,
+                                             zip(shm_coeff_chunks,
+                                                 itertools.repeat(B_in),
+                                                 itertools.repeat(output_dim),
+                                                 np.arange(len(shm_coeff_chunks)))):
+            tmp_sf_array[chunk_len[i]:chunk_len[i + 1], :] = new_sf
+
         pool.close()
         pool.join()
-
-        # Re-assemble the chunk together.
-        chunk_len = np.cumsum([0] + [len(c) for c in shm_coeff_chunks])
-        tmp_sf_array = np.zeros((np.count_nonzero(mask), new_shape[3]),
-                                dtype=dtype)
-        for i, new_sf in results:
-            tmp_sf_array[chunk_len[i]:chunk_len[i + 1], :] = new_sf
 
     # Bring back to the original shape
     sf_array = np.zeros(new_shape, dtype=dtype)

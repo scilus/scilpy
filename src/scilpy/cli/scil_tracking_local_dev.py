@@ -63,20 +63,19 @@ import time
 import json
 
 import dipy.core.geometry as gm
+from dipy.io.stateful_tractogram import Space, Origin
 import nibabel as nib
+from nibabel.streamlines import detect_format, TrkFile
 import numpy as np
 
-from dipy.io.stateful_tractogram import StatefulTractogram, Space
-from dipy.io.stateful_tractogram import Origin
-from dipy.io.streamline import save_tractogram
-from nibabel.streamlines import detect_format, TrkFile
-
 from scilpy.io.image import assert_same_resolution
+from scilpy.io.stateful_image import StatefulImage
 from scilpy.io.utils import (add_processes_arg, add_sphere_arg,
                              add_verbose_arg,
                              assert_inputs_exist, assert_outputs_exist,
                              parse_sh_basis_arg, verify_compression_th,
                              load_matrix_in_any_format)
+from scilpy.reconst.utils import compute_sf_threshold_mask
 from scilpy.image.volume_space_management import DataVolume
 from scilpy.tracking.propagator import ODFPropagator
 from scilpy.tracking.rap import RAPContinue, RAPSwitch
@@ -87,7 +86,8 @@ from scilpy.tracking.utils import (add_mandatory_options_tracking,
                                    add_tracking_options,
                                    get_theta,
                                    verify_streamline_length_options,
-                                   verify_seed_options)
+                                   verify_seed_options,
+                                   save_tractogram)
 from scilpy.version import version_string
 from scilpy.image.labels import get_data_as_labels
 from scilpy.io.image import get_data_as_mask
@@ -114,7 +114,7 @@ def _build_arg_parser():
     track_g.add_argument('--sfthres_init', metavar='sf_th', type=float,
                          default=0.5, dest='sf_threshold_init',
                          help="Spherical function relative threshold value "
-                              "for the \ninitial direction. [%(default)s]")
+                              "within each voxel for the \ninitial direction. [%(default)s]")
     track_g.add_argument('--rk_order', metavar="K", type=int, default=1,
                          choices=[1, 2, 4],
                          help="The order of the Runge-Kutta integration used "
@@ -242,26 +242,27 @@ def main():
     # ------- PREPARING DATA -------
     theta = gm.math.radians(get_theta(args.theta, args.algo))
 
-    max_nbr_pts = int(args.max_length / args.step_size)
-    min_nbr_pts = max(int(args.min_length / args.step_size), 1)
-    if args.in_odf:
-        assert_same_resolution([args.in_mask, args.in_odf, args.in_seed])
-
-    # Choosing our space and origin for this tracking
-    # If save_seeds, space and origin must be vox, center. Choosing those
-    # values.
+    # Always track in voxel space to avoid affine-related orientation issues
+    # and match the voxel-oriented ODF data.
     our_space = Space.VOX
-    our_origin = Origin('center')
+    our_origin = Origin.NIFTI
 
     logging.info("Loading seeding mask.")
-    seed_img = nib.load(args.in_seed)
-    seed_data = seed_img.get_fdata(caching='unchanged', dtype=float)
+    seed_simg = StatefulImage.load(args.in_seed)
+    seed_data = seed_simg.get_fdata(caching='unchanged', dtype=float)
     if np.count_nonzero(seed_data) == 0:
         raise IOError('The image {} is empty. '
                       'It can\'t be loaded as '
                       'seeding mask.'.format(args.in_seed))
 
-    seed_res = seed_img.header.get_zooms()[:3]
+    seed_res = seed_simg.header.get_zooms()[:3]
+    voxel_size = np.average(seed_res)
+    vox_step_size = args.step_size / voxel_size
+
+    max_nbr_pts = int(args.max_length / args.step_size)
+    min_nbr_pts = max(int(args.min_length / args.step_size), 1)
+    if args.in_odf:
+        assert_same_resolution([args.in_mask, args.in_odf, args.in_seed])
 
     # ------- INSTANTIATING SEED GENERATOR -------
     if args.in_custom_seeds:
@@ -270,7 +271,9 @@ def main():
                                               origin=our_origin)
         nbr_seeds = len(seeds)
     else:
+        # Use identity affine for voxel space seeding
         seed_generator = SeedGenerator(seed_data, seed_res,
+                                       affine=np.eye(4),
                                        space=our_space, origin=our_origin,
                                        n_repeats=args.n_repeats_per_seed)
 
@@ -288,18 +291,56 @@ def main():
                          ' value > 0.'.format(args.in_seed))
 
     logging.info("Loading tracking mask.")
-    mask_img = nib.load(args.in_mask)
-    mask_data = mask_img.get_fdata(caching='unchanged', dtype=float)
-    mask_res = mask_img.header.get_zooms()[:3]
-    mask = DataVolume(mask_data, mask_res, args.mask_interp)
+    mask_simg = StatefulImage.load(args.in_mask)
+    mask_simg.reorient(seed_simg.axcodes)
+    mask_data = mask_simg.get_fdata(caching='unchanged', dtype=float)
+    mask_res = mask_simg.header.get_zooms()[:3]
+    # Use identity affine for DataVolume to match voxel space tracking
+    mask = DataVolume(mask_data, mask_res, affine=np.eye(4),
+                      interpolation=args.mask_interp)
+
+    sh_basis, is_legacy = parse_sh_basis_arg(args)
 
     # ------- INSTANTIATING PROPAGATOR -------
     if args.in_odf:
         logging.info("Loading ODF SH data.")
-        odf_sh_img = nib.load(args.in_odf)
-        odf_sh_data = odf_sh_img.get_fdata(caching='unchanged', dtype=float)
-        odf_sh_res = odf_sh_img.header.get_zooms()[:3]
-        dataset = DataVolume(odf_sh_data, odf_sh_res, args.sh_interp)
+        odf_sh_simg = StatefulImage.load(args.in_odf, is_orientation=True,
+                                         is_world_space=not args.is_voxel_space,
+                                         sh_basis=sh_basis)
+        odf_sh_simg.reorient(seed_simg.axcodes)
+        odf_sh_data = odf_sh_simg.to_voxel_direction(
+            sh_basis=sh_basis, nbr_processes=1).astype(np.float32)
+
+        sf_mask = None
+        if args.global_sf_rel_thr is not None or args.global_sf_abs_thr is not None:
+            sf_mask, global_max, threshold = compute_sf_threshold_mask(
+                odf_sh_data, sphere_name=args.sphere,
+                relative_factor=args.global_sf_rel_thr,
+                absolute_threshold=args.global_sf_abs_thr, sh_basis=sh_basis,
+                is_legacy=is_legacy)
+            logging.info("Global SF threshold mask: Global Max SF amplitude: {:.4f}"
+                         .format(global_max))
+            if args.global_sf_rel_thr is not None:
+                logging.info("Global SF threshold mask: Computed threshold: {:.4f} "
+                             "(Factor: {})".format(threshold, args.global_sf_rel_thr))
+            else:
+                logging.info("Global SF threshold mask: Absolute threshold: {:.4f}"
+                             .format(args.global_sf_abs_thr))
+
+        # Re-instantiate DataVolume with original mask_data
+        mask = DataVolume(mask_data, mask_res, affine=np.eye(4),
+                          interpolation=args.mask_interp)
+
+        if sf_mask is not None:
+            # Mask the stopping criterion
+            mask_data = np.logical_and(mask_data, sf_mask)
+            mask = DataVolume(mask_data, mask_res, affine=np.eye(4),
+                              interpolation=args.mask_interp)
+
+        odf_sh_res = odf_sh_simg.header.get_zooms()[:3]
+        # Use identity affine for DataVolume to match voxel space tracking
+        dataset = DataVolume(odf_sh_data, odf_sh_res, affine=np.eye(4),
+                             interpolation=args.sh_interp)
 
         logging.info("Instantiating propagator.")
         # Converting step size to vox space
@@ -307,12 +348,7 @@ def main():
         # 1e-3.
         assert np.allclose(np.mean(odf_sh_res[:3]),
                            odf_sh_res, atol=1e-03)
-        voxel_size = odf_sh_img.header.get_zooms()[0]
-        vox_step_size = args.step_size / voxel_size
-
-        # Using space and origin in the propagator: vox and center, like
-        # in dipy.
-        sh_basis, is_legacy = parse_sh_basis_arg(args)
+        # Using space and origin in the propagator: VOX and NIFTI.
 
         propagator = ODFPropagator(
             dataset, vox_step_size, args.rk_order, args.algo, sh_basis,
@@ -333,24 +369,24 @@ def main():
                 if filename not in loaded_datasets:
                     odf_sh_img = nib.load(filename)
                     odf_sh_res = odf_sh_img.header.get_zooms()[:3]
-                    voxel_size = odf_sh_img.header.get_zooms()[0]
-                    vox_step_size = cfg.get('step_size', args.step_size) / voxel_size
+                    # Use identity affine for DataVolume to match voxel space tracking
                     loaded_datasets[filename] = DataVolume(
                         odf_sh_img.get_fdata(caching='unchanged', dtype=float),
-                        odf_sh_res, args.sh_interp)
+                        odf_sh_res, affine=np.eye(4),
+                        interpolation=args.sh_interp)
 
                 # Get params from rap_policies file
+                algo = cfg.get('algo', args.algo)
+                theta = gm.math.radians(get_theta(cfg.get('theta', args.theta), algo))
                 sh_basis_name = cfg.get('sh_basis', 'descoteaux07_legacy')
                 sh_basis = ('descoteaux07' if 'descoteaux07' in sh_basis_name
                             else 'tournier07')
-                algo = cfg.get('algo', args.algo)
-                theta = gm.math.radians(get_theta(cfg.get('theta', args.theta), algo))
                 is_legacy = 'legacy' in sh_basis_name
 
                 # Build propagator from rap_policies file
                 propagators[label] = ODFPropagator(
-                    loaded_datasets[filename], vox_step_size, args.rk_order,
-                    algo, sh_basis, args.sf_threshold,
+                    loaded_datasets[filename], cfg.get('step_size', args.step_size) / voxel_size,
+                    args.rk_order, algo, sh_basis, args.sf_threshold,
                     args.sf_threshold_init, theta, args.sphere,
                     sub_sphere=args.sub_sphere, space=our_space,
                     origin=our_origin, is_legacy=is_legacy)
@@ -374,7 +410,10 @@ def main():
         rap_img = nib.load(args.rap_mask)
         rap_mask_data = get_data_as_mask(rap_img)
         rap_mask_res = rap_img.header.get_zooms()[:3]
-        rap_volume = DataVolume(rap_mask_data, rap_mask_res, args.mask_interp)
+        # Use identity affine for DataVolume to match voxel space tracking
+        rap_volume = DataVolume(rap_mask_data, rap_mask_res,
+                                affine=np.eye(4),
+                                interpolation=args.mask_interp)
     elif args.rap_labels:
         logging.info("Loading RAP labels.")
         rap_label_img = nib.load(args.rap_labels)
@@ -386,7 +425,10 @@ def main():
 
         rap_label_data = get_data_as_labels(rap_label_img)
         rap_label_res = rap_label_img.header.get_zooms()[:3]
-        rap_volume = DataVolume(rap_label_data, rap_label_res, 'nearest')
+        # Use identity affine for DataVolume to match voxel space tracking
+        rap_volume = DataVolume(rap_label_data, rap_label_res,
+                                affine=np.eye(4),
+                                interpolation='nearest')
 
     if args.rap_method == "continue":
         rap = RAPContinue(rap_volume, propagator, max_nbr_pts,
@@ -397,11 +439,13 @@ def main():
         rap = None
 
     logging.info("Instantiating tracker.")
+    # We must force save_seeds=True so that Tracker returns (streamlines, seeds)
+    # as expected by scilpy.tracking.utils.save_tractogram
     tracker = Tracker(propagator, mask, seed_generator, nbr_seeds, min_nbr_pts,
                       max_nbr_pts, args.max_invalid_nb_points,
-                      compression_th=args.compress_th,
+                      compression_th=None,
                       nbr_processes=args.nbr_processes,
-                      save_seeds=args.save_seeds,
+                      save_seeds=True,
                       mmap_mode='r+', rng_seed=args.rng_seed,
                       track_forward_only=args.forward_only,
                       skip=args.skip,
@@ -418,27 +462,16 @@ def main():
                  .format(len(streamlines), nbr_seeds, str_time))
 
     # save seeds if args.save_seeds is given
-    # We seeded (and tracked) in vox, center, which is what is expected for
-    # seeds.
-    if args.save_seeds:
-        data_per_streamline = {'seeds': seeds}
-    else:
-        data_per_streamline = {}
 
     # Save RAP entry/exit mask if requested
     if args.rap_save_entry_exit:
-        tracker.save_rap_entry_exit_mask(args.rap_save_entry_exit, mask_img)
+        tracker.save_rap_entry_exit_mask(args.rap_save_entry_exit, mask_simg)
 
-    # Compared with scil_tracking_local, using sft rather than
-    # LazyTractogram to deal with space.
-    # Contrary to scilpy or dipy, where space after tracking is vox, here
-    # space after tracking is voxmm.
-    # Smallest possible streamline coordinate is (0,0,0), equivalent of
-    # corner origin (TrackVis)
-    sft = StatefulTractogram(streamlines, mask_img,
-                             space=our_space, origin=our_origin,
-                             data_per_streamline=data_per_streamline)
-    save_tractogram(sft, args.out_tractogram)
+    # save streamlines on-the-fly to file
+    save_tractogram(zip(streamlines, seeds), tracts_format,
+                    odf_sh_simg, nbr_seeds, args.out_tractogram,
+                    args.min_length, args.max_length, args.compress_th,
+                    args.save_seeds, args.verbose, space=our_space)
 
 
 if __name__ == "__main__":

@@ -1,15 +1,10 @@
-import logging
-
 from dipy.core.gradients import (gradient_table,
                                  unique_bvals_tolerance, get_bval_indices)
-from dipy.io.gradients import read_bvals_bvecs
-import nibabel as nib
 import numpy as np
 
 from scilpy.dwi.utils import extract_dwi_shell
-from scilpy.gradients.bvec_bval_tools import (normalize_bvecs,
-                                              is_normalized_bvecs,
-                                              check_b0_threshold)
+from scilpy.gradients.bvec_bval_tools import check_b0_threshold
+from scilpy.io.stateful_image import StatefulImage
 
 
 bshapes = {0: "STE", 1: "LTE", -0.5: "PTE", 0.5: "CTE"}
@@ -111,21 +106,24 @@ def generate_btensor_input(in_dwis, in_bvals, in_bvecs, in_bdeltas,
     for inputf, bvalsf, bvecsf, b_delta in zip(in_dwis, in_bvals,
                                                in_bvecs, in_bdeltas):
         if inputf:  # verifies if the input file exists
-            vol = nib.load(inputf)
-            bvals, bvecs = read_bvals_bvecs(bvalsf, bvecsf)
+            simg = StatefulImage.load(inputf)
+            simg.load_gradients(bvalsf, bvecsf)
+            simg.to_ras()
+
+            bvals = simg.bvals
+            bvecs = simg.world_bvecs
+
             _ = check_b0_threshold(bvals.min(), b0_thr=tol,
                                    skip_b0_check=skip_b0_check,
                                    overwrite_with_min=False)
             if np.sum([bvals > tol]) != 0:
                 bvals = np.round(bvals)
-            if not is_normalized_bvecs(bvecs):
-                logging.warning('Your b-vectors do not seem normalized...')
-                bvecs = normalize_bvecs(bvecs)
+
             ubvals = unique_bvals_tolerance(bvals, tol=tol)
             for ubval in ubvals:  # Loop over all unique bvals
                 # Extracting the data for the ubval shell
                 indices, shell_data, _, output_bvecs = \
-                    extract_dwi_shell(vol, bvals, bvecs, [ubval], tol=tol)
+                    extract_dwi_shell(simg, bvals, bvecs, [ubval], tol=tol)
                 nb_bvecs = len(indices)
                 # Adding the current data to each arrays of interest
                 acq_index_full = np.concatenate([acq_index_full,

@@ -57,7 +57,7 @@ def _make_title(text):
     Returns a formatted title string with centered text and spacing
     """
     return f'{Fore.LIGHTBLUE_EX}{Style.BRIGHT}{text.center(SPACING_LEN, "=")}' \
-           f'{Style.RESET_ALL}'
+        f'{Style.RESET_ALL}'
 
 
 def _get_docstring_from_script_path(script):
@@ -201,9 +201,9 @@ def _generate_help_file(args):
         return
     # Run the script with --h and capture the output
     result = subprocess.run(['python', script, '--h'],
-                            capture_output=True, text=True)
+                            capture_output=True, text=True, encoding='utf-8')
     # Save the output to the hidden file
-    with open(help_file, 'w') as f:
+    with open(help_file, 'w', encoding='utf-8') as f:
         f.write(result.stdout)
 
 
@@ -273,7 +273,7 @@ def _highlight_keywords(text, all_expressions):
         # Function to apply highlighting to the matched word
         def apply_highlight(match):
             return f'{Fore.LIGHTYELLOW_EX}{Style.BRIGHT}{match.group(0)}' \
-                   f'{Style.RESET_ALL}'
+                f'{Style.RESET_ALL}'
 
         # Replace the matched word with its highlighted version
         text = pattern.sub(apply_highlight, text)
