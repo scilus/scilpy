@@ -351,13 +351,8 @@ def get_direction_getter(in_img, algo, sphere, sub_sphere, theta, sh_basis,
     # Theta depends on user choice and algorithm
     theta = get_theta(theta, algo)
 
-    # Heuristic to find out if the input are peaks or fodf
-    # fodf are always around 0.15 and peaks around 0.75
-    # Peaks have more zero values than fodf. The first value of fodf is
-    # usually the highest.
-    non_zeros_count = np.count_nonzero(np.sum(img_data, axis=-1))
-    non_first_val_count = np.count_nonzero(np.argmax(img_data, axis=-1))
-    is_peaks = non_first_val_count / non_zeros_count > 0.5
+    from scilpy.reconst.utils import is_data_peaks
+    is_peaks = is_data_peaks(img_data)
 
     if algo in ['det', 'prob', 'ptt']:
         if is_peaks:
