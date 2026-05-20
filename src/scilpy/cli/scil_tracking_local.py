@@ -70,6 +70,7 @@ from dipy.tracking import utils as track_utils
 from dipy.tracking.local_tracking import LocalTracking
 from dipy.tracking.stopping_criterion import BinaryStoppingCriterion
 from dipy.tracking.tracker import eudx_tracking
+from scilpy.reconst.utils import compute_sf_threshold_mask
 from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_sphere_arg, add_verbose_arg,
                              assert_headers_compatible, assert_inputs_exist,
@@ -200,6 +201,25 @@ def main():
     logging.debug("Loading masks and finding seeds.")
     mask_data = get_data_as_mask(nib.load(args.in_mask), dtype=bool)
 
+    # ODF data for thresholding
+    odf_sh_data = odf_sh_img.get_fdata(dtype=np.float32)
+
+    sf_mask = None
+    if args.global_sf_rel_thr is not None or args.global_sf_abs_thr is not None:
+        sf_mask, global_max, threshold = compute_sf_threshold_mask(
+            odf_sh_data, sphere_name=args.sphere,
+            relative_factor=args.global_sf_rel_thr,
+            absolute_threshold=args.global_sf_abs_thr, sh_basis=sh_basis,
+            is_legacy=is_legacy)
+        logging.info("Global SF threshold mask: Global Max SF amplitude: {:.4f}"
+                     .format(global_max))
+        if args.global_sf_rel_thr is not None:
+            logging.info("Global SF threshold mask: Computed threshold: {:.4f} "
+                         "(Factor: {})".format(threshold, args.global_sf_rel_thr))
+        else:
+            logging.info("Global SF threshold mask: Absolute threshold: {:.4f}"
+                         .format(args.global_sf_abs_thr))
+
     if args.npv:
         nb_seeds = args.npv
         seed_per_vox = True
@@ -239,7 +259,11 @@ def main():
         # LocalTracking.maxlen is actually the maximum length
         # per direction, we need to filter post-tracking.
         max_steps_per_direction = int(args.max_length / args.step_size)
-        stopping_criterion = BinaryStoppingCriterion(mask_data)
+        combined_mask = mask_data
+        if sf_mask is not None:
+            combined_mask = np.logical_and(mask_data, sf_mask)
+
+        stopping_criterion = BinaryStoppingCriterion(combined_mask)
 
         logging.info("Starting CPU local tracking.")
         if args.algo == 'eudx':
@@ -248,7 +272,7 @@ def main():
                 stopping_criterion,
                 np.eye(4),
                 pam=get_direction_getter(
-                    args.in_odf, args.algo, args.sphere,
+                    odf_sh_data, args.algo, args.sphere,
                     args.sub_sphere, args.theta, sh_basis,
                     voxel_size, args.sf_threshold, args.sh_to_pmf,
                     args.probe_length, args.probe_radius,
@@ -264,7 +288,7 @@ def main():
         else:
             streamlines_generator = LocalTracking(
                 get_direction_getter(
-                    args.in_odf, args.algo, args.sphere,
+                    odf_sh_data, args.algo, args.sphere,
                     args.sub_sphere, args.theta, sh_basis,
                     voxel_size, args.sf_threshold, args.sh_to_pmf,
                     args.probe_length, args.probe_radius,
@@ -284,14 +308,14 @@ def main():
         max_strl_len = int(2.0 * args.max_length / args.step_size) + 1
 
         # data volume
-        odf_sh = odf_sh_img.get_fdata(dtype=np.float32)
+        
 
         # GPU tracking needs the full sphere
         sphere = get_sphere(name=args.sphere).subdivide(n=args.sub_sphere)
 
         logging.info("Starting GPU local tracking.")
         streamlines_generator = GPUTracker(
-            odf_sh, mask_data, seeds,
+            odf_sh_data, mask_data, seeds,
             vox_step_size, max_strl_len,
             theta=get_theta(args.theta, args.algo),
             sf_threshold=args.sf_threshold,

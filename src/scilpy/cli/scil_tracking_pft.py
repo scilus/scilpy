@@ -49,6 +49,7 @@ import nibabel as nib
 from nibabel.streamlines import LazyTractogram
 import numpy as np
 
+from scilpy.reconst.utils import compute_sf_threshold_mask
 from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_overwrite_arg, add_sh_basis_args,
                              add_verbose_arg, assert_inputs_exist,
@@ -102,8 +103,20 @@ def _build_arg_parser():
                               'criterion (CMC).')
     track_g.add_argument('--sfthres', dest='sf_threshold',
                          type=float, default=0.1,
-                         help='Spherical function relative threshold. '
-                              '[%(default)s]')
+                         help='Spherical function relative threshold '
+                              'within each voxel. [%(default)s]')
+    global_sf_g = track_g.add_mutually_exclusive_group()
+    global_sf_g.add_argument('--global_sf_rel_thr', metavar='FACTOR',
+                             type=float, nargs='?', const=0.1, default=None,
+                             help='Global SF relative threshold factor.' \
+                             'If set, masks voxels where\nmax SF amplitude < '
+                             'FACTOR * max global SF amplitude. \n'
+                             'If used without a value, default is [%(const)s].')
+    global_sf_g.add_argument('--global_sf_abs_thr', metavar='ABS_THR',
+                             type=float,
+                             help='Global SF absolute threshold.'
+                                  'If set, masks voxels where \n'
+                                  'max SF amplitude < ABS_THR.')
     track_g.add_argument('--sfthres_init', dest='sf_threshold_init',
                          type=float, default=0.5,
                          help='Spherical function relative threshold value '
@@ -188,6 +201,23 @@ def main():
         parser.error('Total number of seeds must be > 0.')
 
     fodf_sh_img = nib.load(args.in_sh)
+    fodf_sh_data = fodf_sh_img.get_fdata(dtype=np.float32)
+
+    sf_mask = None
+    if args.global_sf_rel_thr is not None or args.global_sf_abs_thr is not None:
+        sf_mask, global_max, threshold = compute_sf_threshold_mask(
+            fodf_sh_data, sphere_name="repulsion724",
+            relative_factor=args.global_sf_rel_thr,
+            absolute_threshold=args.global_sf_abs_thr, sh_basis=sh_basis,
+            is_legacy=is_legacy)
+        logging.info("Global SF threshold mask: Global Max SF amplitude: {:.4f}"
+                     .format(global_max))
+        if args.global_sf_rel_thr is not None:
+            logging.info("Global SF threshold mask: Computed threshold: {:.4f} "
+                         "(Factor: {})".format(threshold, args.global_sf_rel_thr))
+        else:
+            logging.info("Global SF threshold mask: Absolute threshold: {:.4f}"
+                         .format(args.global_sf_abs_thr))
     if not np.allclose(np.mean(fodf_sh_img.header.get_zooms()[:3]),
                        fodf_sh_img.header.get_zooms()[0], atol=1e-03):
         parser.error(
@@ -213,7 +243,7 @@ def main():
     # relative_peak_threshold is for initial directions filtering
     # min_separation_angle is the initial separation angle for peak extraction
     dg = dgklass.from_shcoeff(
-        fodf_sh_img.get_fdata(dtype=np.float32),
+        fodf_sh_data,
         max_angle=theta,
         sphere=tracking_sphere,
         basis_type=sh_basis,
@@ -223,18 +253,26 @@ def main():
 
     map_include_img = nib.load(args.in_map_include)
     map_exclude_img = nib.load(args.map_exclude_file)
+    
+    map_include_data = map_include_img.get_fdata(dtype=np.float32)
+    map_exclude_data = map_exclude_img.get_fdata(dtype=np.float32)
+
+    if sf_mask is not None:
+        map_include_data[~sf_mask] = 0
+        map_exclude_data[~sf_mask] = 1
+
     voxel_size = np.average(map_include_img.header['pixdim'][1:4])
 
     if not args.act:
         tissue_classifier = CmcStoppingCriterion(
-            map_include_img.get_fdata(dtype=np.float32),
-            map_exclude_img.get_fdata(dtype=np.float32),
+            map_include_data,
+            map_exclude_data,
             step_size=args.step_size,
             average_voxel_size=voxel_size)
     else:
         tissue_classifier = ActStoppingCriterion(
-            map_include_img.get_fdata(dtype=np.float32),
-            map_exclude_img.get_fdata(dtype=np.float32))
+            map_include_data,
+            map_exclude_data)
 
     if args.npv:
         nb_seeds = args.npv
