@@ -14,12 +14,6 @@
 **Scilpy** mainly comprises tools and utilities to quickly work with diffusion MRI. Most of the tools are based
 on or are wrappers of the [DIPY] library, and most of them will eventually be migrated to [DIPY]. Those tools implement the recommended workflows and parameters used in the lab.
 
-The library is now built for Python 3.12 so be sure to create a virtual environnement for Python 3.12. If this version is not installed on your computer:
-```
-sudo add-apt-repository ppa:deadsnakes/ppa
-sudo apt-get install python3.12 python3.12-dev python3.12-venv python3.12-tk
-```
-
 :warning: We highly suggest to install uv to speedup scilpy installation: https://docs.astral.sh/uv/getting-started/installation/
 
 :point_up: BUT, if you don't want to use uv, scilpy can still be installed by omitting the uv from all the installation command lines below.

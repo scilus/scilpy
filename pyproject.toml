@@ -31,7 +31,7 @@ dependencies = [
 "cvxpy==1.6.*",
 "cycler==0.12.*",
 "deepdiff>=8.1,<8.7",
-"dipy==1.12.*",
+"dipy==1.12.*,>1.12.0",
 "dmri-amico==2.1.*",
 "dmri-commit>=2.4.2,<2.5.0",
 "docopt==0.6.*",
@@ -207,6 +207,8 @@ scil_sh_to_aodf  = "scilpy.cli.scil_sh_to_aodf:main"
 scil_sh_to_rish  = "scilpy.cli.scil_sh_to_rish:main"
 scil_sh_to_sf  = "scilpy.cli.scil_sh_to_sf:main"
 scil_stats_group_comparison  = "scilpy.cli.scil_stats_group_comparison:main"
+scil_surface_assign_custom_color  = "scilpy.cli.scil_surface_assign_custom_color:main"
+scil_surface_assign_uniform_color  = "scilpy.cli.scil_surface_assign_uniform_color:main"
 scil_surface_apply_transform  = "scilpy.cli.scil_surface_apply_transform:main"
 scil_surface_convert  = "scilpy.cli.scil_surface_convert:main"
 scil_surface_create  = "scilpy.cli.scil_surface_create:main"

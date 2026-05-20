@@ -50,6 +50,6 @@ def estimate_piesno_sigma(data, number_coils=0):
             .format(number_coils, frac_noisy_voxels, np.mean(sigma)))
     else:
         logging.info('The noise standard deviation from piesno is %s',
-                     np.array_str(sigma[0, 0, :]))
+                     np.array_str(sigma[:]))
 
     return sigma, mask_noise

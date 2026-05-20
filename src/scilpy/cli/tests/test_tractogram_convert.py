@@ -17,12 +17,23 @@ def test_help_option(script_runner):
     assert ret.success
 
 
-def test_execution_surface_vtk_fib(script_runner, monkeypatch):
+def test_execution_surface_trk_tck(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_fib = os.path.join(SCILPY_HOME, 'surface_vtk_fib',
-                          'gyri_fanning.fib')
+                          'gyri_fanning.trk')
     in_fa = os.path.join(SCILPY_HOME, 'surface_vtk_fib',
                          'fa.nii.gz')
     ret = script_runner.run(['scil_tractogram_convert', in_fib,
-                            'gyri_fanning.trk', '--reference', in_fa])
+                            'gyri_fanning.tck', '--reference', in_fa])
+    assert ret.success
+
+
+def test_execution_surface_trk_fib(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
+    in_fib = os.path.join(SCILPY_HOME, 'surface_vtk_fib',
+                          'gyri_fanning.trk')
+    in_fa = os.path.join(SCILPY_HOME, 'surface_vtk_fib',
+                         'fa.nii.gz')
+    ret = script_runner.run(['scil_tractogram_convert', in_fib,
+                            'gyri_fanning.fib', '--reference', in_fa])
     assert ret.success
