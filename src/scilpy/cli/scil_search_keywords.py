@@ -204,7 +204,7 @@ def main():
             continue
 
         # Highlight keywords based on verbosity level
-        with open(hidden_dir / f'{match}.help', 'r') as f:
+        with open(hidden_dir / f'{match}.help', 'r', encoding='utf-8') as f:
             docstrings = f.read()
 
         all_experessions = stemmed_keywords + keywords + phrases \

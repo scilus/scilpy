@@ -76,4 +76,5 @@ venv/
 # Hidden folder
 .hidden/
 
-.DS_Store
+# macOS
+*.DS_Store
