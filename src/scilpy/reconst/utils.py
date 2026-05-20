@@ -57,6 +57,8 @@ def get_sphere_neighbours(sphere, max_angle):
                     np.outer(zs, zs))
     neighbours = scalar_prods >= np.cos(max_angle)
     return neighbours
+
+
 def is_data_peaks(img_data):
     """
     Heuristic to find out if the input are peaks or fodf.
@@ -233,7 +235,8 @@ def compute_sf_threshold_mask(data, sphere_name='repulsion100',
         labels = ndi.label(mask)[0]
         label_counts = np.bincount(labels.ravel())
         # Find the largest connected component (excluding background)
-        largest_label = np.argmax(label_counts[1:]) + 1  # +1 to skip background
+        # +1 to skip background
+        largest_label = np.argmax(label_counts[1:]) + 1
         # Create a mask for the largest connected component
         mask = labels == largest_label
         inverted_mask = ~mask

@@ -108,7 +108,7 @@ def _build_arg_parser():
     global_sf_g = track_g.add_mutually_exclusive_group()
     global_sf_g.add_argument('--global_sf_rel_thr', metavar='FACTOR',
                              type=float, nargs='?', const=0.1, default=None,
-                             help='Global SF relative threshold factor.' \
+                             help='Global SF relative threshold factor.'
                              'If set, masks voxels where\nmax SF amplitude < '
                              'FACTOR * max global SF amplitude. \n'
                              'If used without a value, default is [%(const)s].')
@@ -253,7 +253,7 @@ def main():
 
     map_include_img = nib.load(args.in_map_include)
     map_exclude_img = nib.load(args.map_exclude_file)
-    
+
     map_include_data = map_include_img.get_fdata(dtype=np.float32)
     map_exclude_data = map_exclude_img.get_fdata(dtype=np.float32)
 

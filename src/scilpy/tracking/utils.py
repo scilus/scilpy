@@ -104,7 +104,7 @@ def add_tracking_options(p):
     global_sf_g = track_g.add_mutually_exclusive_group()
     global_sf_g.add_argument('--global_sf_rel_thr', metavar='FACTOR',
                              type=float, nargs='?', const=0.1, default=None,
-                             help='Global SF relative threshold factor.' \
+                             help='Global SF relative threshold factor.'
                              'If set, masks voxels where\nmax SF amplitude < '
                              'FACTOR * max global SF amplitude. \n'
                              'If used without a value, default is [%(const)s].')

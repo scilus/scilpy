@@ -204,6 +204,8 @@ def main():
     # ODF data for thresholding
     odf_sh_data = odf_sh_img.get_fdata(dtype=np.float32)
 
+    sh_basis, is_legacy = parse_sh_basis_arg(args)
+
     sf_mask = None
     if args.global_sf_rel_thr is not None or args.global_sf_abs_thr is not None:
         sf_mask, global_max, threshold = compute_sf_threshold_mask(
@@ -308,7 +310,6 @@ def main():
         max_strl_len = int(2.0 * args.max_length / args.step_size) + 1
 
         # data volume
-        
 
         # GPU tracking needs the full sphere
         sphere = get_sphere(name=args.sphere).subdivide(n=args.sub_sphere)
