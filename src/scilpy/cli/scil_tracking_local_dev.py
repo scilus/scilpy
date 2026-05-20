@@ -72,6 +72,7 @@ from dipy.io.streamline import save_tractogram
 from nibabel.streamlines import detect_format, TrkFile
 
 from scilpy.io.image import assert_same_resolution
+from scilpy.reconst.utils import compute_sf_threshold_mask
 from scilpy.io.utils import (add_processes_arg, add_sphere_arg,
                              add_verbose_arg,
                              assert_inputs_exist, assert_outputs_exist,
@@ -231,6 +232,11 @@ def main():
             'RAP method "switch" requires --rap_params to be specified.')
     if args.rap_params is not None and args.rap_method != 'switch':
         parser.error('--rap_params can only be used with --rap_method switch.')
+
+    if (args.global_sf_rel_thr is not None or
+            args.global_sf_abs_thr is not None) and not args.in_odf:
+        parser.error('Global SF thresholding requires a global ODF (--in_odf).')
+
     tracts_format = detect_format(args.out_tractogram)
     if tracts_format is not TrkFile:
         logging.warning("You have selected option --save_seeds but you are "
@@ -290,8 +296,6 @@ def main():
     logging.info("Loading tracking mask.")
     mask_img = nib.load(args.in_mask)
     mask_data = mask_img.get_fdata(caching='unchanged', dtype=float)
-    mask_res = mask_img.header.get_zooms()[:3]
-    mask = DataVolume(mask_data, mask_res, args.mask_interp)
 
     # ------- INSTANTIATING PROPAGATOR -------
     if args.in_odf:
@@ -300,6 +304,27 @@ def main():
         odf_sh_data = odf_sh_img.get_fdata(caching='unchanged', dtype=float)
         odf_sh_res = odf_sh_img.header.get_zooms()[:3]
         dataset = DataVolume(odf_sh_data, odf_sh_res, args.sh_interp)
+
+        sh_basis, is_legacy = parse_sh_basis_arg(args)
+
+        if args.global_sf_rel_thr is not None or \
+                args.global_sf_abs_thr is not None:
+            sf_mask, global_max, threshold = compute_sf_threshold_mask(
+                odf_sh_data, sphere_name=args.sphere,
+                relative_factor=args.global_sf_rel_thr,
+                absolute_threshold=args.global_sf_abs_thr, sh_basis=sh_basis,
+                is_legacy=is_legacy)
+            logging.info("Global SF threshold mask: Global Max SF amplitude: "
+                         "{:.4f}".format(global_max))
+            if args.global_sf_rel_thr is not None:
+                logging.info("Global SF threshold mask: Computed threshold: "
+                             "{:.4f} (Factor: {})"
+                             .format(threshold, args.global_sf_rel_thr))
+            else:
+                logging.info("Global SF threshold mask: Absolute threshold: "
+                             "{:.4f}".format(args.global_sf_abs_thr))
+
+            mask_data = np.logical_and(mask_data, sf_mask)
 
         logging.info("Instantiating propagator.")
         # Converting step size to vox space
@@ -312,7 +337,6 @@ def main():
 
         # Using space and origin in the propagator: vox and center, like
         # in dipy.
-        sh_basis, is_legacy = parse_sh_basis_arg(args)
 
         propagator = ODFPropagator(
             dataset, vox_step_size, args.rk_order, args.algo, sh_basis,
@@ -367,6 +391,9 @@ def main():
 
     if propagator is None and propagators:
         propagator = next(iter(propagators.values()))
+
+    mask_res = mask_img.header.get_zooms()[:3]
+    mask = DataVolume(mask_data, mask_res, args.mask_interp)
 
     # ------- INSTANTIATING RAP OBJECT -------
     if args.rap_mask:

@@ -52,10 +52,10 @@ import numpy as np
 from scilpy.reconst.utils import compute_sf_threshold_mask
 from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_overwrite_arg, add_sh_basis_args,
-                             add_verbose_arg, assert_inputs_exist,
-                             assert_outputs_exist, parse_sh_basis_arg,
-                             assert_headers_compatible, add_compression_arg,
-                             verify_compression_th)
+                             add_sphere_arg, add_verbose_arg,
+                             assert_inputs_exist, assert_outputs_exist,
+                             parse_sh_basis_arg, assert_headers_compatible,
+                             add_compression_arg, verify_compression_th)
 from scilpy.tracking.utils import get_theta
 from scilpy.version import version_string
 
@@ -122,6 +122,7 @@ def _build_arg_parser():
                          help='Spherical function relative threshold value '
                               'for the \ninitial direction. [%(default)s]')
     add_sh_basis_args(track_g)
+    add_sphere_arg(track_g, symmetric_only=False)
 
     seed_group = p.add_argument_group(
         'Seeding options',
@@ -203,33 +204,35 @@ def main():
     fodf_sh_img = nib.load(args.in_sh)
     fodf_sh_data = fodf_sh_img.get_fdata(dtype=np.float32)
 
+    sh_basis, is_legacy = parse_sh_basis_arg(args)
+
     sf_mask = None
-    if args.global_sf_rel_thr is not None or args.global_sf_abs_thr is not None:
+    if args.global_sf_rel_thr is not None or \
+            args.global_sf_abs_thr is not None:
         sf_mask, global_max, threshold = compute_sf_threshold_mask(
-            fodf_sh_data, sphere_name="repulsion724",
+            fodf_sh_data, sphere_name=args.sphere,
             relative_factor=args.global_sf_rel_thr,
             absolute_threshold=args.global_sf_abs_thr, sh_basis=sh_basis,
             is_legacy=is_legacy)
-        logging.info("Global SF threshold mask: Global Max SF amplitude: {:.4f}"
-                     .format(global_max))
+        logging.info("Global SF threshold mask: Global Max SF amplitude: "
+                     "{:.4f}".format(global_max))
         if args.global_sf_rel_thr is not None:
-            logging.info("Global SF threshold mask: Computed threshold: {:.4f} "
-                         "(Factor: {})".format(threshold, args.global_sf_rel_thr))
+            logging.info("Global SF threshold mask: Computed threshold: "
+                         "{:.4f} (Factor: {})"
+                         .format(threshold, args.global_sf_rel_thr))
         else:
-            logging.info("Global SF threshold mask: Absolute threshold: {:.4f}"
-                         .format(args.global_sf_abs_thr))
+            logging.info("Global SF threshold mask: Absolute threshold: "
+                         "{:.4f}".format(args.global_sf_abs_thr))
     if not np.allclose(np.mean(fodf_sh_img.header.get_zooms()[:3]),
                        fodf_sh_img.header.get_zooms()[0], atol=1e-03):
         parser.error(
             'SH file is not isotropic. Tracking cannot be ran robustly.')
 
-    tracking_sphere = HemiSphere.from_sphere(get_sphere(name='repulsion724'))
+    tracking_sphere = HemiSphere.from_sphere(get_sphere(name=args.sphere))
 
     # Check if sphere is unit, since we couldn't find such check in Dipy.
     if not np.allclose(np.linalg.norm(tracking_sphere.vertices, axis=1), 1.):
         raise RuntimeError('Tracking sphere should be unit normed.')
-
-    sh_basis, is_legacy = parse_sh_basis_arg(args)
 
     if args.algo == 'det':
         dgklass = DeterministicMaximumDirectionGetter

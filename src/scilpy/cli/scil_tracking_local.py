@@ -207,20 +207,22 @@ def main():
     sh_basis, is_legacy = parse_sh_basis_arg(args)
 
     sf_mask = None
-    if args.global_sf_rel_thr is not None or args.global_sf_abs_thr is not None:
+    if args.global_sf_rel_thr is not None or \
+            args.global_sf_abs_thr is not None:
         sf_mask, global_max, threshold = compute_sf_threshold_mask(
             odf_sh_data, sphere_name=args.sphere,
             relative_factor=args.global_sf_rel_thr,
             absolute_threshold=args.global_sf_abs_thr, sh_basis=sh_basis,
             is_legacy=is_legacy)
-        logging.info("Global SF threshold mask: Global Max SF amplitude: {:.4f}"
-                     .format(global_max))
+        logging.info("Global SF threshold mask: Global Max SF amplitude: "
+                     "{:.4f}".format(global_max))
         if args.global_sf_rel_thr is not None:
-            logging.info("Global SF threshold mask: Computed threshold: {:.4f} "
-                         "(Factor: {})".format(threshold, args.global_sf_rel_thr))
+            logging.info("Global SF threshold mask: Computed threshold: "
+                         "{:.4f} (Factor: {})"
+                         .format(threshold, args.global_sf_rel_thr))
         else:
-            logging.info("Global SF threshold mask: Absolute threshold: {:.4f}"
-                         .format(args.global_sf_abs_thr))
+            logging.info("Global SF threshold mask: Absolute threshold: "
+                         "{:.4f}".format(args.global_sf_abs_thr))
 
     if args.npv:
         nb_seeds = args.npv
@@ -257,13 +259,14 @@ def main():
             random_seed=args.seed)
     total_nb_seeds = len(seeds)
 
+    combined_mask = mask_data
+    if sf_mask is not None:
+        combined_mask = np.logical_and(mask_data, sf_mask)
+
     if not args.use_gpu:
         # LocalTracking.maxlen is actually the maximum length
         # per direction, we need to filter post-tracking.
         max_steps_per_direction = int(args.max_length / args.step_size)
-        combined_mask = mask_data
-        if sf_mask is not None:
-            combined_mask = np.logical_and(mask_data, sf_mask)
 
         stopping_criterion = BinaryStoppingCriterion(combined_mask)
 
@@ -316,7 +319,7 @@ def main():
 
         logging.info("Starting GPU local tracking.")
         streamlines_generator = GPUTracker(
-            odf_sh_data, mask_data, seeds,
+            odf_sh_data, combined_mask, seeds,
             vox_step_size, max_strl_len,
             theta=get_theta(args.theta, args.algo),
             sf_threshold=args.sf_threshold,
