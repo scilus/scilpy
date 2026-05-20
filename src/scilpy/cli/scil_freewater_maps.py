@@ -63,6 +63,10 @@ def _build_arg_parser():
     p.add_argument('--replace_bad_voxels', type=float, default=None,
                    help='Replace bad voxels (NaNs or infs) in the input DWI '
                         'with the specified value.')
+    p.add_argument('--compute_rmse', action='store_true',
+                     help='Compute the RMSE map of the model fit.')
+    p.add_argument('--compute_nrmse', action='store_true',
+                     help='Compute the NRMSE map of the model fit.')
 
     g1 = p.add_argument_group(title='Model options')
     g1.add_argument('--para_diff', type=float, default=1.5e-3,
@@ -174,6 +178,8 @@ def main():
         ae.set_config('ATOMS_path', kernels_dir)
         ae.set_config('OUTPUT_path', args.out_dir)
         ae.set_config('nthreads', args.nbr_processes)
+        ae.set_config('doComputeRMSE', args.compute_rmse)
+        ae.set_config('doComputeNRMSE', args.compute_nrmse)
         ae.generate_kernels(regenerate=regenerate_kernels)
         if args.compute_only:
             return
