@@ -241,8 +241,10 @@ class StatefulImage(nib.Nifti1Image):
             mu2 = bingham_data[..., 4:7].reshape(-1, 3)
             rotated_mu1 = np.dot(mu1, R.T)
             rotated_mu2 = np.dot(mu2, R.T)
-            bingham_data[..., 1:4] = rotated_mu1.reshape(original_shape[:4] + (3,))
-            bingham_data[..., 4:7] = rotated_mu2.reshape(original_shape[:4] + (3,))
+            bingham_data[..., 1:4] = rotated_mu1.reshape(
+                original_shape[:4] + (3,))
+            bingham_data[..., 4:7] = rotated_mu2.reshape(
+                original_shape[:4] + (3,))
             return bingham_data
 
         # Handle 5D data
