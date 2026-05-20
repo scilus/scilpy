@@ -148,7 +148,7 @@ def main():
         amico.core.setup()
         ae = amico.Evaluation('.', '.')
         ae.load_data(args.in_dwi, tmp_scheme_filename, mask_filename=args.mask,
-                     replace_bad_voxels=args.replace_bad_voxels)
+                     replace_bad_voxels=args.replace_bad_voxels, b0_thr=args.tolerance)
 
         # Compute the response functions
         ae.set_model("NODDI")

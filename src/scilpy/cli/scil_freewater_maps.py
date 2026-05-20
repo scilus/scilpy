@@ -143,7 +143,8 @@ def main():
         ae.load_data(args.in_dwi,
                      scheme_filename=tmp_scheme_filename,
                      mask_filename=args.mask,
-                     replace_bad_voxels=args.replace_bad_voxels)
+                     replace_bad_voxels=args.replace_bad_voxels,
+                     b0_thr=args.b_thr)
 
         # Compute the response functions
         ae.set_model("FreeWater")
