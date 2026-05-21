@@ -1,7 +1,11 @@
 # -*- coding: utf-8 -*-
 
-from dipy.direction.peaks import peak_directions
 import numpy as np
+
+from dipy.data import get_sphere
+from dipy.direction.peaks import peak_directions
+from dipy.reconst.shm import sh_to_sf_matrix
+from dipy.core.sphere import Sphere
 
 
 def find_order_from_nb_coeff(data):
@@ -33,7 +37,9 @@ def get_maximas(data, sphere, b_matrix, threshold, absolute_threshold,
     spherical_func = np.dot(data, b_matrix.T)
     spherical_func[np.nonzero(spherical_func < absolute_threshold)] = 0.
     return peak_directions(
-        spherical_func, sphere, threshold, min_separation_angle)
+        spherical_func, sphere,
+        relative_peak_threshold=threshold,
+        min_separation_angle=min_separation_angle)
 
 
 def get_sphere_neighbours(sphere, max_angle):
@@ -148,10 +154,6 @@ def compute_max_sf_amplitude(data, sh_basis, is_legacy,
     max_sf : np.ndarray
         Maximum SF amplitude per voxel.
     """
-    from dipy.data import get_sphere
-    from dipy.reconst.shm import sh_to_sf_matrix
-    from dipy.core.sphere import Sphere
-
     if mask is None:
         mask = np.any(data, axis=-1)
 
