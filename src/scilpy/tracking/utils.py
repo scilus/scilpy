@@ -99,8 +99,20 @@ def add_tracking_options(p):
                               '["eudx"=60, "det"=45, "prob"=20, "ptt"=20]')
     track_g.add_argument('--sfthres', dest='sf_threshold', metavar='sf_th',
                          type=float, default=0.1,
-                         help='Spherical function relative threshold. '
-                              '[%(default)s]')
+                         help='Spherical function relative threshold '
+                              'within each voxel. [%(default)s]')
+    global_sf_g = track_g.add_mutually_exclusive_group()
+    global_sf_g.add_argument('--global_sf_rel_thr', metavar='FACTOR',
+                             type=float, nargs='?', const=0.1, default=None,
+                             help='Global SF relative threshold factor.'
+                             'If set, masks voxels where\nmax SF amplitude < '
+                             'FACTOR * max global SF amplitude. \n'
+                             'If used without a value, default is [%(const)s].')
+    global_sf_g.add_argument('--global_sf_abs_thr', metavar='ABS_THR',
+                             type=float,
+                             help='Global SF absolute threshold.'
+                                  'If set, masks voxels where \n'
+                                  'max SF amplitude < ABS_THR.')
     add_sh_basis_args(track_g)
 
     return track_g
@@ -289,7 +301,7 @@ def save_tractogram(
     nib.streamlines.save(tractogram, out_tractogram, header=header)
 
 
-def get_direction_getter(in_img, algo, sphere, sub_sphere, theta, sh_basis,
+def get_direction_getter(img_data, algo, sphere, sub_sphere, theta, sh_basis,
                          voxel_size, sf_threshold, sh_to_pmf,
                          probe_length, probe_radius, probe_quality,
                          probe_count, support_exponent, is_legacy=True):
@@ -343,8 +355,6 @@ def get_direction_getter(in_img, algo, sphere, sub_sphere, theta, sh_basis,
     dg: dipy.direction.DirectionGetter
         The direction getter object.
     """
-    img_data = nib.load(in_img).get_fdata(dtype=np.float32)
-
     sphere = HemiSphere.from_sphere(
         get_sphere(name=sphere)).subdivide(n=sub_sphere)
 
