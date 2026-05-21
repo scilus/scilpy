@@ -33,7 +33,9 @@ def get_maximas(data, sphere, b_matrix, threshold, absolute_threshold,
     spherical_func = np.dot(data, b_matrix.T)
     spherical_func[np.nonzero(spherical_func < absolute_threshold)] = 0.
     return peak_directions(
-        spherical_func, sphere, threshold, min_separation_angle)
+        spherical_func, sphere,
+        relative_peak_threshold=threshold,
+        min_separation_angle=min_separation_angle)
 
 
 def get_sphere_neighbours(sphere, max_angle):
@@ -57,3 +59,68 @@ def get_sphere_neighbours(sphere, max_angle):
                     np.outer(zs, zs))
     neighbours = scalar_prods >= np.cos(max_angle)
     return neighbours
+
+
+def is_data_peaks(img_data):
+    """
+    Heuristic to find out if the input are peaks or fodf.
+    fodf are always around 0.15 and peaks around 0.75.
+    Peaks have more zero values than fodf. The first value of fodf is
+    usually the highest.
+
+    Parameters
+    ----------
+    img_data : np.ndarray
+        4D image data where the last dimension contains directional info.
+
+    Returns
+    -------
+    is_peaks : bool
+        True if data is likely peaks, False if likely fODF (SH).
+    """
+    last_dim = img_data.shape[-1]
+    if last_dim == 3:
+        return True
+
+    # Sum of absolute values to detect non-zero voxels correctly
+    non_zeros_mask = np.any(np.abs(img_data) > 0, axis=-1)
+    if not np.count_nonzero(non_zeros_mask):
+        return False
+
+    try:
+        order, full = get_sh_order_and_fullness(last_dim)
+        # Symmetric SH must be even order
+        if not full and order % 2 != 0:
+            return False
+    except ValueError:
+        # If not a valid SH number of coefficients, and not 3,
+        # it might be something else, but if it's a multiple of 3
+        # it's likely Peaks.
+        if last_dim % 3 == 0:
+            return True
+        return False
+
+    data_nz = img_data[non_zeros_mask]
+
+    # If all triplets have the same norm, it is likely peaks, otherwise SH.
+    if last_dim % 3 == 0:
+        norm = np.linalg.norm(data_nz.reshape(-1, 3), axis=-1)
+        if np.all(np.isclose(norm, norm[0])):
+            return True
+
+    # If the max is in the first triplet but not at index 0, it's likely Peaks.
+    # Smoothed SH almost always has max at index 0
+    argmax_indices = np.argmax(np.abs(data_nz), axis=-1)
+    if last_dim % 3 == 0 and \
+            np.mean(np.logical_or(argmax_indices == 1,
+                                  argmax_indices == 2)) > 0.1:
+        return True
+
+    # Exact zeros. SH almost never has exact zeros in real data.
+    # Peaks often have exact zeros for unused lobes
+    zero_ratio = np.mean(data_nz == 0)
+    if zero_ratio > 0.05:
+        return True
+
+    # Default to SH
+    return False

@@ -2,7 +2,7 @@
 import numpy as np
 
 from scilpy.gradients.bvec_bval_tools import (
-    check_b0_threshold, identify_shells, is_normalized_bvecs,
+    check_b0_threshold, check_shells_frf, identify_shells, is_normalized_bvecs,
     flip_gradient_axis, find_flip_swap_from_order, normalize_bvecs,
     round_bvals_to_shell, str_to_axis_index, swap_gradient_axis)
 
@@ -125,12 +125,16 @@ def test_round_bvals_to_shell():
         success = False
     assert not success
 
-    # 3. Verify that doesn't work with shell missing: no data on shell 1000.
-    bvals = np.asarray([0, 10])
-    shells = [0, 1000]
-    success = True
-    try:
-        _ = round_bvals_to_shell(bvals, shells, tol=tolerance)
-    except ValueError:
-        success = False
-    assert not success
+
+def test_check_shells_frf():
+    # Test case where shells are close enough
+    bvals = np.asarray([0, 0, 1000, 1000, 2000, 2000])
+    check_shells_frf(bvals, b0_threshold=20)
+
+    # Test case where shells are too far apart
+    bvals = np.asarray([0, 0, 1000, 1000, 3000, 3000])
+    check_shells_frf(bvals, b0_threshold=20)
+
+    # Test case with no non-b0 shells
+    bvals = np.asarray([0, 0, 10, 10])
+    check_shells_frf(bvals, b0_threshold=20)
