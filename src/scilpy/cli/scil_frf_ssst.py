@@ -21,7 +21,7 @@ import nibabel as nib
 import numpy as np
 
 from scilpy.gradients.bvec_bval_tools import (check_b0_threshold,
-                                              identify_shells)
+                                              check_shells_frf)
 from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_b0_thresh_arg, add_overwrite_arg,
                              add_precision_arg,
@@ -112,20 +112,7 @@ def main():
                                            b0_thr=args.b0_threshold,
                                            skip_b0_check=args.skip_b0_check)
 
-    shells_centroids, _ = identify_shells(bvals, args.b0_threshold,
-                                          round_centroids=True)
-    shells_centroids = list(sorted(
-        shells_centroids[shells_centroids > args.b0_threshold]))
-    min_non_b0_shell = np.min(shells_centroids) \
-        if len(shells_centroids) > 0 else 0
-    max_non_b0_delta = np.ediff1d(shells_centroids)[0] \
-        if len(shells_centroids) > 1 else 0
-    if max_non_b0_delta >= min_non_b0_shell:
-        logging.warning(
-            'Your shells seem to be very far apart (max delta: {}, '
-            'min non-b0 shell: {}). This might cause problems for the '
-            'estimation of the FRF. Consider using scil_frf_msmt.py.'
-            .format(max_non_b0_delta, min_non_b0_shell))
+    check_shells_frf(bvals, args.b0_threshold)
 
     mask = get_data_as_mask(nib.load(args.mask),
                             dtype=bool) if args.mask else None
