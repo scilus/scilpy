@@ -2,12 +2,6 @@
 import logging
 from typing import Iterable
 
-import nibabel as nib
-import numpy as np
-from nibabel.streamlines import TrkFile
-from nibabel.streamlines.tractogram import LazyTractogram, TractogramItem
-from tqdm import tqdm
-
 from dipy.core.sphere import HemiSphere
 from dipy.data import get_sphere
 from dipy.direction import (DeterministicMaximumDirectionGetter,
@@ -16,6 +10,12 @@ from dipy.direction.peaks import PeaksAndMetrics
 from dipy.io.utils import create_tractogram_header, get_reference_info
 from dipy.reconst.shm import sh_to_sf_matrix
 from dipy.tracking.streamlinespeed import compress_streamlines, length
+import nibabel as nib
+from nibabel.streamlines import TrkFile
+from nibabel.streamlines.tractogram import LazyTractogram, TractogramItem
+import numpy as np
+from tqdm import tqdm
+
 from scilpy.io.utils import (add_compression_arg, add_overwrite_arg,
                              add_sh_basis_args)
 from scilpy.reconst.utils import find_order_from_nb_coeff, get_maximas
@@ -104,13 +104,13 @@ def add_tracking_options(p):
     global_sf_g = track_g.add_mutually_exclusive_group()
     global_sf_g.add_argument('--global_sf_rel_thr', metavar='FACTOR',
                              type=float, nargs='?', const=0.1, default=None,
-                             help='Global SF relative threshold factor.'
+                             help='Global SF relative threshold factor. '
                              'If set, masks voxels where\nmax SF amplitude < '
                              'FACTOR * max global SF amplitude. \n'
                              'If used without a value, default is [%(const)s].')
     global_sf_g.add_argument('--global_sf_abs_thr', metavar='ABS_THR',
                              type=float,
-                             help='Global SF absolute threshold.'
+                             help='Global SF absolute threshold. '
                                   'If set, masks voxels where \n'
                                   'max SF amplitude < ABS_THR.')
     add_sh_basis_args(track_g)
@@ -309,8 +309,8 @@ def get_direction_getter(img_data, algo, sphere, sub_sphere, theta, sh_basis,
 
     Parameters
     ----------
-    in_img: str
-        Path to the input odf file.
+    img_data: np.ndarray
+        ODF data (SH or Peaks).
     algo: str
         Algorithm to use for tracking. Can be 'det', 'prob', 'ptt' or 'eudx'.
     sphere: str
@@ -479,3 +479,41 @@ def sample_distribution(dist, random_generator: np.random.Generator):
         return None
 
     return cdf.searchsorted(random_generator.random() * cdf[-1])
+
+def get_global_sf_threshold_mask(data, args, sh_basis, is_legacy):
+    """
+    Compute the global SF threshold mask and log information.
+
+    Parameters
+    ----------
+    data : np.ndarray
+        ODF data (SH or Peaks).
+    args : argparse.Namespace
+        Arguments from the CLI. Must contain sphere, global_sf_rel_thr,
+        and global_sf_abs_thr.
+    sh_basis : str
+        SH basis.
+    is_legacy : bool
+        Whether the SH basis is legacy.
+
+    Returns
+    -------
+    sf_mask : np.ndarray
+        Binary mask.
+    """
+    from scilpy.reconst.utils import compute_sf_threshold_mask
+    sf_mask, global_max, threshold = compute_sf_threshold_mask(
+        data, sphere_name=args.sphere,
+        relative_factor=args.global_sf_rel_thr,
+        absolute_threshold=args.global_sf_abs_thr, sh_basis=sh_basis,
+        is_legacy=is_legacy)
+    logging.info("Global SF threshold mask: Global Max SF amplitude: "
+                 "{:.4f}".format(global_max))
+    if args.global_sf_rel_thr is not None:
+        logging.info("Global SF threshold mask: Computed threshold: "
+                     "{:.4f} (Factor: {})"
+                     .format(threshold, args.global_sf_rel_thr))
+    else:
+        logging.info("Global SF threshold mask: Absolute threshold: "
+                     "{:.4f}".format(args.global_sf_abs_thr))
+    return sf_mask

@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
-
+from dipy.core.sphere import Sphere
 from dipy.data import get_sphere
 from dipy.direction.peaks import peak_directions
 from dipy.reconst.shm import sh_to_sf_matrix
-from dipy.core.sphere import Sphere
 
 
 def find_order_from_nb_coeff(data):
@@ -213,8 +212,16 @@ def compute_sf_threshold_mask(data, sphere_name='repulsion100',
 
     is_peaks = is_data_peaks(data)
     if is_peaks:
-        npeaks = data.shape[-1] // 3
-        peaks = data.reshape(data.shape[:3] + (npeaks, 3))
+        if data.ndim == 5:
+            if data.shape[-1] != 3:
+                raise ValueError("5D peaks input must have 3 as last dimension.")
+            peaks = data
+        elif data.ndim == 4:
+            npeaks = data.shape[-1] // 3
+            peaks = data.reshape(data.shape[:3] + (npeaks, 3))
+        else:
+            raise ValueError("Peaks input must be 4D or 5D.")
+
         norms = np.linalg.norm(peaks, axis=-1)
         # maximum amplitude/norm across peaks
         max_amp = np.max(norms, axis=-1)
@@ -227,29 +234,37 @@ def compute_sf_threshold_mask(data, sphere_name='repulsion100',
     if absolute_threshold is not None:
         threshold = absolute_threshold
     else:
+        if relative_factor < 0 or relative_factor > 1:
+            raise ValueError("relative_factor must be between 0 and 1.")
         threshold = relative_factor * global_max
 
-    mask = max_amp >= threshold
+    if global_max == 0:
+        mask = np.zeros(max_amp.shape, dtype=bool)
+    else:
+        mask = max_amp >= threshold
 
-    if postprocess_mask:
+    if postprocess_mask and np.any(mask):
         import scipy.ndimage as ndi
         # Postprocess to labels all elements and count voxels for each label
         labels = ndi.label(mask)[0]
         label_counts = np.bincount(labels.ravel())
-        # Find the largest connected component (excluding background)
-        # +1 to skip background
-        largest_label = np.argmax(label_counts[1:]) + 1
-        # Create a mask for the largest connected component
-        mask = labels == largest_label
-        inverted_mask = ~mask
 
-        # Remove isolated voxels in the inverted mask (holes in the main mask)
-        labels_inverted = ndi.label(inverted_mask)[0]
-        label_counts_inverted = np.bincount(labels_inverted.ravel())
-        for label, count in enumerate(label_counts_inverted):
-            if label == 0:
-                continue  # Skip background
-            if count < 100:  # Threshold for filling holes (can be adjusted)
-                mask[labels_inverted == label] = True
+        # Guard against empty label_counts[1:]
+        if len(label_counts) > 1:
+            # Find the largest connected component (excluding background)
+            # +1 to skip background
+            largest_label = np.argmax(label_counts[1:]) + 1
+            # Create a mask for the largest connected component
+            mask = labels == largest_label
+            inverted_mask = ~mask
+
+            # Remove isolated voxels in the inverted mask (holes in the main mask)
+            labels_inverted = ndi.label(inverted_mask)[0]
+            label_counts_inverted = np.bincount(labels_inverted.ravel())
+            for label, count in enumerate(label_counts_inverted):
+                if label == 0:
+                    continue  # Skip background
+                if count < 100:  # Threshold for filling holes (can be adjusted)
+                    mask[labels_inverted == label] = True
 
     return mask, global_max, threshold

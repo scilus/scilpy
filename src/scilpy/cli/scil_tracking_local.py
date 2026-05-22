@@ -61,21 +61,21 @@ import argparse
 import logging
 from time import perf_counter
 
-import nibabel as nib
-import numpy as np
-from nibabel.streamlines import TrkFile, detect_format
-
 from dipy.data import get_sphere
 from dipy.tracking import utils as track_utils
 from dipy.tracking.local_tracking import LocalTracking
 from dipy.tracking.stopping_criterion import BinaryStoppingCriterion
 from dipy.tracking.tracker import eudx_tracking
-from scilpy.reconst.utils import compute_sf_threshold_mask
+import nibabel as nib
+from nibabel.streamlines import TrkFile, detect_format
+import numpy as np
+
 from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_sphere_arg, add_verbose_arg,
                              assert_headers_compatible, assert_inputs_exist,
-                             assert_outputs_exist, parse_sh_basis_arg,
-                             verify_compression_th, load_matrix_in_any_format)
+                             assert_outputs_exist, load_matrix_in_any_format,
+                             parse_sh_basis_arg, verify_compression_th)
+from scilpy.reconst.utils import compute_sf_threshold_mask
 from scilpy.tracking.tracker import GPUTracker
 from scilpy.tracking.utils import (add_mandatory_options_tracking,
                                    add_out_options, add_seeding_options,
@@ -209,20 +209,9 @@ def main():
     sf_mask = None
     if args.global_sf_rel_thr is not None or \
             args.global_sf_abs_thr is not None:
-        sf_mask, global_max, threshold = compute_sf_threshold_mask(
-            odf_sh_data, sphere_name=args.sphere,
-            relative_factor=args.global_sf_rel_thr,
-            absolute_threshold=args.global_sf_abs_thr, sh_basis=sh_basis,
-            is_legacy=is_legacy)
-        logging.info("Global SF threshold mask: Global Max SF amplitude: "
-                     "{:.4f}".format(global_max))
-        if args.global_sf_rel_thr is not None:
-            logging.info("Global SF threshold mask: Computed threshold: "
-                         "{:.4f} (Factor: {})"
-                         .format(threshold, args.global_sf_rel_thr))
-        else:
-            logging.info("Global SF threshold mask: Absolute threshold: "
-                         "{:.4f}".format(args.global_sf_abs_thr))
+        from scilpy.tracking.utils import get_global_sf_threshold_mask
+        sf_mask = get_global_sf_threshold_mask(
+            odf_sh_data, args, sh_basis, is_legacy)
 
     if args.npv:
         nb_seeds = args.npv

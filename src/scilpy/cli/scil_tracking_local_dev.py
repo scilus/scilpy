@@ -58,40 +58,35 @@ Reference:
 """
 
 import argparse
+import json
 import logging
 import time
-import json
 
 import dipy.core.geometry as gm
+from dipy.io.stateful_tractogram import Origin, Space, StatefulTractogram
+from dipy.io.streamline import save_tractogram
 import nibabel as nib
+from nibabel.streamlines import TrkFile, detect_format
 import numpy as np
 
-from dipy.io.stateful_tractogram import StatefulTractogram, Space
-from dipy.io.stateful_tractogram import Origin
-from dipy.io.streamline import save_tractogram
-from nibabel.streamlines import detect_format, TrkFile
-
-from scilpy.io.image import assert_same_resolution
-from scilpy.reconst.utils import compute_sf_threshold_mask
-from scilpy.io.utils import (add_processes_arg, add_sphere_arg,
-                             add_verbose_arg,
-                             assert_inputs_exist, assert_outputs_exist,
-                             parse_sh_basis_arg, verify_compression_th,
-                             load_matrix_in_any_format)
+from scilpy.image.labels import get_data_as_labels
 from scilpy.image.volume_space_management import DataVolume
+from scilpy.io.image import assert_same_resolution, get_data_as_mask
+from scilpy.io.utils import (add_processes_arg, add_sphere_arg,
+                             add_verbose_arg, assert_inputs_exist,
+                             assert_outputs_exist, load_matrix_in_any_format,
+                             parse_sh_basis_arg, verify_compression_th)
+from scilpy.reconst.utils import compute_sf_threshold_mask
 from scilpy.tracking.propagator import ODFPropagator
 from scilpy.tracking.rap import RAPContinue, RAPSwitch
-from scilpy.tracking.seed import SeedGenerator, CustomSeedsDispenser
+from scilpy.tracking.seed import CustomSeedsDispenser, SeedGenerator
 from scilpy.tracking.tracker import Tracker
 from scilpy.tracking.utils import (add_mandatory_options_tracking,
                                    add_out_options, add_seeding_options,
-                                   add_tracking_options,
-                                   get_theta,
-                                   verify_streamline_length_options,
-                                   verify_seed_options)
+                                   add_tracking_options, get_theta,
+                                   verify_seed_options,
+                                   verify_streamline_length_options)
 from scilpy.version import version_string
-from scilpy.image.labels import get_data_as_labels
-from scilpy.io.image import get_data_as_mask
 
 
 def _build_arg_parser():
@@ -309,20 +304,9 @@ def main():
 
         if args.global_sf_rel_thr is not None or \
                 args.global_sf_abs_thr is not None:
-            sf_mask, global_max, threshold = compute_sf_threshold_mask(
-                odf_sh_data, sphere_name=args.sphere,
-                relative_factor=args.global_sf_rel_thr,
-                absolute_threshold=args.global_sf_abs_thr, sh_basis=sh_basis,
-                is_legacy=is_legacy)
-            logging.info("Global SF threshold mask: Global Max SF amplitude: "
-                         "{:.4f}".format(global_max))
-            if args.global_sf_rel_thr is not None:
-                logging.info("Global SF threshold mask: Computed threshold: "
-                             "{:.4f} (Factor: {})"
-                             .format(threshold, args.global_sf_rel_thr))
-            else:
-                logging.info("Global SF threshold mask: Absolute threshold: "
-                             "{:.4f}".format(args.global_sf_abs_thr))
+            from scilpy.tracking.utils import get_global_sf_threshold_mask
+            sf_mask = get_global_sf_threshold_mask(
+                odf_sh_data, args, sh_basis, is_legacy)
 
             mask_data = np.logical_and(mask_data, sf_mask)
 

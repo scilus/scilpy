@@ -36,26 +36,25 @@ import argparse
 import logging
 
 from dipy.data import get_sphere, HemiSphere
-from dipy.direction import (ProbabilisticDirectionGetter,
-                            DeterministicMaximumDirectionGetter)
-from dipy.io.utils import (get_reference_info,
-                           create_tractogram_header)
+from dipy.direction import (DeterministicMaximumDirectionGetter,
+                            ProbabilisticDirectionGetter)
+from dipy.io.utils import (create_tractogram_header, get_reference_info)
+from dipy.tracking import utils as track_utils
 from dipy.tracking.local_tracking import ParticleFilteringTracking
 from dipy.tracking.stopping_criterion import (ActStoppingCriterion,
                                               CmcStoppingCriterion)
-from dipy.tracking import utils as track_utils
-from dipy.tracking.streamlinespeed import length, compress_streamlines
+from dipy.tracking.streamlinespeed import compress_streamlines, length
 import nibabel as nib
 from nibabel.streamlines import LazyTractogram
 import numpy as np
 
-from scilpy.reconst.utils import compute_sf_threshold_mask
 from scilpy.io.image import get_data_as_mask
-from scilpy.io.utils import (add_overwrite_arg, add_sh_basis_args,
-                             add_sphere_arg, add_verbose_arg,
+from scilpy.io.utils import (add_compression_arg, add_overwrite_arg,
+                             add_sh_basis_args, add_sphere_arg,
+                             add_verbose_arg, assert_headers_compatible,
                              assert_inputs_exist, assert_outputs_exist,
-                             parse_sh_basis_arg, assert_headers_compatible,
-                             add_compression_arg, verify_compression_th)
+                             parse_sh_basis_arg, verify_compression_th)
+from scilpy.reconst.utils import compute_sf_threshold_mask
 from scilpy.tracking.utils import get_theta
 from scilpy.version import version_string
 
@@ -108,13 +107,13 @@ def _build_arg_parser():
     global_sf_g = track_g.add_mutually_exclusive_group()
     global_sf_g.add_argument('--global_sf_rel_thr', metavar='FACTOR',
                              type=float, nargs='?', const=0.1, default=None,
-                             help='Global SF relative threshold factor.'
+                             help='Global SF relative threshold factor. '
                              'If set, masks voxels where\nmax SF amplitude < '
                              'FACTOR * max global SF amplitude. \n'
                              'If used without a value, default is [%(const)s].')
     global_sf_g.add_argument('--global_sf_abs_thr', metavar='ABS_THR',
                              type=float,
-                             help='Global SF absolute threshold.'
+                             help='Global SF absolute threshold. '
                                   'If set, masks voxels where \n'
                                   'max SF amplitude < ABS_THR.')
     track_g.add_argument('--sfthres_init', dest='sf_threshold_init',
@@ -202,6 +201,11 @@ def main():
         parser.error('Total number of seeds must be > 0.')
 
     fodf_sh_img = nib.load(args.in_sh)
+    if not np.allclose(np.mean(fodf_sh_img.header.get_zooms()[:3]),
+                       fodf_sh_img.header.get_zooms()[0], atol=1e-03):
+        parser.error(
+            'SH file is not isotropic. Tracking cannot be ran robustly.')
+
     fodf_sh_data = fodf_sh_img.get_fdata(dtype=np.float32)
 
     sh_basis, is_legacy = parse_sh_basis_arg(args)
@@ -209,24 +213,9 @@ def main():
     sf_mask = None
     if args.global_sf_rel_thr is not None or \
             args.global_sf_abs_thr is not None:
-        sf_mask, global_max, threshold = compute_sf_threshold_mask(
-            fodf_sh_data, sphere_name=args.sphere,
-            relative_factor=args.global_sf_rel_thr,
-            absolute_threshold=args.global_sf_abs_thr, sh_basis=sh_basis,
-            is_legacy=is_legacy)
-        logging.info("Global SF threshold mask: Global Max SF amplitude: "
-                     "{:.4f}".format(global_max))
-        if args.global_sf_rel_thr is not None:
-            logging.info("Global SF threshold mask: Computed threshold: "
-                         "{:.4f} (Factor: {})"
-                         .format(threshold, args.global_sf_rel_thr))
-        else:
-            logging.info("Global SF threshold mask: Absolute threshold: "
-                         "{:.4f}".format(args.global_sf_abs_thr))
-    if not np.allclose(np.mean(fodf_sh_img.header.get_zooms()[:3]),
-                       fodf_sh_img.header.get_zooms()[0], atol=1e-03):
-        parser.error(
-            'SH file is not isotropic. Tracking cannot be ran robustly.')
+        from scilpy.tracking.utils import get_global_sf_threshold_mask
+        sf_mask = get_global_sf_threshold_mask(
+            fodf_sh_data, args, sh_basis, is_legacy)
 
     tracking_sphere = HemiSphere.from_sphere(get_sphere(name=args.sphere))
 
