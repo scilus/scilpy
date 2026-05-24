@@ -579,6 +579,130 @@ class ODFPropagator(PropagatorOnSphere):
         return maxima
 
 
+class ODFPropagatorWithSETPriors(ODFPropagator):
+    """
+    Propagator on ODFs/fODFs. Algo can be det or prob.
+    """
+
+    def __init__(self, datavolume, step_size, rk_order,
+                 algo, basis, sf_threshold, sf_threshold_init,
+                 theta, dipy_sphere='symmetric724', sub_sphere=0,
+                 min_separation_angle=np.pi / 16.,
+                 space=Space('vox'), origin=Origin('center'),
+                 is_legacy=True):
+        """
+        Parameters
+        ----------
+        datavolume: scilpy.image.volume_space_management.DataVolume
+            Trackable DataVolume object.
+        step_size: float
+            The step size for tracking.
+        rk_order: int
+            Order for the Runge Kutta integration.
+        algo: string
+            Type of algorithm. Choices are 'det' or 'prob'
+        basis: string
+            SH basis name. One of 'tournier07' or 'descoteaux07'
+        sf_threshold: float
+            Threshold on spherical function (SF).
+        sf_threshold_init: float
+            Threshold on spherical function when initializing a new streamline.
+        theta: float
+            Maximum angle (radians) between two steps.
+        dipy_sphere: string, optional
+            Name of the DIPY sphere object to use for evaluating SH. Can't be
+            None.
+        sub_sphere: int
+            Number of subdivisions to use for the sphere.
+        min_separation_angle: float, optional
+            Minimum separation angle (in radians) for peaks extraction. Used
+            for deterministic tracking. A candidate direction is a maximum if
+            its SF value is greater than all other SF values in its
+            neighbourhood, where the neighbourhood includes all the sphere
+            directions located at most `min_separation_angle` from the
+            candidate direction.
+        space: dipy Space
+            Space of the streamlines during tracking. Default: VOX, like in
+            dipy. Interpolation of the ODF is done in VOX space (see
+            DataVolume.vox_to_value) so this choice implies the less data
+            modification.
+        origin: dipy Origin
+            Origin of the streamlines during tracking. Default: center, like in
+            dipy. Interpolation of the ODF is done in center origin so this
+            choice implies the less data modification.
+        is_legacy : bool, optional
+            Whether or not the SH basis is in its legacy form.
+        """
+        super().__init__(datavolume, step_size, rk_order, algo,
+                         basis, sf_threshold, sf_threshold_init,
+                         theta, dipy_sphere, sub_sphere, min_separation_angle,
+                         space, origin, is_legacy)
+
+    def prepare_forward(self, seeding_pos, wm_pos, random_generator):
+        """
+        Prepare information necessary at the first point of the
+        streamline for forward propagation: v_in and any other information
+        necessary for the self.propagate method.
+
+        About **v_in**, it is used for two things:
+
+        - To sample the next direction based on _sample_next_direction method.
+            Ex, with fODF, it defines a cone theta of accepable directions.
+        - If no valid next dir are found, continue straight.
+
+        Parameters
+        ----------
+        seeding_pos: tuple(x,y,z)
+            The seeding position. Important, position must be in the same space
+            and origin as self.space, self.origin!
+        wm_pos: ndarray (N, 3)
+            Array containing the indices of white matter voxels.
+        random_generator: numpy Generator
+
+        Returns
+        -------
+        v_in: TrackingDirection
+            The "fake" previous direction at first step. Could be None if your
+            propagator can propagate without knowledge of previous direction.
+            Return PropagationStatus.Error if no good tracking direction can be
+            set at current seeding position.
+        """
+        # Sampling on the SF values (no matter if general algo is det or prob)
+        # with a different threshold than usual (sf_threshold_init).
+        directions_to_wm = wm_pos - np.reshape(seeding_pos, (1, 3))
+        distances_to_wm = np.linalg.norm(directions_to_wm, axis=1)
+        min_distance_to_wm = np.min(distances_to_wm)
+        if min_distance_to_wm == 0:
+            # Seeding position is exactly on a WM voxel, so we can just proceed with the usual sampling.
+            return super().prepare_forward(seeding_pos, random_generator)
+
+        dir_to_closest_wm = directions_to_wm[np.argmin(distances_to_wm)]
+        dir_to_closest_wm /= np.linalg.norm(dir_to_closest_wm)
+        # logging.debug(f"Initial direction is: {dir_to_closest_wm}, distance to closest WM voxel is {min_distance_to_wm}")
+
+        # So the initial step's propagation will be in a cone theta around a
+        # "more probable" peak.
+        sf = self._get_sf(seeding_pos)
+        sf[sf < self.sf_threshold_init] = 0
+
+        # also mask all directions that are on the opposite side of the closest WM voxel,
+        # to avoid going further away from it at first step.
+        for i, vec in enumerate(self.dirs):
+            cosine = np.dot(vec, dir_to_closest_wm)
+            if cosine <= np.cos(self.theta):
+                sf[i] = 0
+
+        # draw a sample from the distribution.
+        self.line_rng_generator = random_generator
+        if np.sum(sf) > 0:
+            ind = sample_distribution(sf, self.line_rng_generator)
+            return TrackingDirection(self.dirs[ind], ind)
+
+        # Else: sf at current position is smaller than acceptable threshold in
+        # all directions.
+        return PropagationStatus.ERROR
+
+
 class FibertubePropagator(AbstractPropagator):
     """
     Simplified propagator for using fibertube data. It is probabilistic and

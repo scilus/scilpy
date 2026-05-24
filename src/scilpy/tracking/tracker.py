@@ -12,15 +12,16 @@ from tqdm import tqdm
 
 import numpy as np
 from dipy.data import get_sphere
-from dipy.io.stateful_tractogram import Space
+from dipy.io.stateful_tractogram import Space, Origin
 from dipy.reconst.shm import sh_to_sf_matrix
 from dipy.tracking.streamlinespeed import compress_streamlines
 
 from scilpy.image.volume_space_management import DataVolume
-from scilpy.tracking.propagator import AbstractPropagator, PropagationStatus
+from scilpy.tracking.propagator import AbstractPropagator, ODFPropagator, ODFPropagatorWithSETPriors, PropagationStatus
 from scilpy.reconst.utils import find_order_from_nb_coeff
 from scilpy.tracking.seed import SeedGenerator
 from scilpy.gpuparallel.opencl_utils import CLKernel, CLManager, have_opencl
+from scilpy.tracking.utils import TrackingDirection
 
 # For the multi-processing:
 # Dictionary. Will contain all parameters necessary for a sub-process
@@ -752,13 +753,13 @@ class GPUTracker():
                 yield strl - 0.5, seed - 0.5
 
 
-class TracerTracker():
-    def __init__(self, propagator: AbstractPropagator, wm_mask: DataVolume,
-                 projection_map: DataVolume, seed_generator: SeedGenerator,
-                 nbr_seeds, min_nbr_pts, max_nbr_pts, max_invalid_dirs,
-                 compression_th=0.1, save_seeds=False, rng_seed=1234,
-                 track_forward_only=False, skip=0, verbose=False,
-                 min_iter=100, append_last_point=True):
+class MouseTracker():
+    def __init__(self, propagator: ODFPropagator, wm_mask: DataVolume,
+                 seed_generator: SeedGenerator, nbr_seeds, min_nbr_pts,
+                 max_nbr_pts, max_invalid_dirs, compression_th=0.1,
+                 save_seeds=False, rng_seed=1234, track_forward_only=False,
+                 skip=0, verbose=False, min_iter=100, append_last_point=True,
+                 backtrack_nb_pts=10, sigma_backtrack_pts=4.0):
         """
         Tracker for tracer experiments. Similar to Tracker but with additional
         input projection map and white matter mask. The tracking is constrained
@@ -822,8 +823,11 @@ class TracerTracker():
         """
         self.propagator = propagator
         self.wm_mask = wm_mask
-        self.projection_map = projection_map
         self.seed_generator = seed_generator
+        self.sigma_pts = sigma_backtrack_pts
+        self.backtrack_nb_pts = backtrack_nb_pts
+
+        # tracking parameters
         self.nbr_seeds = nbr_seeds
         self.min_nbr_pts = min_nbr_pts
         self.max_nbr_pts = max_nbr_pts
@@ -837,14 +841,11 @@ class TracerTracker():
 
         self.origin = self.propagator.origin
         self.space = self.propagator.space
-        if self.space == Space.RASMM:
-            raise NotImplementedError(
-                "This version of the Tracker is not ready to work in RASMM "
-                "space.")
-        if (seed_generator.origin != propagator.origin or
-                seed_generator.space != propagator.space):
-            raise ValueError("Seed generator and propagator must work with "
-                             "the same space and origin!")
+        if self.space != Space.VOX and self.origin != Origin.CENTER:
+            raise NotImplementedError("This version of the Tracker only works in VOX space with CENTER origin.")
+
+        if (seed_generator.origin != propagator.origin or seed_generator.space != propagator.space):
+            raise ValueError("Seed generator and propagator must work with the same space and origin!")
 
         if self.min_nbr_pts <= 0:
             logging.warning("Minimum number of points cannot be 0. Changed to "
@@ -854,6 +855,11 @@ class TracerTracker():
         self.printing_frequency = 1000
         self.verbose = verbose
         self.min_iter = min_iter
+        self.backtrack_count = 0
+
+        # in voxels, minimum separation between backtracking
+        # endpoint to consider them as different lines
+        self.min_sep_backtracking = 5.0
 
     def track(self):
         """
@@ -896,48 +902,39 @@ class TracerTracker():
         tqdm_text = "#" + "{}".format(0).zfill(3)
 
         if self.verbose:
-            if lock is None:
-                lock = nullcontext()
-            with lock:
-                p = tqdm(total=self.nbr_seeds, desc=tqdm_text, position=1, leave=False)
+            p = tqdm(total=self.nbr_seeds, desc=tqdm_text, position=1, leave=False)
 
         for s in range(self.nbr_seeds):
             seed = self.seed_generator.get_next_pos(
                 random_generator, indices, first_seed_of_chunk + s)
 
             # Setting the random value.
-            # Previous usage (and usage in Dipy) is to set the random seed
-            # based on the (real) seed position. However, in the case where we
-            # like to have exactly the same seed more than once, this will lead
-            # to exactly the same line, even in probabilistic tracking.
-            # Changing to seed position + seed number.
-            # Then in the case of multiprocessing, adding also a fraction based
-            # on current process ID.
             eps = s
             line_generator = np.random.default_rng(
                 np.abs(hash((seed + (eps, eps, eps), self.rng_seed))))
 
             # Forward and backward tracking
-            line = self._get_line(seed, line_generator)
+            lines = self._get_lines(seed, line_generator)
 
-            if line is not None:
-                streamline = np.array(line, dtype='float32')
+            if lines is not None:
+                for line in lines:
+                    streamline = np.array(line, dtype='float32')
 
-                if self.compression_th is not None:
-                    # Compressing. Threshold is in mm. Verifying space.
-                    if self.space == Space.VOX:
-                        # Equivalent of sft.to_voxmm:
-                        streamline *= self.seed_generator.voxres
-                        compress_streamlines(streamline, self.compression_th)
-                        # Equivalent of sft.to_vox:
-                        streamline /= self.seed_generator.voxres
-                    else:
-                        compress_streamlines(streamline, self.compression_th)
+                    if self.compression_th is not None:
+                        # Compressing. Threshold is in mm. Verifying space.
+                        if self.space == Space.VOX:
+                            # Equivalent of sft.to_voxmm:
+                            streamline *= self.seed_generator.voxres
+                            compress_streamlines(streamline, self.compression_th)
+                            # Equivalent of sft.to_vox:
+                            streamline /= self.seed_generator.voxres
+                        else:
+                            compress_streamlines(streamline, self.compression_th)
 
-                streamlines.append(streamline)
+                    streamlines.append(streamline)
 
-                if self.save_seeds:
-                    seeds.append(np.asarray(seed, dtype='float32'))
+                    if self.save_seeds:
+                        seeds.append(np.asarray(seed, dtype='float32'))
 
             # Note. Option min_iter does not work with manual pbar update.
             # Will verify manually, lower.
@@ -948,9 +945,11 @@ class TracerTracker():
 
         if self.verbose:
             p.close()
+            logging.info(f"TRACKER finished tracking {len(streamlines)} streamlines with {self.backtrack_count} backtracking events.")
+
         return streamlines, seeds
 
-    def _get_line(self, seeding_pos, line_generator):
+    def _get_lines(self, seeding_pos, line_generator):
         """
         Generate a streamline from an initial position following the tracking
         parameters.
@@ -967,26 +966,79 @@ class TracerTracker():
         """
         # Forward
         line = [np.asarray(seeding_pos)]
+
         tracking_info = self.propagator.prepare_forward(seeding_pos, line_generator)
         if tracking_info == PropagationStatus.ERROR:
             # No good tracking direction can be found at seeding position.
             return None
 
-        # propagate the line in forward direction (tracking_info is the initial direction)
-        line = self._propagate_line(line, tracking_info)
+        lines = []
+
+        lines_fwd = []
+        last_endpoint = None
+        while tracking_info is not None:
+            # propagate the line in forward direction (tracking_info is the initial direction)
+            line = self._propagate_line(line, tracking_info)
+            if last_endpoint is not None:
+                if np.linalg.norm(np.asarray(line[-1]) - np.asarray(last_endpoint)) > self.min_sep_backtracking:
+                    lines_fwd.append(line.copy())
+            last_endpoint = line[-1]
+            # Verify if we should backtrack
+            tracking_info, line = self._verify_backtracking_criteria(line, line_generator)
+        logging.debug(f"TRACKER forward: {len(lines_fwd)} lines")
 
         # Backward
         if not self.track_forward_only:
-            if len(line) > 1:
-                line.reverse()
 
-            tracking_info = self.propagator.prepare_backward(line, tracking_info)
-            line = self._propagate_line(line, tracking_info)
+            # we can take any line since they all start at the same seed
+            tracking_info = self.propagator.prepare_backward(line[::-1], tracking_info)
 
-        # Clean streamline
-        if self.min_nbr_pts <= len(line) <= self.max_nbr_pts:
-            return line
-        return None
+            lines_backward = []
+            last_endpoint = None
+            line = [np.asarray(seeding_pos)]
+            while tracking_info is not None:
+                # propagate the line in forward direction (tracking_info is the initial direction)
+                line = self._propagate_line(line, tracking_info)
+                if last_endpoint is not None:
+                    if np.linalg.norm(np.asarray(line[-1]) - np.asarray(last_endpoint)) > self.min_sep_backtracking:
+                        lines_backward.append(line.copy())
+                last_endpoint = line[-1]
+                # Verify if we should backtrack
+                tracking_info, line = self._verify_backtracking_criteria(line, line_generator)
+
+            logging.debug(f"TRACKER backward: {len(lines_backward)} lines")
+            # Combine forward and backward lines, removing duplicates at the seed
+            for f_line in lines_fwd:
+                for b_line in lines_backward:
+                    b_line_reversed = b_line[::-1]
+                    line = b_line_reversed[:-1] + f_line  # combine backward and forward lines, removing duplicate seed point
+                    if self.min_nbr_pts <= len(line) <= self.max_nbr_pts:
+                        lines.append(line.copy())  # update the forward line with the combined line
+                    else:
+                        logging.debug(f"TRACKER line invalid, stop. {self.min_nbr_pts} <= {len(line)} <= {self.max_nbr_pts}")
+        else:
+            lines = lines_fwd
+        logging.debug(f"TRACKER total: {len(lines)} lines")
+
+        # TODO: filter lines such that endpoints are not too close to each other
+
+        return lines if len(lines) > 0 else None
+
+    def _verify_backtracking_criteria(self, line, line_generator):
+        prob_retry = np.exp(-0.5 * len(line)**2 / self.sigma_pts**2)
+        if prob_retry < np.random.uniform(0, 1):
+            return None, line
+
+        self.backtrack_count += 1  # Increment backtrack count
+        if len(line) - 1 <= self.backtrack_nb_pts:
+            line = [line[0]]
+            tracking_info = self.propagator.prepare_forward(line[0], line_generator)
+        else:
+            line = line[:-self.backtrack_nb_pts]
+            last_dir = line[-1] - line[-2]  # Backtracking direction
+            ind = self.propagator.sphere.find_closest(last_dir)
+            tracking_info = TrackingDirection(self.propagator.sphere.vertices[ind], ind)
+        return tracking_info, line
 
     def _propagate_line(self, line, previous_dir):
         """
@@ -1038,36 +1090,19 @@ class TracerTracker():
 
             previous_dir = new_dir
 
-        logging.debug(f"TRACKER end of propagation: {len(line)} total points, last pos={np.round(line[-1], 2)}")
+        # logging.debug(f"TRACKER end of propagation: {len(line)} total points, last pos={np.round(line[-1], 2)}")
         return line
 
     def _verify_stopping_criteria(self, last_pos):
         # Checking if out of bound
-        if not self.projection_map.is_coordinate_in_bound(
+        if not self.wm_mask.is_coordinate_in_bound(
                 *last_pos, space=self.space, origin=self.origin):
             return False
 
-        # Propagation stops if density projection value is below some threshold
+        # Checking if out of mask
         if self.wm_mask.get_value_at_coordinate(
                 *last_pos, space=self.space, origin=self.origin) <= 0:
             return False
 
-        return True
-
-    def _verify_inclusion_criteria(self, last_pos):
-        # a streamline is included if it ends in a valid termination region.
-
-        # can't terminate inside WM mask
-        if self.wm_mask.get_value_at_coordinate(
-                *last_pos, space=self.space, origin=self.origin) > 0:
-            return False
-
-        # then the probability of terminating in any GM voxel is proportional to the projection density in that voxel
-        projection_density = self.projection_map.get_value_at_coordinate(
-                *last_pos, space=self.space, origin=self.origin)
-
-        randval = np.random.uniform(0, 1)
-        if randval > projection_density:
-            return False
-
+        # If we are still here, we can continue the propagation.
         return True
