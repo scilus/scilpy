@@ -81,7 +81,7 @@ from scilpy.image.volume_space_management import DataVolume
 from scilpy.tracking.propagator import ODFPropagator
 from scilpy.tracking.rap import RAPContinue, RAPSwitch
 from scilpy.tracking.seed import SeedGenerator, CustomSeedsDispenser
-from scilpy.tracking.tracker import Tracker
+from scilpy.tracking.tracker import MouseTracker as Tracker
 from scilpy.tracking.utils import (add_mandatory_options_tracking,
                                    add_out_options, add_seeding_options,
                                    add_tracking_options,
@@ -183,6 +183,13 @@ def _build_arg_parser():
     rap_g.add_argument('--rap_save_entry_exit', default=None,
                        help='Save RAP entry/exit coordinates as a binary mask.\n'
                        'Provide output filename (.nii.gz).')
+    
+    backtrack_g = p.add_argument_group('Backtracking options')
+    backtrack_g.add_argument('--backtrack_distance', type=float, default=1.0,
+                             help='Distance from endpoint to backtrack when tracking gets stuck, in mm. [%(default)s]')
+    backtrack_g.add_argument('--backtrack_sigma', type=float, default=10.0,
+                             help="Standard deviation of the exponential decay function of streamline length used to\n" \
+                                  "decide if backtracking occurs. [%(default)s]")
 
     m_g = p.add_argument_group('Memory options')
     add_processes_arg(m_g)
@@ -294,6 +301,7 @@ def main():
     mask = DataVolume(mask_data, mask_res, args.mask_interp)
 
     # ------- INSTANTIATING PROPAGATOR -------
+    step_size = args.step_size
     if args.in_odf:
         logging.info("Loading ODF SH data.")
         odf_sh_img = nib.load(args.in_odf)
@@ -308,7 +316,7 @@ def main():
         assert np.allclose(np.mean(odf_sh_res[:3]),
                            odf_sh_res, atol=1e-03)
         voxel_size = odf_sh_img.header.get_zooms()[0]
-        vox_step_size = args.step_size / voxel_size
+        vox_step_size = step_size / voxel_size
 
         # Using space and origin in the propagator: vox and center, like
         # in dipy.
@@ -326,6 +334,7 @@ def main():
         propagators = {}
         loaded_datasets = {}
         for label, cfg in rap_params.get('methods', {}).items():
+            logging.debug(f"Processing RAP policy for label {label} with config: {cfg}")
             if cfg.get('propagator').lower() == 'odf':
                 filename = cfg['filename']
 
@@ -334,7 +343,10 @@ def main():
                     odf_sh_img = nib.load(filename)
                     odf_sh_res = odf_sh_img.header.get_zooms()[:3]
                     voxel_size = odf_sh_img.header.get_zooms()[0]
-                    vox_step_size = cfg.get('step_size', args.step_size) / voxel_size
+                    rap_step_size = cfg.get('step_size', args.step_size)
+                    max_nbr_pts = max(max_nbr_pts, int(args.max_length / rap_step_size))
+                    step_size = min(rap_step_size, step_size)  # To ensure we have enough points for backtracking in RAP regions if needed.
+                    vox_step_size = rap_step_size / voxel_size
                     loaded_datasets[filename] = DataVolume(
                         odf_sh_img.get_fdata(caching='unchanged', dtype=float),
                         odf_sh_res, args.sh_interp)
@@ -346,6 +358,9 @@ def main():
                 algo = cfg.get('algo', args.algo)
                 theta = gm.math.radians(get_theta(cfg.get('theta', args.theta), algo))
                 is_legacy = 'legacy' in sh_basis_name
+                logging.debug(f"Instantiating propagator for label {label} with algo {algo}, "
+                              f"theta {theta}, sh_basis {sh_basis}, step_size {vox_step_size}, "
+                              f"is_legacy {is_legacy}.")
 
                 # Build propagator from rap_policies file
                 propagators[label] = ODFPropagator(
@@ -396,6 +411,10 @@ def main():
     else:
         rap = None
 
+    backtrack_nb_pts = int(args.backtrack_distance / step_size)
+    sigma_backtrack_pts = args.backtrack_sigma / step_size
+    logging.debug(f"Backtracking parameters: backtrack_nb_pts={backtrack_nb_pts}, "
+                  f"sigma_backtrack_pts={sigma_backtrack_pts}")
     logging.info("Instantiating tracker.")
     tracker = Tracker(propagator, mask, seed_generator, nbr_seeds, min_nbr_pts,
                       max_nbr_pts, args.max_invalid_nb_points,
@@ -406,7 +425,8 @@ def main():
                       track_forward_only=args.forward_only,
                       skip=args.skip,
                       append_last_point=args.keep_last_out_point,
-                      rap=rap, verbose=args.verbose)
+                      rap=rap, verbose=args.verbose, backtrack_nb_pts=backtrack_nb_pts,
+                      sigma_backtrack_pts=sigma_backtrack_pts)
 
     start = time.time()
     logging.info("Tracking...")

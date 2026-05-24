@@ -757,8 +757,10 @@ class MouseTracker():
     def __init__(self, propagator: ODFPropagator, wm_mask: DataVolume,
                  seed_generator: SeedGenerator, nbr_seeds, min_nbr_pts,
                  max_nbr_pts, max_invalid_dirs, compression_th=0.1,
-                 save_seeds=False, rng_seed=1234, track_forward_only=False,
-                 skip=0, verbose=False, min_iter=100, append_last_point=True,
+                 nbr_processes=1, save_seeds=False,
+                 mmap_mode = None,  rng_seed=1234,
+                 track_forward_only=False, skip=0, verbose=False,
+                 min_iter=100, append_last_point=True, rap=None,
                  backtrack_nb_pts=10, sigma_backtrack_pts=4.0):
         """
         Tracker for tracer experiments. Similar to Tracker but with additional
@@ -821,8 +823,14 @@ class MouseTracker():
             when angle is too sharp of sh_threshold not reached) are never
             added.
         """
+        if nbr_processes > 1:
+            raise ValueError("Multiprocessing is not yet implemented for MouseTracker.")
+        if mmap_mode is not None:
+            logging.warning("Memory-mapping mode is not yet implemented for MouseTracker. Ignoring mmap_mode argument.")
+
         self.propagator = propagator
         self.wm_mask = wm_mask
+        self.rap = rap
         self.seed_generator = seed_generator
         self.sigma_pts = sigma_backtrack_pts
         self.backtrack_nb_pts = backtrack_nb_pts
@@ -856,6 +864,8 @@ class MouseTracker():
         self.verbose = verbose
         self.min_iter = min_iter
         self.backtrack_count = 0
+
+        self.rap_entry_exit_coords = []
 
         # in voxels, minimum separation between backtracking
         # endpoint to consider them as different lines
@@ -968,6 +978,7 @@ class MouseTracker():
         line = [np.asarray(seeding_pos)]
 
         tracking_info = self.propagator.prepare_forward(seeding_pos, line_generator)
+        original_tracking_info = tracking_info  # Keep the original tracking info for backward tracking preparation
         if tracking_info == PropagationStatus.ERROR:
             # No good tracking direction can be found at seeding position.
             return None
@@ -982,6 +993,8 @@ class MouseTracker():
             if last_endpoint is not None:
                 if np.linalg.norm(np.asarray(line[-1]) - np.asarray(last_endpoint)) > self.min_sep_backtracking:
                     lines_fwd.append(line.copy())
+            else:
+                lines_fwd.append(line.copy())
             last_endpoint = line[-1]
             # Verify if we should backtrack
             tracking_info, line = self._verify_backtracking_criteria(line, line_generator)
@@ -991,7 +1004,7 @@ class MouseTracker():
         if not self.track_forward_only:
 
             # we can take any line since they all start at the same seed
-            tracking_info = self.propagator.prepare_backward(line[::-1], tracking_info)
+            tracking_info = self.propagator.prepare_backward(line[::-1], original_tracking_info)
 
             lines_backward = []
             last_endpoint = None
@@ -1002,6 +1015,8 @@ class MouseTracker():
                 if last_endpoint is not None:
                     if np.linalg.norm(np.asarray(line[-1]) - np.asarray(last_endpoint)) > self.min_sep_backtracking:
                         lines_backward.append(line.copy())
+                else:
+                    lines_backward.append(line.copy())
                 last_endpoint = line[-1]
                 # Verify if we should backtrack
                 tracking_info, line = self._verify_backtracking_criteria(line, line_generator)
@@ -1020,13 +1035,12 @@ class MouseTracker():
             lines = lines_fwd
         logging.debug(f"TRACKER total: {len(lines)} lines")
 
-        # TODO: filter lines such that endpoints are not too close to each other
-
         return lines if len(lines) > 0 else None
 
     def _verify_backtracking_criteria(self, line, line_generator):
         prob_retry = np.exp(-0.5 * len(line)**2 / self.sigma_pts**2)
         if prob_retry < np.random.uniform(0, 1):
+            logging.debug(f"TRACKER no backtracking, stop. prob_retry={prob_retry:.4f}")
             return None, line
 
         self.backtrack_count += 1  # Increment backtrack count
@@ -1069,28 +1083,63 @@ class MouseTracker():
         """
         invalid_direction_count = 0
         propagation_can_continue = True
+        in_rap_region = False  # Track whether we're currently in RAP region
+        step_count = 0
 
         while len(line) < self.max_nbr_pts and propagation_can_continue:
-            new_pos, new_dir, is_direction_valid = \
-                self.propagator.propagate(line, previous_dir)
 
-            # Verifying if direction is valid
-            # If invalid: break. Else, verify tracking mask.
-            if is_direction_valid:
-                invalid_direction_count = 0
-            else:
-                invalid_direction_count += 1
-                if invalid_direction_count > self.max_invalid_dirs:
+            # Call the RAP function if needed. Can advance of as many points
+            # as they want.
+            is_currently_in_rap = (propagation_can_continue and self.rap and
+                                   self.rap.is_in_rap_region(
+                                       line[-1], space=self.space, origin=self.origin))
+
+            # Detect entering RAP region
+            if is_currently_in_rap and not in_rap_region:
+                self.rap_entry_exit_coords.append((line[-1].copy(), 1))  # 1 for entry
+                in_rap_region = True
+                logging.debug(f"TRACKER ENTERING pos={np.round(line[-1], 2)}")
+
+            if is_currently_in_rap:
+                prev_len = len(line)
+                line, new_dir, is_line_valid = (
+                    self.rap.rap_multistep_propagate(line, previous_dir))
+                if not is_line_valid:
+                    logging.debug("TRACKER invalid, stop")
+                    break
+                if len(line) == prev_len:
+                    logging.debug("TRACKER no progress, stop")
+                    propagation_can_continue = False
+                    break
+                new_pos = line[-1]
+
+                # Verify that our RAP propagated point stays within the tracking mask
+                propagation_can_continue = self._verify_stopping_criteria(new_pos)
+                if not propagation_can_continue:
+                    logging.debug("TRACKER out of mask, stop.")
+                    line.pop()
                     break
 
-            # Test if the new position is inside WM
-            propagation_can_continue = self._verify_stopping_criteria(new_pos)
-            if propagation_can_continue or self.append_last_point:
-                line.append(new_pos)
+                step_count += 1
+            else:
+                new_pos, new_dir, is_direction_valid = \
+                    self.propagator.propagate(line, previous_dir)
+
+                # Verifying if direction is valid
+                # If invalid: break. Else, verify tracking mask.
+                if is_direction_valid:
+                    invalid_direction_count = 0
+                else:
+                    invalid_direction_count += 1
+                    if invalid_direction_count > self.max_invalid_dirs:
+                        break
+
+                propagation_can_continue = self._verify_stopping_criteria(new_pos)
+                if propagation_can_continue or self.append_last_point:
+                    line.append(new_pos)
 
             previous_dir = new_dir
 
-        # logging.debug(f"TRACKER end of propagation: {len(line)} total points, last pos={np.round(line[-1], 2)}")
         return line
 
     def _verify_stopping_criteria(self, last_pos):
