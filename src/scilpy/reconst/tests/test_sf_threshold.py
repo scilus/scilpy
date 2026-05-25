@@ -52,14 +52,14 @@ def test_compute_sf_threshold_mask_peaks():
     peaks_4d = np.zeros((3, 3, 1, 6))  # 2 peaks
     peaks_4d[1, 1, 0, :3] = [1, 0, 0]  # norm 1
     peaks_4d[2, 2, 0, 3:] = [0, 0, 2]  # norm 2
-    
+
     mask, global_max, threshold = compute_sf_threshold_mask(
         peaks_4d, relative_factor=0.6, postprocess_mask=False)
-    
+
     assert global_max == 2.0
     assert threshold == 1.2
     assert np.count_nonzero(mask) == 1
-    assert mask[2, 2, 0] == True
+    assert mask[2, 2, 0]
 
     # Test with 5D peaks (npeaks, 3)
     peaks_5d = np.zeros((3, 3, 1, 2, 3))
@@ -77,13 +77,14 @@ def test_compute_sf_threshold_mask_edge_cases():
     with pytest.raises(ValueError):
         compute_sf_threshold_mask(fodf_3x3_order8_descoteaux07,
                                   relative_factor=1.5)
-    
+
     # Test zero data
     zero_data = np.zeros((3, 3, 1, 45))
     mask, global_max, threshold = compute_sf_threshold_mask(
-        zero_data, relative_factor=0.5, sh_basis='descoteaux07', is_legacy=True)
+        zero_data, relative_factor=0.5, sh_basis='descoteaux07',
+        is_legacy=True)
     assert global_max == 0
-    assert np.all(mask == False)
+    assert not np.any(mask)
 
     # Test no params
     with pytest.raises(ValueError):
@@ -92,14 +93,14 @@ def test_compute_sf_threshold_mask_edge_cases():
 
 def test_compute_sf_threshold_mask_postprocess():
     # Create a mask with two components
-    data = np.zeros((10, 10, 10, 6)) # 4D peaks
-    data[2:5, 2:5, 2:5, :3] = [1, 0, 0] # Large component
-    data[8, 8, 8, :3] = [1, 0, 0] # Small component
-    
+    data = np.zeros((10, 10, 10, 6))  # 4D peaks
+    data[2:5, 2:5, 2:5, :3] = [1, 0, 0]  # Large component
+    data[8, 8, 8, :3] = [1, 0, 0]  # Small component
+
     mask, _, _ = compute_sf_threshold_mask(
         data, relative_factor=0.5, postprocess_mask=True)
-    
+
     # Only large component should remain
     assert np.count_nonzero(mask) == 27
-    assert mask[8, 8, 8] == False
-    assert mask[3, 3, 3] == True
+    assert not mask[8, 8, 8]
+    assert mask[3, 3, 3]

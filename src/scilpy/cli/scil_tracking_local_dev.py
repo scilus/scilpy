@@ -32,7 +32,7 @@ A few notes on Runge-Kutta integration.
        works well for deterministic tracking. However, in the context of
        probabilistic tracking, the next tracking directions cannot be estimated
        in advance, because they are picked randomly from a distribution. It is
-       therefore recommanded to keep the rk_order to 1 for probabilistic
+       therefore recommended to keep the rk_order to 1 for probabilistic
        tracking.
     2. As a rule of thumb, doubling the rk_order will double the computation
        time in the worst case.
@@ -76,7 +76,6 @@ from scilpy.io.utils import (add_processes_arg, add_sphere_arg,
                              add_verbose_arg, assert_inputs_exist,
                              assert_outputs_exist, load_matrix_in_any_format,
                              parse_sh_basis_arg, verify_compression_th)
-from scilpy.reconst.utils import compute_sf_threshold_mask
 from scilpy.tracking.propagator import ODFPropagator
 from scilpy.tracking.rap import RAPContinue, RAPSwitch
 from scilpy.tracking.seed import CustomSeedsDispenser, SeedGenerator
@@ -163,22 +162,24 @@ def _build_arg_parser():
     rap_g = p.add_argument_group('Region-Adaptive Propagation options')
     rap_mode = rap_g.add_mutually_exclusive_group()
     rap_mode.add_argument('--rap_mask', default=None,
-                          help='Region-Adaptive Propagation mask (.nii.gz).\n'
-                          'Region-Adaptive Propagation tractography will start within '
-                          'this mask.')
+                          help='Region-Adaptive Propagation mask '
+                               '(.nii.gz).\nRegion-Adaptive Propagation '
+                               'tractography will start within this mask.')
     rap_mode.add_argument('--rap_labels', default=None,
-                          help='Region-Adaptive Propagation label volume (.nii.gz) .\n'
-                          'Voxel values are integer labels (0=background, 1..N=regions) .\n'
-                          'Used with --rap_method switch to select policies per label.')
+                          help='Region-Adaptive Propagation label volume '
+                               '(.nii.gz) .\nVoxel values are integer labels '
+                               '(0=background, 1..N=regions) .\nUsed with '
+                               '--rap_method switch to select policies per '
+                               'label.')
     rap_g.add_argument('--rap_method', default='None',
                        choices=['None', 'continue', 'switch'],
-                       help="Region-Adaptive Propagation tractography method.\n"
-                       "'continue': continues tracking with same params,\n"
-                       "'switch': switches tracking params inside RAP mask.\n"
-                       " [%(default)s]")
+                       help="Region-Adaptive Propagation tractography "
+                            "method.\n'continue': continues tracking with "
+                            "same params,\n'switch': switches tracking "
+                            "params inside RAP mask.\n [%(default)s]")
     rap_g.add_argument('--rap_save_entry_exit', default=None,
-                       help='Save RAP entry/exit coordinates as a binary mask.\n'
-                       'Provide output filename (.nii.gz).')
+                       help='Save RAP entry/exit coordinates as a binary '
+                            'mask.\nProvide output filename (.nii.gz).')
 
     m_g = p.add_argument_group('Memory options')
     add_processes_arg(m_g)
@@ -202,7 +203,8 @@ def main():
     if args.rap_params:
         with open(args.rap_params, 'r') as f:
             rap_params = json.load(f)
-        filenames = [cfg['filename'] for cfg in rap_params.get('methods', {}).values()
+        filenames = [cfg['filename'] for cfg
+                     in rap_params.get('methods', {}).values()
                      if 'filename' in cfg]
         assert_inputs_exist(parser, filenames)
 
@@ -214,7 +216,8 @@ def main():
     verify_compression_th(args.compress_th)
     verify_seed_options(parser, args)
 
-    if (args.rap_mask is not None or args.rap_labels is not None) and args.rap_method == "None":
+    if (args.rap_mask is not None or args.rap_labels is not None) \
+            and args.rap_method == "None":
         parser.error('No RAP method selected.')
     if args.rap_method == 'continue' and args.rap_mask is None:
         parser.error('RAP method "continue" requires --rap_mask.')
@@ -230,7 +233,8 @@ def main():
 
     if (args.global_sf_rel_thr is not None or
             args.global_sf_abs_thr is not None) and not args.in_odf:
-        parser.error('Global SF thresholding requires a global ODF (--in_odf).')
+        parser.error('Global SF thresholding requires a global ODF '
+                     '(--in_odf).')
 
     tracts_format = detect_format(args.out_tractogram)
     if tracts_format is not TrkFile:
@@ -342,7 +346,8 @@ def main():
                     odf_sh_img = nib.load(filename)
                     odf_sh_res = odf_sh_img.header.get_zooms()[:3]
                     voxel_size = odf_sh_img.header.get_zooms()[0]
-                    vox_step_size = cfg.get('step_size', args.step_size) / voxel_size
+                    vox_step_size = cfg.get('step_size',
+                                            args.step_size) / voxel_size
                     loaded_datasets[filename] = DataVolume(
                         odf_sh_img.get_fdata(caching='unchanged', dtype=float),
                         odf_sh_res, args.sh_interp)
@@ -352,7 +357,8 @@ def main():
                 sh_basis = ('descoteaux07' if 'descoteaux07' in sh_basis_name
                             else 'tournier07')
                 algo = cfg.get('algo', args.algo)
-                theta = gm.math.radians(get_theta(cfg.get('theta', args.theta), algo))
+                theta = gm.math.radians(get_theta(
+                    cfg.get('theta', args.theta), algo))
                 is_legacy = 'legacy' in sh_basis_name
 
                 # Build propagator from rap_policies file

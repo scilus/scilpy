@@ -133,7 +133,11 @@ def compute_max_sf_amplitude(data, sh_basis, is_legacy,
                              sphere_name='repulsion100', mask=None):
     """
     Compute the maximum SF amplitude for each voxel.
-    Only computes SF for voxels where data is non-zero (or in mask) to save RAM.
+    Only computes SF for voxels where data is non-zero (or in mask) to save
+    RAM.
+
+    This information can be used to compute a global threshold for SF
+    amplitude, which is often used to filter out spurious peaks in fODF.
 
     Parameters
     ----------
@@ -182,6 +186,10 @@ def compute_sf_threshold_mask(data, sphere_name='repulsion100',
     """
     Compute a binary mask based on a global SF amplitude threshold.
 
+    In SF obtained from fODF, the amplitude of the lobes corresponds to the
+    strength of the diffusion signal in those directions. Thresholding these
+    amplitudes is a common practice to filter out spurious peaks.
+
     Parameters
     ----------
     data : np.ndarray
@@ -196,6 +204,8 @@ def compute_sf_threshold_mask(data, sphere_name='repulsion100',
         SH basis ('tournier07' or 'descoteaux07').
     is_legacy : bool, optional
         Whether the SH basis is legacy.
+    postprocess_mask : bool, optional
+        Whether to postprocess the mask to keep only the largest component.
 
     Returns
     -------
@@ -214,7 +224,8 @@ def compute_sf_threshold_mask(data, sphere_name='repulsion100',
     if is_peaks:
         if data.ndim == 5:
             if data.shape[-1] != 3:
-                raise ValueError("5D peaks input must have 3 as last dimension.")
+                raise ValueError("5D peaks input must have 3 "
+                                 "as last dimension.")
             peaks = data
         elif data.ndim == 4:
             npeaks = data.shape[-1] // 3
@@ -245,7 +256,7 @@ def compute_sf_threshold_mask(data, sphere_name='repulsion100',
 
     if postprocess_mask and np.any(mask):
         import scipy.ndimage as ndi
-        # Postprocess to labels all elements and count voxels for each label
+        # Postprocess to label all elements and count voxels for each label
         labels = ndi.label(mask)[0]
         label_counts = np.bincount(labels.ravel())
 
@@ -258,13 +269,13 @@ def compute_sf_threshold_mask(data, sphere_name='repulsion100',
             mask = labels == largest_label
             inverted_mask = ~mask
 
-            # Remove isolated voxels in the inverted mask (holes in the main mask)
+            # Remove isolated voxels in the inverted mask (holes in main mask)
             labels_inverted = ndi.label(inverted_mask)[0]
             label_counts_inverted = np.bincount(labels_inverted.ravel())
             for label, count in enumerate(label_counts_inverted):
                 if label == 0:
                     continue  # Skip background
-                if count < 100:  # Threshold for filling holes (can be adjusted)
+                if count < 100:  # Threshold for filling holes
                     mask[labels_inverted == label] = True
 
     return mask, global_max, threshold

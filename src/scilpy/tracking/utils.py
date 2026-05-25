@@ -18,7 +18,8 @@ from tqdm import tqdm
 
 from scilpy.io.utils import (add_compression_arg, add_overwrite_arg,
                              add_sh_basis_args)
-from scilpy.reconst.utils import find_order_from_nb_coeff, get_maximas
+from scilpy.reconst.utils import (find_order_from_nb_coeff, get_maximas,
+                                  compute_sf_threshold_mask, is_data_peaks)
 
 
 class TrackingDirection(list):
@@ -52,19 +53,25 @@ def add_mandatory_options_tracking(p, fodf_optional=False):
                                'Expected format:\n'
                                     '{\n'
                                     '  "methods": {\n'
-                                    '    "1": {"propagator": "ODF", "filename": str,\n'
-                                    '          "sh_basis": str, "algo": str,\n'
-                                    '          "theta": float, "step_size": float},\n'
-                                    '    "2": {"propagator": "ODF", "filename": str,\n'
-                                    '          "sh_basis": str, "algo": str,\n'
-                                    '          "theta": float, "step_size": float}\n'
+                                    '    "1": {"propagator": "ODF", '
+                                    '"filename": str,\n'
+                                    '          "sh_basis": str, '
+                                    '"algo": str,\n'
+                                    '          "theta": float, '
+                                    '"step_size": float},\n'
+                                    '    "2": {"propagator": "ODF", '
+                                    '"filename": str,\n'
+                                    '          "sh_basis": str, '
+                                    '"algo": str,\n'
+                                    '          "theta": float, '
+                                    '"step_size": float}\n'
                                     '  }\n'
                                     '}')
     else:
         p.add_argument('in_odf',
-                       help='File containing the orientation diffusion function \n'
-                            'as spherical harmonics file (.nii.gz). \n'
-                            'Ex: ODF or fODF.')
+                       help='File containing the orientation diffusion '
+                            'function \nas spherical harmonics file '
+                            '(.nii.gz). \nEx: ODF or fODF.')
     p.add_argument('in_seed',
                    help='Seeding mask (.nii.gz).')
     p.add_argument('in_mask',
@@ -105,14 +112,15 @@ def add_tracking_options(p):
     global_sf_g.add_argument('--global_sf_rel_thr', metavar='FACTOR',
                              type=float, nargs='?', const=0.1, default=None,
                              help='Global SF relative threshold factor. '
-                             'If set, masks voxels where\nmax SF amplitude < '
-                             'FACTOR * max global SF amplitude. \n'
-                             'If used without a value, default is [%(const)s].')
+                                  'If set, masks voxels where\nmaximum SF '
+                                  'amplitude < FACTOR * global maximum SF '
+                                  'amplitude. \nIf used without a value, '
+                                  'default is [%(const)s].')
     global_sf_g.add_argument('--global_sf_abs_thr', metavar='ABS_THR',
                              type=float,
                              help='Global SF absolute threshold. '
                                   'If set, masks voxels where \n'
-                                  'max SF amplitude < ABS_THR.')
+                                  'maximum SF amplitude < ABS_THR.')
     add_sh_basis_args(track_g)
 
     return track_g
@@ -177,7 +185,7 @@ def add_out_options(p):
     """
     out_g = p.add_argument_group('Output options')
     msg = ("\nA rule of thumb is to set it to 0.1mm for deterministic \n"
-           "streamlines and to 0.2mm for probabilitic streamlines.")
+           "streamlines and to 0.2mm for probabilistic streamlines.")
     add_compression_arg(out_g, additional_msg=msg)
 
     add_overwrite_arg(out_g)
@@ -326,7 +334,7 @@ def get_direction_getter(img_data, algo, sphere, sub_sphere, theta, sh_basis,
     sf_threshold: float
         Spherical function-amplitude threshold for tracking.
     sh_to_pmf: bool
-        Map sherical harmonics to spherical function (pmf) before tracking
+        Map spherical harmonics to spherical function (pmf) before tracking
         (faster, requires more memory).
     probe_length : float
         The length of the probes. Shorter probe_length
@@ -360,8 +368,6 @@ def get_direction_getter(img_data, algo, sphere, sub_sphere, theta, sh_basis,
 
     # Theta depends on user choice and algorithm
     theta = get_theta(theta, algo)
-
-    from scilpy.reconst.utils import is_data_peaks
     is_peaks = is_data_peaks(img_data)
 
     if algo in ['det', 'prob', 'ptt']:
@@ -480,9 +486,21 @@ def sample_distribution(dist, random_generator: np.random.Generator):
 
     return cdf.searchsorted(random_generator.random() * cdf[-1])
 
+
+
 def get_global_sf_threshold_mask(data, args, sh_basis, is_legacy):
     """
-    Compute the global SF threshold mask and log information.
+    Wrapper for compute_sf_threshold_mask to compute the global SF
+    threshold mask and log information.
+
+     The global SF threshold can be set as a relative factor of the global
+     maximum SF amplitude, or as an absolute threshold. The relative factor is
+     often set between 0.1 and 0.2, but it can depend on the data and the
+     SH basis used. The absolute threshold can be estimated from the mean/median
+     maximum fODF in the ventricles, computed with scil_fodf_max_in_ventricles.
+     
+     Note that this estimation is not perfect as it depends on the accuracy of
+     the ventricle mask and on the presence of noise/artifacts in the data.
 
     Parameters
     ----------
@@ -501,7 +519,6 @@ def get_global_sf_threshold_mask(data, args, sh_basis, is_legacy):
     sf_mask : np.ndarray
         Binary mask.
     """
-    from scilpy.reconst.utils import compute_sf_threshold_mask
     sf_mask, global_max, threshold = compute_sf_threshold_mask(
         data, sphere_name=args.sphere,
         relative_factor=args.global_sf_rel_thr,

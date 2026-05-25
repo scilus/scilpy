@@ -22,7 +22,7 @@ def test_execution(script_runner):
         # Create fake SH file
         affine = np.eye(4)
         img = nib.Nifti1Image(fodf_3x3_order8_descoteaux07.astype(np.float32),
-                             affine)
+                              affine)
         nib.save(img, in_sh)
 
         # Run with relative threshold

@@ -5,7 +5,7 @@ Local streamline HARDI tractography.
 The tracking direction is chosen in the aperture cone defined by the
 previous tracking direction and the angular constraint.
 
-WARNING: This script DOES NOT support asymetric FODF input (aFODF).
+WARNING: This script DOES NOT support asymmetric FODF input (aFODF).
 
 Algo 'eudx': select the peak from the spherical function (SF) most closely
 aligned to the previous direction, and follow an average of it and the previous
@@ -41,9 +41,10 @@ implementations:
     * Forward tracking: For GPU tracking, the `--forward_only` flag can be used
         to disable backward tracking. This option isn't available for CPU
         tracking.
-    * Random number generator seed (RNG): CPU and GPU use different RNG implementations,<
-        so the same `--seed` is reproducible within a backend but does not guarantee
-        identical streamlines across CPU vs GPU tracking.
+    * Random number generator seed (RNG): CPU and GPU use different RNG
+        implementations, so the same `--seed` is reproducible within a
+        backend but does not guarantee identical streamlines across CPU vs
+        GPU tracking.
 
 All the input nifti files must be in isotropic resolution.
 
@@ -75,7 +76,6 @@ from scilpy.io.utils import (add_sphere_arg, add_verbose_arg,
                              assert_headers_compatible, assert_inputs_exist,
                              assert_outputs_exist, load_matrix_in_any_format,
                              parse_sh_basis_arg, verify_compression_th)
-from scilpy.reconst.utils import compute_sf_threshold_mask
 from scilpy.tracking.tracker import GPUTracker
 from scilpy.tracking.utils import (add_mandatory_options_tracking,
                                    add_out_options, add_seeding_options,
@@ -105,7 +105,7 @@ def _build_arg_parser():
 
     # Other options, only available in this script:
     track_g.add_argument('--sh_to_pmf', action='store_true',
-                         help='If set, map sherical harmonics to spherical '
+                         help='If set, map spherical harmonics to spherical '
                               'function (pmf) before \ntracking (faster, '
                               'requires more memory)')
     track_g.add_argument('--algo', default='prob',

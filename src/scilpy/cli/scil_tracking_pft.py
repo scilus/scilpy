@@ -3,7 +3,7 @@
 """
 Local streamline HARDI tractography including Particle Filtering tracking.
 
-WARNING: This script DOES NOT support asymetric FODF input (aFODF).
+WARNING: This script DOES NOT support asymmetric FODF input (aFODF).
 
 The tracking is done inside partial volume estimation maps and uses the
 particle filtering tractography (PFT) algorithm. See
@@ -20,14 +20,14 @@ Algo 'prob': a direction drawn from the empirical distribution function defined
 from the SF.
 
 For streamline compression, a rule of thumb is to set it to 0.1mm for the
-deterministic algorithm and 0.2mm for probabilitic algorithm.
+deterministic algorithm and 0.2mm for probabilistic algorithm.
 
 All the input nifti files must be in isotropic resolution.
 
 -----------------------------------------------------------------------------
 Reference:
 [1] Girard, G., Whittingstall K., Deriche, R., and Descoteaux, M. (2014).
-    Towards quantitative connectivity analysis: reducing tractographybiases.
+    Towards quantitative connectivity analysis: reducing tractography biases.
     Neuroimage.
 -----------------------------------------------------------------------------
 """
@@ -54,7 +54,6 @@ from scilpy.io.utils import (add_compression_arg, add_overwrite_arg,
                              add_verbose_arg, assert_headers_compatible,
                              assert_inputs_exist, assert_outputs_exist,
                              parse_sh_basis_arg, verify_compression_th)
-from scilpy.reconst.utils import compute_sf_threshold_mask
 from scilpy.tracking.utils import get_theta
 from scilpy.version import version_string
 
@@ -108,14 +107,15 @@ def _build_arg_parser():
     global_sf_g.add_argument('--global_sf_rel_thr', metavar='FACTOR',
                              type=float, nargs='?', const=0.1, default=None,
                              help='Global SF relative threshold factor. '
-                             'If set, masks voxels where\nmax SF amplitude < '
-                             'FACTOR * max global SF amplitude. \n'
-                             'If used without a value, default is [%(const)s].')
+                             'If set, masks voxels where\nmaximum SF '
+                             'amplitude < FACTOR * global maximum SF '
+                             'amplitude. \nIf used without a value, '
+                             'default is [%(const)s].')
     global_sf_g.add_argument('--global_sf_abs_thr', metavar='ABS_THR',
                              type=float,
                              help='Global SF absolute threshold. '
                                   'If set, masks voxels where \n'
-                                  'max SF amplitude < ABS_THR.')
+                                  'maximum SF amplitude < ABS_THR.')
     track_g.add_argument('--sfthres_init', dest='sf_threshold_init',
                          type=float, default=0.5,
                          help='Spherical function relative threshold value '
