@@ -12,8 +12,9 @@ or SH representation, based on streamlines' segments.
 ------------------------------------------------------------------------------------
 Reference:
 [1] Dhollander T, Emsell L, Van Hecke W, Maes F, Sunaert S, Suetens P.
-    Track orientation density imaging (TODI) and track orientation distribution (TOD)
-    based tractography. NeuroImage. 2014 Jul 1;94:312-36.
+    Track orientation density imaging (TODI) and track orientation
+    distribution (TOD) based tractography. NeuroImage. 2014 Jul 1;94:312-36.
+
 ------------------------------------------------------------------------------------
 """
 
@@ -113,9 +114,13 @@ def main():
 
     # Processing
     logging.info('Computing length-weighted TODI ...')
+    # Get rotation matrix from reference affine to rotate segments
+    # to world space (where the sphere lives)
+    rotation_matrix = StatefulImage._get_rotation_matrix(affine)
     todi_obj = TrackOrientationDensityImaging(tuple(data_shape), args.sphere)
     todi_obj.compute_todi(sft.streamlines, length_weights=True,
-                          n_steps=args.n_steps, asymmetric=args.asymmetric)
+                          n_steps=args.n_steps, asymmetric=args.asymmetric,
+                          rotation_matrix=rotation_matrix)
 
     if args.smooth_todi:
         logging.info('Smoothing ...')
@@ -146,8 +151,7 @@ def main():
         data = todi_obj.reshape_to_3d(data).astype(np.float32)
         simg = StatefulImage(data, affine, sh_basis=sh_basis,
                              is_legacy=is_legacy, is_orientation=True,
-                             is_world_space=False)
-        simg.to_world_direction()
+                             is_world_space=True)
         nib.save(simg, args.out_todi_sh)
 
     if args.out_tdi:

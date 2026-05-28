@@ -38,7 +38,7 @@ import logging
 from dipy.data import get_sphere, HemiSphere
 from dipy.direction import (DeterministicMaximumDirectionGetter,
                             ProbabilisticDirectionGetter)
-from dipy.io.stateful_tractogram import Space
+from dipy.io.stateful_tractogram import Origin, Space
 from dipy.tracking import utils as track_utils
 from dipy.tracking.local_tracking import ParticleFilteringTracking
 from dipy.tracking.stopping_criterion import (ActStoppingCriterion,
@@ -49,8 +49,7 @@ import numpy as np
 
 from scilpy.io.image import get_data_as_mask
 from scilpy.io.stateful_image import StatefulImage
-from scilpy.io.utils import (add_compression_arg, add_overwrite_arg,
-                             add_sh_basis_args, add_sphere_arg,
+from scilpy.io.utils import (add_sphere_arg,
                              add_verbose_arg, assert_headers_compatible,
                              assert_inputs_exist, assert_outputs_exist,
                              parse_sh_basis_arg, verify_compression_th)
@@ -232,7 +231,6 @@ def main():
 
     # Always track in voxel space to avoid affine-related orientation issues
     # and match the voxel-oriented ODF data.
-    tracking_space = Space.VOX
     tracking_affine = np.eye(4)
 
     if not args.act:
@@ -297,7 +295,8 @@ def main():
     save_tractogram(pft_streamlines, tracts_format,
                     fodf_sh_simg, total_nb_seeds, args.out_tractogram,
                     args.min_length, args.max_length, args.compress_th,
-                    args.save_seeds, args.verbose)
+                    args.save_seeds, args.verbose,
+                    space=Space.VOX, origin=Origin.NIFTI)
 
 
 if __name__ == '__main__':

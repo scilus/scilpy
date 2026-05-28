@@ -18,7 +18,7 @@ def apply_transform(sfs, linear_transfo, target_reference,
     ----------
     sfs: StatefulSurface
         StatefulSurface containing the surface to be transformed
-    
+
     linear_transfo: numpy.ndarray
         Transformation matrix to be applied
     deformation_img: nib.Nifti1Image
@@ -47,7 +47,8 @@ def apply_transform(sfs, linear_transfo, target_reference,
                               origin=sfs.origin)
 
     if deformation_img is not None:
-        deformation_data = np.squeeze(deformation_img.get_fdata(dtype=np.float32))
+        deformation_data = np.squeeze(
+            deformation_img.get_fdata(dtype=np.float32))
 
         # Get vertices translation in voxel space, from the warp image
         new_sfs.to_vox()

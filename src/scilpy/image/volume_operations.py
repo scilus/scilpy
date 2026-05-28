@@ -786,8 +786,12 @@ def merge_metrics(*arrays, beta=1.0):
     # Calculate the product of the arrays for the geometric mean
     array_product = np.prod(masked_arrays, axis=0)
 
-    # Calculate the geometric mean for valid data
-    geometric_mean = np.power(array_product, 1 / len(arrays))
+    # Calculate the geometric mean for valid data.
+    # We take the absolute value of the product to avoid complex numbers
+    # if negative values are present (though metrics should be >= 0).
+    geometric_mean = np.power(np.abs(array_product), 1 / len(arrays))
+    # Preserve the sign if necessary (not needed for these metrics, but safer)
+    geometric_mean *= np.sign(array_product)
     boosted_mean = geometric_mean ** beta
 
     return ma.filled(boosted_mean, fill_value=np.nan)

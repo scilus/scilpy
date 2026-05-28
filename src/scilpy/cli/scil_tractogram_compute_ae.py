@@ -32,14 +32,14 @@ import logging
 import nibabel as nib
 import numpy as np
 
-from scilpy.io.streamlines import (load_tractogram_with_reference, 
+from scilpy.io.streamlines import (load_tractogram_with_reference,
                                    save_tractogram)
-from scilpy.io.utils import (add_processes_arg, add_verbose_arg, 
-                             add_overwrite_arg, assert_headers_compatible, 
-                             assert_inputs_exist, assert_outputs_exist, 
+from scilpy.io.utils import (add_processes_arg, add_verbose_arg,
+                             add_overwrite_arg, assert_headers_compatible,
+                             assert_inputs_exist, assert_outputs_exist,
                              add_bbox_arg)
 from scilpy.tractanalysis.scoring import compute_ae
-from scilpy.tractograms.dps_and_dpp_management import (add_data_as_color_dpp, 
+from scilpy.tractograms.dps_and_dpp_management import (add_data_as_color_dpp,
                                                        project_dpp_to_map)
 from scilpy.version import version_string
 from scilpy.viz.color import get_lookup_table
@@ -60,7 +60,7 @@ def _build_arg_parser():
     p.add_argument('--dpp_key', default="AE",
                    help="Name of the dpp key containg the AE in the output. "
                         "Default: AE")
-    
+
     g = p.add_argument_group("Optional outputs")
     g.add_argument('--save_as_color', action='store_true',
                    help="Save the AE as a color. Colors will range between "
@@ -76,10 +76,10 @@ def _build_arg_parser():
     g.add_argument('--cmap', default='jet',
                    help="Choice of matplotlib colormap. Default: jet.")
     g.add_argument('--cmap_max', nargs='?', const=180, type=float,
-                    help="If set, the maximum color on the colormap (yellow) "
-                         "will be associated \nto this value. If not set, the "
-                         "maxium value found in the data will be used instead."
-                         "\nDefault if set: 180 degrees.")
+                   help="If set, the maximum color on the colormap (yellow) "
+                   "will be associated \nto this value. If not set, the "
+                   "maxium value found in the data will be used instead."
+                   "\nDefault if set: 180 degrees.")
 
     add_processes_arg(p)
     add_verbose_arg(p)
@@ -150,14 +150,14 @@ def main():
             else np.max(stacked_ae)
         logging.info("Saving colors. The maxium color is assiociated to "
                      "value {}".format(max_cmap))
-         
+
         sft, _, _ = add_data_as_color_dpp(sft, cmap, stacked_ae,
                                           min_cmap=0, max_cmap=max_cmap)
 
     # -- Saving
     logging.info("Saving file {}.".format(args.out_tractogram))
     save_tractogram(sft, args.out_tractogram, no_empty=False)
-    
+
     # Save map (optional)
     if args.save_mean_map is not None:
         logging.info("Preparing map.")

@@ -21,8 +21,8 @@ import numpy as np
 
 from scilpy.io.streamlines import (load_tractogram_with_reference,
                                    save_tractogram)
-from scilpy.io.utils import (add_bbox_arg, add_overwrite_arg, add_reference_arg, 
-                             add_verbose_arg, assert_inputs_exist, 
+from scilpy.io.utils import (add_bbox_arg, add_overwrite_arg, add_reference_arg,
+                             add_verbose_arg, assert_inputs_exist,
                              assert_outputs_exist, ranged_type)
 from scilpy.version import version_string
 
@@ -39,7 +39,7 @@ def _build_arg_parser():
     p.add_argument('--no_empty', action='store_true',
                    help="Do not save the output tractogram if no streamline "
                         "fit the criterion.")
-    
+
     g = p.add_argument_group("Criterion's data")
     gg = g.add_mutually_exclusive_group(required=True)
     gg.add_argument("--from_dps", metavar='dpp_key',
@@ -58,7 +58,7 @@ def _build_arg_parser():
                          "the lowest value in its dps \nor mean dpp.")
     gg.add_argument('--center', action='store_true',
                     help="Selects the average streamlines.")
-    
+
     g = p.add_argument_group("Criterion")
     gg = g.add_mutually_exclusive_group(required=True)
     gg.add_argument(
@@ -73,7 +73,7 @@ def _build_arg_parser():
         help="Saves streamlines with value above mean + N*std (option "
              "--top), below \nmean - N*std (option --below) or in the "
              "range [mean - N*std, mean + N*std] \n(option --center)."
-             "Default if set: uses mean +- 3std.")   
+             "Default if set: uses mean +- 3std.")
 
     add_verbose_arg(p)
     add_overwrite_arg(p)
@@ -97,17 +97,17 @@ def main():
     logging.info("Loaded data")
 
     # Verify if the key already exists
-    if (args.from_dpp is not None and 
-        args.from_dpp not in sft.data_per_point.keys()):
+    if (args.from_dpp is not None and
+            args.from_dpp not in sft.data_per_point.keys()):
         parser.error("dpp key not found")
-    if (args.from_dps is not None and 
-        args.from_dps not in sft.data_per_streamline.keys()):
+    if (args.from_dps is not None and
+            args.from_dps not in sft.data_per_streamline.keys()):
         parser.error("dps key not found")
 
     # Extract the data of interest
     if args.from_dps is not None:
         data = sft.data_per_streamline[args.from_dps]
-        data = [np.squeeze(data_s) for data_s in data] 
+        data = [np.squeeze(data_s) for data_s in data]
         if len(data[0]).shape > 1:
             parser.error(
                 "Script not ready to deal with dps of more than one value per "
@@ -118,7 +118,7 @@ def main():
             parser.error(
                 "Script not ready to deal with dpp of more than one value per "
                 "point. Use scil_tractogram_dpp_math to modify your data.")
-        data = [np.mean(np.squeeze(data_s)) for data_s in data] 
+        data = [np.mean(np.squeeze(data_s)) for data_s in data]
 
     nb_init = len(sft)
 
@@ -164,7 +164,7 @@ def main():
             ind = data <= limit
             logging.info("Number of streamlines below mean - {}std limit: {}"
                          .format(args.std, sum(ind)))
-        else: # args.center
+        else:  # args.center
             limit1 = mean - args.std * std
             limit2 = mean + args.std * std
             ind = np.logical_and(data > limit1, data < limit2)

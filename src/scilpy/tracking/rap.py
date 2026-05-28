@@ -161,7 +161,8 @@ class RAPSwitch(RAP):
             if new_propagator is not self.propagator:
                 new_propagator.line_rng_generator = self.propagator.line_rng_generator
                 self.propagator = new_propagator
-                logging.debug(f"RAP propagator switched to default label {self._propagators.keys()[0]}")
+                logging.debug(
+                    f"RAP propagator switched to default label {self._propagators.keys()[0]}")
 
         # Perform propagation with new parameters
         new_pos, new_dir, is_direction_valid = self.propagator.propagate(

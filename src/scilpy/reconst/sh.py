@@ -465,12 +465,14 @@ def peaks_from_sh(shm_coeff, sphere, mask=None, relative_peak_threshold=0.5,
         for i, peak_dirs, peak_values, peak_indices in results:
             tmp_peak_dirs_array[chunk_len[i]:chunk_len[i+1], :, :] = peak_dirs
             tmp_peak_values_array[chunk_len[i]:chunk_len[i+1], :] = peak_values
-            tmp_peak_indices_array[chunk_len[i]:chunk_len[i+1], :] = peak_indices
+            tmp_peak_indices_array[chunk_len[i]
+                :chunk_len[i+1], :] = peak_indices
 
     # Bring back to the original shape
     peak_dirs_array = np.zeros(data_shape[0:3] + (npeaks, 3))
     peak_values_array = np.zeros(data_shape[0:3] + (npeaks,))
-    peak_indices_array = np.full(data_shape[0:3] + (npeaks,), -1, dtype=np.int32)
+    peak_indices_array = np.full(
+        data_shape[0:3] + (npeaks,), -1, dtype=np.int32)
     peak_dirs_array[mask] = tmp_peak_dirs_array
     peak_values_array[mask] = tmp_peak_values_array
     peak_indices_array[mask] = tmp_peak_indices_array
@@ -762,7 +764,8 @@ def convert_sh_basis(shm_coeff, sphere, mask=None,
         for i, new_shm_coeff in pool.imap_unordered(_convert_sh_basis_parallel,
                                                     zip(shm_coeff_chunks,
                                                         itertools.repeat(B_in),
-                                                        itertools.repeat(invB_out),
+                                                        itertools.repeat(
+                                                            invB_out),
                                                         np.arange(len(shm_coeff_chunks)))):
             tmp_shm_coeff_array[chunk_len[i]:chunk_len[i+1], :] = new_shm_coeff
 

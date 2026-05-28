@@ -51,7 +51,8 @@ class StatefulImage(nib.Nifti1Image):
         if bvals is not None and bvecs is not None:
             self.attach_gradients(bvals, bvecs, gradients_original_order)
 
-    def _get_rotation_matrix(self, affine):
+    @staticmethod
+    def _get_rotation_matrix(affine):
         """
         Extract the pure rotation component from a 4x4 affine matrix.
         """

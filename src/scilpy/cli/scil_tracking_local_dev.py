@@ -63,7 +63,7 @@ import logging
 import time
 
 import dipy.core.geometry as gm
-from dipy.io.stateful_tractogram import Origin, Space, StatefulTractogram
+from dipy.io.stateful_tractogram import Origin, Space
 import nibabel as nib
 from nibabel.streamlines import TrkFile, detect_format
 import numpy as np
@@ -83,6 +83,7 @@ from scilpy.tracking.tracker import Tracker
 from scilpy.tracking.utils import (add_mandatory_options_tracking,
                                    add_out_options, add_seeding_options,
                                    add_tracking_options, get_theta,
+                                   get_global_sf_threshold_mask,
                                    verify_seed_options,
                                    verify_streamline_length_options,
                                    save_tractogram)
@@ -301,7 +302,7 @@ def main():
     mask_simg.reorient(seed_simg.axcodes)
     mask_data = mask_simg.get_fdata(caching='unchanged', dtype=float)
     mask_res = mask_simg.header.get_zooms()[:3]
-    
+
     sh_basis, is_legacy = parse_sh_basis_arg(args)
 
     # ------- INSTANTIATING PROPAGATOR -------
@@ -321,19 +322,8 @@ def main():
 
         sf_mask = None
         if args.global_sf_rel_thr is not None or args.global_sf_abs_thr is not None:
-            sf_mask, global_max, threshold = compute_sf_threshold_mask(
-                odf_sh_data, sphere_name=args.sphere,
-                relative_factor=args.global_sf_rel_thr,
-                absolute_threshold=args.global_sf_abs_thr, sh_basis=sh_basis,
-                is_legacy=is_legacy)
-            logging.info("Global SF threshold mask: Global Max SF amplitude: {:.4f}"
-                         .format(global_max))
-            if args.global_sf_rel_thr is not None:
-                logging.info("Global SF threshold mask: Computed threshold: {:.4f} "
-                             "(Factor: {})".format(threshold, args.global_sf_rel_thr))
-            else:
-                logging.info("Global SF threshold mask: Absolute threshold: {:.4f}"
-                             .format(args.global_sf_abs_thr))
+            sf_mask = get_global_sf_threshold_mask(odf_sh_data, args,
+                                                   sh_basis, is_legacy)
 
         # Use identity affine for DataVolume to match voxel space tracking
         mask = DataVolume(mask_data, mask_res, affine=np.eye(4),
@@ -377,7 +367,8 @@ def main():
 
                 # Get params from rap_policies file
                 algo = cfg.get('algo', args.algo)
-                theta = gm.math.radians(get_theta(cfg.get('theta', args.theta), algo))
+                theta = gm.math.radians(
+                    get_theta(cfg.get('theta', args.theta), algo))
                 sh_basis_name = cfg.get('sh_basis', 'descoteaux07_legacy')
                 sh_basis = ('descoteaux07' if 'descoteaux07' in sh_basis_name
                             else 'tournier07')
@@ -385,7 +376,8 @@ def main():
 
                 # Build propagator from rap_policies file
                 propagators[label] = ODFPropagator(
-                    loaded_datasets[filename], cfg.get('step_size', args.step_size) / voxel_size,
+                    loaded_datasets[filename], cfg.get(
+                        'step_size', args.step_size) / voxel_size,
                     args.rk_order, algo, sh_basis, args.sf_threshold,
                     args.sf_threshold_init, theta, args.sphere,
                     sub_sphere=args.sub_sphere, space=our_space,
@@ -476,7 +468,8 @@ def main():
     save_tractogram(zip(streamlines, seeds), tracts_format,
                     odf_sh_simg, nbr_seeds, args.out_tractogram,
                     args.min_length, args.max_length, args.compress_th,
-                    args.save_seeds, args.verbose)
+                    args.save_seeds, args.verbose,
+                    space=Space.VOX, origin=Origin.NIFTI)
 
 
 if __name__ == "__main__":

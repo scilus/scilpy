@@ -526,7 +526,6 @@ def sample_distribution(dist, random_generator: np.random.Generator):
     return cdf.searchsorted(random_generator.random() * cdf[-1])
 
 
-
 def get_global_sf_threshold_mask(data, args, sh_basis, is_legacy):
     """
     Wrapper for compute_sf_threshold_mask to compute the global SF
@@ -537,7 +536,7 @@ def get_global_sf_threshold_mask(data, args, sh_basis, is_legacy):
      often set between 0.1 and 0.2, but it can depend on the data and the
      SH basis used. The absolute threshold can be estimated from the mean/median
      maximum fODF in the ventricles, computed with scil_fodf_max_in_ventricles.
-     
+
      Note that this estimation is not perfect as it depends on the accuracy of
      the ventricle mask and on the presence of noise/artifacts in the data.
 

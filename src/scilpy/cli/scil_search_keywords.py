@@ -207,7 +207,8 @@ def main():
         with open(hidden_dir / f'{match}.help', 'r', encoding='utf-8') as f:
             docstrings = f.read()
 
-        all_expressions = set(stemmed_keywords + keywords + phrases + stemmed_phrases)
+        all_expressions = set(
+            stemmed_keywords + keywords + phrases + stemmed_phrases)
         if not args.no_synonyms:
             all_expressions.update(synonyms)
 

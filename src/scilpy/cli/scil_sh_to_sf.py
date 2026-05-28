@@ -230,7 +230,8 @@ def main():
 
             # Use a dummy StatefulImage to save them in voxel space
             simg_out = StatefulImage.from_data(sf, simg_sh)
-            simg_out.attach_world_gradients([0]*len(new_bvecs), full_world_bvecs)
+            simg_out.attach_world_gradients(
+                [0]*len(new_bvecs), full_world_bvecs)
             simg_out.save_gradients(args.out_bval, args.out_bvec)
         else:
             np.savetxt(args.out_bvec, new_bvecs.T, fmt='%.8f')

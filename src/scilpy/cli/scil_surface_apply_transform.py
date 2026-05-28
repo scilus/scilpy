@@ -72,6 +72,7 @@ def _build_arg_parser():
 
     return p
 
+
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
@@ -93,7 +94,7 @@ def main():
         deformation_data = nib.load(args.in_deformation)
 
     out_sfs = apply_transform(sfs, transfo, img, deformation_data,
-                           inverse=args.inverse)
+                              inverse=args.inverse)
 
     # Save mesh
     save_surface(out_sfs, args.out_surface,

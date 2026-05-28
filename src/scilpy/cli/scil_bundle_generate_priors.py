@@ -17,7 +17,7 @@ import logging
 import os
 
 from dipy.data import get_sphere
-from dipy.reconst.shm import sf_to_sh, sh_to_sf
+from dipy.reconst.shm import sf_to_sh, sh_to_sf_matrix
 import nibabel as nib
 import numpy as np
 
@@ -109,9 +109,9 @@ def main():
     simg_sh = StatefulImage.load(args.in_fodf, is_orientation=True,
                                  is_world_space=not args.is_voxel_space,
                                  sh_basis=sh_basis, is_legacy=is_legacy)
-    # Bring to voxel space for multiplication with TODI (which is in vox space)
-    input_sh_3d = simg_sh.to_voxel_direction(sh_basis=sh_basis,
-                                             is_legacy=is_legacy).astype(np.float32)
+    # Multiplication with TODI (which is now in world space)
+    # We keep the input SH in world space.
+    input_sh_3d = simg_sh.get_fdata(dtype=np.float32)
 
     sh_shape = input_sh_3d.shape
     sh_order = find_order_from_nb_coeff(sh_shape)
@@ -127,8 +127,10 @@ def main():
     # Main computation
 
     # Compute TODI from streamlines
+    rotation_matrix = StatefulImage._get_rotation_matrix(img_mask.affine)
     todi_sf, sub_mask_3d = get_sf_from_todi(sft, mask_data, args.todi_sigma,
-                                            args.sf_threshold)
+                                            args.sf_threshold,
+                                            rotation_matrix=rotation_matrix)
 
     # SF to SH
     # Memory friendly saving, as soon as possible saving then delete
@@ -141,16 +143,15 @@ def main():
 
     simg_priors = StatefulImage(priors_3d, img_mask.affine,
                                 sh_basis=sh_basis, is_legacy=is_legacy,
-                                is_orientation=True, is_world_space=False)
-    simg_priors.to_world_direction()
+                                is_orientation=True, is_world_space=True)
     nib.save(simg_priors, out_priors)
     del priors_3d
 
     # Back to SF
-    # input_sh_3d is already in voxel space
-    input_sf_1d = sh_to_sf(input_sh_3d[sub_mask_3d],
-                           sphere, sh_order_max=sh_order,
+    # input_sh_3d is already in world space
+    B, _ = sh_to_sf_matrix(sphere, sh_order_max=sh_order,
                            basis_type=sh_basis, legacy=is_legacy)
+    input_sf_1d = np.dot(input_sh_3d[sub_mask_3d], B)
 
     # Creation of the enhanced-FOD (direction-wise multiplication)
     mult_sf_1d = input_sf_1d * todi_sf
@@ -172,9 +173,9 @@ def main():
 
     simg_efod = StatefulImage(input_sh_3d, img_mask.affine,
                               sh_basis=sh_basis, is_legacy=is_legacy,
-                              is_orientation=True, is_world_space=False)
-    simg_efod.to_world_direction()
+                              is_orientation=True, is_world_space=True)
     nib.save(simg_efod, out_efod)
+
     del input_sh_3d
 
     nib.save(nib.Nifti1Image(sub_mask_3d.astype(np.uint8), img_mask.affine),

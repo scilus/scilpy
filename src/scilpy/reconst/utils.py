@@ -64,7 +64,6 @@ def get_sphere_neighbours(sphere, max_angle):
     return neighbours
 
 
-
 def is_data_peaks(img_data):
     """
     Heuristic to find out if the input are peaks or fodf.

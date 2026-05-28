@@ -665,11 +665,11 @@ class FibertubeDataVolume(DataVolume):
                 shape_to_sample = "cylinder"
 
             volume, _ = sphere_cylinder_intersection(
-                    pos, blur_radius, fib_pt1,
-                    fib_pt2, radius,
-                    volume_nb_samples,
-                    shape_to_sample,
-                    random_generator)
+                pos, blur_radius, fib_pt1,
+                fib_pt2, radius,
+                volume_nb_samples,
+                shape_to_sample,
+                random_generator)
 
             if volume != 0:
                 directions.append(dir / np.linalg.norm(dir))

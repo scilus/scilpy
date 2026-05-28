@@ -54,7 +54,8 @@ def test_save_to_original_orientation():
 
         # Load the saved image and check its orientation
         saved_img = nib.load(output_path)
-        assert nib.orientations.aff2axcodes(saved_img.affine) == ("R", "A", "S")
+        assert nib.orientations.aff2axcodes(
+            saved_img.affine) == ("R", "A", "S")
 
 
 def test_reorient_to_original():

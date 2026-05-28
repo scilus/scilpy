@@ -278,12 +278,12 @@ def compose_mosaic(img_scene_container, cell_size, rows, cols, slice_numbers,
     from itertools import zip_longest
     for idx, (img_arr, trans_arr, labelmap_arr,
               overlays_arr, slice_number) in enumerate(list(zip_longest(
-                                                img_scene_container,
-                                                transparency_scene_container,
-                                                labelmap_scene_container,
-                                                overlays_scene_container,
-                                                slice_numbers,
-                                                fillvalue=tuple()))):
+                  img_scene_container,
+                  transparency_scene_container,
+                  labelmap_scene_container,
+                  overlays_scene_container,
+                  slice_numbers,
+                  fillvalue=tuple()))):
 
         # Compute the mosaic cell position
         top_pos, left_pos = compute_cell_topleft_pos(idx, cols,

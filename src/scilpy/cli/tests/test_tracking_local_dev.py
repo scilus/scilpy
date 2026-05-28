@@ -80,3 +80,27 @@ def test_execution_tracking_fodf_custom_seeds(script_runner, monkeypatch):
                              '--sub_sphere', '2',
                              '--rk_order', '4'])
     assert ret.success
+
+
+def test_execution_tracking_local_dev_sf_rel_thr(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
+    in_fodf = os.path.join(SCILPY_HOME, 'tracking', 'fodf.nii.gz')
+    in_mask = os.path.join(SCILPY_HOME, 'tracking', 'seeding_mask.nii.gz')
+
+    ret = script_runner.run(['scil_tracking_local_dev', in_mask, in_mask,
+                             '--in_odf', in_fodf, 'local_dev_sf_rel.trk',
+                             '--nt', '2', '--sh_basis', 'descoteaux07',
+                             '--global_sf_rel_thr', '0.1'])
+    assert ret.success
+
+
+def test_execution_tracking_local_dev_sf_abs_thr(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
+    in_fodf = os.path.join(SCILPY_HOME, 'tracking', 'fodf.nii.gz')
+    in_mask = os.path.join(SCILPY_HOME, 'tracking', 'seeding_mask.nii.gz')
+
+    ret = script_runner.run(['scil_tracking_local_dev', in_mask, in_mask,
+                             '--in_odf', in_fodf, 'local_dev_sf_abs.trk',
+                             '--nt', '2', '--sh_basis', 'descoteaux07',
+                             '--global_sf_abs_thr', '0.01'])
+    assert ret.success

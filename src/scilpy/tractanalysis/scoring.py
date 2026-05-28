@@ -65,7 +65,7 @@ def _compute_ae(args):
         current_peaks = peaks[coords[i][0], coords[i][1], coords[i][2], :, :]
 
         # Using only non-zero peaks. Dealing with buggy voxels: setting AE to 0
-        current_peaks = current_peaks[np.any(current_peaks!=0, axis=-1)]
+        current_peaks = current_peaks[np.any(current_peaks != 0, axis=-1)]
         if current_peaks.size == 0:
             nb_nan_chunk += 1
             ae_chunk[i] = 0

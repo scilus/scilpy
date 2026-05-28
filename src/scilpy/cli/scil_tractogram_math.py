@@ -163,7 +163,8 @@ def main():
             save_tractogram(sft_list[0], args.out_tractogram,
                             bbox_valid_check=args.bbox_check)
         else:
-            logging.info("All input tractograms are empty. Not saving results.")
+            logging.info(
+                "All input tractograms are empty. Not saving results.")
             logging.warning("All tractogram files are empty! Nothing to do. "
                             "Exiting, without saving results.")
         return
@@ -182,7 +183,7 @@ def main():
                         "due to floating point errors. Consider using '--robust'.", f
                     )
                 break
-    
+
     # Processing
     if args.operation == 'concatenate':
         logging.info('Performing operation "concatenate"')

@@ -123,13 +123,15 @@ def test_save_tractogram_world_space(tmp_path, rotated_las_dataset):
                     0, 1000, None, True, False, space=Space.RASMM)
 
     sft_scil = load_tractogram(out_trk_scil, dwi, bbox_valid_check=False)
-    assert len(sft_scil.streamlines) == 1, "Scilpy save_tractogram produced empty file!"
+    assert len(
+        sft_scil.streamlines) == 1, "Scilpy save_tractogram produced empty file!"
     sft_scil.to_rasmm()
 
     # Assert coordinates match
     np.testing.assert_allclose(sft_scil.streamlines[0], streamline, atol=1e-2)
     # Assert seed was saved correctly in DPS
-    np.testing.assert_allclose(sft_scil.data_per_streamline['seeds'][0], seed_world, atol=1e-2)
+    np.testing.assert_allclose(
+        sft_scil.data_per_streamline['seeds'][0], seed_world, atol=1e-2)
 
 
 if __name__ == "__main__":

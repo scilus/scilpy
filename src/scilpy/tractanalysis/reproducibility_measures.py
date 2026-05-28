@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from concurrent.futures import ProcessPoolExecutor, as_completed
-from copy import deepcopy, copy
+from copy import copy
 import logging
 import warnings
 
@@ -11,6 +11,7 @@ from dipy.segment.clustering import qbx_and_merge
 from dipy.segment.fss import FastStreamlineSearch
 from dipy.tracking.distances import bundles_distances_mdf
 import numpy as np
+import numpy.ma as ma
 from numpy.random import RandomState
 from scipy.spatial import cKDTree
 from scipy.spatial.distance import directed_hausdorff
@@ -19,8 +20,7 @@ from sklearn.neighbors import KDTree
 from tqdm import tqdm
 
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
-from scilpy.tractanalysis.todi import TrackOrientationDensityImaging, \
-    get_sh_from_todi
+from scilpy.tractanalysis.todi import get_sh_from_todi
 from scilpy.tractograms.streamline_operations import generate_matched_points
 from scilpy.tractograms.tractogram_operations import (difference_robust,
                                                       intersection_robust,
@@ -584,7 +584,10 @@ def _compare_tractogram_wrapper(mask, nbr_cpu, skip_streamlines_distance):
             except Exception as exc:
                 print(f'Generated an exception: {exc}')
             else:
-                results = np.array(results)
+                # Use ma.filled to avoid 'converting a masked element to nan'
+                # warning when results contains masked elements
+                # (from _compute_difference_for_voxel)
+                results = np.array(ma.filled(results, fill_value=np.nan))
                 diff_data[tuple(chunk.T)] = results[:, 0]
                 acc_data[tuple(chunk.T)] = results[:, 1]
 
@@ -676,11 +679,14 @@ def tractogram_pairwise_comparison(sft_one, sft_two, mask, nbr_cpu=1,
 
     logging.info('Computing TODI from tractogram #1...')
     global sh_data_1, sh_data_2
-    sh_data_1 = get_sh_from_todi(sft_1, mask)
+    from scilpy.io.stateful_image import StatefulImage
+    r1 = StatefulImage._get_rotation_matrix(sft_1.affine)
+    sh_data_1 = get_sh_from_todi(sft_1, mask, rotation_matrix=r1)
     sft_1.to_center()
 
     logging.info('Computing TODI from tractogram #2...')
-    sh_data_2 = get_sh_from_todi(sft_2, mask)
+    r2 = StatefulImage._get_rotation_matrix(sft_2.affine)
+    sh_data_2 = get_sh_from_todi(sft_2, mask, rotation_matrix=r2)
     sft_2.to_center()
 
     global B
@@ -775,9 +781,9 @@ def compare_volume_wrapper(data_1, data_2, voxel_size=1, ratio=False,
 
         # If comparison is performed against a reference volume
         if one_sided:
-            # we compute the overreach wrt the second 
+            # we compute the overreach wrt the second
             # volume. The one-sided overreach is the number of
-            # voxels in the first volume that are not in the second 
+            # voxels in the first volume that are not in the second
             diff = (binary_1 - (binary_1 * binary_2)) > 0
             volume_overreach = np.count_nonzero(diff)
         # Otherwise, we compute the overreach between both volumes
@@ -788,9 +794,9 @@ def compare_volume_wrapper(data_1, data_2, voxel_size=1, ratio=False,
 
         if ratio:
             if one_sided:
-                count = np.count_nonzero(binary_2) # wrt reference
+                count = np.count_nonzero(binary_2)  # wrt reference
             else:
-                count = np.count_nonzero(binary_1) # wrt first volume
+                count = np.count_nonzero(binary_1)  # wrt first volume
             if count > 0:
                 volume_overlap /= count
                 volume_overreach /= count

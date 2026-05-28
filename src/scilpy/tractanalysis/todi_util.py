@@ -65,13 +65,20 @@ def streamlines_to_endpoints(streamlines):
     return endpoints
 
 
-def streamlines_to_pts_dir_norm(streamlines, n_steps=1, asymmetric=False):
+def streamlines_to_pts_dir_norm(streamlines, n_steps=1, asymmetric=False,
+                                rotation_matrix=None):
     """Evaluate each segment: mid position, direction, length.
 
     Parameters
     ----------
     streamlines :  list of numpy.ndarray
         List of streamlines.
+    n_steps : int, optional
+        Number of steps for streamline segments subdivision.
+    asymmetric : bool, optional
+        If True, compute asymmetric directions.
+    rotation_matrix : numpy.ndarray (3,3), optional
+        Rotation matrix to apply to the segments' directions.
 
     Returns
     -------
@@ -86,7 +93,8 @@ def streamlines_to_pts_dir_norm(streamlines, n_steps=1, asymmetric=False):
     seg_mid = get_segments_mid_pts_positions(segments)
     seg_dir, seg_norm = get_segments_dir_and_norm(segments,
                                                   seg_mid,
-                                                  asymmetric)
+                                                  asymmetric,
+                                                  rotation_matrix)
 
     mask = seg_norm > 1.0e-20
     if ~mask.any():
@@ -104,16 +112,28 @@ def get_segments_vectors(segments):
     return segments[1] - segments[0]
 
 
-def get_segments_dir_and_norm(segments, seg_mid=None, asymmetric=False):
+def get_segments_dir_and_norm(segments, seg_mid=None, asymmetric=False,
+                              rotation_matrix=None):
     if asymmetric:
         seg_vecs = get_segments_vectors(segments)
-        return get_vectors_dir_and_norm_rel_to_center(seg_vecs, seg_mid)
-    return get_vectors_dir_and_norm(get_segments_vectors(segments))
+        directions, norms = get_vectors_dir_and_norm_rel_to_center(
+            seg_vecs, seg_mid)
+    else:
+        directions, norms = get_vectors_dir_and_norm(
+            get_segments_vectors(segments))
+
+    if rotation_matrix is not None:
+        directions = np.dot(directions, rotation_matrix.T)
+
+    return directions, norms
 
 
 def get_vectors_dir_and_norm(vectors):
     vectors_norm = compute_vectors_norm(vectors)
-    vectors_dir = vectors / vectors_norm.reshape((-1, 1))
+    norm_reshaped = vectors_norm.reshape((-1, 1))
+    vectors_dir = np.divide(vectors, norm_reshaped,
+                            out=np.zeros_like(vectors),
+                            where=norm_reshaped > 0)
     return vectors_dir, vectors_norm
 
 
@@ -123,7 +143,10 @@ def get_vectors_dir_and_norm_rel_to_center(vectors, seg_mid_pts):
         of voxel
     """
     vectors_norm = compute_vectors_norm(vectors)
-    vectors_dir = vectors / vectors_norm.reshape((-1, 1))
+    norm_reshaped = vectors_norm.reshape((-1, 1))
+    vectors_dir = np.divide(vectors, norm_reshaped,
+                            out=np.zeros_like(vectors),
+                            where=norm_reshaped > 0)
 
     # we create an array of voxel centers for each of our points
     vox_centers = seg_mid_pts.astype(int) + 0.5

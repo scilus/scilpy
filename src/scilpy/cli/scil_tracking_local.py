@@ -63,6 +63,7 @@ import logging
 from time import perf_counter
 
 from dipy.data import get_sphere
+from dipy.io.stateful_tractogram import Origin, Space
 from dipy.tracking import utils as track_utils
 from dipy.tracking.local_tracking import LocalTracking
 from dipy.tracking.stopping_criterion import BinaryStoppingCriterion
@@ -82,7 +83,8 @@ from scilpy.tracking.utils import (add_mandatory_options_tracking,
                                    add_out_options, add_seeding_options,
                                    add_tracking_options,
                                    add_tracking_ptt_options,
-                                   get_direction_getter, get_theta,
+                                   get_direction_getter,
+                                   get_global_sf_threshold_mask, get_theta,
                                    save_tractogram, verify_seed_options,
                                    verify_streamline_length_options)
 from scilpy.version import version_string
@@ -214,19 +216,8 @@ def main():
 
     sf_mask = None
     if args.global_sf_rel_thr is not None or args.global_sf_abs_thr is not None:
-        sf_mask, global_max, threshold = compute_sf_threshold_mask(
-            odf_sh_data, sphere_name=args.sphere,
-            relative_factor=args.global_sf_rel_thr,
-            absolute_threshold=args.global_sf_abs_thr, sh_basis=sh_basis,
-            is_legacy=is_legacy)
-        logging.info("Global SF threshold mask: Global Max SF amplitude: {:.4f}"
-                     .format(global_max))
-        if args.global_sf_rel_thr is not None:
-            logging.info("Global SF threshold mask: Computed threshold: {:.4f} "
-                         "(Factor: {})".format(threshold, args.global_sf_rel_thr))
-        else:
-            logging.info("Global SF threshold mask: Absolute threshold: {:.4f}"
-                         .format(args.global_sf_abs_thr))
+        sf_mask = get_global_sf_threshold_mask(odf_sh_data, args,
+                                               sh_basis, is_legacy)
 
     if args.npv:
         nb_seeds = args.npv
@@ -341,7 +332,8 @@ def main():
     save_tractogram(streamlines_generator, tracts_format,
                     odf_sh_simg, total_nb_seeds, args.out_tractogram,
                     args.min_length, args.max_length, args.compress_th,
-                    args.save_seeds, args.verbose)
+                    args.save_seeds, args.verbose,
+                    space=Space.VOX, origin=Origin.NIFTI)
     # Final logging
     logging.info('Saved tractogram to {0}.'.format(args.out_tractogram))
 

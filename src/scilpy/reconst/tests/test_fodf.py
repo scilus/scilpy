@@ -64,7 +64,8 @@ def test_get_ventricles_max_fodf_median():
     sf1 = np.dot(fodf_3x3_order8_descoteaux07[1, 0, 0], b_matrix)
     sf2 = np.dot(fodf_3x3_order8_descoteaux07[1, 1, 0], b_matrix)
 
-    assert np.allclose(median, np.median([np.max(sf1), np.max(sf2)]), atol=1e-6)
+    assert np.allclose(median, np.median(
+        [np.max(sf1), np.max(sf2)]), atol=1e-6)
 
 
 def test_get_ventricles_max_fodf_mask():

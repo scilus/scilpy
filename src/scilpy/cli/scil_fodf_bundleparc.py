@@ -49,7 +49,7 @@ from scilpy.ml.bundleparc.predict import predict
 from scilpy.ml.bundleparc.labels import post_process_labels_discrete, \
     post_process_labels_mm, post_process_labels_continuous
 from scilpy.ml.bundleparc.utils import DEFAULT_BUNDLES, \
-     download_weights, get_model
+    download_weights, get_model
 from scilpy.ml.utils import get_device, IMPORT_ERROR_MSG
 from scilpy import SCILPY_HOME
 

@@ -47,7 +47,6 @@ in MRI." Journal of Magnetic Resonance 2009; 199: 94-103.
 
 import argparse
 import logging
-import warnings
 
 from dipy.denoise.nlmeans import nlmeans
 from dipy.denoise.noise_estimate import estimate_sigma
@@ -79,7 +78,7 @@ def _build_arg_parser():
                         "will be denoised. If not provided, only non-zero "
                         "voxels will be denoised.")
     p.add_argument('--algorithm',
-                   choices=['blockwise','classic'], default='blockwise',
+                   choices=['blockwise', 'classic'], default='blockwise',
                    help='Algorithm to use for denoising. [%(default)s]')
     p.add_argument('--gaussian', action='store_true',
                    help="If you know that your data contains gaussian noise, "
@@ -162,13 +161,12 @@ def main():
                      "is not selected.")
 
     if args.piesno and (not args.number_coils or args.number_coils < 1):
-        parser.error("PIESNO method requires a positive number of coils." \
+        parser.error("PIESNO method requires a positive number of coils."
                      "The number of phase array coils of the MRI scanner."
                      "If your scanner does a SENSE reconstruction, ALWAYS use N=1, as the "
                      "noise profile is always Rician."
                      "If your scanner does a GRAPPA reconstruction, set N as the number "
                      "of phase array coils.")
-    
 
     assert_inputs_exist(parser, args.in_image,
                         [args.mask_denoise, args.mask_sigma])
@@ -237,7 +235,7 @@ def main():
         # Keep a 3D sigma map (one value per slice) for PIESNO.
         sigma = np.ones(vol_data.shape[:3]) * sigma[None, None, :]
 
-    data_denoised = nlmeans(vol_data, sigma, 
+    data_denoised = nlmeans(vol_data, sigma,
                             mask=mask_denoise,
                             rician=not args.gaussian,
                             method=args.algorithm,
