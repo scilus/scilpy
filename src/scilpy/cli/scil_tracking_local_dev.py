@@ -319,12 +319,21 @@ def main():
         dataset = DataVolume(odf_sh_data, odf_sh_res, affine=np.eye(4),
                              interpolation=args.sh_interp)
 
-        if args.global_sf_rel_thr is not None or \
-                args.global_sf_abs_thr is not None:
-            from scilpy.tracking.utils import get_global_sf_threshold_mask
-            sf_mask = get_global_sf_threshold_mask(
-                odf_sh_data, args, sh_basis, is_legacy)
-            mask_data = np.logical_and(mask_data, sf_mask)
+        sf_mask = None
+        if args.global_sf_rel_thr is not None or args.global_sf_abs_thr is not None:
+            sf_mask, global_max, threshold = compute_sf_threshold_mask(
+                odf_sh_data, sphere_name=args.sphere,
+                relative_factor=args.global_sf_rel_thr,
+                absolute_threshold=args.global_sf_abs_thr, sh_basis=sh_basis,
+                is_legacy=is_legacy)
+            logging.info("Global SF threshold mask: Global Max SF amplitude: {:.4f}"
+                         .format(global_max))
+            if args.global_sf_rel_thr is not None:
+                logging.info("Global SF threshold mask: Computed threshold: {:.4f} "
+                             "(Factor: {})".format(threshold, args.global_sf_rel_thr))
+            else:
+                logging.info("Global SF threshold mask: Absolute threshold: {:.4f}"
+                             .format(args.global_sf_abs_thr))
 
         # Use identity affine for DataVolume to match voxel space tracking
         mask = DataVolume(mask_data, mask_res, affine=np.eye(4),

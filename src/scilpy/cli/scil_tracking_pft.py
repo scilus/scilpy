@@ -38,6 +38,7 @@ import logging
 from dipy.data import get_sphere, HemiSphere
 from dipy.direction import (DeterministicMaximumDirectionGetter,
                             ProbabilisticDirectionGetter)
+from dipy.io.stateful_tractogram import Space
 from dipy.tracking import utils as track_utils
 from dipy.tracking.local_tracking import ParticleFilteringTracking
 from dipy.tracking.stopping_criterion import (ActStoppingCriterion,
@@ -89,19 +90,6 @@ def _build_arg_parser():
                          help='If set, uses anatomically-constrained '
                               'tractography (ACT) \ninstead of continuous map '
                               'criterion (CMC).')
-    global_sf_g = track_g.add_mutually_exclusive_group()
-    global_sf_g.add_argument('--global_sf_rel_thr', metavar='FACTOR',
-                             type=float, nargs='?', const=0.1, default=None,
-                             help='Global SF relative threshold factor. '
-                             'If set, masks voxels where\nmaximum SF '
-                             'amplitude < FACTOR * global maximum SF '
-                             'amplitude. \nIf used without a value, '
-                             'default is [%(const)s].')
-    global_sf_g.add_argument('--global_sf_abs_thr', metavar='ABS_THR',
-                             type=float,
-                             help='Global SF absolute threshold. '
-                                  'If set, masks voxels where \n'
-                                  'maximum SF amplitude < ABS_THR.')
     track_g.add_argument('--sfthres_init', dest='sf_threshold_init',
                          type=float, default=0.5,
                          help='Spherical function relative threshold value '
@@ -244,6 +232,7 @@ def main():
 
     # Always track in voxel space to avoid affine-related orientation issues
     # and match the voxel-oriented ODF data.
+    tracking_space = Space.VOX
     tracking_affine = np.eye(4)
 
     if not args.act:

@@ -7,6 +7,7 @@ from dipy.data import get_sphere
 from dipy.direction import (DeterministicMaximumDirectionGetter,
                             ProbabilisticDirectionGetter, PTTDirectionGetter)
 from dipy.direction.peaks import PeaksAndMetrics
+from dipy.io.stateful_tractogram import Origin, Space
 from dipy.io.utils import create_tractogram_header, get_reference_info
 from dipy.reconst.shm import sh_to_sf_matrix
 from dipy.tracking.streamlinespeed import compress_streamlines, length
@@ -223,7 +224,8 @@ def tqdm_if_verbose(generator: Iterable, verbose: bool, *args, **kwargs):
 
 def save_tractogram(
         streamlines_generator, tracts_format, ref_img, total_nb_seeds,
-        out_tractogram, min_length, max_length, compress, save_seeds, verbose
+        out_tractogram, min_length, max_length, compress, save_seeds, verbose,
+        space=Space.VOX, origin=Origin.NIFTI
 ):
     """ Save the streamlines on-the-fly using a generator. Tracts are
     filtered according to their length and compressed if requested. Seeds
@@ -253,6 +255,10 @@ def save_tractogram(
         data_per_streamline property.
     verbose : bool
         If True, display progression bar.
+    space : Space
+        Space in which the streamlines are generated.
+    origin : Origin
+        Origin in which the streamlines are generated.
 
     """
     voxel_size = np.array(ref_img.header.get_zooms()[:3])
@@ -285,7 +291,16 @@ def save_tractogram(
                                           miniters=miniters,
                                           leave=False):
             # 1. Get to RASMM (physical world space) for filtering and compression
-            strl_rasmm = nib.affines.apply_affine(affine_mod, strl)
+            if space == Space.VOX:
+                strl_rasmm = nib.affines.apply_affine(affine_mod, strl)
+            elif space == Space.VOXMM:
+                strl_rasmm = nib.affines.apply_affine(
+                    affine_mod, strl / voxel_size)
+            elif space == Space.RASMM:
+                strl_rasmm = strl
+            else:
+                raise ValueError("Unknown space")
+
             strl_len = length(strl_rasmm)
             if (min_length <= strl_len <= max_length):
                 # Prepare DPS for this streamline
@@ -324,8 +339,13 @@ def save_tractogram(
         reference = get_reference_info(ref_img)
         header = create_tractogram_header(filetype, *reference)
 
-    # Use generator to save the streamlines on-the-fly
-    nib.streamlines.save(tractogram, out_tractogram, header=header)
+    # Save
+    if filetype is TrkFile:
+        new_tractogram = nib.streamlines.TrkFile(tractogram, header)
+    else:
+        new_tractogram = nib.streamlines.TckFile(tractogram, header)
+
+    nib.streamlines.save(new_tractogram, out_tractogram)
 
 
 def get_direction_getter(img_data, algo, sphere, sub_sphere, theta, sh_basis,
@@ -388,6 +408,10 @@ def get_direction_getter(img_data, algo, sphere, sub_sphere, theta, sh_basis,
     # Theta depends on user choice and algorithm
     theta = get_theta(theta, algo)
     is_peaks = is_data_peaks(img_data)
+    if is_peaks:
+        logging.warning(
+            'Input detected as peaks. Input should be fodf for '
+            'det/prob/ptt, verify input just in case.')
 
     if algo in ['det', 'prob', 'ptt']:
         kwargs = {}

@@ -392,7 +392,7 @@ class Tracker(object):
             # on current process ID.
             eps = s + chunk_id / (self.nbr_processes + 1)
             line_generator = np.random.default_rng(
-                np.abs(hash((seed + (eps, eps, eps), self.rng_seed))))
+                np.abs(hash((tuple(seed + (eps, eps, eps)), self.rng_seed))))
 
             # Forward and backward tracking
             line = self._get_line_both_directions(seed, line_generator)

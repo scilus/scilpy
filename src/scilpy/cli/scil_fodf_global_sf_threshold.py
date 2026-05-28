@@ -6,13 +6,11 @@ Compute a binary mask based on a global SF threshold.
 The script masks voxels where the maximum SF amplitude is below
 either a relative factor or an absolute threshold.
 
-When fODFs are evaluated on a sphere (SF), the amplitude of the lobes
-corresponds to the strength of the diffusion signal in those directions.
-Thresholding these amplitudes is a common practice to filter out spurious
-peaks arising from noise or the deconvolution process (e.g., ringing effects).
-
 The absolute threshold can be estimated from the mean/median maximum fODF in the
 ventricles, computed with scil_fodf_max_in_ventricles.
+
+The input can be either SH coefficients or peaks. However, the vectors
+cannot be normalized, as the amplitude is used for thresholding.
 """
 
 import argparse
@@ -21,6 +19,7 @@ import logging
 import nibabel as nib
 import numpy as np
 
+from scilpy.io.stateful_image import StatefulImage
 from scilpy.io.utils import (add_sh_basis_args, add_sphere_arg,
                              add_verbose_arg, add_overwrite_arg,
                              assert_inputs_exist, assert_outputs_exist,
@@ -63,8 +62,11 @@ def main():
     sh_basis, is_legacy = parse_sh_basis_arg(args)
 
     logging.info("Loading ODF data.")
-    img = nib.load(args.in_odf)
-    data = img.get_fdata(dtype=np.float32)
+    simg = StatefulImage.load(args.in_odf, is_orientation=True,
+                              sh_basis=sh_basis, is_legacy=is_legacy)
+
+    data = simg.to_voxel_direction(sh_basis=sh_basis,
+                                   is_legacy=is_legacy).astype(np.float32)
 
     logging.info("Computing global SF threshold mask.")
     mask, global_max, threshold = compute_sf_threshold_mask(
@@ -82,8 +84,8 @@ def main():
     logging.info("Number of voxels in mask: {}".format(np.sum(mask)))
 
     # Save mask
-    mask_img = nib.Nifti1Image(mask.astype(np.uint8), img.affine,
-                               img.header)
+    mask_img = nib.Nifti1Image(mask.astype(np.uint8), simg.affine,
+                               simg.header)
     nib.save(mask_img, args.out_mask)
 
 
