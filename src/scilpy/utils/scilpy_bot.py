@@ -28,7 +28,7 @@ OBJECTS = [
     'fodf', 'freewater', 'frf', 'gradients', 'header',
     'json', 'labels', 'lesions', 'mti', 'NODDI', 'sh',
     'surface', 'tracking', 'tractogram', 'viz', 'volume',
-    'qball', 'rgb', 'lesions'
+    'qball', 'rgb'
 ]
 
 
@@ -74,7 +74,7 @@ def _get_docstring_from_script_path(script):
     docstring : str
         The file's docstring, or an empty string if there was no docstring.
     """
-    with open(script, 'r') as reader:
+    with open(script, 'r', encoding='utf-8') as reader:
         file_contents = reader.read()
     module = ast.parse(file_contents)
     docstring = ast.get_docstring(module) or ''

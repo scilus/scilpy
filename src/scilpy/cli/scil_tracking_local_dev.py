@@ -32,7 +32,7 @@ A few notes on Runge-Kutta integration.
        works well for deterministic tracking. However, in the context of
        probabilistic tracking, the next tracking directions cannot be estimated
        in advance, because they are picked randomly from a distribution. It is
-       therefore recommanded to keep the rk_order to 1 for probabilistic
+       therefore recommended to keep the rk_order to 1 for probabilistic
        tracking.
     2. As a rule of thumb, doubling the rk_order will double the computation
        time in the worst case.
@@ -58,38 +58,35 @@ Reference:
 """
 
 import argparse
+import json
 import logging
 import time
-import json
 
 import dipy.core.geometry as gm
-from dipy.io.stateful_tractogram import Space, Origin
+from dipy.io.stateful_tractogram import Origin, Space, StatefulTractogram
 import nibabel as nib
-from nibabel.streamlines import detect_format, TrkFile
+from nibabel.streamlines import TrkFile, detect_format
 import numpy as np
 
-from scilpy.io.image import assert_same_resolution
+from scilpy.image.labels import get_data_as_labels
+from scilpy.image.volume_space_management import DataVolume
+from scilpy.io.image import assert_same_resolution, get_data_as_mask
 from scilpy.io.stateful_image import StatefulImage
 from scilpy.io.utils import (add_processes_arg, add_sphere_arg,
-                             add_verbose_arg,
-                             assert_inputs_exist, assert_outputs_exist,
-                             parse_sh_basis_arg, verify_compression_th,
-                             load_matrix_in_any_format)
-from scilpy.image.volume_space_management import DataVolume
+                             add_verbose_arg, assert_inputs_exist,
+                             assert_outputs_exist, load_matrix_in_any_format,
+                             parse_sh_basis_arg, verify_compression_th)
 from scilpy.tracking.propagator import ODFPropagator
 from scilpy.tracking.rap import RAPContinue, RAPSwitch
-from scilpy.tracking.seed import SeedGenerator, CustomSeedsDispenser
+from scilpy.tracking.seed import CustomSeedsDispenser, SeedGenerator
 from scilpy.tracking.tracker import Tracker
 from scilpy.tracking.utils import (add_mandatory_options_tracking,
                                    add_out_options, add_seeding_options,
-                                   add_tracking_options,
-                                   get_theta,
-                                   verify_streamline_length_options,
+                                   add_tracking_options, get_theta,
                                    verify_seed_options,
+                                   verify_streamline_length_options,
                                    save_tractogram)
 from scilpy.version import version_string
-from scilpy.image.labels import get_data_as_labels
-from scilpy.io.image import get_data_as_mask
 
 
 def _build_arg_parser():
@@ -166,22 +163,24 @@ def _build_arg_parser():
     rap_g = p.add_argument_group('Region-Adaptive Propagation options')
     rap_mode = rap_g.add_mutually_exclusive_group()
     rap_mode.add_argument('--rap_mask', default=None,
-                          help='Region-Adaptive Propagation mask (.nii.gz).\n'
-                          'Region-Adaptive Propagation tractography will start within '
-                          'this mask.')
+                          help='Region-Adaptive Propagation mask '
+                               '(.nii.gz).\nRegion-Adaptive Propagation '
+                               'tractography will start within this mask.')
     rap_mode.add_argument('--rap_labels', default=None,
-                          help='Region-Adaptive Propagation label volume (.nii.gz) .\n'
-                          'Voxel values are integer labels (0=background, 1..N=regions) .\n'
-                          'Used with --rap_method switch to select policies per label.')
+                          help='Region-Adaptive Propagation label volume '
+                               '(.nii.gz) .\nVoxel values are integer labels '
+                               '(0=background, 1..N=regions) .\nUsed with '
+                               '--rap_method switch to select policies per '
+                               'label.')
     rap_g.add_argument('--rap_method', default='None',
                        choices=['None', 'continue', 'switch'],
-                       help="Region-Adaptive Propagation tractography method.\n"
-                       "'continue': continues tracking with same params,\n"
-                       "'switch': switches tracking params inside RAP mask.\n"
-                       " [%(default)s]")
+                       help="Region-Adaptive Propagation tractography "
+                            "method.\n'continue': continues tracking with "
+                            "same params,\n'switch': switches tracking "
+                            "params inside RAP mask.\n [%(default)s]")
     rap_g.add_argument('--rap_save_entry_exit', default=None,
-                       help='Save RAP entry/exit coordinates as a binary mask.\n'
-                       'Provide output filename (.nii.gz).')
+                       help='Save RAP entry/exit coordinates as a binary '
+                            'mask.\nProvide output filename (.nii.gz).')
 
     m_g = p.add_argument_group('Memory options')
     add_processes_arg(m_g)
@@ -205,7 +204,8 @@ def main():
     if args.rap_params:
         with open(args.rap_params, 'r') as f:
             rap_params = json.load(f)
-        filenames = [cfg['filename'] for cfg in rap_params.get('methods', {}).values()
+        filenames = [cfg['filename'] for cfg
+                     in rap_params.get('methods', {}).values()
                      if 'filename' in cfg]
         assert_inputs_exist(parser, filenames)
 
@@ -217,7 +217,8 @@ def main():
     verify_compression_th(args.compress_th)
     verify_seed_options(parser, args)
 
-    if (args.rap_mask is not None or args.rap_labels is not None) and args.rap_method == "None":
+    if (args.rap_mask is not None or args.rap_labels is not None) \
+            and args.rap_method == "None":
         parser.error('No RAP method selected.')
     if args.rap_method == 'continue' and args.rap_mask is None:
         parser.error('RAP method "continue" requires --rap_mask.')
@@ -230,6 +231,12 @@ def main():
             'RAP method "switch" requires --rap_params to be specified.')
     if args.rap_params is not None and args.rap_method != 'switch':
         parser.error('--rap_params can only be used with --rap_method switch.')
+
+    if (args.global_sf_rel_thr is not None or
+            args.global_sf_abs_thr is not None) and not args.in_odf:
+        parser.error('Global SF thresholding requires a global ODF '
+                     '(--in_odf).')
+
     tracts_format = detect_format(args.out_tractogram)
     if tracts_format is not TrkFile:
         logging.warning("You have selected option --save_seeds but you are "
@@ -294,10 +301,7 @@ def main():
     mask_simg.reorient(seed_simg.axcodes)
     mask_data = mask_simg.get_fdata(caching='unchanged', dtype=float)
     mask_res = mask_simg.header.get_zooms()[:3]
-    # Use identity affine for DataVolume to match voxel space tracking
-    mask = DataVolume(mask_data, mask_res, affine=np.eye(4),
-                      interpolation=args.mask_interp)
-
+    
     sh_basis, is_legacy = parse_sh_basis_arg(args)
 
     # ------- INSTANTIATING PROPAGATOR -------
@@ -310,22 +314,21 @@ def main():
         odf_sh_data = odf_sh_simg.to_voxel_direction(
             sh_basis=sh_basis, nbr_processes=1).astype(np.float32)
 
-        
-
-        # Re-instantiate DataVolume with original mask_data
-        mask = DataVolume(mask_data, mask_res, affine=np.eye(4),
-                          interpolation=args.mask_interp)
-
-        if sf_mask is not None:
-            # Mask the stopping criterion
-            mask_data = np.logical_and(mask_data, sf_mask)
-            mask = DataVolume(mask_data, mask_res, affine=np.eye(4),
-                              interpolation=args.mask_interp)
-
         odf_sh_res = odf_sh_simg.header.get_zooms()[:3]
         # Use identity affine for DataVolume to match voxel space tracking
         dataset = DataVolume(odf_sh_data, odf_sh_res, affine=np.eye(4),
                              interpolation=args.sh_interp)
+
+        if args.global_sf_rel_thr is not None or \
+                args.global_sf_abs_thr is not None:
+            from scilpy.tracking.utils import get_global_sf_threshold_mask
+            sf_mask = get_global_sf_threshold_mask(
+                odf_sh_data, args, sh_basis, is_legacy)
+            mask_data = np.logical_and(mask_data, sf_mask)
+
+        # Use identity affine for DataVolume to match voxel space tracking
+        mask = DataVolume(mask_data, mask_res, affine=np.eye(4),
+                          interpolation=args.mask_interp)
 
         logging.info("Instantiating propagator.")
         # Converting step size to vox space
@@ -354,6 +357,9 @@ def main():
                 if filename not in loaded_datasets:
                     odf_sh_img = nib.load(filename)
                     odf_sh_res = odf_sh_img.header.get_zooms()[:3]
+                    voxel_size = odf_sh_img.header.get_zooms()[0]
+                    vox_step_size = cfg.get('step_size',
+                                            args.step_size) / voxel_size
                     # Use identity affine for DataVolume to match voxel space tracking
                     loaded_datasets[filename] = DataVolume(
                         odf_sh_img.get_fdata(caching='unchanged', dtype=float),
@@ -388,6 +394,11 @@ def main():
 
     if propagator is None and propagators:
         propagator = next(iter(propagators.values()))
+
+    if 'mask' not in locals() or mask is None:
+        # Use identity affine for DataVolume to match voxel space tracking
+        mask = DataVolume(mask_data, mask_res, affine=np.eye(4),
+                          interpolation=args.mask_interp)
 
     # ------- INSTANTIATING RAP OBJECT -------
     if args.rap_mask:
@@ -456,7 +467,7 @@ def main():
     save_tractogram(zip(streamlines, seeds), tracts_format,
                     odf_sh_simg, nbr_seeds, args.out_tractogram,
                     args.min_length, args.max_length, args.compress_th,
-                    args.save_seeds, args.verbose, space=our_space)
+                    args.save_seeds, args.verbose)
 
 
 if __name__ == "__main__":

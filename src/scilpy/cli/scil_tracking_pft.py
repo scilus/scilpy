@@ -3,7 +3,7 @@
 """
 Local streamline HARDI tractography including Particle Filtering tracking.
 
-WARNING: This script DOES NOT support asymetric FODF input (aFODF).
+WARNING: This script DOES NOT support asymmetric FODF input (aFODF).
 
 The tracking is done inside partial volume estimation maps and uses the
 particle filtering tractography (PFT) algorithm. See
@@ -20,14 +20,14 @@ Algo 'prob': a direction drawn from the empirical distribution function defined
 from the SF.
 
 For streamline compression, a rule of thumb is to set it to 0.1mm for the
-deterministic algorithm and 0.2mm for probabilitic algorithm.
+deterministic algorithm and 0.2mm for probabilistic algorithm.
 
 All the input nifti files must be in isotropic resolution.
 
 -----------------------------------------------------------------------------
 Reference:
 [1] Girard, G., Whittingstall K., Deriche, R., and Descoteaux, M. (2014).
-    Towards quantitative connectivity analysis: reducing tractographybiases.
+    Towards quantitative connectivity analysis: reducing tractography biases.
     Neuroimage.
 -----------------------------------------------------------------------------
 """
@@ -36,22 +36,23 @@ import argparse
 import logging
 
 from dipy.data import get_sphere, HemiSphere
-from dipy.direction import (ProbabilisticDirectionGetter,
-                            DeterministicMaximumDirectionGetter)
+from dipy.direction import (DeterministicMaximumDirectionGetter,
+                            ProbabilisticDirectionGetter)
+from dipy.tracking import utils as track_utils
 from dipy.tracking.local_tracking import ParticleFilteringTracking
 from dipy.tracking.stopping_criterion import (ActStoppingCriterion,
                                               CmcStoppingCriterion)
-from dipy.tracking import utils as track_utils
 import nibabel as nib
 from nibabel.streamlines import detect_format
 import numpy as np
 
 from scilpy.io.image import get_data_as_mask
 from scilpy.io.stateful_image import StatefulImage
-from scilpy.io.utils import (add_verbose_arg, assert_inputs_exist,
-                             assert_outputs_exist, parse_sh_basis_arg,
-                             assert_headers_compatible,
-                             verify_compression_th)
+from scilpy.io.utils import (add_compression_arg, add_overwrite_arg,
+                             add_sh_basis_args, add_sphere_arg,
+                             add_verbose_arg, assert_headers_compatible,
+                             assert_inputs_exist, assert_outputs_exist,
+                             parse_sh_basis_arg, verify_compression_th)
 from scilpy.tracking.utils import (add_out_options, get_theta,
                                    add_tracking_options,
                                    save_tractogram)
@@ -88,10 +89,24 @@ def _build_arg_parser():
                          help='If set, uses anatomically-constrained '
                               'tractography (ACT) \ninstead of continuous map '
                               'criterion (CMC).')
+    global_sf_g = track_g.add_mutually_exclusive_group()
+    global_sf_g.add_argument('--global_sf_rel_thr', metavar='FACTOR',
+                             type=float, nargs='?', const=0.1, default=None,
+                             help='Global SF relative threshold factor. '
+                             'If set, masks voxels where\nmaximum SF '
+                             'amplitude < FACTOR * global maximum SF '
+                             'amplitude. \nIf used without a value, '
+                             'default is [%(const)s].')
+    global_sf_g.add_argument('--global_sf_abs_thr', metavar='ABS_THR',
+                             type=float,
+                             help='Global SF absolute threshold. '
+                                  'If set, masks voxels where \n'
+                                  'maximum SF amplitude < ABS_THR.')
     track_g.add_argument('--sfthres_init', dest='sf_threshold_init',
                          type=float, default=0.5,
                          help='Spherical function relative threshold value '
                               'within each voxel for the \ninitial direction. [%(default)s]')
+    add_sphere_arg(track_g, symmetric_only=False)
 
     seed_group = p.add_argument_group(
         'Seeding options',
@@ -174,7 +189,17 @@ def main():
         parser.error(
             'SH file is not isotropic. Tracking cannot be ran robustly.')
 
-    tracking_sphere = HemiSphere.from_sphere(get_sphere(name='repulsion724'))
+    fodf_sh_data = fodf_sh_simg.to_voxel_direction(sh_basis=sh_basis,
+                                                   nbr_processes=1).astype(np.float32)
+
+    sf_mask = None
+    if args.global_sf_rel_thr is not None or \
+            args.global_sf_abs_thr is not None:
+        from scilpy.tracking.utils import get_global_sf_threshold_mask
+        sf_mask = get_global_sf_threshold_mask(
+            fodf_sh_data, args, sh_basis, is_legacy)
+
+    tracking_sphere = HemiSphere.from_sphere(get_sphere(name=args.sphere))
 
     # Check if sphere is unit, since we couldn't find such check in Dipy.
     if not np.allclose(np.linalg.norm(tracking_sphere.vertices, axis=1), 1.):
@@ -192,7 +217,7 @@ def main():
     # relative_peak_threshold is for initial directions filtering
     # min_separation_angle is the initial separation angle for peak extraction
     dg = dgklass.from_shcoeff(
-        fodf_sh_simg.to_voxel_direction(sh_basis=sh_basis, nbr_processes=1),
+        fodf_sh_data,
         max_angle=theta,
         sphere=tracking_sphere,
         basis_type=sh_basis,
@@ -207,8 +232,6 @@ def main():
 
     map_include_data = map_include_simg.get_fdata(dtype=np.float32)
     map_exclude_data = map_exclude_simg.get_fdata(dtype=np.float32)
-
-    sf_mask = None
 
     # In PFT, exclude map = 1 and include map = 0 ensures stopping and excluding.
     # Apply to maps only for stopping criterion.
