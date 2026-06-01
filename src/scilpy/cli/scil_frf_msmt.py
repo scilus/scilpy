@@ -230,7 +230,7 @@ def main():
     masks_files = [args.wm_frf_mask, args.gm_frf_mask, args.csf_frf_mask]
     for frf_mask, mask_file in zip(frf_masks, masks_files):
         if mask_file:
-            res_simg = StatefulImage.from_data(frf_mask.astype(np.uint8), simg)
+            res_simg = StatefulImage.create_from(frf_mask.astype(np.uint8), simg)
             res_simg.save(mask_file)
 
     frf_out = [args.out_wm_frf, args.out_gm_frf, args.out_csf_frf]

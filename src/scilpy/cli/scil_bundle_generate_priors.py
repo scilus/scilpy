@@ -126,13 +126,12 @@ def main():
     sft.to_vox()
     sft.to_corner()
 
-    # Compute TODI from streamlines (in voxel space)
+    # Compute TODI from streamlines (in world space)
     todi_sf, sub_mask_3d = get_sf_from_todi(sft, mask_data, args.todi_sigma,
                                             args.sf_threshold,
-                                            rotation_matrix=None)
+                                            rotation_matrix=simg_sh.affine[0:3, 0:3])
 
-    # SF to SH
-    # Memory friendly saving, as soon as possible saving then delete
+    # SF to SH, memory friendly saving
     priors_3d = np.zeros(sh_shape, dtype=np.float32)
     sphere = get_sphere(name='repulsion724')
     priors_3d[sub_mask_3d] = sf_to_sh(todi_sf, sphere,
@@ -140,15 +139,12 @@ def main():
                                       basis_type=sh_basis,
                                       legacy=is_legacy).astype(np.float32)
 
-    simg_priors = StatefulImage.from_data(priors_3d, simg_sh,
-                                                 is_orientation=True)
-    simg_priors._is_world_space = True
-    simg_priors._sh_basis = sh_basis
+    simg_priors = StatefulImage.create_from(priors_3d, simg_sh,
+                                            is_orientation=True)
     simg_priors.save(out_priors)
     del priors_3d
 
-    # Back to SF
-    # input_sh_3d is already in world space
+    # Back to SF input_sh_3d is already in world space
     B, _ = sh_to_sf_matrix(sphere, sh_order_max=sh_order,
                            basis_type=sh_basis, legacy=is_legacy)
     input_sf_1d = np.dot(input_sh_3d[sub_mask_3d], B)
@@ -164,29 +160,25 @@ def main():
         input_max_value[mult_positive_mask] / \
         mult_max_value[mult_positive_mask]
 
-    # And back to SH
-    # Memory friendly saving
+    # And back to SH, memory friendly saving
     input_sh_3d[sub_mask_3d] = sf_to_sh(mult_sf_1d, sphere,
                                         sh_order_max=sh_order,
                                         basis_type=sh_basis,
                                         legacy=is_legacy).astype(np.float32)
 
-    simg_efod = StatefulImage.from_data(input_sh_3d, simg_sh,
-                                               is_orientation=True)
-    simg_efod._is_world_space = True
-    simg_efod._sh_basis = sh_basis
+    simg_efod = StatefulImage.create_from(input_sh_3d, simg_sh,
+                                          is_orientation=True)
     simg_efod.save(out_efod)
-
     del input_sh_3d
 
-    simg_todi_mask = StatefulImage.from_data(sub_mask_3d.astype(np.uint8),
-                                             simg_sh)
+    simg_todi_mask = StatefulImage.create_from(sub_mask_3d.astype(np.uint8),
+                                               simg_sh)
     simg_todi_mask.save(out_todi_mask)
 
     # Endpoints
     endpoints_mask = get_endpoints_density_map(sft, binary=True)
-    simg_endpoints_mask = StatefulImage.from_data(endpoints_mask * mask_data,
-                                                  simg_sh)
+    simg_endpoints_mask = StatefulImage.create_from(endpoints_mask * mask_data,
+                                                    simg_sh)
     simg_endpoints_mask.save(out_endpoints_mask)
 
 

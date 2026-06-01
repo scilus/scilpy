@@ -277,8 +277,7 @@ def rotate_sh(sh_coeffs, rotation_matrix, basis_type='descoteaux07',
         # Sample original SH at rotated positions
         # Use scilpy's convert_sh_to_sf for memory efficiency (masking)
         sf_chunk = convert_sh_to_sf(
-            sh_chunk.astype(
-                np.float32),
+            sh_chunk.astype(np.float32),
             rotated_sphere,
             input_basis=basis_type,
             input_full_basis=full_basis,

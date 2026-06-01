@@ -167,29 +167,29 @@ def main():
 
     if args.gfa:
         res = odfpeaks.gfa.astype(np.float32)
-        StatefulImage.from_data(res, simg).save(args.gfa)
+        StatefulImage.create_from(res, simg).save(args.gfa)
 
     if args.peaks:
         res = reshape_peaks_for_visualization(odfpeaks)
-        StatefulImage.from_data(res, simg).save(args.peaks)
+        StatefulImage.create_from(res, simg).save(args.peaks)
 
     if args.peak_indices:
         res = odfpeaks.peak_indices
-        StatefulImage.from_data(res, simg).save(args.peak_indices)
+        StatefulImage.create_from(res, simg).save(args.peak_indices)
 
     if args.sh:
         res = odfpeaks.shm_coeff.astype(np.float32)
-        StatefulImage.from_data(res, simg).save(args.sh)
+        StatefulImage.create_from(res, simg).save(args.sh)
 
     if args.nufo:
         peaks_count = (odfpeaks.peak_indices > -1).sum(3)
         res = peaks_count.astype(np.int32)
-        StatefulImage.from_data(res, simg).save(args.nufo)
+        StatefulImage.create_from(res, simg).save(args.nufo)
 
     if args.a_power:
         odf_a_power = anisotropic_power(odfpeaks.shm_coeff)
         res = odf_a_power.astype(np.float32)
-        StatefulImage.from_data(res, simg).save(args.a_power)
+        StatefulImage.create_from(res, simg).save(args.a_power)
 
 
 if __name__ == "__main__":

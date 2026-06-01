@@ -221,9 +221,9 @@ def _get_data_from_inputs(args):
     between the data for mask, background, peaks and fODF.
     """
     sh_basis, is_legacy = parse_sh_basis_arg(args)
-    simg = StatefulImage.load(args.in_sh, is_orientation=True,
-                              is_world_space=not args.is_voxel_space,
-                              sh_basis=sh_basis, is_legacy=is_legacy)
+    fodf_simg = StatefulImage.load(args.in_fodf, is_orientation=True,
+                                   is_world_space=not args.is_voxel_space,
+                                   sh_basis=sh_basis, is_legacy=is_legacy)
 
     fodf_simg.to_ras()
     fodf = fodf_simg.to_voxel_direction(sh_basis=sh_basis, is_legacy=is_legacy)

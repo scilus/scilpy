@@ -93,7 +93,7 @@ def main():
                                  use_attenuation=args.use_attenuation,
                                  mask=mask, is_legacy=is_legacy)
 
-    StatefulImage.from_data(sh.astype(np.float32), simg).save(args.out_sh)
+    StatefulImage.create_from(sh.astype(np.float32), simg).save(args.out_sh)
 
 
 if __name__ == "__main__":

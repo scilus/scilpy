@@ -229,7 +229,7 @@ def main():
             full_world_bvecs[start_idx:] = sphere.vertices
 
             # Use a dummy StatefulImage to save them in voxel space
-            simg_out = StatefulImage.from_data(sf, simg_sh)
+            simg_out = StatefulImage.create_from(sf, simg_sh)
             simg_out.attach_world_gradients(
                 [0] * len(new_bvecs), full_world_bvecs)
             simg_out.save_gradients(args.out_bval, args.out_bvec)
@@ -237,7 +237,7 @@ def main():
             np.savetxt(args.out_bvec, new_bvecs.T, fmt='%.8f')
 
     # Save SF
-    StatefulImage.from_data(sf, simg_sh).save(args.out_sf)
+    StatefulImage.create_from(sf, simg_sh).save(args.out_sf)
 
 
 if __name__ == "__main__":

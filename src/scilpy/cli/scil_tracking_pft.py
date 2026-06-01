@@ -171,26 +171,25 @@ def main():
 
     sh_basis, is_legacy = parse_sh_basis_arg(args)
 
-    odf_sh_simg = StatefulImage.load(args.in_odf, is_orientation=True,
+    odf_sh_simg = StatefulImage.load(args.in_sh, is_orientation=True,
                                      is_world_space=not args.is_voxel_space,
                                      sh_basis=sh_basis)
 
-    if not np.allclose(np.mean(fodf_sh_simg.header.get_zooms()[:3]),
-                       fodf_sh_simg.header.get_zooms()[0], atol=1e-03):
+    if not np.allclose(np.mean(odf_sh_simg.header.get_zooms()[:3]),
+                       odf_sh_simg.header.get_zooms()[0], atol=1e-03):
         parser.error(
             'SH file is not isotropic. Tracking cannot be ran robustly.')
 
-    fodf_sh_data = fodf_sh_simg.to_voxel_direction(
+    odf_sh_data = odf_sh_simg.to_voxel_direction(
         sh_basis=sh_basis,
-        nbr_processes=1).astype(
-        np.float32)
+        nbr_processes=1).astype(np.float32)
 
     sf_mask = None
     if args.global_sf_rel_thr is not None or \
             args.global_sf_abs_thr is not None:
         from scilpy.tracking.utils import get_global_sf_threshold_mask
         sf_mask = get_global_sf_threshold_mask(
-            fodf_sh_data, args, sh_basis, is_legacy)
+            odf_sh_data, args, sh_basis, is_legacy)
 
     tracking_sphere = HemiSphere.from_sphere(get_sphere(name=args.sphere))
 
@@ -210,7 +209,7 @@ def main():
     # relative_peak_threshold is for initial directions filtering
     # min_separation_angle is the initial separation angle for peak extraction
     dg = dgklass.from_shcoeff(
-        fodf_sh_data,
+        odf_sh_data,
         max_angle=theta,
         sphere=tracking_sphere,
         basis_type=sh_basis,
@@ -219,20 +218,21 @@ def main():
         relative_peak_threshold=args.sf_threshold_init)
 
     map_include_simg = StatefulImage.load(args.in_map_include)
-    map_include_simg.reorient(fodf_sh_simg.axcodes)
+    map_include_simg.reorient(odf_sh_simg.axcodes)
     map_exclude_simg = StatefulImage.load(args.map_exclude_file)
-    map_exclude_simg.reorient(fodf_sh_simg.axcodes)
+    map_exclude_simg.reorient(odf_sh_simg.axcodes)
 
     map_include_data = map_include_simg.get_fdata(dtype=np.float32)
     map_exclude_data = map_exclude_simg.get_fdata(dtype=np.float32)
 
-    # In PFT, exclude map = 1 and include map = 0 ensures stopping and excluding.
+    # In PFT, exclude map = 1 and include map = 0 ensures stopping and
+    # excluding.
     # Apply to maps only for stopping criterion.
     if sf_mask is not None:
         map_include_data[~sf_mask] = 0
         map_exclude_data[~sf_mask] = 1
 
-    voxel_size = np.average(fodf_sh_simg.header.get_zooms()[:3])
+    voxel_size = np.average(odf_sh_simg.header.get_zooms()[:3])
     vox_step_size = args.step_size / voxel_size
 
     # Always track in voxel space to avoid affine-related orientation issues
@@ -264,7 +264,7 @@ def main():
         seed_per_vox = True
 
     seed_simg = StatefulImage.load(args.in_seed)
-    seed_simg.reorient(fodf_sh_simg.axcodes)
+    seed_simg.reorient(odf_sh_simg.axcodes)
 
     seeds = track_utils.random_seeds_from_mask(
         get_data_as_mask(seed_simg, dtype=bool),
@@ -299,7 +299,7 @@ def main():
 
     # save streamlines on-the-fly to file
     save_tractogram(pft_streamlines, tracts_format,
-                    fodf_sh_simg, total_nb_seeds, args.out_tractogram,
+                    odf_sh_simg, total_nb_seeds, args.out_tractogram,
                     args.min_length, args.max_length, args.compress_th,
                     args.save_seeds, args.verbose,
                     space=Space.VOX, origin=Origin.NIFTI)

@@ -20,8 +20,8 @@ Reference:
 
 import argparse
 import logging
-import os
 
+import nibabel as nib
 import numpy as np
 
 from scilpy.io.image import get_data_as_mask
@@ -96,8 +96,7 @@ def main():
 
     if args.normalize_per_voxel and not (args.out_todi_sh):
         logging.warning("Option --normalize_per_voxel is only useful when "
-                        "saving output --out_todi_sh or --out_todi_sf. "
-                        "Ignoring.")
+                        "saving output --out_todi_sh."
 
     # Loading
     sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
@@ -111,11 +110,12 @@ def main():
 
     # Processing
     logging.info('Computing length-weighted TODI ...')
-    # Compute TODI in voxel space (rotation_matrix=None)
+    # Compute TODI in voxel space, but use affine rotation to transform
+    # into world space.
     todi_obj = TrackOrientationDensityImaging(tuple(data_shape), args.sphere)
     todi_obj.compute_todi(sft.streamlines, length_weights=True,
                           n_steps=args.n_steps, asymmetric=args.asymmetric,
-                          rotation_matrix=None)
+                          rotation_matrix=affine[0:3, 0:3])
 
     if args.smooth_todi:
         logging.info('Smoothing ...')
@@ -145,7 +145,11 @@ def main():
                                full_basis=args.asymmetric,
                                is_legacy=is_legacy)
         data = todi_obj.reshape_to_3d(data).astype(np.float32)
-        simg = StatefulImage(data, affine, sh_basis=sh_basis,
+
+        # Get axcodes from affine, to save the image with correct orientation
+        axcode = nib.orientations.aff2axcodes(sft.affine)
+        simg = StatefulImage(data, affine, original_axcodes=axcode,
+                             sh_basis=sh_basis,
                              is_legacy=is_legacy, is_orientation=True,
                              is_world_space=True)
         simg.save(args.out_todi_sh)
@@ -153,7 +157,8 @@ def main():
     if args.out_tdi:
         data = todi_obj.get_tdi()
         data = todi_obj.reshape_to_3d(data)
-        data = StatefulImage(data.astype(np.uint32), affine)
+        simg = StatefulImage(data.astype(np.uint32), affine, 
+                             original_axcodes=axcode)
         simg.save(args.out_tdi)
 
 

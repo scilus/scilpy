@@ -221,7 +221,7 @@ def main():
                                     is_input_legacy=True,
                                     is_output_legacy=is_legacy,
                                     nbr_processes=args.nbr_processes)
-        res_simg = StatefulImage.from_data(wm_coeff.astype(np.float32), simg)
+        res_simg = StatefulImage.create_from(wm_coeff.astype(np.float32), simg)
         res_simg.save(args.wm_out_fODF)
 
     if args.gm_out_fODF:
@@ -233,7 +233,7 @@ def main():
                                     is_input_legacy=True,
                                     is_output_legacy=is_legacy,
                                     nbr_processes=args.nbr_processes)
-        res_simg = StatefulImage.from_data(gm_coeff.astype(np.float32), simg)
+        res_simg = StatefulImage.create_from(gm_coeff.astype(np.float32), simg)
         res_simg.save(args.gm_out_fODF)
 
     if args.csf_out_fODF:
@@ -245,17 +245,17 @@ def main():
                                      is_input_legacy=True,
                                      is_output_legacy=is_legacy,
                                      nbr_processes=args.nbr_processes)
-        res_simg = StatefulImage.from_data(csf_coeff.astype(np.float32), simg)
+        res_simg = StatefulImage.create_from(csf_coeff.astype(np.float32), simg)
         res_simg.save(args.csf_out_fODF)
 
     if args.vf:
-        res_simg = StatefulImage.from_data(vf.astype(np.float32), simg)
+        res_simg = StatefulImage.create_from(vf.astype(np.float32), simg)
         res_simg.save(args.vf)
 
     if args.vf_rgb:
         vf_rgb = vf / np.max(vf) * 255
         vf_rgb = np.clip(vf_rgb, 0, 255)
-        res_simg = StatefulImage.from_data(vf_rgb.astype(np.uint8), simg)
+        res_simg = StatefulImage.create_from(vf_rgb.astype(np.uint8), simg)
         res_simg.save(args.vf_rgb)
 
 

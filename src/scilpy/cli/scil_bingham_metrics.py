@@ -115,7 +115,7 @@ def main():
     t1 = time.perf_counter()
     logging.info('FD computed in (s): {0}'.format(t1 - t0))
     if args.out_fd:
-        StatefulImage.from_data(fd, simg_bingham).save(args.out_fd)
+        StatefulImage.create_from(fd, simg_bingham).save(args.out_fd)
 
     if args.out_fs:
         t0 = time.perf_counter()
@@ -123,7 +123,7 @@ def main():
         fs = compute_fiber_spread(bingham, fd)
         t1 = time.perf_counter()
         logging.info('FS computed in (s): {0}'.format(t1 - t0))
-        StatefulImage.from_data(fs, simg_bingham).save(args.out_fs)
+        StatefulImage.create_from(fs, simg_bingham).save(args.out_fs)
 
     if args.out_ff:
         t0 = time.perf_counter()
@@ -131,7 +131,7 @@ def main():
         ff = compute_fiber_fraction(fd)
         t1 = time.perf_counter()
         logging.info('FF computed in (s): {0}'.format(t1 - t0))
-        StatefulImage.from_data(ff, simg_bingham).save(args.out_ff)
+        StatefulImage.create_from(ff, simg_bingham).save(args.out_ff)
 
 
 if __name__ == '__main__':

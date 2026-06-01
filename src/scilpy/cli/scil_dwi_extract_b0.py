@@ -121,7 +121,7 @@ def main():
     if len(b0_volumes.shape) > 3 and not args.single_image:
         _split_time_steps(b0_volumes, simg.affine, simg.header, args.out_b0)
     else:
-        StatefulImage.from_data(b0_volumes, simg).save(args.out_b0)
+        StatefulImage.create_from(b0_volumes, simg).save(args.out_b0)
 
 
 if __name__ == '__main__':
