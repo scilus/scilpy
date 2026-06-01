@@ -1,5 +1,11 @@
 # -*- coding: utf-8 -*-
 
+from scilpy.image.volume_math import neighborhood_correlation_
+from scilpy.image.volume_operations import (normalize_metric, merge_metrics)
+from scilpy.tractograms.tractogram_operations import (difference_robust,
+                                                      intersection_robust,
+                                                      union_robust)
+from scilpy.tractograms.streamline_operations import generate_matched_points
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from copy import copy
 import logging
@@ -11,7 +17,6 @@ from dipy.segment.clustering import qbx_and_merge
 from dipy.segment.fss import FastStreamlineSearch
 from dipy.tracking.distances import bundles_distances_mdf
 import numpy as np
-import numpy.ma as ma
 from numpy.random import RandomState
 from scipy.spatial import cKDTree
 from scipy.spatial.distance import directed_hausdorff
@@ -21,12 +26,17 @@ from tqdm import tqdm
 
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
 from scilpy.tractanalysis.todi import get_sh_from_todi
-from scilpy.tractograms.streamline_operations import generate_matched_points
-from scilpy.tractograms.tractogram_operations import (difference_robust,
-                                                      intersection_robust,
-                                                      union_robust)
-from scilpy.image.volume_operations import (normalize_metric, merge_metrics)
-from scilpy.image.volume_math import neighborhood_correlation_
+
+# Multiprocessing globals
+sft_1 = None
+sft_2 = None
+matched_points_1 = None
+matched_points_2 = None
+tree_1 = None
+tree_2 = None
+sh_data_1 = None
+sh_data_2 = None
+B = None
 
 
 def binary_classification(segmentation_indices,
@@ -584,10 +594,8 @@ def _compare_tractogram_wrapper(mask, nbr_cpu, skip_streamlines_distance):
             except Exception as exc:
                 print(f'Generated an exception: {exc}')
             else:
-                # Use ma.filled to avoid 'converting a masked element to nan'
-                # warning when results contains masked elements
-                # (from _compute_difference_for_voxel)
-                results = np.array(ma.filled(results, fill_value=np.nan))
+                # results is a list of [dist, acc]
+                results = np.asarray(results, dtype=np.float32)
                 diff_data[tuple(chunk.T)] = results[:, 0]
                 acc_data[tuple(chunk.T)] = results[:, 1]
 
@@ -679,14 +687,11 @@ def tractogram_pairwise_comparison(sft_one, sft_two, mask, nbr_cpu=1,
 
     logging.info('Computing TODI from tractogram #1...')
     global sh_data_1, sh_data_2
-    from scilpy.io.stateful_image import StatefulImage
-    r1 = StatefulImage._get_rotation_matrix(sft_1.affine)
-    sh_data_1 = get_sh_from_todi(sft_1, mask, rotation_matrix=r1)
+    sh_data_1 = get_sh_from_todi(sft_1, mask, rotation_matrix=None)
     sft_1.to_center()
 
     logging.info('Computing TODI from tractogram #2...')
-    r2 = StatefulImage._get_rotation_matrix(sft_2.affine)
-    sh_data_2 = get_sh_from_todi(sft_2, mask, rotation_matrix=r2)
+    sh_data_2 = get_sh_from_todi(sft_2, mask, rotation_matrix=None)
     sft_2.to_center()
 
     global B

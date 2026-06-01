@@ -144,7 +144,8 @@ def main():
         tenfit_candidate = tenmodel_candidate.fit(data, mask=high_fa_mask)
 
         # Extract the principal direction (v1)
-        # evecs is (H, W, D, 3, 3), evecs[..., 0] is the first eigenvector (peak)
+        # evecs is (H, W, D, 3, 3), evecs[..., 0] is the first eigenvector
+        # (peak)
         peaks = tenfit_candidate.evecs[..., 0]
 
         # Compute coherence

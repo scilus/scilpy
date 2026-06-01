@@ -105,7 +105,23 @@ def main():
     logging.info('Loading tractograms...')
     sft_1 = load_tractogram_with_reference(parser, args, args.in_tractogram_1)
     sft_2 = load_tractogram_with_reference(parser, args, args.in_tractogram_2)
-    mask = get_data_as_mask(nib.load(args.in_mask)) if args.in_mask else None
+
+    # Force RAS alignment
+    from dipy.io.stateful_tractogram import Space, StatefulTractogram
+    from scilpy.io.stateful_image import StatefulImage
+    ref_simg = StatefulImage.load(args.reference or args.in_tractogram_1)
+
+    sft_1.to_rasmm()
+    sft_1 = StatefulTractogram(sft_1.streamlines, ref_simg, Space.RASMM)
+    sft_2.to_rasmm()
+    sft_2 = StatefulTractogram(sft_2.streamlines, ref_simg, Space.RASMM)
+
+    if args.in_mask:
+        simg_mask = StatefulImage.load(args.in_mask)
+        simg_mask.reorient(ref_simg.axcodes)
+        mask = get_data_as_mask(simg_mask)
+    else:
+        mask = None
 
     # Processing
     acc_data, corr_data, diff_data, heatmap, _ = \

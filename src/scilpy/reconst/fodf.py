@@ -231,7 +231,7 @@ def fit_from_model(model, data, mask=None, nbr_processes=None):
         chunk_len = np.cumsum([0] + [len(c) for c in chunks])
         tmp_fit_array = np.zeros((np.count_nonzero(mask)), dtype='object')
         for i, fit in results:
-            tmp_fit_array[chunk_len[i]:chunk_len[i+1]] = fit
+            tmp_fit_array[chunk_len[i]:chunk_len[i + 1]] = fit
 
     # Bring back to the original shape
     fit_array = np.zeros(data_shape[0:3], dtype='object')

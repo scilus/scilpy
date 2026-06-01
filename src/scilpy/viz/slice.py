@@ -273,7 +273,8 @@ def create_odf_slicer(sh_fodf, orientation, slice_index, sphere, sh_order,
     if nb_subdivide is not None:
         sphere = sphere.subdivide(n=nb_subdivide)
 
-    # Always compute SF from SH to avoid FURY's odf_slicer bugs with matrix multiplication
+    # Always compute SF from SH to avoid FURY's odf_slicer bugs with matrix
+    # multiplication
     fodf = sh_to_sf(sh_fodf, sphere,
                     sh_order_max=sh_order,
                     basis_type=sh_basis,

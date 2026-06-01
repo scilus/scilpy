@@ -89,10 +89,13 @@ def _build_arg_parser():
                          help='If set, uses anatomically-constrained '
                               'tractography (ACT) \ninstead of continuous map '
                               'criterion (CMC).')
-    track_g.add_argument('--sfthres_init', dest='sf_threshold_init',
-                         type=float, default=0.5,
-                         help='Spherical function relative threshold value '
-                              'within each voxel for the \ninitial direction. [%(default)s]')
+    track_g.add_argument(
+        '--sfthres_init',
+        dest='sf_threshold_init',
+        type=float,
+        default=0.5,
+        help='Spherical function relative threshold value '
+        'within each voxel for the \ninitial direction. [%(default)s]')
     add_sphere_arg(track_g, symmetric_only=False)
 
     seed_group = p.add_argument_group(
@@ -168,16 +171,19 @@ def main():
 
     sh_basis, is_legacy = parse_sh_basis_arg(args)
 
-    fodf_sh_simg = StatefulImage.load(args.in_sh, is_orientation=True,
-                                      is_world_space=not args.is_voxel_space,
-                                      sh_basis=sh_basis)
+    odf_sh_simg = StatefulImage.load(args.in_odf, is_orientation=True,
+                                     is_world_space=not args.is_voxel_space,
+                                     sh_basis=sh_basis)
+
     if not np.allclose(np.mean(fodf_sh_simg.header.get_zooms()[:3]),
                        fodf_sh_simg.header.get_zooms()[0], atol=1e-03):
         parser.error(
             'SH file is not isotropic. Tracking cannot be ran robustly.')
 
-    fodf_sh_data = fodf_sh_simg.to_voxel_direction(sh_basis=sh_basis,
-                                                   nbr_processes=1).astype(np.float32)
+    fodf_sh_data = fodf_sh_simg.to_voxel_direction(
+        sh_basis=sh_basis,
+        nbr_processes=1).astype(
+        np.float32)
 
     sf_mask = None
     if args.global_sf_rel_thr is not None or \

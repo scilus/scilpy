@@ -12,7 +12,10 @@ from scilpy.io.stateful_image import StatefulImage
 
 
 @contextmanager
-def create_dummy_nifti_with_gradients(filename="test.nii.gz", n_volumes=5, affine=None):
+def create_dummy_nifti_with_gradients(
+        filename="test.nii.gz",
+        n_volumes=5,
+        affine=None):
     """
     Create a dummy NIfTI file and gradient files for testing.
     """

@@ -638,8 +638,8 @@ class FibertubeDataVolume(DataVolume):
             fiber = self.data[fi]
             radius = self.diameters[fi] / 2
 
-            if point_in_cylinder(fiber[pi], fiber[pi+1], radius, pos):
-                return fiber[pi+1] - fiber[pi]
+            if point_in_cylinder(fiber[pi], fiber[pi + 1], radius, pos):
+                return fiber[pi + 1] - fiber[pi]
 
         return None
 
@@ -655,7 +655,7 @@ class FibertubeDataVolume(DataVolume):
             fi, pi = segments_indices[segi]
             fiber = centerlines[fi]
             fib_pt1 = fiber[pi]
-            fib_pt2 = fiber[pi+1]
+            fib_pt2 = fiber[pi + 1]
             dir = fib_pt2 - fib_pt1
             radius = diameters[fi] / 2
 

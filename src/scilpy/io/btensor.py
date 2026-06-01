@@ -154,7 +154,7 @@ def generate_btensor_input(in_dwis, in_bvals, in_bvecs, in_bdeltas,
             acq_index += 1
     # In the case that the PA data is wanted, there is a different return
     if do_pa_signals:
-        pa_signals = np.zeros(((data_full.shape[:-1])+(len(ubvals_full),)))
+        pa_signals = np.zeros(((data_full.shape[:-1]) + (len(ubvals_full),)))
         for i, ubval in enumerate(ubvals_full):
             indices = get_bval_indices(bvals_full, ubval, tol=0)
             pa_signals[..., i] = np.nanmean(data_full[..., indices], axis=-1)

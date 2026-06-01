@@ -114,12 +114,14 @@ def main():
                          "input image (but with a different sampling).")
 
     # Resampling volume
-    resampled_simg = resample_volume(simg, ref_img=ref_img,
-                                     volume_shape=args.volume_size,
-                                     iso_min=args.iso_min,
-                                     voxel_res=args.voxel_size,
-                                     interp=args.interp,
-                                     enforce_dimensions=args.enforce_dimensions)
+    resampled_simg = resample_volume(
+        simg,
+        ref_img=ref_img,
+        volume_shape=args.volume_size,
+        iso_min=args.iso_min,
+        voxel_res=args.voxel_size,
+        interp=args.interp,
+        enforce_dimensions=args.enforce_dimensions)
 
     # Saving results
     zooms = list(resampled_simg.header.get_zooms())

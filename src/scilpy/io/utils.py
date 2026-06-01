@@ -324,15 +324,19 @@ def add_surface_spatial_arg(parser):
     surf.add_argument('--source_space',
                       default='rasmm', choices=SPACES,
                       help='Source space of the input surface [%(default)s].')
-    surf.add_argument('--destination_space',
-                      default='rasmm', choices=SPACES,
-                      help='Destination space of the output surface [%(default)s].')
+    surf.add_argument(
+        '--destination_space',
+        default='rasmm',
+        choices=SPACES,
+        help='Destination space of the output surface [%(default)s].')
     surf.add_argument('--source_origin',
                       default='center', choices=ORIGINS,
                       help='Source origin of the input surface [%(default)s].')
-    surf.add_argument('--destination_origin',
-                      default='center', choices=ORIGINS,
-                      help='Destination origin of the output surface [%(default)s].')
+    surf.add_argument(
+        '--destination_origin',
+        default='center',
+        choices=ORIGINS,
+        help='Destination origin of the output surface [%(default)s].')
 
 
 def add_vtk_legacy_arg(parser):
@@ -396,10 +400,12 @@ def add_sh_basis_args(parser, mandatory=False, input_output=False):
     parser.add_argument(arg_name, nargs=nargs,
                         choices=choices, default=def_val,
                         help=help_msg)
-    parser.add_argument('--is_voxel_space', action='store_true',
-                        help='If set, assumes the input fODF/Peaks are already '
-                             'in \nvoxel space. Default assumes world space '
-                             '(RAS).')
+    parser.add_argument(
+        '--is_voxel_space',
+        action='store_true',
+        help='If set, assumes the input fODF/Peaks are already '
+        'in \nvoxel space. Default assumes world space '
+        '(RAS).')
 
 
 def parse_sh_basis_arg(args):

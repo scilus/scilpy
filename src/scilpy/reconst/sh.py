@@ -276,18 +276,26 @@ def rotate_sh(sh_coeffs, rotation_matrix, basis_type='descoteaux07',
 
         # Sample original SH at rotated positions
         # Use scilpy's convert_sh_to_sf for memory efficiency (masking)
-        sf_chunk = convert_sh_to_sf(sh_chunk.astype(np.float32), rotated_sphere,
-                                    input_basis=basis_type,
-                                    input_full_basis=full_basis,
-                                    is_input_legacy=is_legacy,
-                                    mask=None,
-                                    dtype="float32",
-                                    nbr_processes=nbr_processes)
+        sf_chunk = convert_sh_to_sf(
+            sh_chunk.astype(
+                np.float32),
+            rotated_sphere,
+            input_basis=basis_type,
+            input_full_basis=full_basis,
+            is_input_legacy=is_legacy,
+            mask=None,
+            dtype="float32",
+            nbr_processes=nbr_processes)
 
-        # Fit these values back to SH using the ORIGINAL sphere (the canonical basis)
-        rotated_sh_chunk = sf_to_sh(sf_chunk, sphere, sh_order_max=sh_order,
-                                    basis_type=basis_type, full_basis=full_basis,
-                                    legacy=is_legacy)
+        # Fit these values back to SH using the ORIGINAL sphere (the canonical
+        # basis)
+        rotated_sh_chunk = sf_to_sh(
+            sf_chunk,
+            sphere,
+            sh_order_max=sh_order,
+            basis_type=basis_type,
+            full_basis=full_basis,
+            legacy=is_legacy)
 
         sh_coeffs[chunk_idx] = rotated_sh_chunk.astype(sh_coeffs.dtype)
 
@@ -463,10 +471,9 @@ def peaks_from_sh(shm_coeff, sphere, mask=None, relative_peak_threshold=0.5,
         tmp_peak_values_array = np.zeros((np.count_nonzero(mask), npeaks))
         tmp_peak_indices_array = np.zeros((np.count_nonzero(mask), npeaks))
         for i, peak_dirs, peak_values, peak_indices in results:
-            tmp_peak_dirs_array[chunk_len[i]:chunk_len[i+1], :, :] = peak_dirs
-            tmp_peak_values_array[chunk_len[i]:chunk_len[i+1], :] = peak_values
-            tmp_peak_indices_array[chunk_len[i]
-                :chunk_len[i+1], :] = peak_indices
+            tmp_peak_dirs_array[chunk_len[i]                                :chunk_len[i + 1], :, :] = peak_dirs
+            tmp_peak_values_array[chunk_len[i]                                  :chunk_len[i + 1], :] = peak_values
+            tmp_peak_indices_array[chunk_len[i]:chunk_len[i + 1], :] = peak_indices
 
     # Bring back to the original shape
     peak_dirs_array = np.zeros(data_shape[0:3] + (npeaks, 3))
@@ -629,12 +636,12 @@ def maps_from_sh(shm_coeff, peak_values, peak_indices, sphere,
             all_time_max_odf = max(all_time_global_max, max_odf)
             all_time_global_max = max(all_time_global_max, global_max)
 
-            tmp_nufo_map_array[chunk_len[i]:chunk_len[i+1]] = nufo_map
-            tmp_afd_max_array[chunk_len[i]:chunk_len[i+1]] = afd_max
-            tmp_afd_sum_array[chunk_len[i]:chunk_len[i+1]] = afd_sum
-            tmp_rgb_map_array[chunk_len[i]:chunk_len[i+1], :] = rgb_map
-            tmp_gfa_map_array[chunk_len[i]:chunk_len[i+1]] = gfa_map
-            tmp_qa_map_array[chunk_len[i]:chunk_len[i+1], :] = qa_map
+            tmp_nufo_map_array[chunk_len[i]:chunk_len[i + 1]] = nufo_map
+            tmp_afd_max_array[chunk_len[i]:chunk_len[i + 1]] = afd_max
+            tmp_afd_sum_array[chunk_len[i]:chunk_len[i + 1]] = afd_sum
+            tmp_rgb_map_array[chunk_len[i]:chunk_len[i + 1], :] = rgb_map
+            tmp_gfa_map_array[chunk_len[i]:chunk_len[i + 1]] = gfa_map
+            tmp_qa_map_array[chunk_len[i]:chunk_len[i + 1], :] = qa_map
 
     # Bring back to the original shape
     nufo_map_array = np.zeros(data_shape[0:3])
@@ -761,13 +768,11 @@ def convert_sh_basis(shm_coeff, sphere, mask=None,
         chunk_len = np.cumsum([0] + [len(c) for c in shm_coeff_chunks])
         tmp_shm_coeff_array = np.zeros((np.count_nonzero(mask), data_shape[3]))
 
-        for i, new_shm_coeff in pool.imap_unordered(_convert_sh_basis_parallel,
-                                                    zip(shm_coeff_chunks,
-                                                        itertools.repeat(B_in),
-                                                        itertools.repeat(
-                                                            invB_out),
-                                                        np.arange(len(shm_coeff_chunks)))):
-            tmp_shm_coeff_array[chunk_len[i]:chunk_len[i+1], :] = new_shm_coeff
+        for i, new_shm_coeff in pool.imap_unordered(
+            _convert_sh_basis_parallel, zip(
+                shm_coeff_chunks, itertools.repeat(B_in), itertools.repeat(invB_out), np.arange(
+                len(shm_coeff_chunks)))):
+            tmp_shm_coeff_array[chunk_len[i]                                :chunk_len[i + 1], :] = new_shm_coeff
 
         pool.close()
         pool.join()

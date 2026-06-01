@@ -26,7 +26,11 @@ def test_execution_surface_vtk_fib(script_runner, monkeypatch):
     script_runner.run(['scil_tractogram_convert', in_trk,
                        'gyri_fanning.vtk', '--reference', in_fa,
                        '--no_bbox_check'])
-    ret = script_runner.run(['scil_tractogram_flip', 'gyri_fanning.vtk',
-                             'gyri_fanning_flipped.vtk', 'x', '--reference', in_fa,
+    ret = script_runner.run(['scil_tractogram_flip',
+                             'gyri_fanning.vtk',
+                             'gyri_fanning_flipped.vtk',
+                             'x',
+                             '--reference',
+                             in_fa,
                              '--no_bbox_check'])
     assert ret.success

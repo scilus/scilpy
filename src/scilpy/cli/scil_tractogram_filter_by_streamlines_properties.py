@@ -6,7 +6,7 @@ streamlines' dpp (data_per_point) or dps (data_per_streamline), or filter out
 streamlines.
 
 See also:
-    - To modify your dpp / dps values: see scil_tractogram_dpp_math and 
+    - To modify your dpp / dps values: see scil_tractogram_dpp_math and
     scil_tractogram_dps_math.
     - See all our other scil_tractogram_filter_* scripts!
     - To extract streamlines based on regions of interest (ROI), see
@@ -21,9 +21,14 @@ import numpy as np
 
 from scilpy.io.streamlines import (load_tractogram_with_reference,
                                    save_tractogram)
-from scilpy.io.utils import (add_bbox_arg, add_overwrite_arg, add_reference_arg,
-                             add_verbose_arg, assert_inputs_exist,
-                             assert_outputs_exist, ranged_type)
+from scilpy.io.utils import (
+    add_bbox_arg,
+    add_overwrite_arg,
+    add_reference_arg,
+    add_verbose_arg,
+    assert_inputs_exist,
+    assert_outputs_exist,
+    ranged_type)
 from scilpy.version import version_string
 
 
@@ -65,11 +70,11 @@ def _build_arg_parser():
         '--nb', type=int,
         help="Selects a chosen number of streamlines.")
     gg.add_argument(
-        '--percent', type=ranged_type(float, 0, 100),  const=5,  nargs='?',
+        '--percent', type=ranged_type(float, 0, 100), const=5, nargs='?',
         help="Saves the streamlines in the top / lowest percentile.\n"
              "Default if set: The top / bottom 5%%")
     gg.add_argument(
-        '--mean_std', metavar='N', type=int, const=3,  nargs='?', dest='std',
+        '--mean_std', metavar='N', type=int, const=3, nargs='?', dest='std',
         help="Saves streamlines with value above mean + N*std (option "
              "--top), below \nmean - N*std (option --below) or in the "
              "range [mean - N*std, mean + N*std] \n(option --center)."

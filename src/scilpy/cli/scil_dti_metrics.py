@@ -294,7 +294,7 @@ def main():
         # save individual e-vectors also
         for i in range(3):
             StatefulImage.from_data(evecs_data[..., i], simg).save(
-                add_filename_suffix(args.evecs, '_v'+str(i+1)))
+                add_filename_suffix(args.evecs, '_v' + str(i + 1)))
 
     if args.evals:
         evals_data = tenfit.evals.astype(np.float32)
@@ -303,7 +303,7 @@ def main():
         # save individual e-values also
         for i in range(3):
             StatefulImage.from_data(evals_data[..., i], simg).save(
-                add_filename_suffix(args.evals, '_e' + str(i+1)))
+                add_filename_suffix(args.evals, '_e' + str(i + 1)))
 
     if args.p_i_signal:
         S0 = np.mean(data[..., gtab.b0s_mask], axis=-1, keepdims=True)

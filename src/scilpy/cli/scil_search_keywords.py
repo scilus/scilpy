@@ -181,8 +181,8 @@ def main():
         search_text = ' '.join(script_keywords)
         score_details = _calculate_score(
             stemmed_keywords, stemmed_phrases, search_text, script_name)
-        scores_per_script = update_matches_and_scores(scores_per_script,
-                                                      script_name, score_details)
+        scores_per_script = update_matches_and_scores(
+            scores_per_script, script_name, score_details)
 
     # Remove scripts with no matches
     scores_per_script = {script: score for script,

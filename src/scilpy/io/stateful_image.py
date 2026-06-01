@@ -34,10 +34,15 @@ class StatefulImage(nib.Nifti1Image):
         super().__init__(dataobj, affine, header, extra, file_map)
 
         # Store original image information
-        self._original_affine = original_affine
-        self._original_dimensions = original_dimensions
-        self._original_voxel_sizes = original_voxel_sizes
-        self._original_axcodes = original_axcodes
+        self._original_affine = original_affine \
+            if original_affine is not None else affine.copy()
+        self._original_dimensions = original_dimensions \
+            if original_dimensions is not None else self.header.get_data_shape()
+        self._original_voxel_sizes = original_voxel_sizes \
+            if original_voxel_sizes is not None else self.header.get_zooms()
+        self._original_axcodes = original_axcodes \
+            if original_axcodes is not None else \
+            nib.orientations.aff2axcodes(affine)
 
         # Directional information
         self._sh_basis = sh_basis
@@ -125,6 +130,7 @@ class StatefulImage(nib.Nifti1Image):
                                                        sh_basis=sh_basis,
                                                        is_legacy=is_legacy)
             simg = cls.from_data(rotated_data, simg)
+            simg._is_world_space = True
 
         return simg
 
@@ -163,10 +169,8 @@ class StatefulImage(nib.Nifti1Image):
 
             data = self.get_fdata(dtype=np.float32)
             R = self._get_rotation_matrix(self.affine).T
-            rotated_data = self._rotate_direction_data(data, R,
-                                                       sh_basis=sh_basis,
-                                                       is_legacy=is_legacy,
-                                                       nbr_processes=nbr_processes)
+            rotated_data = self._rotate_direction_data(
+                data, R, sh_basis=sh_basis, is_legacy=is_legacy, nbr_processes=nbr_processes)
             self._dataobj = rotated_data
             self._is_world_space = False
             return rotated_data
@@ -212,10 +216,8 @@ class StatefulImage(nib.Nifti1Image):
 
             data = self.get_fdata(dtype=np.float32)
             R = self._get_rotation_matrix(self.affine)
-            rotated_data = self._rotate_direction_data(data, R,
-                                                       sh_basis=sh_basis,
-                                                       is_legacy=is_legacy,
-                                                       nbr_processes=nbr_processes)
+            rotated_data = self._rotate_direction_data(
+                data, R, sh_basis=sh_basis, is_legacy=is_legacy, nbr_processes=nbr_processes)
             self._dataobj = rotated_data
             self._is_world_space = True
             return rotated_data
@@ -283,26 +285,42 @@ class StatefulImage(nib.Nifti1Image):
         filename : str
             Path to save the NIfTI file.
         """
-        if self._original_axcodes is None:
-            raise ValueError(
-                "Unknown original orientation. Ensure the image was loaded"
-                "with StatefulImage.load() or that original_axcodes was"
-                "provided when creating the StatefulImage instance.")
-
         current_axcodes = self.axcodes[:3]
         target_axcodes = self._original_axcodes[:3]
 
-        if current_axcodes == target_axcodes:
-            nib.save(self, filename)
+        # 1. Handle directional data
+        if self.is_orientation:
+            # Bring to current voxel space
+            data = self.to_voxel_direction()
+
+            if current_axcodes != target_axcodes:
+                # Need to rotate from current voxel space to target voxel space
+                R_curr = self._get_rotation_matrix(self.affine)
+                R_target = self._get_rotation_matrix(self._original_affine)
+                # target = R_target.T * world = R_target.T * (R_curr * current)
+                R = np.dot(R_target.T, R_curr)
+                data = self._rotate_direction_data(data, R,
+                                                   sh_basis=self.sh_basis,
+                                                   is_legacy=self.is_legacy)
+
+            # Create a temporary image for reorientation
+            temp_img = nib.Nifti1Image(data, self.affine, self.header)
         else:
+            temp_img = self
+
+        # 2. Reorient voxels to original orientation
+        if current_axcodes != target_axcodes:
             start_ornt = nib.orientations.axcodes2ornt(current_axcodes)
             target_ornt = nib.orientations.axcodes2ornt(target_axcodes)
             transform = nib.orientations.ornt_transform(start_ornt,
                                                         target_ornt)
             # Use Nifti1Image.as_reoriented to get a temporary object
             # in the original orientation for saving.
-            reoriented_img = nib.Nifti1Image.as_reoriented(self, transform)
-            nib.save(reoriented_img, filename)
+            final_img = temp_img.as_reoriented(transform)
+        else:
+            final_img = temp_img
+
+        nib.save(final_img, filename)
 
     @staticmethod
     def create_from(source, reference):
@@ -351,7 +369,7 @@ class StatefulImage(nib.Nifti1Image):
                              is_world_space=reference.is_world_space)
 
     @staticmethod
-    def from_data(data, reference):
+    def from_data(data, reference, is_orientation=None):
         """
         Create a new StatefulImage from a numpy array, preserving the original
         orientation information from a reference StatefulImage.
@@ -363,6 +381,9 @@ class StatefulImage(nib.Nifti1Image):
         reference : StatefulImage
             The reference image from which to copy original orientation
             information.
+        is_orientation : bool, optional
+            Whether the new image contains directional data.
+            If None, uses reference.is_orientation.
 
         Returns
         -------
@@ -371,7 +392,10 @@ class StatefulImage(nib.Nifti1Image):
             image's original orientation information.
         """
         new_img = nib.Nifti1Image(data, reference.affine, reference.header)
-        return StatefulImage.create_from(new_img, reference)
+        simg = StatefulImage.create_from(new_img, reference)
+        if is_orientation is not None:
+            simg._is_orientation = is_orientation
+        return simg
 
     @staticmethod
     def convert_to_simg(img, bvals=None, bvecs=None):
@@ -680,7 +704,7 @@ class StatefulImage(nib.Nifti1Image):
         if len(self.shape) > 3:
             extra_codes = ['T', 'U', 'V', 'W', 'X', 'Y', 'Z']
             for i in range(3, len(self.shape)):
-                codes.append(extra_codes[i-3])
+                codes.append(extra_codes[i - 3])
         return tuple(codes)
 
     @property

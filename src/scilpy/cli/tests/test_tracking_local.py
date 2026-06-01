@@ -213,10 +213,17 @@ def test_execution_tracking_local_sf_rel_thr(script_runner, monkeypatch):
     in_fodf = os.path.join(SCILPY_HOME, 'tracking', 'fodf.nii.gz')
     in_mask = os.path.join(SCILPY_HOME, 'tracking', 'seeding_mask.nii.gz')
 
-    ret = script_runner.run(['scil_tracking_local', in_fodf,
-                             in_mask, in_mask, 'local_sf_rel.trk', '--nt', '10',
-                             '--sh_basis', 'descoteaux07',
-                             '--global_sf_rel_thr', '0.1'])
+    ret = script_runner.run(['scil_tracking_local',
+                             in_fodf,
+                             in_mask,
+                             in_mask,
+                             'local_sf_rel.trk',
+                             '--nt',
+                             '10',
+                             '--sh_basis',
+                             'descoteaux07',
+                             '--global_sf_rel_thr',
+                             '0.1'])
     assert ret.success
 
 
@@ -225,8 +232,15 @@ def test_execution_tracking_local_sf_abs_thr(script_runner, monkeypatch):
     in_fodf = os.path.join(SCILPY_HOME, 'tracking', 'fodf.nii.gz')
     in_mask = os.path.join(SCILPY_HOME, 'tracking', 'seeding_mask.nii.gz')
 
-    ret = script_runner.run(['scil_tracking_local', in_fodf,
-                             in_mask, in_mask, 'local_sf_abs.trk', '--nt', '10',
-                             '--sh_basis', 'descoteaux07',
-                             '--global_sf_abs_thr', '0.01'])
+    ret = script_runner.run(['scil_tracking_local',
+                             in_fodf,
+                             in_mask,
+                             in_mask,
+                             'local_sf_abs.trk',
+                             '--nt',
+                             '10',
+                             '--sh_basis',
+                             'descoteaux07',
+                             '--global_sf_abs_thr',
+                             '0.01'])
     assert ret.success

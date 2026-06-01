@@ -180,8 +180,7 @@ def main():
                     logging.warning(
                         "The input TRK file(s) (e.g., '%s') have a rotated affine. "
                         "Standard hashing might fail to match identical streamlines "
-                        "due to floating point errors. Consider using '--robust'.", f
-                    )
+                        "due to floating point errors. Consider using '--robust'.", f)
                 break
 
     # Processing

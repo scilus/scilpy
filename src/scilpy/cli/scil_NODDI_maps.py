@@ -63,9 +63,11 @@ def _build_arg_parser():
     p.add_argument('--compute_rmse', action='store_true',
                    help='Compute the RMSE map of the model fit. Will be saved '
                    'as fit_RMSE.nii.gz in the output directory.')
-    p.add_argument('--compute_nrmse', action='store_true',
-                   help='Compute the NRMSE map of the model fit. Will be saved '
-                   'as fit_NRMSE.nii.gz in the output directory.')
+    p.add_argument(
+        '--compute_nrmse',
+        action='store_true',
+        help='Compute the NRMSE map of the model fit. Will be saved '
+        'as fit_NRMSE.nii.gz in the output directory.')
     add_tolerance_arg(p)
     add_skip_b0_check_arg(p, will_overwrite_with_min=False,
                           b0_tol_name='--tolerance')
@@ -160,8 +162,12 @@ def main():
         # Load the data
         amico.core.setup()
         ae = amico.Evaluation('.', '.')
-        ae.load_data(args.in_dwi, tmp_scheme_filename, mask_filename=args.mask,
-                     replace_bad_voxels=args.replace_bad_voxels, b0_thr=args.tolerance)
+        ae.load_data(
+            args.in_dwi,
+            tmp_scheme_filename,
+            mask_filename=args.mask,
+            replace_bad_voxels=args.replace_bad_voxels,
+            b0_thr=args.tolerance)
 
         # Compute the response functions
         ae.set_model("NODDI")

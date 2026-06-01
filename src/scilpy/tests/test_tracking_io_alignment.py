@@ -12,7 +12,8 @@ def create_fake_header(affine, shape=(10, 10, 10)):
     return img
 
 
-@pytest.mark.parametrize("affine_type", ["iso_1mm", "iso_2mm", "aniso", "complex"])
+@pytest.mark.parametrize("affine_type",
+                         ["iso_1mm", "iso_2mm", "aniso", "complex"])
 @pytest.mark.parametrize("ext", [".trk", ".tck"])
 def test_tracking_io_alignment(tmp_path, affine_type, ext):
     if affine_type == "iso_1mm":
@@ -27,8 +28,8 @@ def test_tracking_io_alignment(tmp_path, affine_type, ext):
         c, s = np.cos(theta), np.sin(theta)
         R = np.array([
             [c, -s, 0],
-            [s,  c, 0],
-            [0,  0, 1]
+            [s, c, 0],
+            [0, 0, 1]
         ])
         S = np.diag([1.1, 0.9, 1.2])
         T = np.array([10, -20, 30])
@@ -76,7 +77,8 @@ def test_tracking_io_alignment(tmp_path, affine_type, ext):
         assert np.allclose(orig, loaded, atol=1e-3)
 
 
-@pytest.mark.parametrize("affine_type", ["iso_1mm", "iso_2mm", "aniso", "complex"])
+@pytest.mark.parametrize("affine_type",
+                         ["iso_1mm", "iso_2mm", "aniso", "complex"])
 @pytest.mark.parametrize("ext", [".trk", ".tck"])
 def test_scil_save_tractogram_alignment(tmp_path, affine_type, ext):
     if affine_type == "iso_1mm":
@@ -116,9 +118,9 @@ def test_scil_save_tractogram_alignment(tmp_path, affine_type, ext):
     tracts_format = nib.streamlines.detect_format(output_path)
 
     # scil_save_tractogram(streamlines_generator, tracts_format, ref_img, total_nb_seeds,
-    #                    out_tractogram, min_length, max_length, compress, save_seeds, verbose)
-    scil_save_tractogram(stream_gen_list, tracts_format, img, len(vox_streamlines),
-                         output_path, 0, 1000, None, False, False)
+    # out_tractogram, min_length, max_length, compress, save_seeds, verbose)
+    scil_save_tractogram(stream_gen_list, tracts_format, img, len(
+        vox_streamlines), output_path, 0, 1000, None, False, False)
 
     # Reload and check
     sft_loaded = load_tractogram(output_path, img_path)
@@ -139,7 +141,7 @@ def test_tck_trk_physical_alignment(tmp_path):
     R = np.array([
         [1, 0, 0],
         [0, c, -s],
-        [0, s,  c]
+        [0, s, c]
     ])
     affine = np.eye(4)
     affine[:3, :3] = R

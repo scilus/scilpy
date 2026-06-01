@@ -132,7 +132,8 @@ def main():
         logging.warning(
             'Your shells seem to be very far apart (max delta: {}, min non-b0 shell: {}). '
             'This might cause problems for the estimation of the FRF. '
-            'Consider using scil_frf_msmt.py.'.format(max_non_b0_delta, min_non_b0_shell))
+            'Consider using scil_frf_msmt.py.'.format(
+                max_non_b0_delta, min_non_b0_shell))
 
     if len(dwi_shells) > 0 and np.max(dwi_shells) < 900 and sh_order > 4:
         logging.warning(

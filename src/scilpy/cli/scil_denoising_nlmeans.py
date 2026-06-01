@@ -161,12 +161,13 @@ def main():
                      "is not selected.")
 
     if args.piesno and (not args.number_coils or args.number_coils < 1):
-        parser.error("PIESNO method requires a positive number of coils."
-                     "The number of phase array coils of the MRI scanner."
-                     "If your scanner does a SENSE reconstruction, ALWAYS use N=1, as the "
-                     "noise profile is always Rician."
-                     "If your scanner does a GRAPPA reconstruction, set N as the number "
-                     "of phase array coils.")
+        parser.error(
+            "PIESNO method requires a positive number of coils."
+            "The number of phase array coils of the MRI scanner."
+            "If your scanner does a SENSE reconstruction, ALWAYS use N=1, as the "
+            "noise profile is always Rician."
+            "If your scanner does a GRAPPA reconstruction, set N as the number "
+            "of phase array coils.")
 
     assert_inputs_exist(parser, args.in_image,
                         [args.mask_denoise, args.mask_sigma])

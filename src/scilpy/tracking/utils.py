@@ -290,7 +290,8 @@ def save_tractogram(
                                           total=total_nb_seeds,
                                           miniters=miniters,
                                           leave=False):
-            # 1. Get to RASMM (physical world space) for filtering and compression
+            # 1. Get to RASMM (physical world space) for filtering and
+            # compression
             if space == Space.VOX:
                 strl_rasmm = nib.affines.apply_affine(affine_mod, strl)
             elif space == Space.VOXMM:

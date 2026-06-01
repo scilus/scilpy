@@ -139,7 +139,8 @@ class RAPSwitch(RAP):
         if label <= 0:
             return line, prev_direction, False
 
-        # Logging debug when label changes        # Apply the parameters of the RAP labels
+        # Logging debug when label changes        # Apply the parameters of the
+        # RAP labels
         if label != self._current_label:
             if self._current_label is not None:
                 logging.debug(f"STEP[{self._total_steps}] label={self._current_label}"
@@ -162,7 +163,8 @@ class RAPSwitch(RAP):
                 new_propagator.line_rng_generator = self.propagator.line_rng_generator
                 self.propagator = new_propagator
                 logging.debug(
-                    f"RAP propagator switched to default label {self._propagators.keys()[0]}")
+                    f"RAP propagator switched to default label {
+                        self._propagators.keys()[0]}")
 
         # Perform propagation with new parameters
         new_pos, new_dir, is_direction_valid = self.propagator.propagate(

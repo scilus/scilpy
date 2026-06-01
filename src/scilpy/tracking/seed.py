@@ -360,7 +360,7 @@ class FibertubeSeedGenerator(SeedGenerator):
             self.generator.random_sample(100000)
             numbers_to_skip -= 100000
         self.generator.random_sample(numbers_to_skip)
-        sampling_rng_seed = self.generator.randint(0, 2**32-1)
+        sampling_rng_seed = self.generator.randint(0, 2**32 - 1)
         self.sampling_generator = np.random.default_rng(sampling_rng_seed)
 
         return self.sampling_generator, indices
@@ -458,7 +458,7 @@ class CustomSeedsDispenser(SeedGenerator):
 
     def get_next_n_pos(self, random_generator, shuffled_indices,
                        which_seed_start, n):
-        seeds = self.seeds[self.i:self.i+n]
+        seeds = self.seeds[self.i:self.i + n]
         self.i += n
 
         return seeds

@@ -380,8 +380,11 @@ class Tracker(object):
             if lock is None:
                 lock = nullcontext()
             with lock:
-                p = tqdm(total=chunk_size, desc=tqdm_text, position=chunk_id+1,
-                         leave=False)
+                p = tqdm(
+                    total=chunk_size,
+                    desc=tqdm_text,
+                    position=chunk_id + 1,
+                    leave=False)
 
         for s in range(chunk_size):
             seed = self.seed_generator.get_next_pos(
@@ -645,7 +648,7 @@ class GPUTracker():
         self.n_seeds = len(seeds)
 
         self.seed_batches =\
-            np.array_split(seeds + 0.5, np.ceil(len(seeds)/batch_size))
+            np.array_split(seeds + 0.5, np.ceil(len(seeds) / batch_size))
 
         if sphere is None:
             self.sphere = get_sphere(name="repulsion724")

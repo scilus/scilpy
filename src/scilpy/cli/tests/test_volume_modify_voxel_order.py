@@ -76,9 +76,15 @@ def test_execution_with_gradients(script_runner, monkeypatch):
     # 3. Run script to modify voxel order to LPS
     out_file = 'output_lps.nii.gz'
     out_bvec = 'output_lps.bvec'
-    ret = script_runner.run(['scil_volume_modify_voxel_order', in_file,
-                             out_file, '--new_voxel_order=LPS',
-                             '--in_bvec', in_bvec, '--out_bvec', out_bvec, '-f'])
+    ret = script_runner.run(['scil_volume_modify_voxel_order',
+                             in_file,
+                             out_file,
+                             '--new_voxel_order=LPS',
+                             '--in_bvec',
+                             in_bvec,
+                             '--out_bvec',
+                             out_bvec,
+                             '-f'])
     assert ret.success
 
     # 4. Verify image
@@ -115,9 +121,15 @@ def test_execution_with_gradients_numeric(script_runner, monkeypatch):
     # 3. Run script to modify voxel order to LPS using numeric: -1,-2,3
     out_file = 'output_lps_num.nii.gz'
     out_bvec = 'output_lps_num.bvec'
-    ret = script_runner.run(['scil_volume_modify_voxel_order', in_file,
-                             out_file, '--new_voxel_order=-1,-2,3',
-                             '--in_bvec', in_bvec, '--out_bvec', out_bvec, '-f'])
+    ret = script_runner.run(['scil_volume_modify_voxel_order',
+                             in_file,
+                             out_file,
+                             '--new_voxel_order=-1,-2,3',
+                             '--in_bvec',
+                             in_bvec,
+                             '--out_bvec',
+                             out_bvec,
+                             '-f'])
     assert ret.success
 
     # 4. Verify image
@@ -179,9 +191,15 @@ def test_execution_with_bvec_real_data(script_runner, monkeypatch):
     # Test LPI
     out_lpi = 'real_lpi_grad.nii.gz'
     out_bvec = 'real_lpi_grad.bvec'
-    ret = script_runner.run(['scil_volume_modify_voxel_order', in_image,
-                             out_lpi, '--new_voxel_order=LPS',
-                             '--in_bvec', in_bvec, '--out_bvec', out_bvec, '-f'])
+    ret = script_runner.run(['scil_volume_modify_voxel_order',
+                             in_image,
+                             out_lpi,
+                             '--new_voxel_order=LPS',
+                             '--in_bvec',
+                             in_bvec,
+                             '--out_bvec',
+                             out_bvec,
+                             '-f'])
     assert ret.success
 
     # Verify image

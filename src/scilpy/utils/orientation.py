@@ -108,7 +108,8 @@ def parse_voxel_order(order_str, dimensions=3):
             # Handle swapped axes from numeric input (e.g., '231')
             axis_vals = [ras_map[abs(int(p))] for p in numeric_parts]
             if len(set(axis_vals)) == len(numeric_parts):
-                return validate_voxel_order(tuple(order), dimensions=dimensions)
+                return validate_voxel_order(
+                    tuple(order), dimensions=dimensions)
             else:
                 raise ValueError("Invalid numeric voxel order. "
                                  "Axes cannot be repeated.")

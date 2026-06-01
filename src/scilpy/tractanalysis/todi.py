@@ -199,7 +199,7 @@ class TrackOrientationDensityImaging(object):
         while chunk_count > 0:
             # Smooth one direction at a time, too big in memory otherwise
             for i in range(chunk_size):
-                if i > self.todi.shape[1]-1:
+                if i > self.todi.shape[1] - 1:
                     tmp_todi = np.delete(
                         tmp_todi, range(i, chunk_size), axis=1)
                     break

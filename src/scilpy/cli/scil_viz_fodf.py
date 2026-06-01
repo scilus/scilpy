@@ -221,9 +221,10 @@ def _get_data_from_inputs(args):
     between the data for mask, background, peaks and fODF.
     """
     sh_basis, is_legacy = parse_sh_basis_arg(args)
-    fodf_simg = StatefulImage.load(args.in_fodf, is_orientation=True,
-                                   is_world_space=not args.is_voxel_space,
-                                   sh_basis=sh_basis, is_legacy=is_legacy)
+    simg = StatefulImage.load(args.in_sh, is_orientation=True,
+                              is_world_space=not args.is_voxel_space,
+                              sh_basis=sh_basis, is_legacy=is_legacy)
+
     fodf_simg.to_ras()
     fodf = fodf_simg.to_voxel_direction(sh_basis=sh_basis, is_legacy=is_legacy)
 
@@ -272,9 +273,12 @@ def _get_data_from_inputs(args):
             peak_vals_simg.get_fdata()
     if args.variance:
         assert_same_resolution([args.variance, args.in_fodf])
-        variance_simg = StatefulImage.load(args.variance, is_orientation=True,
-                                           is_world_space=not args.is_voxel_space,
-                                           sh_basis=sh_basis, is_legacy=is_legacy)
+        variance_simg = StatefulImage.load(
+            args.variance,
+            is_orientation=True,
+            is_world_space=not args.is_voxel_space,
+            sh_basis=sh_basis,
+            is_legacy=is_legacy)
         variance_simg.reorient(fodf_simg.axcodes)
         variance = variance_simg.to_voxel_direction(sh_basis=sh_basis,
                                                     is_legacy=is_legacy)

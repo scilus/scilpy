@@ -108,10 +108,14 @@ def _build_arg_parser():
                          type=int, default=0,
                          help='Subdivides each face of the sphere into 4^s new'
                               ' faces. [%(default)s]')
-    track_g.add_argument('--sfthres_init', metavar='sf_th', type=float,
-                         default=0.5, dest='sf_threshold_init',
-                         help="Spherical function relative threshold value "
-                              "within each voxel for the \ninitial direction. [%(default)s]")
+    track_g.add_argument(
+        '--sfthres_init',
+        metavar='sf_th',
+        type=float,
+        default=0.5,
+        dest='sf_threshold_init',
+        help="Spherical function relative threshold value "
+        "within each voxel for the \ninitial direction. [%(default)s]")
     track_g.add_argument('--rk_order', metavar="K", type=int, default=1,
                          choices=[1, 2, 4],
                          help="The order of the Runge-Kutta integration used "
@@ -308,9 +312,9 @@ def main():
     # ------- INSTANTIATING PROPAGATOR -------
     if args.in_odf:
         logging.info("Loading ODF SH data.")
-        odf_sh_simg = StatefulImage.load(args.in_odf, is_orientation=True,
-                                         is_world_space=not args.is_voxel_space,
-                                         sh_basis=sh_basis)
+        odf_sh_simg = StatefulImage.load(
+            args.in_odf, is_orientation=True,
+            is_world_space=not args.is_voxel_space, sh_basis=sh_basis)
         odf_sh_simg.reorient(seed_simg.axcodes)
         odf_sh_data = odf_sh_simg.to_voxel_direction(
             sh_basis=sh_basis, nbr_processes=1).astype(np.float32)
@@ -359,7 +363,8 @@ def main():
                     voxel_size = odf_sh_img.header.get_zooms()[0]
                     vox_step_size = cfg.get('step_size',
                                             args.step_size) / voxel_size
-                    # Use identity affine for DataVolume to match voxel space tracking
+                    # Use identity affine for DataVolume to match voxel space
+                    # tracking
                     loaded_datasets[filename] = DataVolume(
                         odf_sh_img.get_fdata(caching='unchanged', dtype=float),
                         odf_sh_res, affine=np.eye(4),

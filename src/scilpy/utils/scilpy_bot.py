@@ -56,8 +56,13 @@ def _make_title(text):
     """
     Returns a formatted title string with centered text and spacing
     """
-    return f'{Fore.LIGHTBLUE_EX}{Style.BRIGHT}{text.center(SPACING_LEN, "=")}' \
-        f'{Style.RESET_ALL}'
+    return f'{
+        Fore.LIGHTBLUE_EX}{
+        Style.BRIGHT}{
+            text.center(
+                SPACING_LEN,
+                "=")}' f'{
+                    Style.RESET_ALL}'
 
 
 def _get_docstring_from_script_path(script):
@@ -303,7 +308,8 @@ def _get_synonyms(keyword, synonyms_data):
         synonym_set = [synonym.lower() for synonym in synonym_set]
         stemmed_synonyms_set = [_stem_word(synonym) for synonym in synonym_set]
 
-        if keyword in synonym_set or _stem_word(keyword) in stemmed_synonyms_set:
+        if keyword in synonym_set or _stem_word(
+                keyword) in stemmed_synonyms_set:
             complete_synonyms.extend(synonym_set)
 
     return list(set(complete_synonyms))
