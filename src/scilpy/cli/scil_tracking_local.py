@@ -81,7 +81,8 @@ from scilpy.tracking.utils import (add_mandatory_options_tracking,
                                    add_out_options, add_seeding_options,
                                    add_tracking_options,
                                    add_tracking_ptt_options,
-                                   get_direction_getter, get_theta,
+                                   get_direction_getter,
+                                   get_global_sf_threshold_mask, get_theta,
                                    save_tractogram, verify_seed_options,
                                    verify_streamline_length_options)
 from scilpy.version import version_string
@@ -209,7 +210,6 @@ def main():
     sf_mask = None
     if args.global_sf_rel_thr is not None or \
             args.global_sf_abs_thr is not None:
-        from scilpy.tracking.utils import get_global_sf_threshold_mask
         sf_mask = get_global_sf_threshold_mask(
             odf_sh_data, args, sh_basis, is_legacy)
 
