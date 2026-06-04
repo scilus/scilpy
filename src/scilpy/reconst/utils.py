@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 
-from dipy.direction.peaks import peak_directions
+import logging
+
 import numpy as np
+from dipy.direction.peaks import peak_directions
 
 
 def find_order_from_nb_coeff(data):
@@ -106,6 +108,8 @@ def is_data_peaks(img_data):
     if last_dim % 3 == 0:
         norm = np.linalg.norm(data_nz.reshape(-1, 3), axis=-1)
         if np.all(np.isclose(norm, norm[0])):
+            logging.warning("All peaks have the same norm. They might be "
+                            "already normalized.")
             return True
 
     # If the max is in the first triplet but not at index 0, it's likely Peaks.
