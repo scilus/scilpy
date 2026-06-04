@@ -535,7 +535,8 @@ def compute_sf_threshold_mask(data, sphere_name='repulsion100',
                               relative_factor=None,
                               absolute_threshold=None,
                               sh_basis='descoteaux07',
-                              is_legacy=True, postprocess_mask=True):
+                              is_legacy=True, postprocess_mask=True,
+                              size_percentage=0.05):
     """
     Compute a binary mask based on a global SF amplitude threshold.
 
@@ -559,6 +560,9 @@ def compute_sf_threshold_mask(data, sphere_name='repulsion100',
         Whether the SH basis is legacy.
     postprocess_mask : bool, optional
         Whether to postprocess the mask to keep only the largest component.
+    size_percentage : float, optional
+        If postprocess_mask is True, percentage of the largest component size
+        under which a hole will be filled.
 
     Returns
     -------
@@ -636,8 +640,8 @@ def compute_sf_threshold_mask(data, sphere_name='repulsion100',
             labels_inverted = ndi.label(inverted_mask)[0]
             label_counts_inverted = np.bincount(labels_inverted.ravel())
 
-            # Fill holes smaller than 5% of the largest component size
-            hole_threshold = 0.05 * largest_component_size
+            # Fill holes smaller than X% of the largest component size
+            hole_threshold = size_percentage * largest_component_size
             for label, count in enumerate(label_counts_inverted):
                 if label == 0:
                     continue  # Skip background
