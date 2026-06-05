@@ -20,6 +20,7 @@ Installation
     export SETUPTOOLS_USE_DISTUTILS=stdlib
 
     uv pip install scilpy # For the most recent release from PyPi
+    pip install "gdown>=6.0.0" # To download the data for the tutorials
 
 
 Download data
@@ -29,7 +30,7 @@ In order to follow the tutorials we highly encourage you to download this archiv
 
 .. code-block:: bash
 
-      gdown https://drive.google.com/file/d/1kbKvj0DdCExXcx9s3tTw3pKcY9IaAsvF/view?usp=sharing --fuzzy
+      gdown https://drive.google.com/file/d/1kbKvj0DdCExXcx9s3tTw3pKcY9IaAsvF/view?usp=sharing
       unzip data_for_test.zip
       rm data_for_test.zip
 

@@ -12,7 +12,7 @@ import nibabel as nib
 from nibabel.streamlines.array_sequence import ArraySequence
 import numpy as np
 
-from scilpy.io.utils import load_matrix_in_any_format
+from scilpy.io.utils import load_matrix_in_any_format, is_argument_set
 
 
 def check_tracts_same_format(parser, tractogram_1, tractogram_2):
@@ -56,11 +56,6 @@ def ichunk(sequence, n):
     while len(chunk) > 0:
         yield chunk
         chunk = list(islice(sequence, n))
-
-
-def is_argument_set(args, arg_name):
-    # Check that attribute is not None
-    return not getattr(args, arg_name, None) is None
 
 
 def load_tractogram_with_reference(parser, args, filepath, arg_name=None):

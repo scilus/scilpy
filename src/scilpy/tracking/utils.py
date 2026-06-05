@@ -2,13 +2,7 @@
 import logging
 from typing import Iterable
 
-import nibabel as nib
-import numpy as np
-from nibabel.streamlines import TrkFile
-from nibabel.streamlines.tractogram import LazyTractogram, TractogramItem
-from tqdm import tqdm
-
-from dipy.core.sphere import HemiSphere
+from dipy.core.sphere import HemiSphere, Sphere
 from dipy.data import get_sphere
 from dipy.direction import (DeterministicMaximumDirectionGetter,
                             ProbabilisticDirectionGetter, PTTDirectionGetter)
@@ -16,9 +10,17 @@ from dipy.direction.peaks import PeaksAndMetrics
 from dipy.io.utils import create_tractogram_header, get_reference_info
 from dipy.reconst.shm import sh_to_sf_matrix
 from dipy.tracking.streamlinespeed import compress_streamlines, length
+import nibabel as nib
+from nibabel.streamlines import TrkFile
+from nibabel.streamlines.tractogram import LazyTractogram, TractogramItem
+import numpy as np
+import scipy.ndimage as ndi
+from tqdm import tqdm
+
 from scilpy.io.utils import (add_compression_arg, add_overwrite_arg,
                              add_sh_basis_args)
-from scilpy.reconst.utils import find_order_from_nb_coeff, get_maximas
+from scilpy.reconst.utils import (find_order_from_nb_coeff, get_maximas,
+                                  is_data_peaks)
 
 
 class TrackingDirection(list):
@@ -45,26 +47,26 @@ def add_mandatory_options_tracking(p, fodf_optional=False):
                                'file (.nii.gz). Ex: ODF or fODF. \n'
                                'If not provided, fODF info must be \n'
                                'specified in rap_policies.json.')
-        odf_group.add_argument('--rap_params', default=None,
-                               help='JSON file containing RAP parameters, \n'
-                               'mutually exclusive with --in_odf.\n'
-                               'Required for --rap_method switch.\n'
-                               'Expected format:\n'
-                                    '{\n'
-                                    '  "methods": {\n'
-                                    '    "1": {"propagator": "ODF", "filename": str,\n'
-                                    '          "sh_basis": str, "algo": str,\n'
-                                    '          "theta": float, "step_size": float},\n'
-                                    '    "2": {"propagator": "ODF", "filename": str,\n'
-                                    '          "sh_basis": str, "algo": str,\n'
-                                    '          "theta": float, "step_size": float}\n'
-                                    '  }\n'
-                                    '}')
+        odf_group.add_argument(
+            '--rap_params', default=None,
+            help='JSON file containing RAP parameters, mutually exclusive '
+                 'with --in_odf.\nRequired for --rap_method switch.\n'
+                 'Expected format:\n'
+                 '{\n'
+                 '  "methods": {\n'
+                 '    "1": {"propagator": "ODF", "filename": str,\n'
+                 '          "sh_basis": str, "algo": str,\n'
+                 '          "theta": float, "step_size": float},\n'
+                 '    "2": {"propagator": "ODF", "filename": str,\n'
+                 '          "sh_basis": str, "algo": str,\n'
+                 '          "theta": float, "step_size": float}\n'
+                 '  }\n'
+                 '}')
     else:
         p.add_argument('in_odf',
-                       help='File containing the orientation diffusion function \n'
-                            'as spherical harmonics file (.nii.gz). \n'
-                            'Ex: ODF or fODF.')
+                       help='File containing the orientation diffusion '
+                            'function \nas spherical harmonics file '
+                            '(.nii.gz). \nEx: ODF or fODF.')
     p.add_argument('in_seed',
                    help='Seeding mask (.nii.gz).')
     p.add_argument('in_mask',
@@ -99,8 +101,21 @@ def add_tracking_options(p):
                               '["eudx"=60, "det"=45, "prob"=20, "ptt"=20]')
     track_g.add_argument('--sfthres', dest='sf_threshold', metavar='sf_th',
                          type=float, default=0.1,
-                         help='Spherical function relative threshold. '
-                              '[%(default)s]')
+                         help='Spherical function relative threshold '
+                              'within each voxel. [%(default)s]')
+    global_sf_g = track_g.add_mutually_exclusive_group()
+    global_sf_g.add_argument('--global_sf_rel_thr', metavar='FACTOR',
+                             type=float, nargs='?', const=0.1, default=None,
+                             help='Global SF relative threshold factor. '
+                                  'If set, masks voxels where\nmaximum SF '
+                                  'amplitude < FACTOR * global maximum SF '
+                                  'amplitude. \nIf used without a value, '
+                                  'default is [%(const)s].')
+    global_sf_g.add_argument('--global_sf_abs_thr', metavar='ABS_THR',
+                             type=float,
+                             help='Global SF absolute threshold. '
+                                  'If set, masks voxels where \n'
+                                  'maximum SF amplitude < ABS_THR.')
     add_sh_basis_args(track_g)
 
     return track_g
@@ -165,7 +180,7 @@ def add_out_options(p):
     """
     out_g = p.add_argument_group('Output options')
     msg = ("\nA rule of thumb is to set it to 0.1mm for deterministic \n"
-           "streamlines and to 0.2mm for probabilitic streamlines.")
+           "streamlines and to 0.2mm for probabilistic streamlines.")
     add_compression_arg(out_g, additional_msg=msg)
 
     add_overwrite_arg(out_g)
@@ -289,7 +304,7 @@ def save_tractogram(
     nib.streamlines.save(tractogram, out_tractogram, header=header)
 
 
-def get_direction_getter(in_img, algo, sphere, sub_sphere, theta, sh_basis,
+def get_direction_getter(img_data, algo, sphere, sub_sphere, theta, sh_basis,
                          voxel_size, sf_threshold, sh_to_pmf,
                          probe_length, probe_radius, probe_quality,
                          probe_count, support_exponent, is_legacy=True):
@@ -297,8 +312,8 @@ def get_direction_getter(in_img, algo, sphere, sub_sphere, theta, sh_basis,
 
     Parameters
     ----------
-    in_img: str
-        Path to the input odf file.
+    img_data: np.ndarray
+        ODF data (SH or Peaks).
     algo: str
         Algorithm to use for tracking. Can be 'det', 'prob', 'ptt' or 'eudx'.
     sphere: str
@@ -314,7 +329,7 @@ def get_direction_getter(in_img, algo, sphere, sub_sphere, theta, sh_basis,
     sf_threshold: float
         Spherical function-amplitude threshold for tracking.
     sh_to_pmf: bool
-        Map sherical harmonics to spherical function (pmf) before tracking
+        Map spherical harmonics to spherical function (pmf) before tracking
         (faster, requires more memory).
     probe_length : float
         The length of the probes. Shorter probe_length
@@ -343,21 +358,12 @@ def get_direction_getter(in_img, algo, sphere, sub_sphere, theta, sh_basis,
     dg: dipy.direction.DirectionGetter
         The direction getter object.
     """
-    img_data = nib.load(in_img).get_fdata(dtype=np.float32)
-
     sphere = HemiSphere.from_sphere(
         get_sphere(name=sphere)).subdivide(n=sub_sphere)
 
     # Theta depends on user choice and algorithm
     theta = get_theta(theta, algo)
-
-    # Heuristic to find out if the input are peaks or fodf
-    # fodf are always around 0.15 and peaks around 0.75
-    # Peaks have more zero values than fodf. The first value of fodf is
-    # usually the highest.
-    non_zeros_count = np.count_nonzero(np.sum(img_data, axis=-1))
-    non_first_val_count = np.count_nonzero(np.argmax(img_data, axis=-1))
-    is_peaks = non_first_val_count / non_zeros_count > 0.5
+    is_peaks = is_data_peaks(img_data)
 
     if algo in ['det', 'prob', 'ptt']:
         if is_peaks:
@@ -418,10 +424,10 @@ def get_direction_getter(in_img, algo, sphere, sub_sphere, theta, sh_basis,
             peak_values = np.zeros((img_shape_3d + (npeaks,)))
             peak_indices = np.full((img_shape_3d + (npeaks,)), -1,
                                    dtype='int')
-            b_matrix, _ = sh_to_sf_matrix(sphere,
-                                          sh_order_max=find_order_from_nb_coeff(
-                                              img_data),
-                                          basis_type=sh_basis, legacy=is_legacy)
+            b_matrix, _ = sh_to_sf_matrix(
+                sphere,
+                sh_order_max=find_order_from_nb_coeff(img_data),
+                basis_type=sh_basis, legacy=is_legacy)
 
             for idx in np.argwhere(np.sum(img_data, axis=-1)):
                 idx = tuple(idx)
@@ -474,3 +480,221 @@ def sample_distribution(dist, random_generator: np.random.Generator):
         return None
 
     return cdf.searchsorted(random_generator.random() * cdf[-1])
+
+
+def compute_max_sf_amplitude(data, sh_basis, is_legacy,
+                             sphere_name='repulsion100', mask=None):
+    """
+    Compute the maximum SF amplitude for each voxel.
+    Only computes SF for voxels where data is non-zero (or in mask) to save
+    RAM.
+
+    This information can be used to compute a global threshold for SF
+    amplitude, which is often used to filter out spurious peaks in fODF.
+
+    Parameters
+    ----------
+    data : np.ndarray
+        ODF data (SH).
+    sh_basis : str
+        SH basis ('tournier07' or 'descoteaux07').
+    is_legacy : bool
+        Whether the SH basis is legacy.
+    sphere_name : str or dipy.core.sphere.Sphere, optional
+        Sphere name for SF conversion or Sphere object.
+    mask : np.ndarray, optional
+        Binary mask. If provided, only voxels in mask are computed.
+
+    Returns
+    -------
+    max_sf : np.ndarray
+        Maximum SF amplitude per voxel.
+    """
+    if mask is None:
+        mask = np.any(data, axis=-1)
+
+    order = find_order_from_nb_coeff(data)
+    if isinstance(sphere_name, (Sphere,)):
+        sphere = sphere_name
+    else:
+        sphere = get_sphere(name=sphere_name)
+
+    b_matrix, _ = sh_to_sf_matrix(sphere, sh_order_max=order,
+                                  basis_type=sh_basis, legacy=is_legacy)
+
+    max_sf = np.zeros(data.shape[:-1], dtype=np.float32)
+    if np.any(mask):
+        # Vectorized SF computation for masked voxels
+        sf = np.dot(data[mask], b_matrix)
+        max_sf[mask] = np.max(sf, axis=-1)
+
+    return max_sf
+
+
+def compute_sf_threshold_mask(data, sphere_name='repulsion100',
+                              relative_factor=None,
+                              absolute_threshold=None,
+                              sh_basis='descoteaux07',
+                              is_legacy=True, postprocess_mask=True,
+                              size_percentage=0.05):
+    """
+    Compute a binary mask based on a global SF amplitude threshold.
+
+    In SF obtained from fODF, the amplitude of the lobes corresponds to the
+    strength of the diffusion signal in those directions. Thresholding these
+    amplitudes is a common practice to filter out spurious peaks.
+
+    Parameters
+    ----------
+    data : np.ndarray
+        ODF data (SH or Peaks).
+    sphere_name : str or dipy.core.sphere.Sphere, optional
+        Sphere name for SF conversion or Sphere object.
+    relative_factor : float, optional
+        Factor between 0 and 1. Threshold is factor * global_max_sf.
+    absolute_threshold : float, optional
+        Absolute threshold on SF amplitude.
+    sh_basis : str, optional
+        SH basis ('tournier07' or 'descoteaux07').
+    is_legacy : bool, optional
+        Whether the SH basis is legacy.
+    postprocess_mask : bool, optional
+        Whether to postprocess the mask to keep only the largest component.
+    size_percentage : float, optional
+        If postprocess_mask is True, percentage of the largest component size
+        under which a hole will be filled.
+
+    Returns
+    -------
+    mask : np.ndarray
+        Binary mask.
+    global_max : float
+        Global maximum SF amplitude.
+    threshold : float
+        Computed threshold value.
+    """
+    if relative_factor is None and absolute_threshold is None:
+        raise ValueError("Either relative_factor or absolute_threshold "
+                         "must be provided.")
+
+    is_peaks = is_data_peaks(data)
+    if is_peaks:
+        if data.ndim == 5:
+            if data.shape[-1] != 3:
+                raise ValueError("5D peaks input must have 3 "
+                                 "as last dimension.")
+            peaks = data
+        elif data.ndim == 4:
+            npeaks = data.shape[-1] // 3
+            peaks = data.reshape(data.shape[:3] + (npeaks, 3))
+        else:
+            raise ValueError("Peaks input must be 4D or 5D.")
+
+        norms = np.linalg.norm(peaks, axis=-1)
+        # maximum amplitude/norm across peaks
+        max_amp = np.max(norms, axis=-1)
+
+        # Check for normalized peaks
+        nonzero_norms = norms[norms > 0]
+        if len(nonzero_norms) > 0 and \
+                np.all(np.isclose(nonzero_norms, nonzero_norms[0])):
+            logging.warning("All peaks have the same norm. They might be "
+                            "already normalized.")
+    else:
+        max_amp = compute_max_sf_amplitude(data, sh_basis, is_legacy,
+                                           sphere_name=sphere_name)
+
+    global_max = np.max(max_amp)
+
+    # Compute threshold. Use max if both are provided.
+    threshold = 0
+    if absolute_threshold is not None:
+        threshold = absolute_threshold
+    if relative_factor is not None:
+        if relative_factor < 0 or relative_factor > 1:
+            raise ValueError("relative_factor must be between 0 and 1.")
+        threshold = max(threshold, relative_factor * global_max)
+
+    if global_max == 0:
+        mask = np.zeros(max_amp.shape, dtype=bool)
+    else:
+        mask = max_amp >= threshold
+
+    if postprocess_mask and np.any(mask):
+        # Postprocess to label all elements and count voxels for each label
+        labels = ndi.label(mask)[0]
+        label_counts = np.bincount(labels.ravel())
+
+        # Guard against empty label_counts[1:]
+        if len(label_counts) > 1:
+            # Find the largest connected component (excluding background)
+            # +1 to skip background
+            largest_label = np.argmax(label_counts[1:]) + 1
+            largest_component_size = label_counts[largest_label]
+
+            # Create a mask for the largest connected component
+            mask = labels == largest_label
+            inverted_mask = ~mask
+
+            # Remove isolated voxels in the inverted mask (holes in main mask)
+            labels_inverted = ndi.label(inverted_mask)[0]
+            label_counts_inverted = np.bincount(labels_inverted.ravel())
+
+            # Fill holes smaller than X% of the largest component size
+            hole_threshold = size_percentage * largest_component_size
+            for label, count in enumerate(label_counts_inverted):
+                if label == 0:
+                    continue  # Skip background
+                if count < hole_threshold:
+                    mask[labels_inverted == label] = True
+
+    return mask, global_max, threshold
+
+
+def get_global_sf_threshold_mask(data, args, sh_basis, is_legacy):
+    """
+    Wrapper for compute_sf_threshold_mask to compute the global SF
+    threshold mask and log information.
+
+     The global SF threshold can be set as a relative factor of the global
+     maximum SF amplitude, or as an absolute threshold. The relative factor is
+     often set between 0.1 and 0.2, but it can depend on the data and the
+     SH basis used. The absolute threshold can be estimated from the
+     mean/median maximum fODF in the ventricles, computed with
+     scil_fodf_max_in_ventricles.
+
+     Note that this estimation is not perfect as it depends on the accuracy of
+     the ventricle mask and on the presence of noise/artifacts in the data.
+
+    Parameters
+    ----------
+    data : np.ndarray
+        ODF data (SH or Peaks).
+    args : argparse.Namespace
+        Arguments from the CLI. Must contain sphere, global_sf_rel_thr,
+        and global_sf_abs_thr.
+    sh_basis : str
+        SH basis.
+    is_legacy : bool
+        Whether the SH basis is legacy.
+
+    Returns
+    -------
+    sf_mask : np.ndarray
+        Binary mask.
+    """
+    sf_mask, global_max, threshold = compute_sf_threshold_mask(
+        data, sphere_name=args.sphere,
+        relative_factor=args.global_sf_rel_thr,
+        absolute_threshold=args.global_sf_abs_thr, sh_basis=sh_basis,
+        is_legacy=is_legacy)
+    logging.info("Global SF threshold mask: Global Max SF amplitude: "
+                 "{:.4f}".format(global_max))
+    if args.global_sf_rel_thr is not None:
+        logging.info("Global SF threshold mask: Computed threshold: "
+                     "{:.4f} (Factor: {})"
+                     .format(threshold, args.global_sf_rel_thr))
+    else:
+        logging.info("Global SF threshold mask: Absolute threshold: "
+                     "{:.4f}".format(args.global_sf_abs_thr))
+    return sf_mask
