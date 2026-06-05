@@ -4,10 +4,18 @@
 """
 Compute a binary mask based on a global SF threshold.
 The script masks voxels where the maximum SF amplitude is below
-either a relative factor or an absolute threshold.
+either a relative factor or an absolute threshold (or both).
 
-The absolute threshold can be estimated from the mean/median maximum fODF in the
-ventricles, computed with scil_fodf_max_in_ventricles.
+When fODFs are evaluated on a sphere (SF), the amplitude of the lobes
+corresponds to the strength of the diffusion signal in those directions.
+Thresholding these amplitudes is a common practice to filter out spurious
+peaks arising from noise or the deconvolution process (e.g., ringing effects).
+
+The absolute threshold can be estimated from the mean/median maximum fODF
+in the ventricles, computed with scil_fodf_max_in_ventricles.
+
+If both --relative and --absolute are provided, the final threshold is the
+maximum of the two resulting values.
 
 The input can be either SH coefficients or peaks. However, the vectors
 cannot be normalized, as the amplitude is used for thresholding.
@@ -24,7 +32,7 @@ from scilpy.io.utils import (add_sh_basis_args, add_sphere_arg,
                              add_verbose_arg, add_overwrite_arg,
                              assert_inputs_exist, assert_outputs_exist,
                              parse_sh_basis_arg)
-from scilpy.reconst.utils import compute_sf_threshold_mask
+from scilpy.tracking.utils import compute_sf_threshold_mask
 from scilpy.version import version_string
 
 
@@ -38,7 +46,7 @@ def _build_arg_parser():
     p.add_argument('out_mask',
                    help='Output binary mask (.nii.gz).')
 
-    thr_g = p.add_mutually_exclusive_group(required=True)
+    thr_g = p.add_argument_group('Threshold options')
     thr_g.add_argument('--relative', type=float,
                        help='Global SF threshold relative factor (0-1).')
     thr_g.add_argument('--absolute', type=float,
@@ -55,6 +63,10 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
+
+    if args.relative is None and args.absolute is None:
+        parser.error("At least one of --relative or --absolute must be "
+                     "provided.")
 
     assert_inputs_exist(parser, args.in_odf)
     assert_outputs_exist(parser, args, args.out_mask)
@@ -75,7 +87,10 @@ def main():
         is_legacy=is_legacy)
 
     logging.info("Global max SF amplitude: {:.4f}".format(global_max))
-    if args.relative is not None:
+    if args.relative is not None and args.absolute is not None:
+        logging.info("Both relative and absolute thresholds used. "
+                     "Final threshold: {:.4f}".format(threshold))
+    elif args.relative is not None:
         logging.info("Relative threshold: {:.4f} (Factor: {})"
                      .format(threshold, args.relative))
     else:

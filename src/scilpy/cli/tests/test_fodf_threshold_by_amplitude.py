@@ -10,7 +10,7 @@ from scilpy.tests.arrays import fodf_3x3_order8_descoteaux07
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run(['scil_fodf_global_sf_threshold', '--help'])
+    ret = script_runner.run(['scil_fodf_threshold_by_amplitude', '--help'])
     assert ret.success
 
 
@@ -26,15 +26,24 @@ def test_execution(script_runner):
         nib.save(img, in_sh)
 
         # Run with relative threshold
-        ret = script_runner.run(['scil_fodf_global_sf_threshold',
+        ret = script_runner.run(['scil_fodf_threshold_by_amplitude',
                                 in_sh, out_mask, '--relative', '0.5',
                                 '--sh_basis', 'descoteaux07'])
         assert ret.success
         assert os.path.exists(out_mask)
 
         # Run with absolute threshold
-        ret = script_runner.run(['scil_fodf_global_sf_threshold',
+        ret = script_runner.run(['scil_fodf_threshold_by_amplitude',
                                 in_sh, out_mask, '--absolute', '0.1',
                                 '--sh_basis', 'descoteaux07', '-f'])
+        assert ret.success
+        assert os.path.exists(out_mask)
+
+        # Run with both thresholds
+        ret = script_runner.run(['scil_fodf_threshold_by_amplitude',
+                                 in_sh, out_mask, '--relative', '0.5',
+                                 '--absolute', '0.1',
+                                 '--sh_basis', 'descoteaux07', '-f'])
+
         assert ret.success
         assert os.path.exists(out_mask)

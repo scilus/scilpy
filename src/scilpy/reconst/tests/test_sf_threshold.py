@@ -2,8 +2,9 @@
 import numpy as np
 import pytest
 
-from scilpy.reconst.utils import (compute_max_sf_amplitude,
-                                  compute_sf_threshold_mask)
+from scilpy.tracking.utils import (compute_max_sf_amplitude,
+                                   compute_sf_threshold_mask)
+
 from scilpy.tests.arrays import fodf_3x3_order8_descoteaux07
 
 

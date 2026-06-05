@@ -215,9 +215,10 @@ def main():
         sh_basis=sh_basis, nbr_processes=1).astype(np.float32)
 
     sf_mask = None
-    if args.global_sf_rel_thr is not None or args.global_sf_abs_thr is not None:
-        sf_mask = get_global_sf_threshold_mask(odf_sh_data, args,
-                                               sh_basis, is_legacy)
+    if args.global_sf_rel_thr is not None or \
+            args.global_sf_abs_thr is not None:
+        sf_mask = get_global_sf_threshold_mask(
+            odf_sh_data, args, sh_basis, is_legacy)
 
     if args.npv:
         nb_seeds = args.npv

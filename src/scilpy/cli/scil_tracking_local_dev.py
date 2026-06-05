@@ -82,8 +82,8 @@ from scilpy.tracking.seed import CustomSeedsDispenser, SeedGenerator
 from scilpy.tracking.tracker import Tracker
 from scilpy.tracking.utils import (add_mandatory_options_tracking,
                                    add_out_options, add_seeding_options,
-                                   add_tracking_options, get_theta,
-                                   get_global_sf_threshold_mask,
+                                   add_tracking_options,
+                                   get_global_sf_threshold_mask, get_theta,
                                    verify_seed_options,
                                    verify_streamline_length_options,
                                    save_tractogram)
@@ -325,9 +325,13 @@ def main():
                              interpolation=args.sh_interp)
 
         sf_mask = None
-        if args.global_sf_rel_thr is not None or args.global_sf_abs_thr is not None:
-            sf_mask = get_global_sf_threshold_mask(odf_sh_data, args,
-                                                   sh_basis, is_legacy)
+        if args.global_sf_rel_thr is not None or \
+                args.global_sf_abs_thr is not None:
+            sf_mask = get_global_sf_threshold_mask(
+                odf_sh_data, args, sh_basis, is_legacy)
+
+        if sf_mask is not None:
+            mask_data = np.logical_and(mask_data, sf_mask)
 
         # Use identity affine for DataVolume to match voxel space tracking
         mask = DataVolume(mask_data, mask_res, affine=np.eye(4),
@@ -441,8 +445,8 @@ def main():
         rap = None
 
     logging.info("Instantiating tracker.")
-    # We must force save_seeds=True so that Tracker returns (streamlines, seeds)
-    # as expected by scilpy.tracking.utils.save_tractogram
+    # We must force save_seeds=True so that Tracker returns
+    # (streamlines, seeds) as expected by scilpy.tracking.utils.save_tractogram
     tracker = Tracker(propagator, mask, seed_generator, nbr_seeds, min_nbr_pts,
                       max_nbr_pts, args.max_invalid_nb_points,
                       compression_th=None,
