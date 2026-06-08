@@ -125,6 +125,7 @@ def test_parse_voxel_order_invalid_format_3d():
                        match="Invalid voxel order format: 1A2"):
         parse_voxel_order("1A2")
 
-    with pytest.raises(ValueError,
-                       match="4D voxel order is only supported for 4D images."):
+    with pytest.raises(
+            ValueError,
+            match="4D voxel order is only supported for 4D images."):
         parse_voxel_order("1,2,3,4")

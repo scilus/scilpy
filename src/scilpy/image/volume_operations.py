@@ -788,7 +788,8 @@ def merge_metrics(*arrays, beta=1.0):
 
     # Calculate the geometric mean for valid data.
     # In the context of geometric mean, we expect non-negative values.
-    # If the product is negative, it's mathematically undefined for real powers.
+    # If the product is negative, it's mathematically undefined for
+    # real powers.
     # We mask these values so they become NaN in the final output,
     # matching previous implicit behavior but without numerical warnings.
     array_product = ma.masked_where(array_product < 0, array_product)

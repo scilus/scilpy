@@ -87,7 +87,10 @@ def main():
             bvecs = bvecs.T
 
         # Create dummy bvals to satisfy StatefulImage validation
-        bvals = np.zeros(len(bvecs))
+        if args.in_bval:
+            bvals = np.loadtxt(args.in_bval)
+        else:
+            bvals = np.zeros(len(bvecs))
         simg.attach_gradients(bvals, bvecs)
 
     parsed_voxel_order = parse_voxel_order(args.new_voxel_order,
