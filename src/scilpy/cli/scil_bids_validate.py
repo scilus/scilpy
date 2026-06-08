@@ -196,6 +196,8 @@ def get_data(layout, nSub, dwis, t1s, fs, default_readout, clean,
 
     if 'TotalReadoutTime' in curr_dwi.entities:
         totalreadout = curr_dwi.entities['TotalReadoutTime']
+    elif 'EstimatedTotalReadoutTime' in curr_dwi.entities:
+        totalreadout = curr_dwi.entities['EstimatedTotalReadoutTime']
 
     if 'session' in curr_dwi.entities:
         nSess = curr_dwi.entities['session']
@@ -213,6 +215,11 @@ def get_data(layout, nSub, dwis, t1s, fs, default_readout, clean,
                    IntendedFor=IntendedForPath,
                    regex_search=True,
                    TotalReadoutTime=totalreadout,
+                   invalid_filters='drop') +\
+        layout.get(part=Query.NONE,
+                   IntendedFor=IntendedForPath,
+                   regex_search=True,
+                   EstimatedTotalReadoutTime=totalreadout,
                    invalid_filters='drop')
     related_files_filtered = []
     for curr_related in related_files:
