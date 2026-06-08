@@ -64,7 +64,7 @@ def get_ventricles_max_fodf(data, fa, md, zoom, sh_basis,
          Mean maximum fODF value and mask of voxels used.
     """
 
-    from scilpy.reconst.utils import compute_max_sf_amplitude
+    from scilpy.tracking.utils import compute_max_sf_amplitude
 
     out_mask = np.zeros(data.shape[:-1])
 

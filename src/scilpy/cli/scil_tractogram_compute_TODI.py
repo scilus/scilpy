@@ -96,11 +96,12 @@ def main():
 
     if args.normalize_per_voxel and not (args.out_todi_sh):
         logging.warning("Option --normalize_per_voxel is only useful when "
-                        "saving output --out_todi_sh."
+                        "saving output --out_todi_sh.")
 
     # Loading
     sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
     affine, data_shape, _, _ = sft.space_attributes
+    axcodes = nib.orientations.aff2axcodes(affine)
     sft.to_vox()
 
     # Because compute_todi expects streamline points (in voxel coordinates)
@@ -136,7 +137,8 @@ def main():
     logging.info('Saving Outputs ...')
     if args.out_mask:
         img = todi_obj.reshape_to_3d(todi_obj.get_mask())
-        simg = StatefulImage(img.astype(np.int16), affine)
+        simg = StatefulImage(img.astype(np.int16), affine,
+                             original_axcodes=axcodes)
         simg.save(args.out_mask)
 
     if args.out_todi_sh:
@@ -146,9 +148,7 @@ def main():
                                is_legacy=is_legacy)
         data = todi_obj.reshape_to_3d(data).astype(np.float32)
 
-        # Get axcodes from affine, to save the image with correct orientation
-        axcode = nib.orientations.aff2axcodes(sft.affine)
-        simg = StatefulImage(data, affine, original_axcodes=axcode,
+        simg = StatefulImage(data, affine, original_axcodes=axcodes,
                              sh_basis=sh_basis,
                              is_legacy=is_legacy, is_orientation=True,
                              is_world_space=True)
@@ -157,8 +157,8 @@ def main():
     if args.out_tdi:
         data = todi_obj.get_tdi()
         data = todi_obj.reshape_to_3d(data)
-        simg = StatefulImage(data.astype(np.uint32), affine, 
-                             original_axcodes=axcode)
+        simg = StatefulImage(data.astype(np.uint32), affine,
+                             original_axcodes=axcodes)
         simg.save(args.out_tdi)
 
 
