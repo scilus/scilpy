@@ -23,7 +23,6 @@ class CuttingStyle(Enum):
     TRIM_ENDPOINTS = 2
 
 
-
 def get_endpoints_density_map(sft, point_to_select=1, to_millimeters=False,
                               binary=False):
     """
@@ -61,7 +60,7 @@ def get_endpoints_density_map(sft, point_to_select=1, to_millimeters=False,
         for streamline in sft.streamlines:
             endpoints_mask[tuple(streamline[0].astype(np.int16))] += 1
             endpoints_mask[tuple(streamline[-1].astype(np.int16))] += 1
-        mask=endpoints_mask
+        mask = endpoints_mask
     else:
 
         # For more complex options, using head + tail

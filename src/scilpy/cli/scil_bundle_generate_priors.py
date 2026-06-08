@@ -17,11 +17,13 @@ import logging
 import os
 
 from dipy.data import get_sphere
-from dipy.reconst.shm import sf_to_sh, sh_to_sf
+from dipy.io.stateful_tractogram import Space, StatefulTractogram
+from dipy.reconst.shm import sf_to_sh, sh_to_sf_matrix
 import nibabel as nib
 import numpy as np
 
 from scilpy.io.image import get_data_as_mask
+from scilpy.io.stateful_image import StatefulImage
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg,
                              add_reference_arg,
@@ -104,40 +106,48 @@ def main():
     assert_outputs_exist(parser, args, required)
 
     # Loading
-    img_sh = nib.load(args.in_fodf)
-    sh_shape = img_sh.shape
-    sh_order = find_order_from_nb_coeff(sh_shape)
     sh_basis, is_legacy = parse_sh_basis_arg(args)
-    img_mask = nib.load(args.in_mask)
-    mask_data = get_data_as_mask(img_mask)
+    simg_sh = StatefulImage.load(args.in_fodf, is_orientation=True,
+                                 is_world_space=not args.is_voxel_space,
+                                 sh_basis=sh_basis, is_legacy=is_legacy)
+    simg_sh.to_ras()
+    input_sh_3d = simg_sh.get_fdata(dtype=np.float32)
+
+    sh_shape = input_sh_3d.shape
+    sh_order = find_order_from_nb_coeff(sh_shape)
+
+    simg_mask = StatefulImage.load(args.in_mask)
+    simg_mask.to_ras()
+    mask_data = get_data_as_mask(simg_mask)
 
     sft = load_tractogram_with_reference(parser, args, args.in_bundle)
+    sft.to_rasmm()
+    sft = StatefulTractogram(sft.streamlines, simg_sh, Space.RASMM)
     sft.to_vox()
-    if len(sft.streamlines) < 1:
-        raise ValueError('The input bundle contains no streamline.')
+    sft.to_corner()
 
-    # Main computation
-
-    # Compute TODI from streamlines
+    # Compute TODI from streamlines (in world space)
     todi_sf, sub_mask_3d = get_sf_from_todi(sft, mask_data, args.todi_sigma,
-                                            args.sf_threshold)
+                                            args.sf_threshold,
+                                            rotation_matrix=simg_sh.affine[0:3, 0:3])
 
-    # SF to SH
-    # Memory friendly saving, as soon as possible saving then delete
-    priors_3d = np.zeros(sh_shape)
+    # SF to SH, memory friendly saving
+    priors_3d = np.zeros(sh_shape, dtype=np.float32)
     sphere = get_sphere(name='repulsion724')
     priors_3d[sub_mask_3d] = sf_to_sh(todi_sf, sphere,
                                       sh_order_max=sh_order,
                                       basis_type=sh_basis,
-                                      legacy=is_legacy)
-    nib.save(nib.Nifti1Image(priors_3d, img_mask.affine), out_priors)
+                                      legacy=is_legacy).astype(np.float32)
+
+    simg_priors = StatefulImage.create_from(priors_3d, simg_sh,
+                                            is_orientation=True)
+    simg_priors.save(out_priors)
     del priors_3d
 
-    # Back to SF
-    input_sh_3d = img_sh.get_fdata(dtype=np.float32)
-    input_sf_1d = sh_to_sf(input_sh_3d[sub_mask_3d],
-                           sphere, sh_order_max=sh_order,
+    # Back to SF input_sh_3d is already in world space
+    B, _ = sh_to_sf_matrix(sphere, sh_order_max=sh_order,
                            basis_type=sh_basis, legacy=is_legacy)
+    input_sf_1d = np.dot(input_sh_3d[sub_mask_3d], B)
 
     # Creation of the enhanced-FOD (direction-wise multiplication)
     mult_sf_1d = input_sf_1d * todi_sf
@@ -150,22 +160,26 @@ def main():
         input_max_value[mult_positive_mask] / \
         mult_max_value[mult_positive_mask]
 
-    # And back to SH
-    # Memory friendly saving
+    # And back to SH, memory friendly saving
     input_sh_3d[sub_mask_3d] = sf_to_sh(mult_sf_1d, sphere,
                                         sh_order_max=sh_order,
                                         basis_type=sh_basis,
-                                        legacy=is_legacy)
-    nib.save(nib.Nifti1Image(input_sh_3d, img_mask.affine), out_efod)
+                                        legacy=is_legacy).astype(np.float32)
+
+    simg_efod = StatefulImage.create_from(input_sh_3d, simg_sh,
+                                          is_orientation=True)
+    simg_efod.save(out_efod)
     del input_sh_3d
 
-    nib.save(nib.Nifti1Image(sub_mask_3d.astype(np.uint8), img_mask.affine),
-             out_todi_mask)
+    simg_todi_mask = StatefulImage.create_from(sub_mask_3d.astype(np.uint8),
+                                               simg_sh)
+    simg_todi_mask.save(out_todi_mask)
 
     # Endpoints
     endpoints_mask = get_endpoints_density_map(sft, binary=True)
-    nib.save(nib.Nifti1Image(endpoints_mask * mask_data,
-                             img_mask.affine), out_endpoints_mask)
+    simg_endpoints_mask = StatefulImage.create_from(endpoints_mask * mask_data,
+                                                    simg_sh)
+    simg_endpoints_mask.save(out_endpoints_mask)
 
 
 if __name__ == "__main__":

@@ -5,8 +5,6 @@ import numpy as np
 import scipy.io
 import scipy.ndimage
 
-from scilpy.io.image import get_data_as_mask
-
 
 def py_fspecial_gauss(shape, sigma):
     """
@@ -26,10 +24,10 @@ def py_fspecial_gauss(shape, sigma):
     -------
     Two-dimensional Gaussian filter h of specified size.
     """
-    m, n = [(ss-1.)/2. for ss in shape]
-    y, x = np.ogrid[-m:m+1, -n:n+1]
-    h = np.exp(-(x*x + y*y) / (2.*sigma*sigma))
-    h[h < np.finfo(h.dtype).eps*h.max()] = 0
+    m, n = [(ss - 1.) / 2. for ss in shape]
+    y, x = np.ogrid[-m:m + 1, -n:n + 1]
+    h = np.exp(-(x * x + y * y) / (2. * sigma * sigma))
+    h[h < np.finfo(h.dtype).eps * h.max()] = 0
     sumh = h.sum()
     if sumh != 0:
         h /= sumh
@@ -151,7 +149,7 @@ def compute_ratio_map(mt_on_single, mt_off, mt_on_dual=None):
     return MTR
 
 
-def threshold_map(computed_map,  in_mask,
+def threshold_map(computed_map, mask_data,
                   lower_threshold, upper_threshold,
                   idx_contrast_list=None, contrast_maps=None):
     """
@@ -167,7 +165,8 @@ def threshold_map(computed_map,  in_mask,
     ----------
     computed_map:       3D-Array data.
                         Myelin map (ihMT or non-ihMT maps)
-    in_mask:            Path to binary T1 mask from T1 segmentation.
+    mask_data:          Numpy array.
+                        Binary T1 mask from T1 segmentation.
                         Must be the sum of GM+WM+CSF.
     lower_threshold:    Value for low thresold <int>
     upper_thresold:     Value for up thresold <int>
@@ -188,10 +187,8 @@ def threshold_map(computed_map,  in_mask,
     computed_map[computed_map < lower_threshold] = 0
     computed_map[computed_map > upper_threshold] = 0
 
-    # Load and apply sum of T1 probability maps on myelin maps
-    if in_mask is not None:
-        mask_image = nib.load(in_mask)
-        mask_data = get_data_as_mask(mask_image)
+    # Apply T1 mask on myelin maps
+    if mask_data is not None:
         computed_map[np.where(mask_data == 0)] = 0
 
     # Apply threshold based on combination of specific contrast maps
@@ -260,7 +257,7 @@ def apply_B1_corr_empiric(MT_map, B1_map):
     ----------
     Corrected MT matrix in 3D-array.
     """
-    MT_map_B1_corrected = MT_map*(1.0-0.4)/(1-0.4*(B1_map))
+    MT_map_B1_corrected = MT_map * (1.0 - 0.4) / (1 - 0.4 * (B1_map))
     return MT_map_B1_corrected
 
 

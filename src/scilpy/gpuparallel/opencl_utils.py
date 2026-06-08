@@ -11,6 +11,12 @@ import scilpy
 from dipy.utils.optpkg import optional_package
 cl, have_opencl, _ = optional_package('pyopencl')
 
+if have_opencl:
+    try:
+        cl.get_platforms()
+    except Exception:
+        have_opencl = False
+
 
 @contextlib.contextmanager
 def _redirect_fds_to_devnull(*fds):
@@ -57,6 +63,7 @@ class CLManager(object):
     device_type: string
         The device onto which to run the program. One of 'cpu', 'gpu'.
     """
+
     def __init__(self, cl_kernel, device_type='gpu'):
         if not have_opencl:
             raise RuntimeError('pyopencl is not installed. '
@@ -138,6 +145,7 @@ class CLManager(object):
         dtype: dtype
             Datatype for output.
         """
+
         def __init__(self, buf, shape, dtype):
             self.buf = buf
             self.shape = shape
@@ -307,6 +315,7 @@ class CLKernel(object):
     filename: string
         Name for the file containing the kernel code.
     """
+
     def __init__(self, entrypoint, module, filename):
         path_to_kernel = self._get_kernel_path(module, filename)
         try:

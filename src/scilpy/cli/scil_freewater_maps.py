@@ -64,11 +64,13 @@ def _build_arg_parser():
                    help='Replace bad voxels (NaNs or infs) in the input DWI '
                         'with the specified value.')
     p.add_argument('--compute_rmse', action='store_true',
-                     help='Compute the RMSE map of the model fit. Will be saved '
-                          'as fit_RMSE.nii.gz in the output directory.')
-    p.add_argument('--compute_nrmse', action='store_true',
-                     help='Compute the NRMSE map of the model fit. Will be saved '
-                          'as fit_NRMSE.nii.gz in the output directory.')
+                   help='Compute the RMSE map of the model fit. Will be saved '
+                   'as fit_RMSE.nii.gz in the output directory.')
+    p.add_argument(
+        '--compute_nrmse',
+        action='store_true',
+        help='Compute the NRMSE map of the model fit. Will be saved '
+        'as fit_NRMSE.nii.gz in the output directory.')
 
     g1 = p.add_argument_group(title='Model options')
     g1.add_argument('--para_diff', type=float, default=1.5e-3,

@@ -13,9 +13,10 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run(['scil_tractogram_filter_by_streamlines_properties',
-                            '--help'])
+    ret = script_runner.run(
+        ['scil_tractogram_filter_by_streamlines_properties', '--help'])
     assert ret.success
+
 
 def _create_tractogram_with_dpp(script_runner):
     """
@@ -37,38 +38,62 @@ def test_from_dpp(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
 
     # Creating the data
-    # Could eventually split this test into many tests, but we want to create 
+    # Could eventually split this test into many tests, but we want to create
     # the data only once
     _create_tractogram_with_dpp(script_runner)
     in_bundle_with_dpp = 'IFGWM_uni_with_dpp.trk'
 
     # From NB, top
-    ret = script_runner.run(['scil_tractogram_filter_by_streamlines_properties',
-                             in_bundle_with_dpp, 'out_200_top.trk',
-                             '--from_dpp', 'some_metric',
-                             '--top', '--nb', 200])
+    ret = script_runner.run(
+        [
+            'scil_tractogram_filter_by_streamlines_properties',
+            in_bundle_with_dpp,
+            'out_200_top.trk',
+            '--from_dpp',
+            'some_metric',
+            '--top',
+            '--nb',
+            200])
     assert ret.success
 
     # From NB, center
-    ret = script_runner.run(['scil_tractogram_filter_by_streamlines_properties',
-                             in_bundle_with_dpp, 'out_200_middle.trk',
-                             '--from_dpp', 'some_metric',
-                             '--center', '--nb', 200])
+    ret = script_runner.run(
+        [
+            'scil_tractogram_filter_by_streamlines_properties',
+            in_bundle_with_dpp,
+            'out_200_middle.trk',
+            '--from_dpp',
+            'some_metric',
+            '--center',
+            '--nb',
+            200])
     assert ret.success
 
-     # From Percent, bottom
-    ret = script_runner.run(['scil_tractogram_filter_by_streamlines_properties',
-                             in_bundle_with_dpp, 'out_5percent_bottom.trk',
-                             '--from_dpp', 'some_metric',
-                             '--bottom', '--percent', 5])   
+    # From Percent, bottom
+    ret = script_runner.run(
+        [
+            'scil_tractogram_filter_by_streamlines_properties',
+            in_bundle_with_dpp,
+            'out_5percent_bottom.trk',
+            '--from_dpp',
+            'some_metric',
+            '--bottom',
+            '--percent',
+            5])
 
     assert ret.success
 
-     # From mean + std, center
-    ret = script_runner.run(['scil_tractogram_filter_by_streamlines_properties',
-                             in_bundle_with_dpp, 'out_middle_std.trk',
-                             '--from_dpp', 'some_metric',
-                             '--center', '--mean_std', 3])   
+    # From mean + std, center
+    ret = script_runner.run(
+        [
+            'scil_tractogram_filter_by_streamlines_properties',
+            in_bundle_with_dpp,
+            'out_middle_std.trk',
+            '--from_dpp',
+            'some_metric',
+            '--center',
+            '--mean_std',
+            3])
 
     assert ret.success
 
@@ -78,20 +103,26 @@ def from_dps(script_runner, monkeypatch):
 
     # Creating the data. We create a file with dpp and then average it over
     # streamlines as dps.
-    # Could eventually split this test into many tests, but we want to create 
+    # Could eventually split this test into many tests, but we want to create
     # the data only once
     _create_tractogram_with_dpp(script_runner)
     in_bundle_with_dpp = 'IFGWM_uni_with_dpp.trk'
     in_bundle_with_dps = 'IFGWM_uni_with_dps.trk'
-    script_runner.run(['scil_tractogram_dpp_math', 'MEAN', in_bundle_with_dpp, 
+    script_runner.run(['scil_tractogram_dpp_math', 'MEAN', in_bundle_with_dpp,
                        in_bundle_with_dps, '--mode', 'dps',
-                       '--in_dpp_name', 'some_metric', 
+                       '--in_dpp_name', 'some_metric',
                        '--out_keys', 'mean_dpp'])
 
-    # No need to retest all options. 
+    # No need to retest all options.
     # From NB, top
-    ret = script_runner.run(['scil_tractogram_filter_by_streamlines_properties',
-                             in_bundle_with_dps, 'out_200_top.trk',
-                             '--from_dps', 'mean_dpp',
-                             '--top', '--nb', 200])
+    ret = script_runner.run(
+        [
+            'scil_tractogram_filter_by_streamlines_properties',
+            in_bundle_with_dps,
+            'out_200_top.trk',
+            '--from_dps',
+            'mean_dpp',
+            '--top',
+            '--nb',
+            200])
     assert ret.success

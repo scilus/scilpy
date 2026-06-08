@@ -65,7 +65,8 @@ class RAPContinue(RAP):
 
 
 class RAPSwitch(RAP):
-    """RAP class that switches tracking parameters when inside the RAP mask/label."""
+    """RAP class that switches tracking parameters when inside the RAP
+    mask/label."""
 
     def __init__(self, rap_volume, propagators: dict,
                  max_nbr_pts):
@@ -108,8 +109,9 @@ class RAPSwitch(RAP):
                               if str(label) not in self._propagators.keys()]
             if missing_labels:
                 logging.warning(
-                    f"Labels {missing_labels} found in RAP volume but not in "
-                    f"methods config. Base params will be used for these labels."
+                    f"Labels {missing_labels} found in RAP volume but not "
+                    "in methods config. Base params will be used for "
+                    "these labels."
                 )
 
     def rap_multistep_propagate(self, line, prev_direction):
@@ -139,29 +141,35 @@ class RAPSwitch(RAP):
         if label <= 0:
             return line, prev_direction, False
 
-        # Logging debug when label changes        # Apply the parameters of the RAP labels
-        if label != self._current_label:
+        # Logging debug when label changes        # Apply the parameters of the
+        # RAP labels
             if self._current_label is not None:
-                logging.debug(f"STEP[{self._total_steps}] label={self._current_label}"
-                              f", algo={self.propagator.algo}"
-                              f", theta (rad)={self.propagator.theta}"
-                              f", vox step size={self.propagator.step_size}"
-                              f" -> switching label to label {label}")
+                logging.debug(
+                    f"STEP[{self._total_steps}] label={self._current_label}, "
+                    f"algo={self.propagator.algo}, "
+                    f"theta (rad)={self.propagator.theta}, "
+                    f"vox step size={self.propagator.step_size} "
+                    f"-> switching label to label {label}")
             self._current_label = label
 
         # Switch propagator based on label
         if str(label) in self._propagators:
             new_propagator = self._propagators[str(label)]
             if new_propagator is not self.propagator:
-                new_propagator.line_rng_generator = self.propagator.line_rng_generator
+                new_propagator.line_rng_generator = \
+                    self.propagator.line_rng_generator
                 self.propagator = new_propagator
                 logging.debug(f"RAP propagator switched to label {label}")
         else:
-            new_propagator = self._propagators[self._propagators.keys()[0]]
+            new_propagator = self._propagators[
+                list(self._propagators.keys())[0]]
             if new_propagator is not self.propagator:
-                new_propagator.line_rng_generator = self.propagator.line_rng_generator
+                new_propagator.line_rng_generator = \
+                    self.propagator.line_rng_generator
                 self.propagator = new_propagator
-                logging.debug(f"RAP propagator switched to default label {self._propagators.keys()[0]}")
+                logging.debug(
+                    "RAP propagator switched to default label {}".format(
+                        list(self._propagators.keys())[0]))
 
         # Perform propagation with new parameters
         new_pos, new_dir, is_direction_valid = self.propagator.propagate(

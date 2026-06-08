@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from dipy.reconst.shm import sh_to_sf, sh_to_sf_matrix
+from dipy.reconst.shm import sh_to_sf
 from fury import actor
 import numpy as np
 
@@ -16,7 +16,7 @@ from scilpy.viz.utils import affine_from_offset
 
 def create_texture_slicer(texture, orientation, slice_index, *, mask=None,
                           value_range=None, opacity=1.0, offset=0.5,
-                          lut=None, interpolation='nearest'):
+                          lut=None, interpolation='nearest', affine=None):
     """
     Create a texture displayed at a given offset (in the given orientation)
     from the origin of the grid.
@@ -45,6 +45,8 @@ def create_texture_slicer(texture, orientation, slice_index, *, mask=None,
     interpolation : str
         Interpolation mode for the texture image. Choices are nearest or
         linear. Defaults to nearest.
+    affine : np.ndarray, optional
+        Voxel-to-world affine matrix.
 
     Returns
     -------
@@ -52,7 +54,11 @@ def create_texture_slicer(texture, orientation, slice_index, *, mask=None,
         Fury object containing the texture information.
     """
 
-    affine = affine_from_offset(orientation, offset)
+    offset_affine = affine_from_offset(orientation, offset)
+    if affine is not None:
+        affine = np.dot(affine, offset_affine)
+    else:
+        affine = offset_affine
 
     if mask is not None:
         texture[np.where(mask == 0)] = 0
@@ -128,13 +134,13 @@ def create_contours_slicer(data, contour_values, orientation, slice_index,
 
 def create_peaks_slicer(data, orientation, slice_index, *, peak_values=None,
                         mask=None, color=None, peaks_width=1.0,
-                        opacity=1.0, symmetric=False):
+                        opacity=1.0, symmetric=False, affine=None):
     """
     Create a peaks slicer actor rendering a slice of the input peaks.
 
     Parameters
     ----------
-    data : np.ndarray
+    data : np.ndarray or StatefulImage
         Peaks data.
     orientation : str
         Name of the axis to visualize. Choices are axial, coronal and sagittal.
@@ -155,12 +161,18 @@ def create_peaks_slicer(data, orientation, slice_index, *, peak_values=None,
         If True, peaks are drawn for both peaks_dirs and -peaks_dirs. Else,
         peaks are only drawn for directions given by peaks_dirs. Defaults to
         False.
+    affine : np.ndarray, optional
+        Voxel-to-world affine matrix.
 
     Returns
     -------
     slicer_actor : actor.peak_slicer
         Fury object containing the peaks information.
     """
+
+    from scilpy.io.stateful_image import StatefulImage
+    if isinstance(data, StatefulImage):
+        data = data.to_voxel_direction()
 
     # Reshape peaks volume to XxYxZxNx3
     data = data.reshape(data.shape[:3] + (-1, 3))
@@ -182,7 +194,8 @@ def create_peaks_slicer(data, orientation, slice_index, *, peak_values=None,
     peaks_slicer = create_peaks_actor(data, mask, opacity=opacity,
                                       linewidth=peaks_width, color=color,
                                       lut_values=peak_values,
-                                      symmetric=symmetric)
+                                      symmetric=symmetric,
+                                      affine=affine)
 
     set_display_extent(peaks_slicer, orientation, data.shape, slice_index)
 
@@ -193,7 +206,8 @@ def create_odf_slicer(sh_fodf, orientation, slice_index, sphere, sh_order,
                       sh_basis, full_basis, scale, sh_variance=None,
                       mask=None, nb_subdivide=None, radial_scale=False,
                       norm=False, colormap=None, variance_k=1,
-                      variance_color=(255, 255, 255), is_legacy=True):
+                      variance_color=(255, 255, 255), is_legacy=True,
+                      affine=None):
     """
     Create a ODF slicer actor displaying a fODF slice. The input volume is a
     3-dimensional grid containing the SH coefficients of the fODF for each
@@ -202,7 +216,7 @@ def create_odf_slicer(sh_fodf, orientation, slice_index, sphere, sh_order,
 
     Parameters
     ----------
-    sh_fodf : np.ndarray
+    sh_fodf : np.ndarray or StatefulImage
         Spherical harmonics of fODF data.
     orientation : str
         Name of the axis to visualize. Choices are axial, coronal and sagittal.
@@ -218,7 +232,7 @@ def create_odf_slicer(sh_fodf, orientation, slice_index, sphere, sh_order,
         Boolean indicating if the basis is full or not.
     scale : float
         Scaling factor for FODF.
-    sh_variance : np.ndarray, optional
+    sh_variance : np.ndarray or StatefulImage, optional
         Spherical harmonics of the variance fODF data.
     mask : np.ndarray, optional
         Only the data inside the mask will be displayed. Defaults to None.
@@ -237,6 +251,8 @@ def create_odf_slicer(sh_fodf, orientation, slice_index, sphere, sh_order,
         Color of the variance fODF data, in RGB.
     is_legacy: bool
         Whether the SH basis is used in legacy formats [True].
+    affine : np.ndarray, optional
+        Voxel-to-world affine matrix.
 
     Returns
     -------
@@ -246,33 +262,36 @@ def create_odf_slicer(sh_fodf, orientation, slice_index, sphere, sh_order,
         Fury object containing the odf variance information.
     """
 
+    from scilpy.io.stateful_image import StatefulImage
+    if isinstance(sh_fodf, StatefulImage):
+        sh_fodf = sh_fodf.to_voxel_direction(sh_basis=sh_basis)
+
+    if isinstance(sh_variance, StatefulImage):
+        sh_variance = sh_variance.to_voxel_direction(sh_basis=sh_basis)
+
     # Subdivide the spheres if nb_subdivide is provided
     if nb_subdivide is not None:
         sphere = sphere.subdivide(n=nb_subdivide)
 
-    fodf = sh_to_sf(sh_fodf, sphere, 
+    # Always compute SF from SH to avoid FURY's odf_slicer bugs with matrix
+    # multiplication
+    fodf = sh_to_sf(sh_fodf, sphere,
                     sh_order_max=sh_order,
                     basis_type=sh_basis,
                     full_basis=full_basis, legacy=is_legacy)
 
     fodf_var = None
-    B_mat = None
     if sh_variance is not None:
         fodf_var = sh_to_sf(sh_variance, sphere,
                             sh_order_max=sh_order,
                             basis_type=sh_basis,
                             full_basis=full_basis, legacy=is_legacy)
-    else:
-        fodf = sh_fodf
-        B_mat = sh_to_sf_matrix(sphere, sh_order_max=sh_order,
-                                basis_type=sh_basis,
-                                full_basis=full_basis, return_inv=False)
 
     odf_actor, var_actor = create_odf_actors(fodf, sphere, scale, fodf_var,
                                              mask, radial_scale,
                                              norm, colormap,
                                              variance_k, variance_color,
-                                             B_mat=B_mat)
+                                             affine=affine)
 
     set_display_extent(odf_actor, orientation, sh_fodf.shape[:3], slice_index)
     if sh_variance is not None:
@@ -283,13 +302,13 @@ def create_odf_slicer(sh_fodf, orientation, slice_index, sphere, sh_order,
 
 
 def create_bingham_slicer(data, orientation, slice_index,
-                          sphere, color_per_lobe=False):
+                          sphere, color_per_lobe=False, affine=None):
     """
     Create a bingham fit slicer using a combination of odf_slicer actors
 
     Parameters
     ----------
-    data: Array
+    data: Array or StatefulImage
         Volume of shape (X, Y, Z, N_LOBES, NB_PARAMS) containing
         the Bingham distributions parameters. Note, NB_PARAMS is usually 7.
         One of X, Y, Z should be of value 1 (one slice).
@@ -302,12 +321,19 @@ def create_bingham_slicer(data, orientation, slice_index,
     color_per_lobe: bool
         If true, each Bingham distribution is colored using a disting color.
         Else, Bingham distributions are colored by their orientation.
+    affine: np.ndarray, optional
+        Voxel-to-world affine matrix.
 
     Return
     ------
     actors: list of fury odf_slicer actors
         ODF slicer actors representing the Bingham distributions.
     """
+
+    from scilpy.io.stateful_image import StatefulImage
+    if isinstance(data, StatefulImage):
+        data = data.to_voxel_direction()
+
     shape = data.shape
     if len(shape) != 5:
         raise ValueError('Expecting bingham data to be 5D '
@@ -327,7 +353,7 @@ def create_bingham_slicer(data, orientation, slice_index,
         color = colors[nn] if color_per_lobe else None
 
         odf_actor, _ = create_odf_actors(sf, sphere, 0.5, colormap=color,
-                                         radial_scale=True)
+                                         radial_scale=True, affine=affine)
 
         set_display_extent(odf_actor, orientation, shape[:3], slice_index)
         actors.append(odf_actor)

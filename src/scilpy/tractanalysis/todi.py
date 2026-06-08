@@ -53,7 +53,7 @@ class TrackOrientationDensityImaging(object):
         self.todi = todi
 
     def compute_todi(self, streamlines, length_weights=True,
-                     n_steps=1, asymmetric=False):
+                     n_steps=1, asymmetric=False, rotation_matrix=None):
         """Compute the TODI map.
 
         At each voxel an histogram distribution of
@@ -65,12 +65,19 @@ class TrackOrientationDensityImaging(object):
             List of streamlines.
         length_weights : bool, optional
             Weights TODI map of each segment's length (default True).
+        n_steps : int, optional
+            Number of steps for streamline segments subdivision.
+        asymmetric : bool, optional
+            If True, compute asymmetric TODI.
+        rotation_matrix : numpy.ndarray (3,3), optional
+            Rotation matrix to apply to the segments' directions.
         """
         # Streamlines vertices in "VOXEL_SPACE" within "img_shape" range
         pts_pos, pts_dir, pts_norm = \
             todi_u.streamlines_to_pts_dir_norm(streamlines,
                                                n_steps=n_steps,
-                                               asymmetric=asymmetric)
+                                               asymmetric=asymmetric,
+                                               rotation_matrix=rotation_matrix)
 
         if not length_weights:
             pts_norm = None
@@ -192,7 +199,7 @@ class TrackOrientationDensityImaging(object):
         while chunk_count > 0:
             # Smooth one direction at a time, too big in memory otherwise
             for i in range(chunk_size):
-                if i > self.todi.shape[1]-1:
+                if i > self.todi.shape[1] - 1:
                     tmp_todi = np.delete(
                         tmp_todi, range(i, chunk_size), axis=1)
                     break
@@ -398,7 +405,7 @@ class TrackOrientationDensityImaging(object):
 
 
 def get_sf_from_todi(sft, mask, todi_sigma, sf_threshold,
-                     sphere='repulsion724'):
+                     sphere='repulsion724', rotation_matrix=None):
     """
     Track Orientation Density Imaging (TODI) [1], provides information about
     the voxel-wise orientation distribution of streamlines. This can be
@@ -424,6 +431,8 @@ def get_sf_from_todi(sft, mask, todi_sigma, sf_threshold,
         Relative threshold for sf masking (0.0-1.0).
     sphere: str
         The name of the sphere.
+    rotation_matrix : numpy.ndarray (3,3), optional
+        Rotation matrix to apply to the segments' directions.
 
     Returns
     -------
@@ -435,7 +444,8 @@ def get_sf_from_todi(sft, mask, todi_sigma, sf_threshold,
         The final mask, from both the input mask and sf_threshold.
     """
     with TrackOrientationDensityImaging(mask.shape, sphere) as todi_obj:
-        todi_obj.compute_todi(sft.streamlines, length_weights=True)
+        todi_obj.compute_todi(sft.streamlines, length_weights=True,
+                              rotation_matrix=rotation_matrix)
         todi_obj.smooth_todi_dir()
         todi_obj.smooth_todi_spatial(sigma=todi_sigma)
 
@@ -453,7 +463,7 @@ def get_sf_from_todi(sft, mask, todi_sigma, sf_threshold,
     return todi_sf, sub_mask_3d
 
 
-def get_sh_from_todi(sft, mask):
+def get_sh_from_todi(sft, mask, rotation_matrix=None):
     """
     Track Orientation Density Imaging (TODI) [1], provides information about
     the voxel-wise orientation distribution of streamlines. This can be
@@ -473,6 +483,8 @@ def get_sh_from_todi(sft, mask):
         The tractogram
     mask: np.ndarray
         A binary mask.
+    rotation_matrix : numpy.ndarray (3,3), optional
+        Rotation matrix to apply to the segments' directions.
 
     Returns
     -------
@@ -481,7 +493,8 @@ def get_sh_from_todi(sft, mask):
     """
     with TrackOrientationDensityImaging(mask.shape,
                                         'repulsion724') as todi_obj:
-        todi_obj.compute_todi(deepcopy(sft.streamlines), length_weights=True)
+        todi_obj.compute_todi(deepcopy(sft.streamlines), length_weights=True,
+                              rotation_matrix=rotation_matrix)
         todi_obj.mask_todi(mask)
         sh_data = todi_obj.get_sh('descoteaux07', 8)
         sh_data = todi_obj.reshape_to_3d(sh_data)

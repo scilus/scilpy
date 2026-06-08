@@ -180,7 +180,7 @@ def main():
                             dtype=bool) if args.mask else None
 
     # Checking data and sh_order
-    verify_data_vs_sh_order(data, args.sh_order)
+    verify_data_vs_sh_order(data, args.sh_order, gtab=gtab)
     sh_basis, is_legacy = parse_sh_basis_arg(args)
 
     # Checking response functions and computing mesmt response function

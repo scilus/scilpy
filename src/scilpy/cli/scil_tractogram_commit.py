@@ -263,7 +263,8 @@ def _save_results(args, tmp_dir, ext, in_hdf5_file, offsets_list, sub_dir,
         'tot_commit_w'
     # Reload is needed because of COMMIT handling its file by itself
     sft.data_per_streamline[dps_key] = streamline_weights
-    sft.data_per_streamline[dps_key_tot] = np.squeeze(streamline_weights) * length_list
+    sft.data_per_streamline[dps_key_tot] = np.squeeze(
+        streamline_weights) * length_list
 
     if args.keep_whole_tractogram:
         output_filename = os.path.join(out_dir, 'tractogram.trk')

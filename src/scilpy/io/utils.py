@@ -13,7 +13,7 @@ import xml.etree.ElementTree as ET
 import nibabel as nib
 import numpy as np
 from dipy.data import SPHERE_FILES
-from dipy.io.stateful_tractogram import Origin, Space 
+from dipy.io.stateful_tractogram import Origin, Space
 from dipy.io.utils import is_header_compatible
 from scipy.io import loadmat
 import six
@@ -324,15 +324,19 @@ def add_surface_spatial_arg(parser):
     surf.add_argument('--source_space',
                       default='rasmm', choices=SPACES,
                       help='Source space of the input surface [%(default)s].')
-    surf.add_argument('--destination_space',
-                      default='rasmm', choices=SPACES,
-                      help='Destination space of the output surface [%(default)s].')
+    surf.add_argument(
+        '--destination_space',
+        default='rasmm',
+        choices=SPACES,
+        help='Destination space of the output surface [%(default)s].')
     surf.add_argument('--source_origin',
                       default='center', choices=ORIGINS,
                       help='Source origin of the input surface [%(default)s].')
-    surf.add_argument('--destination_origin',
-                      default='center', choices=ORIGINS,
-                      help='Destination origin of the output surface [%(default)s].')
+    surf.add_argument(
+        '--destination_origin',
+        default='center',
+        choices=ORIGINS,
+        help='Destination origin of the output surface [%(default)s].')
 
 
 def add_vtk_legacy_arg(parser):
@@ -396,6 +400,12 @@ def add_sh_basis_args(parser, mandatory=False, input_output=False):
     parser.add_argument(arg_name, nargs=nargs,
                         choices=choices, default=def_val,
                         help=help_msg)
+    parser.add_argument(
+        '--is_voxel_space',
+        action='store_true',
+        help='If set, assumes the input fODF/Peaks are already '
+        'in \nvoxel space. Default assumes world space '
+        '(RAS).')
 
 
 def parse_sh_basis_arg(args):
@@ -483,7 +493,11 @@ def add_peaks_screenshot_args(parser, default_width=3.0, default_alpha=1.0,
                      help="Width of the peaks lines. [%(default)s]")
     rpg.add_argument("--peaks_opacity", type=ranged_type(float, 0., 1.),
                      default=default_alpha,
-                     help="Opacity value for the peaks overlay. [%(default)s]")
+                     help="Opacity of the peaks, from 0 to 1. [%(default)s]")
+    rpg.add_argument('--is_voxel_space', action='store_true',
+                     help='If set, assumes the input fODF/Peaks are already '
+                          'in \nvoxel space. Default assumes world space '
+                          '(RAS).')
 
 
 def add_overlays_screenshot_args(parser, default_alpha=0.5,
@@ -1274,7 +1288,14 @@ def get_default_screenshotting_data(args, peaks=True):
 
     peaks_imgs = None
     if peaks and args.peaks:
-        peaks_imgs = [nib.load(f) for f in args.peaks]
+        from scilpy.io.stateful_image import StatefulImage
+        peaks_imgs = []
+        for f in args.peaks:
+            simg = StatefulImage.load(f, is_orientation=True,
+                                      is_world_space=not args.is_voxel_space)
+            # For screenshotting, we want the data in voxel space
+            # as the screenshotting actors currently assume voxel space.
+            peaks_imgs.append(simg)
 
     return (volume_img,
             transparency_img,

@@ -105,7 +105,7 @@ def _build_arg_parser():
                    help='If set, will use the fixed seed strategy for eddy.\n'
                         'Enhances reproducibility.')
 
-    p.add_argument('--eddy_options',  default='',
+    p.add_argument('--eddy_options', default='',
                    help='Additional options you want to use to run eddy.\n'
                         'Add these options using quotes (i.e. "--ol_nstd=6'
                         ' --mb=4").')
@@ -124,7 +124,7 @@ def main():
     try:
         devnull = open(os.devnull)
         subprocess.call(args.eddy_cmd, stderr=devnull)
-    except:
+    except Exception:
         logging.warning(
             "{} not found. If executing locally, please install "
             "the command from the FSL library and make sure it is "

@@ -54,7 +54,8 @@ def test_save_to_original_orientation():
 
         # Load the saved image and check its orientation
         saved_img = nib.load(output_path)
-        assert nib.orientations.aff2axcodes(saved_img.affine) == ("R", "A", "S")
+        assert nib.orientations.aff2axcodes(
+            saved_img.affine) == ("R", "A", "S")
 
 
 def test_reorient_to_original():
@@ -104,8 +105,9 @@ def test_to_reference_stateful_image():
         img = StatefulImage.load(file_path)
         ref_img = StatefulImage.load(file_path)
 
-        with pytest.raises(TypeError,
-                           match="Reference object must not be a StatefulImage."):
+        with pytest.raises(
+                TypeError,
+                match="Reference object must not be a StatefulImage."):
             img.to_reference(ref_img)
 
 
@@ -193,7 +195,7 @@ def test_direct_instantiation():
 
 @pytest.mark.parametrize("codes, error_msg", [
     (None, "Axis codes cannot be None."),
-    ("INVALID", "Target axis codes must be of length 3."),
+    ("INVALID", "Invalid axis code 'N' in target."),
     ("RAR", "Target axis codes must be unique."),
     ("LRR", "Target axis codes must be unique."),
     ("LRA", "Conflicting axis codes 'L' and 'R' in target."),
@@ -203,7 +205,8 @@ def test_stateful_image_bad_axcodes_reorient(codes, error_msg):
     """
     Test that reorienting with invalid axis codes raises a ValueError.
     """
-    with create_dummy_nifti_file(filename="dummy.nii.gz", in_lps=True) as filepath:
+    with create_dummy_nifti_file(filename="dummy.nii.gz",
+                                 in_lps=True) as filepath:
         stateful_img = StatefulImage.load(filepath)
         with pytest.raises(ValueError, match=error_msg):
             stateful_img.reorient(codes)
@@ -220,7 +223,8 @@ def test_stateful_image_bad_axcodes_load(codes, error_msg):
     """
     Test that loading with invalid axis codes raises a ValueError.
     """
-    with create_dummy_nifti_file(filename="dummy.nii.gz", in_lps=True) as filepath:
+    with create_dummy_nifti_file(filename="dummy.nii.gz",
+                                 in_lps=True) as filepath:
         with pytest.raises(ValueError, match=error_msg):
             StatefulImage.load(filepath, to_orientation=codes)
 
@@ -251,6 +255,7 @@ def test_reorient_invalid_codes(codes, invalid_code):
     """
     with create_dummy_nifti_file() as file_path:
         img = StatefulImage.load(file_path)
-        with pytest.raises(ValueError,
-                           match=f"Invalid axis code '{invalid_code}' in target."):
+        with pytest.raises(
+                ValueError,
+                match=f"Invalid axis code '{invalid_code}' in target."):
             img.reorient(codes)

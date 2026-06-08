@@ -24,7 +24,7 @@ def test_execution_surface_vtk_fib(script_runner, monkeypatch):
     ref = os.path.join(SCILPY_HOME, 'surface_vtk_fib', 'fa.nii.gz')
     ret = script_runner.run(['scil_surface_convert', in_surf,
                             'rhpialt.ply', '--reference', ref,
-                            '--source_space', 'lpsmm'])
+                             '--source_space', 'lpsmm'])
     assert ret.success
 
 
@@ -38,6 +38,6 @@ def test_execution_surface_vtk_xfrom(script_runner, monkeypatch):
     ref = os.path.join(SCILPY_HOME, 'surface_vtk_fib', 'fa.nii.gz')
     ret = script_runner.run(['scil_surface_convert', in_surf,
                             'lh.pialt_xform.vtk', '--reference', ref,
-                            '--destination_space', 'lpsmm',
-                            '--legacy_vtk_format'])
+                             '--destination_space', 'lpsmm',
+                             '--legacy_vtk_format'])
     assert ret.success

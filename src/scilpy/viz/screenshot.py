@@ -103,7 +103,7 @@ def screenshot_peaks(img, orientation, slice_ids, size, mask_img=None):
 
     Parameters
     ----------
-    img : nib.Nifti1Image
+    img : nib.Nifti1Image or StatefulImage
         Peaks volume image.
     orientation : str
         Slicing axis name.
@@ -122,7 +122,13 @@ def screenshot_peaks(img, orientation, slice_ids, size, mask_img=None):
     if mask_img:
         mask = mask_img.get_fdata().astype(bool)
 
-    peaks_actor = create_peaks_slicer(img.get_fdata(), orientation, 0,
+    from scilpy.io.stateful_image import StatefulImage
+    if isinstance(img, StatefulImage):
+        data = img.to_voxel_direction()
+    else:
+        data = img.get_fdata()
+
+    peaks_actor = create_peaks_slicer(data, orientation, 0,
                                       mask=mask)
 
     return snapshot_slices([peaks_actor], slice_ids, orientation,
@@ -272,12 +278,12 @@ def compose_mosaic(img_scene_container, cell_size, rows, cols, slice_numbers,
     from itertools import zip_longest
     for idx, (img_arr, trans_arr, labelmap_arr,
               overlays_arr, slice_number) in enumerate(list(zip_longest(
-                                                img_scene_container,
-                                                transparency_scene_container,
-                                                labelmap_scene_container,
-                                                overlays_scene_container,
-                                                slice_numbers,
-                                                fillvalue=tuple()))):
+                  img_scene_container,
+                  transparency_scene_container,
+                  labelmap_scene_container,
+                  overlays_scene_container,
+                  slice_numbers,
+                  fillvalue=tuple()))):
 
         # Compute the mosaic cell position
         top_pos, left_pos = compute_cell_topleft_pos(idx, cols,

@@ -93,3 +93,10 @@ def test_execution_tracking_global_sf_threshold(script_runner, monkeypatch):
                              '--nt', '10', '--global_sf_rel_thr', '0.1',
                              '--sh_basis', 'descoteaux07'])
     assert ret.success
+
+    # Test with absolute threshold
+    ret = script_runner.run(['scil_tracking_local_dev', in_mask, in_mask,
+                             'local_dev_sf_abs.trk', '--in_odf', in_fodf,
+                             '--nt', '2', '--sh_basis', 'descoteaux07',
+                             '--global_sf_abs_thr', '0.01'])
+    assert ret.success

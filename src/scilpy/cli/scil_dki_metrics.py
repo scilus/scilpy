@@ -55,20 +55,18 @@ import numpy as np
 import dipy.reconst.dki as dki
 import dipy.reconst.msdki as msdki
 
-from dipy.io.gradients import read_bvals_bvecs
 from dipy.core.gradients import gradient_table
 
 from scilpy.dwi.operations import compute_residuals
 from scilpy.image.volume_operations import smooth_to_fwhm
 from scilpy.io.image import get_data_as_mask
+from scilpy.io.stateful_image import StatefulImage
 from scilpy.io.utils import (add_overwrite_arg, add_skip_b0_check_arg,
                              add_verbose_arg, assert_inputs_exist,
                              assert_outputs_exist, add_tolerance_arg,
                              assert_headers_compatible)
 from scilpy.gradients.bvec_bval_tools import (check_b0_threshold,
-                                              is_normalized_bvecs,
-                                              identify_shells,
-                                              normalize_bvecs)
+                                              identify_shells)
 from scilpy.version import version_string
 
 
@@ -184,16 +182,22 @@ def main():
     assert_headers_compatible(parser, args.in_dwi, args.mask)
 
     # Loading
-    img = nib.load(args.in_dwi)
-    data = img.get_fdata(dtype=np.float32)
-    affine = img.affine
-    mask = get_data_as_mask(nib.load(args.mask),
-                            dtype=bool) if args.mask else None
+    simg = StatefulImage.load(args.in_dwi)
+    simg.load_gradients(args.in_bval, args.in_bvec)
 
-    bvals, bvecs = read_bvals_bvecs(args.in_bval, args.in_bvec)
-    if not is_normalized_bvecs(bvecs):
-        logging.warning('Your b-vectors do not seem normalized...')
-        bvecs = normalize_bvecs(bvecs)
+    # DKI fit expects RAS (via dipy)
+    simg.to_ras()
+
+    data = simg.get_fdata(dtype=np.float32)
+    affine = simg.affine
+    bvals = simg.bvals
+    bvecs = simg.world_bvecs
+
+    mask = None
+    if args.mask:
+        mask_simg = StatefulImage.load(args.mask)
+        mask_simg.to_ras()
+        mask = get_data_as_mask(mask_simg, dtype=bool)
 
     # Note. This script does not currently allow using a separate b0_threshold
     # for the b0s. Using the tolerance. To change this, we would have to

@@ -4,12 +4,9 @@ import logging
 import multiprocessing
 import numpy as np
 
-from dipy.data import get_sphere
 from dipy.reconst.mcsd import MSDeconvFit
 from dipy.reconst.multi_voxel import MultiVoxelFit
-from dipy.reconst.shm import sh_to_sf_matrix
 
-from scilpy.reconst.utils import find_order_from_nb_coeff
 
 from dipy.utils.optpkg import optional_package
 cvx, have_cvxpy, _ = optional_package("cvxpy")
@@ -67,14 +64,14 @@ def get_ventricles_max_fodf(data, fa, md, zoom, sh_basis,
          Mean maximum fODF value and mask of voxels used.
     """
 
-    order = find_order_from_nb_coeff(data)
-    sphere = get_sphere(name='repulsion100')
-    b_matrix, _ = sh_to_sf_matrix(sphere, sh_order_max=order,
-                                  basis_type=sh_basis, legacy=is_legacy)
+    from scilpy.tracking.utils import compute_max_sf_amplitude
+
     out_mask = np.zeros(data.shape[:-1])
 
     if mask is None:
-        mask = np.ones(data.shape[:-1])
+        mask = np.ones(data.shape[:-1], dtype=bool)
+    else:
+        mask = mask.astype(bool)
 
     # 1000 works well at 2x2x2 = 8 mm3
     # Hence, we multiply by the volume of a voxel
@@ -84,14 +81,14 @@ def get_ventricles_max_fodf(data, fa, md, zoom, sh_basis,
     else:
         max_number_of_voxels = 1000
     logging.debug("Searching for ventricle voxels, up to a maximum of {} "
-                  "voxels.".format(max_number_of_voxels))
+                  f"voxels: {max_number_of_voxels}")
 
     # In the case of 2D-like data (3D data with one dimension size of 1), or
     # a small 3D dataset, the full range of data is scanned.
     if small_dims:
-        all_i = list(range(0, data.shape[0]))
-        all_j = list(range(0, data.shape[1]))
-        all_k = list(range(0, data.shape[2]))
+        range_i = slice(None)
+        range_j = slice(None)
+        range_k = slice(None)
     # In the case of a normal 3D dataset, a window is created in the middle of
     # the image to capture the ventricles. No need to scan the whole image.
     # (Automatic definition of window's radius based on the shape of the data.)
@@ -104,35 +101,46 @@ def get_ventricles_max_fodf(data, fa, md, zoom, sh_basis,
             else:
                 radius = 5
 
-        all_i = list(range(int(data.shape[0]/2) - radius,
-                           int(data.shape[0]/2) + radius))
-        all_j = list(range(int(data.shape[1]/2) - radius,
-                           int(data.shape[1]/2) + radius))
-        all_k = list(range(int(data.shape[2]/2) - radius,
-                           int(data.shape[2]/2) + radius))
+        mid_i, mid_j, mid_k = [int(s / 2) for s in data.shape[:-1]]
+        range_i = slice(mid_i - radius, mid_i + radius)
+        range_j = slice(mid_j - radius, mid_j + radius)
+        range_k = slice(mid_k - radius, mid_k + radius)
 
-    # Ok. Now find ventricle voxels.
-    list_of_max = []
-    for i in all_i:
-        for j in all_j:
-            for k in all_k:
-                if len(list_of_max) > max_number_of_voxels - 1:
-                    continue
-                if fa[i, j, k] < fa_threshold \
-                        and md[i, j, k] > md_threshold \
-                            and mask[i, j, k] == 1:
-                    sf = np.dot(data[i, j, k], b_matrix)
-                    list_of_max.append(sf.max())
-                    out_mask[i, j, k] = 1
+    # Find ventricle voxels candidates
+    ventricle_mask = np.zeros(data.shape[:-1], dtype=bool)
+    ventricle_mask[range_i, range_j, range_k] = (
+        (fa[range_i, range_j, range_k] < fa_threshold) &
+        (md[range_i, range_j, range_k] > md_threshold) &
+        (mask[range_i, range_j, range_k])
+    )
 
-    logging.info('Number of voxels detected: {}'.format(len(list_of_max)))
+    # Limit the number of voxels
+    ventricle_indices = np.argwhere(ventricle_mask)
+    if len(ventricle_indices) > max_number_of_voxels:
+        ventricle_indices = ventricle_indices[:max_number_of_voxels]
+        ventricle_mask[:] = False
+        ventricle_mask[tuple(ventricle_indices.T)] = True
+
+    if not np.any(ventricle_mask):
+        logging.warning('No voxels found for evaluation! Change your fa '
+                        'and/or md thresholds')
+        return 0, out_mask
+
+    # Compute SF max in selected voxels
+    list_of_max = compute_max_sf_amplitude(data, sh_basis, is_legacy,
+                                           sphere_name='repulsion100',
+                                           mask=ventricle_mask)
+    list_of_max = list_of_max[ventricle_mask]
+    out_mask = ventricle_mask.astype(float)
+
+    logging.info(f'Number of voxels detected: {len(list_of_max)}')
     if len(list_of_max) == 0:
         logging.warning('No voxels found for evaluation! Change your fa '
                         'and/or md thresholds')
         return 0, out_mask
 
-    logging.info('Average max fodf value: {}'.format(np.mean(list_of_max)))
-    logging.info('Median max fodf value: {}'.format(np.median(list_of_max)))
+    logging.info(f'Average max fodf value: {np.mean(list_of_max)}')
+    logging.info(f'Median max fodf value: {np.median(list_of_max)}')
     if use_median:
         return np.median(list_of_max), out_mask
     else:
@@ -223,7 +231,7 @@ def fit_from_model(model, data, mask=None, nbr_processes=None):
         chunk_len = np.cumsum([0] + [len(c) for c in chunks])
         tmp_fit_array = np.zeros((np.count_nonzero(mask)), dtype='object')
         for i, fit in results:
-            tmp_fit_array[chunk_len[i]:chunk_len[i+1]] = fit
+            tmp_fit_array[chunk_len[i]:chunk_len[i + 1]] = fit
 
     # Bring back to the original shape
     fit_array = np.zeros(data_shape[0:3], dtype='object')

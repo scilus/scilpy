@@ -12,8 +12,9 @@ or SH representation, based on streamlines' segments.
 ------------------------------------------------------------------------------------
 Reference:
 [1] Dhollander T, Emsell L, Van Hecke W, Maes F, Sunaert S, Suetens P.
-    Track orientation density imaging (TODI) and track orientation distribution (TOD)
-    based tractography. NeuroImage. 2014 Jul 1;94:312-36.
+    Track orientation density imaging (TODI) and track orientation
+    distribution (TOD) based tractography. NeuroImage. 2014 Jul 1;94:312-36.
+
 ------------------------------------------------------------------------------------
 """
 
@@ -24,6 +25,7 @@ import nibabel as nib
 import numpy as np
 
 from scilpy.io.image import get_data_as_mask
+from scilpy.io.stateful_image import StatefulImage
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg, add_reference_arg,
                              add_sh_basis_args, add_verbose_arg,
@@ -66,9 +68,6 @@ def _build_arg_parser():
                    help='Mask showing where TDI > 0.')
     g.add_argument('--out_tdi',
                    help='Output Track Density Image (TDI).')
-    g.add_argument('--out_todi_sf',
-                   help='Output TODI, with SF (each directions\n'
-                        'on the sphere, requires a lot of memory)')
     g.add_argument('--out_todi_sh',
                    help='Output TODI, with SH coefficients.')
 
@@ -89,22 +88,22 @@ def main():
                         [args.mask, args.reference])
     assert_headers_compatible(parser, args.in_tractogram, args.mask,
                               reference=args.reference)
-    outputs = [args.out_mask, args.out_tdi, args.out_todi_sf, args.out_todi_sh]
+    outputs = [args.out_mask, args.out_tdi, args.out_todi_sh]
     assert_outputs_exist(parser, args, [], outputs)
 
     if np.all([f is None for f in outputs]):
         parser.error('No output selected. Choose at least one output option.')
 
-    if args.normalize_per_voxel and not (args.out_todi_sh or args.out_todi_sf):
+    if args.normalize_per_voxel and not (args.out_todi_sh):
         logging.warning("Option --normalize_per_voxel is only useful when "
-                        "saving output --out_todi_sh or --out_todi_sf. "
-                        "Ignoring.")
+                        "saving output --out_todi_sh.")
 
     # Loading
     sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
     affine, data_shape, _, _ = sft.space_attributes
-
+    axcodes = nib.orientations.aff2axcodes(affine)
     sft.to_vox()
+
     # Because compute_todi expects streamline points (in voxel coordinates)
     # to be in the range [0, size] rather than [-0.5, size - 0.5], we shift
     # the voxel origin to corner.
@@ -112,9 +111,12 @@ def main():
 
     # Processing
     logging.info('Computing length-weighted TODI ...')
+    # Compute TODI in voxel space, but use affine rotation to transform
+    # into world space.
     todi_obj = TrackOrientationDensityImaging(tuple(data_shape), args.sphere)
     todi_obj.compute_todi(sft.streamlines, length_weights=True,
-                          n_steps=args.n_steps, asymmetric=args.asymmetric)
+                          n_steps=args.n_steps, asymmetric=args.asymmetric,
+                          rotation_matrix=affine[0:3, 0:3])
 
     if args.smooth_todi:
         logging.info('Smoothing ...')
@@ -122,7 +124,8 @@ def main():
         todi_obj.smooth_todi_spatial()
 
     if args.mask:
-        mask = get_data_as_mask(nib.load(args.mask))
+        simg_mask = StatefulImage.load(args.mask)
+        mask = get_data_as_mask(simg_mask)
         todi_obj.mask_todi(mask)
 
     if args.normalize_per_voxel:
@@ -134,29 +137,29 @@ def main():
     logging.info('Saving Outputs ...')
     if args.out_mask:
         img = todi_obj.reshape_to_3d(todi_obj.get_mask())
-        img = nib.Nifti1Image(img.astype(np.int16), affine)
-        img.to_filename(args.out_mask)
+        simg = StatefulImage(img.astype(np.int16), affine,
+                             original_axcodes=axcodes)
+        simg.save(args.out_mask)
 
     if args.out_todi_sh:
         sh_basis, is_legacy = parse_sh_basis_arg(args)
-        img = todi_obj.get_sh(sh_basis, args.sh_order,
-                              full_basis=args.asymmetric,
-                              is_legacy=is_legacy)
-        img = todi_obj.reshape_to_3d(img)
-        img = nib.Nifti1Image(img.astype(np.float32), affine)
-        img.to_filename(args.out_todi_sh)
+        data = todi_obj.get_sh(sh_basis, args.sh_order,
+                               full_basis=args.asymmetric,
+                               is_legacy=is_legacy)
+        data = todi_obj.reshape_to_3d(data).astype(np.float32)
+
+        simg = StatefulImage(data, affine, original_axcodes=axcodes,
+                             sh_basis=sh_basis,
+                             is_legacy=is_legacy, is_orientation=True,
+                             is_world_space=True)
+        simg.save(args.out_todi_sh)
 
     if args.out_tdi:
-        img = todi_obj.get_tdi()
-        img = todi_obj.reshape_to_3d(img)
-        img = nib.Nifti1Image(img.astype(np.float32), affine)
-        img.to_filename(args.out_tdi)
-
-    if args.out_todi_sf:
-        img = todi_obj.get_todi()
-        img = todi_obj.reshape_to_3d(img)
-        img = nib.Nifti1Image(img.astype(np.float32), affine)
-        img.to_filename(args.out_todi_sf)
+        data = todi_obj.get_tdi()
+        data = todi_obj.reshape_to_3d(data)
+        simg = StatefulImage(data.astype(np.uint32), affine,
+                             original_axcodes=axcodes)
+        simg.save(args.out_tdi)
 
 
 if __name__ == '__main__':

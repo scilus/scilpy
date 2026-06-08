@@ -72,12 +72,16 @@ def _build_arg_parser():
 
     return p
 
+
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
-    assert_inputs_exist(parser, [args.in_moving_surface, args.in_target_reference, args.in_transfo],
+    assert_inputs_exist(parser,
+                        [args.in_moving_surface,
+                         args.in_target_reference,
+                         args.in_transfo],
                         args.in_deformation)
     assert_outputs_exist(parser, args, args.out_surface)
     convert_stateful_str_to_enum(args)
@@ -93,7 +97,7 @@ def main():
         deformation_data = nib.load(args.in_deformation)
 
     out_sfs = apply_transform(sfs, transfo, img, deformation_data,
-                           inverse=args.inverse)
+                              inverse=args.inverse)
 
     # Save mesh
     save_surface(out_sfs, args.out_surface,
