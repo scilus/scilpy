@@ -528,7 +528,7 @@ class Tracker(object):
                 new_pos = line[-1]
 
                 # Verify that our RAP propagated point stays within the tracking mask
-                propagation_can_continue = self._verify_stopping_criteria(new_pos)
+                propagation_can_continue = self._verify_stopping_criteria(line)
                 if not propagation_can_continue:
                     logging.debug("TRACKER out of mask, stop.")
                     line.pop()
@@ -547,8 +547,8 @@ class Tracker(object):
                     invalid_direction_count += 1
                     if invalid_direction_count > self.max_invalid_dirs:
                         break
-
-                propagation_can_continue = self._verify_stopping_criteria(new_pos)
+                
+                propagation_can_continue = self._verify_stopping_criteria(line + [new_pos])
                 if propagation_can_continue or self.append_last_point:
                     line.append(new_pos)
 
@@ -557,7 +557,8 @@ class Tracker(object):
         logging.debug(f"TRACKER end of propagation: {len(line)} total points, last pos={np.round(line[-1], 2)}")
         return line
 
-    def _verify_stopping_criteria(self, last_pos):
+    def _verify_stopping_criteria(self, line):
+        last_pos = line[-1]
 
         # Checking if out of bound
         if not self.mask.is_coordinate_in_bound(
@@ -570,6 +571,144 @@ class Tracker(object):
             return False
 
         return True
+
+
+class TrackerAdaViT(Tracker):
+    """
+    SuperTracker is like a regular tracker, but instead of using a single tracking mask,
+    it uses a 4D volume containing many tracking masks and tracks only in the union of all
+    masks intersecting the streamline trajectory.
+    """
+    def __init__(self, propagator: AbstractPropagator,
+                 tracking_masks: np.ndarray,
+                 seed_generator: SeedGenerator, nbr_seeds, min_nbr_pts,
+                 max_nbr_pts, max_invalid_dirs, compression_th=0.1,
+                 mask_exclude: Union[None, DataVolume] = None,
+                 backtrack_n_pts: int=40, nbr_processes=1, save_seeds=False,
+                 mmap_mode: Union[str, None] = None, rng_seed=1234,
+                 track_forward_only=False, skip=0, verbose=False,
+                 min_iter=100, append_last_point=True):
+        super().__init__(propagator, None, seed_generator, nbr_seeds,
+                         min_nbr_pts, max_nbr_pts, max_invalid_dirs, compression_th,
+                         nbr_processes, save_seeds, mmap_mode, rng_seed,
+                         track_forward_only, skip, verbose, min_iter,
+                         append_last_point, None)
+        # tracking masks
+        self.tracking_masks = tracking_masks
+
+        self.n_pts_backtrack = backtrack_n_pts
+        self.mask_exclude = mask_exclude
+        # TODO: Make into a parameter
+        self.max_retries = 10
+
+        # assert space
+        if self.space != Space.VOX and self.origin != Origin.CENTER:
+            raise NotImplementedError("This version of the Tracker only works in VOX space with CENTER origin.")
+
+        if (seed_generator.origin != propagator.origin or seed_generator.space != propagator.space):
+            raise ValueError("Seed generator and propagator must work with the same space and origin!")
+
+    def _get_line_both_directions(self, seeding_pos, line_generator):
+        """
+        Generate a streamline from an initial position following the tracking
+        parameters.
+
+        Parameters
+        ----------
+        seeding_pos : tuple
+            3D position, the seed position.
+
+        Returns
+        -------
+        line: list of 3D positions
+            The generated streamline for seeding_pos.
+        """
+        # Forward
+        line = [np.asarray(seeding_pos)]
+        seed_tracking_info = self.propagator.prepare_forward(seeding_pos, line_generator)
+        if seed_tracking_info == PropagationStatus.ERROR:
+            # No good tracking direction can be found at seeding position.
+            return None
+
+        tracking_info = seed_tracking_info
+
+        # variables for backtracking (as in mrtrix)
+        include = False
+        n_pts_backtrack = self.n_pts_backtrack
+        retries = 0
+        while not include and retries < self.max_retries:
+            line = self._propagate_line(line, tracking_info)
+            include = self._verify_inclusion_criteria(line)
+            if not include:
+                retries += 1
+                if n_pts_backtrack >= len(line):
+                    return None  # not valid and can't backtrack anymore
+                line = line[:-n_pts_backtrack]
+                if len(line) >= 2:
+                    last_dir = line[-1] - line[-2]
+                    sphere_ind = self.propagator.sphere.find_closest(last_dir)
+                    tracking_info = TrackingDirection(self.propagator.sphere.vertices[sphere_ind],
+                                                      sphere_ind)
+
+        if retries >= self.max_retries:
+            logging.debug(f"TRACKER forward direction: max retries reached ({self.max_retries}), discarding streamline.")
+
+        # Backward
+        if not self.track_forward_only and include:
+            if len(line) > 1:
+                line.reverse()
+
+            tracking_info = self.propagator.prepare_backward(line, seed_tracking_info)
+
+            # variables for backtracking (as in mrtrix)
+            include = False
+            retries = 0
+            n_pts_backtrack = self.n_pts_backtrack
+            while not include and retries < self.max_retries:
+                line = self._propagate_line(line, tracking_info)
+                include = self._verify_inclusion_criteria(line)
+                if not include:
+                    retries += 1
+                    if n_pts_backtrack >= len(line):
+                        return None  # not valid and can't backtrack anymore
+                    line = line[:-n_pts_backtrack]
+                    if len(line) >= 2:
+                        last_dir = line[-1] - line[-2]
+                        sphere_ind = self.propagator.sphere.find_closest(last_dir)
+                        tracking_info = TrackingDirection(self.propagator.sphere.vertices[sphere_ind],
+                                                          sphere_ind)
+
+        # Clean streamline
+        if include and (self.min_nbr_pts <= len(line) <= self.max_nbr_pts):
+            return line
+
+        # streamline is either not included or too short/long, we discard it
+        return None
+
+    def _verify_stopping_criteria(self, line):
+        # project line coordinates onto a grid to find which masks we are in
+        # TODO: This is nearest neighbour interpolation. Maybe support trilinear also?
+        line_mask = np.zeros(self.tracking_masks.shape[:-1], dtype=bool)
+
+        # line is in origin center, so we add 0.5 to get to
+        # corner and then floor to get voxel coordinates
+        coords = np.floor(np.array(line) + 0.5).astype(int)
+
+        line_mask[coords[:, 0], coords[:, 1], coords[:, 2]] = True
+        line_masks_intersection = self.tracking_masks[line_mask]
+
+        matching_tracking_masks = np.all(line_masks_intersection, axis=0)
+        return np.any(matching_tracking_masks)
+
+    def _verify_inclusion_criteria(self, line):
+        endpoint = line[-1]
+        if self.mask_exclude is None:
+            return True  # keep all streamlines when no exclusion mask is provided
+
+        include = self.mask_exclude.get_value_at_coordinate(
+            *endpoint, space=self.space, origin=self.origin) <= 0.5
+
+        return include
 
 
 class GPUTracker():
