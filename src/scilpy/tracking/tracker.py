@@ -17,7 +17,7 @@ from dipy.reconst.shm import sh_to_sf_matrix
 from dipy.tracking.streamlinespeed import compress_streamlines
 
 from scilpy.image.volume_space_management import DataVolume
-from scilpy.tracking.propagator import AbstractPropagator, ODFPropagator, ODFPropagatorWithSETPriors, PropagationStatus
+from scilpy.tracking.propagator import AbstractPropagator, ODFPropagator, PropagationStatus
 from scilpy.reconst.utils import find_order_from_nb_coeff
 from scilpy.tracking.seed import SeedGenerator
 from scilpy.gpuparallel.opencl_utils import CLKernel, CLManager, have_opencl
