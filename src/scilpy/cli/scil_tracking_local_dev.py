@@ -37,6 +37,18 @@ A few notes on Runge-Kutta integration.
     2. As a rule of thumb, doubling the rk_order will double the computation
        time in the worst case.
 
+A few notes on Region-Adaptive Propagation (RAP):
+    RAP allows dynamic parameter switching during tracking based on a label
+    volume (--rap_labels) or a binary mask (--rap_mask)
+    - Method 'continue': continues tracking with the same parameters inside the
+      RAP region.
+    - Method 'switch': switches algo, theta, step_size, and fODF model per
+      label, based on a JSON policy file (--rap_params). --in_odf and
+      --rap_params are mutually exclusive. Each label in the JSON must specify
+      a propagator type, filename and sh_basis. Multiple labels can share the
+      fODF file without loading it twice in memory. See --rap_params help for
+      expected JSON format
+
 -------------------------------------------------------------------------------
 Reference:
 [1] Girard, G., Whittingstall K., Deriche, R., and Descoteaux, M. (2014).
@@ -83,7 +95,7 @@ def _build_arg_parser():
                                 epilog=version_string)
 
     # Options common to both scripts
-    add_mandatory_options_tracking(p)
+    add_mandatory_options_tracking(p, fodf_optional=True)
     track_g = add_tracking_options(p)
     add_seeding_options(p)
 
@@ -238,8 +250,8 @@ def main():
 
     max_nbr_pts = int(args.max_length / args.step_size)
     min_nbr_pts = max(int(args.min_length / args.step_size), 1)
-
-    assert_same_resolution([args.in_mask, args.in_odf, args.in_seed])
+    if args.in_odf:
+        assert_same_resolution([args.in_mask, args.in_odf, args.in_seed])
 
     # Choosing our space and origin for this tracking
     # If save_seeds, space and origin must be vox, center. Choosing those
@@ -286,13 +298,13 @@ def main():
     mask_data = mask_img.get_fdata(caching='unchanged', dtype=float)
 
     # ------- INSTANTIATING PROPAGATOR -------
-    logging.info("Loading ODF SH data.")
-    odf_sh_img = nib.load(args.in_odf)
-    odf_sh_data = odf_sh_img.get_fdata(caching='unchanged', dtype=float)
-    odf_sh_res = odf_sh_img.header.get_zooms()[:3]
-    dataset = DataVolume(odf_sh_data, odf_sh_res, args.sh_interp)
+    if args.in_odf:
+        logging.info("Loading ODF SH data.")
+        odf_sh_img = nib.load(args.in_odf)
+        odf_sh_data = odf_sh_img.get_fdata(caching='unchanged', dtype=float)
+        odf_sh_res = odf_sh_img.header.get_zooms()[:3]
+        dataset = DataVolume(odf_sh_data, odf_sh_res, args.sh_interp)
 
-    if args.rap_method is None:
         sh_basis, is_legacy = parse_sh_basis_arg(args)
 
         if args.global_sf_rel_thr is not None or \
@@ -377,15 +389,27 @@ def main():
     if args.rap_mask:
         logging.info("Loading RAP mask.")
         rap_img = nib.load(args.rap_mask)
-        rap_data = rap_img.get_fdata(caching='unchanged', dtype=float)
-        rap_res = rap_img.header.get_zooms()[:3]
-        rap_mask = DataVolume(rap_data, rap_res, args.mask_interp)
-    else:
-        rap_mask = None
+        rap_mask_data = get_data_as_mask(rap_img)
+        rap_mask_res = rap_img.header.get_zooms()[:3]
+        rap_volume = DataVolume(rap_mask_data, rap_mask_res, args.mask_interp)
+    elif args.rap_labels:
+        logging.info("Loading RAP labels.")
+        rap_label_img = nib.load(args.rap_labels)
+
+        # Convert the rap_labels image to int if float
+        if np.issubdtype(rap_label_img.get_data_dtype(), np.floating):
+            int_data = np.round(rap_label_img.get_fdata()).astype(np.int16)
+            rap_label_img = nib.Nifti1Image(int_data, rap_label_img.affine)
+
+        rap_label_data = get_data_as_labels(rap_label_img)
+        rap_label_res = rap_label_img.header.get_zooms()[:3]
+        rap_volume = DataVolume(rap_label_data, rap_label_res, 'nearest')
 
     if args.rap_method == "continue":
-        rap = RAPContinue(rap_mask, propagator, max_nbr_pts,
+        rap = RAPContinue(rap_volume, propagator, max_nbr_pts,
                           step_size=vox_step_size)
+    elif args.rap_method == "switch":
+        rap = RAPSwitch(rap_volume, propagators, max_nbr_pts)
     else:
         rap = None
 
@@ -417,6 +441,10 @@ def main():
         data_per_streamline = {'seeds': seeds}
     else:
         data_per_streamline = {}
+
+    # Save RAP entry/exit mask if requested
+    if args.rap_save_entry_exit:
+        tracker.save_rap_entry_exit_mask(args.rap_save_entry_exit, mask_img)
 
     # Compared with scil_tracking_local, using sft rather than
     # LazyTractogram to deal with space.
