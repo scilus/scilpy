@@ -205,6 +205,34 @@ def identify_shells(bvals, tol=40.0, round_centroids=False, sort=False):
     return centroids, shell_indices
 
 
+def check_shells_frf(bvals, b0_threshold):
+    """
+    Check if the shells are too far apart, which might cause problems for
+    FRF estimation.
+
+    Parameters
+    ----------
+    bvals : np.ndarray
+        b-values.
+    b0_threshold : float
+        Threshold for b0.
+    """
+    shells_centroids, _ = identify_shells(bvals, b0_threshold,
+                                          round_centroids=True)
+    shells_centroids = list(sorted(
+        shells_centroids[shells_centroids > b0_threshold]))
+    min_non_b0_shell = np.min(shells_centroids) \
+        if len(shells_centroids) > 0 else 0
+    max_non_b0_delta = np.ediff1d(shells_centroids)[0] \
+        if len(shells_centroids) > 1 else 0
+    if max_non_b0_delta >= min_non_b0_shell:
+        logging.warning(
+            'Your shells seem to be very far apart (max delta: {}, '
+            'min non-b0 shell: {}). This might cause problems for the '
+            'estimation of the FRF. Consider using scil_frf_msmt.py.'
+            .format(max_non_b0_delta, min_non_b0_shell))
+
+
 def str_to_axis_index(axis):
     """
     Convert x y z axis string to 0 1 2 axis index
@@ -257,7 +285,7 @@ def find_flip_swap_from_order(order):
         elif next_axis in [-1, -2, -3]:
             axes_to_flip.append(abs(next_axis) - 1)
             swapped_order.append(abs(next_axis) - 1)
-    return(axes_to_flip, swapped_order)
+    return (axes_to_flip, swapped_order)
 
 
 def flip_gradient_axis(bvecs, axes, sampling_type):

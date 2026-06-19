@@ -60,6 +60,12 @@ def _build_arg_parser():
     p.add_argument('--replace_bad_voxels', type=float, default=None,
                    help='Replace bad voxels (NaNs or infs) in the input DWI '
                         'with the specified value.')
+    p.add_argument('--compute_rmse', action='store_true',
+                     help='Compute the RMSE map of the model fit. Will be saved '
+                          'as fit_RMSE.nii.gz in the output directory.')
+    p.add_argument('--compute_nrmse', action='store_true',
+                     help='Compute the NRMSE map of the model fit. Will be saved '
+                          'as fit_NRMSE.nii.gz in the output directory.')
     add_tolerance_arg(p)
     add_skip_b0_check_arg(p, will_overwrite_with_min=False,
                           b0_tol_name='--tolerance')
@@ -148,7 +154,7 @@ def main():
         amico.core.setup()
         ae = amico.Evaluation('.', '.')
         ae.load_data(args.in_dwi, tmp_scheme_filename, mask_filename=args.mask,
-                     replace_bad_voxels=args.replace_bad_voxels)
+                     replace_bad_voxels=args.replace_bad_voxels, b0_thr=args.tolerance)
 
         # Compute the response functions
         ae.set_model("NODDI")
@@ -178,6 +184,8 @@ def main():
         ae.set_config('OUTPUT_path', args.out_dir)
         ae.set_config('nthreads', args.nbr_processes)
         ae.set_config('BLAS_nthreads', 1)
+        ae.set_config('doComputeRMSE', args.compute_rmse)
+        ae.set_config('doComputeNRMSE', args.compute_nrmse)
         ae.generate_kernels(regenerate=regenerate_kernels)
         if args.compute_only:
             return

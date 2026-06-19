@@ -80,3 +80,16 @@ def test_execution_tracking_fodf_custom_seeds(script_runner, monkeypatch):
                              '--sub_sphere', '2',
                              '--rk_order', '4'])
     assert ret.success
+
+
+def test_execution_tracking_global_sf_threshold(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
+    in_fodf = os.path.join(SCILPY_HOME, 'tracking', 'fodf.nii.gz')
+    in_mask = os.path.join(SCILPY_HOME, 'tracking', 'seeding_mask.nii.gz')
+
+    # Test with relative threshold
+    ret = script_runner.run(['scil_tracking_local_dev', in_mask, in_mask,
+                             'local_prob_sf.trk', '--in_odf', in_fodf,
+                             '--nt', '10', '--global_sf_rel_thr', '0.1',
+                             '--sh_basis', 'descoteaux07'])
+    assert ret.success
