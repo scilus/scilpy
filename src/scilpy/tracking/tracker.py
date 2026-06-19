@@ -575,19 +575,79 @@ class Tracker(object):
 
 class TrackerAdaViT(Tracker):
     """
-    SuperTracker is like a regular tracker, but instead of using a single tracking mask,
-    it uses a 4D volume containing many tracking masks and tracks only in the union of all
-    masks intersecting the streamline trajectory.
+    AdaViT uses a 4D volume containing many tracking masks and tracks only
+    in the union of all masks intersecting the streamline trajectory. In the
+    original publication, AdaViT is used with tracking masks estimated from
+    viral tracing experiments, but in practice, any list of masks can be used.
+
+    Parameters
+    ----------
+        propagator : AbstractPropagator
+            Tracking object.
+        mask : DataVolume
+            Tracking volume(s).
+        seed_generator : SeedGenerator
+            Seeding volume.
+        nbr_seeds: int
+            Number of seeds to create via the seed generator.
+        min_nbr_pts: int
+            Minimum number of points for streamlines.
+        max_nbr_pts: int
+            Maximum number of points for streamlines.
+        max_invalid_dirs: int
+            Number of consecutives invalid directions allowed during tracking.
+        compression_th : float
+            Maximal distance threshold for compression. If None, no
+            compression is applied.
+        mask_exclude: DataVolume
+            Optional exclusion mask. A streamline terminating in this mask will
+            be discarded.
+        backtracking: bool
+            If true, backtracking is enabled. Only works if mask_exclude is provided.
+        backtrack_n_pts: int
+            If backtracking is enabled, a streamline that would be excluded will
+            instead be backtracked of N points and re-propagated from there.
+        backtrack_max_tries: int
+            Maximum number of trials per streamline for backtracking.
+        nbr_processes: int
+            Number of sub processes to use.
+        save_seeds: bool
+            Whether to save the seeds associated to their respective
+            streamlines.
+        mmap_mode: str
+            Memory-mapping mode. One of {None, 'r+', 'c'}. This value is passed
+            to np.load() when loading the raw tracking data from a subprocess.
+        rng_seed: int
+            The random "seed" for the random generator.
+        track_forward_only: bool
+            If true, only the forward direction is computed.
+        skip: int
+            Skip the first N seeds created (and thus N rng numbers). Useful if
+            you want to create new streamlines to add to a previously created
+            tractogram with a fixed rng_seed. Ex: If tractogram_1 was created
+            with nbr_seeds=1,000,000, you can create tractogram_2 with
+            skip 1,000,000.
+        verbose: bool
+            Display tracking progression with TQDM progress bar.
+        min_iter: int
+            Minimum number of tracked streamlines required to update the
+            tracking progression bar.
+        append_last_point: bool
+            Whether to add the last point (once out of the tracking mask) to
+            the streamline or not. Note that points obtained after an invalid
+            direction (based on the propagator's definition of invalid; ex
+            when angle is too sharp of sh_threshold not reached) are never
+            added.
     """
     def __init__(self, propagator: AbstractPropagator,
-                 tracking_masks: np.ndarray,
-                 seed_generator: SeedGenerator, nbr_seeds, min_nbr_pts,
-                 max_nbr_pts, max_invalid_dirs, compression_th=0.1,
-                 mask_exclude: Union[None, DataVolume] = None,
-                 backtrack_n_pts: int=40, nbr_processes=1, save_seeds=False,
+                 tracking_masks: np.ndarray, seed_generator: SeedGenerator,
+                 nbr_seeds, min_nbr_pts, max_nbr_pts, max_invalid_dirs,
+                 compression_th=0.1, mask_exclude: Union[None, DataVolume] = None,
+                 backtracking: bool = False, backtrack_n_pts: int=40,
+                 backtrack_max_tries: int=10, nbr_processes=1, save_seeds=False,
                  mmap_mode: Union[str, None] = None, rng_seed=1234,
-                 track_forward_only=False, skip=0, verbose=False,
-                 min_iter=100, append_last_point=True):
+                 track_forward_only=False, skip=0, verbose=False, min_iter=100,
+                 append_last_point=True):
         super().__init__(propagator, None, seed_generator, nbr_seeds,
                          min_nbr_pts, max_nbr_pts, max_invalid_dirs, compression_th,
                          nbr_processes, save_seeds, mmap_mode, rng_seed,
@@ -596,10 +656,14 @@ class TrackerAdaViT(Tracker):
         # tracking masks
         self.tracking_masks = tracking_masks
 
+        if backtracking and mask_exclude is None:
+            raise ValueError("Backtracking cannot be enabled without an exclusion mask.")
+
+        # backtracking parameters
         self.n_pts_backtrack = backtrack_n_pts
         self.mask_exclude = mask_exclude
-        # TODO: Make into a parameter
-        self.max_retries = 10
+        self.max_retries = backtrack_max_tries
+        self.backtracking = backtracking
 
         # assert space
         if self.space != Space.VOX and self.origin != Origin.CENTER:
@@ -636,7 +700,7 @@ class TrackerAdaViT(Tracker):
         include = False
         n_pts_backtrack = self.n_pts_backtrack
         retries = 0
-        while not include and retries < self.max_retries:
+        while not include and retries < self.max_retries and self.backtracking:
             line = self._propagate_line(line, tracking_info)
             include = self._verify_inclusion_criteria(line)
             if not include:
@@ -664,7 +728,7 @@ class TrackerAdaViT(Tracker):
             include = False
             retries = 0
             n_pts_backtrack = self.n_pts_backtrack
-            while not include and retries < self.max_retries:
+            while not include and retries < self.max_retries and self.backtracking:
                 line = self._propagate_line(line, tracking_info)
                 include = self._verify_inclusion_criteria(line)
                 if not include:

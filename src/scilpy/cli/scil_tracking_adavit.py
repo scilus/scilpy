@@ -1,67 +1,26 @@
 #! /usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Local streamline HARDI tractography using scilpy-only methods -- no dipy (i.e
-no cython). The goal of this is to have a python-only version that can be
-modified more easily by our team when testing new algorithms and parameters,
-and that can be used as parent classes in sub-projects of our lab such as in
-dwi_ml.
+Adaptive viral tracing informed tractography (AdaViT).
 
-WARNING. MUCH SLOWER THAN scil_tracking_local. We recommand using multi-
-processing with option --nb_processes.
+This script implements a local tracking algorithm that is informed by viral
+tracing data. At the difference of conventional local tracking, AdaViT uses
+a 4D tracking mask, where each volume corresponds to a different tracer. At
+each step, the tracking mask is updated such that is is the union of all
+tracking masks entirely overlapping the current streamline. This allows
+tractography to only reconstruct streamlines that are supported by the viral
+tracing data.
 
-Similar to scil_tracking_local:
-    The tracking direction is chosen in the aperture cone defined by the
-    previous tracking direction and the angular constraint.
-    - Algo 'det': the maxima of the spherical function (SF) the most closely
-    aligned to the previous direction.
-    - Algo 'prob': a direction drawn from the empirical distribution function
-    defined from the SF.
-
-Contrary to scil_tracking_local:
-    - Algo 'eudx' is not yet available!
-    - Input nifti files do not necessarily need to be in isotropic resolution.
-    - The script works with asymmetric input ODF.
-    - The interpolation for the tracking mask and spherical function can be
-      one of 'nearest' or 'trilinear'.
-    - Runge-Kutta integration is supported for the step function.
-
-A few notes on Runge-Kutta integration.
-    1. Runge-Kutta integration is used to approximate the next tracking
-       direction by estimating directions from future tracking steps. This
-       works well for deterministic tracking. However, in the context of
-       probabilistic tracking, the next tracking directions cannot be estimated
-       in advance, because they are picked randomly from a distribution. It is
-       therefore recommanded to keep the rk_order to 1 for probabilistic
-       tracking.
-    2. As a rule of thumb, doubling the rk_order will double the computation
-       time in the worst case.
-
-A few notes on Region-Adaptive Propagation (RAP):
-    RAP allows dynamic parameter switching during tracking based on a label
-    volume (--rap_labels) or a binary mask (--rap_mask)
-    - Method 'continue': continues tracking with the same parameters inside the
-      RAP region.
-    - Method 'switch': switches algo, theta, step_size, and fODF model per
-      label, based on a JSON policy file (--rap_params). --in_odf and
-      --rap_params are mutually exclusive. Each label in the JSON must specify
-      a propagator type, filename and sh_basis. Multiple labels can share the
-      fODF file without loading it twice in memory. See --rap_params help for
-      expected JSON format
-
--------------------------------------------------------------------------------
-Reference:
-[1] Girard, G., Whittingstall K., Deriche, R., and Descoteaux, M. (2014).
-    Towards quantitative connectivity analysis:reducing tractography biases.
-    Neuroimage, 98, 266-278.
--------------------------------------------------------------------------------
+AdaViT is available for deterministic and probabilistic tracking. For
+probabilistic tracking, the user can supply an exclusion mask with
+--mask_exclude. The exclusion mask enables backtracking, which allows to
+retry potentially excluded streamlines by backtracking a given distance and
+sampling a new path.
 """
 
 import argparse
-from functools import partial
 import logging
 import time
-import json
 
 import dipy.core.geometry as gm
 import nibabel as nib
@@ -82,9 +41,8 @@ from scilpy.io.utils import (add_processes_arg, add_sphere_arg,
                              load_matrix_in_any_format)
 from scilpy.image.volume_space_management import DataVolume
 from scilpy.tracking.propagator import ODFPropagator
-from scilpy.tracking.rap import RAPContinue, RAPSwitch
 from scilpy.tracking.seed import SeedGenerator, CustomSeedsDispenser
-from scilpy.tracking.tracker import Tracker, TrackerAdaViT
+from scilpy.tracking.tracker import TrackerAdaViT
 from scilpy.tracking.utils import (add_mandatory_options_tracking,
                                    add_out_options, add_seeding_options,
                                    add_tracking_options,
@@ -92,8 +50,6 @@ from scilpy.tracking.utils import (add_mandatory_options_tracking,
                                    verify_streamline_length_options,
                                    verify_seed_options)
 from scilpy.version import version_string
-from scilpy.image.labels import get_data_as_labels
-from scilpy.io.image import get_data_as_mask
 
 
 def _build_arg_parser():
@@ -177,6 +133,9 @@ def _build_arg_parser():
                              choices=['nearest', 'trilinear'],
                              help="Exclusion mask interpolation: nearest-neighbor\n" \
                                   "or trilinear. [%(default)s]")
+    backtrack_g.add_argument('--backtrack_max_tries', type=int, default=10,
+                             help='Maximum number of trials per streamline for'
+                                  'backtracking. [%(default)s]')
 
     m_g = p.add_argument_group('Memory options')
     add_processes_arg(m_g)
@@ -213,10 +172,6 @@ def main():
                         "Ignoring.")
         args.save_seeds = False
 
-    if args.mask_exclude is not None and not args.algo == 'prob':
-        # throw error because backtracking is not possible for deterministic approaches
-        parser.error('Option --mask_exclude is only available for probabilistic tracking.')
-
     # ------- PREPARING DATA -------
     theta = gm.math.radians(get_theta(args.theta, args.algo))
 
@@ -243,8 +198,7 @@ def main():
     # ------- INSTANTIATING SEED GENERATOR -------
     if args.in_custom_seeds:
         seeds = np.squeeze(load_matrix_in_any_format(args.in_custom_seeds))
-        seed_generator = CustomSeedsDispenser(seeds, space=our_space,
-                                              origin=our_origin)
+        seed_generator = CustomSeedsDispenser(seeds, space=our_space, origin=our_origin)
         nbr_seeds = len(seeds)
     else:
         seed_generator = SeedGenerator(seed_data, seed_res,
@@ -311,7 +265,10 @@ def main():
         exclude_res = exclude_img.header.get_zooms()[:3]
         mask_exclude = DataVolume(exclude_data, exclude_res, args.mask_interp)
 
+    # condition for backtracking
+    backtrack = args.mask_exclude is not None and args.algo == 'prob'
     backtrack_n_pts = int(args.backtrack_distance / step_size)
+
     logging.info("Instantiating tracker.")
     tracker = TrackerAdaViT(propagator, mask, seed_generator, nbr_seeds, min_nbr_pts,
                             max_nbr_pts, args.max_invalid_nb_points,
@@ -321,7 +278,9 @@ def main():
                             mmap_mode='r+', rng_seed=args.rng_seed,
                             track_forward_only=args.forward_only,
                             skip=args.skip, mask_exclude=mask_exclude,
+                            backtracking=backtrack,
                             backtrack_n_pts=backtrack_n_pts,
+                            backtrack_max_tries=args.backtrack_max_tries,
                             append_last_point=args.keep_last_out_point,
                             verbose=args.verbose)
 
