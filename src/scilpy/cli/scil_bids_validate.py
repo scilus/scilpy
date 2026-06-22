@@ -206,21 +206,23 @@ def get_data(layout, nSub, dwis, t1s, fs, default_readout, clean,
         nRun = curr_dwi.entities['run']
 
     IntendedForPath = os.path.sep.join(curr_dwi.relpath.split(os.path.sep)[1:])
+
+    common_filter = dict(
+        IntendedFor=IntendedForPath,
+        regex_search=True,
+        invalid_filters='drop'
+    )
+    readout_key = ('TotalReadoutTime' if 'TotalReadoutTime' in curr_dwi.entities
+                   else 'EstimatedTotalReadoutTime' if 'EstimatedTotalReadoutTime' in curr_dwi.entities
+                   else None)
+    readout_filter = {readout_key: totalreadout} if readout_key else {}
     related_files = layout.get(part="mag",
-                               IntendedFor=IntendedForPath,
-                               regex_search=True,
-                               TotalReadoutTime=totalreadout,
-                               invalid_filters='drop') +\
-        layout.get(part=Query.NONE,
-                   IntendedFor=IntendedForPath,
-                   regex_search=True,
-                   TotalReadoutTime=totalreadout,
-                   invalid_filters='drop') +\
-        layout.get(part=Query.NONE,
-                   IntendedFor=IntendedForPath,
-                   regex_search=True,
-                   EstimatedTotalReadoutTime=totalreadout,
-                   invalid_filters='drop')
+                               **readout_filter,
+                               **common_filter) +\
+                    layout.get(part=Query.NONE,
+                               **readout_filter,
+                               **common_filter)
+    
     related_files_filtered = []
     for curr_related in related_files:
         if curr_related.entities['suffix'] != 'dwi' and\
