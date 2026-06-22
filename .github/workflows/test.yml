@@ -25,7 +25,7 @@ jobs:
 
     steps:
       - name: Checkout repository at merge
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Fetch python version from repository
         id: python-selector
@@ -34,7 +34,7 @@ jobs:
           echo "C_INCLUDE_PATH=$pythonLocation/include/python$(head -1 .python-version):$C_INCLUDE_PATH" >> $GITHUB_ENV
 
       - name: Set up Python and uv for Scilpy
-        uses: astral-sh/setup-uv@v6.4.3
+        uses: astral-sh/setup-uv@v8.2.0
         with:
           python-version: ${{ steps.python-selector.outputs.python-version }}
           activate-environment: true
@@ -85,7 +85,7 @@ jobs:
           mv .test_reports smoke_test_reports
 
       - name: Save test results and coverage
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         id: test-coverage-results
         with:
           name: test-coverage-${{ github.run_id }}
@@ -102,15 +102,15 @@ jobs:
 
     steps:
       - name: Checkout repository at merge
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Download test results and coverage
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: test-coverage-${{ github.run_id }}
 
       - name: Upload coverage reports to Codecov
-        uses: codecov/codecov-action@v5.4.3
+        uses: codecov/codecov-action@v7.0.0
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: unit_test_reports/*
@@ -121,7 +121,7 @@ jobs:
           fail_ci_if_error: true
 
       - name: Upload coverage reports to Codecov
-        uses: codecov/codecov-action@v5.4.3
+        uses: codecov/codecov-action@v7.0.0
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: smoke_test_reports/*
