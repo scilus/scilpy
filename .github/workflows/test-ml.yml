@@ -28,14 +28,14 @@ jobs:
     if: github.repository == 'scilus/scilpy'
     steps:
       - name: Checkout repository at merge
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Fetch python version from repository
         id: python-selector
         run: echo "python-version=$(head -1 .python-version)" >> $GITHUB_OUTPUT
 
       - name: Set up Python and uv for Scilpy
-        uses: astral-sh/setup-uv@v6.4.3
+        uses: astral-sh/setup-uv@v8.2.0
         with:
           python-version: ${{ steps.python-selector.outputs.python-version }}
           activate-environment: true
@@ -80,7 +80,7 @@ jobs:
           uv run pytest -m ml --ml --cov-report term-missing:skip-covered
 
       - name: Save test results and coverage
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         id: test-coverage-results
         with:
           name: test-coverage-${{ github.run_id }}
