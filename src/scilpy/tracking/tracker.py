@@ -695,27 +695,7 @@ class TrackerAdaViT(Tracker):
             return None
 
         tracking_info = seed_tracking_info
-
-        # variables for backtracking (as in mrtrix)
-        include = False
-        n_pts_backtrack = self.n_pts_backtrack
-        retries = 0
-        while not include and retries < self.max_retries and self.backtracking:
-            line = self._propagate_line(line, tracking_info)
-            include = self._verify_inclusion_criteria(line)
-            if not include:
-                retries += 1
-                if n_pts_backtrack >= len(line):
-                    return None  # not valid and can't backtrack anymore
-                line = line[:-n_pts_backtrack]
-                if len(line) >= 2:
-                    last_dir = line[-1] - line[-2]
-                    sphere_ind = self.propagator.sphere.find_closest(last_dir)
-                    tracking_info = TrackingDirection(self.propagator.sphere.vertices[sphere_ind],
-                                                      sphere_ind)
-
-        if retries >= self.max_retries:
-            logging.debug(f"TRACKER forward direction: max retries reached ({self.max_retries}), discarding streamline.")
+        line, include = self._propagate_line_with_backtracking(line, tracking_info)
 
         # Backward
         if not self.track_forward_only and include:
@@ -723,24 +703,7 @@ class TrackerAdaViT(Tracker):
                 line.reverse()
 
             tracking_info = self.propagator.prepare_backward(line, seed_tracking_info)
-
-            # variables for backtracking (as in mrtrix)
-            include = False
-            retries = 0
-            n_pts_backtrack = self.n_pts_backtrack
-            while not include and retries < self.max_retries and self.backtracking:
-                line = self._propagate_line(line, tracking_info)
-                include = self._verify_inclusion_criteria(line)
-                if not include:
-                    retries += 1
-                    if n_pts_backtrack >= len(line):
-                        return None  # not valid and can't backtrack anymore
-                    line = line[:-n_pts_backtrack]
-                    if len(line) >= 2:
-                        last_dir = line[-1] - line[-2]
-                        sphere_ind = self.propagator.sphere.find_closest(last_dir)
-                        tracking_info = TrackingDirection(self.propagator.sphere.vertices[sphere_ind],
-                                                          sphere_ind)
+            line, include = self._propagate_line_with_backtracking(line, tracking_info)
 
         # Clean streamline
         if include and (self.min_nbr_pts <= len(line) <= self.max_nbr_pts):
@@ -749,9 +712,32 @@ class TrackerAdaViT(Tracker):
         # streamline is either not included or too short/long, we discard it
         return None
 
+    def _propagate_line_with_backtracking(self, line, tracking_info):
+        include = False
+        if not self.backtracking:
+            line = self._propagate_line(line, tracking_info)
+            include = self._verify_inclusion_criteria(line)
+            return line, include  # one-shot when backtracking is disabled
+        # Backtracking loop
+        retries = 0
+        while not include and retries < self.max_retries:
+            line = self._propagate_line(line, tracking_info)
+            include = self._verify_inclusion_criteria(line)
+            if not include:
+                retries += 1
+                if self.n_pts_backtrack >= len(line):
+                    return None, include  # not valid and can't backtrack anymore
+                line = line[:-self.n_pts_backtrack]
+                if len(line) >= 2:
+                    last_dir = line[-1] - line[-2]
+                    sphere_ind = self.propagator.sphere.find_closest(last_dir)
+                    tracking_info = TrackingDirection(self.propagator.sphere.vertices[sphere_ind],
+                                                      sphere_ind)
+        return line, include
+
     def _verify_stopping_criteria(self, line):
         # project line coordinates onto a grid to find which masks we are in
-        # TODO: This is nearest neighbour interpolation. Maybe support trilinear also?
+        # TODO: Support trilinear interpolation for line-masks intersection
         line_mask = np.zeros(self.tracking_masks.shape[:-1], dtype=bool)
 
         # line is in origin center, so we add 0.5 to get to
