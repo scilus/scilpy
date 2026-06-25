@@ -11,11 +11,12 @@ tracking masks entirely overlapping the current streamline. This allows
 tractography to only reconstruct streamlines that are supported by the viral
 tracing data.
 
-AdaViT is available for deterministic and probabilistic tracking. For
-probabilistic tracking, the user can supply an exclusion mask with
---mask_exclude. The exclusion mask enables backtracking, which allows to
-retry potentially excluded streamlines by backtracking a given distance and
-sampling a new path.
+AdaViT is available for deterministic and probabilistic tracking. The user can 
+supply an exclusion mask with --mask_exclude. A streamline terminating in the
+exclusion mask will be excluded from the output. When used with probabilistic
+tractography, the exclusion mask enables backtracking, which allows to retry
+potentially excluded streamlines by backtracking a given distance and sampling
+a new path.
 """
 
 import argparse
