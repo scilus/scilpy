@@ -37,7 +37,7 @@ from scilpy.reconst.utils import get_sh_order_and_fullness
 from scilpy.io.utils import (add_overwrite_arg, add_verbose_arg,
                              assert_inputs_exist, add_sh_basis_args,
                              assert_outputs_exist, parse_sh_basis_arg)
-from scilpy.denoise.asym_filtering import (cosine_filtering, unified_filtering)
+from scilpy.feature.asym_filtering import (cosine_filtering, unified_filtering)
 from scilpy.version import version_string
 
 
