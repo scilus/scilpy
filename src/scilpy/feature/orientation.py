@@ -1,7 +1,9 @@
 # -*- coding:utf-8 -*-
 """
 [Note - 2025/11/14]
-Code adapted from https://github.com/lens-biophotonics/Foa3D. (MIT license copied below)
+Code for Frangi filters adapted from https://github.com/lens-biophotonics/Foa3D.
+
+The original MIT license is copied below.
 
 ================================
 MIT License
