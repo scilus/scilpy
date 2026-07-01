@@ -16,14 +16,17 @@ The memory requirement scales with the size of the input image. For example, a w
 brain S-OCT image at 10 microns (dimensions 828 x 882 x 871; 1.5 GB compressed file) requires
 320 GB of RAM. The time requirement scales with the number of scales provided. For example,
 the same whole-mouse brain requires 4.5 hrs to process on a single core (e.g. Rorqual) using
-4 scales.
+4 scales. On a smaller test image (dimensions 768 x 768 x 36; 151 MB compressed file), the
+script requires around 6 GB of RAM and 1 min to process using 4 scales on a single core.
 """
 import argparse
+import logging
 import nibabel as nib
 import numpy as np
 
 from scilpy.feature.orientation import frangi_filter
 from scilpy.io.utils import assert_inputs_exist, assert_outputs_exist, add_overwrite_arg
+from scilpy.version import version_string
 
 EPILOG="""
 [1] Sorelli et al, 2023, "Fiber enhancement and 3D orientation analysis in label-free
@@ -32,8 +35,9 @@ EPILOG="""
     and Computer-Assisted Intervention (MICCAI), 130-137
 """
 
+
 def _build_arg_parser():
-    p = argparse.ArgumentParser(description=__doc__, epilog=EPILOG,
+    p = argparse.ArgumentParser(description=__doc__, epilog=EPILOG+version_string,
                                 formatter_class=argparse.RawTextHelpFormatter)
     p.add_argument('in_image', help='Input nifti image.')
     p.add_argument('out_direction', help='Output direction nifti image.')
@@ -64,6 +68,7 @@ def _build_arg_parser():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
+    logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     assert_inputs_exist(parser, args.in_image)
     assert_outputs_exist(parser, args, [args.out_direction, args.out_probability])
