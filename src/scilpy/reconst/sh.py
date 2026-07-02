@@ -349,7 +349,8 @@ def peaks_from_sh(shm_coeff, sphere, mask=None, relative_peak_threshold=0.5,
         for i, peak_dirs, peak_values, peak_indices in results:
             tmp_peak_dirs_array[chunk_len[i]:chunk_len[i+1], :, :] = peak_dirs
             tmp_peak_values_array[chunk_len[i]:chunk_len[i+1], :] = peak_values
-            tmp_peak_indices_array[chunk_len[i]:chunk_len[i+1], :] = peak_indices
+            tmp_peak_indices_array[chunk_len[i]
+                :chunk_len[i+1], :] = peak_indices
 
     # Bring back to the original shape
     peak_dirs_array = np.zeros(data_shape[0:3] + (npeaks, 3))
@@ -830,7 +831,8 @@ def generate_apodized_delta_kernel(sh_order_max, basis_type="descoteaux07", lega
     logging.info(f'Apodization kernel converged in {n} iterations.')
 
     m_list, l_list = sph_harm_ind_list(sh_order_max)
-    kern = np.zeros(int((sh_order_max+1)*(sh_order_max+2)//2), dtype=np.float32)
+    kern = np.zeros(int((sh_order_max+1)*(sh_order_max+2)//2),
+                    dtype=np.float32)
     rh = sh_to_rh(p_n.flatten(), m_list, l_list)
     for i, l in enumerate(np.arange(sh_order_max+1, step=2)):
         kern[l_list == l] = rh[i]

@@ -38,7 +38,7 @@ from skimage.feature import structure_tensor
 from scilpy.io.utils import assert_inputs_exist, assert_outputs_exist, add_overwrite_arg, add_verbose_arg
 from scilpy.version import version_string
 
-EPILOG="""
+EPILOG = """
 [1] Sorelli et al, 2023, "Fiber enhancement and 3D orientation analysis in label-free
     two-photon fluorescence microscopy", Scientific Reports (2023) 13:4160
 [2] Frangi et al, 1998, "Multiscale vessel enhancement filtering", Medical Image Computing
@@ -60,18 +60,19 @@ def _build_arg_parser():
 
     frangi_group = p.add_argument_group('Frangi filter parameters')
     frangi_group.add_argument('--alpha', default=0.5, type=float,
-                   help='Alpha parameter controlling sensitivity to plate-like structures. \n'
-                        'The higher `alpha` the less likely we are to label flat structures as tubes. [%(default)s]')
+                              help='Alpha parameter controlling sensitivity to plate-like structures. \n'
+                              'The higher `alpha` the less likely we are to label flat structures as tubes. [%(default)s]')
     frangi_group.add_argument('--beta', default=0.5, type=float,
-                   help='Beta parameter controlling sensitivity to locally-isotropic structures (blobs).\n'
-                        'The higher `beta` the less likely we are to label blobs as tubes. [%(default)s]')
+                              help='Beta parameter controlling sensitivity to locally-isotropic structures (blobs).\n'
+                              'The higher `beta` the less likely we are to label blobs as tubes. [%(default)s]')
     frangi_group.add_argument('--gamma', type=float,
                               help='Correction constant that adjusts the sensitivity to areas\n'
                                    'of high variance/texture/structure. By default, half of the\n'
                                    'maximum Hessian norm.')
 
     p.add_argument('--padding_mode', default='constant',
-                   choices=['constant', 'edge', 'symmetric', 'reflect', 'wrap'],
+                   choices=['constant', 'edge',
+                            'symmetric', 'reflect', 'wrap'],
                    help='Padding mode for Frangi filter. [%(default)s]')
     p.add_argument('--padding_cval', type=float, default=0.0,
                    help='Constant value for padding. Only used if padding_mode is constant. [%(default)s]')
@@ -81,7 +82,8 @@ def _build_arg_parser():
 
 
 def structure_tensor_wrapper(data, sigma, padding_mode='constant', padding_cval=0):
-    a_elems = structure_tensor(data, sigma=sigma, mode=padding_mode, cval=padding_cval)
+    a_elems = structure_tensor(
+        data, sigma=sigma, mode=padding_mode, cval=padding_cval)
     A = np.zeros(data.shape + (3, 3), dtype=np.float64)
     A[..., 0, 0] = a_elems[0]
     A[..., 0, 1] = a_elems[1]
@@ -109,10 +111,12 @@ def main():
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     assert_inputs_exist(parser, args.in_image)
-    assert_outputs_exist(parser, args, [args.out_direction, args.out_probability])
+    assert_outputs_exist(
+        parser, args, [args.out_direction, args.out_probability])
 
     if len(args.sigma) > 1 and args.method == 'structure_tensor':
-        parser.error('Structure tensor method only supports a single scale. Please provide a single value for --sigma.')
+        parser.error(
+            'Structure tensor method only supports a single scale. Please provide a single value for --sigma.')
 
     in_im = nib.load(args.in_image)
     in_data = in_im.get_fdata().astype(np.float32)
@@ -125,7 +129,8 @@ def main():
                                         padding_cval=args.padding_cval)
 
     elif args.method == 'structure_tensor':
-        A = structure_tensor_wrapper(in_data, scales[0], args.padding_mode, args.padding_cval)
+        A = structure_tensor_wrapper(
+            in_data, scales[0], args.padding_mode, args.padding_cval)
         evals, evecs = np.linalg.eigh(A)
 
         # ascending order of eigenvalues, so lambda_1 is the largest
@@ -137,8 +142,10 @@ def main():
         direction = evecs[..., 0]
 
     # write outputs
-    nib.save(nib.Nifti1Image(direction.astype(np.float32), in_im.affine), args.out_direction)
-    nib.save(nib.Nifti1Image(prob.astype(np.float32), in_im.affine), args.out_probability)
+    nib.save(nib.Nifti1Image(direction.astype(
+        np.float32), in_im.affine), args.out_direction)
+    nib.save(nib.Nifti1Image(prob.astype(np.float32),
+             in_im.affine), args.out_probability)
 
 
 if __name__ == '__main__':

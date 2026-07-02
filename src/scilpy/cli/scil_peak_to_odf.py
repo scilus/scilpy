@@ -22,7 +22,8 @@ def _build_arg_parser():
     p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawTextHelpFormatter)
     p.add_argument('in_peaks', help='Input peaks nifti image.')
-    p.add_argument('out_sh', help='Output spherical harmonics (hist-FOD) image.')
+    p.add_argument('out_sh',
+                   help='Output spherical harmonics (hist-FOD) image.')
 
     p.add_argument('--brain_mask',
                    help='Optional nifti image to mask the output hist-FOD.\n'
@@ -61,7 +62,8 @@ def main():
 
     apodize_kernel = None
     if not args.disable_apodization:
-        apodize_kernel = generate_apodized_delta_kernel(args.sh_order_max, basis_type, legacy)
+        apodize_kernel = generate_apodized_delta_kernel(
+            args.sh_order_max, basis_type, legacy)
 
     sphere = hemi_icosahedron.subdivide(n=4)
     sh_to_sf_mat = sh_to_sf_matrix(sphere, sh_order_max=args.sh_order_max,
@@ -72,7 +74,8 @@ def main():
     peaks = peaks_im.get_fdata().astype(np.float32)  # force float32 to save memory
 
     # numpy.zeros does not actually allocate memory until values are assigned.
-    out_sh = np.zeros(peaks_im.shape[:-1] + (sh_to_sf_mat.shape[0],), dtype=np.float32)
+    out_sh = np.zeros(peaks_im.shape[:-1] + (sh_to_sf_mat.shape[0],),
+                      dtype=np.float32)
     out_sh[:] = 0  # force allocation of memory
 
     # process peak
@@ -112,7 +115,8 @@ def main():
         out_sh[~brain_mask] = 0
 
     logging.info("Saving output...")
-    nib.save(nib.Nifti1Image(out_sh.astype(np.float32), peaks_im.affine), args.out_sh)
+    nib.save(nib.Nifti1Image(out_sh.astype(np.float32),
+                             peaks_im.affine), args.out_sh)
 
 
 if __name__ == '__main__':

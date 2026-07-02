@@ -33,7 +33,8 @@ def _build_arg_parser():
                    help='Path to the reference peaks image against which to compare.')
     p.add_argument('out_angular_error',
                    help='Output filename for the angular error map between estimated and reference peaks.')
-    p.add_argument('out_json', help='Output JSON file to save the computed metrics.')
+    p.add_argument('out_json',
+                   help='Output JSON file to save the computed metrics.')
 
     add_verbose_arg(p)
     add_overwrite_arg(p)
@@ -60,7 +61,8 @@ def _compute_angular_error(est_peaks, ref_peaks):
             continue  # no valid peaks in whole image, skip to next peak
 
         # compare the current reference peak to all estimated peaks
-        dot_prod = np.abs(np.sum(est_peaks * ref_peaks_i[..., None, :], axis=-1))
+        dot_prod = np.abs(
+            np.sum(est_peaks * ref_peaks_i[..., None, :], axis=-1))
         dot_prod = np.clip(dot_prod, -1, 1)  # clip for numerical stability
 
         # then the angular error for this peak is the smallest angle
@@ -91,11 +93,13 @@ def main():
     ref_peaks = ref_peaks_im.get_fdata(dtype=np.float32)
     ref_peaks = ref_peaks.reshape(ref_peaks.shape[:-1] + (-1, 3))
     norm = np.linalg.norm(ref_peaks, axis=-1)
-    ref_peaks = np.divide(ref_peaks, norm[..., None], where=norm[..., None] > 0)  # normalize
+    ref_peaks = np.divide(ref_peaks, norm[..., None],
+                          where=norm[..., None] > 0)
 
     # create a nufo map for the reference peaks
     valid = norm > 0  # valid is 4D
-    mask = np.sum(valid, axis=-1) > 0  # 3D mask of voxels with at least one valid peak
+    # 3D mask of voxels with at least one valid peak
+    mask = np.sum(valid, axis=-1) > 0
     nufo = np.count_nonzero(valid, axis=-1)
     nufo[~mask] = 0
 
@@ -116,7 +120,8 @@ def main():
     for i in range(1, nufo.max() + 1):
         count = np.count_nonzero(nufo == i)
         if count > 0:
-            metrics_dict[f'mean_max_angular_error_nufo_{i}'] = np.mean(max_angular_error[nufo == i])
+            metrics_dict[f'mean_max_angular_error_nufo_{i}'] =\
+                np.mean(max_angular_error[nufo == i])
 
     # Save outputs
     nib.save(nib.Nifti1Image(max_angular_error.astype(np.float32), ref_peaks_im.affine),
@@ -131,4 +136,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

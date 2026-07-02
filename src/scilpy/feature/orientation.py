@@ -156,7 +156,8 @@ def compute_frangi_features(eigen1, eigen2, eigen3, gamma):
         (automatically computed if not provided as input)
     """
     ra = divide_nonzero(np.abs(eigen2), np.abs(eigen3))
-    rb = divide_nonzero(np.abs(eigen1), np.sqrt(np.abs(np.multiply(eigen2, eigen3))))
+    rb = divide_nonzero(np.abs(eigen1), np.sqrt(
+        np.abs(np.multiply(eigen2, eigen3))))
     s = compute_structureness(eigen1, eigen2, eigen3)
 
     # compute default gamma sensitivity
@@ -211,7 +212,8 @@ def compute_scaled_hessian(img, sigma=1, trunc=4, padding_mode='reflect', paddin
     hessian_elements = [corr_factor * element for element in hessian_elements]
 
     # create the Hessian matrix from its basic elements
-    hessian = np.zeros((img.ndim, img.ndim) + scaled_img.shape, dtype=scaled_img.dtype)
+    hessian = np.zeros((img.ndim, img.ndim) +
+                       scaled_img.shape, dtype=scaled_img.dtype)
     for index, (ax0, ax1) in enumerate(combinations_with_replacement(range(img.ndim), 2)):
         element = hessian_elements[index]
         hessian[ax0, ax1, ...] = element
@@ -316,7 +318,8 @@ def compute_scaled_orientation(scale_px, img, alpha=0.001, beta=1, gamma=None,
 
     # compute Frangi's vesselness probability image
     eigen1, eigen2, eigen3 = eigval
-    vesselness = compute_scaled_vesselness(eigen1, eigen2, eigen3, alpha=alpha, beta=beta, gamma=gamma)
+    vesselness = compute_scaled_vesselness(
+        eigen1, eigen2, eigen3, alpha=alpha, beta=beta, gamma=gamma)
     frangi_img = reject_vesselness_background(vesselness, eigen2, eigen3)
     eigval = np.stack(eigval, axis=-1)
 
@@ -430,7 +433,8 @@ def sort_eigen(eigval, eigvec, axis=-1):
     # sort the eigenvalue array by absolute value (ascending order)
     srt_val_idx = np.abs(eigval).argsort(axis)
     srt_eigval = np.take_along_axis(eigval, srt_val_idx, axis)
-    srt_eigval = [np.squeeze(eigval, axis=axis) for eigval in np.split(srt_eigval, srt_eigval.shape[axis], axis=axis)]
+    srt_eigval = [np.squeeze(eigval, axis=axis) for eigval in np.split(
+        srt_eigval, srt_eigval.shape[axis], axis=axis)]
 
     # sort related eigenvectors consistently
     srt_vec_idx = srt_val_idx[:, :, :, np.newaxis, :]
