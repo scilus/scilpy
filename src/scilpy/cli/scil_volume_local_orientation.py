@@ -114,14 +114,15 @@ def main():
     assert_outputs_exist(
         parser, args, [args.out_direction, args.out_probability])
 
-    if len(args.sigma) > 1 and args.method == 'structure_tensor':
+    scales = np.atleast_1d(args.sigma)
+
+    if len(scales) > 1 and args.method == 'structure_tensor':
         parser.error(
             'Structure tensor method only supports a single scale. Please provide a single value for --sigma.')
 
     in_im = nib.load(args.in_image)
     in_data = in_im.get_fdata().astype(np.float32)
 
-    scales = np.atleast_1d(args.sigma)
     if args.method == 'frangi':
         prob, direction = frangi_filter(in_data, scales, alpha=args.alpha,
                                         beta=args.beta, gamma=args.gamma,

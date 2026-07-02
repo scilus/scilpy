@@ -21,7 +21,8 @@ from scilpy.io.utils import (assert_inputs_exist, assert_outputs_exist,
 def _build_arg_parser():
     p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawTextHelpFormatter)
-    p.add_argument('in_peaks', help='Input peaks nifti image.')
+    p.add_argument('in_peaks',
+                   help='Input peaks nifti image with shape (nx, ny, nz, 3).')
     p.add_argument('out_sh',
                    help='Output spherical harmonics (hist-FOD) image.')
 
