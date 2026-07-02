@@ -29,7 +29,6 @@ script requires around 6 GB of RAM and 1 min to process using 4 scales on a sing
 """
 import argparse
 import logging
-from networkx import sigma
 import nibabel as nib
 import numpy as np
 

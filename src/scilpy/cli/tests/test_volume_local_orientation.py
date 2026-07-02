@@ -71,8 +71,8 @@ def test_frangi(script_runner, monkeypatch):
 def test_frangi_multiscale(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
 
-    out_direction = 'direction_frangi.nii.gz'
-    out_probability = 'probability_frangi.nii.gz'
+    out_direction = 'direction_frangi_2.nii.gz'
+    out_probability = 'probability_frangi_2.nii.gz'
     ret = script_runner.run([
         'scil_volume_local_orientation',
         in_img, out_direction, out_probability,
