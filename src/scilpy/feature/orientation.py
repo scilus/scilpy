@@ -323,7 +323,7 @@ def compute_scaled_orientation(scale_px, img, alpha=0.001, beta=1, gamma=None,
     return frangi_img, eigvec, eigval
 
 
-def frangi_filter(img, scales_px=1, *, alpha=0.001, beta=1.0, gamma=None, threshold=1e-4,
+def frangi_filter(img, scales_px=1, *, alpha=0.001, beta=1.0, gamma=None,
                   padding_mode='reflect', padding_cval=0):
     """
     Apply 3D Frangi filter to 3D microscopy image.
@@ -340,8 +340,6 @@ def frangi_filter(img, scales_px=1, *, alpha=0.001, beta=1.0, gamma=None, thresh
         blob-like score sensitivity
     gamma: float
         background score sensitivity (if None, gamma is automatically tailored)
-    threshold: float
-        vesselness threshold for accepting a direction
     mask_eigen: str = None
         whether to mask positive eigenvalues for vesselness measure
     padding_mode: str
@@ -359,7 +357,7 @@ def frangi_filter(img, scales_px=1, *, alpha=0.001, beta=1.0, gamma=None, thresh
     # single-scale or parallel multi-scale vesselness analysis
     ns = len(scales_px)
 
-    frangi_max = np.full(img.shape, threshold, dtype='float32')
+    frangi_max = np.zeros(img.shape, dtype='float32')
     eigvec_max = np.zeros(img.shape + (3,), dtype='float32')
     for s in range(ns):
         frangi, eigvec, _ = compute_scaled_orientation(scales_px[s], img, alpha=alpha,

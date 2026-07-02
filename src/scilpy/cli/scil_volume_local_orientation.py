@@ -11,8 +11,7 @@ across all scales.
 
 Parameters --alpha, --beta and --gamma are used to control the sensitivity of the filter to
 different structures. The defaults correspond to the original Frangi filter paper [2], but
-they can be adjusted to better fit the data. The argument --prob_threshold is used to
-filter out low-probability orientations.
+they can be adjusted to better fit the data.
 
 The script also provides the single-scale structure tensor method as an alternative. Because
 structure tensor is based on 1st-order derivatives, it is generally less sensitive to noise than
@@ -58,8 +57,6 @@ def _build_arg_parser():
     p.add_argument('--sigma', nargs='+', type=float, default=1.0,
                    help='Sigmas used, in voxel space. For Frangi method, this can'
                         'be a list. [%(default)s]')
-    p.add_argument('--prob_threshold', type=float, default=0.0,
-                   help='Probability threshold for accepting a direction. [%(default)s]')
 
     frangi_group = p.add_argument_group('Frangi filter parameters')
     frangi_group.add_argument('--alpha', default=0.5, type=float,
@@ -124,14 +121,10 @@ def main():
     if args.method == 'frangi':
         prob, direction = frangi_filter(in_data, scales, alpha=args.alpha,
                                         beta=args.beta, gamma=args.gamma,
-                                        threshold=args.prob_threshold,
                                         padding_mode=args.padding_mode,
                                         padding_cval=args.padding_cval)
 
     elif args.method == 'structure_tensor':
-        # Add a probability threshold
-        prob = np.full(in_data.shape, args.prob_threshold)
-
         A = structure_tensor_wrapper(in_data, scales[0], args.padding_mode, args.padding_cval)
         evals, evecs = np.linalg.eigh(A)
 
@@ -140,12 +133,8 @@ def main():
         lambda_2 = evals[..., 1]
         lambda_3 = evals[..., 0]
 
-        _prob = divide_nonzero(lambda_2 - lambda_3, lambda_1)
-        update_mask = _prob > prob
-
-        prob[update_mask] = _prob[update_mask]
+        prob = divide_nonzero(lambda_2 - lambda_3, lambda_1)
         direction = evecs[..., 0]
-        direction[~update_mask] = 0  # set direction to zero where probability is below threshold
 
     # write outputs
     nib.save(nib.Nifti1Image(direction.astype(np.float32), in_im.affine), args.out_direction)
