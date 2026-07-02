@@ -358,8 +358,8 @@ def frangi_filter(img, scales_px=1, *, alpha=0.001, beta=1.0, gamma=None,
         3D fiber orientation field
     """
     # single-scale or parallel multi-scale vesselness analysis
+    scales_px = np.atleast_1d(scales_px)
     ns = len(scales_px)
-
     frangi_max = np.zeros(img.shape, dtype='float32')
     eigvec_max = np.zeros(img.shape + (3,), dtype='float32')
     for s in range(ns):
