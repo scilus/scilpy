@@ -4,11 +4,11 @@ import logging
 import multiprocessing
 import numpy as np
 
-from dipy.core.sphere import Sphere
+from dipy.core.sphere import Sphere, hemi_icosahedron
 from dipy.direction.peaks import peak_directions
 from dipy.reconst.odf import gfa
 from dipy.reconst.shm import (sh_to_sf_matrix, order_from_ncoef, sf_to_sh,
-                              sph_harm_ind_list)
+                              sph_harm_ind_list, sh_to_rh)
 
 from scilpy.gradients.bvec_bval_tools import (identify_shells,
                                               is_normalized_bvecs,
@@ -349,7 +349,8 @@ def peaks_from_sh(shm_coeff, sphere, mask=None, relative_peak_threshold=0.5,
         for i, peak_dirs, peak_values, peak_indices in results:
             tmp_peak_dirs_array[chunk_len[i]:chunk_len[i+1], :, :] = peak_dirs
             tmp_peak_values_array[chunk_len[i]:chunk_len[i+1], :] = peak_values
-            tmp_peak_indices_array[chunk_len[i]:chunk_len[i+1], :] = peak_indices
+            tmp_peak_indices_array[chunk_len[i]
+                :chunk_len[i+1], :] = peak_indices
 
     # Bring back to the original shape
     peak_dirs_array = np.zeros(data_shape[0:3] + (npeaks, 3))
@@ -772,3 +773,67 @@ def convert_sh_to_sf(shm_coeff, sphere, mask=None, dtype="float32",
     sf_array[mask] = tmp_sf_array
 
     return sf_array
+
+
+def generate_apodized_delta_kernel(sh_order_max, basis_type="descoteaux07", legacy=True,
+                                   reg=1000, threshold=0.1, maximum_iterations=100):
+    """
+    Generate an apodized delta kernel.
+
+    The apodized delta kernel is used to reduce ringing artifacts in the
+    SH representation. The iterative algorithm is based on
+    the TODI paper from Dhollander et al (2014).
+
+    The kernel is applied by multiplying the SH coefficients by the kernel
+    coefficients:
+        apo = sh_coeffs * kernel_coeffs
+
+    Parameters
+    ----------
+    sh_order_max : int
+        Maximum SH order.
+    basis_type : str, optional
+        Type of spherical harmonic basis used. Either `descoteaux07` or
+        `tournier07`.
+    legacy : bool, optional
+        Whether the SH basis is in its legacy form.
+    reg : float, optional
+        Regularization parameter for the apodization kernel.
+    threshold : float, optional
+        Threshold parameter for the apodization kernel.
+    maximum_iterations : int, optional
+        Maximum number of iterations for the apodization kernel.
+    """
+    # generate a sphere with a lot of vertices
+    sphere = hemi_icosahedron.subdivide(n=5)
+    logging.debug(f'Number of vertices in sphere: {len(sphere.vertices)}')
+    Q = sh_to_sf_matrix(sphere, sh_order_max=sh_order_max,
+                        basis_type=basis_type, legacy=legacy,
+                        return_inv=False).T
+    mask_theta_0 = np.abs(sphere.vertices.dot([0, 0, 1])) == 1
+
+    p_n = Q[mask_theta_0].reshape((-1, 1))
+    p_np1 = None
+    z = mask_theta_0.astype(float).reshape((-1, 1))
+    n = 0
+    while n < maximum_iterations:
+        a_n = Q.dot(p_n)
+        neg_mask = a_n < threshold * p_n[0, 0] / np.sqrt(4.0*np.pi)
+        if not np.any(neg_mask):
+            logging.debug('No values below threshold, stopping iteration.')
+            break
+        L_n = np.diag(neg_mask.flatten().astype(float))
+        pinv = np.linalg.pinv((np.eye(L_n.shape[0]) + reg * L_n).dot(Q))
+        p_np1 = pinv.dot(z)
+        p_n = p_np1.copy()
+        n = n + 1
+    p_n = p_n / (p_n[0, 0] * np.sqrt(4.0*np.pi))
+    logging.info(f'Apodization kernel converged in {n} iterations.')
+
+    m_list, l_list = sph_harm_ind_list(sh_order_max)
+    kern = np.zeros(int((sh_order_max+1)*(sh_order_max+2)//2),
+                    dtype=np.float32)
+    rh = sh_to_rh(p_n.flatten(), m_list, l_list)
+    for i, l in enumerate(np.arange(sh_order_max+1, step=2)):
+        kern[l_list == l] = rh[i]
+    return kern
