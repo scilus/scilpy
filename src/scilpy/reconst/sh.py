@@ -810,7 +810,10 @@ def generate_apodized_delta_kernel(sh_order_max, basis_type="descoteaux07", lega
     Q = sh_to_sf_matrix(sphere, sh_order_max=sh_order_max,
                         basis_type=basis_type, legacy=legacy,
                         return_inv=False).T
-    mask_theta_0 = np.abs(sphere.vertices.dot([0, 0, 1])) == 1
+    all_cosines = np.abs(sphere.vertices.dot([0, 0, 1]))
+    # mask for the vertice which is the closest to (0, 0, 1).
+    # for the chosen sphere there will only be one such direction.
+    mask_theta_0 = all_cosines == np.max(all_cosines)
 
     p_n = Q[mask_theta_0].reshape((-1, 1))
     p_np1 = None
