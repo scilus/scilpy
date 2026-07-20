@@ -16,7 +16,7 @@ jobs:
         run: echo "python-version=$(head -1 .python-version)" >> $GITHUB_OUTPUT
 
       - name: Set up Python for Scilpy
-        uses: actions/setup-python@v5.0.0
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ steps.python-selector.outputs.python-version }}
           cache: 'pip'
@@ -29,6 +29,6 @@ jobs:
           echo "requirements=$PWD/requirements.${{ github.ref_name }}.frozen" >> $GITHUB_OUTPUT
       
       - name: Upload frozen requirements to release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v3
         with:
           files : ${{ steps.requirements-freezer.outputs.requirements }}
