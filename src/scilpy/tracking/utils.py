@@ -22,6 +22,7 @@ from scilpy.io.utils import (add_compression_arg, add_overwrite_arg,
                              add_sh_basis_args)
 from scilpy.reconst.utils import (find_order_from_nb_coeff, get_maximas,
                                   is_data_peaks)
+from scilpy.io.stateful_image import StatefulImage
 
 
 class TrackingDirection(list):
@@ -259,7 +260,6 @@ def save_tractogram(
     voxel_size = np.array(ref_img.header.get_zooms()[:3])
     # If ref_img is a StatefulImage, we want to save relative to its
     # original on-disk orientation, not the internal (likely RAS) one.
-    from scilpy.io.stateful_image import StatefulImage
     is_stateful = isinstance(ref_img, StatefulImage)
 
     if is_stateful:

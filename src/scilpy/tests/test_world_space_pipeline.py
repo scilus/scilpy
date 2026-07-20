@@ -10,6 +10,7 @@ from dipy.io.streamline import load_tractogram
 from scilpy.io.stateful_image import StatefulImage
 from scilpy.tracking.seed import SeedGenerator
 from scilpy.tracking.utils import save_tractogram
+from nibabel.streamlines import TrkFile as NibTrkFile
 
 
 @pytest.fixture
@@ -118,7 +119,6 @@ def test_save_tractogram_world_space(tmp_path, rotated_las_dataset):
         yield streamline, seed_world
 
     out_trk_scil = str(tmp_path / "test_scil.trk")
-    from nibabel.streamlines import TrkFile as NibTrkFile
     save_tractogram(mock_gen, NibTrkFile, simg, 1, out_trk_scil,
                     0, 1000, None, True, False, space=Space.RASMM)
 
@@ -132,7 +132,3 @@ def test_save_tractogram_world_space(tmp_path, rotated_las_dataset):
     # Assert seed was saved correctly in DPS
     np.testing.assert_allclose(
         sft_scil.data_per_streamline['seeds'][0], seed_world, atol=1e-2)
-
-
-if __name__ == "__main__":
-    pytest.main([__file__])

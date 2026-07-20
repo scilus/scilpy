@@ -40,6 +40,8 @@ from scilpy.io.utils import (add_overwrite_arg, add_reference_arg,
 from scilpy.tractanalysis.reproducibility_measures import \
     tractogram_pairwise_comparison
 from scilpy.version import version_string
+from dipy.io.stateful_tractogram import Space, StatefulTractogram
+from scilpy.io.stateful_image import StatefulImage
 
 
 def _build_arg_parser():
@@ -107,8 +109,6 @@ def main():
     sft_2 = load_tractogram_with_reference(parser, args, args.in_tractogram_2)
 
     # Force RAS alignment
-    from dipy.io.stateful_tractogram import Space, StatefulTractogram
-    from scilpy.io.stateful_image import StatefulImage
     ref_simg = StatefulImage.load(args.reference or args.in_tractogram_1)
 
     sft_1.to_rasmm()

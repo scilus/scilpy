@@ -6,6 +6,7 @@ from fury import actor, window
 from fury.utils import get_actor_from_polydata
 
 from scilpy.utils.spatial import get_axis_index
+import vtk
 
 
 class CamParams(Enum):
@@ -348,7 +349,6 @@ def create_contours_actor(contours, opacity=1., linewidth=3.,
     """
 
     if affine is not None:
-        import vtk
         vtk_matrix = vtk.vtkMatrix4x4()
         for i in range(4):
             for j in range(4):

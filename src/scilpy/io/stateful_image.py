@@ -7,6 +7,9 @@ from scipy.linalg import polar
 from dipy.io.gradients import read_bvals_bvecs
 from dipy.io.utils import get_reference_info
 from scilpy.utils.orientation import validate_voxel_order
+from scilpy.reconst.utils import (get_sh_order_and_fullness,
+                                  find_order_from_nb_coeff)
+from scilpy.reconst.sh import rotate_sh
 
 
 class StatefulImage(nib.Nifti1Image):
@@ -256,7 +259,6 @@ class StatefulImage(nib.Nifti1Image):
         last_dim = data.shape[-1]
         is_sh = not is_data_peaks(data)
         if is_sh:
-            from scilpy.reconst.sh import rotate_sh
             # SH data can be 4D (XxYxZxN)
             order, full = get_sh_order_and_fullness(last_dim)
             return rotate_sh(data, R, basis_type=sh_basis,

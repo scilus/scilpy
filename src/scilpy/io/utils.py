@@ -35,6 +35,7 @@ topup_options = ['out', 'fout', 'iout', 'logout', 'warpres', 'subsamp', 'fwhm',
                  'config', 'miter', 'lambda', 'ssqlambda', 'regmod', 'estmov',
                  "minmet", 'splineorder', 'numprec', 'interp', 'scale',
                  'regrid']
+from scilpy.io.stateful_image import StatefulImage
 
 
 def is_argument_set(args, arg_name):
@@ -1288,7 +1289,6 @@ def get_default_screenshotting_data(args, peaks=True):
 
     peaks_imgs = None
     if peaks and args.peaks:
-        from scilpy.io.stateful_image import StatefulImage
         peaks_imgs = []
         for f in args.peaks:
             simg = StatefulImage.load(f, is_orientation=True,

@@ -12,6 +12,7 @@ from scilpy.viz.backends.fury import (create_contours_actor,
 from scilpy.viz.backends.vtk import contours_from_data
 from scilpy.viz.color import generate_n_colors, lut_from_matplotlib_name
 from scilpy.viz.utils import affine_from_offset
+from scilpy.io.stateful_image import StatefulImage
 
 
 def create_texture_slicer(texture, orientation, slice_index, *, mask=None,
@@ -170,7 +171,6 @@ def create_peaks_slicer(data, orientation, slice_index, *, peak_values=None,
         Fury object containing the peaks information.
     """
 
-    from scilpy.io.stateful_image import StatefulImage
     if isinstance(data, StatefulImage):
         data = data.to_voxel_direction()
 
@@ -262,7 +262,6 @@ def create_odf_slicer(sh_fodf, orientation, slice_index, sphere, sh_order,
         Fury object containing the odf variance information.
     """
 
-    from scilpy.io.stateful_image import StatefulImage
     if isinstance(sh_fodf, StatefulImage):
         sh_fodf = sh_fodf.to_voxel_direction(sh_basis=sh_basis)
 
@@ -330,7 +329,6 @@ def create_bingham_slicer(data, orientation, slice_index,
         ODF slicer actors representing the Bingham distributions.
     """
 
-    from scilpy.io.stateful_image import StatefulImage
     if isinstance(data, StatefulImage):
         data = data.to_voxel_direction()
 

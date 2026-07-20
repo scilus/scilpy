@@ -15,6 +15,7 @@ from scilpy.viz.utils import compute_cell_topleft_pos
 from scilpy.viz.slice import (create_contours_slicer,
                               create_peaks_slicer,
                               create_texture_slicer)
+from scilpy.io.stateful_image import StatefulImage
 
 
 def screenshot_volume(img, orientation, slice_ids, size, labelmap=None):
@@ -122,7 +123,6 @@ def screenshot_peaks(img, orientation, slice_ids, size, mask_img=None):
     if mask_img:
         mask = mask_img.get_fdata().astype(bool)
 
-    from scilpy.io.stateful_image import StatefulImage
     if isinstance(img, StatefulImage):
         data = img.to_voxel_direction()
     else:
