@@ -1,4 +1,4 @@
-
+from importlib.metadata import version
 
 def get_home():
     import os
@@ -14,6 +14,7 @@ def get_root():
     import os
     return os.path.realpath(f"{os.path.dirname(os.path.abspath(__file__))}/../..")
 
+__version__ = version("scilpy")
 
 SCILPY_HOME = get_home()
 SCILPY_ROOT = get_root()
