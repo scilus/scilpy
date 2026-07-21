@@ -7,8 +7,8 @@ from scipy.linalg import polar
 from dipy.io.gradients import read_bvals_bvecs
 from dipy.io.utils import get_reference_info
 from scilpy.utils.orientation import validate_voxel_order
-from scilpy.reconst.utils import (get_sh_order_and_fullness,
-                                  find_order_from_nb_coeff)
+from scilpy.reconst.utils import get_sh_order_and_fullness, is_data_peaks
+
 from scilpy.reconst.sh import rotate_sh
 
 
@@ -232,9 +232,6 @@ class StatefulImage(nib.Nifti1Image):
         """
         Internal helper to rotate SH or Peaks data.
         """
-        from scilpy.reconst.utils import (get_sh_order_and_fullness,
-                                          is_data_peaks)
-
         original_shape = data.shape
         if len(original_shape) == 5 and original_shape[-1] == 7:
             # Bingham-like data: [amp, mu1_x, mu1_y, mu1_z,
@@ -575,16 +572,16 @@ class StatefulImage(nib.Nifti1Image):
         bvals, bvecs = read_bvals_bvecs(bval_path, bvec_path)
         self.attach_gradients(bvals, bvecs)
 
-    def save_gradients(self, bval_path, bvec_path):
+    def save_gradients(self, bval_path=None, bvec_path=None):
         """
         Save b-values and b-vectors to FSL-formatted files.
         Ensures b-vectors match the original voxel order.
 
         Parameters
         ----------
-        bval_path : str
+        bval_path : str, optional
             Path to save the bvals file.
-        bvec_path : str
+        bvec_path : str, optional
             Path to save the bvecs file.
         """
         if self._bvals is None or self._world_bvecs is None:
@@ -603,8 +600,10 @@ class StatefulImage(nib.Nifti1Image):
         if StatefulImage.needs_fsl_flip(ref_affine):
             bvecs_to_save[:, 0] *= -1
 
-        np.savetxt(bvec_path, bvecs_to_save.T, fmt='%.8f')
-        np.savetxt(bval_path, self._bvals[None, :], fmt='%.3f')
+        if bvec_path is not None:
+            np.savetxt(bvec_path, bvecs_to_save.T, fmt='%.8f')
+        if bval_path is not None:
+            np.savetxt(bval_path, self._bvals[None, :], fmt='%.3f')
 
     def _reorient_gradients(self, start_axcodes, target_axcodes):
         """

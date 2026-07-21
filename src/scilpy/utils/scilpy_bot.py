@@ -3,6 +3,7 @@ import ast
 from colorama import Fore, Style
 from importlib.resources import files
 import itertools
+import logging
 import multiprocessing
 import pathlib
 import re
@@ -239,9 +240,8 @@ def _generate_help_files(nbr_cpu=1):
     scripts_to_regenerate = [script for script in scripts
                              if hidden_dir / f'{script.name}.help' not in helps]
 
-    # Check if all help files are present
     if len(scripts_to_regenerate) == 0:
-        print("All help files are already generated.")
+        logging.debug('All help files are already generated.')
         return
 
     with multiprocessing.Pool(processes=nbr_cpu) as pool:

@@ -98,9 +98,10 @@ def main():
     nbr_cpu = validate_nbr_processes(parser, args)
 
     if args.verbose == "WARNING":
-        logging.getLogger().setLevel(logging.INFO)
+        logging.basicConfig(level=logging.INFO, format='%(message)s', force=True)
     else:
-        logging.getLogger().setLevel(logging.getLevelName(args.verbose))
+        logging.basicConfig(level=logging.getLevelName(args.verbose),
+                            format='%(message)s', force=True)
 
     hidden_dir = pathlib.Path(SCILPY_HOME) / ".hidden"
     if not hidden_dir.exists():
@@ -226,8 +227,9 @@ def main():
             f"{Fore.LIGHTYELLOW_EX}Total Score: {total_scores[match]}"
             f"{Style.RESET_ALL}")
 
+        display_match = match.replace('.py', '')
         logging.info(
-            f"{Fore.LIGHTBLUE_EX}{Style.BRIGHT}{match}{Style.RESET_ALL}")
+            f"{Fore.LIGHTBLUE_EX}{Style.BRIGHT}{display_match}{Style.RESET_ALL}")
 
         for word, score in scores_per_script[match].items():
             original_word = keyword_mapping.get(

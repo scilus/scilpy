@@ -24,6 +24,7 @@ Reference:
 import argparse
 import itertools
 import logging
+import os
 
 from dipy.core.gradients import gradient_table
 from dipy.reconst.dti import TensorModel
@@ -54,6 +55,9 @@ def _build_arg_parser():
                    help='Path to the b-vectors file to validate.')
     p.add_argument('out_bvec',
                    help='Path to corrected bvec file (FSL format).')
+    p.add_argument('--out_bval',
+                   help='Path to output b-values file. If not set, b-values '
+                        'are not saved.')
 
     p.add_argument('--mask',
                    help='Path to an optional mask. If set, DTI fit will '
@@ -164,11 +168,20 @@ def main():
                      '\nTransform is: \n{}.'.format(best_coherence, best_t))
         correct_bvecs = bvecs @ best_t
 
-    logging.info('Saving bvecs to file: {0}.'.format(args.out_bvec))
+    logging.info(f'Saving bvecs to file: {args.out_bvec}.')
+
+    bval_to_save = args.out_bval
+    if bval_to_save and os.path.exists(bval_to_save) and not args.overwrite:
+        logging.warning(f'File {bval_to_save} already exists and --overwrite was '
+                        'not provided. Skipping saving b-values.')
+        bval_to_save = None
+
+    if bval_to_save:
+        logging.info(f'Saving bvals to file: {bval_to_save}.')
 
     # Save using StatefulImage to ensure they are in the original voxel space
     simg.attach_world_gradients(bvals, correct_bvecs)
-    simg.save_gradients(args.in_bval, args.out_bvec)
+    simg.save_gradients(bval_path=bval_to_save, bvec_path=args.out_bvec)
 
 
 if __name__ == "__main__":
