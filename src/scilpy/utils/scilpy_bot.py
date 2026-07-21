@@ -56,13 +56,11 @@ def _make_title(text):
     """
     Returns a formatted title string with centered text and spacing
     """
-    return f'{
-        Fore.LIGHTBLUE_EX}{
-        Style.BRIGHT}{
-            text.center(
-                SPACING_LEN,
-                "=")}' f'{
-                    Style.RESET_ALL}'
+    return (
+        f'{Fore.LIGHTBLUE_EX}{Style.BRIGHT}'
+        f'{text.center(SPACING_LEN, "=")}'
+        f'{Style.RESET_ALL}'
+    )
 
 
 def _get_docstring_from_script_path(script):
