@@ -189,7 +189,7 @@ def main():
     simg.to_ras()
 
     data = simg.get_fdata(dtype=np.float32)
-    affine = simg.affine
+    affine = simg._original_affine
     bvals = simg.bvals
     bvecs = simg.world_bvecs
 

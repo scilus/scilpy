@@ -172,7 +172,7 @@ def main():
     sh_basis, is_legacy = parse_sh_basis_arg(args)
 
     odf_sh_simg = StatefulImage.load(args.in_sh, is_orientation=True,
-                                     is_world_space=not args.is_voxel_space,
+
                                      sh_basis=sh_basis)
 
     if not np.allclose(np.mean(odf_sh_simg.header.get_zooms()[:3]),

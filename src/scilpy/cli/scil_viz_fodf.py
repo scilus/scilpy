@@ -222,7 +222,7 @@ def _get_data_from_inputs(args):
     """
     sh_basis, is_legacy = parse_sh_basis_arg(args)
     fodf_simg = StatefulImage.load(args.in_fodf, is_orientation=True,
-                                   is_world_space=not args.is_voxel_space,
+
                                    sh_basis=sh_basis, is_legacy=is_legacy)
 
     fodf_simg.to_ras()
@@ -253,7 +253,7 @@ def _get_data_from_inputs(args):
     if args.peaks:
         assert_same_resolution([args.peaks, args.in_fodf])
         peaks_simg = StatefulImage.load(args.peaks, is_orientation=True,
-                                        is_world_space=not args.is_voxel_space)
+                                        )
         peaks_simg.reorient(fodf_simg.axcodes)
         peaks = peaks_simg.to_voxel_direction()
         if len(peaks.shape) == 4:
@@ -276,7 +276,7 @@ def _get_data_from_inputs(args):
         variance_simg = StatefulImage.load(
             args.variance,
             is_orientation=True,
-            is_world_space=not args.is_voxel_space,
+
             sh_basis=sh_basis,
             is_legacy=is_legacy)
         variance_simg.reorient(fodf_simg.axcodes)

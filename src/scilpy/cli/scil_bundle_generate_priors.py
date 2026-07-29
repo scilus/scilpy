@@ -19,7 +19,7 @@ import os
 from dipy.data import get_sphere
 from dipy.io.stateful_tractogram import Space, StatefulTractogram
 from dipy.reconst.shm import sf_to_sh, sh_to_sf_matrix
-import nibabel as nib
+
 import numpy as np
 
 from scilpy.io.image import get_data_as_mask
@@ -108,7 +108,7 @@ def main():
     # Loading
     sh_basis, is_legacy = parse_sh_basis_arg(args)
     simg_sh = StatefulImage.load(args.in_fodf, is_orientation=True,
-                                 is_world_space=not args.is_voxel_space,
+
                                  sh_basis=sh_basis, is_legacy=is_legacy)
     simg_sh.to_ras()
     input_sh_3d = simg_sh.get_fdata(dtype=np.float32)

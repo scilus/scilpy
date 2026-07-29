@@ -28,7 +28,7 @@ class StatefulImage(nib.Nifti1Image):
                  original_axcodes=None, bvals=None, bvecs=None,
                  gradients_original_order=True,
                  sh_basis='descoteaux07', is_legacy=True,
-                 is_orientation=False, is_world_space=True):
+                 is_orientation=False):
         """
         Initialize a StatefulImage object.
 
@@ -46,7 +46,6 @@ class StatefulImage(nib.Nifti1Image):
         self._sh_basis = sh_basis
         self._is_legacy = is_legacy
         self._is_orientation = is_orientation
-        self._is_world_space = is_world_space
 
         # Store gradient information
         self._bvals = None
@@ -69,7 +68,7 @@ class StatefulImage(nib.Nifti1Image):
 
     @classmethod
     def load(cls, filename, to_orientation="RAS",
-             is_orientation=False, is_world_space=True,
+             is_orientation=False,
              sh_basis='descoteaux07', is_legacy=True):
         """
         Load a NIfTI image, store its original orientation, and reorient it.
@@ -83,9 +82,6 @@ class StatefulImage(nib.Nifti1Image):
         is_orientation : bool, optional
             Whether the image contains directional data (SH, Peaks, SF).
             Default is False.
-        is_world_space : bool, optional
-            Whether the directional data is already in world space.
-            Only used if is_orientation is True. Default is True.
 
         Returns
         -------
@@ -115,20 +111,7 @@ class StatefulImage(nib.Nifti1Image):
                    original_voxel_sizes=original_voxel_sizes,
                    original_axcodes=original_axcodes,
                    sh_basis=sh_basis, is_legacy=is_legacy,
-                   is_orientation=is_orientation,
-                   is_world_space=is_world_space)
-
-        if is_orientation and not is_world_space:
-            # Move from original voxel space to world space
-            # Note: We use original_affine because the data was loaded
-            # in that space.
-            data = simg.get_fdata(dtype=np.float32)
-            R = simg._get_rotation_matrix(original_affine)
-            rotated_data = simg._rotate_direction_data(data, R,
-                                                       sh_basis=sh_basis,
-                                                       is_legacy=is_legacy)
-            simg = cls.create_from(rotated_data, simg, is_orientation=True)
-            simg._is_world_space = True
+                   is_orientation=is_orientation)
 
         return simg
 
@@ -162,8 +145,6 @@ class StatefulImage(nib.Nifti1Image):
         if data is None:
             if not self.is_orientation:
                 raise ValueError("Image is not marked as directional.")
-            if not self.is_world_space:
-                return self.get_fdata(dtype=np.float32)
 
             data = self.get_fdata(dtype=np.float32)
             R = self._get_rotation_matrix(self.affine).T
@@ -171,7 +152,6 @@ class StatefulImage(nib.Nifti1Image):
                 data, R, sh_basis=sh_basis, is_legacy=is_legacy,
                 nbr_processes=nbr_processes)
             self._dataobj = rotated_data
-            self._is_world_space = False
             return rotated_data
 
         # R_world_to_voxel = R_voxel_to_world.T
@@ -210,8 +190,6 @@ class StatefulImage(nib.Nifti1Image):
         if data is None:
             if not self.is_orientation:
                 raise ValueError("Image is not marked as directional.")
-            if self.is_world_space:
-                return self.get_fdata(dtype=np.float32)
 
             data = self.get_fdata(dtype=np.float32)
             R = self._get_rotation_matrix(self.affine)
@@ -219,7 +197,6 @@ class StatefulImage(nib.Nifti1Image):
                 data, R, sh_basis=sh_basis, is_legacy=is_legacy,
                 nbr_processes=nbr_processes)
             self._dataobj = rotated_data
-            self._is_world_space = True
             return rotated_data
 
         R = self._get_rotation_matrix(self.affine)
@@ -273,7 +250,7 @@ class StatefulImage(nib.Nifti1Image):
                 f"shape {original_shape}. Not SH (wrong #coeffs) and "
                 f"not Peaks (not a multiple of 3).")
 
-    def save(self, filename, in_world_space=True):
+    def save(self, filename):
         """
         Save the image to a file, reverting to its original orientation.
 
@@ -281,10 +258,6 @@ class StatefulImage(nib.Nifti1Image):
         ----------
         filename : str
             Path to save the NIfTI file.
-        in_world_space : bool, optional
-            If True, saves directional data in world space (MRtrix style).
-            If False, rotates data back to the original voxel orientation
-            (Dipy/FSL style). Default is True.
         """
         if self._original_axcodes is None:
             raise ValueError(
@@ -296,19 +269,7 @@ class StatefulImage(nib.Nifti1Image):
 
         # 1. Handle directional data
         if self.is_orientation:
-            # Ensure data is in World Space (invariant to grid orientation)
-            if self.is_world_space:
-                data = self.get_fdata(dtype=np.float32)
-            else:
-                data = self.to_world_direction(
-                    self.get_fdata(dtype=np.float32))
-
-            if not in_world_space:
-                # Rotate from World Space to Target Voxel Space
-                R_target = self._get_rotation_matrix(self._original_affine)
-                data = self._rotate_direction_data(data, R_target.T,
-                                                   sh_basis=self.sh_basis,
-                                                   is_legacy=self.is_legacy)
+            data = self.get_fdata(dtype=np.float32)
 
             # Create a temporary image for reorientation
             temp_img = nib.Nifti1Image(data, self.affine, self.header)
@@ -375,8 +336,7 @@ class StatefulImage(nib.Nifti1Image):
             original_axcodes=reference._original_axcodes,
             sh_basis=reference.sh_basis,
             is_legacy=reference.is_legacy,
-            is_orientation=reference.is_orientation,
-            is_world_space=reference.is_world_space)
+            is_orientation=reference.is_orientation)
 
         if reference.bvals is not None and reference.world_bvecs is not None:
             if source_img.ndim == 4 and \
@@ -388,7 +348,6 @@ class StatefulImage(nib.Nifti1Image):
         # attributes even if the reference has it.
         if not is_orientation:
             simg._is_orientation = False
-            simg._is_world_space = False
             simg._sh_basis = None
             simg._is_legacy = None
         return simg
@@ -448,11 +407,6 @@ class StatefulImage(nib.Nifti1Image):
     def is_orientation(self):
         """Get whether the image contains directional data."""
         return self._is_orientation
-
-    @property
-    def is_world_space(self):
-        """Get whether the directional data is in world space."""
-        return self._is_world_space
 
     @property
     def bvals(self):

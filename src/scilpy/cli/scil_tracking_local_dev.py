@@ -314,7 +314,7 @@ def main():
         logging.info("Loading ODF SH data.")
         odf_sh_simg = StatefulImage.load(
             args.in_odf, is_orientation=True,
-            is_world_space=not args.is_voxel_space, sh_basis=sh_basis)
+            sh_basis=sh_basis)
         odf_sh_simg.reorient(seed_simg.axcodes)
         odf_sh_data = odf_sh_simg.to_voxel_direction(
             sh_basis=sh_basis, nbr_processes=1).astype(np.float32)

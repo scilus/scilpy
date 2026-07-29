@@ -679,13 +679,19 @@ def _convert_sh_basis_parallel(args):
 
 def _convert_sh_basis_loop(sh, B_in, invB_out):
     """
-    Vectorized SH basis conversion.
+    Vectorized SH basis conversion, processed in chunks to save memory.
     For a more complete description of parameters, see convert_sh_basis.
     """
-    # Data: Ravelled 4D data. Shape [N, X] where N is the number of voxels.
     if sh.any():
-        sf = np.dot(sh, B_in)
-        sh = np.dot(sf, invB_out)
+        CHUNK_SIZE = 50000
+        num_voxels = sh.shape[0]
+        out_sh = np.zeros_like(sh)
+        for i in range(0, num_voxels, CHUNK_SIZE):
+            end_idx = min(i + CHUNK_SIZE, num_voxels)
+            chunk = sh[i:end_idx]
+            sf_chunk = np.dot(chunk, B_in)
+            out_sh[i:end_idx] = np.dot(sf_chunk, invB_out)
+        return out_sh
     return sh
 
 

@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+from scilpy.io.stateful_image import StatefulImage
 import argparse
 import json
 import logging
@@ -35,7 +36,6 @@ topup_options = ['out', 'fout', 'iout', 'logout', 'warpres', 'subsamp', 'fwhm',
                  'config', 'miter', 'lambda', 'ssqlambda', 'regmod', 'estmov',
                  "minmet", 'splineorder', 'numprec', 'interp', 'scale',
                  'regrid']
-from scilpy.io.stateful_image import StatefulImage
 
 
 def is_argument_set(args, arg_name):
@@ -401,12 +401,6 @@ def add_sh_basis_args(parser, mandatory=False, input_output=False):
     parser.add_argument(arg_name, nargs=nargs,
                         choices=choices, default=def_val,
                         help=help_msg)
-    parser.add_argument(
-        '--is_voxel_space',
-        action='store_true',
-        help='If set, assumes the input fODF/Peaks are already '
-        'in \nvoxel space. Default assumes world space '
-        '(RAS).')
 
 
 def parse_sh_basis_arg(args):
@@ -495,10 +489,6 @@ def add_peaks_screenshot_args(parser, default_width=3.0, default_alpha=1.0,
     rpg.add_argument("--peaks_opacity", type=ranged_type(float, 0., 1.),
                      default=default_alpha,
                      help="Opacity of the peaks, from 0 to 1. [%(default)s]")
-    rpg.add_argument('--is_voxel_space', action='store_true',
-                     help='If set, assumes the input fODF/Peaks are already '
-                          'in \nvoxel space. Default assumes world space '
-                          '(RAS).')
 
 
 def add_overlays_screenshot_args(parser, default_alpha=0.5,
@@ -1291,8 +1281,7 @@ def get_default_screenshotting_data(args, peaks=True):
     if peaks and args.peaks:
         peaks_imgs = []
         for f in args.peaks:
-            simg = StatefulImage.load(f, is_orientation=True,
-                                      is_world_space=not args.is_voxel_space)
+            simg = StatefulImage.load(f, is_orientation=True)
             # For screenshotting, we want the data in voxel space
             # as the screenshotting actors currently assume voxel space.
             peaks_imgs.append(simg)

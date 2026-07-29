@@ -76,12 +76,15 @@ def test_stateful_image_load_direction(tmp_path):
     nib.save(nib.Nifti1Image(data_peaks, affine), img_path)
 
     # Load as voxel-space directional image
-    # Internal representation should move to World Space (0, -1, 0)
-    simg = StatefulImage.load(img_path, is_orientation=True,
-                              is_world_space=False)
+    # We must explicitly rotate to World Space
+    simg = StatefulImage.load(
+        img_path,
+        is_orientation=True,
+        to_orientation=None)
+    rotated_data = simg.to_world_direction()
 
     expected_world = [0, -1, 0]
-    np.testing.assert_allclose(simg.get_fdata()[0, 0, 0], expected_world,
+    np.testing.assert_allclose(rotated_data[0, 0, 0], expected_world,
                                atol=1e-5)
 
 

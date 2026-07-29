@@ -76,12 +76,6 @@ def _build_arg_parser():
     p.add_argument('--color_per_lobe', action='store_true',
                    help='Color each bingham distribution with a '
                         'different color. [%(default)s]')
-
-    p.add_argument('--is_voxel_space', action='store_true',
-                   help='If set, assumes the input Bingham parameters are '
-                        'already in \nvoxel space. Default assumes world '
-                        'space (RAS).')
-
     return p
 
 
@@ -99,8 +93,7 @@ def _get_data_from_inputs(args):
     """
     Load data given by args.
     """
-    simg = StatefulImage.load(args.in_bingham, is_orientation=True,
-                              is_world_space=not args.is_voxel_space)
+    simg = StatefulImage.load(args.in_bingham, is_orientation=True)
     simg.to_ras()
     bingham = simg.to_voxel_direction()
     if not args.slice_index:

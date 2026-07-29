@@ -150,8 +150,7 @@ def main():
 
         simg = StatefulImage(data, affine, original_axcodes=axcodes,
                              sh_basis=sh_basis,
-                             is_legacy=is_legacy, is_orientation=True,
-                             is_world_space=True)
+                             is_legacy=is_legacy, is_orientation=True)
         simg.save(args.out_todi_sh)
 
     if args.out_tdi:

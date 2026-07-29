@@ -23,37 +23,46 @@ def test_stateful_image_save_world_vs_voxel(tmp_path):
     img_path = str(tmp_path / "original.nii.gz")
     nib.save(nib.Nifti1Image(data_peaks, affine), img_path)
 
-    # Load. Internal data becomes world space: [0, -1, 0]
-    simg = StatefulImage.load(img_path, is_orientation=True,
-                              is_world_space=False)
+    # Load. Internal data stays as is
+    simg = StatefulImage.load(
+        img_path,
+        is_orientation=True,
+        to_orientation=None)
 
-    # 1. Save in World Space (Default)
+    # Convert to world manually
+    simg.to_world_direction()
+    np.testing.assert_allclose(
+        simg.get_fdata()[
+            0, 0, 0], [
+            0, -1, 0], atol=1e-5)
+
+    # Save in World Space
     world_save_path = str(tmp_path / "world_save.nii.gz")
-    simg.save(world_save_path, in_world_space=True)
+    simg.save(world_save_path)
+    simg_world = StatefulImage.load(
+        world_save_path,
+        is_orientation=True,
+        to_orientation=None)
+    np.testing.assert_allclose(
+        simg_world.get_fdata()[
+            0, 0, 0], [
+            0, -1, 0], atol=1e-5)
 
-    # Load back with MRtrix assumption (is_world_space=True)
-    simg_world = StatefulImage.load(world_save_path, is_orientation=True,
-                                    is_world_space=True)
-    # Should still be [0, -1, 0] in world space
-    np.testing.assert_allclose(simg_world.get_fdata()[0, 0, 0], [0, -1, 0],
-                               atol=1e-5)
-    # The raw data in the NIfTI file should be [0, -1, 0]
-    raw_world_data = nib.load(world_save_path).get_fdata()
-    np.testing.assert_allclose(raw_world_data[0, 0, 0], [0, -1, 0], atol=1e-5)
+    # Convert back to Voxel Space
+    simg.to_voxel_direction()
+    np.testing.assert_allclose(simg.get_fdata()[0, 0, 0], [0, 0, 1], atol=1e-5)
 
-    # 2. Save in Voxel Space (Old Dipy style)
+    # Save in Voxel Space
     voxel_save_path = str(tmp_path / "voxel_save.nii.gz")
-    simg.save(voxel_save_path, in_world_space=False)
-
-    # Load back with Dipy assumption (is_world_space=False)
-    simg_voxel = StatefulImage.load(voxel_save_path, is_orientation=True,
-                                    is_world_space=False)
-    # Should still be [0, -1, 0] in world space
-    np.testing.assert_allclose(simg_voxel.get_fdata()[0, 0, 0], [0, -1, 0],
-                               atol=1e-5)
-    # raw_voxel_data[0, 0, 0] should be [0, 0, 1] (back to voxel Z)
-    raw_voxel_data = nib.load(voxel_save_path).get_fdata()
-    np.testing.assert_allclose(raw_voxel_data[0, 0, 0], [0, 0, 1], atol=1e-5)
+    simg.save(voxel_save_path)
+    simg_voxel = StatefulImage.load(
+        voxel_save_path,
+        is_orientation=True,
+        to_orientation=None)
+    np.testing.assert_allclose(
+        simg_voxel.get_fdata()[
+            0, 0, 0], [
+            0, 0, 1], atol=1e-5)
 
 
 def test_stateful_image_save_reoriented(tmp_path):
@@ -67,29 +76,16 @@ def test_stateful_image_save_reoriented(tmp_path):
 
     # Load and reorient to LAS
     simg = StatefulImage.load(img_path, to_orientation="LAS",
-                              is_orientation=True, is_world_space=False)
+                              is_orientation=True)
 
-    # In LAS, Right is -X. So in-memory data (voxel space) should be [-1, 0, 0]
-    # Wait, load(is_world_space=False) rotates to world space on load.
-    # World space [1, 0, 0] is always Right.
-    # So simg.get_fdata() should be [1, 0, 0] (World Space)
+    # Data is not automatically rotated by default
     np.testing.assert_allclose(simg.get_fdata()[0, 0, 0], [1, 0, 0], atol=1e-5)
 
     # Save back to original (RAS).
-    # 1. World Space save
     save_world = str(tmp_path / "save_world.nii.gz")
-    simg.save(save_world, in_world_space=True)
+    simg.save(save_world)
     raw_world = nib.load(save_world).get_fdata()
-    # Should be [1, 0, 0]
     np.testing.assert_allclose(raw_world[0, 0, 0], [1, 0, 0], atol=1e-5)
-
-    # 2. Voxel Space save
-    save_voxel = str(tmp_path / "save_voxel.nii.gz")
-    simg.save(save_voxel, in_world_space=False)
-    raw_voxel = nib.load(save_voxel).get_fdata()
-    # Original orientation was RAS, so voxel X is Right.
-    # Should be [1, 0, 0]
-    np.testing.assert_allclose(raw_voxel[0, 0, 0], [1, 0, 0], atol=1e-5)
 
     # Let's try if original orientation was LAS
     las_affine = np.diag([-1, 1, 1, 1])
@@ -97,20 +93,15 @@ def test_stateful_image_save_reoriented(tmp_path):
     # Voxel [1, 0, 0] in LAS means Left.
     nib.save(nib.Nifti1Image(data_peaks, las_affine), las_path)
 
-    simg_las = StatefulImage.load(las_path, to_orientation="RAS",
-                                  is_orientation=True, is_world_space=False)
-    # Load(is_world_space=False) -> rotates voxel [1, 0, 0] to world.
-    # In LAS, voxel [1, 0, 0] is world [-1, 0, 0] (Left).
-    np.testing.assert_allclose(simg_las.get_fdata()[0, 0, 0], [-1, 0, 0],
-                               atol=1e-5)
+    simg_las = StatefulImage.load(las_path, to_orientation=None,
+                                  is_orientation=True)
+    # Not automatically rotated.
+    np.testing.assert_allclose(
+        simg_las.get_fdata()[
+            0, 0, 0], [
+            1, 0, 0], atol=1e-5)
 
-    # Save back to original (LAS)
-    # Voxel space save: should be [1, 0, 0] (Voxel space of LAS)
-    simg_las.save(las_path, in_world_space=False)
-    raw_las_voxel = nib.load(las_path).get_fdata()
-    np.testing.assert_allclose(raw_las_voxel[0, 0, 0], [1, 0, 0], atol=1e-5)
-
-    # World space save: should be [-1, 0, 0] (World space)
-    simg_las.save(las_path, in_world_space=True)
-    raw_las_world = nib.load(las_path).get_fdata()
-    np.testing.assert_allclose(raw_las_world[0, 0, 0], [-1, 0, 0], atol=1e-5)
+    # We can manually rotate it
+    simg_las.to_world_direction()
+    np.testing.assert_allclose(
+        simg_las.get_fdata()[0, 0, 0], [-1, 0, 0], atol=1e-5)

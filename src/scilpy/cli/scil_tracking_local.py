@@ -198,7 +198,7 @@ def main():
     # will not yield correct results. Tracking is performed in voxel space
     # in both the GPU and CPU cases.
     odf_sh_simg = StatefulImage.load(args.in_odf, is_orientation=True,
-                                     is_world_space=not args.is_voxel_space,
+
                                      sh_basis=sh_basis)
     if not np.allclose(np.mean(odf_sh_simg.header.get_zooms()[:3]),
                        odf_sh_simg.header.get_zooms()[0], atol=1e-03):
