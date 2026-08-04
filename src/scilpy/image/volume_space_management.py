@@ -19,12 +19,20 @@ from scilpy.tractanalysis.todi_util import get_dir_to_sphere_id
 from dipy.reconst.shm import sf_to_sh
 
 
-def map_coordinates_in_volume(data, points, order):
+def map_coordinates_in_volume(data, points,
+                              order: int | None = 3,
+                              mode: str = 'constant',
+                              cval: float = 0.0):
     """
     Uses map_coordinates, from scipy. But by default, in scipy, half of the
-    border voxels are considered out-of-bound. Using mode=nearest to make sure
-    we interpolate correctly in border voxels. Verifying if some coordinates
-    are *actually* out-of-bound first.
+    border voxels are considered out-of-bound. Splitting interpolation into
+    voxels that correctly managed by scipy and coordinates that are on the
+    limit.
+
+    For coordinates on the limit of the image (-0.5 to 0 and shape-0.5 to shape),
+    mode 'nearest' is used. If mode chosen by user is 'nearest', no need to
+    split.
+
     See here for more explanation: https://github.com/scilus/scilpy/pull/1102
 
     An alternative is to use dipy's trilinear function, but in some cases
@@ -37,19 +45,51 @@ def map_coordinates_in_volume(data, points, order):
     points: np.ndarray
         The coordinates in vox space, center origin. Shape: [3, N]
     order: int
-        The order of the interpolation
+        The order of the interpolation. See scipy's definition:
+        The order of the spline interpolation, default is 3. The order has
+        to be in the range 0-5.
+    mode: str
+        See scipy's definition:
+        https://docs.scipy.org/doc/scipy/reference/generated/scipy.ndimage.map_coordinates.html
+    cval: float
+        Value to fill past edges of input if mode is ‘constant’. Default is 0.0.
 
     Returns
     -------
     data: np.ndarray
         The interpolated data.
     """
-    if (np.any(np.logical_or(points[0] < 0, points[0] > data.shape[0])) or
-        np.any(np.logical_or(points[1] < 0, points[1] > data.shape[1])) or
-        np.any(np.logical_or(points[2] < 0,points[2] > data.shape[2]))) :
-        logging.warning("Careful! You are interpolating outside of boundaries "
-                        "of your volume. Using padding to nearest value.")
-    return map_coordinates(data, points, order=order, mode='nearest')
+    if mode == 'nearest':
+        return map_coordinates(data, points, order=order, mode='nearest')
+
+    points = np.asarray(points)
+    shape = np.asarray(data.shape)[:, None]
+
+    # Points that lie in the "half voxel" border region.
+    limit_points = np.any(
+        ((points >= -0.5) & (points < 0)) |
+        ((points > shape - 1) & (points <= shape - 0.5)),
+        axis=0)
+
+    # Points correctly managed by scipy
+    good_points = ~limit_points
+
+    result = np.empty(points.shape[1], dtype=float)
+
+    if np.any(good_points):
+        result[good_points] = map_coordinates(data, points[:, good_points],
+                                              order=order, mode=mode, cval=cval)
+
+    if np.any(limit_points):
+        logging.warning("Using scipy to interpolate. Coordinates on the limits "
+                        "of the volume (half-voxel around the image) are not "
+                        "correctly managed by scipy and will be interpolated with "
+                        "'nearest' mode. This is {}/{} points."
+                        .format(np.sum(limit_points), len(limit_points)))
+        result[limit_points] = map_coordinates(data, points[:, limit_points],
+                                               order=order, mode='nearest')
+
+    return result
 
 
 class DataVolume(object):

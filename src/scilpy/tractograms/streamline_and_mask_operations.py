@@ -658,9 +658,9 @@ def _intersects_two_rois(roi_data_1, roi_data_2, strl_indices,
 
     # Find all the points of the streamline that are in the ROIs
     roi_data_1_intersect = map_coordinates_in_volume(
-        roi_data_1, strl_indices.T, order=0)
+        roi_data_1, strl_indices.T, order=0, mode='constant', cval=0)
     roi_data_2_intersect = map_coordinates(
-        roi_data_2, strl_indices.T, order=0)
+        roi_data_2, strl_indices.T, order=0, mode='constant', cval=0)
 
     # Get the indices of the voxels intersecting with the ROIs
     in_strl_indices = np.argwhere(roi_data_1_intersect).squeeze(-1)

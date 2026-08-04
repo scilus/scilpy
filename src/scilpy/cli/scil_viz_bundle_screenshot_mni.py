@@ -270,7 +270,7 @@ def main():
         normalized_data = reference_data / np.max(reference_data)
         cmap = get_lookup_table(args.reference_coloring)
         values = map_coordinates_in_volume(normalized_data, coords_vox,
-                                           order=1)
+                                           order=1, mode='nearest')
         colors = cmap(values)[:, 0:3]
     else:
         colors = None
