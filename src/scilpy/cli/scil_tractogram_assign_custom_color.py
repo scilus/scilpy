@@ -50,7 +50,6 @@ from dipy.io.streamline import save_tractogram
 import nibabel as nib
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy.ndimage import map_coordinates
 
 from scilpy.image.volume_space_management import map_coordinates_in_volume
 from scilpy.io.streamlines import load_tractogram_with_reference

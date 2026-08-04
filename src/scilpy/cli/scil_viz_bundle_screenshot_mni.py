@@ -28,7 +28,6 @@ from fury import actor
 import nibabel as nib
 from nilearn import plotting
 import numpy as np
-from scipy.ndimage import map_coordinates
 
 from scilpy.image.volume_space_management import map_coordinates_in_volume
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
