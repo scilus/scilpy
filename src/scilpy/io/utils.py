@@ -1160,6 +1160,9 @@ def _load_itk_affine_transform(filepath):
         'MatrixOffsetTransformBase_double_3_3',
         'MatrixOffsetTransformBase_float_3_3',
     )
+    if transform_type is None:
+        raise ValueError('No Transform entry found in {}'
+                         .format(filepath))
     if transform_type not in supported_types:
         raise ValueError('Unsupported ITK transform type {} in {}'
                          .format(transform_type, filepath))

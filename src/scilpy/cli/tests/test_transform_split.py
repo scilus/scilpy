@@ -1,15 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import os
-import tempfile
-
 import numpy as np
+import pytest
 from scipy.io import savemat
 from scipy.spatial.transform import Rotation
-
-tmp_dir = tempfile.TemporaryDirectory()
-
 
 def _write_numeric_affine(path, translation, rotation, shear, scale):
     affine = np.eye(4)
@@ -36,21 +31,25 @@ def _write_itk_affine(path, rotation_ras, translation_ras):
         f.write('FixedParameters: 0 0 0\n')
 
 
+@pytest.fixture
+def workdir(monkeypatch, tmp_path):
+    monkeypatch.chdir(tmp_path)
+    return tmp_path
+
+
 def test_help_option(script_runner):
     ret = script_runner.run(['scil_transform_split', '--help'])
     assert ret.success
 
 
-def test_fails_without_output(script_runner, monkeypatch):
-    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
+def test_fails_without_output(script_runner, workdir):
     np.savetxt('affine.txt', np.eye(4))
 
     ret = script_runner.run(['scil_transform_split', 'affine.txt'])
     assert not ret.success
 
 
-def test_execution_itk_translation(script_runner, monkeypatch):
-    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution_itk_translation(script_runner, workdir):
     translation = np.array([1.5, -2.5, 3.5])
     _write_itk_affine('affine_itk.txt', np.eye(3), translation)
 
@@ -64,8 +63,7 @@ def test_execution_itk_translation(script_runner, monkeypatch):
     np.testing.assert_allclose(out_translation, expected)
 
 
-def test_execution_ants_mat_translation(script_runner, monkeypatch):
-    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution_ants_mat_translation(script_runner, workdir):
     translation = np.array([1.5, -2.5, 3.5])
     parameters = np.concatenate((np.eye(3).reshape(-1),
                                  [-translation[0], -translation[1],
@@ -85,8 +83,7 @@ def test_execution_ants_mat_translation(script_runner, monkeypatch):
     np.testing.assert_allclose(out_translation, expected)
 
 
-def test_execution_all_matrix_outputs(script_runner, monkeypatch):
-    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
+def test_execution_all_matrix_outputs(script_runner, workdir):
     translation = np.array([1.2, -3.4, 5.6])
     rotation = Rotation.from_euler('XYZ', [0.3, -0.2, 0.4]).as_matrix()
     shear = np.array([[1., 0.2, -0.4],
@@ -120,8 +117,7 @@ def test_execution_all_matrix_outputs(script_runner, monkeypatch):
         affine)
 
 
-def test_angles_output(script_runner, monkeypatch):
-    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
+def test_angles_output(script_runner, workdir):
     angles = np.array([0.3, -0.2, 0.4])
     rotation = Rotation.from_euler('XYZ', angles).as_matrix()
     _write_numeric_affine('affine.txt', np.zeros(3), rotation, np.eye(3),
@@ -136,8 +132,7 @@ def test_angles_output(script_runner, monkeypatch):
     np.testing.assert_allclose(out_angles, angles)
 
 
-def test_rodrigues_output(script_runner, monkeypatch):
-    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
+def test_rodrigues_output(script_runner, workdir):
     rotation = Rotation.from_euler('XYZ', [0.3, -0.2, 0.4]).as_matrix()
     _write_numeric_affine('affine.txt', np.zeros(3), rotation, np.eye(3),
                           np.eye(3))
@@ -155,8 +150,7 @@ def test_rodrigues_output(script_runner, monkeypatch):
     np.testing.assert_allclose(out_rodrigues, expected)
 
 
-def test_rotation_encoding_requires_rotation(script_runner, monkeypatch):
-    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
+def test_rotation_encoding_requires_rotation(script_runner, workdir):
     np.savetxt('affine.txt', np.eye(4))
 
     ret = script_runner.run(['scil_transform_split', 'affine.txt',
@@ -169,8 +163,7 @@ def test_rotation_encoding_requires_rotation(script_runner, monkeypatch):
 
 
 def test_rotation_output_modes_are_mutually_exclusive(script_runner,
-                                                      monkeypatch):
-    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
+                                                      workdir):
     np.savetxt('affine.txt', np.eye(4))
 
     ret = script_runner.run(['scil_transform_split', 'affine.txt',
@@ -179,8 +172,7 @@ def test_rotation_output_modes_are_mutually_exclusive(script_runner,
     assert not ret.success
 
 
-def test_rejects_composite_itk_transform(script_runner, monkeypatch):
-    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
+def test_rejects_composite_itk_transform(script_runner, workdir):
     with open('affine_itk.txt', 'w', encoding='utf-8') as f:
         f.write('#Insight Transform File V1.0\n')
         f.write('# Transform 0\n')
@@ -197,8 +189,7 @@ def test_rejects_composite_itk_transform(script_runner, monkeypatch):
     assert not ret.success
 
 
-def test_rejects_singular_affine(script_runner, monkeypatch):
-    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
+def test_rejects_singular_affine(script_runner, workdir):
     np.savetxt('affine.txt', np.diag([1., 0., 2., 1.]))
 
     ret = script_runner.run(['scil_transform_split', 'affine.txt',
@@ -206,8 +197,7 @@ def test_rejects_singular_affine(script_runner, monkeypatch):
     assert not ret.success
 
 
-def test_rejects_malformed_itk_transform(script_runner, monkeypatch):
-    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
+def test_rejects_malformed_itk_transform(script_runner, workdir):
     with open('affine_itk.txt', 'w', encoding='utf-8') as f:
         f.write('#Insight Transform File V1.0\n')
         f.write('Transform: AffineTransform_double_3_3\n')
