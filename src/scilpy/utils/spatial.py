@@ -199,6 +199,92 @@ def compute_distance_barycenters(ref_1, ref_2, ref_2_transfo):
     return distance_before, distance_after
 
 
+def split_affine_transform(affine, eps=1e-8):
+    """
+    Split a 4x4 affine transform into translation, rotation, shear and scale
+    components such that::
+
+        affine = translation @ rotation @ shear @ scale
+
+    The rotation is guaranteed to be a proper rotation matrix
+    (det(rotation[:3, :3]) == +1), the shear is upper triangular with a unit
+    diagonal and the scale is diagonal.
+
+    Parameters
+    ----------
+    affine : np.ndarray
+        Input 4x4 affine matrix.
+    eps : float
+        Tolerance used to detect degenerate scale values.
+
+    Returns
+    -------
+    translation : np.ndarray
+        4x4 pure translation matrix.
+    rotation : np.ndarray
+        4x4 pure rotation matrix.
+    scale : np.ndarray
+        4x4 diagonal scale matrix.
+    shear : np.ndarray
+        4x4 shear matrix.
+    """
+    affine = np.asarray(affine, dtype=float)
+    if affine.shape != (4, 4):
+        raise ValueError('Expected a 4x4 affine matrix, got shape {}'
+                         .format(affine.shape))
+
+    if not np.allclose(affine[3], [0., 0., 0., 1.]):
+        raise ValueError('Expected a homogeneous affine matrix.')
+
+    linear = affine[:3, :3]
+    if abs(np.linalg.det(linear)) < eps:
+        raise ValueError('Affine transform is singular or near-singular.')
+
+    rotation_3x3, upper = _decompose_linear_component(linear, eps=eps)
+
+    scales = np.diag(upper).copy()
+    if np.any(np.abs(scales) < eps):
+        raise ValueError('Affine transform contains a zero or near-zero scale '
+                         'component.')
+
+    inv_scale = np.diag(1.0 / scales)
+    shear_3x3 = upper @ inv_scale
+    scale_3x3 = np.diag(scales)
+
+    translation = np.eye(4)
+    translation[:3, 3] = affine[:3, 3]
+
+    rotation = np.eye(4)
+    rotation[:3, :3] = rotation_3x3
+
+    shear = np.eye(4)
+    shear[:3, :3] = shear_3x3
+
+    scale = np.eye(4)
+    scale[:3, :3] = scale_3x3
+
+    return translation, rotation, scale, shear
+
+
+def _decompose_linear_component(linear, eps=1e-8):
+    q_mat, r_mat = np.linalg.qr(linear)
+
+    diag_signs = np.sign(np.diag(r_mat))
+    diag_signs[np.abs(diag_signs) < eps] = 1.0
+    sign_correction = np.diag(diag_signs)
+
+    rotation = q_mat @ sign_correction
+    upper = sign_correction @ r_mat
+
+    if np.linalg.det(rotation) < 0:
+        parity_correction = np.eye(3)
+        parity_correction[-1, -1] = -1.0
+        rotation = rotation @ parity_correction
+        upper = parity_correction @ upper
+
+    return rotation, upper
+
+
 class WorldBoundingBox(object):
     """
     Class to store the bounding box of a volume in world space.
