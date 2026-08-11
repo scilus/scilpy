@@ -244,11 +244,6 @@ def split_affine_transform(affine, eps=1e-8):
     rotation_3x3, upper = _decompose_linear_component(linear, eps=eps)
 
     scales = np.diag(upper).copy()
-    max_scale = np.max(np.abs(scales))
-    if np.any(np.abs(scales) < eps * max_scale):
-        raise ValueError('Affine transform contains a zero or near-zero scale '
-                         'component.')
-
     inv_scale = np.diag(1.0 / scales)
     shear_3x3 = upper @ inv_scale
     scale_3x3 = np.diag(scales)
