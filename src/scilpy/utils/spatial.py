@@ -270,9 +270,11 @@ def split_affine_transform(affine, eps=1e-8):
 
 def _decompose_linear_component(linear, eps=1e-8):
     q_mat, r_mat = np.linalg.qr(linear)
+    abs_diag = np.abs(np.diag(r_mat))
+    if np.any(abs_diag < eps * np.max(abs_diag)):
+        raise ValueError('Affine transform is singular or near-singular.')
 
     diag_signs = np.sign(np.diag(r_mat))
-    diag_signs[np.abs(diag_signs) < eps] = 1.0
     sign_correction = np.diag(diag_signs)
 
     rotation = q_mat @ sign_correction

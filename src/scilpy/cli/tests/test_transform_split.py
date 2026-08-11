@@ -6,6 +6,7 @@ import pytest
 from scipy.io import savemat
 from scipy.spatial.transform import Rotation
 
+
 def _write_numeric_affine(path, translation, rotation, shear, scale):
     affine = np.eye(4)
     affine[:3, 3] = translation

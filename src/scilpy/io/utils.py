@@ -1166,14 +1166,18 @@ def _load_itk_affine_transform(filepath):
     if transform_type not in supported_types:
         raise ValueError('Unsupported ITK transform type {} in {}'
                          .format(transform_type, filepath))
-    if params is None or params.size != 12:
+    if params is None:
+        raise ValueError('Missing Parameters entry in {}'
+                         .format(filepath))
+    if params.size != 12:
         raise ValueError('Expected 12 ITK affine parameters in {}, got {}'
-                         .format(filepath, None if params is None else
-                                 params.size))
-    if fixed_params is None or fixed_params.size != 3:
+                         .format(filepath, params.size))
+    if fixed_params is None:
+        raise ValueError('Missing FixedParameters entry in {}'
+                         .format(filepath))
+    if fixed_params.size != 3:
         raise ValueError('Expected 3 ITK fixed parameters in {}, got {}'
-                         .format(filepath, None if fixed_params is None else
-                                 fixed_params.size))
+                         .format(filepath, fixed_params.size))
 
     rot = params[:9].reshape((3, 3))
     trans = params[9:12]
