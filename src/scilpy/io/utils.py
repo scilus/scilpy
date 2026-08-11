@@ -1085,6 +1085,7 @@ def _is_itk_transform_file(filepath):
                     continue
                 if stripped.startswith('Transform:'):
                     return True
+                return False
     except UnicodeDecodeError:
         return False
     return False
