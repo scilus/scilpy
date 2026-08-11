@@ -77,7 +77,7 @@ def main():
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     outputs = [args.translation, args.rotation, args.scale, args.shear]
-    if np.all([out is None for out in outputs]):
+    if all(out is None for out in outputs):
         parser.error('No output selected. Choose at least one output option.')
 
     if (args.angles or args.rodrigues) and args.rotation is None:
