@@ -238,7 +238,8 @@ def split_affine_transform(affine, eps=1e-8):
 
     linear = affine[:3, :3]
     singular_values = np.linalg.svd(linear, compute_uv=False)
-    if singular_values[-1] < eps * singular_values[0]:
+    if singular_values[0] <= 0 or \
+            singular_values[-1] < eps * singular_values[0]:
         raise ValueError('Affine transform is singular or near-singular.')
 
     rotation_3x3, upper = _decompose_linear_component(linear, eps=eps)
@@ -267,6 +268,8 @@ def _decompose_linear_component(linear, eps=1e-8):
     q_mat, r_mat = np.linalg.qr(linear)
 
     diag_signs = np.sign(np.diag(r_mat))
+    if np.any(np.abs(diag_signs) < eps):
+        raise ValueError('Affine transform is singular or near-singular.')
     sign_correction = np.diag(diag_signs)
 
     rotation = q_mat @ sign_correction
