@@ -54,7 +54,7 @@ def test_split_affine_transform_rejects_degenerate_scale():
 
 
 def test_split_affine_transform_accepts_small_uniform_scale():
-    affine = np.diag([1e-3, 1e-3, 1e-3, 1.0])
+    affine = np.diag([1e-9, 1e-9, 1e-9, 1.0])
 
     translation, rotation, shear, scale = split_affine_transform(affine)
 
