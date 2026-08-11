@@ -84,10 +84,11 @@ def main():
         parser.error('Options --angles and --rodrigues require --rotation.')
 
     assert_inputs_exist(parser, args.in_transfo)
-    assert_outputs_exist(parser, args, [], outputs)
+    assert_outputs_exist(parser, args, [], [out for out in outputs
+                                            if out is not None])
 
     affine = load_matrix_in_any_format(args.in_transfo)
-    translation, rotation, scale, shear = split_affine_transform(affine)
+    translation, rotation, shear, scale = split_affine_transform(affine)
 
     if args.translation:
         np.savetxt(args.translation, translation, fmt='%.18e')

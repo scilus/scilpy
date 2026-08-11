@@ -21,7 +21,7 @@ def test_split_affine_transform_recovers_components():
     scale = np.diag([2.0, 3.0, 4.0])
 
     affine = _compose_affine(translation, rotation, shear, scale)
-    split_translation, split_rotation, split_scale, split_shear = \
+    split_translation, split_rotation, split_shear, split_scale = \
         split_affine_transform(affine)
 
     np.testing.assert_allclose(split_translation[:3, 3], translation)
@@ -36,14 +36,14 @@ def test_split_affine_transform_recovers_components():
 def test_split_affine_transform_keeps_rotation_proper():
     affine = np.diag([-2.0, 3.0, 4.0, 1.0])
 
-    _, rotation, scale, shear = split_affine_transform(affine)
+    translation, rotation, shear, scale = split_affine_transform(affine)
 
     np.testing.assert_allclose(rotation[:3, :3].T @ rotation[:3, :3],
                                np.eye(3))
     assert np.isclose(np.linalg.det(rotation[:3, :3]), 1.0)
     assert np.any(np.diag(scale[:3, :3]) < 0)
     np.testing.assert_allclose(shear, np.eye(4))
-    np.testing.assert_allclose(rotation @ shear @ scale, affine)
+    np.testing.assert_allclose(translation @ rotation @ shear @ scale, affine)
 
 
 def test_split_affine_transform_rejects_degenerate_scale():

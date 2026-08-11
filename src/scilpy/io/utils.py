@@ -1068,13 +1068,17 @@ def load_matrix_in_any_format(filepath):
 
 
 def _is_itk_transform_file(filepath):
-    with open(filepath, 'r', encoding='utf-8') as f:
+    with open(filepath, 'r', encoding='utf-8', errors='replace') as f:
         for line in f:
             stripped = line.strip()
             if not stripped:
                 continue
-            return stripped.startswith('#Insight Transform File') or \
-                stripped.startswith('Transform:')
+            if stripped.startswith('#'):
+                if stripped.startswith('#Insight Transform File'):
+                    return True
+                continue
+            if stripped.startswith('Transform:'):
+                return True
     return False
 
 
@@ -1089,7 +1093,7 @@ def _convert_itk_ants_affine_to_ras(rot, trans, offset):
 
 
 def _load_ants_affine_transform(filepath):
-    # .mat are actually dictionnary. This function supports .mat from
+    # .mat are actually dictionary. This function supports .mat from
     # antsRegistration that encode a 4x4 transformation matrix.
     transfo_dict = loadmat(filepath)
     transfo_key = 'AffineTransform_double_3_3'

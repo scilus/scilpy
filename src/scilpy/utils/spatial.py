@@ -223,10 +223,10 @@ def split_affine_transform(affine, eps=1e-8):
         4x4 pure translation matrix.
     rotation : np.ndarray
         4x4 pure rotation matrix.
-    scale : np.ndarray
-        4x4 diagonal scale matrix.
     shear : np.ndarray
         4x4 shear matrix.
+    scale : np.ndarray
+        4x4 diagonal scale matrix.
     """
     affine = np.asarray(affine, dtype=float)
     if affine.shape != (4, 4):
@@ -263,7 +263,7 @@ def split_affine_transform(affine, eps=1e-8):
     scale = np.eye(4)
     scale[:3, :3] = scale_3x3
 
-    return translation, rotation, scale, shear
+    return translation, rotation, shear, scale
 
 
 def _decompose_linear_component(linear, eps=1e-8):
@@ -277,6 +277,8 @@ def _decompose_linear_component(linear, eps=1e-8):
     upper = sign_correction @ r_mat
 
     if np.linalg.det(rotation) < 0:
+        # Flip the last axis to keep a proper rotation while preserving the
+        # upper-triangular structure of the remaining linear component.
         parity_correction = np.eye(3)
         parity_correction[-1, -1] = -1.0
         rotation = rotation @ parity_correction
