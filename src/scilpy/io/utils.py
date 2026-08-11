@@ -1053,10 +1053,7 @@ def read_info_from_mb_bdo(filename):
 def load_matrix_in_any_format(filepath):
     _, ext = os.path.splitext(filepath)
     if ext == '.txt':
-        if _is_itk_transform_file(filepath):
-            data = _load_itk_affine_transform(filepath)
-        else:
-            data = np.loadtxt(filepath)
+        data = np.loadtxt(filepath)
     elif ext == '.npy':
         data = np.load(filepath)
     elif ext == '.mat':
@@ -1067,18 +1064,29 @@ def load_matrix_in_any_format(filepath):
     return data
 
 
+def load_transform_matrix_in_any_format(filepath):
+    _, ext = os.path.splitext(filepath)
+    if ext == '.txt' and _is_itk_transform_file(filepath):
+        return _load_itk_affine_transform(filepath)
+
+    return load_matrix_in_any_format(filepath)
+
+
 def _is_itk_transform_file(filepath):
-    with open(filepath, 'r', encoding='utf-8', errors='replace') as f:
-        for line in f:
-            stripped = line.strip()
-            if not stripped:
-                continue
-            if stripped.startswith('#'):
-                if stripped.startswith('#Insight Transform File'):
+    try:
+        with open(filepath, 'r', encoding='utf-8') as f:
+            for line in f:
+                stripped = line.strip()
+                if not stripped:
+                    continue
+                if stripped.startswith('#'):
+                    if stripped.startswith('#Insight Transform File'):
+                        return True
+                    continue
+                if stripped.startswith('Transform:'):
                     return True
-                continue
-            if stripped.startswith('Transform:'):
-                return True
+    except UnicodeDecodeError:
+        return False
     return False
 
 
@@ -1122,19 +1130,29 @@ def _load_itk_affine_transform(filepath):
     transform_type = None
     params = None
     fixed_params = None
+    transform_count = 0
 
-    with open(filepath, 'r', encoding='utf-8') as f:
-        for line in f:
-            stripped = line.strip()
-            if not stripped or stripped.startswith('#'):
-                continue
-            if stripped.startswith('Transform:'):
-                transform_type = stripped.split(':', 1)[1].strip()
-            elif stripped.startswith('Parameters:'):
-                params = np.fromstring(stripped.split(':', 1)[1], sep=' ')
-            elif stripped.startswith('FixedParameters:'):
-                fixed_params = np.fromstring(
-                    stripped.split(':', 1)[1], sep=' ')
+    try:
+        with open(filepath, 'r', encoding='utf-8') as f:
+            for line in f:
+                stripped = line.strip()
+                if not stripped or stripped.startswith('#'):
+                    continue
+                if stripped.startswith('Transform:'):
+                    transform_count += 1
+                    if transform_count > 1:
+                        raise ValueError(
+                            'Composite ITK transform files are not supported '
+                            'in {}.'.format(filepath))
+                    transform_type = stripped.split(':', 1)[1].strip()
+                elif stripped.startswith('Parameters:'):
+                    params = np.fromstring(stripped.split(':', 1)[1], sep=' ')
+                elif stripped.startswith('FixedParameters:'):
+                    fixed_params = np.fromstring(
+                        stripped.split(':', 1)[1], sep=' ')
+    except UnicodeDecodeError as exc:
+        raise ValueError('Could not decode ITK transform file {} as UTF-8.'
+                         .format(filepath)) from exc
 
     supported_types = (
         'AffineTransform_double_3_3',

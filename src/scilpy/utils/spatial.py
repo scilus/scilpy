@@ -237,7 +237,8 @@ def split_affine_transform(affine, eps=1e-8):
         raise ValueError('Expected a homogeneous affine matrix.')
 
     linear = affine[:3, :3]
-    if abs(np.linalg.det(linear)) < eps:
+    singular_values = np.linalg.svd(linear, compute_uv=False)
+    if singular_values[-1] < eps * singular_values[0]:
         raise ValueError('Affine transform is singular or near-singular.')
 
     rotation_3x3, upper = _decompose_linear_component(linear, eps=eps)

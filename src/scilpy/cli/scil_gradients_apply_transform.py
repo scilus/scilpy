@@ -13,7 +13,7 @@ import numpy as np
 
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              assert_outputs_exist, add_verbose_arg,
-                             load_matrix_in_any_format)
+                             load_transform_matrix_in_any_format)
 from scilpy.version import version_string
 
 
@@ -47,7 +47,7 @@ def main():
     assert_inputs_exist(parser, [args.in_bvecs, args.in_transfo])
     assert_outputs_exist(parser, args, args.out_bvecs)
 
-    transfo = load_matrix_in_any_format(args.in_transfo)[:3, :3]
+    transfo = load_transform_matrix_in_any_format(args.in_transfo)[:3, :3]
 
     if args.inverse:
         transfo = np.linalg.inv(transfo)

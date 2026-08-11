@@ -23,7 +23,7 @@ from scipy.spatial.transform import Rotation
 
 from scilpy.io.utils import (add_overwrite_arg, add_verbose_arg,
                              assert_inputs_exist, assert_outputs_exist,
-                             load_matrix_in_any_format)
+                             load_transform_matrix_in_any_format)
 from scilpy.utils.spatial import split_affine_transform
 from scilpy.version import version_string
 
@@ -87,7 +87,7 @@ def main():
     assert_outputs_exist(parser, args, [], [out for out in outputs
                                             if out is not None])
 
-    affine = load_matrix_in_any_format(args.in_transfo)
+    affine = load_transform_matrix_in_any_format(args.in_transfo)
     translation, rotation, shear, scale = split_affine_transform(affine)
 
     if args.translation:

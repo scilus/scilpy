@@ -177,3 +177,41 @@ def test_rotation_output_modes_are_mutually_exclusive(script_runner,
                              '--rotation', 'rotation.txt',
                              '--angles', '--rodrigues'])
     assert not ret.success
+
+
+def test_rejects_composite_itk_transform(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
+    with open('affine_itk.txt', 'w', encoding='utf-8') as f:
+        f.write('#Insight Transform File V1.0\n')
+        f.write('# Transform 0\n')
+        f.write('Transform: AffineTransform_double_3_3\n')
+        f.write('Parameters: 1 0 0 0 1 0 0 0 1 0 0 0\n')
+        f.write('FixedParameters: 0 0 0\n')
+        f.write('# Transform 1\n')
+        f.write('Transform: AffineTransform_double_3_3\n')
+        f.write('Parameters: 1 0 0 0 1 0 0 0 1 1 2 3\n')
+        f.write('FixedParameters: 0 0 0\n')
+
+    ret = script_runner.run(['scil_transform_split', 'affine_itk.txt',
+                             '--translation', 'translation.txt', '-f'])
+    assert not ret.success
+
+
+def test_rejects_singular_affine(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
+    np.savetxt('affine.txt', np.diag([1., 0., 2., 1.]))
+
+    ret = script_runner.run(['scil_transform_split', 'affine.txt',
+                             '--translation', 'translation.txt', '-f'])
+    assert not ret.success
+
+
+def test_rejects_malformed_itk_transform(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
+    with open('affine_itk.txt', 'w', encoding='utf-8') as f:
+        f.write('#Insight Transform File V1.0\n')
+        f.write('Transform: AffineTransform_double_3_3\n')
+
+    ret = script_runner.run(['scil_transform_split', 'affine_itk.txt',
+                             '--translation', 'translation.txt', '-f'])
+    assert not ret.success

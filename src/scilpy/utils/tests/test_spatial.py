@@ -51,3 +51,14 @@ def test_split_affine_transform_rejects_degenerate_scale():
 
     with pytest.raises(ValueError, match='singular or near-singular'):
         split_affine_transform(affine)
+
+
+def test_split_affine_transform_accepts_small_uniform_scale():
+    affine = np.diag([1e-3, 1e-3, 1e-3, 1.0])
+
+    translation, rotation, shear, scale = split_affine_transform(affine)
+
+    np.testing.assert_allclose(translation, np.eye(4))
+    np.testing.assert_allclose(rotation, np.eye(4))
+    np.testing.assert_allclose(shear, np.eye(4))
+    np.testing.assert_allclose(scale, affine)
