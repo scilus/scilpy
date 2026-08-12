@@ -12,15 +12,16 @@ from tqdm import tqdm
 
 import numpy as np
 from dipy.data import get_sphere
-from dipy.io.stateful_tractogram import Space
+from dipy.io.stateful_tractogram import Space, Origin
 from dipy.reconst.shm import sh_to_sf_matrix
 from dipy.tracking.streamlinespeed import compress_streamlines
 
 from scilpy.image.volume_space_management import DataVolume
-from scilpy.tracking.propagator import AbstractPropagator, PropagationStatus
+from scilpy.tracking.propagator import AbstractPropagator, ODFPropagator, PropagationStatus
 from scilpy.reconst.utils import find_order_from_nb_coeff
 from scilpy.tracking.seed import SeedGenerator
 from scilpy.gpuparallel.opencl_utils import CLKernel, CLManager, have_opencl
+from scilpy.tracking.utils import TrackingDirection
 
 # For the multi-processing:
 # Dictionary. Will contain all parameters necessary for a sub-process
@@ -527,7 +528,7 @@ class Tracker(object):
                 new_pos = line[-1]
 
                 # Verify that our RAP propagated point stays within the tracking mask
-                propagation_can_continue = self._verify_stopping_criteria(new_pos)
+                propagation_can_continue = self._verify_stopping_criteria(line)
                 if not propagation_can_continue:
                     logging.debug("TRACKER out of mask, stop.")
                     line.pop()
@@ -546,8 +547,8 @@ class Tracker(object):
                     invalid_direction_count += 1
                     if invalid_direction_count > self.max_invalid_dirs:
                         break
-
-                propagation_can_continue = self._verify_stopping_criteria(new_pos)
+                
+                propagation_can_continue = self._verify_stopping_criteria(line + [new_pos])
                 if propagation_can_continue or self.append_last_point:
                     line.append(new_pos)
 
@@ -556,7 +557,8 @@ class Tracker(object):
         logging.debug(f"TRACKER end of propagation: {len(line)} total points, last pos={np.round(line[-1], 2)}")
         return line
 
-    def _verify_stopping_criteria(self, last_pos):
+    def _verify_stopping_criteria(self, line):
+        last_pos = line[-1]
 
         # Checking if out of bound
         if not self.mask.is_coordinate_in_bound(
@@ -569,6 +571,194 @@ class Tracker(object):
             return False
 
         return True
+
+
+class TrackerAdaViT(Tracker):
+    """
+    AdaViT uses a 4D volume containing many tracking masks and tracks only
+    in the union of all masks intersecting the streamline trajectory. In the
+    original publication, AdaViT is used with tracking masks estimated from
+    viral tracing experiments, but in practice, any list of masks can be used.
+
+    Parameters
+    ----------
+        propagator : AbstractPropagator
+            Tracking object.
+        mask : DataVolume
+            Tracking volume(s).
+        seed_generator : SeedGenerator
+            Seeding volume.
+        nbr_seeds: int
+            Number of seeds to create via the seed generator.
+        min_nbr_pts: int
+            Minimum number of points for streamlines.
+        max_nbr_pts: int
+            Maximum number of points for streamlines.
+        max_invalid_dirs: int
+            Number of consecutives invalid directions allowed during tracking.
+        compression_th : float
+            Maximal distance threshold for compression. If None, no
+            compression is applied.
+        mask_exclude: DataVolume
+            Optional exclusion mask. A streamline terminating in this mask will
+            be discarded.
+        backtracking: bool
+            If true, backtracking is enabled. Only works if mask_exclude is provided.
+        backtrack_n_pts: int
+            If backtracking is enabled, a streamline that would be excluded will
+            instead be backtracked of N points and re-propagated from there.
+        backtrack_max_tries: int
+            Maximum number of trials per streamline for backtracking.
+        nbr_processes: int
+            Number of sub processes to use.
+        save_seeds: bool
+            Whether to save the seeds associated to their respective
+            streamlines.
+        mmap_mode: str
+            Memory-mapping mode. One of {None, 'r+', 'c'}. This value is passed
+            to np.load() when loading the raw tracking data from a subprocess.
+        rng_seed: int
+            The random "seed" for the random generator.
+        track_forward_only: bool
+            If true, only the forward direction is computed.
+        skip: int
+            Skip the first N seeds created (and thus N rng numbers). Useful if
+            you want to create new streamlines to add to a previously created
+            tractogram with a fixed rng_seed. Ex: If tractogram_1 was created
+            with nbr_seeds=1,000,000, you can create tractogram_2 with
+            skip 1,000,000.
+        verbose: bool
+            Display tracking progression with TQDM progress bar.
+        min_iter: int
+            Minimum number of tracked streamlines required to update the
+            tracking progression bar.
+        append_last_point: bool
+            Whether to add the last point (once out of the tracking mask) to
+            the streamline or not. Note that points obtained after an invalid
+            direction (based on the propagator's definition of invalid; ex
+            when angle is too sharp of sh_threshold not reached) are never
+            added.
+    """
+    def __init__(self, propagator: AbstractPropagator,
+                 tracking_masks: np.ndarray, seed_generator: SeedGenerator,
+                 nbr_seeds, min_nbr_pts, max_nbr_pts, max_invalid_dirs,
+                 compression_th=0.1, mask_exclude: Union[None, DataVolume] = None,
+                 backtracking: bool = False, backtrack_n_pts: int=40,
+                 backtrack_max_tries: int=10, nbr_processes=1, save_seeds=False,
+                 mmap_mode: Union[str, None] = None, rng_seed=1234,
+                 track_forward_only=False, skip=0, verbose=False, min_iter=100,
+                 append_last_point=True):
+        super().__init__(propagator, None, seed_generator, nbr_seeds,
+                         min_nbr_pts, max_nbr_pts, max_invalid_dirs, compression_th,
+                         nbr_processes, save_seeds, mmap_mode, rng_seed,
+                         track_forward_only, skip, verbose, min_iter,
+                         append_last_point, None)
+        # tracking masks
+        self.tracking_masks = tracking_masks
+
+        if backtracking and mask_exclude is None:
+            raise ValueError("Backtracking cannot be enabled without an exclusion mask.")
+
+        # backtracking parameters
+        self.n_pts_backtrack = backtrack_n_pts
+        self.mask_exclude = mask_exclude
+        self.max_retries = backtrack_max_tries
+        self.backtracking = backtracking
+
+        # assert space
+        if self.space != Space.VOX and self.origin != Origin.CENTER:
+            raise NotImplementedError("This version of the Tracker only works in VOX space with CENTER origin.")
+
+        if (seed_generator.origin != propagator.origin or seed_generator.space != propagator.space):
+            raise ValueError("Seed generator and propagator must work with the same space and origin!")
+
+    def _get_line_both_directions(self, seeding_pos, line_generator):
+        """
+        Generate a streamline from an initial position following the tracking
+        parameters.
+
+        Parameters
+        ----------
+        seeding_pos : tuple
+            3D position, the seed position.
+
+        Returns
+        -------
+        line: list of 3D positions
+            The generated streamline for seeding_pos.
+        """
+        # Forward
+        line = [np.asarray(seeding_pos)]
+        seed_tracking_info = self.propagator.prepare_forward(seeding_pos, line_generator)
+        if seed_tracking_info == PropagationStatus.ERROR:
+            # No good tracking direction can be found at seeding position.
+            return None
+
+        tracking_info = seed_tracking_info
+        line, include = self._propagate_line_with_backtracking(line, tracking_info)
+
+        # Backward
+        if not self.track_forward_only and include:
+            if len(line) > 1:
+                line.reverse()
+
+            tracking_info = self.propagator.prepare_backward(line, seed_tracking_info)
+            line, include = self._propagate_line_with_backtracking(line, tracking_info)
+
+        # Clean streamline
+        if include and (self.min_nbr_pts <= len(line) <= self.max_nbr_pts):
+            return line
+
+        # streamline is either not included or too short/long, we discard it
+        return None
+
+    def _propagate_line_with_backtracking(self, line, tracking_info):
+        include = False
+        if not self.backtracking:
+            line = self._propagate_line(line, tracking_info)
+            include = self._verify_inclusion_criteria(line)
+            return line, include  # one-shot when backtracking is disabled
+        # Backtracking loop
+        retries = 0
+        while not include and retries < self.max_retries:
+            line = self._propagate_line(line, tracking_info)
+            include = self._verify_inclusion_criteria(line)
+            if not include:
+                retries += 1
+                if self.n_pts_backtrack >= len(line):
+                    return None, include  # not valid and can't backtrack anymore
+                line = line[:-self.n_pts_backtrack]
+                if len(line) >= 2:
+                    last_dir = line[-1] - line[-2]
+                    sphere_ind = self.propagator.sphere.find_closest(last_dir)
+                    tracking_info = TrackingDirection(self.propagator.sphere.vertices[sphere_ind],
+                                                      sphere_ind)
+        return line, include
+
+    def _verify_stopping_criteria(self, line):
+        # project line coordinates onto a grid to find which masks we are in
+        # TODO: Support trilinear interpolation for line-masks intersection
+        line_mask = np.zeros(self.tracking_masks.shape[:-1], dtype=bool)
+
+        # line is in origin center, so we add 0.5 to get to
+        # corner and then floor to get voxel coordinates
+        coords = np.floor(np.array(line) + 0.5).astype(int)
+
+        line_mask[coords[:, 0], coords[:, 1], coords[:, 2]] = True
+        line_masks_intersection = self.tracking_masks[line_mask]
+
+        matching_tracking_masks = np.all(line_masks_intersection, axis=0)
+        return np.any(matching_tracking_masks)
+
+    def _verify_inclusion_criteria(self, line):
+        endpoint = line[-1]
+        if self.mask_exclude is None:
+            return True  # keep all streamlines when no exclusion mask is provided
+
+        include = self.mask_exclude.get_value_at_coordinate(
+            *endpoint, space=self.space, origin=self.origin) <= 0.5
+
+        return include
 
 
 class GPUTracker():
@@ -750,3 +940,407 @@ class GPUTracker():
                 # output is yielded so that we can use LazyTractogram.
                 # seed and strl with origin center (same as DIPY)
                 yield strl - 0.5, seed - 0.5
+
+
+class MouseTracker():
+    def __init__(self, propagator: ODFPropagator, wm_mask: DataVolume,
+                 seed_generator: SeedGenerator, nbr_seeds, min_nbr_pts,
+                 max_nbr_pts, max_invalid_dirs, compression_th=0.1,
+                 nbr_processes=1, save_seeds=False,
+                 mmap_mode = None,  rng_seed=1234,
+                 track_forward_only=False, skip=0, verbose=False,
+                 min_iter=100, append_last_point=True, rap=None,
+                 backtrack_nb_pts=10, sigma_backtrack_pts=4.0):
+        """
+        Tracker for tracer experiments. Similar to Tracker but with additional
+        input projection map and white matter mask. The tracking is constrained
+        by the white matter mask and the projection map is used as a
+        probabilistic map to favor tracking in voxels with higher projection
+        density.
+
+        Parameters
+        ----------
+        propagator : AbstractPropagator
+            Tracking object.
+            This tracker will use space and origin defined in the
+            propagator.
+        wm_mask : DataVolume
+            White matter mask. Tracking stops outside this mask.
+        projection_map : DataVolume
+            Projection density map. Used as a probabilistic map to favor tracking
+            in voxels with higher projection density.
+        seed_generator : SeedGenerator
+            Seeding volume.
+        nbr_seeds: int
+            Number of seeds to create via the seed generator.
+        min_nbr_pts: int
+            Minimum number of points for streamlines.
+        max_nbr_pts: int
+            Maximum number of points for streamlines.
+        max_invalid_dirs: int
+            Number of consecutives invalid directions allowed during tracking.
+        compression_th : float,
+            Maximal distance threshold for compression. If None, no
+            compression is applied.
+        nbr_processes: int
+            Number of sub processes to use.
+        save_seeds: bool
+            Whether to save the seeds associated to their respective
+            streamlines.
+        mmap_mode: str
+            Memory-mapping mode. One of {None, 'r+', 'c'}. This value is passed
+            to np.load() when loading the raw tracking data from a subprocess.
+        rng_seed: int
+            The random "seed" for the random generator.
+        track_forward_only: bool
+            If true, only the forward direction is computed.
+        skip: int
+            Skip the first N seeds created (and thus N rng numbers). Useful if
+            you want to create new streamlines to add to a previously created
+            tractogram with a fixed rng_seed. Ex: If tractogram_1 was created
+            with nbr_seeds=1,000,000, you can create tractogram_2 with
+            skip 1,000,000.
+        verbose: bool
+            Display tracking progression with TQDM progress bar.
+        min_iter: int
+            Minimum number of tracked streamlines required to update the
+            tracking progression bar.
+        append_last_point: bool
+            Whether to add the last point (once out of the tracking mask) to
+            the streamline or not. Note that points obtained after an invalid
+            direction (based on the propagator's definition of invalid; ex
+            when angle is too sharp of sh_threshold not reached) are never
+            added.
+        """
+        if nbr_processes > 1:
+            raise ValueError("Multiprocessing is not yet implemented for MouseTracker.")
+        if mmap_mode is not None:
+            logging.warning("Memory-mapping mode is not yet implemented for MouseTracker. Ignoring mmap_mode argument.")
+
+        self.propagator = propagator
+        self.wm_mask = wm_mask
+        self.rap = rap
+        self.seed_generator = seed_generator
+        self.sigma_pts = sigma_backtrack_pts
+        self.backtrack_nb_pts = backtrack_nb_pts
+
+        # tracking parameters
+        self.nbr_seeds = nbr_seeds
+        self.min_nbr_pts = min_nbr_pts
+        self.max_nbr_pts = max_nbr_pts
+        self.max_invalid_dirs = max_invalid_dirs
+        self.compression_th = compression_th
+        self.save_seeds = save_seeds
+        self.rng_seed = rng_seed
+        self.track_forward_only = track_forward_only
+        self.append_last_point = append_last_point
+        self.skip = skip
+
+        self.origin = self.propagator.origin
+        self.space = self.propagator.space
+        if self.space != Space.VOX and self.origin != Origin.CENTER:
+            raise NotImplementedError("This version of the Tracker only works in VOX space with CENTER origin.")
+
+        if (seed_generator.origin != propagator.origin or seed_generator.space != propagator.space):
+            raise ValueError("Seed generator and propagator must work with the same space and origin!")
+
+        if self.min_nbr_pts <= 0:
+            logging.warning("Minimum number of points cannot be 0. Changed to "
+                            "1.")
+            self.min_nbr_pts = 1
+
+        self.printing_frequency = 1000
+        self.verbose = verbose
+        self.min_iter = min_iter
+        self.backtrack_count = 0
+
+        self.rap_entry_exit_coords = []
+
+        # in voxels, minimum separation between backtracking
+        # endpoint to consider them as different lines
+        self.min_sep_backtracking = 5.0
+
+    def track(self):
+        """
+        Generate a set of streamline from seed, mask and odf files.
+
+        Return
+        ------
+        streamlines: list of numpy.array
+            List of streamlines, represented as an array of positions.
+        seeds: list of numpy.array
+            List of seeding positions, one 3-dimensional position per
+            streamline.
+        """
+        lines, seeds = self._get_streamlines()
+        return lines, seeds
+
+    def _get_streamlines(self):
+        """
+        Tracks all streamlines. If asked by user, may compress the streamlines
+        and save the seeds.
+
+        Returns
+        -------
+        streamlines: list
+            The successful streamlines.
+        seeds: list
+            The list of seeds for each streamline, if self.save_seeds. Else, an
+            empty list.
+        """
+        streamlines = []
+        seeds = []
+
+        # Initialize the random number generator to cover multiprocessing,
+        # skip, which voxel to seed and the subvoxel random position
+        first_seed_of_chunk = self.skip
+        random_generator, indices = self.seed_generator.init_generator(
+            self.rng_seed, first_seed_of_chunk)
+
+        # Getting streamlines
+        tqdm_text = "#" + "{}".format(0).zfill(3)
+
+        if self.verbose:
+            p = tqdm(total=self.nbr_seeds, desc=tqdm_text, position=1, leave=False)
+
+        for s in range(self.nbr_seeds):
+            seed = self.seed_generator.get_next_pos(
+                random_generator, indices, first_seed_of_chunk + s)
+
+            # Setting the random value.
+            eps = s
+            line_generator = np.random.default_rng(
+                np.abs(hash((seed + (eps, eps, eps), self.rng_seed))))
+
+            # Forward and backward tracking
+            lines = self._get_lines(seed, line_generator)
+
+            if lines is not None:
+                for line in lines:
+                    streamline = np.array(line, dtype='float32')
+
+                    if self.compression_th is not None:
+                        # Compressing. Threshold is in mm. Verifying space.
+                        if self.space == Space.VOX:
+                            # Equivalent of sft.to_voxmm:
+                            streamline *= self.seed_generator.voxres
+                            compress_streamlines(streamline, self.compression_th)
+                            # Equivalent of sft.to_vox:
+                            streamline /= self.seed_generator.voxres
+                        else:
+                            compress_streamlines(streamline, self.compression_th)
+
+                    streamlines.append(streamline)
+
+                    if self.save_seeds:
+                        seeds.append(np.asarray(seed, dtype='float32'))
+
+            # Note. Option min_iter does not work with manual pbar update.
+            # Will verify manually, lower.
+            # Fixed choice of value rather than a percentage of the chunk
+            # size because our tracker is quite slow.
+            if self.verbose and (s + 1) % self.min_iter == 0:
+                p.update(self.min_iter)
+
+        if self.verbose:
+            p.close()
+            logging.info(f"TRACKER finished tracking {len(streamlines)} streamlines with {self.backtrack_count} backtracking events.")
+
+        return streamlines, seeds
+
+    def _get_lines(self, seeding_pos, line_generator):
+        """
+        Generate a streamline from an initial position following the tracking
+        parameters.
+
+        Parameters
+        ----------
+        seeding_pos : tuple
+            3D position, the seed position.
+
+        Returns
+        -------
+        line: list of 3D positions
+            The generated streamline for seeding_pos.
+        """
+        # Forward
+        line = [np.asarray(seeding_pos)]
+
+        tracking_info = self.propagator.prepare_forward(seeding_pos, line_generator)
+        original_tracking_info = tracking_info  # Keep the original tracking info for backward tracking preparation
+        if tracking_info == PropagationStatus.ERROR:
+            # No good tracking direction can be found at seeding position.
+            return None
+
+        lines = []
+
+        lines_fwd = []
+        last_endpoint = None
+        while tracking_info is not None:
+            # propagate the line in forward direction (tracking_info is the initial direction)
+            line = self._propagate_line(line, tracking_info)
+            if last_endpoint is not None:
+                if np.linalg.norm(np.asarray(line[-1]) - np.asarray(last_endpoint)) > self.min_sep_backtracking:
+                    lines_fwd.append(line.copy())
+            else:
+                lines_fwd.append(line.copy())
+            last_endpoint = line[-1]
+            # Verify if we should backtrack
+            tracking_info, line = self._verify_backtracking_criteria(line, line_generator)
+        logging.debug(f"TRACKER forward: {len(lines_fwd)} lines")
+
+        # Backward
+        if not self.track_forward_only:
+
+            # we can take any line since they all start at the same seed
+            tracking_info = self.propagator.prepare_backward(line[::-1], original_tracking_info)
+
+            lines_backward = []
+            last_endpoint = None
+            line = [np.asarray(seeding_pos)]
+            while tracking_info is not None:
+                # propagate the line in forward direction (tracking_info is the initial direction)
+                line = self._propagate_line(line, tracking_info)
+                if last_endpoint is not None:
+                    if np.linalg.norm(np.asarray(line[-1]) - np.asarray(last_endpoint)) > self.min_sep_backtracking:
+                        lines_backward.append(line.copy())
+                else:
+                    lines_backward.append(line.copy())
+                last_endpoint = line[-1]
+                # Verify if we should backtrack
+                tracking_info, line = self._verify_backtracking_criteria(line, line_generator)
+
+            logging.debug(f"TRACKER backward: {len(lines_backward)} lines")
+            # Combine forward and backward lines, removing duplicates at the seed
+            for f_line in lines_fwd:
+                for b_line in lines_backward:
+                    b_line_reversed = b_line[::-1]
+                    line = b_line_reversed[:-1] + f_line  # combine backward and forward lines, removing duplicate seed point
+                    if self.min_nbr_pts <= len(line) <= self.max_nbr_pts:
+                        lines.append(line.copy())  # update the forward line with the combined line
+                    else:
+                        logging.debug(f"TRACKER line invalid, stop. {self.min_nbr_pts} <= {len(line)} <= {self.max_nbr_pts}")
+        else:
+            lines = lines_fwd
+        logging.debug(f"TRACKER total: {len(lines)} lines")
+
+        return lines if len(lines) > 0 else None
+
+    def _verify_backtracking_criteria(self, line, line_generator):
+        prob_retry = np.exp(-0.5 * len(line)**2 / self.sigma_pts**2)
+        if prob_retry < np.random.uniform(0, 1):
+            logging.debug(f"TRACKER no backtracking, stop. prob_retry={prob_retry:.4f}")
+            return None, line
+
+        self.backtrack_count += 1  # Increment backtrack count
+        if len(line) - 1 <= self.backtrack_nb_pts:
+            line = [line[0]]
+            tracking_info = self.propagator.prepare_forward(line[0], line_generator)
+        else:
+            line = line[:-self.backtrack_nb_pts]
+            last_dir = line[-1] - line[-2]  # Backtracking direction
+            ind = self.propagator.sphere.find_closest(last_dir)
+            tracking_info = TrackingDirection(self.propagator.sphere.vertices[ind], ind)
+        return tracking_info, line
+
+    def _propagate_line(self, line, previous_dir):
+        """
+        Generate a streamline in forward or backward direction from an initial
+        position following the tracking parameters.
+
+        Propagation will stop if the current position is out of bounds (mask's
+        bounds and data's bounds should be the same) or if mask's value at
+        current position is 0 (usual use is with a binary mask but this is not
+        mandatory).
+
+        Parameters
+        ----------
+        line: List[np.ndarrays]
+            Beginning of the line to propagate: list of 3D coordinates
+            formatted as arrays.
+        previous_dir: Any
+            Information necessary to know how to propagate. Type: as understood
+            by the propagator. Example, with the typical fODF propagator: the
+            previous direction of the streamline, v_in, used to define a cone
+            theta, of type TrackingDirection.
+
+        Returns
+        -------
+        line: list of 3D positions
+            At minimum, stays as initial line. Or extended with new tracked
+            points.
+        """
+        invalid_direction_count = 0
+        propagation_can_continue = True
+        in_rap_region = False  # Track whether we're currently in RAP region
+        step_count = 0
+
+        while len(line) < self.max_nbr_pts and propagation_can_continue:
+
+            # Call the RAP function if needed. Can advance of as many points
+            # as they want.
+            is_currently_in_rap = (propagation_can_continue and self.rap and
+                                   self.rap.is_in_rap_region(
+                                       line[-1], space=self.space, origin=self.origin))
+
+            # Detect entering RAP region
+            if is_currently_in_rap and not in_rap_region:
+                self.rap_entry_exit_coords.append((line[-1].copy(), 1))  # 1 for entry
+                in_rap_region = True
+                logging.debug(f"TRACKER ENTERING pos={np.round(line[-1], 2)}")
+
+            if is_currently_in_rap:
+                prev_len = len(line)
+                line, new_dir, is_line_valid = (
+                    self.rap.rap_multistep_propagate(line, previous_dir))
+                if not is_line_valid:
+                    logging.debug("TRACKER invalid, stop")
+                    break
+                if len(line) == prev_len:
+                    logging.debug("TRACKER no progress, stop")
+                    propagation_can_continue = False
+                    break
+                new_pos = line[-1]
+
+                # Verify that our RAP propagated point stays within the tracking mask
+                propagation_can_continue = self._verify_stopping_criteria(new_pos)
+                if not propagation_can_continue:
+                    logging.debug("TRACKER out of mask, stop.")
+                    line.pop()
+                    break
+
+                step_count += 1
+            else:
+                new_pos, new_dir, is_direction_valid = \
+                    self.propagator.propagate(line, previous_dir)
+
+                # Verifying if direction is valid
+                # If invalid: break. Else, verify tracking mask.
+                if is_direction_valid:
+                    invalid_direction_count = 0
+                else:
+                    invalid_direction_count += 1
+                    if invalid_direction_count > self.max_invalid_dirs:
+                        break
+
+                propagation_can_continue = self._verify_stopping_criteria(new_pos)
+                if propagation_can_continue or self.append_last_point:
+                    line.append(new_pos)
+
+            previous_dir = new_dir
+
+        return line
+
+    def _verify_stopping_criteria(self, last_pos):
+        # Checking if out of bound
+        if not self.wm_mask.is_coordinate_in_bound(
+                *last_pos, space=self.space, origin=self.origin):
+            return False
+
+        # Checking if out of mask
+        if self.wm_mask.get_value_at_coordinate(
+                *last_pos, space=self.space, origin=self.origin) <= 0:
+            return False
+
+        # If we are still here, we can continue the propagation.
+        return True

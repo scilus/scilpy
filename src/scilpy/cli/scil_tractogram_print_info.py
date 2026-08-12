@@ -64,6 +64,7 @@ def main():
         {'number_streamlines': int(len(sft)),
          'min_length_mm': float(np.min(lengths_mm)),
          'mean_length_mm': float(np.mean(lengths_mm)),
+         'median_length_mm': float(np.median(lengths_mm)),
          'max_length_mm': float(np.max(lengths_mm)),
          'std_length_mm': float(np.std(lengths_mm)),
          'min_length_nb_points': float(np.min(lengths)),
