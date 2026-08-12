@@ -156,9 +156,6 @@ class RAPSwitch(RAP):
                 new_propagator.line_rng_generator = self.propagator.line_rng_generator
                 self.propagator = new_propagator
                 logging.debug(f"RAP propagator switched to label {label}")
-                logging.debug(f"New propagator parameters: algo={self.propagator.algo}, "
-                              f"theta (rad)={self.propagator.theta}, "
-                              f"vox step size={self.propagator.step_size}")
         else:
             new_propagator = self._propagators[self._propagators.keys()[0]]
             if new_propagator is not self.propagator:
@@ -169,8 +166,6 @@ class RAPSwitch(RAP):
         # Perform propagation with new parameters
         new_pos, new_dir, is_direction_valid = self.propagator.propagate(
             line, prev_direction)
-        logging.debug(f"RAP propagation step: new_pos={new_pos}, new_dir={new_dir}, "
-                      f"is_direction_valid={is_direction_valid}")
 
         # Add the new point to the line
         if is_direction_valid:
