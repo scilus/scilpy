@@ -109,7 +109,9 @@ def main():
     sft_2 = load_tractogram_with_reference(parser, args, args.in_tractogram_2)
 
     # Force RAS alignment
-    ref_simg = StatefulImage.load(args.reference or args.in_tractogram_1)
+    if args.reference is None:
+        parser.error('--reference is required to force RAS alignment.')
+    ref_simg = StatefulImage.load(args.reference)
 
     sft_1.to_rasmm()
     sft_1 = StatefulTractogram(sft_1.streamlines, ref_simg, Space.RASMM)

@@ -15,13 +15,13 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run(['scil_volume_reorient_orientations', '--help'])
+    ret = script_runner.run(['scil_sh_reorient', '--help'])
     assert ret.success
 
 
 def test_execution(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
-    
+
     # Create a test volume (Peaks) with shape (2, 2, 2, 3)
     # We will use an affine that requires rotation
     affine = np.array([
@@ -40,7 +40,7 @@ def test_execution(script_runner, monkeypatch):
     # 1. Test converting to world space
     out_world = 'out_world.nii.gz'
     ret = script_runner.run([
-        'scil_volume_reorient_orientations',
+        'scil_sh_reorient',
         in_img,
         out_world,
         '--to_world',
@@ -57,7 +57,7 @@ def test_execution(script_runner, monkeypatch):
     # 2. Test converting from world space back to voxel space
     out_voxel = 'out_voxel.nii.gz'
     ret = script_runner.run([
-        'scil_volume_reorient_orientations',
+        'scil_sh_reorient',
         out_world,
         out_voxel,
         '--to_voxel',
@@ -72,11 +72,11 @@ def test_execution(script_runner, monkeypatch):
 def test_execution_real_data(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
     in_image = os.path.join(SCILPY_HOME, 'processing', 'peaks.nii.gz')
-    
+
     if os.path.exists(in_image):
         out_world = 'real_world.nii.gz'
         ret = script_runner.run([
-            'scil_volume_reorient_orientations',
+            'scil_sh_reorient',
             in_image,
             out_world,
             '--to_world',
@@ -84,4 +84,3 @@ def test_execution_real_data(script_runner, monkeypatch):
         ])
         assert ret.success
         assert os.path.exists(out_world)
-

@@ -114,9 +114,10 @@ def main():
     # Compute TODI in voxel space, but use affine rotation to transform
     # into world space.
     todi_obj = TrackOrientationDensityImaging(tuple(data_shape), args.sphere)
+    rot_mat = StatefulImage._get_rotation_matrix(affine)
     todi_obj.compute_todi(sft.streamlines, length_weights=True,
                           n_steps=args.n_steps, asymmetric=args.asymmetric,
-                          rotation_matrix=affine[0:3, 0:3])
+                          rotation_matrix=rot_mat)
 
     if args.smooth_todi:
         logging.info('Smoothing ...')

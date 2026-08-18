@@ -2,23 +2,24 @@
 # -*- coding: utf-8 -*-
 
 """
-Reorient directional data (SH or peaks) in a volume between world space and voxel space.
-This script DOES NOT change the voxel grid order, only the spatial orientation
-of what is written inside the voxels.
+Reorient directional data (SH or peaks) between world and voxel spaces.
+This script DOES NOT change the voxel grid order, only the spatial
+orientation of what is written inside the voxels.
 
-Legacy Dipy format used to store orientations relative to the voxel grid (voxel space).
-MRtrix and modern Scilpy store orientations relative to the scanner world coordinates
-(world space), making them invariant to the voxel grid's ordering.
+Legacy Dipy format used to store orientations relative to the voxel grid.
+MRtrix and modern Scilpy store orientations relative to the scanner world
+coordinates, making them invariant to the voxel grid's ordering.
 
-Use this script to update legacy data to world space, or convert back to voxel space if needed.
+Use this script to update legacy data to world space, or convert back to
+voxel space if needed. Despite the script name (scil_sh_reorient), it
+works on any directional data stored in the volume, including SH
+coefficients and peak directions.
 """
 
 import argparse
 import logging
-import sys
 
 import nibabel as nib
-import numpy as np
 
 from scilpy.io.stateful_image import StatefulImage
 from scilpy.io.utils import (add_overwrite_arg, add_verbose_arg,
@@ -39,9 +40,9 @@ def _build_arg_parser():
 
     group = p.add_mutually_exclusive_group(required=True)
     group.add_argument('--to_world', action='store_true',
-                       help='Rotate orientations from voxel space to world space.')
+                       help='Rotate orientations from voxel to world space.')
     group.add_argument('--to_voxel', action='store_true',
-                       help='Rotate orientations from world space to voxel space.')
+                       help='Rotate orientations from world to voxel space.')
 
     add_sh_basis_args(p)
     add_verbose_arg(p)
