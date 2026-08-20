@@ -104,3 +104,35 @@ def test_heuristic_is_data_peaks():
     sh_data[:, :, :, 1:] = 0.1  # Small l=2
     # Argmax is 0 -> is_peaks should be False
     assert is_data_peaks(sh_data) is False
+
+
+def test_is_peaks_override():
+    affine = np.array([
+        [1, 0, 0, 0],
+        [0, 0, -1, 0],
+        [0, 1, 0, 0],
+        [0, 0, 0, 1]
+    ])
+
+    # 6 coefficients that look like SH (l=0 is highest)
+    data = np.zeros((2, 2, 2, 6))
+    data[:, :, :, 0] = 5.0  # Would make heuristic think SH
+    data[:, :, :, 1] = 1.0
+    data[:, :, :, 2] = 0.0
+    data[:, :, :, 3:6] = [0, 0, 1]  # Second peak: Voxel Z
+
+    img = nib.Nifti1Image(data, affine)
+    simg = StatefulImage.convert_to_simg(img)
+
+    # With is_peaks=True, treat as 2 3D peaks:
+    # First peak [5, 1, 0] -> R @ [5, 1, 0] = [5, 0, 1]
+    # Second peak [0, 0, 1] -> R @ [0, 0, 1] = [0, -1, 0]
+    world_peaks = simg.to_world_direction(data, is_peaks=True)
+    expected_peak1 = [5.0, 0.0, 1.0]
+    expected_peak2 = [0.0, -1.0, 0.0]
+    np.testing.assert_allclose(world_peaks[0, 0, 0, :3], expected_peak1, atol=1e-5)
+    np.testing.assert_allclose(world_peaks[0, 0, 0, 3:], expected_peak2, atol=1e-5)
+
+    # And back with is_peaks=True
+    voxel_peaks = simg.to_voxel_direction(world_peaks, is_peaks=True)
+    np.testing.assert_allclose(voxel_peaks, data, atol=1e-5)

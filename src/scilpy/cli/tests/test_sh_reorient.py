@@ -68,6 +68,33 @@ def test_execution(script_runner, monkeypatch):
     voxel_data = nib.load(out_voxel).get_fdata()
     np.testing.assert_allclose(voxel_data[0, 0, 0], [0, 0, 1], atol=1e-5)
 
+    # 3. Test explicit --peaks option
+    out_peaks_world = 'out_peaks_world.nii.gz'
+    ret = script_runner.run([
+        'scil_sh_reorient',
+        in_img,
+        out_peaks_world,
+        '--to_world',
+        '--peaks',
+        '-f'
+    ])
+    assert ret.success
+    world_peaks_data = nib.load(out_peaks_world).get_fdata()
+    np.testing.assert_allclose(world_peaks_data[0, 0, 0], [0, -1, 0], atol=1e-5)
+
+    out_peaks_voxel = 'out_peaks_voxel.nii.gz'
+    ret = script_runner.run([
+        'scil_sh_reorient',
+        out_peaks_world,
+        out_peaks_voxel,
+        '--to_voxel',
+        '--peaks',
+        '-f'
+    ])
+    assert ret.success
+    voxel_peaks_data = nib.load(out_peaks_voxel).get_fdata()
+    np.testing.assert_allclose(voxel_peaks_data[0, 0, 0], [0, 0, 1], atol=1e-5)
+
 
 def test_execution_real_data(script_runner, monkeypatch):
     monkeypatch.chdir(os.path.expanduser(tmp_dir.name))

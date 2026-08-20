@@ -116,7 +116,8 @@ class StatefulImage(nib.Nifti1Image):
         return simg
 
     def to_voxel_direction(self, data=None, sh_basis=None,
-                           is_legacy=None, nbr_processes=None):
+                           is_legacy=None, nbr_processes=None,
+                           is_peaks=None):
         """
         Transform directional data from world space to current voxel space.
 
@@ -131,6 +132,9 @@ class StatefulImage(nib.Nifti1Image):
             Whether the SH basis is legacy. Defaults to self.is_legacy.
         nbr_processes : int, optional
             Number of processes to use for rotation.
+        is_peaks : bool, optional
+            Whether the directional data is peaks (e.g. N*3 dimensions).
+            If None, uses heuristic detection.
 
         Returns
         -------
@@ -150,7 +154,7 @@ class StatefulImage(nib.Nifti1Image):
             R = self._get_rotation_matrix(self.affine).T
             rotated_data = self._rotate_direction_data(
                 data, R, sh_basis=sh_basis, is_legacy=is_legacy,
-                nbr_processes=nbr_processes)
+                nbr_processes=nbr_processes, is_peaks=is_peaks)
             self._dataobj = rotated_data
             return rotated_data
 
@@ -158,10 +162,12 @@ class StatefulImage(nib.Nifti1Image):
         R = self._get_rotation_matrix(self.affine).T
         return self._rotate_direction_data(data, R, sh_basis=sh_basis,
                                            is_legacy=is_legacy,
-                                           nbr_processes=nbr_processes)
+                                           nbr_processes=nbr_processes,
+                                           is_peaks=is_peaks)
 
     def to_world_direction(self, data=None, sh_basis=None,
-                           is_legacy=None, nbr_processes=None):
+                           is_legacy=None, nbr_processes=None,
+                           is_peaks=None):
         """
         Transform directional data from voxel space to world space.
 
@@ -176,6 +182,9 @@ class StatefulImage(nib.Nifti1Image):
             Whether the SH basis is legacy. Defaults to self.is_legacy.
         nbr_processes : int, optional
             Number of processes to use for rotation.
+        is_peaks : bool, optional
+            Whether the directional data is peaks (e.g. N*3 dimensions).
+            If None, uses heuristic detection.
 
         Returns
         -------
@@ -195,17 +204,19 @@ class StatefulImage(nib.Nifti1Image):
             R = self._get_rotation_matrix(self.affine)
             rotated_data = self._rotate_direction_data(
                 data, R, sh_basis=sh_basis, is_legacy=is_legacy,
-                nbr_processes=nbr_processes)
+                nbr_processes=nbr_processes, is_peaks=is_peaks)
             self._dataobj = rotated_data
             return rotated_data
 
         R = self._get_rotation_matrix(self.affine)
         return self._rotate_direction_data(data, R, sh_basis=sh_basis,
                                            is_legacy=is_legacy,
-                                           nbr_processes=nbr_processes)
+                                           nbr_processes=nbr_processes,
+                                           is_peaks=is_peaks)
 
     def _rotate_direction_data(self, data, R, sh_basis='descoteaux07',
-                               is_legacy=True, nbr_processes=None):
+                               is_legacy=True, nbr_processes=None,
+                               is_peaks=None):
         """
         Internal helper to rotate SH or Peaks data.
         """
@@ -231,7 +242,10 @@ class StatefulImage(nib.Nifti1Image):
             data = data.reshape(original_shape[0:3] + (-1,))
 
         last_dim = data.shape[-1]
-        is_sh = not is_data_peaks(data)
+        if is_peaks is None:
+            is_sh = not is_data_peaks(data)
+        else:
+            is_sh = not is_peaks
         if is_sh:
             # SH data can be 4D (XxYxZxN)
             order, full = get_sh_order_and_fullness(last_dim)

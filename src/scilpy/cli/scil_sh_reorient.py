@@ -12,8 +12,7 @@ coordinates, making them invariant to the voxel grid's ordering.
 
 Use this script to update legacy data to world space, or convert back to
 voxel space if needed. Despite the script name (scil_sh_reorient), it
-works on any directional data stored in the volume, including SH
-coefficients and peak directions.
+works on any directional data stored in the volume, including peak directions.
 """
 
 import argparse
@@ -44,6 +43,10 @@ def _build_arg_parser():
     group.add_argument('--to_voxel', action='store_true',
                        help='Rotate orientations from world to voxel space.')
 
+    p.add_argument('--peaks', action='store_true',
+                   help='Treat input image as peak directions (N*3) rather '
+                        'than SH data.')
+
     add_sh_basis_args(p)
     add_verbose_arg(p)
     add_overwrite_arg(p)
@@ -66,12 +69,14 @@ def main():
                               sh_basis=sh_basis,
                               is_legacy=is_legacy)
 
+    is_peaks = True if args.peaks else None
+
     if args.to_world:
         logging.info("Rotating directional data to world space.")
-        rotated_data = simg.to_world_direction()
+        rotated_data = simg.to_world_direction(is_peaks=is_peaks)
     else:
         logging.info("Rotating directional data to voxel space.")
-        rotated_data = simg.to_voxel_direction()
+        rotated_data = simg.to_voxel_direction(is_peaks=is_peaks)
 
     # Save as a standard Nifti1Image with the same affine and header
     out_img = nib.Nifti1Image(rotated_data, simg.affine, simg.header)
