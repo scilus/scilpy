@@ -3,8 +3,13 @@
 """
 Projects metrics onto the underlying voxels of a streamlines. This script can
 project data from data_per_point (dpp) or data_per_streamline (dps) to maps.
+Projection in a given voxel is done by averaging the value of all streamlines
+with a point in that voxel. Optionally, you can use the sum instead. We do not
+verify all voxels touched by given segments in the streamlines; we only use the
+coordinates of your streamlines as they are. You should make sure that your
+streamlines are not compressed and do not have too large step sizes.
 
-You choose to project data from all points of the streamlines, or from the
+You may choose to project data from all points of the streamlines, or from the
 endpoints only. The idea then is to visualize the cortical areas affected by
 metrics (assuming streamlines start/end in the cortex).
 
@@ -20,13 +25,15 @@ How the data is used:
     2. Average the two endpoints and get their mean value, set this value to
        all points.
     3. Keep each point individually.
+For more complex operations, see scil_tractogram_dpp_math.
 
-How the data is projected to a map:
+Where the data is projected to a map:
     A. Using each point.
     B. Using the endpoints only.
 
-For more complex operations than the average per streamline, see
-scil_tractogram_dpp_math.
+How the data is projected:
+    - Using the average of all streamlines in each voxel (default)
+    - Using the sum of all streamlines in each voxel
 """
 
 import argparse
@@ -95,6 +102,11 @@ def _build_arg_parser():
                     help="Project metrics onto a mask of the endpoints.")
     p3.add_argument('--to_wm', action='store_true',
                     help='Project metrics into streamlines coverage.')
+
+    p4 = p.add_argument_group('How to compute the projection.')
+    p4.add_argument('--sum_lines', action='store_true',
+                    help="If set, will use the sum of the values for each "
+                         "streamline rather than the average.")
 
     add_reference_arg(p)
     add_verbose_arg(p)
@@ -224,7 +236,9 @@ def main():
     # -------- Projection and saving ----------
     for key in all_keys:
         logging.info("Projecting streamlines metric {} to a map".format(key))
-        the_map = project_dpp_to_map(sft, key, endpoints_only=args.to_endpoints)
+        the_map = project_dpp_to_map(sft, key,
+                                     sum_lines=args.sum_lines,
+                                     endpoints_only=args.to_endpoints)
 
         out_file = args.out_prefix + key + '.nii.gz'
         logging.info("Saving file {}".format(out_file))
