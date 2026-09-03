@@ -55,7 +55,7 @@ from scilpy.io.utils import (add_overwrite_arg, add_processes_arg,
                              add_reference_arg, add_verbose_arg,
                              assert_inputs_exist,
                              assert_output_dirs_exist_and_empty,
-                             load_matrix_in_any_format, ranged_type,
+                             load_transform_matrix_in_any_format, ranged_type,
                              assert_inputs_dirs_exist)
 from scilpy.segment.voting_scheme import VotingScheme
 from scilpy.version import version_string
@@ -153,7 +153,7 @@ def main():
     assert_output_dirs_exist_and_empty(parser, args, args.out_dir)
 
     # Loading
-    transfo = load_matrix_in_any_format(args.in_transfo)
+    transfo = load_transform_matrix_in_any_format(args.in_transfo)
 
     with open(args.in_config_file) as json_data:
         config = json.load(json_data)

@@ -16,7 +16,7 @@ import numpy as np
 from scilpy.image.volume_operations import apply_transform
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              assert_outputs_exist, add_verbose_arg,
-                             load_matrix_in_any_format)
+                             load_transform_matrix_in_any_format)
 from scilpy.utils.filenames import split_name_with_nii
 from scilpy.version import version_string
 
@@ -69,7 +69,7 @@ def main():
         parser.error('{} is an unsupported format.'.format(args.in_file))
 
     # Loading
-    transfo = load_matrix_in_any_format(args.in_transfo)
+    transfo = load_transform_matrix_in_any_format(args.in_transfo)
     if args.inverse:
         transfo = np.linalg.inv(transfo)
     moving = nib.load(args.in_file)

@@ -38,7 +38,7 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist,
                              assert_outputs_exist,
                              convert_stateful_str_to_enum,
-                             load_matrix_in_any_format)
+                             load_transform_matrix_in_any_format)
 from scilpy.surfaces.surface_operations import apply_transform
 from scilpy.version import version_string
 
@@ -86,7 +86,7 @@ def main():
     sfs = load_surface_with_reference(parser, args, args.in_moving_surface)
 
     img = nib.load(args.in_target_reference)
-    transfo = load_matrix_in_any_format(args.in_transfo)
+    transfo = load_transform_matrix_in_any_format(args.in_transfo)
 
     deformation_data = None
     if args.in_deformation is not None:

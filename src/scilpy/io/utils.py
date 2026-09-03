@@ -1057,26 +1057,132 @@ def load_matrix_in_any_format(filepath):
     elif ext == '.npy':
         data = np.load(filepath)
     elif ext == '.mat':
-        # .mat are actually dictionnary. This function support .mat from
-        # antsRegistration that encode a 4x4 transformation matrix.
-        transfo_dict = loadmat(filepath)
-        lps2ras = np.diag([-1, -1, 1])
-        transfo_key = 'AffineTransform_double_3_3'
-        if transfo_key not in transfo_dict:
-            transfo_key = 'AffineTransform_float_3_3'
-
-        rot = transfo_dict[transfo_key][0:9].reshape((3, 3))
-        trans = transfo_dict[transfo_key][9:12]
-        offset = transfo_dict['fixed']
-        r_trans = (np.dot(rot, offset) - offset - trans).T * [1, 1, -1]
-
-        data = np.eye(4)
-        data[0:3, 3] = r_trans
-        data[:3, :3] = np.dot(np.dot(lps2ras, rot), lps2ras)
+        data = _load_ants_affine_transform(filepath)
     else:
         raise ValueError('Extension {} is not supported'.format(ext))
 
     return data
+
+
+def load_transform_matrix_in_any_format(filepath):
+    _, ext = os.path.splitext(filepath)
+    if ext == '.txt' and _is_itk_transform_file(filepath):
+        return _load_itk_affine_transform(filepath)
+
+    return load_matrix_in_any_format(filepath)
+
+
+def _is_itk_transform_file(filepath):
+    try:
+        with open(filepath, 'r', encoding='utf-8') as f:
+            for line in f:
+                stripped = line.strip()
+                if not stripped:
+                    continue
+                if stripped.startswith('#'):
+                    if stripped.startswith('#Insight Transform File'):
+                        return True
+                    continue
+                if stripped.startswith('Transform:'):
+                    return True
+                return False
+    except UnicodeDecodeError:
+        return False
+    return False
+
+
+def _convert_itk_ants_affine_to_ras(rot, trans, offset):
+    lps2ras = np.diag([-1, -1, 1])
+    r_trans = (np.dot(rot, offset) - offset - trans).T * [1, 1, -1]
+
+    data = np.eye(4)
+    data[0:3, 3] = r_trans
+    data[:3, :3] = np.dot(np.dot(lps2ras, rot), lps2ras)
+    return data
+
+
+def _load_ants_affine_transform(filepath):
+    # .mat are actually dictionary. This function supports .mat from
+    # antsRegistration that encode a 4x4 transformation matrix.
+    transfo_dict = loadmat(filepath)
+    transfo_key = 'AffineTransform_double_3_3'
+    if transfo_key not in transfo_dict:
+        transfo_key = 'AffineTransform_float_3_3'
+    if transfo_key not in transfo_dict:
+        raise ValueError('Could not find an ANTs affine transform in {}'
+                         .format(filepath))
+
+    affine_params = np.asarray(transfo_dict[transfo_key]).ravel()
+    if affine_params.size != 12:
+        raise ValueError('Expected 12 ANTs affine parameters in {}, got {}'
+                         .format(filepath, affine_params.size))
+
+    offset = np.asarray(transfo_dict['fixed']).ravel()
+    if offset.size != 3:
+        raise ValueError('Expected 3 ANTs fixed parameters in {}, got {}'
+                         .format(filepath, offset.size))
+
+    rot = affine_params[:9].reshape((3, 3))
+    trans = affine_params[9:12]
+    return _convert_itk_ants_affine_to_ras(rot, trans, offset)
+
+
+def _load_itk_affine_transform(filepath):
+    transform_type = None
+    params = None
+    fixed_params = None
+    transform_count = 0
+
+    try:
+        with open(filepath, 'r', encoding='utf-8') as f:
+            for line in f:
+                stripped = line.strip()
+                if not stripped or stripped.startswith('#'):
+                    continue
+                if stripped.startswith('Transform:'):
+                    transform_count += 1
+                    if transform_count > 1:
+                        raise ValueError(
+                            'Composite ITK transform files are not supported '
+                            'in {}.'.format(filepath))
+                    transform_type = stripped.split(':', 1)[1].strip()
+                elif stripped.startswith('Parameters:'):
+                    params = np.fromstring(stripped.split(':', 1)[1], sep=' ')
+                elif stripped.startswith('FixedParameters:'):
+                    fixed_params = np.fromstring(
+                        stripped.split(':', 1)[1], sep=' ')
+    except UnicodeDecodeError as exc:
+        raise ValueError('Could not decode ITK transform file {} as UTF-8.'
+                         .format(filepath)) from exc
+
+    supported_types = (
+        'AffineTransform_double_3_3',
+        'AffineTransform_float_3_3',
+        'MatrixOffsetTransformBase_double_3_3',
+        'MatrixOffsetTransformBase_float_3_3',
+    )
+    if transform_type is None:
+        raise ValueError('No Transform entry found in {}'
+                         .format(filepath))
+    if transform_type not in supported_types:
+        raise ValueError('Unsupported ITK transform type {} in {}'
+                         .format(transform_type, filepath))
+    if params is None:
+        raise ValueError('Missing Parameters entry in {}'
+                         .format(filepath))
+    if params.size != 12:
+        raise ValueError('Expected 12 ITK affine parameters in {}, got {}'
+                         .format(filepath, params.size))
+    if fixed_params is None:
+        raise ValueError('Missing FixedParameters entry in {}'
+                         .format(filepath))
+    if fixed_params.size != 3:
+        raise ValueError('Expected 3 ITK fixed parameters in {}, got {}'
+                         .format(filepath, fixed_params.size))
+
+    rot = params[:9].reshape((3, 3))
+    trans = params[9:12]
+    return _convert_itk_ants_affine_to_ras(rot, trans, fixed_params)
 
 
 def save_matrix_in_any_format(filepath, output_data):
