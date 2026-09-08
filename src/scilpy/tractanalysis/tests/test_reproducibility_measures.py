@@ -5,14 +5,28 @@ import os
 from dipy.io.stateful_tractogram import StatefulTractogram
 from dipy.io.streamline import load_tractogram
 import numpy as np
+import pytest
 
 from scilpy import SCILPY_HOME
 from scilpy.io.fetcher import fetch_data, get_testing_files_dict
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
 from scilpy.tractanalysis.reproducibility_measures import \
-    tractogram_pairwise_comparison
+    approximate_surface_node, tractogram_pairwise_comparison
 
 fetch_data(get_testing_files_dict(), keys=['bst.zip'])
+
+
+@pytest.mark.parametrize("cube_size", [3, 5, 7])
+def test_approximate_surface_node_solid_cube(cube_size):
+    # Square-cube law (https://en.wikipedia.org/wiki/Square%E2%80%93cube_law):
+    # surface is exactly 6*n**2, shrinking as 6/n relative to volume.
+    grid = np.zeros((cube_size + 4,) * 3, dtype=int)
+    grid[2:2 + cube_size, 2:2 + cube_size, 2:2 + cube_size] = 1
+
+    surface = approximate_surface_node(grid)
+
+    assert surface == 6 * cube_size ** 2
+    assert surface / np.count_nonzero(grid) == pytest.approx(6 / cube_size)
 
 
 def test_tractogram_pairwise_comparison():
