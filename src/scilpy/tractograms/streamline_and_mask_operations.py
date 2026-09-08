@@ -23,7 +23,6 @@ class CuttingStyle(Enum):
     TRIM_ENDPOINTS = 2
 
 
-
 def get_endpoints_density_map(sft, point_to_select=1, to_millimeters=False,
                               binary=False):
     """
@@ -61,7 +60,7 @@ def get_endpoints_density_map(sft, point_to_select=1, to_millimeters=False,
         for streamline in sft.streamlines:
             endpoints_mask[tuple(streamline[0].astype(np.int16))] += 1
             endpoints_mask[tuple(streamline[-1].astype(np.int16))] += 1
-        mask=endpoints_mask
+        mask = endpoints_mask
     else:
 
         # For more complex options, using head + tail
@@ -114,6 +113,23 @@ def get_head_tail_density_maps(sft, point_to_select=1, to_millimeters=False,
     streamlines._data = streamlines._data.astype(np.float32)
 
     dimensions = sft.dimensions
+    if point_to_select == 1 and not to_millimeters:
+        endpoints_map_head = np.zeros(dimensions, dtype=int)
+        endpoints_map_tail = np.zeros(dimensions, dtype=int)
+        for streamline in streamlines:
+            endpoints_map_head[tuple(streamline[0].astype(np.int16))] += 1
+            endpoints_map_tail[tuple(streamline[-1].astype(np.int16))] += 1
+
+        if binary:
+            endpoints_map_head = (endpoints_map_head > 0).astype(np.int16)
+            endpoints_map_tail = (endpoints_map_tail > 0).astype(np.int16)
+
+        if swap:
+            endpoints_map_head, endpoints_map_tail = \
+                endpoints_map_tail, endpoints_map_head
+
+        return endpoints_map_head, endpoints_map_tail
+
     # Uncompress the streamlines to get the indices of the voxels intersected
     streamlines._data = streamlines._data.astype(np.float32)
     list_indices, points_to_indices = streamlines_to_voxel_coordinates(

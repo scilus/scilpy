@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+import json
 import os
 import tempfile
 
@@ -27,3 +28,9 @@ def test_execution_bundles(script_runner, monkeypatch):
                             in_1, in_2, '--out_json', 'AF_L_measures.json',
                             '--reference', in_ref, '--processes', '1'])
     assert ret.success
+    with open('AF_L_measures.json') as f:
+        data = json.load(f)
+    assert 'end_surface_area_head' in data
+    assert all(val > 0 for val in data['end_surface_area_head'])
+    assert all(val > 0 for val in data['radius_head'])
+    assert all(val > 0 for val in data['irregularity_of_end_surface_head'])
