@@ -306,8 +306,7 @@ def _get_synonyms(keyword, synonyms_data):
         synonym_set = [synonym.lower() for synonym in synonym_set]
         stemmed_synonyms_set = [_stem_word(synonym) for synonym in synonym_set]
 
-        if keyword in synonym_set or _stem_word(
-                keyword) in stemmed_synonyms_set:
+        if keyword in synonym_set or _stem_word(keyword) in stemmed_synonyms_set:
             complete_synonyms.extend(synonym_set)
 
     return list(set(complete_synonyms))

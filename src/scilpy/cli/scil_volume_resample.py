@@ -85,12 +85,12 @@ def main():
     if args.enforce_voxel_size and not args.voxel_size:
         parser.error("Cannot enforce voxel size without a voxel size.")
 
-    if args.volume_size and (not len(args.volume_size) == 1
-                             and not len(args.volume_size) == 3):
+    if args.volume_size and (not len(args.volume_size) == 1 and
+                             not len(args.volume_size) == 3):
         parser.error('Invalid dimensions for --volume_size.')
 
-    if args.voxel_size and (not len(args.voxel_size) == 1
-                            and not len(args.voxel_size) == 3):
+    if args.voxel_size and (not len(args.voxel_size) == 1 and
+                            not len(args.voxel_size) == 3):
         parser.error('Invalid dimensions for --voxel_size.')
 
     logging.info('Loading raw data from %s', args.in_image)
@@ -114,14 +114,12 @@ def main():
                          "input image (but with a different sampling).")
 
     # Resampling volume
-    resampled_simg = resample_volume(
-        simg,
-        ref_img=ref_img,
-        volume_shape=args.volume_size,
-        iso_min=args.iso_min,
-        voxel_res=args.voxel_size,
-        interp=args.interp,
-        enforce_dimensions=args.enforce_dimensions)
+    resampled_simg = resample_volume(simg, ref_img=ref_img,
+                                     volume_shape=args.volume_size,
+                                     iso_min=args.iso_min,
+                                     voxel_res=args.voxel_size,
+                                     interp=args.interp,
+                                     enforce_dimensions=args.enforce_dimensions)
 
     # Saving results
     zooms = list(resampled_simg.header.get_zooms())

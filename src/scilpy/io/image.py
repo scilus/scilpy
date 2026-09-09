@@ -33,11 +33,10 @@ def load_img(arg):
         sum_float = float(np.sum(data_as_float))
 
         if not sum_float.is_integer():
-            logging.warning(
-                'Image {} has an integer type but contains '
-                'non-integer values. Loading, computating and saving '
-                'will be done as float. Using an integer dtype '
-                'will lead to data loss.'.format(arg))
+            logging.warning('Image {} has an integer type but contains '
+                            'non-integer values. Loading, computating and saving '
+                            'will be done as float. Using an integer dtype '
+                            'will lead to data loss.'.format(arg))
             dtype = np.float64
             img.header.set_data_dtype(dtype)
 
@@ -90,8 +89,8 @@ def get_data_as_mask(mask_img, dtype=np.uint8):
         Data (dtype : np.uint8 or bool).
     """
     # Verify that out data type is ok
-    if not (issubclass(np.dtype(dtype).type, np.uint8)
-            or issubclass(np.dtype(dtype).type, np.dtype(bool).type)):
+    if not (issubclass(np.dtype(dtype).type, np.uint8) or
+            issubclass(np.dtype(dtype).type, np.dtype(bool).type)):
         raise IOError('Output data type must be uint8 or bool. '
                       'Current data type is {}.'.format(dtype))
 

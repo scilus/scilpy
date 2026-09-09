@@ -12,8 +12,8 @@ or SH representation, based on streamlines' segments.
 ------------------------------------------------------------------------------------
 Reference:
 [1] Dhollander T, Emsell L, Van Hecke W, Maes F, Sunaert S, Suetens P.
-    Track orientation density imaging (TODI) and track orientation
-    distribution (TOD) based tractography. NeuroImage. 2014 Jul 1;94:312-36.
+    Track orientation density imaging (TODI) and track orientation distribution (TOD)
+    based tractography. NeuroImage. 2014 Jul 1;94:312-36.
 
 ------------------------------------------------------------------------------------
 """

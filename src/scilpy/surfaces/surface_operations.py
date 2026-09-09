@@ -47,8 +47,7 @@ def apply_transform(sfs, linear_transfo, target_reference,
                               origin=sfs.origin)
 
     if deformation_img is not None:
-        deformation_data = np.squeeze(
-            deformation_img.get_fdata(dtype=np.float32))
+        deformation_data = np.squeeze(deformation_img.get_fdata(dtype=np.float32))
 
         # Get vertices translation in voxel space, from the warp image
         new_sfs.to_vox()

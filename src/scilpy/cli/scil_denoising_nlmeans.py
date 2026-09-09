@@ -78,7 +78,7 @@ def _build_arg_parser():
                         "will be denoised. If not provided, only non-zero "
                         "voxels will be denoised.")
     p.add_argument('--algorithm',
-                   choices=['blockwise', 'classic'], default='blockwise',
+                   choices=['blockwise','classic'], default='blockwise',
                    help='Algorithm to use for denoising. [%(default)s]')
     p.add_argument('--gaussian', action='store_true',
                    help="If you know that your data contains gaussian noise, "
@@ -236,7 +236,7 @@ def main():
         # Keep a 3D sigma map (one value per slice) for PIESNO.
         sigma = np.ones(vol_data.shape[:3]) * sigma[None, None, :]
 
-    data_denoised = nlmeans(vol_data, sigma,
+    data_denoised = nlmeans(vol_data, sigma, 
                             mask=mask_denoise,
                             rician=not args.gaussian,
                             method=args.algorithm,

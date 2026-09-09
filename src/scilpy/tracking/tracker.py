@@ -169,13 +169,12 @@ class Tracker(object):
             # Check bounds
             if (0 <= vox_coord[0] < mask_data.shape[0] and
                 0 <= vox_coord[1] < mask_data.shape[1] and
-                    0 <= vox_coord[2] < mask_data.shape[2]):
+                0 <= vox_coord[2] < mask_data.shape[2]):
                 # Use max to handle overlapping entry/exit points
                 # If both entry and exit occur at same voxel,
                 # exit (2) will prevail
                 mask_data[vox_coord[0], vox_coord[1], vox_coord[2]] = max(
-                    mask_data[vox_coord[0], vox_coord[1], vox_coord[2]],
-                    coord_type)
+                    mask_data[vox_coord[0], vox_coord[1], vox_coord[2]], coord_type)
 
         # Create nifti image and save
         mask_img = nib.Nifti1Image(mask_data, reference_img.affine,
@@ -380,11 +379,8 @@ class Tracker(object):
             if lock is None:
                 lock = nullcontext()
             with lock:
-                p = tqdm(
-                    total=chunk_size,
-                    desc=tqdm_text,
-                    position=chunk_id + 1,
-                    leave=False)
+                p = tqdm(total=chunk_size, desc=tqdm_text, position=chunk_id+1,
+                         leave=False)
 
         for s in range(chunk_size):
             seed = self.seed_generator.get_next_pos(
@@ -513,13 +509,11 @@ class Tracker(object):
             # as they want.
             is_currently_in_rap = (propagation_can_continue and self.rap and
                                    self.rap.is_in_rap_region(
-                                       line[-1], space=self.space,
-                                       origin=self.origin))
+                                       line[-1], space=self.space, origin=self.origin))
 
             # Detect entering RAP region
             if is_currently_in_rap and not in_rap_region:
-                self.rap_entry_exit_coords.append(
-                    (line[-1].copy(), 1))  # 1 for entry
+                self.rap_entry_exit_coords.append((line[-1].copy(), 1))  # 1 for entry
                 in_rap_region = True
                 logging.debug(f"TRACKER ENTERING pos={np.round(line[-1], 2)}")
 
@@ -559,8 +553,7 @@ class Tracker(object):
                     if invalid_direction_count > self.max_invalid_dirs:
                         break
 
-                propagation_can_continue = self._verify_stopping_criteria(
-                    new_pos)
+                propagation_can_continue = self._verify_stopping_criteria(new_pos)
                 if propagation_can_continue or self.append_last_point:
                     line.append(new_pos)
 
@@ -648,7 +641,7 @@ class GPUTracker():
         self.n_seeds = len(seeds)
 
         self.seed_batches =\
-            np.array_split(seeds + 0.5, np.ceil(len(seeds) / batch_size))
+            np.array_split(seeds + 0.5, np.ceil(len(seeds)/batch_size))
 
         if sphere is None:
             self.sphere = get_sphere(name="repulsion724")
@@ -713,8 +706,7 @@ class GPUTracker():
                              'true' if self.forward_only else 'false')
         cl_kernel.set_define('PROBABILISTIC',
                              'true' if self.probabilistic else 'false')
-        cl_kernel.set_define(
-            'RNG_SEED', '{}u'.format(np.uint32(self.rng_seed)))
+        cl_kernel.set_define('RNG_SEED', '{}u'.format(np.uint32(self.rng_seed)))
         cl_kernel.set_define('SF_THRESHOLD',
                              '{:.8f}f'.format(self.sf_threshold))
         cl_kernel.set_define('SH_INTERP_NN',

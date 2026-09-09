@@ -335,11 +335,10 @@ def _peaks_from_sh_loop(shm_coeff, B, sphere, relative_peak_threshold,
             odf = np.dot(shm_coeff[idx], B)
             odf[odf < absolute_threshold] = 0.
 
-            dirs, peaks, ind = peak_directions(
-                odf, sphere,
-                relative_peak_threshold=relative_peak_threshold,
-                min_separation_angle=min_separation_angle,
-                is_symmetric=is_symmetric)
+            dirs, peaks, ind = peak_directions(odf, sphere,
+                                               relative_peak_threshold=relative_peak_threshold,
+                                               min_separation_angle=min_separation_angle,
+                                               is_symmetric=is_symmetric)
 
             if peaks.shape[0] != 0:
                 n = min(npeaks, peaks.shape[0])
@@ -470,9 +469,9 @@ def peaks_from_sh(shm_coeff, sphere, mask=None, relative_peak_threshold=0.5,
         tmp_peak_values_array = np.zeros((np.count_nonzero(mask), npeaks))
         tmp_peak_indices_array = np.zeros((np.count_nonzero(mask), npeaks))
         for i, peak_dirs, peak_values, peak_indices in results:
-            tmp_peak_dirs_array[chunk_len[i]                                :chunk_len[i + 1], :, :] = peak_dirs
-            tmp_peak_values_array[chunk_len[i]                                  :chunk_len[i + 1], :] = peak_values
-            tmp_peak_indices_array[chunk_len[i]:chunk_len[i + 1], :] = peak_indices
+            tmp_peak_dirs_array[chunk_len[i]:chunk_len[i+1], :, :] = peak_dirs
+            tmp_peak_values_array[chunk_len[i]:chunk_len[i+1], :] = peak_values
+            tmp_peak_indices_array[chunk_len[i]:chunk_len[i+1], :] = peak_indices
 
     # Bring back to the original shape
     peak_dirs_array = np.zeros(data_shape[0:3] + (npeaks, 3))
@@ -635,12 +634,12 @@ def maps_from_sh(shm_coeff, peak_values, peak_indices, sphere,
             all_time_max_odf = max(all_time_global_max, max_odf)
             all_time_global_max = max(all_time_global_max, global_max)
 
-            tmp_nufo_map_array[chunk_len[i]:chunk_len[i + 1]] = nufo_map
-            tmp_afd_max_array[chunk_len[i]:chunk_len[i + 1]] = afd_max
-            tmp_afd_sum_array[chunk_len[i]:chunk_len[i + 1]] = afd_sum
-            tmp_rgb_map_array[chunk_len[i]:chunk_len[i + 1], :] = rgb_map
-            tmp_gfa_map_array[chunk_len[i]:chunk_len[i + 1]] = gfa_map
-            tmp_qa_map_array[chunk_len[i]:chunk_len[i + 1], :] = qa_map
+            tmp_nufo_map_array[chunk_len[i]:chunk_len[i+1]] = nufo_map
+            tmp_afd_max_array[chunk_len[i]:chunk_len[i+1]] = afd_max
+            tmp_afd_sum_array[chunk_len[i]:chunk_len[i+1]] = afd_sum
+            tmp_rgb_map_array[chunk_len[i]:chunk_len[i+1], :] = rgb_map
+            tmp_gfa_map_array[chunk_len[i]:chunk_len[i+1]] = gfa_map
+            tmp_qa_map_array[chunk_len[i]:chunk_len[i+1], :] = qa_map
 
     # Bring back to the original shape
     nufo_map_array = np.zeros(data_shape[0:3])
