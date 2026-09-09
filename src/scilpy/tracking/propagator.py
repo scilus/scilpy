@@ -404,7 +404,8 @@ class ODFPropagator(PropagatorOnSphere):
             get_sh_order_and_fullness(self.datavolume.nb_coeffs)
         self.basis = basis
         self.is_legacy = is_legacy
-        self.B = sh_to_sf_matrix(self.sphere, sh_order, self.basis,
+        self.B = sh_to_sf_matrix(self.sphere, sh_order_max=sh_order,
+                                 basis_type=self.basis,
                                  smooth=0.006, return_inv=False,
                                  full_basis=full_basis, legacy=self.is_legacy)
 
@@ -427,12 +428,12 @@ class ODFPropagator(PropagatorOnSphere):
         # Interpolation:
         sh = self.datavolume.get_value_at_coordinate(
             *pos, space=self.space, origin=self.origin)
-        sf = np.dot(self.B.T, sh).reshape((-1, 1))
+        sf = np.dot(self.B.T, sh)
 
         sf_max = np.max(sf)
         if sf_max > 0:
             sf /= sf_max
-        return sf
+        return np.squeeze(sf)
 
     def prepare_forward(self, seeding_pos, random_generator):
         """

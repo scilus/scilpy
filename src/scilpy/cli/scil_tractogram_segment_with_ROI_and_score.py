@@ -239,26 +239,24 @@ def load_and_verify_everything(parser, args):
     logging.info("Loading and/or computing ground-truth masks, limits "
                  "masks and any_masks.")
     gt_masks = compute_masks_from_bundles(gt_masks_files, parser, args)
-    inv_all_masks = compute_masks_from_bundles(all_masks_files, parser, args,
-                                               inverse_mask=True)
+    all_masks = compute_masks_from_bundles(all_masks_files, parser, args)
     any_masks = compute_masks_from_bundles(any_masks_files, parser, args)
 
     logging.info("Extracting ground-truth head and tail masks.")
     gt_tails, gt_heads = compute_endpoint_masks(roi_options, args.out_dir)
 
-    # Update the list of every ROI, remove duplicates
+    # Check that all ROIs are compatible (remove duplicates)
+    logging.info("Verifying tractogram compatibility with endpoint ROIs.")
     list_rois = gt_tails + gt_heads
     list_rois = list(dict.fromkeys(list_rois))  # Removes duplicates
-
-    logging.info("Verifying tractogram compatibility with endpoint ROIs.")
     for file in list_rois:
         compatible = is_header_compatible(sft, file)
         if not compatible:
             parser.error("Input tractogram incompatible with {}".format(file))
 
-    return (gt_tails, gt_heads, sft, bundle_names, list_rois,
+    return (gt_tails, gt_heads, sft, bundle_names,
             lengths, angles, orientation_lengths, abs_orientation_lengths,
-            inv_all_masks, gt_masks, any_masks, dimensions, json_outputs)
+            all_masks, gt_masks, any_masks, dimensions, json_outputs)
 
 
 def read_config_file(args):
@@ -428,8 +426,8 @@ def main():
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     # Load
-    (gt_tails, gt_heads, sft, bundle_names, list_rois, bundle_lengths, angles,
-     orientation_lengths, abs_orientation_lengths, inv_all_masks, gt_masks,
+    (gt_tails, gt_heads, sft, bundle_names, bundle_lengths, angles,
+     orientation_lengths, abs_orientation_lengths, all_masks, gt_masks,
      any_masks, dimensions,
      json_outputs) = load_and_verify_everything(parser, args)
 
@@ -437,8 +435,10 @@ def main():
     (vb_sft_list, wpc_sft_list, ib_sft_list, nc_sft,
      ib_names, bundle_stats) = segment_tractogram_from_roi(
         sft, gt_tails, gt_heads, bundle_names, bundle_lengths, angles,
-        orientation_lengths, abs_orientation_lengths, inv_all_masks, any_masks,
-        list_rois, args)
+        orientation_lengths, abs_orientation_lengths, all_masks, any_masks,
+        args.out_dir, args.compute_ic, args.save_wpc_separately, args.unique,
+        args.remove_wpc_belonging_to_another_bundle,
+        args.no_empty, args.bbox_check, args.dilate_endpoints)
 
     # Save results
     with open(json_outputs[0], "w") as f:

@@ -20,7 +20,8 @@ from dipy.io.gradients import read_bvals_bvecs
 import nibabel as nib
 import numpy as np
 
-from scilpy.gradients.bvec_bval_tools import check_b0_threshold
+from scilpy.gradients.bvec_bval_tools import (check_b0_threshold,
+                                              check_shells_frf)
 from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_b0_thresh_arg, add_overwrite_arg,
                              add_precision_arg,
@@ -110,6 +111,8 @@ def main():
     args.b0_threshold = check_b0_threshold(bvals.min(),
                                            b0_thr=args.b0_threshold,
                                            skip_b0_check=args.skip_b0_check)
+
+    check_shells_frf(bvals, args.b0_threshold)
 
     mask = get_data_as_mask(nib.load(args.mask),
                             dtype=bool) if args.mask else None

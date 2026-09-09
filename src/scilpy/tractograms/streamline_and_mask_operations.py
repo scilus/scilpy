@@ -110,9 +110,10 @@ def get_head_tail_density_maps(sft, point_to_select=1, to_millimeters=False,
         streamlines = resample_streamlines_step_size(sft, 1.0).streamlines
     else:
         streamlines = sft.streamlines
+    streamlines._data = streamlines._data.astype(np.float32)
 
     dimensions = sft.dimensions
-    # Get the indices of the voxels intersected
+    # Uncompress the streamlines to get the indices of the voxels intersected
     streamlines._data = streamlines._data.astype(np.float32)
     list_indices, points_to_indices = streamlines_to_voxel_coordinates(
         streamlines, return_mapping=True)
@@ -325,6 +326,7 @@ def cut_streamlines_with_mask(sft, mask,
     orig_origin = sft.origin
     sft.to_vox()
     sft.to_corner()
+    sft.streamlines._data = sft.streamlines._data.astype(np.float32)
 
     # Get the indices of the voxels
     # intersected by the streamlines and the mapping from points to indices
@@ -352,12 +354,19 @@ def cut_streamlines_with_mask(sft, mask,
     else:
         trim_func = _trim_streamline_in_mask
 
-    # Trim streamlines with the mask and return the new streamlines
-    pool = Pool(processes)
-    lists_of_new_strmls = pool.starmap(
-        trim_func, [(i, s, pt, mask) for (i, s, pt) in zip(
-            indices, sft.streamlines, points_to_idx)])
-    pool.close()
+    # Trim streamlines with the mask and return the new streamlines.
+    # In single-process mode, avoid creating a multiprocessing pool.
+    if processes <= 1:
+        lists_of_new_strmls = [
+            trim_func(i, s, pt, mask)
+            for (i, s, pt) in zip(indices, sft.streamlines, points_to_idx)
+        ]
+    else:
+        with Pool(processes) as pool:
+            lists_of_new_strmls = pool.starmap(
+                trim_func, [(i, s, pt, mask) for (i, s, pt) in zip(
+                    indices, sft.streamlines, points_to_idx)])
+
     # Flatten the list of lists of new streamlines in a single list of
     # new streamlines
     new_strmls = ArraySequence([strml for list_of_strml in lists_of_new_strmls
@@ -431,7 +440,7 @@ def cut_streamlines_between_labels(
     label_data_2[mask] = 0
 
     sft.streamlines._data = sft.streamlines._data.astype(np.float32)
-    (indices, points_to_idx) = streamlines_to_voxel_coordinates(
+    indices, points_to_idx = streamlines_to_voxel_coordinates(
         sft.streamlines,
         return_mapping=True
     )
@@ -443,15 +452,22 @@ def cut_streamlines_between_labels(
                          "--remove_single_point and "
                          "--remove_overlapping_points options.")
 
-    # Trim streamlines with the mask and return the new streamlines
-    pool = Pool(processes)
-    lists_of_new_strmls = pool.starmap(
-        _cut_streamline_with_labels, [(i, s, pt, label_data_1, label_data_2,
-                                       one_point_in_roi, no_point_in_roi)
-                                      for (i, s, pt) in zip(
-                                          indices, sft.streamlines,
-                                          points_to_idx)])
-    pool.close()
+    # Trim streamlines with the mask and return the new streamlines.
+    # In single-process mode, avoid creating a multiprocessing pool.
+    if processes <= 1:
+        lists_of_new_strmls = [
+            _cut_streamline_with_labels(i, s, pt, label_data_1, label_data_2,
+                                        one_point_in_roi, no_point_in_roi)
+            for (i, s, pt) in zip(indices, sft.streamlines, points_to_idx)
+        ]
+    else:
+        with Pool(processes) as pool:
+            lists_of_new_strmls = pool.starmap(
+                _cut_streamline_with_labels,
+                [(i, s, pt, label_data_1, label_data_2,
+                  one_point_in_roi, no_point_in_roi)
+                 for (i, s, pt) in zip(indices, sft.streamlines,
+                                       points_to_idx)])
     # Flatten the list of lists of new streamlines in a single list of
     # new streamlines
     list_of_new_strmls = [strml for strml in lists_of_new_strmls

@@ -24,11 +24,15 @@ duplicated streamlines.
 To allow a soft match, use the --precision option to increase the allowed
 threshold for similarity. A precision of 1 represents 10**(-1), so a
 maximum distance of 0.1mm is allowed. If the streamlines are identical, the
-default value of 3 (or 0.001mm distance) should work.
+default value of 4 (or 0.0001mm distance) should work.
 
 If there is a 0.5mm shift, use a precision of 0 (or 1mm distance) and the
 --robust option. Should make it work, but slightly slower. Will merge all
 streamlines similar when rounded to that precision level.
+
+If some streamlines are identical but have flipped orientations (e.g., A-to-B
+versus B-to-A), use the --bidirectional option to treat them as matches.
+Note that this option requires the --robust option.
 
 The metadata (data per point, data per streamline) of the streamlines that
 are kept in the output will be preserved. This requires that all input files
@@ -83,6 +87,9 @@ def _build_arg_parser():
                    help='Precision used to compare streamlines [%(default)s].')
     p.add_argument('--robust', '-r', action='store_true',
                    help='Use version robust to small translation/rotation.')
+    p.add_argument('--bidirectional', action='store_true',
+                   help='Allow matching streamlines with flipped orientations '
+                        '(only works with --robust).')
 
     p.add_argument('--no_metadata', '-n', action='store_true',
                    help='Strip the streamline metadata from the output.')
@@ -149,6 +156,7 @@ def main():
         tmp_sft.to_voxmm()
         sft_list.append(tmp_sft)
 
+    # Sanity checks
     if np.all([len(sft) == 0 for sft in sft_list]):
         if args.save_empty:
             logging.info("All input tractograms are empty. Saving empty file.")
@@ -160,8 +168,22 @@ def main():
                             "Exiting, without saving results.")
         return
 
-    # Processing
+    if not args.robust and args.operation != 'concatenate':
+        for f, sft in zip(args.in_tractograms, sft_list):
+            if f.lower().endswith('.trk'):
+                rot_scale = sft.affine[:3, :3]
+                is_diagonal = np.allclose(
+                    rot_scale, np.diag(np.diag(rot_scale)), atol=1e-2)
 
+                if not is_diagonal:
+                    logging.warning(
+                        "The input TRK file(s) (e.g., '%s') have a rotated affine. "
+                        "Standard hashing might fail to match identical streamlines "
+                        "due to floating point errors. Consider using '--robust'.", f
+                    )
+                break
+    
+    # Processing
     if args.operation == 'concatenate':
         logging.info('Performing operation "concatenate"')
         sft_list = [s for s in sft_list if len(s) > 0]
@@ -176,7 +198,8 @@ def main():
         logging.info('Performing operation \'{}\'.'.format(op_name))
         new_sft, indices_per_sft = perform_tractogram_operation_on_sft(
             op_name, sft_list, precision=args.precision,
-            no_metadata=args.no_metadata, fake_metadata=args.fake_metadata)
+            no_metadata=args.no_metadata, fake_metadata=args.fake_metadata,
+            bidirectional=args.bidirectional)
 
         if len(new_sft) == 0 and not args.save_empty:
             logging.info("Empty resulting tractogram. Not saving results.")

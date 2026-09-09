@@ -149,6 +149,9 @@ def _build_arg_parser():
                    help='Binary mask where tratography was allowed.\n'
                         'If not set, uses a binary mask computed from '
                         'the streamlines.')
+    p.add_argument('--replace_bad_voxels', type=float, default=None,
+                   help='Replace bad voxels (NaNs or infs) in the input DWI '
+                        'with the specified value.')
 
     g0 = p.add_argument_group(title='COMMIT2 options')
     g0.add_argument('--commit2', action='store_true',
@@ -451,7 +454,8 @@ def main():
                  os.path.join(tmp_dir.name, 'dwi_zero_fix.nii.gz'))
 
         mit.load_data(os.path.join(tmp_dir.name, 'dwi_zero_fix.nii.gz'),
-                      tmp_scheme_filename)
+                      tmp_scheme_filename,
+                      replace_bad_voxels=args.replace_bad_voxels)
         mit.set_model('StickZeppelinBall')
         mit.model.set(args.para_diff, perp_diff, isotropc_diff)
 

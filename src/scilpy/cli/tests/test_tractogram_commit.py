@@ -35,6 +35,7 @@ def test_execution_commit_amico(script_runner, monkeypatch):
         '--in_tracking_mask', in_mask,
         '--perp_diff', '1.19E-3', '0.85E-3', '0.51E-3', '0.17E-3',
         '--iso_diff', '1.7E-3', '3.0E-3',
+        '--replace_bad_voxels', '0',
         '--processes', '1', '--keep_whole_tractogram'])
     assert ret.success
 

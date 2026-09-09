@@ -5,7 +5,7 @@ BundleParc: automatic tract labelling without tractography.
 
 This method takes as input fODF maps and outputs 71 bundle label maps. These maps can then be used to perform tractometry/tract profiling/radiomics. The bundle definitions follow TractSeg's minus the whole CC.
 
-**IMPORTANT**: fODF inputs are presumed to come from Tractoflow, must have stride of -1,2,3,4 and must be BET and cropped. fODFs must be in SH format, basis descoteaux07_legacy and can be of order < 8 but accuracy may be reduced.
+**IMPORTANT**: fODF inputs are presumed to come from Tractoflow, must have stride of -1,2,3,4 and must be BET and cropped. fODFs must be in SH format, basis descoteaux07 and can be of order < 8 but accuracy may be reduced.
 
 Model weights will be downloaded the first time the script is run, which will require an internet connection at runtime. Otherwise they can be manually downloaded from zenodo [1] and by specifying --checkpoint.
 
@@ -19,7 +19,7 @@ The output can be further processed with scil_bundle_mean_std to compute statist
 
 The default value of 50 for --min_blob_size was found empirically on adult brains at a resolution of 1mm^3. The best value for your dataset may differ.
 
-This script requires a GPU with ~6GB of available memory. If you use half-precision (float16) inference, you may be able to run it with ~3GB of GPU memory available. Otherwise, install the CPU version of PyTorch. Execution on MacOS is not supported for now.
+This script requires a GPU with ~8GB of available memory. If you use half-precision (float16) inference, you may be able to run it with ~4GB of GPU memory available. Otherwise, install the CPU version of PyTorch. Execution on MacOS is not supported for now.
 
 Parts of the implementation are based on or lifted from:
     SAM-Med3D: https://github.com/uni-medical/SAM-Med3D
@@ -28,7 +28,7 @@ Parts of the implementation are based on or lifted from:
 To cite: Antoine Théberge, Zineb El Yamani, François Rheault, Maxime Descoteaux, Pierre-Marc Jodoin (2025). LabelSeg. ISMRM Workshop on 40 Years of Diffusion: Past, Present & Future Perspectives, Kyoto, Japan.
 
 [1]: Descoteaux, M., Deriche, R., Knösche, T. R., & Anwander, A. (2007). Deterministic and probabilistic tractography based on complex fibre orientation distributions. IEEE Transactions on Medical Imaging, 26(11), 1464-1477.
-[2]: https://zenodo.org/records/15579498
+[2]: https://zenodo.org/records/19634429
 """  # noqa
 
 import argparse
@@ -83,7 +83,7 @@ def _build_arg_parser():
                              'and weights of model. Default is '
                              '[%(default)s]. If the file does not exist, it '
                              'will be downloaded.')
-    parser.add_argument('--volume_size', default=128, type=int,
+    parser.add_argument('--volume_size', default=144, type=int,
                         help='Size of volume to resample to for inference. '
                              'Only modify if you know what you are doing.')
     parcel_group = parser.add_mutually_exclusive_group()
@@ -133,7 +133,6 @@ def main():
 
     # TODO in future release: infer these from model
     n_coefs = 45
-    img_size = args.volume_size
 
     # Check the number of coefficients in the input fODF
     if C < n_coefs:
@@ -145,7 +144,7 @@ def main():
 
     # Resampling volume to fit the model's input at training time
     resampled_img = resample_volume(fodf_in, ref_img=None,
-                                    volume_shape=[img_size],
+                                    volume_shape=[args.volume_size],
                                     iso_min=False,
                                     voxel_res=None,
                                     interp='lin',
@@ -171,7 +170,7 @@ def main():
         resampled_img.get_fdata(dtype=np.float32),
         n_coefs,
         label_function,
-        DEFAULT_BUNDLES,
+        args.bundles,
         args.min_blob_size,
         args.keep_biggest_blob,
         half_precision=args.half_precision,

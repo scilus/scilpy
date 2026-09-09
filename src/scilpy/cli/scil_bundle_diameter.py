@@ -149,7 +149,7 @@ def _prepare_bundle_view(args, sft, data_labels, centroid_smooth, radius,
                                          opacity=args.opacity,
                                          colors=coloring)
 
-    slice_actor = actor.slicer(data_labels, np.eye(4))
+    slice_actor = actor.slicer(data_labels, affine=np.eye(4))
     slice_actor.opacity(0.0)
     return tube_actor, streamlines_actor, slice_actor
 

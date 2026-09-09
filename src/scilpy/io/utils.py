@@ -13,7 +13,7 @@ import xml.etree.ElementTree as ET
 import nibabel as nib
 import numpy as np
 from dipy.data import SPHERE_FILES
-from dipy.io.stateful_tractogram import Space, Origin
+from dipy.io.stateful_tractogram import Origin, Space 
 from dipy.io.utils import is_header_compatible
 from scipy.io import loadmat
 import six
@@ -35,6 +35,11 @@ topup_options = ['out', 'fout', 'iout', 'logout', 'warpres', 'subsamp', 'fwhm',
                  'config', 'miter', 'lambda', 'ssqlambda', 'regmod', 'estmov',
                  "minmet", 'splineorder', 'numprec', 'interp', 'scale',
                  'regrid']
+
+
+def is_argument_set(args, arg_name):
+    # Check that attribute is not None
+    return not getattr(args, arg_name, None) is None
 
 
 def get_acq_parameters(json_path, args_list):
@@ -152,8 +157,7 @@ def assert_gradients_filenames_valid(parser, filename_list, input_is_fsl):
                              '.bval and .bvec.')
 
             if basename_1 == basename_2:
-                curr_extensions = [ext_1, ext_2]
-                curr_extensions.sort()
+                curr_extensions = sorted([ext_1, ext_2])
                 if curr_extensions != valid_fsl_extensions:
                     parser.error('Your extensions ({}) doesn\'t follow BIDS '
                                  'convention.'.format(curr_extensions))
@@ -175,13 +179,17 @@ def assert_gradients_filenames_valid(parser, filename_list, input_is_fsl):
 
 
 def add_json_args(parser):
-    g1 = parser.add_argument_group(title='Json options')
-    g1.add_argument('--indent',
-                    type=int, default=2,
-                    help='Indent for json pretty print.')
-    g1.add_argument('--sort_keys',
-                    action='store_true',
-                    help='Sort keys in output json.')
+    if isinstance(parser, argparse._ArgumentGroup):
+        target = parser
+    else:
+        target = parser.add_argument_group(title='Json options')
+
+    target.add_argument('--indent',
+                        type=int, default=2,
+                        help='Indent for json pretty print.')
+    target.add_argument('--sort_keys',
+                        action='store_true',
+                        help='Sort keys in output json.')
 
 
 def add_processes_arg(parser):
@@ -309,6 +317,24 @@ def add_bbox_arg(parser):
                              'streamlines).')
 
 
+def add_surface_spatial_arg(parser):
+    SPACES = ['vox', 'voxmm', 'rasmm', 'lpsmm']
+    ORIGINS = ['corner', 'center']
+    surf = parser.add_argument_group(title='Surface spatial options')
+    surf.add_argument('--source_space',
+                      default='rasmm', choices=SPACES,
+                      help='Source space of the input surface [%(default)s].')
+    surf.add_argument('--destination_space',
+                      default='rasmm', choices=SPACES,
+                      help='Destination space of the output surface [%(default)s].')
+    surf.add_argument('--source_origin',
+                      default='center', choices=ORIGINS,
+                      help='Source origin of the input surface [%(default)s].')
+    surf.add_argument('--destination_origin',
+                      default='center', choices=ORIGINS,
+                      help='Destination origin of the output surface [%(default)s].')
+
+
 def add_vtk_legacy_arg(parser):
     parser.add_argument('--legacy_vtk_format', action='store_true',
                         help='Save the VTK file in the legacy format.')
@@ -389,7 +415,7 @@ def parse_sh_basis_arg(args):
             Spherical harmonic basis name.
         is_legacy : bool
             Whether the SH basis is in its legacy form.
-    else: (args:sh_basis is a list of two strings)
+    else: (args.sh_basis is a list of two strings)
         Returns a Tuple of 4 values:
         (sh_basis_in, is_legacy_in, sh_basis_out, is_legacy_out)
     """
@@ -1256,3 +1282,17 @@ def get_default_screenshotting_data(args, peaks=True):
             ovl_imgs,
             ovl_colors,
             peaks_imgs)
+
+
+def convert_stateful_str_to_enum(args):
+    """
+    Convert spatial arguments from string to enum for stateful operations.
+    """
+
+    for space in ['source_space', 'destination_space']:
+        if hasattr(args, space):
+            setattr(args, space, Space(args.__getattribute__(space)))
+
+    for origin in ['source_origin', 'destination_origin']:
+        if hasattr(args, origin):
+            setattr(args, origin, Origin(args.__getattribute__(origin)))

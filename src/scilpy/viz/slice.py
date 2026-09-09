@@ -250,18 +250,23 @@ def create_odf_slicer(sh_fodf, orientation, slice_index, sphere, sh_order,
     if nb_subdivide is not None:
         sphere = sphere.subdivide(n=nb_subdivide)
 
-    fodf = sh_to_sf(sh_fodf, sphere, sh_order, sh_basis,
+    fodf = sh_to_sf(sh_fodf, sphere, 
+                    sh_order_max=sh_order,
+                    basis_type=sh_basis,
                     full_basis=full_basis, legacy=is_legacy)
 
     fodf_var = None
     B_mat = None
     if sh_variance is not None:
-        fodf_var = sh_to_sf(sh_variance, sphere, sh_order, sh_basis,
+        fodf_var = sh_to_sf(sh_variance, sphere,
+                            sh_order_max=sh_order,
+                            basis_type=sh_basis,
                             full_basis=full_basis, legacy=is_legacy)
     else:
         fodf = sh_fodf
-        B_mat = sh_to_sf_matrix(sphere, sh_order, sh_basis,
-                                full_basis, return_inv=False)
+        B_mat = sh_to_sf_matrix(sphere, sh_order_max=sh_order,
+                                basis_type=sh_basis,
+                                full_basis=full_basis, return_inv=False)
 
     odf_actor, var_actor = create_odf_actors(fodf, sphere, scale, fodf_var,
                                              mask, radial_scale,

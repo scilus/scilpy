@@ -1,7 +1,7 @@
-Tensor-valued dMRI scripts (b-tensor)
-=====================================
+Multi-encoding multi-shell multi-tissue fODF (memsmt-fODF)
+==========================================================
 
-The scripts for multi-encoding multi-shell multi-tissue CSD (memsmt-CSD) are based on [memst]_. We recommend reading it to understand the scope of the memsmt-CSD problem.
+This tutorial explains how to compute multi-encoding multi-shell multi-tissue fiber orientation distribution functions (fODFs) using multi-encoding multi-shell multi-tissue constrained spherical deconvolution (memsmt-CSD) [memstCSD]_. You data should contain more than one type of b-tensor encoding (ex: linear, planar, spherical). The following instructions are specific to multi-encdoding and based on [memstCSD]_.
 
 Preparing data for this tutorial
 ********************************
@@ -54,17 +54,20 @@ Then, you should compute the fODFs and volume fractions. The following command w
 
 The resulting files are: csf_fodf.nii.gz gm_fodf.nii.gz  wm_fodf.nii.gz., as well as the volume fraction map: vf.nii.gz and vf_rgb.nii.gz.
 
-If you want to do DIVIDE with b-tensor data, you should use the following command. It will save files for the MD, uFA, OP, MK_I, MK_A and MK_T. This script should run in about 1-2 hours for a full brain.
+
+3. Visualizing the fODF
+***********************
+
+The resulting fODFs can be visualized using the following command:
 
 .. code-block:: bash
 
-    scil_btensor_metrics \
-        --in_dwis $in_dir/dwi_linear.nii.gz $in_dir/dwi_planar.nii.gz $in_dir/dwi_spherical.nii.gz \
-        --in_bvals $in_dir/linear.bvals $in_dir/planar.bvals $in_dir/spherical.bvals \
-        --in_bvecs $in_dir/linear.bvecs $in_dir/planar.bvecs $in_dir/spherical.bvecs \
-        --in_bdeltas 1 -0.5 0 --fa $in_dir/fa.nii.gz --processes 8 --mask $in_dir/mask.nii.gz
+     scil_viz_fodf wm_fodf.nii.gz
+
+See :ref:`scil_viz_fodf` for more information about the visualization options.
+
 
 References
 **********
 
-.. [memst] P. Karan et al., Bridging the gap between constrained spherical deconvolution and diffusional variance decomposition via tensor-valued diffusion MRI. Medical Image Analysis (2022)
+.. [memstCSD] P. Karan et al., Bridging the gap between constrained spherical deconvolution and diffusional variance decomposition via tensor-valued diffusion MRI. Medical Image Analysis (2022)

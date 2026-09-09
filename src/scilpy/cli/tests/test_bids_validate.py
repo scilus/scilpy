@@ -303,6 +303,62 @@ def generate_fake_bids_structure(
     return structure_dir
 
 
+def generate_fake_bids_structure_with_multiple_t1(
+        output_dir,
+        dwi_has_run=True,
+        t1_run_entities=None):
+    if t1_run_entities is None:
+        t1_run_entities = ['1', None]
+
+    structure_dir = tempfile.mkdtemp(prefix="test_bids", dir=output_dir)
+    data_3d, data_dwi = np.empty((10, 10, 10)), np.empty((10, 10, 10, 10))
+
+    dwi_metadata = {
+        "RepetitionTime": 8.4,
+        "FlipAngle": 90,
+        "EchoTime": 0.09,
+        "EffectiveEchoSpacing": 0.0003927297862}
+
+    sub_tag = "sub-1"
+    ses_tag = "ses-1"
+    ses_dir = os.path.join(structure_dir, sub_tag, ses_tag)
+    dwi_dir = os.path.join(ses_dir, "dwi")
+    anat_dir = os.path.join(ses_dir, "anat")
+    os.makedirs(dwi_dir)
+    os.makedirs(anat_dir)
+
+    if dwi_has_run:
+        dwi_prefix = "{}_{}_run-1_dir-AP_dwi".format(sub_tag, ses_tag)
+    else:
+        dwi_prefix = "{}_{}_dir-AP_dwi".format(sub_tag, ses_tag)
+
+    generate_image_packet(
+        data_dwi, dwi_dir, dwi_prefix,
+        phase_dir="AP",
+        readout=0.069,
+        **dwi_metadata)
+
+    np.savetxt(os.path.join(dwi_dir, "{}.bval".format(dwi_prefix)),
+               np.ones((10,)) * 1000)
+    np.savetxt(os.path.join(dwi_dir, "{}.bvec".format(dwi_prefix)),
+               np.ones((3, 10)))
+
+    for index, run_entity in enumerate(t1_run_entities):
+        if run_entity is None:
+            t1_prefix = "{}_{}_acq-{}_T1w".format(sub_tag, ses_tag, index + 1)
+        else:
+            t1_prefix = "{}_{}_run-{}_T1w".format(sub_tag, ses_tag,
+                                                    run_entity)
+        generate_image_packet(data_3d, anat_dir, t1_prefix)
+
+    dataset_description_file = os.path.join(
+        structure_dir, "dataset_description.json")
+    with open(dataset_description_file, "w+") as f:
+        json.dump({"Name": "Test dataset", "BIDSVersion": "1.8.0"}, f)
+
+    return structure_dir
+
+
 def compare_jsons(json_output, test_dir):
     # Open test json file
     with open(os.path.join(test_dir, json_output), 'r') as f:
@@ -437,3 +493,70 @@ def test_bids_rev_dwi_sbref(
         assert compare_jsons(json_output, test_dir)
     else:
         assert False
+
+
+def test_bids_multiple_t1_default_no_run_match(tmpdir, script_runner):
+    test_dir = generate_fake_bids_structure_with_multiple_t1(
+        tmpdir,
+        dwi_has_run=True,
+        t1_run_entities=['1', None])
+
+    output_json = os.path.join(test_dir, 'test_multiple_t1_default.json')
+    ret = script_runner.run([
+        'scil_bids_validate',
+        test_dir,
+        output_json,
+        '-f', '-v'])
+
+    assert ret.success
+    with open(output_json, 'r') as f:
+        out_data = json.load(f)
+
+    assert len(out_data) == 1
+    assert out_data[0]['t1'] == 'todo'
+
+
+def test_bids_multiple_t1_match_t1_run_requires_t1_run_entity(
+        tmpdir, script_runner):
+    test_dir = generate_fake_bids_structure_with_multiple_t1(
+        tmpdir,
+        dwi_has_run=True,
+        t1_run_entities=[None, None])
+
+    output_json = os.path.join(test_dir, 'test_multiple_t1_match_run.json')
+    ret = script_runner.run([
+        'scil_bids_validate',
+        test_dir,
+        output_json,
+        '--match_t1_run',
+        '-f', '-v'])
+
+    assert ret.success
+    with open(output_json, 'r') as f:
+        out_data = json.load(f)
+
+    assert len(out_data) == 1
+    assert out_data[0]['t1'] == 'todo'
+
+
+def test_bids_multiple_t1_match_t1_run_selects_matching_run(
+        tmpdir, script_runner):
+    test_dir = generate_fake_bids_structure_with_multiple_t1(
+        tmpdir,
+        dwi_has_run=True,
+        t1_run_entities=['1', '2'])
+
+    output_json = os.path.join(test_dir, 'test_multiple_t1_match_run_selected.json')
+    ret = script_runner.run([
+        'scil_bids_validate',
+        test_dir,
+        output_json,
+        '--match_t1_run',
+        '-f', '-v'])
+
+    assert ret.success
+    with open(output_json, 'r') as f:
+        out_data = json.load(f)
+
+    assert len(out_data) == 1
+    assert out_data[0]['t1'].endswith('sub-1_ses-1_run-1_T1w.nii.gz')

@@ -12,7 +12,7 @@ import nibabel as nib
 from nibabel.streamlines.array_sequence import ArraySequence
 import numpy as np
 
-from scilpy.io.utils import load_matrix_in_any_format
+from scilpy.io.utils import load_matrix_in_any_format, is_argument_set
 
 
 def check_tracts_same_format(parser, tractogram_1, tractogram_2):
@@ -56,11 +56,6 @@ def ichunk(sequence, n):
     while len(chunk) > 0:
         yield chunk
         chunk = list(islice(sequence, n))
-
-
-def is_argument_set(args, arg_name):
-    # Check that attribute is not None
-    return not getattr(args, arg_name, None) is None
 
 
 def load_tractogram_with_reference(parser, args, filepath, arg_name=None):
@@ -120,6 +115,21 @@ def load_tractogram_with_reference(parser, args, filepath, arg_name=None):
 
 
 def save_tractogram(sft, filename, no_empty, bbox_valid_check=True):
+    """
+    Save tractogram. If no_empty and the tractogram has 0 streamlines, won't
+    save.
+
+    Parameters
+    ----------
+    sft: StatefulTractogram
+        The Tractogram
+    filename: str
+        Where to save. Filename with valid extension.
+    no_empty: bool
+        Wether saving empty files is allowed or not.
+    bbox_valid_check: bool
+        Verify if streamlines are in the bounding box. Default: True.
+    """
     if len(sft.streamlines) == 0 and no_empty:
         logging.info("The file {} won't be written (0 streamlines)"
                      .format(filename))

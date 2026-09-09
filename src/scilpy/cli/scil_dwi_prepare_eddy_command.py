@@ -72,8 +72,8 @@ def _build_arg_parser():
                         'diffusion weighting [%(default)s].')
 
     p.add_argument('--encoding_direction', default='y',
-                   choices=['x', 'y', 'z'],
-                   help='Acquisition direction, default is AP-PA '
+                   choices=['x', 'y'],
+                   help='Acquisition direction, default is AP-PA (y-axis)'
                         '[%(default)s].')
 
     p.add_argument('--readout', type=float, default=0.062,

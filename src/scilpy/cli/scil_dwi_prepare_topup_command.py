@@ -39,9 +39,9 @@ def _build_arg_parser():
                    help='If set, will use SyNb0 custom acqparams file.')
 
     p.add_argument('--encoding_direction', default='y',
-                   choices=['x', 'y', 'z'],
+                   choices=['x', 'y'],
                    help='Acquisition direction of the forward b0 '
-                        'image, default is AP [%(default)s].')
+                        'image, default is AP-PA (y-axis) [%(default)s].')
 
     p.add_argument('--readout', type=float, default=0.062,
                    help='Total readout time from the DICOM metadata '

@@ -60,6 +60,15 @@ def _build_arg_parser():
                    help='Limit value to consider that a b-value is on an '
                         'existing shell. Above this limit, the b-value is '
                         'placed on a new shell. This includes b0s values.')
+    p.add_argument('--replace_bad_voxels', type=float, default=None,
+                   help='Replace bad voxels (NaNs or infs) in the input DWI '
+                        'with the specified value.')
+    p.add_argument('--compute_rmse', action='store_true',
+                     help='Compute the RMSE map of the model fit. Will be saved '
+                          'as fit_RMSE.nii.gz in the output directory.')
+    p.add_argument('--compute_nrmse', action='store_true',
+                     help='Compute the NRMSE map of the model fit. Will be saved '
+                          'as fit_NRMSE.nii.gz in the output directory.')
 
     g1 = p.add_argument_group(title='Model options')
     g1.add_argument('--para_diff', type=float, default=1.5e-3,
@@ -139,7 +148,9 @@ def main():
         # Load the data
         ae.load_data(args.in_dwi,
                      scheme_filename=tmp_scheme_filename,
-                     mask_filename=args.mask)
+                     mask_filename=args.mask,
+                     replace_bad_voxels=args.replace_bad_voxels,
+                     b0_thr=args.b_thr)
 
         # Compute the response functions
         ae.set_model("FreeWater")
@@ -169,6 +180,8 @@ def main():
         ae.set_config('ATOMS_path', kernels_dir)
         ae.set_config('OUTPUT_path', args.out_dir)
         ae.set_config('nthreads', args.nbr_processes)
+        ae.set_config('doComputeRMSE', args.compute_rmse)
+        ae.set_config('doComputeNRMSE', args.compute_nrmse)
         ae.generate_kernels(regenerate=regenerate_kernels)
         if args.compute_only:
             return

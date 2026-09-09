@@ -6,7 +6,7 @@ set -euo pipefail  # Will fail on error
 #    1) Load the input data
 #       https://scilpy.readthedocs.io/en/latest/documentation/getting_started.html
 #    2) Call this script with
-#    --->   bash btensor_scripts.sh  path/to/your/data  path/to/save/outputs
+#    --->   bash memsmt_fodf.sh  path/to/your/data  path/to/save/outputs
 # ==============
 in_dir=$1
 out_dir=$2
@@ -41,12 +41,10 @@ scil_fodf_memsmt wm_frf.txt gm_frf.txt csf_frf.txt \
     --in_bvecs $in_dir/linear.bvecs $in_dir/planar.bvecs $in_dir/spherical.bvecs \
     --in_bdeltas 1 -0.5 0  --processes 8 --mask $in_dir/mask.nii.gz
 
-echo "Compute metrics"
-echo "*****************"
-scil_btensor_metrics \
-    --in_dwis $in_dir/dwi_linear.nii.gz $in_dir/dwi_planar.nii.gz $in_dir/dwi_spherical.nii.gz \
-    --in_bvals $in_dir/linear.bvals $in_dir/planar.bvals $in_dir/spherical.bvals \
-    --in_bvecs $in_dir/linear.bvecs $in_dir/planar.bvecs $in_dir/spherical.bvecs \
-    --in_bdeltas 1 -0.5 0 --fa $in_dir/fa.nii.gz --processes 8 --mask $in_dir/mask.nii.gz
+echo "3 - Visualizing the fODF"
+echo "************************"
+# Here, the --silent flag is used to avoid opening a visualization window.
+# It should be remove if you want to see the interactive visualization.
+scil_viz_fodf wm_fodf.nii.gz --silent --output fodf_memsmt.png
 echo "Resulting files: "
 ls ./

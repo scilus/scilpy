@@ -259,7 +259,7 @@ def main():
             opacity = args.opacity_background
 
             # Structural data
-            slice_actor = actor.slicer(data, affine, value_range)
+            slice_actor = actor.slicer(data, affine=affine, value_range=value_range)
             slice_actor.opacity(opacity)
             ren.add(slice_actor)
 
