@@ -9,7 +9,6 @@ from scilpy.utils import is_float
 from scilpy.io.stateful_image import StatefulImage
 
 
-
 def load_img(arg):
     """
     Function to create the variable for scil_volume_math main function.

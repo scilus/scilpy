@@ -10,6 +10,7 @@ from dipy.direction.peaks import peak_directions
 from dipy.reconst.odf import gfa
 from dipy.reconst.shm import (sh_to_sf_matrix, order_from_ncoef, sf_to_sh,
                               sph_harm_ind_list)
+
 from scilpy.gradients.bvec_bval_tools import (identify_shells,
                                               is_normalized_bvecs,
                                               normalize_bvecs,
@@ -190,6 +191,7 @@ def compute_rish(sh, mask=None, full_basis=False):
         rish *= mask[..., None]
 
     orders = sorted(np.unique(order_ids))
+
     return rish, orders
 
 

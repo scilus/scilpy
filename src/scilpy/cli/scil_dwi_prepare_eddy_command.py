@@ -124,7 +124,7 @@ def main():
     try:
         devnull = open(os.devnull)
         subprocess.call(args.eddy_cmd, stderr=devnull)
-    except Exception:
+    except:
         logging.warning(
             "{} not found. If executing locally, please install "
             "the command from the FSL library and make sure it is "

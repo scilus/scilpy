@@ -84,7 +84,7 @@ def main():
     try:
         devnull = open(os.devnull)
         subprocess.call("topup", stderr=devnull)
-    except Exception:
+    except:
         logging.warning(
             "topup not found. If executing locally, please install "
             "the command from the FSL library and make sure it is "

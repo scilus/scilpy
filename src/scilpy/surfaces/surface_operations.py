@@ -18,7 +18,7 @@ def apply_transform(sfs, linear_transfo, target_reference,
     ----------
     sfs: StatefulSurface
         StatefulSurface containing the surface to be transformed
-
+    
     linear_transfo: numpy.ndarray
         Transformation matrix to be applied
     deformation_img: nib.Nifti1Image

@@ -4,6 +4,8 @@
 import os
 import tempfile
 
+import pytest
+
 from scilpy import SCILPY_HOME
 from scilpy.io.fetcher import fetch_data, get_testing_files_dict
 

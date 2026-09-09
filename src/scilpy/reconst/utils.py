@@ -91,10 +91,9 @@ def is_data_peaks(img_data):
 
     try:
         order, full = get_sh_order_and_fullness(last_dim)
-        # SH order must be even (both for symmetric and full SH in this
-        # context)
-        if order % 2 != 0:
-            raise ValueError("SH order must be even")
+        # Symmetric SH must be even order
+        if not full and order % 2 != 0:
+            return False
     except ValueError:
         # If not a valid SH number of coefficients, and not 3,
         # it might be something else, but if it's a multiple of 3
