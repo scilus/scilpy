@@ -775,9 +775,9 @@ def compare_volume_wrapper(data_1, data_2, voxel_size=1, ratio=False,
 
         # If comparison is performed against a reference volume
         if one_sided:
-            # we compute the overreach wrt the second 
+            # we compute the overreach wrt the second
             # volume. The one-sided overreach is the number of
-            # voxels in the first volume that are not in the second 
+            # voxels in the first volume that are not in the second
             diff = (binary_1 - (binary_1 * binary_2)) > 0
             volume_overreach = np.count_nonzero(diff)
         # Otherwise, we compute the overreach between both volumes
@@ -788,9 +788,9 @@ def compare_volume_wrapper(data_1, data_2, voxel_size=1, ratio=False,
 
         if ratio:
             if one_sided:
-                count = np.count_nonzero(binary_2) # wrt reference
+                count = np.count_nonzero(binary_2)  # wrt reference
             else:
-                count = np.count_nonzero(binary_1) # wrt first volume
+                count = np.count_nonzero(binary_1)  # wrt first volume
             if count > 0:
                 volume_overlap /= count
                 volume_overreach /= count

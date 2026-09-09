@@ -55,7 +55,7 @@ def _build_arg_parser():
                                 formatter_class=argparse.RawTextHelpFormatter,
                                 epilog=version_string)
 
-    p.add_argument('in_data', 
+    p.add_argument('in_data',
                    help='Path to input nifti file.')
     p.add_argument('out_data',
                    help='Path to output nifti file with corrected strides.')
@@ -154,7 +154,7 @@ def main():
         fa = fractional_anisotropy(tenfit.evals)
         evecs = tenfit.evecs.astype(np.float32)[..., 0]
         evecs[fa < 0.2] = 0
-        coherence, transform = compute_coherence_table_for_transforms(evecs, 
+        coherence, transform = compute_coherence_table_for_transforms(evecs,
                                                                       fa)
         # Find the best transform and apply it to the bvecs if needed
         best_t = transform[np.argmax(coherence)]

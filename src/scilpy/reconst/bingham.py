@@ -33,6 +33,7 @@ class BinghamDistribution(object):
         Axis with lowest concentration scaled by the
         concentration parameter k2.
     """
+
     def __init__(self, f0, mu_prime1, mu_prime2):
         self.f0 = f0  # scaling factor
         self.k1 = np.linalg.norm(mu_prime1)

@@ -614,6 +614,7 @@ class GPUTracker():
         GPU tracking mode. `prob` samples directions from the SF and `det`
         follows the maximum SF direction.
     """
+
     def __init__(self, sh, mask, seeds, step_size, max_nbr_pts,
                  theta=20.0, sf_threshold=0.1, sh_interp='trilinear',
                  sh_basis='descoteaux07', is_legacy=True, batch_size=100000,

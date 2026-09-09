@@ -203,7 +203,7 @@ def create_scene(actors, orientation, slice_index, volume_shape, aspect_ratio,
 
 def create_interactive_window(scene, window_size, interactor, *,
                               title="Viewer", open_window=True
-                              ): # pragma: no cover
+                              ):  # pragma: no cover
     # (Function ignored from coverage statistics)
     """
     Create a 3D window with the content of scene, equiped with an interactor.
