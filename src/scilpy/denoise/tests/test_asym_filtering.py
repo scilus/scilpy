@@ -1,7 +1,7 @@
 import numpy as np
 
 from scilpy.denoise.asym_filtering import \
-        unified_filtering, cosine_filtering
+    unified_filtering, cosine_filtering
 from scilpy.reconst.utils import get_sh_order_and_fullness
 from scilpy.tests.arrays import (
     fodf_3x3_order8_descoteaux07,

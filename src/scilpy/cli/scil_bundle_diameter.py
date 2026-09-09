@@ -159,7 +159,7 @@ def main():
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
-    ## Verifications
+    # Verifications
 
     # The number of labels maps must be equal to the number of bundles
     tmp = args.in_bundles + args.in_labels
@@ -176,7 +176,7 @@ def main():
 
     spatial_shape = nib.load(args.in_labels[0]).shape[:3]
 
-    ## Processing
+    # Processing
     # Most loading will be done inside the loop
     stats = {}
     actor_list = []

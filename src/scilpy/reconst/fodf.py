@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from scilpy.tracking.utils import compute_max_sf_amplitude
 import itertools
 import logging
 import multiprocessing
@@ -10,7 +11,6 @@ from dipy.reconst.multi_voxel import MultiVoxelFit
 
 from dipy.utils.optpkg import optional_package
 cvx, have_cvxpy, _ = optional_package("cvxpy")
-from scilpy.tracking.utils import compute_max_sf_amplitude
 
 
 def get_ventricles_max_fodf(data, fa, md, zoom, sh_basis,
@@ -64,7 +64,6 @@ def get_ventricles_max_fodf(data, fa, md, zoom, sh_basis,
     mean, mask: int, ndarray (x, y, z)
          Mean maximum fODF value and mask of voxels used.
     """
-
 
     out_mask = np.zeros(data.shape[:-1])
 
