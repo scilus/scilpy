@@ -203,7 +203,8 @@ class VotingScheme(object):
                 if len(sft) and len(streamlines_id):
                     # Convert back to local indices (for this sft)
                     streamlines_id = streamlines_id[streamlines_id >= tot_sft_len]
-                    streamlines_id = streamlines_id[streamlines_id < tot_sft_len + curr_sft_len]
+                    streamlines_id = streamlines_id[streamlines_id <
+                                                    tot_sft_len + curr_sft_len]
 
                 # If the user asked to ignore metadata, remove it (simpler)
                 new_sft = sft[streamlines_id - tot_sft_len]
@@ -242,7 +243,7 @@ class VotingScheme(object):
             if len(sft) > 0 or self.save_empty:
                 sft.remove_invalid_streamlines()
                 save_tractogram(sft, os.path.join(self.output_directory,
-                                                basename + extension))
+                                                  basename + extension))
 
         out_logfile = os.path.join(self.output_directory, 'results.json')
         with open(out_logfile, 'w') as outfile:

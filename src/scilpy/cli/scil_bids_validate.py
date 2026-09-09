@@ -87,7 +87,7 @@ def _load_bidsignore_(bids_root, additional_bidsignore=None):
     bids_ignores = []
     if bids_ignore_path.exists():
         bids_ignores = bids_ignores +\
-                bids_ignore_path.read_text().splitlines()
+            bids_ignore_path.read_text().splitlines()
 
     if additional_bidsignore:
         bids_ignores = bids_ignores + \
@@ -416,7 +416,8 @@ def associate_dwis(layout, nSub):
                 direction = 'PhaseEncodingDirection'
 
             if direction:
-                rev_curr_entity[direction] = get_opposite_pe_direction(rev_curr_entity[direction])
+                rev_curr_entity[direction] = get_opposite_pe_direction(
+                    rev_curr_entity[direction])
                 if rev_curr_entity == rev_dwi.get_entities():
                     curr_association.append(rev_dwi)
                     rev_iter_to_rm.append(iter_rev)

@@ -42,6 +42,7 @@ class RAP:
 
 class RAPContinue(RAP):
     """Dummy RAP class for tests. Goes straight"""
+
     def __init__(self, mask_rap, propagator, max_nbr_pts, step_size):
         """
         Step size: float
@@ -53,7 +54,7 @@ class RAPContinue(RAP):
 
     def rap_multistep_propagate(self, line, prev_direction):
         is_line_valid = True
-        if len(line)>3:
+        if len(line) > 3:
             pos = line[-2] + self.step_size * np.array(prev_direction)
             line[-1] = pos
             return line, prev_direction, is_line_valid
@@ -64,7 +65,6 @@ class RAPGraph(RAP):
     def __init__(self, mask_rap, propagator, max_nbr_pts, neighboorhood_size):
         super().__init__(mask_rap, propagator, max_nbr_pts)
         self.neighboorhood_size = neighboorhood_size
-
 
     def rap_multistep_propagate(self, line, prev_direction):
         raise NotImplementedError

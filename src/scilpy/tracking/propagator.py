@@ -29,6 +29,7 @@ class AbstractPropagator(object):
     Propagation depends on the type of data (ex, DTI, fODF) and the way to get
     a direction from it (ex, det, prob).
     """
+
     def __init__(self, datavolume, step_size, rk_order, space, origin):
         """
         Parameters
@@ -319,6 +320,7 @@ class ODFPropagator(PropagatorOnSphere):
     """
     Propagator on ODFs/fODFs. Algo can be det or prob.
     """
+
     def __init__(self, datavolume, step_size,
                  rk_order, algo, basis, sf_threshold, sf_threshold_init,
                  theta, dipy_sphere='symmetric724',
@@ -570,7 +572,7 @@ class ODFPropagator(PropagatorOnSphere):
         sf[sf < self.sf_threshold] = 0
         maxima = []
         for i in np.nonzero(self.tracking_neighbours[
-                                previous_direction.index])[0]:
+                previous_direction.index])[0]:
             if 0 < sf[i] == np.max(sf[self.maxima_neighbours[i]]):
                 maxima.append(self.dirs[i])
         return maxima
@@ -587,6 +589,7 @@ class FibertubePropagator(AbstractPropagator):
     distribution. If using an ftODF (the same directions, but expressed as a
     spherical function), the ODFPropagator should be used.
     """
+
     def __init__(self, datavolume: FibertubeDataVolume, step_size, rk_order,
                  theta, space, origin):
         """"

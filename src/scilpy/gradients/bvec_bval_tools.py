@@ -257,7 +257,7 @@ def find_flip_swap_from_order(order):
         elif next_axis in [-1, -2, -3]:
             axes_to_flip.append(abs(next_axis) - 1)
             swapped_order.append(abs(next_axis) - 1)
-    return(axes_to_flip, swapped_order)
+    return (axes_to_flip, swapped_order)
 
 
 def flip_gradient_axis(bvecs, axes, sampling_type):

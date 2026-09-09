@@ -536,6 +536,7 @@ class GPUTacker():
     sphere : int, optional
         Sphere to use for the tracking.
     """
+
     def __init__(self, sh, mask, seeds, step_size, max_nbr_pts,
                  theta=20.0, sf_threshold=0.1, sh_interp='trilinear',
                  sh_basis='descoteaux07', is_legacy=True, batch_size=100000,

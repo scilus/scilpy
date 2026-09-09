@@ -18,6 +18,7 @@ class SeedGenerator:
     example as above, seed sampled in voxel i,j,k = (0,1,2) will be somewhere
     in the range x = [0, 3], y = [3, 6], z = [6, 9].
     """
+
     def __init__(self, data, voxres,
                  space=Space('vox'), origin=Origin('center'), n_repeats=1):
         """
@@ -274,8 +275,9 @@ class FibertubeSeedGenerator(SeedGenerator):
     fibertube tracking. Generates a given number of seed within the first
     segment of a given number of fibertubes.
     """
+
     def __init__(self, centerlines, diameters, nb_seeds_per_fibertube,
-                    local_seeding: Literal['center', 'random']):
+                 local_seeding: Literal['center', 'random']):
         """
         Parameters
         ----------
@@ -387,6 +389,7 @@ class CustomSeedsDispenser(SeedGenerator):
     Adaptation of the scilpy.tracking.seed.SeedGenerator interface for
     using already generated, custom seeds.
     """
+
     def __init__(self, custom_seeds, space=Space('vox'),
                  origin=Origin('center')):
         """

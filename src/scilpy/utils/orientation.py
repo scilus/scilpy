@@ -100,5 +100,5 @@ def parse_voxel_order(order_str, dimensions=3):
                                  "Axes cannot be repeated.")
 
         return validate_voxel_order(tuple(order), dimensions=len(numeric_parts))
-    
+
     raise ValueError(f"Invalid voxel order format: {order_str}")

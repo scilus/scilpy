@@ -119,7 +119,7 @@ def get_ventricles_max_fodf(data, fa, md, zoom, sh_basis,
                     continue
                 if fa[i, j, k] < fa_threshold \
                         and md[i, j, k] > md_threshold \
-                            and mask[i, j, k] == 1:
+                and mask[i, j, k] == 1:
                     sf = np.dot(data[i, j, k], b_matrix)
                     list_of_max.append(sf.max())
                     out_mask[i, j, k] = 1
