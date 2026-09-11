@@ -59,7 +59,7 @@ def main():
     sft.to_corner()
 
     new_sft = flip_sft(sft, args.axes)
-    save_tractogram(new_sft, args.out_tractogram,
+    save_tractogram(new_sft, args.out_tractogram, no_empty=False,
                     bbox_valid_check=args.bbox_check)
 
 
