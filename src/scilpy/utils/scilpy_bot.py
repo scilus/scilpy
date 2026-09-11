@@ -3,7 +3,6 @@ import ast
 from colorama import Fore, Style
 from importlib.resources import files
 import itertools
-import logging
 import multiprocessing
 import pathlib
 import re
@@ -29,7 +28,7 @@ OBJECTS = [
     'fodf', 'freewater', 'frf', 'gradients', 'header',
     'json', 'labels', 'lesions', 'mti', 'NODDI', 'sh',
     'surface', 'tracking', 'tractogram', 'viz', 'volume',
-    'qball', 'rgb'
+    'qball', 'rgb', 'lesions'
 ]
 
 
@@ -57,11 +56,8 @@ def _make_title(text):
     """
     Returns a formatted title string with centered text and spacing
     """
-    return (
-        f'{Fore.LIGHTBLUE_EX}{Style.BRIGHT}'
-        f'{text.center(SPACING_LEN, "=")}'
-        f'{Style.RESET_ALL}'
-    )
+    return f'{Fore.LIGHTBLUE_EX}{Style.BRIGHT}{text.center(SPACING_LEN, "=")}' \
+           f'{Style.RESET_ALL}'
 
 
 def _get_docstring_from_script_path(script):
@@ -240,8 +236,9 @@ def _generate_help_files(nbr_cpu=1):
     scripts_to_regenerate = [script for script in scripts
                              if hidden_dir / f'{script.name}.help' not in helps]
 
+    # Check if all help files are present
     if len(scripts_to_regenerate) == 0:
-        logging.debug('All help files are already generated.')
+        print("All help files are already generated.")
         return
 
     with multiprocessing.Pool(processes=nbr_cpu) as pool:
@@ -276,7 +273,7 @@ def _highlight_keywords(text, all_expressions):
         # Function to apply highlighting to the matched word
         def apply_highlight(match):
             return f'{Fore.LIGHTYELLOW_EX}{Style.BRIGHT}{match.group(0)}' \
-                f'{Style.RESET_ALL}'
+                   f'{Style.RESET_ALL}'
 
         # Replace the matched word with its highlighted version
         text = pattern.sub(apply_highlight, text)
