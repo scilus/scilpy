@@ -11,12 +11,6 @@ import scilpy
 from dipy.utils.optpkg import optional_package
 cl, have_opencl, _ = optional_package('pyopencl')
 
-if have_opencl:
-    try:
-        cl.get_platforms()
-    except Exception:
-        have_opencl = False
-
 
 @contextlib.contextmanager
 def _redirect_fds_to_devnull(*fds):

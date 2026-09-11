@@ -57,12 +57,8 @@ def _build_arg_parser():
 
     p.add_argument('--in_bvec',
                    help='Path of the b-vectors file.')
-    p.add_argument('--in_bval',
-                   help='Path of the b-values file.')
     p.add_argument('--out_bvec',
                    help='Path of the modified b-vectors file to write.')
-    p.add_argument('--out_bval',
-                   help='Path of the modified b-values file to write.')
 
     add_verbose_arg(p)
     add_overwrite_arg(p)
@@ -87,10 +83,7 @@ def main():
             bvecs = bvecs.T
 
         # Create dummy bvals to satisfy StatefulImage validation
-        if args.in_bval:
-            bvals = np.loadtxt(args.in_bval)
-        else:
-            bvals = np.zeros(len(bvecs))
+        bvals = np.zeros(len(bvecs))
         simg.attach_gradients(bvals, bvecs)
 
     parsed_voxel_order = parse_voxel_order(args.new_voxel_order,
@@ -104,15 +97,8 @@ def main():
     new_simg.save(args.out_image)
 
     if args.in_bvec and args.out_bvec:
-        if args.in_bval and args.out_bval:
-            new_simg.save_gradients(args.out_bval, args.out_bvec)
-        else:
-            # If no bval file or no output bval path, save only bvecs.
-            # new_simg.bvecs returns bvecs in the current (new) orientation.
-            np.savetxt(args.out_bvec, new_simg.bvecs.T, fmt='%.8f')
-            if args.in_bval and not args.out_bval:
-                logging.warning("b-values were provided but no output path "
-                                "was specified. b-values will not be saved.")
+        # new_simg.bvecs returns bvecs in the current (new) orientation.
+        np.savetxt(args.out_bvec, new_simg.bvecs.T, fmt='%.8f')
 
 
 if __name__ == "__main__":

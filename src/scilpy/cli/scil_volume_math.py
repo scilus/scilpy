@@ -80,7 +80,7 @@ def main():
     ref_img = None
     for input_arg in args.in_args:
         if not is_float(input_arg):
-            ref_img, _ = load_img(input_arg)
+            ref_img = StatefulImage.load(input_arg)
             found_ref = True
             if mask is None:
                 mask = np.zeros(ref_img.shape)

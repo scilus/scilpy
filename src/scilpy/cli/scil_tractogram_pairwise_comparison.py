@@ -118,12 +118,11 @@ def main():
     sft_2.to_rasmm()
     sft_2 = StatefulTractogram(sft_2.streamlines, ref_simg, Space.RASMM)
 
+    mask = None
     if args.in_mask:
         simg_mask = StatefulImage.load(args.in_mask)
         simg_mask.reorient(ref_simg.axcodes)
         mask = get_data_as_mask(simg_mask)
-    else:
-        mask = None
 
     # Processing
     acc_data, corr_data, diff_data, heatmap, _ = \

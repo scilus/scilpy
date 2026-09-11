@@ -93,7 +93,6 @@ import nibabel as nib
 import numpy as np
 
 from scilpy.io.mti import add_common_args_mti, load_and_verify_mti
-from scilpy.io.image import load_img, get_data_as_mask
 from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist, add_verbose_arg,
                              assert_output_dirs_exist_and_empty)
@@ -187,8 +186,7 @@ def main():
                         optional=args.in_mtoff_t1 or [] + [args.mask])
 
     # Define reference image for saving maps
-    ref_img, _ = load_img(input_maps_lists[0][0])
-    affine = ref_img.affine
+    affine = nib.load(input_maps_lists[0][0]).affine
 
     # Other checks, loading, saving contrast_maps.
     single_echo, flip_angles, rep_times, B1_map, contrast_maps = \
@@ -253,13 +251,8 @@ def main():
         img_data_list.append(MTsat)
 
     # Apply thresholds on maps
-    mask_data = None
-    if args.mask:
-        mask_img, _ = load_img(args.mask)
-        mask_data = get_data_as_mask(mask_img)
-
     for i, map in enumerate(img_data_list):
-        img_data_list[i] = threshold_map(map, mask_data, 0, 100)
+        img_data_list[i] = threshold_map(map, args.mask, 0, 100)
 
     # Save ihMT and MT images
     if args.filtering:

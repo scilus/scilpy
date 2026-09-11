@@ -62,8 +62,7 @@ class StatefulImage(nib.Nifti1Image):
         A = affine[:3, :3]
         # Polar decomposition: A = P * R
         # R is the closest orthogonal matrix to A.
-        # We want the orthogonal part that matches the image's orientation.
-        R, P = polar(A)
+        R, _ = polar(A)
         return R
 
     @classmethod
@@ -158,7 +157,6 @@ class StatefulImage(nib.Nifti1Image):
             self._dataobj = rotated_data
             return rotated_data
 
-        # R_world_to_voxel = R_voxel_to_world.T
         R = self._get_rotation_matrix(self.affine).T
         return self._rotate_direction_data(data, R, sh_basis=sh_basis,
                                            is_legacy=is_legacy,
@@ -434,7 +432,6 @@ class StatefulImage(nib.Nifti1Image):
             return None
         # Transform from world space to current voxel space
         R = self._get_rotation_matrix(self.affine)
-        # v_voxel = v_world * R
         bvecs = np.dot(self._world_bvecs, R)
 
         if self._needs_fsl_flip:
