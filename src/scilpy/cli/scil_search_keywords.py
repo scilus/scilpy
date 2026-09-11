@@ -98,10 +98,9 @@ def main():
     nbr_cpu = validate_nbr_processes(parser, args)
 
     if args.verbose == "WARNING":
-        logging.basicConfig(level=logging.INFO, format='%(message)s', force=True)
+        logging.getLogger().setLevel(logging.INFO)
     else:
-        logging.basicConfig(level=logging.getLevelName(args.verbose),
-                            format='%(message)s', force=True)
+        logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
     hidden_dir = pathlib.Path(SCILPY_HOME) / ".hidden"
     if not hidden_dir.exists():
@@ -208,13 +207,15 @@ def main():
         with open(hidden_dir / f'{match}.help', 'r', encoding='utf-8') as f:
             docstrings = f.read()
 
-        all_expressions = set(
-            stemmed_keywords + keywords + phrases + stemmed_phrases)
+        all_experessions = stemmed_keywords + keywords + phrases \
+            + stemmed_phrases
         if not args.no_synonyms:
-            all_expressions.update(synonyms)
+            all_experessions += synonyms
+
+        all_experessions = set(all_experessions)
 
         highlighted_docstring = _highlight_keywords(docstrings,
-                                                    all_expressions)
+                                                    all_experessions)
         if args.verbose == 'INFO':
             first_sentence = _split_first_sentence(
                 highlighted_docstring)[0]
@@ -227,16 +228,15 @@ def main():
             f"{Fore.LIGHTYELLOW_EX}Total Score: {total_scores[match]}"
             f"{Style.RESET_ALL}")
 
-        display_match = match.replace('.py', '')
         logging.info(
-            f"{Fore.LIGHTBLUE_EX}{Style.BRIGHT}{display_match}{Style.RESET_ALL}")
+            f"{Fore.LIGHTBLUE_EX}{Style.BRIGHT}{match}{Style.RESET_ALL}")
 
         for word, score in scores_per_script[match].items():
             original_word = keyword_mapping.get(
                 word, phrase_mapping.get(word, word))
             logging.info(
-                f"{Fore.LIGHTGREEN_EX}Occurrence of '{original_word}': "
-                f"{score}{Style.RESET_ALL}")
+                f"{Fore.LIGHTGREEN_EX}Occurrence of '{original_word}': ' \
+                f'{score}{Style.RESET_ALL}")
         logging.info(f"{Fore.LIGHTBLUE_EX}{'=' * SPACING_LEN}")
         logging.info("\n")
 
