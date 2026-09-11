@@ -19,7 +19,7 @@ import logging
 import numpy as np
 
 from scilpy.gradients.bvec_bval_tools import (check_b0_threshold,
-                                              check_shells_frf)
+                                              verify_bval_spread)
 from scilpy.io.image import get_data_as_mask
 from scilpy.io.stateful_image import StatefulImage
 from scilpy.io.utils import (add_b0_thresh_arg, add_overwrite_arg,
@@ -116,7 +116,7 @@ def main():
                                            b0_thr=args.b0_threshold,
                                            skip_b0_check=args.skip_b0_check)
 
-    check_shells_frf(bvals, args.b0_threshold)
+    verify_bval_spread(bvals, args.b0_threshold)
 
     mask = None
     if args.mask:

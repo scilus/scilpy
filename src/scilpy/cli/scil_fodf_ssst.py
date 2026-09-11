@@ -18,9 +18,10 @@ import numpy as np
 
 from scilpy.dwi.operations import compute_dwi_attenuation
 from scilpy.gradients.bvec_bval_tools import (check_b0_threshold,
-                                              identify_shells,
                                               normalize_bvecs,
-                                              is_normalized_bvecs)
+                                              is_normalized_bvecs,
+                                              verify_bval_range,
+                                              verify_bval_spread)
 from scilpy.io.image import get_data_as_mask
 from scilpy.io.stateful_image import StatefulImage
 from scilpy.io.utils import (add_b0_thresh_arg, add_overwrite_arg,
@@ -87,7 +88,7 @@ def main():
     simg = StatefulImage.load(args.in_dwi)
     simg.load_gradients(args.in_bval, args.in_bvec)
 
-    # Reorient to RAS for DIPY
+    # Reorient to RAS to mimic mrtrix behavior.
     simg.to_ras()
 
     data = simg.get_fdata(dtype=np.float32)
@@ -119,27 +120,8 @@ def main():
     verify_data_vs_sh_order(data, sh_order, gtab=gtab)
 
     # Checking shells
-    shells_centroids, _ = identify_shells(bvals, args.b0_threshold,
-                                          round_centroids=True)
-    dwi_shells = shells_centroids[shells_centroids > args.b0_threshold]
-    shells_centroids = list(
-        sorted(shells_centroids[shells_centroids > args.b0_threshold]))
-    min_non_b0_shell = np.min(shells_centroids) if len(
-        shells_centroids) > 0 else 0
-    max_non_b0_delta = np.ediff1d(shells_centroids)[
-        0] if len(shells_centroids) > 1 else 0
-    if max_non_b0_delta >= min_non_b0_shell:
-        logging.warning(
-            'Your shells seem to be very far apart (max delta: {}, min non-b0 shell: {}). '
-            'This might cause problems for the estimation of the FRF. '
-            'Consider using scil_frf_msmt.py.'.format(
-                max_non_b0_delta, min_non_b0_shell))
-
-    if len(dwi_shells) > 0 and np.max(dwi_shells) < 900 and sh_order > 4:
-        logging.warning(
-            'Your maximum b-value ({}) is relatively low. '
-            'High SH order ({}) might be unstable. '
-            'Consider using --sh_order 4.'.format(np.max(dwi_shells), sh_order))
+    verify_bval_spread(bvals, args.b0_threshold)
+    verify_bval_range(bvals, args.b0_threshold, sh_order)
 
     # Checking full_frf and separating it
     if not full_frf.shape[0] == 4:

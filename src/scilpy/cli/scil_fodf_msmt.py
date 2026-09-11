@@ -135,11 +135,7 @@ def main():
     simg = StatefulImage.load(args.in_dwi)
     simg.load_gradients(args.in_bval, args.in_bvec)
 
-    # Orientation standardization?
-    # Reconstruction logic (dipy/scilpy) often prefers specific orientation.
-    # We reorient secondary inputs to match the primary one.
-    # If we want to be fully robust, we could force RAS here, but let's see.
-    # scil_frf_msmt used to_ras(), so let's be consistent.
+    # Reorient to RAS to mimic mrtrix behavior.
     simg.to_ras()
 
     data = simg.get_fdata(dtype=np.float32)
