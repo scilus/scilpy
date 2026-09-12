@@ -3,6 +3,7 @@ import logging
 
 import numpy as np
 from numpy.linalg import norm
+from scipy.linalg import polar
 from scipy.spatial import cKDTree
 from scipy.sparse import bsr_matrix
 
@@ -123,6 +124,12 @@ def get_segments_dir_and_norm(segments, seg_mid=None, asymmetric=False,
             get_segments_vectors(segments))
 
     if rotation_matrix is not None:
+        if not np.allclose(rotation_matrix.dot(rotation_matrix.T),
+                           np.eye(3), atol=1e-6):
+            logging.warning('rotation_matrix does not appear to be a pure '
+                            'rotation (not orthonormal); extracting the '
+                            'closest orthogonal rotation.')
+            rotation_matrix, _ = polar(rotation_matrix)
         directions = np.dot(directions, rotation_matrix.T)
 
     return directions, norms

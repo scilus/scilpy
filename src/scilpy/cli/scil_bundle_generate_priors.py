@@ -127,9 +127,10 @@ def main():
     sft.to_corner()
 
     # Compute TODI from streamlines (in world space)
+    rotation_matrix = StatefulImage._get_rotation_matrix(simg_sh.affine)
     todi_sf, sub_mask_3d = get_sf_from_todi(sft, mask_data, args.todi_sigma,
                                             args.sf_threshold,
-                                            rotation_matrix=simg_sh.affine[0:3, 0:3])
+                                            rotation_matrix=rotation_matrix)
 
     # SF to SH, memory friendly saving
     priors_3d = np.zeros(sh_shape, dtype=np.float32)

@@ -93,7 +93,10 @@ def main():
 
     # To enforce the new voxel order in the header, we need to create
     # a new StatefulImage, which will update the header accordingly.
-    new_simg = StatefulImage.convert_to_simg(simg, simg.bvals, simg.bvecs)
+    new_simg = StatefulImage.convert_to_simg(simg)
+    if args.in_bvec:
+        # world_bvecs are already canonical and unaffected by reorientation.
+        new_simg.attach_world_gradients(simg.bvals, simg.world_bvecs)
     new_simg.save(args.out_image)
 
     if args.in_bvec and args.out_bvec:
