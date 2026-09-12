@@ -155,12 +155,13 @@ def _build_arg_parser():
                              ' faces. [%(default)s]')
     ftod_g.add_argument('--sfthres', dest='sf_threshold', metavar='sf_th',
                         type=float, default=0.1,
-                        help='Spherical function relative threshold. '
-                             '[%(default)s]')
+                        help='Spherical function relative threshold '
+                             'within each voxel. [%(default)s]')
     ftod_g.add_argument('--sfthres_init', metavar='sf_th', type=float,
-                        default=0.5, dest='sf_threshold_init',
-                        help="Spherical function relative threshold value "
-                             "for the \ninitial direction. [%(default)s]")
+                        default=0.5,
+                        help='Spherical function relative threshold '
+                             'within each voxel for the \n'
+                             'initial direction. [%(default)s]')
 
     seed_group = p.add_argument_group(
         'Seeding options')
@@ -263,7 +264,8 @@ def main():
     # Since the scilpy Tracker requires a mask, we provide a fake one that will
     # never interfere.
     fake_mask_data = np.ones(in_sft.dimensions)
-    fake_mask = DataVolume(fake_mask_data, in_sft.voxel_sizes, 'nearest')
+    fake_mask = DataVolume(fake_mask_data, in_sft.voxel_sizes, in_sft.affine,
+                           interpolation='nearest')
 
     if args.use_ftODF:
         logging.debug("Instantiating FTODF datavolume")
@@ -302,7 +304,7 @@ def main():
         logging.debug("Instantiating ODF propagator")
         propagator = ODFPropagator(
             datavolume, args.step_size, args.rk_order, args.algo, sh_basis,
-            args.sf_threshold, args.sf_threshold_init, theta, args.sphere,
+            args.sf_threshold, args.sfthres_init, theta, args.sphere,
             sub_sphere=args.sub_sphere,
             space=our_space, origin=our_origin, is_legacy=is_legacy)
     else:

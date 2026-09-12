@@ -1,0 +1,87 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+"""
+Reorient directional data (SH or peaks) between world and voxel spaces.
+This script DOES NOT change the voxel grid order, only the spatial
+orientation of what is written inside the voxels.
+
+Legacy Dipy format used to store orientations relative to the voxel grid.
+MRtrix and modern Scilpy store orientations relative to the scanner world
+coordinates, making them invariant to the voxel grid's ordering.
+
+Use this script to update legacy data to world space, or convert back to
+voxel space if needed. Despite the script name (scil_sh_reorient), it
+works on any directional data stored in the volume, including peak directions.
+"""
+
+import argparse
+import logging
+
+import nibabel as nib
+
+from scilpy.io.stateful_image import StatefulImage
+from scilpy.io.utils import (add_overwrite_arg, add_verbose_arg,
+                             add_sh_basis_args, assert_inputs_exist,
+                             assert_outputs_exist, parse_sh_basis_arg)
+from scilpy.version import version_string
+
+
+def _build_arg_parser():
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=version_string)
+
+    p.add_argument('in_image',
+                   help='Input image containing directional data (.nii.gz).')
+    p.add_argument('out_image',
+                   help='Output image (.nii.gz).')
+
+    group = p.add_mutually_exclusive_group(required=True)
+    group.add_argument('--to_world', action='store_true',
+                       help='Rotate orientations from voxel to world space.')
+    group.add_argument('--to_voxel', action='store_true',
+                       help='Rotate orientations from world to voxel space.')
+
+    p.add_argument('--peaks', action='store_true',
+                   help='Treat input image as peak directions (N*3) rather '
+                        'than SH data.')
+
+    add_sh_basis_args(p)
+    add_verbose_arg(p)
+    add_overwrite_arg(p)
+
+    return p
+
+
+def main():
+    parser = _build_arg_parser()
+    args = parser.parse_args()
+    logging.getLogger().setLevel(logging.getLevelName(args.verbose))
+
+    assert_inputs_exist(parser, args.in_image)
+    assert_outputs_exist(parser, args, args.out_image)
+
+    sh_basis, is_legacy = parse_sh_basis_arg(args)
+
+    simg = StatefulImage.load(args.in_image, to_orientation=None,
+                              is_orientation=True,
+                              sh_basis=sh_basis,
+                              is_legacy=is_legacy)
+
+    is_peaks = True if args.peaks else None
+
+    if args.to_world:
+        logging.info("Rotating directional data to world space.")
+        rotated_data = simg.to_world_direction(is_peaks=is_peaks)
+    else:
+        logging.info("Rotating directional data to voxel space.")
+        rotated_data = simg.to_voxel_direction(is_peaks=is_peaks)
+
+    # Save as a standard Nifti1Image with the same affine and header
+    out_img = nib.Nifti1Image(rotated_data, simg.affine, simg.header)
+    nib.save(out_img, args.out_image)
+
+
+if __name__ == '__main__':
+    main()

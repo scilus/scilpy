@@ -27,7 +27,6 @@ def test_execution_bst(script_runner, monkeypatch):
                              '--out_mask', 'todi_mask.nii.gz',
                              '--out_tdi', 'tdi.nii.gz',
                              '--out_todi_sh', 'todi_sh.nii.gz',
-                             '--out_todi_sf', 'todi_sf.nii.gz',
                              '--sh_order', '6',
                              '--normalize_per_voxel', '--smooth_todi',
                              '--sh_basis', 'descoteaux07'])

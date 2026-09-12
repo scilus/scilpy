@@ -188,8 +188,11 @@ def apply_transform(transfo, reference,
         raise ValueError('Does not support this dataset (shape, type, etc)')
 
     moved_nib_img = nib.Nifti1Image(resampled.astype(orig_type), grid2world)
-    return StatefulImage.create_from(moved_nib_img,
-                                     StatefulImage.convert_to_simg(reference))
+    if isinstance(reference, StatefulImage):
+        return StatefulImage.create_from(moved_nib_img, reference)
+    else:
+        return StatefulImage.create_from(
+            moved_nib_img, StatefulImage.convert_to_simg(reference))
 
 
 def transform_dwi(reg_obj, static, dwi, interpolation='linear'):
@@ -213,7 +216,7 @@ def transform_dwi(reg_obj, static, dwi, interpolation='linear'):
     trans_dwi: nib.Nifti1Image
         The warped 4D volume.
     """
-    trans_dwi = np.zeros(static.shape + (dwi.shape[3],), dtype=dwi.dtype)
+    trans_dwi = np.zeros(static.shape[:3] + (dwi.shape[3],), dtype=dwi.dtype)
     for i in range(dwi.shape[3]):
         trans_dwi[..., i] = reg_obj.transform(dwi[..., i],
                                               interpolation=interpolation)
@@ -783,8 +786,14 @@ def merge_metrics(*arrays, beta=1.0):
     # Calculate the product of the arrays for the geometric mean
     array_product = np.prod(masked_arrays, axis=0)
 
-    # Calculate the geometric mean for valid data
-    geometric_mean = np.power(array_product, 1 / len(arrays))
+    # Calculate the geometric mean for valid data.
+    # In the context of geometric mean, we expect non-negative values.
+    # If the product is negative, it's mathematically undefined for
+    # real powers.
+    # We mask these values so they become NaN in the final output,
+    # matching previous implicit behavior but without numerical warnings.
+    array_product = ma.masked_where(array_product < 0, array_product)
+    geometric_mean = ma.power(array_product, 1 / len(arrays))
     boosted_mean = geometric_mean ** beta
 
     return ma.filled(boosted_mean, fill_value=np.nan)

@@ -7,7 +7,6 @@ import nibabel as nib
 import numpy as np
 
 from scilpy.image.volume_math import concatenate
-from scilpy.io.image import load_img
 from scilpy.io.utils import get_acq_parameters
 from scilpy.reconst.mti import adjust_B1_map_intensities, smooth_B1_map, \
     process_contrast_map
@@ -150,7 +149,7 @@ def load_and_verify_mti(args, parser, input_maps_lists, extended_dir, affine,
     for idx, curr_map in enumerate(input_maps_lists):
         input_images = []
         for image in curr_map:
-            img, _ = load_img(image)
+            img = nib.load(image)
             input_images.append(img)
         merged_curr_map = concatenate(input_images, input_images[0])
         contrast_maps.append(process_contrast_map(merged_curr_map,

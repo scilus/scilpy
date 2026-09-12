@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+from scilpy.io.stateful_image import StatefulImage
 import argparse
 import json
 import logging
@@ -483,7 +484,7 @@ def add_peaks_screenshot_args(parser, default_width=3.0, default_alpha=1.0,
                      help="Width of the peaks lines. [%(default)s]")
     rpg.add_argument("--peaks_opacity", type=ranged_type(float, 0., 1.),
                      default=default_alpha,
-                     help="Opacity value for the peaks overlay. [%(default)s]")
+                     help="Opacity of the peaks, from 0 to 1. [%(default)s]")
 
 
 def add_overlays_screenshot_args(parser, default_alpha=0.5,
@@ -1274,7 +1275,12 @@ def get_default_screenshotting_data(args, peaks=True):
 
     peaks_imgs = None
     if peaks and args.peaks:
-        peaks_imgs = [nib.load(f) for f in args.peaks]
+        peaks_imgs = []
+        for f in args.peaks:
+            simg = StatefulImage.load(f, is_orientation=True)
+            # For screenshotting, we want the data in voxel space
+            # as the screenshotting actors currently assume voxel space.
+            peaks_imgs.append(simg)
 
     return (volume_img,
             transparency_img,

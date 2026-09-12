@@ -40,6 +40,8 @@ from scilpy.io.utils import (add_overwrite_arg, add_reference_arg,
 from scilpy.tractanalysis.reproducibility_measures import \
     tractogram_pairwise_comparison
 from scilpy.version import version_string
+from dipy.io.stateful_tractogram import Space, StatefulTractogram
+from scilpy.io.stateful_image import StatefulImage
 
 
 def _build_arg_parser():
@@ -105,7 +107,22 @@ def main():
     logging.info('Loading tractograms...')
     sft_1 = load_tractogram_with_reference(parser, args, args.in_tractogram_1)
     sft_2 = load_tractogram_with_reference(parser, args, args.in_tractogram_2)
-    mask = get_data_as_mask(nib.load(args.in_mask)) if args.in_mask else None
+
+    # Force RAS alignment
+    if args.reference is None:
+        parser.error('--reference is required to force RAS alignment.')
+    ref_simg = StatefulImage.load(args.reference)
+
+    sft_1.to_rasmm()
+    sft_1 = StatefulTractogram(sft_1.streamlines, ref_simg, Space.RASMM)
+    sft_2.to_rasmm()
+    sft_2 = StatefulTractogram(sft_2.streamlines, ref_simg, Space.RASMM)
+
+    mask = None
+    if args.in_mask:
+        simg_mask = StatefulImage.load(args.in_mask)
+        simg_mask.reorient(ref_simg.axcodes)
+        mask = get_data_as_mask(simg_mask)
 
     # Processing
     acc_data, corr_data, diff_data, heatmap, _ = \

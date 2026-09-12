@@ -205,10 +205,10 @@ def identify_shells(bvals, tol=40.0, round_centroids=False, sort=False):
     return centroids, shell_indices
 
 
-def check_shells_frf(bvals, b0_threshold):
+def verify_bval_spread(bvals, b0_threshold):
     """
     Check if the shells are too far apart, which might cause problems for
-    FRF estimation.
+    FRF estimation or SSST.
 
     Parameters
     ----------
@@ -231,6 +231,31 @@ def check_shells_frf(bvals, b0_threshold):
             'min non-b0 shell: {}). This might cause problems for the '
             'estimation of the FRF. Consider using scil_frf_msmt.py.'
             .format(max_non_b0_delta, min_non_b0_shell))
+
+
+def verify_bval_range(bvals, b0_threshold, sh_order):
+    """
+    Warn if the maximum non-b0 b-value is relatively low for the requested
+    sh_order, which might make the SH fit unstable (in SSST).
+
+    Parameters
+    ----------
+    bvals : np.ndarray
+        b-values.
+    b0_threshold : float
+        Threshold for b0.
+    sh_order : int
+        SH order to fit.
+    """
+    shells_centroids, _ = identify_shells(bvals, b0_threshold,
+                                          round_centroids=True)
+    dwi_shells = shells_centroids[shells_centroids > b0_threshold]
+    if len(dwi_shells) > 0 and np.max(dwi_shells) < 900 and sh_order > 4:
+        logging.warning(
+            'Your maximum b-value ({}) is relatively low. '
+            'High SH order ({}) might be unstable (in SSST). '
+            'Consider using --sh_order 4.'.format(np.max(dwi_shells),
+                                                  sh_order))
 
 
 def str_to_axis_index(axis):

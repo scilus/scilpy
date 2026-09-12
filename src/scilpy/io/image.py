@@ -2,11 +2,11 @@
 
 from dipy.io.utils import is_header_compatible
 import logging
-import nibabel as nib
 import numpy as np
 import os
 
 from scilpy.utils import is_float
+from scilpy.io.stateful_image import StatefulImage
 
 
 def load_img(arg):
@@ -15,7 +15,22 @@ def load_img(arg):
     It can be a float or an image and if image it checks if it contains
     integer values and its declared data type is integer or if it is containing
     float values but declared as integer, in which case a warning is raised.
+
     Parameters
+    ----------
+    arg: str or float/int
+        Argument to load as image or float.
+        If str, it is the path to the image to load.
+        If numeric, it is the value to use as a float.
+
+    Returns
+    -------
+    tuple
+        img: StatefulImage or float
+            If arg is a string, it is the loaded image.
+            If arg is a numeric, it is the float value.
+        dtype: numpy.dtype
+            The data type of the image or float.
     """
     if is_float(arg):
         img = float(arg)
@@ -23,15 +38,15 @@ def load_img(arg):
     else:
         if not os.path.isfile(arg):
             raise ValueError('Input file {} does not exist.'.format(arg))
-        img = nib.load(arg)
+        img = StatefulImage.load(arg)
         shape = img.header.get_data_shape()
         dtype = img.header.get_data_dtype()
         logging.info('Loaded {} of shape {} and data_type {}.'.format(
-                     arg, shape, dtype))
+                    arg, shape, dtype))
         data_as_float = img.get_fdata()
         sum_float = float(np.sum(data_as_float))
 
-        if not sum_float.is_integer():
+        if np.issubdtype(dtype, np.integer) and not sum_float.is_integer():
             logging.warning('Image {} has an integer type but contains '
                             'non-integer values. Loading, computating and saving '
                             'will be done as float. Using an integer dtype '
@@ -95,7 +110,9 @@ def get_data_as_mask(mask_img, dtype=np.uint8):
 
     # Verify that loaded datatype is ok
     curr_type = mask_img.get_data_dtype().type
-    basename = os.path.basename(mask_img.get_filename())
+    basename = os.path.basename(mask_img.get_filename()) \
+        if mask_img.get_filename() else 'unnamed'
+
     if np.issubdtype(curr_type, np.signedinteger) or \
         np.issubdtype(curr_type, np.unsignedinteger) \
             or np.issubdtype(curr_type, np.dtype(bool).type):

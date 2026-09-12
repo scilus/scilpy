@@ -25,11 +25,18 @@ def test_execution_bst(script_runner, monkeypatch):
                          'fa.nii.gz')
     in_aff = os.path.join(SCILPY_HOME, 'bst',
                           'output0GenericAffine.mat')
+    out_filename = 'template_lin.nii.gz'
+
+    # Run the transformation
     ret = script_runner.run(['scil_volume_apply_transform',
                              in_model, in_fa, in_aff,
-                             'template_lin.nii.gz', '--inverse',
-                             '-f'])
+                             out_filename, '--inverse', '-f'])
     assert ret.success
+
+    # Check for header compatibility between the output and the reference
+    ret = script_runner.run(['scil_header_validate_compatibility',
+                             out_filename, in_fa])
+    assert ret.success, "Headers are not compatible!"
 
 
 def test_execution_interp_nearest(script_runner, monkeypatch):
