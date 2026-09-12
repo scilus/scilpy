@@ -5,7 +5,7 @@ Modules
    :maxdepth: 4
 
    scilpy.connectivity
-   scilpy.denoise
+   scilpy.feature
    scilpy.dwi
    scilpy.gpuparallel
    scilpy.gradients

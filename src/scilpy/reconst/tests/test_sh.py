@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+import numpy as np
+from scilpy.reconst.sh import generate_apodized_delta_kernel
 
 
 def test_verify_data_vs_sh_order():
@@ -34,3 +36,12 @@ def test_convert_sh_basis():
 def test_convert_sh_to_sf():
     # toDO
     pass
+
+
+def test_generate_apodized_delta_kernel():
+    expected_result = np.array([
+        1., 0.6350477, 0.6350477, 0.6350477, 0.6350477, 0.6350477,
+        0.1838922, 0.1838922, 0.1838922, 0.1838922, 0.1838922, 0.1838922,
+        0.1838922, 0.1838922, 0.1838922], dtype=np.float32)
+    kernel = generate_apodized_delta_kernel(4, 'descoteaux07', True)
+    assert np.allclose(kernel, expected_result)
