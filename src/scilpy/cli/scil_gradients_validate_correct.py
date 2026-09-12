@@ -22,14 +22,12 @@ Reference:
 """
 
 import argparse
-import itertools
 import logging
 import os
 
 from dipy.core.gradients import gradient_table
 from dipy.reconst.dti import TensorModel
 import numpy as np
-from tqdm import tqdm
 
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              assert_outputs_exist, add_verbose_arg,
@@ -37,8 +35,7 @@ from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
 from scilpy.io.image import get_data_as_mask
 from scilpy.io.stateful_image import StatefulImage
 from scilpy.gradients.bvec_bval_tools import check_b0_threshold
-from scilpy.reconst.fiber_coherence import (compute_fiber_coherence,
-                                            NB_FLIPS)
+from scilpy.reconst.fiber_coherence import find_best_gradient_correction
 from scilpy.version import version_string
 
 
@@ -110,54 +107,16 @@ def main():
     # Define high-FA mask for coherence calculation
     high_fa_mask = fa > args.fa_threshold
     if mask is not None:
-        high_fa_mask &= mask
+        high_fa_mask = np.logical_and(high_fa_mask, mask)
 
     if np.sum(high_fa_mask) == 0:
         logging.error('No voxels found with FA > {}. Aborting.'
                       .format(args.fa_threshold))
         return
 
-    # Generate 24 possible permutation/flips of gradient directions
-    permutations = list(itertools.permutations([0, 1, 2]))
-    transforms = np.zeros((len(permutations) * NB_FLIPS, 3, 3))
-    for i in range(len(permutations)):
-        transforms[i * NB_FLIPS, np.arange(3), permutations[i]] = 1
-        for ii in range(3):
-            flip = np.eye(3)
-            flip[ii, ii] = -1
-            transforms[ii + i * NB_FLIPS +
-                       1] = transforms[i * NB_FLIPS].dot(flip)
-
-    # Iterative refit and coherence calculation
-    best_coherence = -1
-    best_t = None
-
     logging.info('Refitting DTI 24 times for gradient validation...')
-    for t in tqdm(transforms):
-        # Transform bvecs
-        # Note: Dipy expects bvecs as (N, 3). We apply the transform to axes.
-        # G' = G @ T
-        bvecs_candidate = bvecs @ t
-
-        gtab_candidate = gradient_table(bvals, bvecs=bvecs_candidate,
-                                        b0_threshold=args.b0_threshold)
-        tenmodel_candidate = TensorModel(gtab_candidate, fit_method='WLS',
-                                         min_signal=np.min(data[data > 0]))
-
-        # Fit ONLY on the high-FA mask to save time
-        tenfit_candidate = tenmodel_candidate.fit(data, mask=high_fa_mask)
-
-        # Extract the principal direction (v1)
-        # evecs is (H, W, D, 3, 3), evecs[..., 0] is the first eigenvector
-        # (peak)
-        peaks = tenfit_candidate.evecs[..., 0]
-
-        # Compute coherence
-        coherence = compute_fiber_coherence(peaks, fa)
-
-        if coherence > best_coherence:
-            best_coherence = coherence
-            best_t = t
+    best_t, best_coherence = find_best_gradient_correction(
+        data, bvals, bvecs, fa, high_fa_mask, args.b0_threshold)
 
     if (best_t == np.eye(3)).all():
         logging.info('b-vectors are already correct. Coherence: {:.2f}'
@@ -166,18 +125,13 @@ def main():
     else:
         logging.info('Applying correction to b-vectors. Coherence: {:.2f} '
                      '\nTransform is: \n{}.'.format(best_coherence, best_t))
-        correct_bvecs = bvecs @ best_t
-
-    logging.info(f'Saving bvecs to file: {args.out_bvec}.')
+        correct_bvecs = np.dot(bvecs, best_t)
 
     bval_to_save = args.out_bval
     if bval_to_save and os.path.exists(bval_to_save) and not args.overwrite:
         logging.warning(f'File {bval_to_save} already exists and --overwrite was '
                         'not provided. Skipping saving b-values.')
         bval_to_save = None
-
-    if bval_to_save:
-        logging.info(f'Saving bvals to file: {bval_to_save}.')
 
     # Save using StatefulImage to ensure they are in the original voxel space
     simg.attach_world_gradients(bvals, correct_bvecs)
