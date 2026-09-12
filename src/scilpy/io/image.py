@@ -26,8 +26,9 @@ def load_img(arg):
         img = StatefulImage.load(arg)
         shape = img.header.get_data_shape()
         dtype = img.header.get_data_dtype()
-        logging.info('Loaded {} of shape {} and data_type {}.'.format(
-                     arg, shape, dtype))
+        if not np.issubdtype(dtype, np.integer):
+            logging.info('Loaded {} of shape {} and data_type {}.'.format(
+                        arg, shape, dtype))
         data_as_float = img.get_fdata()
         sum_float = float(np.sum(data_as_float))
 
@@ -95,10 +96,8 @@ def get_data_as_mask(mask_img, dtype=np.uint8):
 
     # Verify that loaded datatype is ok
     curr_type = mask_img.get_data_dtype().type
-    if hasattr(mask_img, 'get_filename') and mask_img.get_filename():
-        basename = os.path.basename(mask_img.get_filename())
-    else:
-        basename = "unnamed"
+    basename = os.path.basename(mask_img.get_filename()) \
+        if mask_img.get_filename() else 'unnamed'
 
     if np.issubdtype(curr_type, np.signedinteger) or \
         np.issubdtype(curr_type, np.unsignedinteger) \

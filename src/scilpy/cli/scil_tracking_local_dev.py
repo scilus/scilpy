@@ -108,14 +108,11 @@ def _build_arg_parser():
                          type=int, default=0,
                          help='Subdivides each face of the sphere into 4^s new'
                               ' faces. [%(default)s]')
-    track_g.add_argument(
-        '--sfthres_init',
-        metavar='sf_th',
-        type=float,
-        default=0.5,
-        dest='sf_threshold_init',
-        help="Spherical function relative threshold value "
-        "within each voxel for the \ninitial direction. [%(default)s]")
+    track_g.add_argument('--sfthres_init', metavar='sf_th',
+                         type=float, default=0.5, dest='sf_threshold_init',
+                         help="Spherical function relative threshold value "
+                              "within each voxel for the \ninitial direction."
+                              " [%(default)s]")
     track_g.add_argument('--rk_order', metavar="K", type=int, default=1,
                          choices=[1, 2, 4],
                          help="The order of the Runge-Kutta integration used "
@@ -310,6 +307,7 @@ def main():
     sh_basis, is_legacy = parse_sh_basis_arg(args)
 
     # ------- INSTANTIATING PROPAGATOR -------
+    mask = None
     if args.in_odf:
         logging.info("Loading ODF SH data.")
         odf_sh_simg = StatefulImage.load(
@@ -405,7 +403,7 @@ def main():
     if propagator is None and propagators:
         propagator = next(iter(propagators.values()))
 
-    if 'mask' not in locals() or mask is None:
+    if mask is None:
         # Use identity affine for DataVolume to match voxel space tracking
         mask = DataVolume(mask_data, mask_res, affine=np.eye(4),
                           interpolation=args.mask_interp)
@@ -449,7 +447,7 @@ def main():
     # (streamlines, seeds) as expected by scilpy.tracking.utils.save_tractogram
     tracker = Tracker(propagator, mask, seed_generator, nbr_seeds, min_nbr_pts,
                       max_nbr_pts, args.max_invalid_nb_points,
-                      compression_th=None,
+                      compression_th=args.compress_th,
                       nbr_processes=args.nbr_processes,
                       save_seeds=True,
                       mmap_mode='r+', rng_seed=args.rng_seed,
@@ -473,10 +471,9 @@ def main():
     if args.rap_save_entry_exit:
         tracker.save_rap_entry_exit_mask(args.rap_save_entry_exit, mask_simg)
 
-    # save streamlines on-the-fly to file
     save_tractogram(zip(streamlines, seeds), tracts_format,
                     odf_sh_simg, nbr_seeds, args.out_tractogram,
-                    args.min_length, args.max_length, args.compress_th,
+                    args.min_length, args.max_length, None,
                     args.save_seeds, args.verbose,
                     space=Space.VOX, origin=Origin.NIFTI)
 

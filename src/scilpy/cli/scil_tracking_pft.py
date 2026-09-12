@@ -81,7 +81,7 @@ def _build_arg_parser():
     p.add_argument('out_tractogram',
                    help='Tractogram output file (must be .trk or .tck).')
 
-    track_g = add_tracking_options(p)
+    track_g = add_tracking_options(p, step_size_default=0.2)
     track_g.add_argument('--algo', default='prob', choices=['det', 'prob'],
                          help='Algorithm to use (must be "det" or "prob"). '
                               '[%(default)s]')
@@ -89,13 +89,11 @@ def _build_arg_parser():
                          help='If set, uses anatomically-constrained '
                               'tractography (ACT) \ninstead of continuous map '
                               'criterion (CMC).')
-    track_g.add_argument(
-        '--sfthres_init',
-        dest='sf_threshold_init',
-        type=float,
-        default=0.5,
-        help='Spherical function relative threshold value '
-        'within each voxel for the \ninitial direction. [%(default)s]')
+    track_g.add_argument('--sfthres_init', dest='sf_threshold_init',
+                         type=float, default=0.5,
+                         help='Spherical function relative threshold value '
+                              'within each voxel for the \ninitial direction.'
+                              ' [%(default)s]')
     add_sphere_arg(track_g, symmetric_only=False)
 
     seed_group = p.add_argument_group(

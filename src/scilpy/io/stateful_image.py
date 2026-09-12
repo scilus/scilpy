@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+import logging
+
 import nibabel as nib
 import numpy as np
 from scipy.linalg import polar
@@ -241,7 +243,18 @@ class StatefulImage(nib.Nifti1Image):
 
         last_dim = data.shape[-1]
         if is_peaks is None:
-            is_sh = not is_data_peaks(data)
+            guessed_peaks = is_data_peaks(data)
+            if last_dim != 3:
+                # last_dim == 3 is unambiguous: no valid SH order has
+                # exactly 3 coefficients. Anything else is a statistical
+                # guess, so warn since a wrong guess silently applies the
+                # wrong rotation math with no error.
+                logging.warning(
+                    "Data type (SH or peaks) not specified; auto-detected "
+                    "as %s from data statistics. Pass is_peaks explicitly "
+                    "if this is incorrect.",
+                    "peaks" if guessed_peaks else "SH")
+            is_sh = not guessed_peaks
         else:
             is_sh = not is_peaks
         if is_sh:

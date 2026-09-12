@@ -80,13 +80,14 @@ def add_mandatory_options_tracking(p, fodf_optional=False):
                    help='Tractogram output file (must be .trk or .tck).')
 
 
-def add_tracking_options(p):
+def add_tracking_options(p, step_size_default=0.5):
     """
     Options that are available in both scil_tracking_local and
     scil_tracking_local_dev scripts.
     """
     track_g = p.add_argument_group('Tracking options')
-    track_g.add_argument('--step', dest='step_size', type=float, default=0.5,
+    track_g.add_argument('--step', dest='step_size', type=float,
+                         default=step_size_default,
                          help='Step size in mm. [%(default)s]')
     track_g.add_argument('--min_length', type=float, default=10.,
                          metavar='m',

@@ -82,7 +82,12 @@ def is_data_peaks(img_data):
     """
     last_dim = img_data.shape[-1]
     if last_dim == 3:
+        # Certain: no valid SH order has exactly 3 coefficients.
         return True
+
+    # Below this point, last_dim is ambiguous (could be a valid SH size
+    # that also happens to be a multiple of 3): everything past here is a
+    # statistical guess, not a certainty.
 
     # Sum of absolute values to detect non-zero voxels correctly
     non_zeros_mask = np.any(np.abs(img_data) > 0, axis=-1)
