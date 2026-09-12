@@ -15,7 +15,22 @@ def load_img(arg):
     It can be a float or an image and if image it checks if it contains
     integer values and its declared data type is integer or if it is containing
     float values but declared as integer, in which case a warning is raised.
+
     Parameters
+    ----------
+    arg: str or float/int
+        Argument to load as image or float.
+        If str, it is the path to the image to load.
+        If numeric, it is the value to use as a float.
+
+    Returns
+    -------
+    tuple
+        img: StatefulImage or float
+            If arg is a string, it is the loaded image.
+            If arg is a numeric, it is the float value.
+        dtype: numpy.dtype
+            The data type of the image or float.
     """
     if is_float(arg):
         img = float(arg)
@@ -26,13 +41,12 @@ def load_img(arg):
         img = StatefulImage.load(arg)
         shape = img.header.get_data_shape()
         dtype = img.header.get_data_dtype()
-        if not np.issubdtype(dtype, np.integer):
-            logging.info('Loaded {} of shape {} and data_type {}.'.format(
-                        arg, shape, dtype))
+        logging.info('Loaded {} of shape {} and data_type {}.'.format(
+                    arg, shape, dtype))
         data_as_float = img.get_fdata()
         sum_float = float(np.sum(data_as_float))
 
-        if not sum_float.is_integer():
+        if np.issubdtype(dtype, np.integer) and not sum_float.is_integer():
             logging.warning('Image {} has an integer type but contains '
                             'non-integer values. Loading, computating and saving '
                             'will be done as float. Using an integer dtype '
