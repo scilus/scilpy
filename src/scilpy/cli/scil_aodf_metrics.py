@@ -189,7 +189,7 @@ def main():
                      args.peak_values)
 
         if args.peak_indices:
-            nib.save(nib.Nifti1Image(indices.astype(np.uint8), sh_img.affine),
+            nib.save(nib.Nifti1Image(indices.astype(np.int16), sh_img.affine),
                      args.peak_indices)
 
         if args.nufid:

@@ -43,7 +43,7 @@ def test_execution_dpp(script_runner, monkeypatch):
     ret = script_runner.run(['scil_tractogram_project_streamlines_to_map',
                              in_bundle_with_dpp, 'project_mean_to_endpoints_',
                              '--use_dpp', 'some_metric', '--mean_streamline',
-                             '--to_endpoints'])
+                             '--to_endpoints', '--sum_lines'])
     assert ret.success
 
     ret = script_runner.run(['scil_tractogram_project_streamlines_to_map',
