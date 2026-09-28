@@ -28,8 +28,9 @@ the same whole-mouse brain requires 4.5 hrs to process on a single core (e.g. Ro
 script requires around 6 GB of RAM and 1 min to process using 4 scales on a single core.
 
 Here is an example command line of the script using Frangi filters with 4 scales:
-    scil_volume_local_orientation in_image.nii.gz out_direction.nii.gz\
-        out_probability.nii.gz --method frangi --sigma 0.5 1.0 1.5
+>>> scil_volume_local_orientation in_image.nii.gz\\
+        out_direction.nii.gz out_probability.nii.gz\\
+        --method frangi --sigma 0.5 1.0 1.5
 
 -------------------------------------------------------------------------------------
 References
