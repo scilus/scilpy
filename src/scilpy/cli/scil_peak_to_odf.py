@@ -1,8 +1,27 @@
 #!/usr/bin/env python3
 # -*- coding:utf-8 -*-
 """
-Convert principal directions (peaks) to orientation distribution
-functions expressed in spherical harmonics coefficients.
+Convert principal directions (peaks) to microscopy orientation distribution functions
+(micro-ODF) expressed in spherical harmonics coefficients. The script uses a lookup table
+(1281 points uniformly distributed over the surface of a hemisphere) to map directions to
+SH coefficients. An apodized point spread function [1] is used to mitigate ringing artifacts.
+The micro-ODF is then obtained by smoothing the SH coefficients with a uniform filter.
+The method is outlined in [2].
+
+Careful! This script is very memory-intensive. For example, a whole-mouse brain S-OCT image
+at 10 microns (dimensions 828 x 882 x 871; 1.5 GB compressed file) requires 550 GB of RAM
+and ~5hrs to process on a single HPC core (e.g. Rorqual).
+
+------------------------------------------------------------------------------
+References
+[1] Raffelt et al (2012), "Reorientation of fiber orientation distributions using
+    apodized point spread functions", Magnetic Resonance in Medicine,
+    67(3): 844-855, doi: https://doi.org/10.1002/mrm.23058
+
+[2] Poirier et al, 2026, "Tractography from Serial Optical
+    Coherence Tomography:  How and Why?", bioRxiv 2026.08.14.744847;
+    doi: https://doi.org/10.64898/2026.08.14.744847 (preprint)
+------------------------------------------------------------------------------
 """
 import argparse
 import logging
@@ -16,21 +35,23 @@ from scilpy.reconst.sh import generate_apodized_delta_kernel
 from scilpy.io.utils import (assert_inputs_exist, assert_outputs_exist,
                              add_overwrite_arg, add_verbose_arg,
                              add_sh_basis_args, parse_sh_basis_arg)
+from scilpy.version import version_string
 
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(description=__doc__,
+                                epilog=version_string,
                                 formatter_class=argparse.RawTextHelpFormatter)
     p.add_argument('in_peaks',
                    help='Input peaks nifti image with shape (nx, ny, nz, 3).')
     p.add_argument('out_sh',
-                   help='Output spherical harmonics (hist-FOD) image.')
+                   help='Output spherical harmonics (micro-ODF) image.')
 
     p.add_argument('--brain_mask',
-                   help='Optional nifti image to mask the output hist-FOD.\n'
+                   help='Optional nifti image to mask the output micro-ODF.\n'
                         'Only non-zero voxels will be evaluated.')
     p.add_argument('--sh_order_max', type=int, default=8,
-                   help='SH order for hist-FOD. [%(default)s]')
+                   help='SH order for micro-ODF. [%(default)s]')
     add_sh_basis_args(p)
     p.add_argument('--disable_apodization', action='store_true',
                    help='Disable apodized delta kernel for '

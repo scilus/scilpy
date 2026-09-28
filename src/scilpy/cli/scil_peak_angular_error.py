@@ -3,12 +3,18 @@
 """
 Script to compare two peaks images. The script reports the angular error between
 estimated and reference peaks. The angular error is computed as the maximum angular
-error between each reference peak and the closest estimated peak. A peak found in
+error between each reference peak and the closest estimated peak [1]. A peak found in
 the reference but not in the estimated peaks will contribute to the angular error,
 but a peak found in the estimated peaks but not in the reference will not contribute
 to the angular error.
-"""
 
+------------------------------------------------------------------------------
+References
+[1] Poirier et al, 2026, "Tractography from Serial Optical
+    Coherence Tomography:  How and Why?", bioRxiv 2026.08.14.744847;
+    doi: https://doi.org/10.64898/2026.08.14.744847 (preprint)
+------------------------------------------------------------------------------
+"""
 import argparse
 import logging
 
@@ -28,13 +34,13 @@ def _build_arg_parser():
                                 epilog=version_string)
 
     p.add_argument('in_peaks',
-                   help='Path of the input peaks image.')
+                   help='Input peaks image (.nii.gz).')
     p.add_argument('in_peaks_ref',
-                   help='Path to the reference peaks image against which to compare.')
+                   help='Reference peaks image against which to compare (.nii.gz).')
     p.add_argument('out_angular_error',
-                   help='Output filename for the angular error map between estimated and reference peaks.')
+                   help='Output angular error map between estimated and reference peaks (.nii.gz).')
     p.add_argument('out_json',
-                   help='Output JSON file to save the computed metrics.')
+                   help='Output JSON file to save the computed metrics (.json).')
 
     add_verbose_arg(p)
     add_overwrite_arg(p)

@@ -5,9 +5,9 @@ Fiber orientations analysis using either Frangi filters or structure tensor anal
 
 By default, the script uses Frangi filters as in [1]. Given an input grayscale image,
 the script estimates the local orientation and probability of tube-like structures. By
-default, the script uses a single scale, but more scales can be provided with the --sigma
-argument. When more than one scale are provided, the script returns the maximum response
-across all scales.
+default, the script uses scales of [0.5, 1.0, 1.5, 2.0], but different scales can be
+provided with the --sigma argument. When more than one scale are provided, the script
+returns the maximum response across all scales.
 
 Parameters --alpha, --beta and --gamma are used to control the sensitivity of the filter to
 different structures. The defaults correspond to the original Frangi filter paper [2], but
@@ -26,6 +26,19 @@ brain S-OCT image at 10 microns (dimensions 828 x 882 x 871; 1.5 GB compressed f
 the same whole-mouse brain requires 4.5 hrs to process on a single core (e.g. Rorqual) using
 4 scales. On a smaller test image (dimensions 768 x 768 x 36; 151 MB compressed file), the
 script requires around 6 GB of RAM and 1 min to process using 4 scales on a single core.
+
+Here is an example command line of the script using Frangi filters with 4 scales:
+    scil_volume_local_orientation in_image.nii.gz out_direction.nii.gz\
+        out_probability.nii.gz --method frangi --sigma 0.5 1.0 1.5
+
+-------------------------------------------------------------------------------------
+References
+[1] Sorelli et al, 2023, "Fiber enhancement and 3D orientation analysis in label-free
+    two-photon fluorescence microscopy", Scientific Reports (2023) 13:4160
+
+[2] Frangi et al, 1998, "Multiscale vessel enhancement filtering", Medical Image Computing
+    and Computer-Assisted Intervention (MICCAI), 130-137
+--------------------------------------------------------------------------------
 """
 import argparse
 import logging
@@ -37,23 +50,16 @@ from skimage.feature import structure_tensor
 from scilpy.io.utils import assert_inputs_exist, assert_outputs_exist, add_overwrite_arg, add_verbose_arg
 from scilpy.version import version_string
 
-EPILOG = """
-[1] Sorelli et al, 2023, "Fiber enhancement and 3D orientation analysis in label-free
-    two-photon fluorescence microscopy", Scientific Reports (2023) 13:4160
-[2] Frangi et al, 1998, "Multiscale vessel enhancement filtering", Medical Image Computing
-    and Computer-Assisted Intervention (MICCAI), 130-137
-"""
-
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(description=__doc__, epilog=EPILOG+version_string,
+    p = argparse.ArgumentParser(description=__doc__, epilog=version_string,
                                 formatter_class=argparse.RawTextHelpFormatter)
     p.add_argument('in_image', help='Input nifti image.')
     p.add_argument('out_direction', help='Output direction nifti image.')
     p.add_argument('out_probability', help='Output probability nifti image.')
     p.add_argument('--method', default='frangi', choices=['frangi', 'structure_tensor'],
                    help='Method to use for local orientation estimation. [%(default)s]')
-    p.add_argument('--sigma', nargs='+', type=float, default=1.0,
+    p.add_argument('--sigma', nargs='+', type=float, default=[0.5, 1.0, 1.5, 2.0],
                    help='Sigmas used, in voxel space. For Frangi method, this can'
                         'be a list. [%(default)s]')
 
