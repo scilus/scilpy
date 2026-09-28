@@ -443,6 +443,9 @@ def filter_streamlines_by_length(sft, min_length=0., max_length=np.inf,
     """
     Filter streamlines using minimum and max length.
 
+    Keeps all streamlines with lengths in the
+    ``[min_length, max_length)`` half-open interval.
+
     Parameters
     ----------
     sft: StatefulTractogram
@@ -476,7 +479,7 @@ def filter_streamlines_by_length(sft, min_length=0., max_length=np.inf,
 
         # Filter lengths
         valid_length_ids = np.logical_and(lengths >= min_length,
-                                          lengths <= max_length)
+                                          lengths < max_length)
         filtered_sft = sft[valid_length_ids]
     else:
         valid_length_ids = np.array([], dtype=bool)
