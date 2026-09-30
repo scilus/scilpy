@@ -240,8 +240,6 @@ def main():
                          [args.out_config])
 
     theta = gm.math.radians(args.theta)
-    max_nbr_pts = int(args.max_length / args.step_size)
-    min_nbr_pts = max(int(args.min_length / args.step_size), 1)
     # Using space and origin in the propagator: vox and center, like
     # in dipy.
     our_space = Space.VOXMM
@@ -317,7 +315,7 @@ def main():
                          "seeds requires more fibertubes than there are " +
                          "available.")
     tracker = Tracker(propagator, fake_mask, seed_generator, nbr_seeds,
-                      min_nbr_pts, max_nbr_pts,
+                      args.min_length, args.max_length, in_sft.voxel_sizes,
                       args.max_invalid_nb_points, 0,
                       args.nbr_processes, True, 'r+',
                       rng_seed=args.rng_seed,

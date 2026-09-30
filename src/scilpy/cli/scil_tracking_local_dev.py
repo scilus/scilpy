@@ -248,8 +248,6 @@ def main():
     # ------- PREPARING DATA -------
     theta = gm.math.radians(get_theta(args.theta, args.algo))
 
-    max_nbr_pts = int(args.max_length / args.step_size)
-    min_nbr_pts = max(int(args.min_length / args.step_size), 1)
     if args.in_odf:
         assert_same_resolution([args.in_mask, args.in_odf, args.in_seed])
 
@@ -411,16 +409,16 @@ def main():
         rap_volume = DataVolume(rap_label_data, rap_label_res, 'nearest')
 
     if args.rap_method == "continue":
-        rap = RAPContinue(rap_volume, propagator, max_nbr_pts,
+        rap = RAPContinue(rap_volume, propagator, args.max_length,
                           step_size=vox_step_size)
     elif args.rap_method == "switch":
-        rap = RAPSwitch(rap_volume, propagators, max_nbr_pts)
+        rap = RAPSwitch(rap_volume, propagators, args.max_length)
     else:
         rap = None
 
     logging.info("Instantiating tracker.")
-    tracker = Tracker(propagator, mask, seed_generator, nbr_seeds, min_nbr_pts,
-                      max_nbr_pts, args.max_invalid_nb_points,
+    tracker = Tracker(propagator, mask, seed_generator, nbr_seeds, args.min_length,
+                      args.max_length, odf_sh_res, args.max_invalid_nb_points,
                       compression_th=args.compress_th,
                       nbr_processes=args.nbr_processes,
                       save_seeds=args.save_seeds,

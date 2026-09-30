@@ -15,6 +15,7 @@ from dipy.data import get_sphere
 from dipy.io.stateful_tractogram import Space
 from dipy.reconst.shm import sh_to_sf_matrix
 from dipy.tracking.streamlinespeed import compress_streamlines
+from dipy.tracking.metrics import length
 
 from scilpy.image.volume_space_management import DataVolume
 from scilpy.tracking.propagator import AbstractPropagator, PropagationStatus
@@ -30,8 +31,8 @@ multiprocess_init_args = {}
 
 class Tracker(object):
     def __init__(self, propagator: AbstractPropagator, mask: DataVolume,
-                 seed_generator: SeedGenerator, nbr_seeds, min_nbr_pts,
-                 max_nbr_pts, max_invalid_dirs, compression_th=0.1,
+                 seed_generator: SeedGenerator, nbr_seeds, min_length,
+                 max_length, voxres, max_invalid_dirs, compression_th=0.1,
                  nbr_processes=1, save_seeds=False,
                  mmap_mode: Union[str, None] = None, rng_seed=1234,
                  track_forward_only=False, skip=0, verbose=False,
@@ -49,10 +50,12 @@ class Tracker(object):
             Seeding volume.
         nbr_seeds: int
             Number of seeds to create via the seed generator.
-        min_nbr_pts: int
-            Minimum number of points for streamlines.
-        max_nbr_pts: int
-            Maximum number of points for streamlines.
+        min_length: float
+            Minimum length for streamlines.
+        max_length: float
+            Maximum length for streamlines.
+        voxres: np.ndarray(3,)
+            The pixel resolution, ex, using img.header.get_zooms()[:3].
         max_invalid_dirs: int
             Number of consecutives invalid directions allowed during tracking.
         compression_th : float,
@@ -95,8 +98,9 @@ class Tracker(object):
         self.mask = mask
         self.seed_generator = seed_generator
         self.nbr_seeds = nbr_seeds
-        self.min_nbr_pts = min_nbr_pts
-        self.max_nbr_pts = max_nbr_pts
+        self.min_length = min_length
+        self.max_length = max_length
+        self.voxres = voxres
         self.max_invalid_dirs = max_invalid_dirs
         self.compression_th = compression_th
         self.save_seeds = save_seeds
@@ -121,10 +125,10 @@ class Tracker(object):
             raise ValueError("Seed generator and propagator must work with "
                              "the same space and origin!")
 
-        if self.min_nbr_pts <= 0:
-            logging.warning("Minimum number of points cannot be 0. Changed to "
-                            "1.")
-            self.min_nbr_pts = 1
+        if self.min_length < 0:
+            logging.warning("Minimum length cannot be below 0. Changed to "
+                            "0.")
+            self.min_length = 0
 
         if self.mmap_mode not in [None, 'r+', 'c']:
             logging.warning("Memory-mapping mode cannot be {}. Changed to "
@@ -463,7 +467,7 @@ class Tracker(object):
             line = self._propagate_line(line, tracking_info)
 
         # Clean streamline
-        if self.min_nbr_pts <= len(line) <= self.max_nbr_pts:
+        if self.min_length <= length(line) * self.voxres[0] <= self.max_length:
             return line
         return None
 
@@ -499,7 +503,7 @@ class Tracker(object):
         in_rap_region = False  # Track whether we're currently in RAP region
         step_count = 0
 
-        while len(line) < self.max_nbr_pts and propagation_can_continue:
+        while length(line) * self.voxres[0] < self.max_length and propagation_can_continue:
 
             # Call the RAP function if needed. Can advance of as many points
             # as they want.
