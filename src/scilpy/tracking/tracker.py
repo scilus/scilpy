@@ -14,8 +14,7 @@ import numpy as np
 from dipy.data import get_sphere
 from dipy.io.stateful_tractogram import Space
 from dipy.reconst.shm import sh_to_sf_matrix
-from dipy.tracking.streamlinespeed import compress_streamlines
-from dipy.tracking.metrics import length
+from dipy.tracking.streamlinespeed import compress_streamlines, length
 
 from scilpy.image.volume_space_management import DataVolume
 from scilpy.tracking.propagator import AbstractPropagator, PropagationStatus
@@ -467,7 +466,7 @@ class Tracker(object):
             line = self._propagate_line(line, tracking_info)
 
         # Clean streamline
-        if self.min_length <= length(line) * self.voxres[0] <= self.max_length:
+        if self.min_length <= length(np.array(line)) * self.voxres[0] <= self.max_length:
             return line
         return None
 
@@ -503,7 +502,7 @@ class Tracker(object):
         in_rap_region = False  # Track whether we're currently in RAP region
         step_count = 0
 
-        while length(line) * self.voxres[0] < self.max_length and propagation_can_continue:
+        while length(np.array(line)) * self.voxres[0] < self.max_length and propagation_can_continue:
 
             # Call the RAP function if needed. Can advance of as many points
             # as they want.
