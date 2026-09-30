@@ -172,8 +172,8 @@ def _build_arg_parser():
                                '(0=background, 1..N=regions) .\nUsed with '
                                '--rap_method switch to select policies per '
                                'label.')
-    rap_g.add_argument('--rap_method', default='None',
-                       choices=['None', 'continue', 'switch'],
+    rap_g.add_argument('--rap_method', default=None,
+                       choices=['continue', 'switch'],
                        help="Region-Adaptive Propagation tractography "
                             "method.\n'continue': continues tracking with "
                             "same params,\n'switch': switches tracking "
@@ -218,8 +218,8 @@ def main():
     verify_seed_options(parser, args)
 
     if (args.rap_mask is not None or args.rap_labels is not None) \
-            and args.rap_method == "None":
-        parser.error('No RAP method selected.')
+            and args.rap_method == None:
+        parser.error('Invalid parameter combination. You must choose a RAP method.')
     if args.rap_method == 'continue' and args.rap_mask is None:
         parser.error('RAP method "continue" requires --rap_mask.')
     if args.rap_method == 'switch' and (
@@ -238,7 +238,7 @@ def main():
                      '(--in_odf).')
 
     tracts_format = detect_format(args.out_tractogram)
-    if tracts_format is not TrkFile:
+    if tracts_format is not TrkFile and args.save_seeds:
         logging.warning("You have selected option --save_seeds but you are "
                         "not saving your tractogram as a .trk file. \n"
                         "Data_per_point information CANNOT be saved.\n"
@@ -346,14 +346,19 @@ def main():
                     odf_sh_img = nib.load(filename)
                     odf_sh_res = odf_sh_img.header.get_zooms()[:3]
                     voxel_size = odf_sh_img.header.get_zooms()[0]
-                    vox_step_size = cfg.get('step_size',
-                                            args.step_size) / voxel_size
                     loaded_datasets[filename] = DataVolume(
                         odf_sh_img.get_fdata(caching='unchanged', dtype=float),
                         odf_sh_res, args.sh_interp)
 
                 # Get params from rap_policies file
+                vox_step_size = cfg.get('step_size',
+                                            args.step_size) / voxel_size
                 sh_basis_name = cfg.get('sh_basis', 'descoteaux07_legacy')
+                if sh_basis_name not in {'descoteaux07', 'descoteaux07_legacy', 'tournier07', 'tournier07_legacy'}:
+                    logging.warning("Invalid choice of sh_basis. You must choose between "
+                        "'descoteaux07', 'descoteaux07_legacy', 'tournier07', or 'tournier07_legacy'. \n"
+                        "Defaulting to 'descoteaux07_legacy'.")
+                    sh_basis_name = 'descoteaux07_legacy'
                 sh_basis = ('descoteaux07' if 'descoteaux07' in sh_basis_name
                             else 'tournier07')
                 algo = cfg.get('algo', args.algo)
