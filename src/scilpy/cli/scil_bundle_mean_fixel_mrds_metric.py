@@ -14,7 +14,8 @@ axial diffusivity (fixel-AD).
 
 Fixel-specific metrics are metrics extracted from
 Multi-Resolution Discrete-Search (MRDS) solutions.
-There are as many values per voxel as there are fixels extracted. The
+There are as many values per voxel as there are fixels extracted, each
+characterized by its principal diffusion direction (PDD). The
 values chosen for a given voxel is the one belonging to the lobe better aligned
 with the current streamline segment.
 
@@ -49,7 +50,8 @@ def _build_arg_parser():
     p.add_argument('in_bundle',
                    help='Path of the bundle file.')
     p.add_argument('in_pdds',
-                   help='Path of the MRDS PDDs volume.')
+                   help='Path of the MRDS principal diffusion directions '
+                        '(PDDs) volume.')
 
     g = p.add_argument_group(title='MRDS metrics input')
     g.add_argument('--fa',
@@ -106,8 +108,9 @@ def main():
 
     assert_outputs_exist(parser, args, out_metrics)
 
-    # PDDs are directional (peaks-like): reorient the grid to RAS and
-    # convert the direction vectors from world to voxel space.
+    # Principal diffusion directions (PDDs) are directional (peaks-like):
+    # reorient the grid to RAS and convert the direction vectors from world
+    # to voxel space.
     pdds_simg = StatefulImage.load(args.in_pdds, is_orientation=True)
     pdds_simg.to_ras()
     pdds_data = pdds_simg.to_voxel_direction(is_peaks=True)

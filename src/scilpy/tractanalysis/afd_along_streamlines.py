@@ -126,9 +126,9 @@ def _afd_and_rd_sums_along_streamlines(sft, fodf, fodf_basis,
         # Find closest point on sphere. segments are in voxel space, rotate
         # to world orientation to compare against sphere.vertices.
         world_segments = np.dot(segments, to_world_rotation.T)
-        test = np.dot(world_segments, sphere.vertices.T)
-        test2 = (test.T / (seg_lengths * sphere_norm)).T
-        angles = np.arccos(test2)
+        cos_angle = (np.dot(world_segments, sphere.vertices.T).T /
+                     (seg_lengths * sphere_norm)).T
+        angles = np.arccos(cos_angle)
         sorted_angles = np.argsort(angles, axis=1)
         closest_vertex_indices = sorted_angles[:, 0]
 

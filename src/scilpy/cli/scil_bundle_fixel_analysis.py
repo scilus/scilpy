@@ -300,8 +300,7 @@ def main():
             one_bundle_per_voxel *= nufo_sf
             # Save a single-fiber single-bundle mask for the whole WM
             StatefulImage.create_from(
-                one_bundle_per_voxel.astype(np.uint8), peaks_simg,
-                is_orientation=False).save(
+                one_bundle_per_voxel.astype(np.uint8), peaks_simg).save(
                 "{}_{}_WM{}".format(sb_mask_name, norm_name, suffix))
 
         for i, bundle_n in enumerate(bundles_names):
@@ -309,27 +308,25 @@ def main():
 
             if args.split_bundles:  # Save the maps and masks for each bundle
                 StatefulImage.create_from(
-                    fd_maps[..., i], peaks_simg, is_orientation=False).save(
+                    fd_maps[..., i], peaks_simg).save(
                     "{}_{}".format(fd_map_name, bundle_suffix))
                 StatefulImage.create_from(
-                    fd_masks[..., i], peaks_simg, is_orientation=False).save(
+                    fd_masks[..., i], peaks_simg).save(
                     "{}_{}".format(fd_mask_name, bundle_suffix))
                 if norm != "fixel":  # If fixel, voxel maps mean nothing
                     StatefulImage.create_from(
-                        vd_maps[..., i], peaks_simg,
-                        is_orientation=False).save(
+                        vd_maps[..., i], peaks_simg).save(
                         "{}_{}".format(vd_map_name, bundle_suffix))
                 bundle_mask = vd_masks[..., i].astype(np.uint8)
                 StatefulImage.create_from(
-                    bundle_mask, peaks_simg, is_orientation=False).save(
+                    bundle_mask, peaks_simg).save(
                     "{}_{}".format(vd_mask_name, bundle_suffix))
 
             if args.single_bundle:
                 # Save a single-fiber single-bundle mask for each bundle
                 bundle_mask = fd_masks[..., 0, i] * one_bundle_per_voxel
                 StatefulImage.create_from(
-                    bundle_mask.astype(np.uint8), peaks_simg,
-                    is_orientation=False).save(
+                    bundle_mask.astype(np.uint8), peaks_simg).save(
                     "{}_{}".format(sb_mask_name, bundle_suffix))
 
         if args.split_fixels:  # Save the maps and masks for each fixel
@@ -337,52 +334,47 @@ def main():
                 fixel_suffix = '{}_f{}{}'.format(norm_name, i + 1, suffix)
 
                 StatefulImage.create_from(
-                    fd_maps[..., i, :], peaks_simg,
-                    is_orientation=False).save(
+                    fd_maps[..., i, :], peaks_simg).save(
                     "{}_{}".format(fd_map_name, fixel_suffix))
                 StatefulImage.create_from(
-                    fd_masks[..., i, :], peaks_simg,
-                    is_orientation=False).save(
+                    fd_masks[..., i, :], peaks_simg).save(
                     "{}_{}".format(fd_mask_name, fixel_suffix))
                 if norm != "fixel":  # If fixel, voxel maps mean nothing
                     StatefulImage.create_from(
-                        vd_maps[..., i, :], peaks_simg,
-                        is_orientation=False).save(
+                        vd_maps[..., i, :], peaks_simg).save(
                         "{}_{}".format(vd_map_name, fixel_suffix))
                 bundle_mask = vd_masks[..., i, :].astype(np.uint8)
                 StatefulImage.create_from(
-                    bundle_mask, peaks_simg, is_orientation=False).save(
+                    bundle_mask, peaks_simg).save(
                     "{}_{}".format(vd_mask_name, fixel_suffix))
 
         norm_suffix = '{}{}'.format(norm_name, suffix)
 
         # Save full fixel density maps, all fixels and bundles combined
         StatefulImage.create_from(
-            fd_maps, peaks_simg, is_orientation=False).save(
+            fd_maps, peaks_simg).save(
             "{}s_{}".format(fd_map_name, norm_suffix))
 
         # Save full fixel density masks, all fixels and bundles combined
         StatefulImage.create_from(
-            fd_masks, peaks_simg, is_orientation=False).save(
+            fd_masks, peaks_simg).save(
             "{}s_{}".format(fd_mask_name, norm_suffix))
 
         # Save full voxel density maps and masks
         if norm != "fixel":  # If fixel, voxel maps mean nothing
             StatefulImage.create_from(
-                vd_maps, peaks_simg, is_orientation=False).save(
+                vd_maps, peaks_simg).save(
                 "{}s_{}".format(vd_map_name, norm_suffix))
         StatefulImage.create_from(
-            vd_masks.astype(np.uint8), peaks_simg, is_orientation=False).save(
+            vd_masks.astype(np.uint8), peaks_simg).save(
             "{}s_{}".format(vd_mask_name, norm_suffix))
 
         # Save number of bundles per fixel and per voxel
         StatefulImage.create_from(
-            nb_bundles_per_fixel.astype(np.uint8), peaks_simg,
-            is_orientation=False).save(
+            nb_bundles_per_fixel.astype(np.uint8), peaks_simg).save(
             "{}_per_fixel_{}".format(nb_bundles_name, norm_suffix))
         StatefulImage.create_from(
-            nb_bundles_per_voxel.astype(np.uint8), peaks_simg,
-            is_orientation=False).save(
+            nb_bundles_per_voxel.astype(np.uint8), peaks_simg).save(
             "{}_per_voxel_{}".format(nb_bundles_name, norm_suffix))
 
     # Save bundles lookup table to know the order of the bundles
