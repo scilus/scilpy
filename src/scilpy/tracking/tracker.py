@@ -31,7 +31,7 @@ multiprocess_init_args = {}
 class Tracker(object):
     def __init__(self, propagator: AbstractPropagator, mask: DataVolume,
                  seed_generator: SeedGenerator, nbr_seeds, min_length,
-                 max_length, voxres, max_invalid_dirs, compression_th=0.1,
+                 max_length, max_invalid_dirs, compression_th=0.1,
                  nbr_processes=1, save_seeds=False,
                  mmap_mode: Union[str, None] = None, rng_seed=1234,
                  track_forward_only=False, skip=0, verbose=False,
@@ -53,8 +53,6 @@ class Tracker(object):
             Minimum length for streamlines.
         max_length: float
             Maximum length for streamlines.
-        voxres: np.ndarray(3,)
-            The pixel resolution, ex, using img.header.get_zooms()[:3].
         max_invalid_dirs: int
             Number of consecutives invalid directions allowed during tracking.
         compression_th : float,
@@ -99,7 +97,6 @@ class Tracker(object):
         self.nbr_seeds = nbr_seeds
         self.min_length = min_length
         self.max_length = max_length
-        self.voxres = voxres
         self.max_invalid_dirs = max_invalid_dirs
         self.compression_th = compression_th
         self.save_seeds = save_seeds
@@ -125,8 +122,7 @@ class Tracker(object):
                              "the same space and origin!")
 
         if self.min_length < 0:
-            logging.warning("Minimum length cannot be below 0. Changed to "
-                            "0.")
+            logging.warning("Minimum length cannot be below 0. Changed to 0.")
             self.min_length = 0
 
         if self.mmap_mode not in [None, 'r+', 'c']:
@@ -466,7 +462,7 @@ class Tracker(object):
             line = self._propagate_line(line, tracking_info)
 
         # Clean streamline
-        if self.min_length <= length(np.array(line)) * self.voxres[0] <= self.max_length:
+        if self.min_length <= length(np.array(line)) * self.propagator.datavolume.voxres[0] <= self.max_length:
             return line
         return None
 
@@ -502,7 +498,7 @@ class Tracker(object):
         in_rap_region = False  # Track whether we're currently in RAP region
         step_count = 0
 
-        while length(np.array(line)) * self.voxres[0] < self.max_length and propagation_can_continue:
+        while length(np.array(line)) * self.propagator.datavolume.voxres[0] < self.max_length and propagation_can_continue:
 
             # Call the RAP function if needed. Can advance of as many points
             # as they want.

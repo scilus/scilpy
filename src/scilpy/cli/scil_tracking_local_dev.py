@@ -218,8 +218,10 @@ def main():
     verify_seed_options(parser, args)
 
     if (args.rap_mask is not None or args.rap_labels is not None) \
-            and args.rap_method == None:
-        parser.error('Invalid parameter combination. You must choose a RAP method.')
+            and args.rap_method is None:
+        parser.error(
+            'Invalid parameter combination. You must choose a RAP method with '
+            '--rap_mask or --rap_labels.')
     if args.rap_method == 'continue' and args.rap_mask is None:
         parser.error('RAP method "continue" requires --rap_mask.')
     if args.rap_method == 'switch' and (
@@ -335,6 +337,7 @@ def main():
         propagator = None
         propagators = {}
         loaded_datasets = {}
+        prev_res = None
         for label, cfg in rap_params.get('methods', {}).items():
             if cfg.get('propagator').lower() == 'odf':
                 filename = cfg['filename']
@@ -347,15 +350,18 @@ def main():
                     loaded_datasets[filename] = DataVolume(
                         odf_sh_img.get_fdata(caching='unchanged', dtype=float),
                         odf_sh_res, args.sh_interp)
+                    if prev_res is not None and odf_sh_res != prev_res:
+                        raise Exception(
+                            "All files must have the same voxel size.")
+                    prev_res = odf_sh_res
 
                 # Get params from rap_policies file
-                vox_step_size = cfg.get('step_size',
-                                            args.step_size) / voxel_size
+                vox_step_size = cfg.get('step_size', args.step_size) / voxel_size
                 sh_basis_name = cfg.get('sh_basis', 'descoteaux07_legacy')
-                if sh_basis_name not in {'descoteaux07', 'descoteaux07_legacy', 'tournier07', 'tournier07_legacy'}:
+                if sh_basis_name not in ['descoteaux07', 'descoteaux07_legacy', 'tournier07', 'tournier07_legacy']:
                     logging.warning("Invalid choice of sh_basis. You must choose between "
-                        "'descoteaux07', 'descoteaux07_legacy', 'tournier07', or 'tournier07_legacy'. \n"
-                        "Defaulting to 'descoteaux07_legacy'.")
+                                    "'descoteaux07', 'descoteaux07_legacy', 'tournier07', or 'tournier07_legacy'. \n"
+                                    "Defaulting to 'descoteaux07_legacy'.")
                     sh_basis_name = 'descoteaux07_legacy'
                 sh_basis = ('descoteaux07' if 'descoteaux07' in sh_basis_name
                             else 'tournier07')
@@ -409,16 +415,15 @@ def main():
         rap_volume = DataVolume(rap_label_data, rap_label_res, 'nearest')
 
     if args.rap_method == "continue":
-        rap = RAPContinue(rap_volume, propagator, args.max_length,
-                          step_size=vox_step_size)
+        rap = RAPContinue(rap_volume, propagator, step_size=vox_step_size)
     elif args.rap_method == "switch":
-        rap = RAPSwitch(rap_volume, propagators, args.max_length)
+        rap = RAPSwitch(rap_volume, propagators)
     else:
         rap = None
 
     logging.info("Instantiating tracker.")
     tracker = Tracker(propagator, mask, seed_generator, nbr_seeds, args.min_length,
-                      args.max_length, odf_sh_res, args.max_invalid_nb_points,
+                      args.max_length, args.max_invalid_nb_points,
                       compression_th=args.compress_th,
                       nbr_processes=args.nbr_processes,
                       save_seeds=args.save_seeds,

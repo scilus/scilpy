@@ -315,7 +315,7 @@ def main():
                          "seeds requires more fibertubes than there are " +
                          "available.")
     tracker = Tracker(propagator, fake_mask, seed_generator, nbr_seeds,
-                      args.min_length, args.max_length, in_sft.voxel_sizes,
+                      args.min_length, args.max_length,
                       args.max_invalid_nb_points, 0,
                       args.nbr_processes, True, 'r+',
                       rng_seed=args.rng_seed,
