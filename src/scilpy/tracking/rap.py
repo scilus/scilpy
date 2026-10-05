@@ -5,14 +5,15 @@ import numpy as np
 
 
 class RAP:
-    def __init__(self, rap_volume, propagator, max_nbr_pts):
+    def __init__(self, rap_volume, propagator):
         """
         rap_volume: DataVolume
-            HRegion-Adaptive Propagation tractography volume.
+            Region-Adaptive Propagation tractography volume.
+        propagator: ODFPropagator
+            The propagator.
         """
         self.rap_volume = rap_volume
         self.propagator = propagator
-        self.max_nbr_pts = max_nbr_pts
         self._current_label = None
         self._total_steps = 0
 
@@ -46,13 +47,13 @@ class RAP:
 class RAPContinue(RAP):
     """Dummy RAP class for tests. Goes straight"""
 
-    def __init__(self, rap_volume, propagator, max_nbr_pts, step_size):
+    def __init__(self, rap_volume, propagator, step_size):
         """
         Step size: float
             The step size inside the RAP mask. Could be different from the step
             size elsewhere. In voxel world.
         """
-        super().__init__(rap_volume, propagator, max_nbr_pts)
+        super().__init__(rap_volume, propagator)
         self.step_size = step_size
 
     def rap_multistep_propagate(self, line, prev_direction):
@@ -67,8 +68,7 @@ class RAPContinue(RAP):
 class RAPSwitch(RAP):
     """RAP class that switches tracking parameters when inside the RAP mask/label."""
 
-    def __init__(self, rap_volume, propagators: dict,
-                 max_nbr_pts):
+    def __init__(self, rap_volume, propagators: dict):
         """
         Parameters
         ----------
@@ -79,12 +79,10 @@ class RAPSwitch(RAP):
             If --in_odf is provided, contains {odf_path: propagator}
             as default. Additional propagators are keyed by their label,
             loaded from the 'filename' key in rap_policies.json.
-        max_nbr_pts : int
-            Maximum number of points per streamline.
         """
         base_propagator = list(propagators.values())[
             0] if propagators else None
-        super().__init__(rap_volume, base_propagator, max_nbr_pts)
+        super().__init__(rap_volume, base_propagator)
         self._propagators = propagators
 
         if self.propagator is not None:
@@ -200,12 +198,3 @@ class RAPSwitch(RAP):
             return int(v)
         except Exception:
             return int(np.round(v))
-
-
-class RAPGraph(RAP):
-    def __init__(self, mask_rap, propagator, max_nbr_pts, neighboorhood_size):
-        super().__init__(mask_rap, propagator, max_nbr_pts)
-        self.neighboorhood_size = neighboorhood_size
-
-    def rap_multistep_propagate(self, line, prev_direction):
-        raise NotImplementedError
