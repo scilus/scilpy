@@ -29,10 +29,11 @@ Hints:
 import argparse
 import logging
 
-import nibabel as nib
 import numpy as np
 
-from scilpy.io.streamlines import (load_tractogram_with_reference, 
+from scilpy.io.stateful_image import StatefulImage
+from scilpy.io.streamlines import (load_tractogram_with_reference,
+                                   rebind_sft_to_simg,
                                    save_tractogram)
 from scilpy.io.utils import (add_processes_arg, add_verbose_arg, 
                              add_overwrite_arg, assert_headers_compatible, 
@@ -107,8 +108,10 @@ def main():
     cmap = get_lookup_table(args.cmap)
 
     # -- Loading
-    peaks = nib.load(args.in_peaks).get_fdata()
+    peaks_simg = StatefulImage.load(args.in_peaks, is_orientation=True)
+    peaks = peaks_simg.to_voxel_direction(is_peaks=True)
     sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
+    sft = rebind_sft_to_simg(sft, peaks_simg)
     logging.info("Loaded data")
 
     # Removing invalid
@@ -131,11 +134,18 @@ def main():
     ae = compute_ae(sft, peaks, nb_processes=args.nbr_processes)
 
     # Printing stats
-    stacked_ae = np.hstack(ae)
-    mean_ae = np.mean(stacked_ae)
-    std_ae = np.std(stacked_ae)
-    min_ae = np.min(stacked_ae)
-    max_ae = np.max(stacked_ae)
+    if len(ae) == 0:
+        stacked_ae = np.array([])
+        mean_ae = np.nan
+        std_ae = np.nan
+        min_ae = np.nan
+        max_ae = np.nan
+    else:
+        stacked_ae = np.hstack(ae)
+        mean_ae = np.mean(stacked_ae)
+        std_ae = np.std(stacked_ae)
+        min_ae = np.min(stacked_ae)
+        max_ae = np.max(stacked_ae)
     logging.info("AE computed. Some statistics:\n"
                  "- Mean AE: {} +- {} \n"
                  "- Range:[{}, {}]".format(mean_ae, std_ae, min_ae, max_ae))
@@ -145,12 +155,14 @@ def main():
     sft.data_per_point[args.dpp_key] = ae_dpp
 
     # Add as color (optional)
-    if args.save_as_color:
+    if args.save_as_color and len(stacked_ae) == 0:
+        logging.info("Empty tractogram, nothing to color.")
+    elif args.save_as_color:
         max_cmap = args.cmap_max if args.cmap_max is not None \
             else np.max(stacked_ae)
         logging.info("Saving colors. The maxium color is assiociated to "
                      "value {}".format(max_cmap))
-         
+
         sft, _, _ = add_data_as_color_dpp(sft, cmap, stacked_ae,
                                           min_cmap=0, max_cmap=max_cmap)
 
@@ -164,7 +176,8 @@ def main():
         the_map = project_dpp_to_map(sft, args.dpp_key)
 
         logging.info("Saving file {}".format(args.save_mean_map))
-        nib.save(nib.Nifti1Image(the_map, sft.affine), args.save_mean_map)
+        StatefulImage.create_from(
+            the_map, peaks_simg, is_orientation=False).save(args.save_mean_map)
 
 
 if __name__ == "__main__":
