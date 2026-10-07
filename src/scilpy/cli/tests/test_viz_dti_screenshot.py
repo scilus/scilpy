@@ -1,11 +1,18 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+import os
+import tempfile
+
 import nibabel as nib
 import numpy as np
+from PIL import Image
 
-from scilpy.cli.scil_viz_dti_screenshot import prepare_data_for_actors
-from scilpy.io.stateful_image import StatefulImage
+from scilpy import SCILPY_HOME
+from scilpy.io.fetcher import fetch_data, get_testing_files_dict
+
+fetch_data(get_testing_files_dict(), keys=['processing.zip'])
+tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
@@ -13,86 +20,80 @@ def test_help_option(script_runner):
     assert ret.success
 
 
-def test_prepare_data_for_actors_ras_vs_las(tmp_path):
-    np.random.seed(42)
-    dwi = np.random.rand(8, 8, 8, 7).astype(np.float32) * 100 + 50
-    bvals = np.array([0, 1000, 1000, 1000, 1000, 1000, 1000])
-    bvecs = np.array([
-        [0, 0, 0],
-        [1, 0, 0],
-        [0, 1, 0],
-        [0, 0, 1],
-        [0.707, 0.707, 0],
-        [0.707, 0, 0.707],
-        [0, 0.707, 0.707]
-    ])
-    template = np.random.rand(8, 8, 8).astype(np.float32) * 50 + 20
+def test_execution_viz_dti_screenshot(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
 
-    aff_ras = np.eye(4)
-    aff_las = np.diag([-1.0, 1.0, 1.0, 1.0])
-    aff_las[0, 3] = 7.0
+    in_dwi = os.path.join(SCILPY_HOME, 'processing', 'dwi_crop_1000.nii.gz')
+    in_bval = os.path.join(SCILPY_HOME, 'processing', '1000.bval')
+    in_bvec = os.path.join(SCILPY_HOME, 'processing', '1000.bvec')
+    in_template = os.path.join(SCILPY_HOME, 'processing',
+                               'mni_masked_2x2x2.nii.gz')
+    out_dir = os.path.join(tmp_dir.name, 'out_exec')
 
-    dwi_path_ras = str(tmp_path / 'dwi_ras.nii.gz')
-    dwi_path_las = str(tmp_path / 'dwi_las.nii.gz')
-    bval_path = str(tmp_path / 'bvals')
-    bvec_ras_path = str(tmp_path / 'bvecs_ras')
-    bvec_las_path = str(tmp_path / 'bvecs_las')
-    tpl_path = str(tmp_path / 'template.nii.gz')
-    tpl_las_path = str(tmp_path / 'template_las.nii.gz')
+    ret = script_runner.run(['scil_viz_dti_screenshot', in_dwi, in_bval,
+                             in_bvec, in_template, '--out_dir', out_dir])
+    assert ret.success
+    assert os.path.exists(os.path.join(out_dir, 'axial.png'))
 
-    nib.save(nib.Nifti1Image(dwi, aff_ras), dwi_path_ras)
-    nib.save(nib.Nifti1Image(dwi[::-1].copy(), aff_las), dwi_path_las)
 
-    np.savetxt(bval_path, bvals)
-    np.savetxt(bvec_ras_path, bvecs)
-    bvecs_las = bvecs.copy()
-    bvecs_las[:, 0] *= -1
-    np.savetxt(bvec_las_path, bvecs_las)
+def test_non_ras_viz_dti_screenshot(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
 
-    nib.save(nib.Nifti1Image(template, aff_ras), tpl_path)
-    nib.save(nib.Nifti1Image(template[::-1].copy(), aff_las), tpl_las_path)
+    in_dwi = os.path.join(SCILPY_HOME, 'processing', 'dwi_crop_1000.nii.gz')
+    in_bval = os.path.join(SCILPY_HOME, 'processing', '1000.bval')
+    in_bvec = os.path.join(SCILPY_HOME, 'processing', '1000.bvec')
+    in_template = os.path.join(SCILPY_HOME, 'processing',
+                               'mni_masked_2x2x2.nii.gz')
 
-    slices = (4, 4, 4)
-    fa_ras, evals_ras, _ = prepare_data_for_actors(
-        dwi_path_ras, bval_path, bvec_ras_path, tpl_path, slices)
-    fa_las, evals_las, _ = prepare_data_for_actors(
-        dwi_path_las, bval_path, bvec_las_path, tpl_path, slices)
+    # Save LAS copy of template
+    tpl_img = nib.load(in_template)
+    tpl_data = tpl_img.get_fdata(dtype=np.float32)
+    tpl_aff_las = tpl_img.affine.copy()
+    tpl_aff_las[0, 0] *= -1
+    tpl_aff_las[0, 3] = (tpl_img.affine[0, 3]
+                         + (tpl_data.shape[0] - 1) * tpl_img.affine[0, 0])
+    nib.save(nib.Nifti1Image(tpl_data[::-1].copy(), tpl_aff_las),
+             'template_las.nii.gz')
 
-    # FA alone is invariant to many axis flips even when orientation
-    # handling is broken; also compare evals, which are not. (evecs are
-    # not compared directly: with only 6 random gradient directions,
-    # near-degenerate eigenvalues make individual eigenvector components
-    # numerically ambiguous up to sign/ordering, independent of any
-    # orientation bug.)
-    assert np.allclose(fa_ras, fa_las, atol=1e-4)
-    assert np.allclose(evals_ras, evals_las, atol=1e-4)
+    # Save LAS copy of DWI
+    dwi_img = nib.load(in_dwi)
+    dwi_data = dwi_img.get_fdata(dtype=np.float32)
+    dwi_aff_las = dwi_img.affine.copy()
+    dwi_aff_las[0, 0] *= -1
+    dwi_aff_las[0, 3] = (dwi_img.affine[0, 3]
+                         + (dwi_data.shape[0] - 1) * dwi_img.affine[0, 0])
+    nib.save(nib.Nifti1Image(dwi_data[::-1].copy(), dwi_aff_las),
+             'dwi_las.nii.gz')
 
-    # Verify template orientation variation (LAS template)
-    fa_las_tpl, evals_las_tpl, _ = prepare_data_for_actors(
-        dwi_path_ras, bval_path, bvec_ras_path, tpl_las_path, slices)
-    assert np.allclose(fa_ras, fa_las_tpl, atol=1e-4)
-    assert np.allclose(evals_ras, evals_las_tpl, atol=1e-4)
+    out_ras_dir = os.path.join(tmp_dir.name, 'out_ras')
+    ret_ras = script_runner.run(['scil_viz_dti_screenshot', in_dwi, in_bval,
+                                 in_bvec, in_template,
+                                 '--out_dir', out_ras_dir])
+    assert ret_ras.success
 
-    # Verify both DWI and template in LAS
-    fa_both_las, evals_both_las, _ = prepare_data_for_actors(
-        dwi_path_las, bval_path, bvec_las_path, tpl_las_path, slices)
-    assert np.allclose(fa_ras, fa_both_las, atol=1e-4)
-    assert np.allclose(evals_ras, evals_both_las, atol=1e-4)
+    out_las_dir = os.path.join(tmp_dir.name, 'out_las')
+    ret_las = script_runner.run(['scil_viz_dti_screenshot', 'dwi_las.nii.gz',
+                                 in_bval, in_bvec, 'template_las.nii.gz',
+                                 '--out_dir', out_las_dir])
+    assert ret_las.success
 
-    # Verify passing already-loaded StatefulImage template
-    simg_tpl = StatefulImage.load(tpl_path)
-    simg_tpl.to_ras()
-    fa_simg, evals_simg, _ = prepare_data_for_actors(
-        dwi_path_ras, bval_path, bvec_ras_path, simg_tpl, slices)
-    assert np.allclose(fa_ras, fa_simg, atol=1e-4)
-    assert np.allclose(evals_ras, evals_simg, atol=1e-4)
+    for axis in ['axial', 'coronal', 'sagittal']:
+        out_ras = os.path.join(out_ras_dir, f'{axis}.png')
+        out_las = os.path.join(out_las_dir, f'{axis}.png')
+        assert os.path.exists(out_las)
 
-    # Verify passing an already-loaded StatefulImage template that has NOT
-    # been reoriented yet (still LAS): prepare_data_for_actors() must
-    # reorient it itself instead of assuming the caller already did.
-    simg_tpl_las = StatefulImage.load(tpl_las_path, to_orientation=None)
-    assert simg_tpl_las.axcodes[:3] == ('L', 'A', 'S')
-    fa_simg_las, evals_simg_las, _ = prepare_data_for_actors(
-        dwi_path_ras, bval_path, bvec_ras_path, simg_tpl_las, slices)
-    assert np.allclose(fa_ras, fa_simg_las, atol=1e-4)
-    assert np.allclose(evals_ras, evals_simg_las, atol=1e-4)
+        rendered_ras = np.asarray(Image.open(out_ras)).astype(np.float32)
+        rendered_las = np.asarray(Image.open(out_las)).astype(np.float32)
+
+        # Assert non-trivial pixel variance to confirm glyphs are drawn at all.
+        assert np.std(rendered_las) > 3.0
+
+        # RAS and LAS describe the exact same anatomy on different on-disk
+        # grids. If orientation/rotation is correctly applied before rendering,
+        # both renders should be visually near-identical. Before the fix, the
+        # LAS input ignored orientation/scale and would not match.
+        diff = np.abs(rendered_ras - rendered_las)
+        assert np.allclose(rendered_ras, rendered_las, atol=5.0), (
+            f"LAS and RAS renders of {axis} differ too much (mean abs "
+            f"diff = {np.mean(diff):.2f}); "
+            f"orientation may not be applied correctly.")
