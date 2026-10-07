@@ -106,8 +106,12 @@ class StatefulImage(nib.Nifti1Image):
         else:
             reoriented_img = img
 
+        # extra/file_map are read from the original img, not reoriented_img:
+        # as_reoriented() does not carry them over onto the new instance.
         simg = cls(reoriented_img.dataobj, reoriented_img.affine,
-                   reoriented_img.header, original_affine=original_affine,
+                   reoriented_img.header, extra=img.extra,
+                   file_map=img.file_map,
+                   original_affine=original_affine,
                    original_dimensions=original_dims,
                    original_voxel_sizes=original_voxel_sizes,
                    original_axcodes=original_axcodes,
@@ -318,7 +322,8 @@ class StatefulImage(nib.Nifti1Image):
         nib.save(final_img, filename)
 
     @staticmethod
-    def create_from(source, reference, is_orientation=False):
+    def create_from(source, reference, is_orientation=False,
+                    sh_basis=None, is_legacy=None):
         """
         Create a new StatefulImage from a source image, preserving the original
         orientation information from a reference StatefulImage.
@@ -334,6 +339,10 @@ class StatefulImage(nib.Nifti1Image):
             Whether the new image contains directional data. Default is False.
             Will remove orientation attributes if False, even if the reference
             has it.
+        sh_basis : str, optional
+            SH basis for directional data. If None, inherits from reference.
+        is_legacy : bool, optional
+            Whether SH basis is legacy. If None, inherits from reference.
 
         Returns
         -------
@@ -346,13 +355,21 @@ class StatefulImage(nib.Nifti1Image):
             # header for the new image. We can use the reference's current
             # affine and header as a template.
             affine = reference.affine
-            header = reference.header
+            header = reference.header.copy() \
+                if reference.header is not None else None
+            if header is not None:
+                header.set_data_dtype(source.dtype)
             source_img = nib.Nifti1Image(source, affine, header)
         elif isinstance(source, nib.Nifti1Image):
             source_img = source
         else:
             raise TypeError(
                 "Source must be a nib.Nifti1Image or a numpy array.")
+
+        target_sh_basis = (sh_basis if sh_basis is not None
+                           else reference.sh_basis)
+        target_is_legacy = (is_legacy if is_legacy is not None
+                            else reference.is_legacy)
 
         simg = StatefulImage(
             source_img.dataobj, source_img.affine,
@@ -361,8 +378,8 @@ class StatefulImage(nib.Nifti1Image):
             original_dimensions=reference._original_dimensions,
             original_voxel_sizes=reference._original_voxel_sizes,
             original_axcodes=reference._original_axcodes,
-            sh_basis=reference.sh_basis,
-            is_legacy=reference.is_legacy,
+            sh_basis=target_sh_basis,
+            is_legacy=target_is_legacy,
             is_orientation=reference.is_orientation)
 
         if reference.bvals is not None and reference.world_bvecs is not None:
@@ -377,6 +394,10 @@ class StatefulImage(nib.Nifti1Image):
             simg._is_orientation = False
             simg._sh_basis = None
             simg._is_legacy = None
+        else:
+            simg._is_orientation = True
+            simg._sh_basis = target_sh_basis
+            simg._is_legacy = target_is_legacy
         return simg
 
     @staticmethod
@@ -425,10 +446,20 @@ class StatefulImage(nib.Nifti1Image):
         """Get the SH basis."""
         return self._sh_basis
 
+    @sh_basis.setter
+    def sh_basis(self, value):
+        """Set the SH basis."""
+        self._sh_basis = value
+
     @property
     def is_legacy(self):
         """Get whether the SH basis is legacy."""
         return self._is_legacy
+
+    @is_legacy.setter
+    def is_legacy(self, value):
+        """Set whether the SH basis is legacy."""
+        self._is_legacy = value
 
     @property
     def is_orientation(self):
