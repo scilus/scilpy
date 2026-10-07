@@ -263,6 +263,7 @@ scil_tractogram_segment_with_ROI_and_score  = "scilpy.cli.scil_tractogram_segmen
 scil_tractogram_shuffle  = "scilpy.cli.scil_tractogram_shuffle:main"
 scil_tractogram_smooth  = "scilpy.cli.scil_tractogram_smooth:main"
 scil_tractogram_split  = "scilpy.cli.scil_tractogram_split:main"
+scil_transform_split  = "scilpy.cli.scil_transform_split:main"
 scil_viz_bingham_fit  = "scilpy.cli.scil_viz_bingham_fit:main"
 scil_viz_bundle  = "scilpy.cli.scil_viz_bundle:main"
 scil_viz_bundle_screenshot_mni  = "scilpy.cli.scil_viz_bundle_screenshot_mni:main"

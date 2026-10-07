@@ -37,7 +37,8 @@ from scilpy.io.streamlines import (load_tractogram_with_reference,
                                    save_tractogram)
 from scilpy.io.utils import (add_overwrite_arg, add_reference_arg,
                              add_verbose_arg, assert_inputs_exist,
-                             assert_outputs_exist, load_matrix_in_any_format,
+                             assert_outputs_exist,
+                             load_transform_matrix_in_any_format,
                              ranged_type)
 from scilpy.utils.spatial import compute_distance_barycenters
 from scilpy.version import version_string
@@ -121,7 +122,7 @@ def main():
                                             arg_name='in_tractogram')
     model_sft = load_tractogram_with_reference(parser, args, args.in_model,
                                                arg_name='in_model')
-    transfo = load_matrix_in_any_format(args.in_transfo)
+    transfo = load_transform_matrix_in_any_format(args.in_transfo)
 
     # Processing
     if args.inverse:

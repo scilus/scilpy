@@ -78,7 +78,7 @@ from scilpy.io.utils import (add_overwrite_arg,
                              add_verbose_arg,
                              assert_inputs_exist,
                              assert_output_dirs_exist_and_empty,
-                             load_matrix_in_any_format,
+                             load_transform_matrix_in_any_format,
                              ranged_type)
 from scilpy.tractanalysis.bundle_operations import uniformize_bundle_sft
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
@@ -174,7 +174,7 @@ def main():
                                                   args.in_centroid)
     if args.transformation is not None:
         streamlines = sft_centroid.streamlines
-        transfo = load_matrix_in_any_format(args.transformation)
+        transfo = load_transform_matrix_in_any_format(args.transformation)
         if args.inverse:
             transfo = np.linalg.inv(transfo)
         streamlines = transform_streamlines(

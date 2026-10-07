@@ -49,7 +49,7 @@ from scilpy.io.utils import (add_overwrite_arg,
                              add_verbose_arg,
                              assert_inputs_exist,
                              assert_outputs_exist,
-                             load_matrix_in_any_format)
+                             load_transform_matrix_in_any_format)
 from scilpy.tractograms.tractogram_operations import transform_warp_sft
 from scilpy.version import version_string
 
@@ -122,7 +122,7 @@ def main():
     moving_sft = load_tractogram_with_reference(parser, args,
                                                 args.in_moving_tractogram)
 
-    transfo = load_matrix_in_any_format(args.in_transfo)
+    transfo = load_transform_matrix_in_any_format(args.in_transfo)
     deformation_data = None
     if args.in_deformation is not None:
         deformation_data = np.squeeze(nib.load(
