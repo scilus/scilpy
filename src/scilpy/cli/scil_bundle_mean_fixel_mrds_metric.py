@@ -14,7 +14,8 @@ axial diffusivity (fixel-AD).
 
 Fixel-specific metrics are metrics extracted from
 Multi-Resolution Discrete-Search (MRDS) solutions.
-There are as many values per voxel as there are fixels extracted. The
+There are as many values per voxel as there are fixels extracted, each
+characterized by its principal diffusion direction (PDD). The
 values chosen for a given voxel is the one belonging to the lobe better aligned
 with the current streamline segment.
 
@@ -27,10 +28,11 @@ Please use a bundle file rather than a whole tractogram.
 
 import argparse
 
-import nibabel as nib
 import numpy as np
 
-from scilpy.io.streamlines import load_tractogram_with_reference
+from scilpy.io.stateful_image import StatefulImage
+from scilpy.io.streamlines import (load_tractogram_with_reference,
+                                   rebind_sft_to_simg)
 from scilpy.io.utils import (add_overwrite_arg,
                              add_reference_arg,
                              assert_headers_compatible,
@@ -48,7 +50,8 @@ def _build_arg_parser():
     p.add_argument('in_bundle',
                    help='Path of the bundle file.')
     p.add_argument('in_pdds',
-                   help='Path of the MRDS PDDs volume.')
+                   help='Path of the MRDS principal diffusion directions '
+                        '(PDDs) volume.')
 
     g = p.add_argument_group(title='MRDS metrics input')
     g.add_argument('--fa',
@@ -105,24 +108,35 @@ def main():
 
     assert_outputs_exist(parser, args, out_metrics)
 
-    sft = load_tractogram_with_reference(parser, args, args.in_bundle)
-    pdds_img = nib.load(args.in_pdds)
-    affine = pdds_img.affine
-    header = pdds_img.header
+    # Principal diffusion directions (PDDs) are directional (peaks-like):
+    # reorient the grid to RAS and convert the direction vectors from world
+    # to voxel space.
+    pdds_simg = StatefulImage.load(args.in_pdds, is_orientation=True)
+    pdds_simg.to_ras()
+    pdds_data = pdds_simg.to_voxel_direction(is_peaks=True)
 
-    in_metrics_data = [nib.load(metric).get_fdata(dtype=np.float32) for metric in in_metrics]
+    # The per-fixel metrics (FA/MD/RD/AD) are scalar, just need the
+    # matching grid.
+    in_metrics_data = []
+    for metric in in_metrics:
+        metric_simg = StatefulImage.load(metric)
+        metric_simg.to_ras()
+        in_metrics_data.append(metric_simg.get_fdata(dtype=np.float32))
+
+    sft = load_tractogram_with_reference(parser, args, args.in_bundle)
+    sft = rebind_sft_to_simg(sft, pdds_simg)
+
     fixel_metrics =\
         mrds_metrics_along_streamlines(sft,
-                                       pdds_img.get_fdata(dtype=np.float32),
+                                       pdds_data,
                                        in_metrics_data,
                                        args.max_theta,
                                        args.length_weighting)
 
     for metric_id, curr_metric in enumerate(fixel_metrics):
-        nib.Nifti1Image(curr_metric.astype(np.float32),
-                        affine=affine,
-                        header=header,
-                        dtype=np.float32).to_filename(out_metrics[metric_id])
+        StatefulImage.create_from(
+            curr_metric.astype(np.float32), pdds_simg).save(
+            out_metrics[metric_id])
 
 
 if __name__ == '__main__':

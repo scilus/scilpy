@@ -116,6 +116,9 @@ def compute_ae(sft, peaks, nb_processes=1):
                      "fODF, etc). We will verify alignment with the closest "
                      "peak in each voxel.")
 
+    if len(sft) == 0:
+        return []
+
     # Sending sft to vox space, corner origin. Then nearest neighbor
     # interpolation is just the floor.
     previous_space = sft.space
