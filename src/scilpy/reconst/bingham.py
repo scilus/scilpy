@@ -138,7 +138,8 @@ def bingham_to_peak_direction(bingham_volume):
 def bingham_fit_sh(sh, max_lobes=5, abs_th=0.,
                    rel_th=0., min_sep_angle=25.,
                    max_fit_angle=15, mask=None,
-                   nbr_processes=None):
+                   nbr_processes=None,
+                   sh_basis='descoteaux07', is_legacy=True):
     """
     Approximate SH field by fitting Bingham distributions to
     up to ``max_lobes`` lobes per voxel, sorted in descending order
@@ -164,6 +165,10 @@ def bingham_fit_sh(sh, max_lobes=5, abs_th=0.,
     nbr_processes: unsigned int, optional
         The number of processes to use. If None, than
         ``multiprocessing.cpu_count()`` processes are executed.
+    sh_basis: str, optional
+        SH basis type ('descoteaux07' or 'tournier07').
+    is_legacy: bool, optional
+        Whether the SH basis is legacy DIPY format.
 
     Returns
     -------
@@ -175,7 +180,9 @@ def bingham_fit_sh(sh, max_lobes=5, abs_th=0.,
 
     sphere = get_sphere(name='symmetric724').subdivide(n=2)
     B_mat = sh_to_sf_matrix(sphere, sh_order_max=order,
+                            basis_type=sh_basis,
                             full_basis=full_basis,
+                            legacy=is_legacy,
                             return_inv=False)
 
     nbr_processes = multiprocessing.cpu_count()\
