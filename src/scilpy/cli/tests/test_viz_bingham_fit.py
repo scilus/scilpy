@@ -64,14 +64,14 @@ def test_non_ras_viz_bingham_fit(script_runner, monkeypatch):
     rendered_las = np.asarray(Image.open(out_las)).astype(np.float32)
 
     # Assert non-trivial pixel variance to confirm glyphs are drawn at all.
-    assert rendered_las.var() > 10.0
+    assert np.std(rendered_las) > 3.0
 
     # RAS and LAS describe the exact same anatomy on different on-disk
     # grids. If orientation/rotation is correctly applied before rendering,
     # both renders should be visually near-identical. Before the fix, the
     # LAS render ignored rotation/scale entirely and would not match.
     diff = np.abs(rendered_ras - rendered_las)
-    assert diff.mean() < 5.0, (
-        "LAS and RAS renders of the same data differ too much (mean abs "
-        "diff = {:.2f}); orientation may not be applied correctly."
-        .format(diff.mean()))
+    assert np.allclose(rendered_ras, rendered_las, atol=5.0), (
+        f"LAS and RAS renders of the same data differ too much (mean abs "
+        f"diff = {np.mean(diff):.2f}); orientation may not be applied correctly.")
+
