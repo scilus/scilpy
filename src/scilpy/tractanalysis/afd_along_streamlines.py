@@ -5,6 +5,7 @@ from dipy.reconst.shm import sh_to_sf_matrix, sph_harm_ind_list
 import numpy as np
 from scipy.special import legendre_p_all
 
+from scilpy.io.stateful_image import StatefulImage
 from scilpy.reconst.utils import find_order_from_nb_coeff
 from scilpy.tractanalysis.voxel_boundary_intersection import\
     subdivide_streamlines_at_voxel_faces
@@ -88,6 +89,11 @@ def _afd_and_rd_sums_along_streamlines(sft, fodf, fodf_basis,
     sft.to_vox()
     sft.to_corner()
 
+    # SH coefficients are evaluated against sphere.vertices, which are in
+    # world orientation. Streamline segments are in voxel space, so bring
+    # them to world orientation before matching against the sphere.
+    to_world_rotation = StatefulImage._get_rotation_matrix(fodf.affine)
+
     fodf_data = fodf.get_fdata(dtype=np.float32)
     order = find_order_from_nb_coeff(fodf_data)
     sphere = get_sphere(name='repulsion724')
@@ -117,10 +123,12 @@ def _afd_and_rd_sums_along_streamlines(sft, fodf, fodf_basis,
         segments = segments[non_zero_lengths]
         seg_lengths = seg_lengths[non_zero_lengths]
 
-        # Find closest point on sphere
-        test = np.dot(segments, sphere.vertices.T)
-        test2 = (test.T / (seg_lengths * sphere_norm)).T
-        angles = np.arccos(test2)
+        # Find closest point on sphere. segments are in voxel space, rotate
+        # to world orientation to compare against sphere.vertices.
+        world_segments = np.dot(segments, to_world_rotation.T)
+        cos_angle = (np.dot(world_segments, sphere.vertices.T).T /
+                     (seg_lengths * sphere_norm)).T
+        angles = np.arccos(cos_angle)
         sorted_angles = np.argsort(angles, axis=1)
         closest_vertex_indices = sorted_angles[:, 0]
 
