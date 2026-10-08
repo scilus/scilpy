@@ -3,14 +3,30 @@
 """
 BundleParc: automatic tract labelling without tractography.
 
-This method takes as input fODF maps and outputs 71 bundle label maps. These maps can then be used to perform tractometry/tract profiling/radiomics. The bundle definitions follow TractSeg's minus the whole CC.
+This method takes as input fODF maps and outputs 71 bundle label maps.
+These maps can then be used to perform tractometry/tract profiling/radiomics.
+The bundle definitions follow TractSeg's minus the whole CC.
 
-**IMPORTANT**: fODF inputs must have a stride of -1,2,3,4 (LAS voxel order) and must be BET and cropped. fODFs must be in SH format, basis descoteaux07 and can be of order < 8 but accuracy may be reduced. Images in another voxel order can be converted with scil_volume_modify_voxel_order.
+**IMPORTANT**: fODF inputs must have a stride of -1,2,3,4 (LAS voxel order) and
+must be BET and cropped. fODFs must be in SH format and can be of order < 8 but
+accuracy may be reduced. The SH coefficients must follow the MRtrix convention:
+tournier07 basis (non-legacy), expressed in world space. scilpy writes
+descoteaux07_legacy by default, so convert first:
+    $ scil_sh_convert fodf.nii.gz fodf_tournier07.nii.gz descoteaux07_legacy tournier07
+Other inputs that do not meet these requirements can be converted:
+    - voxel order: scil_volume_modify_voxel_order --new_voxel_order=-1,2,3,4
+      (only changes the voxel grid, the SH coefficients are not modified)
+    - SH relative to the voxel grid: scil_sh_reorient --to_world
+      --sh_basis tournier07
 
-**IMPORTANT**: Only fODFs computed with scilpy >= 3.0 are supported. Since 3.0, SH coefficients are stored in world (RAS+) space regardless of the voxel order, while the model was trained on fODFs whose SH coefficients were expressed in the LAS voxel space (scilpy < 3.0, Tractoflow). The coefficients are therefore rotated to the LAS voxel space before inference. fODFs computed with scilpy < 3.0 (SH in voxel space) will yield wrong results; convert them to world space first:
-    $ scil_sh_reorient legacy_fodf.nii.gz fodf.nii.gz --to_world
+**IMPORTANT**: The image is expected to be aligned with the scanner axes
+(non-oblique, e.g. after registration to a template). Predictions degrade with
+the angle between the voxel and scanner axes. Registering the image to remove
+this tilt is left to the user.
 
-Model weights will be downloaded the first time the script is run, which will require an internet connection at runtime. Otherwise they can be manually downloaded from zenodo [1] and by specifying --checkpoint.
+Model weights will be downloaded the first time the script is run, which will
+require an internet connection at runtime. Otherwise they can be manually
+downloaded from zenodo [1] and by specifying --checkpoint.
 
 Example usage:
     $ scil_fodf_bundleparc fodf.nii.gz --out_prefix sub-001__
@@ -18,17 +34,25 @@ Example usage:
 Example output:
     sub-001__AF_left.nii.gz, sub-001__AF_right.nii.gz, ..., sub-001__UF_right.nii.gz
 
-The output can be further processed with scil_bundle_mean_std to compute statistics for each bundle.
+The output can be further processed with scil_bundle_mean_std to compute
+statistics for each bundle.
 
-The default value of 50 for --min_blob_size was found empirically on adult brains at a resolution of 1mm^3. The best value for your dataset may differ.
+The default value of 50 for --min_blob_size was found empirically on adult
+brains at a resolution of 1mm^3. The best value for your dataset may differ.
 
-This script requires a GPU with ~8GB of available memory. If you use half-precision (float16) inference, you may be able to run it with ~4GB of GPU memory available. Otherwise, install the CPU version of PyTorch. Execution on MacOS is not supported for now.
+This script requires a GPU with ~8GB of available memory. If you use
+half-precision (float16) inference, you may be able to run it with ~4GB of GPU
+memory available. Otherwise, install the CPU version of PyTorch. Execution on
+MacOS is not supported for now.
 
 Parts of the implementation are based on or lifted from:
     SAM-Med3D: https://github.com/uni-medical/SAM-Med3D
     Multidimensional Positional Encoding: https://github.com/tatp22/multidim-positional-encoding
 
-To cite: Antoine Théberge, Zineb El Yamani, François Rheault, Maxime Descoteaux, Pierre-Marc Jodoin (2025). LabelSeg. ISMRM Workshop on 40 Years of Diffusion: Past, Present & Future Perspectives, Kyoto, Japan.
+To cite: 
+    Antoine Théberge, Zineb El Yamani, François Rheault, Maxime Descoteaux,
+    Pierre-Marc Jodoin (2025). LabelSeg. ISMRM Workshop on 40 Years of Diffusion:
+    Past, Present & Future Perspectives, Kyoto, Japan.
 
 [1]: Descoteaux, M., Deriche, R., Knösche, T. R., & Anwander, A. (2007). Deterministic and probabilistic tractography based on complex fibre orientation distributions. IEEE Transactions on Medical Imaging, 26(11), 1464-1477.
 [2]: https://zenodo.org/records/19634429
@@ -43,11 +67,14 @@ import os
 from argparse import RawTextHelpFormatter
 from functools import partial
 
+from dipy.data import get_sphere
+
 from scilpy.io.stateful_image import StatefulImage
 from scilpy.io.utils import (
     assert_inputs_exist, assert_output_dirs_exist_and_empty,
     add_overwrite_arg, add_verbose_arg)
 from scilpy.image.volume_operations import resample_volume
+from scilpy.reconst.sh import convert_sh_basis
 
 from scilpy.ml.bundleparc.bundles import DEFAULT_BUNDLES
 from scilpy.ml.bundleparc.labels import post_process_labels_discrete, \
@@ -69,8 +96,8 @@ def _build_arg_parser():
 
     parser.add_argument('in_fodf',
                         help='Input fODF volume in nifti format '
-                             '(descoteaux07 basis, LAS orientation, '
-                             'computed with scilpy >= 3.0). ')
+                             '(tournier07 basis, LAS orientation, '
+                             'SH in world space). ')
     parser.add_argument('--out_prefix', default='',
                         help='Output file prefix. Default is nothing. ')
     parser.add_argument('--out_dir', default='bundleparc',
@@ -137,7 +164,17 @@ def main():
             f"-1,2,3,4, Tractoflow convention). Got {axcodes}. Reorient "
             f"with scil_volume_modify_voxel_order first.")
 
-    logging.warning("BundleParc expects fODF in 'descoteaux07' SH basis.")
+    # Angle (degrees) between each voxel axis and the closest scanner axis.
+    obliquity = np.degrees(nib.affines.obliquity(fodf_in.affine)).max()
+    if obliquity > 10:
+        logging.warning(
+            f"Input fODF is oblique ({obliquity:.1f} degrees between the "
+            f"voxel and scanner axes). Predictions degrade with obliquity; "
+            f"consider registering the image to remove the tilt first.")
+
+    logging.warning("BundleParc expects fODF in the 'tournier07' SH basis "
+                    "(MRtrix convention). Convert with scil_sh_convert if "
+                    "needed.")
 
     if not have_torch:
         parser.error(IMPORT_ERROR_MSG)
@@ -155,7 +192,7 @@ def main():
     # Load the model
     model = get_model(args.checkpoint, device, {'pretrained': True})
 
-    X, Y, Z, C = fodf_in.get_fdata(dtype=np.float32).shape
+    X, Y, Z, C = fodf_in.shape
 
     # TODO in future release: infer these from model
     n_coefs = 45
@@ -168,14 +205,22 @@ def main():
         logging.warning(f'Input fODFs have more than {n_coefs} coefficients. '
                         f'Only the first {n_coefs} will be used.')
 
-    # No voxel reorientation occurs because LAS is verified above.
-    fodf_simg = StatefulImage.load(args.in_fodf, to_orientation=None,
-                                   is_orientation=True,
-                                   sh_basis='descoteaux07')
+    # The model was trained on descoteaux07_legacy coefficients. The SH are
+    # kept in world space, which is what the model expects.
+    fodf_data = fodf_in.get_fdata(dtype=np.float32)
+    sphere = get_sphere(name='repulsion724').subdivide(n=1)
+    fodf_data = convert_sh_basis(fodf_data, sphere,
+                                 mask=np.any(fodf_data, axis=-1),
+                                 input_basis='tournier07',
+                                 output_basis='descoteaux07',
+                                 is_input_legacy=False,
+                                 is_output_legacy=True,
+                                 nbr_processes=1)
 
-    # SH coefficients are stored in world space (scilpy >= 3.0), but the
-    # model was trained on SH coefficients in LAS voxel space.
-    fodf_simg.to_voxel_direction(is_peaks=False)
+    # resample_volume requires a StatefulImage. No reorientation occurs
+    # because LAS is verified above.
+    fodf_simg = StatefulImage.convert_to_simg(
+        nib.Nifti1Image(fodf_data, fodf_in.affine, header=fodf_in.header))
 
     # Resampling volume to fit the model's input at training time
     resampled_img = resample_volume(fodf_simg, ref_img=None,
