@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+pytestmark = pytest.mark.ml
+
 torch = pytest.importorskip("torch")
 
 from scilpy.ml.utils import to_numpy  # noqa: E402
