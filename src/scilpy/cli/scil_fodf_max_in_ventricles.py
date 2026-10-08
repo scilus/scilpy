@@ -18,12 +18,13 @@ Reference:
 import argparse
 import logging
 
-import nibabel as nib
 import numpy as np
 
 from scilpy.io.image import get_data_as_mask
+from scilpy.io.stateful_image import StatefulImage
 from scilpy.io.utils import (add_overwrite_arg,
                              add_sh_basis_args, add_verbose_arg,
+                             assert_headers_compatible,
                              assert_inputs_exist, assert_outputs_exist,
                              parse_sh_basis_arg)
 from scilpy.reconst.fodf import get_ventricles_max_fodf
@@ -79,26 +80,33 @@ def main():
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
-    assert_inputs_exist(parser, [args.in_fodfs, args.in_fa, args.in_md],
-                        optional=args.in_mask)
+    in_vols = [args.in_fodfs, args.in_fa, args.in_md]
+    assert_inputs_exist(parser, in_vols, optional=args.in_mask)
     assert_outputs_exist(parser, args, [],
                          [args.max_value_output, args.out_mask])
-
-    # Load input image
-    img_fODFs = nib.load(args.in_fodfs)
-    fodf = img_fODFs.get_fdata(dtype=np.float32)
-    zoom = img_fODFs.header.get_zooms()[:3]
-
-    img_fa = nib.load(args.in_fa)
-    fa = img_fa.get_fdata(dtype=np.float32)
-
-    img_md = nib.load(args.in_md)
-    md = img_md.get_fdata(dtype=np.float32)
-
-    mask = get_data_as_mask(nib.load(args.in_mask),
-                            dtype=bool) if args.in_mask else None
+    assert_headers_compatible(parser, in_vols, optional=args.in_mask)
 
     sh_basis, is_legacy = parse_sh_basis_arg(args)
+
+    # Load input images
+    fodf_simg = StatefulImage.load(args.in_fodfs, is_orientation=True,
+                                   sh_basis=sh_basis, is_legacy=is_legacy)
+    fodf = fodf_simg.get_fdata(dtype=np.float32)
+    zoom = fodf_simg.header.get_zooms()[:3]
+
+    fa_simg = StatefulImage.load(args.in_fa)
+    fa_simg.reorient(fodf_simg.axcodes)
+    fa = fa_simg.get_fdata(dtype=np.float32)
+
+    md_simg = StatefulImage.load(args.in_md)
+    md_simg.reorient(fodf_simg.axcodes)
+    md = md_simg.get_fdata(dtype=np.float32)
+
+    mask = None
+    if args.in_mask:
+        mask_simg = StatefulImage.load(args.in_mask)
+        mask_simg.reorient(fodf_simg.axcodes)
+        mask = get_data_as_mask(mask_simg, dtype=bool)
 
     value, out_mask = get_ventricles_max_fodf(fodf, fa, md, zoom, sh_basis,
                                               args.fa_threshold,
@@ -109,8 +117,9 @@ def main():
                                               use_median=args.use_median)
 
     if args.out_mask:
-        img = nib.Nifti1Image(np.array(out_mask, 'float32'),  img_fODFs.affine)
-        nib.save(img, args.out_mask)
+        StatefulImage.create_from(
+            np.array(out_mask, dtype=np.float32), fodf_simg,
+            is_orientation=False).save(args.out_mask)
 
     if args.max_value_output:
         text_file = open(args.max_value_output, "w")
