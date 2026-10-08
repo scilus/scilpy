@@ -5,7 +5,10 @@ BundleParc: automatic tract labelling without tractography.
 
 This method takes as input fODF maps and outputs 71 bundle label maps. These maps can then be used to perform tractometry/tract profiling/radiomics. The bundle definitions follow TractSeg's minus the whole CC.
 
-**IMPORTANT**: fODF inputs are presumed to come from Tractoflow, must have stride of -1,2,3,4 and must be BET and cropped. fODFs must be in SH format, basis descoteaux07 and can be of order < 8 but accuracy may be reduced.
+**IMPORTANT**: fODF inputs must have a stride of -1,2,3,4 (LAS voxel order) and must be BET and cropped. fODFs must be in SH format, basis descoteaux07 and can be of order < 8 but accuracy may be reduced. Images in another voxel order can be converted with scil_volume_modify_voxel_order.
+
+**IMPORTANT**: Only fODFs computed with scilpy >= 3.0 are supported. Since 3.0, SH coefficients are stored in world (RAS+) space regardless of the voxel order, while the model was trained on fODFs whose SH coefficients were expressed in the LAS voxel space (scilpy < 3.0, Tractoflow). The coefficients are therefore rotated to the LAS voxel space before inference. fODFs computed with scilpy < 3.0 (SH in voxel space) will yield wrong results; convert them to world space first:
+    $ scil_sh_reorient legacy_fodf.nii.gz fodf.nii.gz --to_world
 
 Model weights will be downloaded the first time the script is run, which will require an internet connection at runtime. Otherwise they can be manually downloaded from zenodo [1] and by specifying --checkpoint.
 
@@ -68,7 +71,8 @@ def _build_arg_parser():
 
     parser.add_argument('in_fodf',
                         help='Input fODF volume in nifti format '
-                             '(descoteaux07 basis, LAS orientation). ')
+                             '(descoteaux07 basis, LAS orientation, '
+                             'computed with scilpy >= 3.0). ')
     parser.add_argument('--out_prefix', default='',
                         help='Output file prefix. Default is nothing. ')
     parser.add_argument('--out_dir', default='bundleparc',
@@ -157,10 +161,16 @@ def main():
         logging.warning(f'Input fODFs have more than {n_coefs} coefficients. '
                         f'Only the first {n_coefs} will be used.')
 
+    # No voxel reorientation occurs because LAS is verified above.
+    fodf_simg = StatefulImage.load(args.in_fodf, to_orientation=None,
+                                   is_orientation=True,
+                                   sh_basis='descoteaux07')
+
+    # SH coefficients are stored in world space (scilpy >= 3.0), but the
+    # model was trained on SH coefficients in LAS voxel space.
+    fodf_simg.to_voxel_direction(is_peaks=False)
+
     # Resampling volume to fit the model's input at training time
-    # resample_volume requires a StatefulImage. No reorientation occurs
-    # because LAS is verified above.
-    fodf_simg = StatefulImage.convert_to_simg(fodf_in)
     resampled_img = resample_volume(fodf_simg, ref_img=None,
                                     volume_shape=[args.volume_size],
                                     iso_min=False,
