@@ -15,7 +15,7 @@ def get_device():
         return torch.device("cpu")
 
 
-def to_numpy(tensor: torch.Tensor, dtype=np.float32) -> np.ndarray:
+def to_numpy(tensor: "torch.Tensor", dtype=np.float32) -> np.ndarray:
     """ Helper function to convert a torch GPU tensor
     to numpy.
     """

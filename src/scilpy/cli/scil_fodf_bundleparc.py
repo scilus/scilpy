@@ -49,12 +49,10 @@ from scilpy.io.utils import (
     add_overwrite_arg, add_verbose_arg)
 from scilpy.image.volume_operations import resample_volume
 
-from scilpy.ml.bundleparc.predict import predict
+from scilpy.ml.bundleparc.bundles import DEFAULT_BUNDLES
 from scilpy.ml.bundleparc.labels import post_process_labels_discrete, \
     post_process_labels_mm, post_process_labels_continuous
-from scilpy.ml.bundleparc.utils import DEFAULT_BUNDLES, \
-    download_weights, get_model
-from scilpy.ml.utils import get_device, IMPORT_ERROR_MSG
+from scilpy.ml.utils import IMPORT_ERROR_MSG
 from scilpy import SCILPY_HOME
 
 
@@ -140,6 +138,15 @@ def main():
             f"with scil_volume_modify_voxel_order first.")
 
     logging.warning("BundleParc expects fODF in 'descoteaux07' SH basis.")
+
+    if not have_torch:
+        parser.error(IMPORT_ERROR_MSG)
+
+    # Imported here so that --help and input validation work without
+    # PyTorch: these modules use torch at import time.
+    from scilpy.ml.bundleparc.predict import predict
+    from scilpy.ml.bundleparc.utils import download_weights, get_model
+    from scilpy.ml.utils import get_device
 
     if not os.path.exists(args.checkpoint):
         download_weights(args.checkpoint)

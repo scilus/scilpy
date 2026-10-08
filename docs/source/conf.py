@@ -226,7 +226,6 @@ def setup(app):
     commit_scripts = ["scil_tractogram_commit.py"]
     amico_scripts = ["scil_NODDI_maps.py",
                      "scil_freewater_maps.py"]
-    ml_scripts = ["scil_fodf_bundleparc.py"]
 
     with open(join(path_src, "scripts/modules.rst"), "w") as m:
 
@@ -264,26 +263,6 @@ def setup(app):
                                 if "amico" in line and "import" in line:
                                     f.write("from mock import Mock\n")
                                     f.write("sys.modules['amico'] = Mock()\n")
-                                else:
-                                    f.write(line)
-                    elif i in ml_scripts:
-                        with open(join(path_script, i), "r") as f:
-                            data = f.readlines()
-                        with open(join(path_script, i), "w") as f:
-                            for line in data:
-                                if 'scilpy.ml.utils' in line:
-                                    f.write("IMPORT_ERROR_MSG=''\n")
-                                elif 'import DEFAULT_BUNDLES' in line:
-                                    f.write("DEFAULT_BUNDLES=''\n")
-                                elif 'download_weights, get_model' in line:
-                                    f.write("from mock import Mock\n")
-                                    f.write("import sys\n")
-                                    f.write("sys.modules['torch'] = Mock()\n")
-                                elif "have_torch" in line or \
-                                     "optional_package" in line or \
-                                     "get_device, IMPORT_ERROR_MSG" in line or\
-                                     "import predict" in line:
-                                    f.write("\n")
                                 else:
                                     f.write(line)
 
