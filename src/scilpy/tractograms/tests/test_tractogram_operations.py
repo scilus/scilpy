@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+from copy import deepcopy
 import logging
 import os
 import tempfile
@@ -43,10 +44,12 @@ sft.data_per_point['test2'] = [[[1, 2, 3]] * len(s) for s in sft.streamlines]
 
 
 def test_shuffle_streamlines():
-    # Shuffling pretty straightforward, not testing.
-    # Verifying that initial SFT is not modified.
-    sft2 = shuffle_streamlines(sft)
+    # Seed 0 gives the order [2, 0, 1, 3], so the shuffled SFT differs.
+    sft_copy = deepcopy(sft)
+    sft2 = shuffle_streamlines(sft, rng_seed=0)
     assert not sft2 == sft
+    # The input SFT is not modified.
+    assert sft == sft_copy
 
 
 def test_flip_sft():
