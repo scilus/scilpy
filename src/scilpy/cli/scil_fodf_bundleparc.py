@@ -7,17 +7,15 @@ This method takes as input fODF maps and outputs 71 bundle label maps.
 These maps can then be used to perform tractometry/tract profiling/radiomics.
 The bundle definitions follow TractSeg's minus the whole CC.
 
-**IMPORTANT**: fODF inputs must have a stride of -1,2,3,4 (LAS voxel order) and
-must be BET and cropped. fODFs must be in SH format and can be of order < 8 but
-accuracy may be reduced. The SH coefficients must follow the MRtrix convention:
-tournier07 basis (non-legacy), expressed in world space. scilpy writes
-descoteaux07_legacy by default, so convert first:
-    $ scil_sh_convert fodf.nii.gz fodf_tournier07.nii.gz descoteaux07_legacy tournier07
-Other inputs that do not meet these requirements can be converted:
-    - voxel order: scil_volume_modify_voxel_order --new_voxel_order=-1,2,3,4
-      (only changes the voxel grid, the SH coefficients are not modified)
-    - SH relative to the voxel grid: scil_sh_reorient --to_world
-      --sh_basis tournier07
+**IMPORTANT**: fODF inputs must be BET and cropped, in SH format, and computed
+with scilpy >= 3.0 (SH in world space). Any voxel order is accepted. Use
+--sh_basis to give the SH basis of the input. fODFs can be of order < 8 but
+accuracy may be reduced.
+
+Before inference, the fODF is converted to the format of the training data
+(scilpy < 3.0 fODFs from Tractoflow): voxel order LAS (stride -1,2,3,4) and
+descoteaux07_legacy basis. The output labels are saved in the voxel order of
+the input.
 
 **IMPORTANT**: The image is expected to be aligned with the scanner axes
 (non-oblique, e.g. after registration to a template). Predictions degrade with
@@ -72,7 +70,8 @@ from dipy.data import get_sphere
 from scilpy.io.stateful_image import StatefulImage
 from scilpy.io.utils import (
     assert_inputs_exist, assert_output_dirs_exist_and_empty,
-    add_overwrite_arg, add_verbose_arg)
+    add_overwrite_arg, add_sh_basis_args, add_verbose_arg,
+    parse_sh_basis_arg)
 from scilpy.image.volume_operations import resample_volume
 from scilpy.reconst.sh import convert_sh_basis
 
@@ -96,8 +95,7 @@ def _build_arg_parser():
 
     parser.add_argument('in_fodf',
                         help='Input fODF volume in nifti format '
-                             '(tournier07 basis, LAS orientation, '
-                             'SH in world space). ')
+                             '(SH in world space, any voxel order).')
     parser.add_argument('--out_prefix', default='',
                         help='Output file prefix. Default is nothing. ')
     parser.add_argument('--out_dir', default='bundleparc',
@@ -135,6 +133,7 @@ def _build_arg_parser():
     blob_group.add_argument('--keep_biggest_blob', action='store_true',
                             help='Only keep the biggest blob predicted.')
 
+    add_sh_basis_args(parser)
     add_overwrite_arg(parser)
     add_verbose_arg(parser)
 
@@ -152,17 +151,11 @@ def main():
 
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
+    # Only the header is read here, the data is loaded below.
     fodf_in = nib.load(args.in_fodf)
     if len(fodf_in.shape) != 4:
         parser.error(
             f"Input fODF volume must be 4D (got {len(fodf_in.shape)}D).")
-
-    axcodes = nib.orientations.aff2axcodes(fodf_in.affine)
-    if axcodes != ('L', 'A', 'S'):
-        parser.error(
-            f"BundleParc expects fODF input in LAS orientation (stride "
-            f"-1,2,3,4, Tractoflow convention). Got {axcodes}. Reorient "
-            f"with scil_volume_modify_voxel_order first.")
 
     # Angle (degrees) between each voxel axis and the closest scanner axis.
     obliquity = np.degrees(nib.affines.obliquity(fodf_in.affine)).max()
@@ -171,10 +164,6 @@ def main():
             f"Input fODF is oblique ({obliquity:.1f} degrees between the "
             f"voxel and scanner axes). Predictions degrade with obliquity; "
             f"consider registering the image to remove the tilt first.")
-
-    logging.warning("BundleParc expects fODF in the 'tournier07' SH basis "
-                    "(MRtrix convention). Convert with scil_sh_convert if "
-                    "needed.")
 
     if not have_torch:
         parser.error(IMPORT_ERROR_MSG)
@@ -192,7 +181,11 @@ def main():
     # Load the model
     model = get_model(args.checkpoint, device, {'pretrained': True})
 
-    X, Y, Z, C = fodf_in.shape
+    # The model was trained on LAS fODFs. Only the voxel order changes: the
+    # SH stay in world space, which matches the training data (see the
+    # bundles_on_correct_side test).
+    fodf_simg = StatefulImage.load(args.in_fodf, to_orientation='LAS')
+    X, Y, Z, C = fodf_simg.shape
 
     # TODO in future release: infer these from model
     n_coefs = 45
@@ -205,22 +198,18 @@ def main():
         logging.warning(f'Input fODFs have more than {n_coefs} coefficients. '
                         f'Only the first {n_coefs} will be used.')
 
-    # The model was trained on descoteaux07_legacy coefficients. The SH are
-    # kept in world space, which is what the model expects.
-    fodf_data = fodf_in.get_fdata(dtype=np.float32)
-    sphere = get_sphere(name='repulsion724').subdivide(n=1)
-    fodf_data = convert_sh_basis(fodf_data, sphere,
-                                 mask=np.any(fodf_data, axis=-1),
-                                 input_basis='tournier07',
-                                 output_basis='descoteaux07',
-                                 is_input_legacy=False,
-                                 is_output_legacy=True,
-                                 nbr_processes=1)
-
-    # resample_volume requires a StatefulImage. No reorientation occurs
-    # because LAS is verified above.
-    fodf_simg = StatefulImage.convert_to_simg(
-        nib.Nifti1Image(fodf_data, fodf_in.affine, header=fodf_in.header))
+    # The model was trained on descoteaux07_legacy coefficients.
+    sh_basis, is_legacy = parse_sh_basis_arg(args)
+    if sh_basis != 'descoteaux07' or not is_legacy:
+        fodf_data = fodf_simg.get_fdata(dtype=np.float32)
+        fodf_data = convert_sh_basis(
+            fodf_data, get_sphere(name='repulsion724').subdivide(n=1),
+            mask=np.any(fodf_data, axis=-1),
+            input_basis=sh_basis, output_basis='descoteaux07',
+            is_input_legacy=is_legacy, is_output_legacy=True,
+            nbr_processes=1)
+        fodf_simg = StatefulImage.create_from(
+            nib.Nifti1Image(fodf_data, fodf_simg.affine), fodf_simg)
 
     # Resampling volume to fit the model's input at training time
     resampled_img = resample_volume(fodf_simg, ref_img=None,
@@ -263,9 +252,8 @@ def main():
                                     resampled_img.affine,
                                     header=resampled_img.header,
                                     dtype=y_hat_label.dtype)
-        # resample_volume requires a StatefulImage. No reorientation
-        # occurs because LAS is verified above.
-        label_simg = StatefulImage.convert_to_simg(label_img)
+        # Keeps the voxel order of the input, used when saving.
+        label_simg = StatefulImage.create_from(label_img, fodf_simg)
 
         # Resampling volume to fit the original image size
         resampled_label = resample_volume(label_simg, ref_img=None,
@@ -274,8 +262,8 @@ def main():
                                           voxel_res=None,
                                           interp='nn',
                                           enforce_dimensions=False)
-        # Save it
-        nib.save(resampled_label, os.path.join(
+        # Save it, back in the voxel order of the input.
+        resampled_label.save(os.path.join(
             args.out_dir, f'{args.out_prefix}{b_name}.nii.gz'))
 
 
