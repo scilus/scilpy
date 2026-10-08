@@ -12,9 +12,9 @@ import argparse
 import logging
 
 from dipy.data import get_sphere
-import nibabel as nib
 import numpy as np
 
+from scilpy.io.stateful_image import StatefulImage
 from scilpy.reconst.sh import convert_sh_basis
 from scilpy.io.utils import (add_overwrite_arg, add_sh_basis_args,
                              add_processes_arg, add_verbose_arg,
@@ -50,11 +50,12 @@ def main():
     assert_outputs_exist(parser, args, args.out_sh)
 
     sphere = get_sphere(name='repulsion724').subdivide(n=1)
-    img = nib.load(args.in_sh)
-    data = img.get_fdata(dtype=np.float32)
-
     in_sh_basis, is_in_legacy, out_sh_basis, is_out_legacy \
         = parse_sh_basis_arg(args)
+
+    sh_simg = StatefulImage.load(args.in_sh, is_orientation=True,
+                                 sh_basis=in_sh_basis, is_legacy=is_in_legacy)
+    data = sh_simg.get_fdata(dtype=np.float32)
 
     new_data = convert_sh_basis(data, sphere,
                                 input_basis=in_sh_basis,
@@ -63,8 +64,12 @@ def main():
                                 is_output_legacy=is_out_legacy,
                                 nbr_processes=args.nbr_processes)
 
-    nib.save(nib.Nifti1Image(new_data, img.affine, header=img.header),
-             args.out_sh)
+    out_simg = StatefulImage.create_from(
+        new_data.astype(np.float32), sh_simg,
+        is_orientation=True,
+        sh_basis=out_sh_basis,
+        is_legacy=is_out_legacy)
+    out_simg.save(args.out_sh)
 
 
 if __name__ == "__main__":
