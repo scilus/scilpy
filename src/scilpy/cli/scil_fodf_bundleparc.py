@@ -12,15 +12,14 @@ with scilpy >= 3.0 (SH in world space). Any voxel order is accepted. Use
 --sh_basis to give the SH basis of the input. fODFs can be of order < 8 but
 accuracy may be reduced.
 
-Before inference, the fODF is converted to the format of the training data
-(scilpy < 3.0 fODFs from Tractoflow): voxel order LAS (stride -1,2,3,4) and
-descoteaux07_legacy basis. The output labels are saved in the voxel order of
-the input.
+Before inference, the fODF is converted to the same format as the training data
+(scilpy < 3.0 fODFs from Tractoflow): voxel order LAS (stride -1,2,3,4), SH in
+the voxel space of that grid but mirrored in x, and descoteaux07_legacy basis.
+The output labels are saved in the same voxel order as the input.
 
-**IMPORTANT**: The image is expected to be aligned with the scanner axes
-(non-oblique, e.g. after registration to a template). Predictions degrade with
-the angle between the voxel and scanner axes. Registering the image to remove
-this tilt is left to the user.
+**IMPORTANT**: The image is expected to be roughly aligned with the scanner
+axes (non-oblique). Predictions degrade with the angle between the voxel and
+scanner axes. Registering the image to remove this tilt is left to the user.
 
 Model weights will be downloaded the first time the script is run, which will
 require an internet connection at runtime. Otherwise they can be manually
@@ -52,7 +51,10 @@ To cite:
     Pierre-Marc Jodoin (2025). LabelSeg. ISMRM Workshop on 40 Years of Diffusion:
     Past, Present & Future Perspectives, Kyoto, Japan.
 
-[1]: Descoteaux, M., Deriche, R., Knösche, T. R., & Anwander, A. (2007). Deterministic and probabilistic tractography based on complex fibre orientation distributions. IEEE Transactions on Medical Imaging, 26(11), 1464-1477.
+[1]: Descoteaux, M., Deriche, R., Knösche, T. R., & Anwander, A. (2007).
+    Deterministic and probabilistic tractography based on complex fibre
+    orientation distributions.
+    IEEE Transactions on Medical Imaging, 26(11), 1464-1477.
 [2]: https://zenodo.org/records/19634429
 """  # noqa
 
@@ -73,7 +75,7 @@ from scilpy.io.utils import (
     add_overwrite_arg, add_sh_basis_args, add_verbose_arg,
     parse_sh_basis_arg)
 from scilpy.image.volume_operations import resample_volume
-from scilpy.reconst.sh import convert_sh_basis
+from scilpy.reconst.sh import convert_sh_basis, rotate_sh
 
 from scilpy.ml.bundleparc.bundles import DEFAULT_BUNDLES
 from scilpy.ml.bundleparc.labels import post_process_labels_discrete, \
@@ -181,9 +183,8 @@ def main():
     # Load the model
     model = get_model(args.checkpoint, device, {'pretrained': True})
 
-    # The model was trained on LAS fODFs. Only the voxel order changes: the
-    # SH stay in world space, which matches the training data (see the
-    # bundles_on_correct_side test).
+    # The model was trained on LAS fODFs. The voxel order changes here, the
+    # SH are moved to the frame of the training data below.
     fodf_simg = StatefulImage.load(args.in_fodf, to_orientation='LAS')
     X, Y, Z, C = fodf_simg.shape
 
@@ -199,17 +200,25 @@ def main():
                         f'Only the first {n_coefs} will be used.')
 
     # The model was trained on descoteaux07_legacy coefficients.
+    fodf_data = fodf_simg.get_fdata(dtype=np.float32)
     sh_basis, is_legacy = parse_sh_basis_arg(args)
     if sh_basis != 'descoteaux07' or not is_legacy:
-        fodf_data = fodf_simg.get_fdata(dtype=np.float32)
         fodf_data = convert_sh_basis(
             fodf_data, get_sphere(name='repulsion724').subdivide(n=1),
             mask=np.any(fodf_data, axis=-1),
             input_basis=sh_basis, output_basis='descoteaux07',
             is_input_legacy=is_legacy, is_output_legacy=True,
             nbr_processes=1)
-        fodf_simg = StatefulImage.create_from(
-            nib.Nifti1Image(fodf_data, fodf_simg.affine), fodf_simg)
+
+    # The training fODFs were fitted in the voxel space of the LAS grid, but
+    # mirrored in x. Move the SH from world space to voxel space (removes the
+    # tilt of oblique images), then mirror x, in a single rotation.
+    to_voxel = StatefulImage._get_rotation_matrix(fodf_simg.affine).T
+    fodf_data = rotate_sh(fodf_data, np.diag([-1., 1., 1.]) @ to_voxel,
+                          basis_type='descoteaux07', is_legacy=True,
+                          nbr_processes=1)
+    fodf_simg = StatefulImage.create_from(
+        nib.Nifti1Image(fodf_data, fodf_simg.affine), fodf_simg)
 
     # Resampling volume to fit the model's input at training time
     resampled_img = resample_volume(fodf_simg, ref_img=None,
