@@ -5,6 +5,7 @@ import logging
 import os
 import tempfile
 
+from dipy.io.stateful_tractogram import Space, StatefulTractogram
 from dipy.io.streamline import load_tractogram
 from dipy.io.streamline import save_tractogram as _save_tractogram
 from dipy.io.utils import is_header_compatible
@@ -111,6 +112,35 @@ def load_tractogram_with_reference(parser, args, filepath, arg_name=None):
     else:
         parser.error('{} is an unsupported file format'.format(filepath))
 
+    return sft
+
+
+def rebind_sft_to_simg(sft, simg):
+    """
+    Rebind a StatefulTractogram to a StatefulImage's (possibly reoriented,
+    e.g. via .to_ras()) voxel grid, so sft.to_vox() indexes into the same
+    array layout as simg's data.
+
+    Parameters
+    ----------
+    sft: StatefulTractogram
+        Streamlines to rebind.
+    simg: StatefulImage
+        Reference image whose current voxel grid the streamlines should be
+        expressed relative to.
+
+    Returns
+    -------
+    sft: StatefulTractogram
+        The same streamlines, now referenced to simg's voxel grid, in
+        Space.VOX / Origin.CORNER.
+    """
+    sft.to_rasmm()
+    sft = StatefulTractogram(sft.streamlines, simg, Space.RASMM,
+                             data_per_point=sft.data_per_point,
+                             data_per_streamline=sft.data_per_streamline)
+    sft.to_vox()
+    sft.to_corner()
     return sft
 
 

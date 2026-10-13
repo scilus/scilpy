@@ -14,17 +14,15 @@ any bug, please report it to our team or use --silent.
 import argparse
 import logging
 
-import nibabel as nib
-
 from dipy.data import get_sphere, SPHERE_FILES
 
+from scilpy.io.stateful_image import StatefulImage
 from scilpy.io.utils import (add_overwrite_arg,
                              add_verbose_arg,
                              assert_inputs_exist,
                              assert_outputs_exist)
 from scilpy.utils.spatial import RAS_AXES_NAMES
 from scilpy.utils.spatial import get_axis_index
-
 from scilpy.version import version_string
 from scilpy.viz.backends.fury import (create_interactive_window,
                                       create_scene,
@@ -95,7 +93,12 @@ def _get_data_from_inputs(args):
     """
     Load data given by args.
     """
-    bingham = nib.load(args.in_bingham).get_fdata()
+    bingham_simg = StatefulImage.load(args.in_bingham, is_orientation=True)
+    bingham_simg.to_ras()
+    # Convert to a plain array here. create_bingham_slicer()
+    # also rotates StatefulImage inputs, so passing a StatefulImage
+    # rotates the data two times.
+    bingham = bingham_simg.to_voxel_direction()
     if not args.slice_index:
         slice_index = bingham.shape[get_axis_index(args.axis_name)] // 2
     else:

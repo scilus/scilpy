@@ -26,10 +26,11 @@ Please use a bundle file rather than a whole tractogram.
 import argparse
 import logging
 
-import nibabel as nib
 import numpy as np
 
-from scilpy.io.streamlines import load_tractogram_with_reference
+from scilpy.io.stateful_image import StatefulImage
+from scilpy.io.streamlines import (load_tractogram_with_reference,
+                                   rebind_sft_to_simg)
 from scilpy.io.utils import (add_overwrite_arg, add_reference_arg,
                              add_verbose_arg, assert_inputs_exist,
                              assert_outputs_exist, assert_headers_compatible)
@@ -81,23 +82,34 @@ def main():
                                        args.in_bingham_metric],
                               reference=args.reference)
 
-    sft = load_tractogram_with_reference(parser, args, args.in_bundle)
-    bingham_img = nib.load(args.in_bingham)
-    metric_img = nib.load(args.in_bingham_metric)
+    # Bingham mu1/mu2 are directional: reorient the grid to RAS and convert
+    # the direction vectors from world to voxel space.
+    bingham_simg = StatefulImage.load(args.in_bingham, is_orientation=True)
+    bingham_simg.to_ras()
+    bingham_coeffs = bingham_simg.to_voxel_direction()
 
-    if bingham_img.shape[-2] != metric_img.shape[-1]:
+    # The metric map (FD/FS/FF) is scalar, just needs the matching grid.
+    metric_simg = StatefulImage.load(args.in_bingham_metric)
+    metric_simg.to_ras()
+    metric_data = metric_simg.get_fdata()
+
+    if bingham_coeffs.shape[-2] != metric_data.shape[-1]:
         parser.error('Dimension mismatch between Bingham coefficients '
                      'and Bingham metric image.')
 
+    sft = load_tractogram_with_reference(parser, args, args.in_bundle)
+    sft = rebind_sft_to_simg(sft, bingham_simg)
+
     metric_mean_map =\
         bingham_metric_map_along_streamlines(sft,
-                                             bingham_img.get_fdata(),
-                                             metric_img.get_fdata(),
+                                             bingham_coeffs,
+                                             metric_data,
                                              args.max_theta,
                                              args.length_weighting)
 
-    nib.Nifti1Image(metric_mean_map.astype(np.float32),
-                    bingham_img.affine).to_filename(args.out_mean_map)
+    StatefulImage.create_from(
+        metric_mean_map.astype(np.float32), bingham_simg).save(
+        args.out_mean_map)
 
 
 if __name__ == '__main__':

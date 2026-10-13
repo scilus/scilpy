@@ -31,6 +31,8 @@ import numpy as np
 
 from scilpy.io.hdf5 import (assert_header_compatible_hdf5,
                             reconstruct_sft_from_hdf5)
+from scilpy.io.stateful_image import StatefulImage
+from scilpy.io.streamlines import rebind_sft_to_simg
 from scilpy.io.utils import (add_overwrite_arg, add_processes_arg,
                              add_sh_basis_args, add_verbose_arg,
                              assert_inputs_exist, assert_outputs_exist,
@@ -43,7 +45,7 @@ from scilpy.version import version_string
 def _afd_rd_wrapper(args):
     in_hdf5_filename = args[0]
     key = args[1]
-    fodf_img = args[2]
+    fodf_simg = args[2]
     sh_basis = args[3]
     length_weighting = args[4]
     is_legacy = args[5]
@@ -54,7 +56,8 @@ def _afd_rd_wrapper(args):
     if len(sft) == 0:  # No streamlines in group
         return key, 0
 
-    afd_mean_map, rd_mean_map = afd_map_along_streamlines(sft, fodf_img,
+    sft = rebind_sft_to_simg(sft, fodf_simg)
+    afd_mean_map, rd_mean_map = afd_map_along_streamlines(sft, fodf_simg,
                                                           sh_basis,
                                                           length_weighting,
                                                           is_legacy=is_legacy)
@@ -102,16 +105,20 @@ def main():
     if os.path.isfile(args.out_hdf5):
         os.remove(args.out_hdf5)
 
-    fodf_img = nib.load(args.in_fodf)
+    # Header check against the hdf5's own (un-reoriented) affine/dimensions.
     with h5py.File(args.in_hdf5, 'r') as in_hdf5_file:
-        assert_header_compatible_hdf5(in_hdf5_file, fodf_img)
+        assert_header_compatible_hdf5(in_hdf5_file, nib.load(args.in_fodf))
         keys = list(in_hdf5_file.keys())
         in_hdf5_file.close()
+
+    fodf_simg = StatefulImage.load(args.in_fodf, is_orientation=True)
+    fodf_simg.to_ras()
 
     if nbr_cpu == 1:
         results_list = []
         for key in keys:
-            results_list.append(_afd_rd_wrapper([args.in_hdf5, key, fodf_img,
+            results_list.append(_afd_rd_wrapper([args.in_hdf5, key,
+                                                 fodf_simg,
                                                  sh_basis,
                                                  args.length_weighting,
                                                  is_legacy]))
@@ -121,7 +128,7 @@ def main():
         results_list = pool.map(_afd_rd_wrapper,
                                 zip(itertools.repeat(args.in_hdf5),
                                     keys,
-                                    itertools.repeat(fodf_img),
+                                    itertools.repeat(fodf_simg),
                                     itertools.repeat(sh_basis),
                                     itertools.repeat(args.length_weighting),
                                     itertools.repeat(is_legacy)))

@@ -13,20 +13,19 @@ import logging
 import os
 
 from dipy.core.gradients import gradient_table, get_bval_indices
-from dipy.io.gradients import read_bvals_bvecs
 from dipy.reconst.dti import fractional_anisotropy, TensorModel
 from fury import actor
-import nibabel as nib
 import numpy as np
 
+from scilpy.gradients.bvec_bval_tools import normalize_bvecs
+from scilpy.image.volume_operations import register_image
+from scilpy.io.stateful_image import StatefulImage
 from scilpy.io.utils import (add_overwrite_arg,
                              add_verbose_arg,
                              assert_inputs_exist,
                              assert_outputs_exist)
-from scilpy.gradients.bvec_bval_tools import normalize_bvecs
-from scilpy.image.volume_operations import register_image
-from scilpy.utils.spatial import RAS_AXES_NAMES
 from scilpy.utils.spatial import get_axis_name
+from scilpy.utils.spatial import RAS_AXES_NAMES
 from scilpy.version import version_string
 from scilpy.viz.legacy import display_slices
 
@@ -64,15 +63,27 @@ def prepare_data_for_actors(dwi_filename, bvals_filename, bvecs_filename,
                             target_template_filename, slices_choice,
                             shells=None):
     # Load and prepare the data
-    dwi_img = nib.load(dwi_filename)
-    dwi_data = dwi_img.get_fdata(dtype=np.float32)
-    dwi_affine = dwi_img.affine
+    dwi_simg = StatefulImage.load(dwi_filename)
+    dwi_simg.load_gradients(bvals_filename, bvecs_filename)
+    dwi_simg.to_ras()
 
-    bvals, bvecs = read_bvals_bvecs(bvals_filename, bvecs_filename)
+    dwi_data = dwi_simg.get_fdata(dtype=np.float32)
+    dwi_affine = dwi_simg.affine
+    bvals = dwi_simg.bvals
+    bvecs = dwi_simg.world_bvecs
 
-    target_template_img = nib.load(target_template_filename)
-    target_template_data = target_template_img.get_fdata(dtype=np.float32)
-    target_template_affine = target_template_img.affine
+    # target_template_filename can be a file path or an already-loaded
+    # StatefulImage. to_ras() is a no-op if it's already RAS, so calling it
+    # unconditionally here guards against a caller passing in an
+    # already-loaded StatefulImage that has not been reoriented yet.
+    if isinstance(target_template_filename, StatefulImage):
+        target_template_simg = target_template_filename
+    else:
+        target_template_simg = StatefulImage.load(target_template_filename)
+    target_template_simg.to_ras()
+
+    target_template_data = target_template_simg.get_fdata(dtype=np.float32)
+    target_template_affine = target_template_simg.affine
     mask_data = np.zeros(target_template_data.shape)
     mask_data[target_template_data > 0] = 1
 
@@ -170,28 +181,28 @@ def main():
     assert_outputs_exist(parser, args, output_filenames)
 
     # Get the relevant slices from the template
-    target_template_img = nib.load(args.in_template)
-    zooms = 1 / float(target_template_img.header.get_zooms()[0])
+    target_template_simg = StatefulImage.load(args.in_template)
+    target_template_simg.to_ras()
+    zooms = 1 / float(target_template_simg.header.get_zooms()[0])
 
-    x_slice = int(target_template_img.shape[0] / 2 + zooms*30)
-    y_slice = int(target_template_img.shape[1] / 2)
-    z_slice = int(target_template_img.shape[2] / 2)
+    x_slice = int(target_template_simg.shape[0] / 2 + zooms*30)
+    y_slice = int(target_template_simg.shape[1] / 2)
+    z_slice = int(target_template_simg.shape[2] / 2)
     slices_choice = (x_slice, y_slice, z_slice)
 
     FA, evals, evecs = prepare_data_for_actors(args.in_dwi, args.in_bval,
                                                args.in_bvec,
-                                               args.in_template,
+                                               target_template_simg,
                                                slices_choice,
                                                shells=args.shells)
 
     # Create actors from each dataset for Dipy
     volume_actor = actor.slicer(FA,
-                                affine=nib.load(args.in_template).affine,
+                                affine=target_template_simg.affine,
                                 opacity=0.3,
                                 interpolation='nearest')
     peaks_actor = actor.peak_slicer(evecs,
-                                    affine=nib.load(
-                                        args.in_template).affine,
+                                    affine=target_template_simg.affine,
                                     peaks_values=evals,
                                     colors=None, linewidth=1)
 
