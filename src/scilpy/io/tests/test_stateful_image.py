@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 
-import os
-import pytest
-import tempfile
 from contextlib import contextmanager
+import os
+import tempfile
 
 import nibabel as nib
 import numpy as np
+import pytest
 
 from scilpy.io.stateful_image import StatefulImage
 
@@ -254,3 +254,87 @@ def test_reorient_invalid_codes(codes, invalid_code):
         with pytest.raises(ValueError,
                            match=f"Invalid axis code '{invalid_code}' in target."):
             img.reorient(codes)
+
+
+def test_create_from_preserves_source_dtype_and_copies_header():
+    """
+    Test that create_from preserves source array dtype in header and copies
+    header without mutating the reference.
+    """
+    with create_dummy_nifti_file() as file_path:
+        ref_simg = StatefulImage.load(file_path)
+        ref_header = ref_simg.header
+        original_ref_dtype = ref_header.get_data_dtype()
+
+        # Create source with different dtype (uint8 vs float32)
+        source_data = np.ones((10, 10, 10), dtype=np.uint8)
+        new_simg = StatefulImage.create_from(source_data, ref_simg)
+
+        # Header of new image should match source dtype
+        assert new_simg.header.get_data_dtype() == np.uint8
+        assert new_simg.dataobj.dtype == np.uint8
+        # Header must be a distinct copy, not mutated in-place
+        assert ref_header.get_data_dtype() == original_ref_dtype
+        assert new_simg.header is not ref_header
+
+
+def test_load_preserves_extra_and_file_map(monkeypatch):
+    """
+    Test that StatefulImage.load preserves extra and file_map from the loaded
+    NIfTI image.
+    """
+    with tempfile.TemporaryDirectory() as tmpdir:
+        shape = (10, 10, 10)
+        affine = np.eye(4)
+        data = np.ones(shape, dtype=np.float32)
+        img = nib.Nifti1Image(data, affine)
+
+        file_path = os.path.join(tmpdir, "test_extra.nii.gz")
+        nib.save(img, file_path)
+
+        orig_nib_load = nib.load
+
+        def mock_load(fname):
+            loaded = orig_nib_load(fname)
+            loaded.extra['custom_key'] = 'custom_val'
+            return loaded
+
+        monkeypatch.setattr(nib, 'load', mock_load)
+
+        loaded_simg = StatefulImage.load(file_path)
+        assert loaded_simg.extra.get('custom_key') == 'custom_val'
+        assert 'image' in loaded_simg.file_map
+
+
+def test_load_preserves_extra_and_file_map_when_reoriented(monkeypatch):
+    """
+    Same as test_load_preserves_extra_and_file_map, but with a non-RAS
+    input so an actual reorientation happens: as_reoriented() drops extra/
+    file_map on its result, so this only passes if load() reads them from
+    the original (pre-reorientation) image.
+    """
+    with tempfile.TemporaryDirectory() as tmpdir:
+        shape = (10, 10, 10)
+        affine = np.diag([-1, 1, 1, 1]).astype(np.float32)  # LAS, not RAS
+        data = np.ones(shape, dtype=np.float32)
+        img = nib.Nifti1Image(data, affine)
+
+        file_path = os.path.join(tmpdir, "test_extra_reoriented.nii.gz")
+        nib.save(img, file_path)
+
+        orig_nib_load = nib.load
+
+        def mock_load(fname):
+            loaded = orig_nib_load(fname)
+            loaded.extra['custom_key'] = 'custom_val'
+            return loaded
+
+        # extra is in-memory-only (never written to the NIfTI file itself),
+        # so intercept nib.load() to inject it before StatefulImage.load()
+        # runs its reorientation logic.
+        monkeypatch.setattr(nib, 'load', mock_load)
+
+        loaded_simg = StatefulImage.load(file_path)
+        assert loaded_simg.axcodes[:3] == ('R', 'A', 'S')
+        assert loaded_simg.extra.get('custom_key') == 'custom_val'
+        assert 'image' in loaded_simg.file_map

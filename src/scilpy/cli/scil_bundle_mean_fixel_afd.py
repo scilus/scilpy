@@ -22,10 +22,11 @@ Reference:
 import argparse
 import logging
 
-import nibabel as nib
 import numpy as np
 
-from scilpy.io.streamlines import load_tractogram_with_reference
+from scilpy.io.stateful_image import StatefulImage
+from scilpy.io.streamlines import (load_tractogram_with_reference,
+                                   rebind_sft_to_simg)
 from scilpy.io.utils import (add_overwrite_arg, add_sh_basis_args,
                              add_reference_arg, add_verbose_arg,
                              assert_inputs_exist, assert_outputs_exist,
@@ -69,20 +70,23 @@ def main():
     assert_headers_compatible(parser, [args.in_bundle, args.in_fodf],
                               reference=args.reference)
 
+    fodf_simg = StatefulImage.load(args.in_fodf, is_orientation=True)
+    fodf_simg.to_ras()
+
     sft = load_tractogram_with_reference(parser, args, args.in_bundle)
-    fodf_img = nib.load(args.in_fodf)
+    sft = rebind_sft_to_simg(sft, fodf_simg)
 
     sh_basis, is_legacy = parse_sh_basis_arg(args)
 
     afd_mean_map, rd_mean_map = afd_map_along_streamlines(
                                                 sft,
-                                                fodf_img,
+                                                fodf_simg,
                                                 sh_basis,
                                                 args.length_weighting,
                                                 is_legacy=is_legacy)
 
-    nib.Nifti1Image(afd_mean_map.astype(np.float32),
-                    fodf_img.affine).to_filename(args.afd_mean_map)
+    StatefulImage.create_from(
+        afd_mean_map.astype(np.float32), fodf_simg).save(args.afd_mean_map)
 
 
 if __name__ == '__main__':

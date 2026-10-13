@@ -30,15 +30,14 @@ References:
 ------------------------------------------------------------------------------
 """
 
-# TODO: Migrate to StatefulImage once Bingham/fixel support is finalized
-# (split_branch_d_stateful_bingham_fixel).
-
-import nibabel as nib
 import time
 import argparse
 import logging
 
+import numpy as np
+
 from scilpy.io.image import get_data_as_mask
+from scilpy.io.stateful_image import StatefulImage
 from scilpy.io.utils import (add_overwrite_arg, add_processes_arg,
                              add_verbose_arg, assert_inputs_exist,
                              assert_outputs_exist, validate_nbr_processes,
@@ -101,10 +100,13 @@ def main():
     assert_outputs_exist(parser, args, [], optional=outputs)
     assert_headers_compatible(parser, args.in_bingham, args.mask)
 
-    bingham_im = nib.load(args.in_bingham)
-    bingham = bingham_im.get_fdata()
-    mask = get_data_as_mask(nib.load(args.mask),
-                            dtype=bool) if args.mask else None
+    bingham_simg = StatefulImage.load(args.in_bingham, is_orientation=True)
+    bingham = bingham_simg.get_fdata(dtype=np.float32)
+    mask = None
+    if args.mask:
+        mask_simg = StatefulImage.load(args.mask)
+        mask_simg.reorient(bingham_simg.axcodes)
+        mask = get_data_as_mask(mask_simg, dtype=bool)
 
     nbr_processes = validate_nbr_processes(parser, args)
 
@@ -115,7 +117,9 @@ def main():
     t1 = time.perf_counter()
     logging.info('FD computed in (s): {0}'.format(t1 - t0))
     if args.out_fd:
-        nib.save(nib.Nifti1Image(fd, bingham_im.affine), args.out_fd)
+        StatefulImage.create_from(
+            fd.astype(np.float32), bingham_simg,
+            is_orientation=False).save(args.out_fd)
 
     if args.out_fs:
         t0 = time.perf_counter()
@@ -123,15 +127,19 @@ def main():
         fs = compute_fiber_spread(bingham, fd)
         t1 = time.perf_counter()
         logging.info('FS computed in (s): {0}'.format(t1 - t0))
-        nib.save(nib.Nifti1Image(fs, bingham_im.affine), args.out_fs)
+        StatefulImage.create_from(
+            fs.astype(np.float32), bingham_simg,
+            is_orientation=False).save(args.out_fs)
 
     if args.out_ff:
         t0 = time.perf_counter()
         logging.info('Computing fiber fraction.')
         ff = compute_fiber_fraction(fd)
         t1 = time.perf_counter()
-        logging.info('FS computed in (s): {0}'.format(t1 - t0))
-        nib.save(nib.Nifti1Image(ff, bingham_im.affine), args.out_ff)
+        logging.info('FF computed in (s): {0}'.format(t1 - t0))
+        StatefulImage.create_from(
+            ff.astype(np.float32), bingham_simg,
+            is_orientation=False).save(args.out_ff)
 
 
 if __name__ == '__main__':
