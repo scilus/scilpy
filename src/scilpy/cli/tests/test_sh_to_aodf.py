@@ -134,14 +134,19 @@ def test_non_ras_sh_to_aodf(script_runner, monkeypatch):
 
     in_fodf = os.path.join(test_data_root, 'fodf_descoteaux07_sub.nii.gz')
     img = nib.load(in_fodf)
-    # Use a small crop for fast execution
-    data_crop = img.get_fdata(dtype=np.float32)[:7, :7, :7]
-    aff_ras = img.affine.copy()
+    # Use a small crop in the middle of the volume for fast execution
+    size = 7
+    start = [s // 2 - size // 2 for s in img.shape[:3]]
+    img_crop = img.slicer[start[0]:start[0] + size,
+                          start[1]:start[1] + size,
+                          start[2]:start[2] + size]
+    data_crop = img_crop.get_fdata(dtype=np.float32)
+    aff_ras = img_crop.affine.copy()
     nib.save(nib.Nifti1Image(data_crop, aff_ras), 'sh_ras.nii.gz')
 
     aff_las = aff_ras.copy()
     aff_las[0, 0] = -aff_las[0, 0]
-    aff_las[0, 3] = aff_las[0, 3] + (data_crop.shape[0] - 1) * 2.5
+    aff_las[0, 3] = aff_las[0, 3] + (data_crop.shape[0] - 1) * aff_ras[0, 0]
     data_las = data_crop[::-1].copy()
     nib.save(nib.Nifti1Image(data_las, aff_las), 'sh_las.nii.gz')
 
