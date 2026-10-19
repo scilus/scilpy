@@ -44,10 +44,8 @@ def divide_nonzero(nd_array1, nd_array2, new_val=1e-10):
     ----------
     nd_array1: numpy.ndarray
         dividend array
-
     nd_array2: numpy.ndarray
         divisor array
-
     new_val: float
         substituted value
 
@@ -75,10 +73,8 @@ def analyze_hessian_eigen(img, sigma, trunc=4,
     ----------
     img: numpy.ndarray (axis order=(Z,Y,X))
         3D microscopy image
-
     sigma: int
         spatial scale [px]
-
     trunc: int
         truncate the Gaussian smoothing kernel at this many standard deviations
 
@@ -86,7 +82,6 @@ def analyze_hessian_eigen(img, sigma, trunc=4,
     -------
     eigval: numpy.ndarray (axis order=(Z,Y,X,C), dtype=float)
         Hessian eigenvalues sorted by absolute value (ascending order)
-
     dom_eigvec: numpy.ndarray (axis order=(Z,Y,X,C), dtype=float)
         Hessian eigenvectors related to the dominant (minimum) eigenvalue
     """
@@ -111,7 +106,6 @@ def compute_dominant_eigen(hessian):
     -------
     srt_eigval: numpy.ndarray (axis order=(Z,Y,X,C), dtype=float)
         Hessian eigenvalues sorted by absolute value (ascending order)
-
     dom_eigvec: numpy.ndarray (axis order=(Z,Y,X,C), dtype=float)
         Hessian eigenvectors related to the dominant (minimum) eigenvalue
     """
@@ -130,13 +124,10 @@ def compute_frangi_features(eigen1, eigen2, eigen3, gamma):
     ----------
     eigen1: numpy.ndarray (axis order=(Z,Y,X), dtype=float)
         lowest Hessian eigenvalue (i.e., the dominant eigenvalue)
-
     eigen2: numpy.ndarray (axis order=(Z,Y,X), dtype=float)
         middle Hessian eigenvalue
-
     eigen3: numpy.ndarray (axis order=(Z,Y,X), dtype=float)
         highest Hessian eigenvalue
-
     gamma: float
         background score sensitivity
 
@@ -144,13 +135,10 @@ def compute_frangi_features(eigen1, eigen2, eigen3, gamma):
     -------
     ra: numpy.ndarray (axis order=(Z,Y,X), dtype=float)
         plate-like object score
-
     rb: numpy.ndarray (axis order=(Z,Y,X), dtype=float)
         blob-like object score
-
     s: numpy.ndarray (axis order=(Z,Y,X), dtype=float)
        second-order structureness
-
     gamma: float
         background score sensitivity
         (automatically computed if not provided as input)
@@ -176,16 +164,12 @@ def compute_scaled_hessian(img, sigma=1, trunc=4, padding_mode='reflect', paddin
     ----------
     img: numpy.ndarray (axis order=(Z,Y,X))
         3D microscopy image
-
     sigma: int
         spatial scale [px]
-
     trunc: int
         truncate the Gaussian smoothing kernel at this many standard deviations
-
     padding_mode: str
         mode for padding the image
-
     padding_cval: float
         constant value for padding
 
@@ -250,19 +234,14 @@ def compute_scaled_vesselness(eigen1, eigen2, eigen3, alpha, beta, gamma):
     ----------
     eigen1: numpy.ndarray (axis order=(Z,Y,X), dtype=float)
         lowest Hessian eigenvalue (i.e., the dominant eigenvalue)
-
     eigen2: numpy.ndarray (axis order=(Z,Y,X), dtype=float)
         middle Hessian eigenvalue
-
     eigen3: numpy.ndarray (axis order=(Z,Y,X), dtype=float)
         highest Hessian eigenvalue
-
     alpha: float
         plate-like score sensitivity
-
     beta: float
         blob-like score sensitivity
-
     gamma: float
         background score sensitivity
 
@@ -343,8 +322,6 @@ def frangi_filter(img, scales_px=1, *, alpha=0.001, beta=1.0, gamma=None,
         blob-like score sensitivity
     gamma: float
         background score sensitivity (if None, gamma is automatically tailored)
-    mask_eigen: str = None
-        whether to mask positive eigenvalues for vesselness measure
     padding_mode: str
         mode for padding the image
     padding_cval: float
