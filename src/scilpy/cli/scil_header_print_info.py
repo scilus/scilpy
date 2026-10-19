@@ -6,6 +6,10 @@ Supports trk, nii and mgz files.
 
 By default, a simple summary view is shown. Use --all for a more complete
 display.
+
+See also:
+    scil_volume_stats
+    scil_tractogram_print_info
 """
 
 import argparse
