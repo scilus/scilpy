@@ -127,6 +127,9 @@ def main():
             'Structure tensor method only supports a single scale. Please provide a single value for --sigma.')
 
     in_im = nib.load(args.in_image)
+    if in_im.ndim != 3:
+        parser.error(f'Invalid number of dimensions. Expected 3, got {in_im.ndim}.')
+
     in_data = in_im.get_fdata().astype(np.float32)
 
     if args.method == 'frangi':

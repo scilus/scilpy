@@ -80,3 +80,21 @@ def test_frangi(script_runner, monkeypatch):
     assert np.allclose(probability.affine, in_data.affine)
     assert np.isfinite(direction.get_fdata()).all()
     assert np.isfinite(probability.get_fdata()).all()
+
+
+def test_parser_error_4d_input(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
+    in_image_4d = 'image_4d.nii.gz'
+
+    in_image = nib.load(in_img)
+    nib.save(nib.Nifti1Image(in_image.get_fdata()[..., None], in_image.affine), in_image_4d)
+
+    out_direction = 'direction_frangi_3.nii.gz'
+    out_probability = 'probability_frangi_3.nii.gz'
+    ret = script_runner.run([
+        'scil_volume_local_orientation',
+        in_image_4d, out_direction, out_probability,
+        '--sigma', '1.0', '2.0'])
+
+    # should raise a parser.error
+    assert not ret.success
