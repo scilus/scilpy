@@ -10,14 +10,14 @@ e.g. FA of tensor D_1 will be in index 0 of the 4th dimension,
      FA of tensor D_3 will be in index 2 of the 4th dimension.
 """
 
-import logging
-import numpy as np
-import nibabel as nib
 import argparse
+import logging
 
+import numpy as np
 from dipy.reconst.dti import fractional_anisotropy
 
 from scilpy.io.image import get_data_as_mask
+from scilpy.io.stateful_image import StatefulImage
 from scilpy.io.utils import (add_overwrite_arg,
                              add_verbose_arg,
                              assert_inputs_exist, assert_outputs_exist,
@@ -80,17 +80,16 @@ def main():
     assert_outputs_exist(parser, args, [],
                          optional=[args.fa, args.ad, args.rd, args.md])
 
-    evals_img = nib.load(args.in_evals)
-    lambdas = evals_img.get_fdata(dtype=np.float32)
-
-    header = evals_img.header
-    affine = evals_img.affine
+    evals_simg = StatefulImage.load(args.in_evals)
+    lambdas = evals_simg.get_fdata(dtype=np.float32)
 
     X, Y, Z = lambdas.shape[0:3]
 
     # load mask
     if args.mask:
-        mask = get_data_as_mask(nib.load(args.mask))
+        mask_simg = StatefulImage.load(args.mask)
+        mask_simg.reorient(evals_simg.axcodes)
+        mask = get_data_as_mask(mask_simg)
     else:
         mask = np.ones((X, Y, Z), dtype=np.uint8)
 
@@ -104,44 +103,36 @@ def main():
                        fractional_anisotropy(lambdas[:, :, :, 3:6]),
                        fractional_anisotropy(lambdas[:, :, :, 6:9])),
                       axis=3)
-        nib.save(nib.Nifti1Image(fa * mask[..., None],
-                                 affine=affine,
-                                 header=header,
-                                 dtype=np.float32),
-                 args.fa)
+        StatefulImage.create_from(
+            (fa * mask[..., None]).astype(np.float32),
+            evals_simg, is_orientation=False).save(args.fa)
 
     if args.ad:
         ad = np.stack((lambdas[:, :, :, 0],
                        lambdas[:, :, :, 3],
                        lambdas[:, :, :, 6]),
                       axis=3)
-        nib.save(nib.Nifti1Image(ad * mask[..., None],
-                                 affine=affine,
-                                 header=header,
-                                 dtype=np.float32),
-                 args.ad)
+        StatefulImage.create_from(
+            (ad * mask[..., None]).astype(np.float32),
+            evals_simg, is_orientation=False).save(args.ad)
 
     if args.rd:
         rd = np.stack(((lambdas[:, :, :, 1] + lambdas[:, :, :, 2])/2,
                        (lambdas[:, :, :, 4] + lambdas[:, :, :, 5])/2,
                        (lambdas[:, :, :, 7] + lambdas[:, :, :, 8])/2),
                       axis=3)
-        nib.save(nib.Nifti1Image(rd * mask[..., None],
-                                 affine=affine,
-                                 header=header,
-                                 dtype=np.float32),
-                 args.rd)
+        StatefulImage.create_from(
+            (rd * mask[..., None]).astype(np.float32),
+            evals_simg, is_orientation=False).save(args.rd)
 
     if args.md:
         md = np.stack((np.average(lambdas[:, :, :, 0:3], axis=3),
                        np.average(lambdas[:, :, :, 3:6], axis=3),
                        np.average(lambdas[:, :, :, 6:9], axis=3)),
                       axis=3)
-        nib.save(nib.Nifti1Image(md * mask[..., None],
-                                 affine=affine,
-                                 header=header,
-                                 dtype=np.float32),
-                 args.md)
+        StatefulImage.create_from(
+            (md * mask[..., None]).astype(np.float32),
+            evals_simg, is_orientation=False).save(args.md)
 
 
 if __name__ == '__main__':

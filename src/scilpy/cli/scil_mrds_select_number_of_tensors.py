@@ -31,11 +31,11 @@ import argparse
 import itertools
 import logging
 
-import nibabel as nib
 import numpy as np
 
 from scilpy.image.labels import get_data_as_labels
 from scilpy.io.image import get_data_as_mask
+from scilpy.io.stateful_image import StatefulImage
 from scilpy.io.utils import (add_overwrite_arg, add_processes_arg,
                              add_sh_basis_args, add_verbose_arg,
                              assert_headers_compatible,
@@ -89,29 +89,43 @@ def main():
     assert_outputs_exist(parser, args, output_files)
     assert_headers_compatible(parser, [args.in_volume] + [x for xs in mrds_files for x in xs])
 
+    # MOdel SElector MAP
+    mosemap_simg = StatefulImage.load(args.in_volume)
+    mosemap = get_data_as_labels(mosemap_simg)
+    X, Y, Z = mosemap.shape[0:3]
+
     signal_fraction = []
     evals = []
     iso = []
     num_tensors = []
     evecs = []
     for N in range(3):
-        signal_fraction.append(nib.load(mrds_files[N][0]).get_fdata(dtype=np.float32))
-        evals.append(nib.load(mrds_files[N][1]).get_fdata(dtype=np.float32))
-        iso.append(nib.load(mrds_files[N][2]).get_fdata(dtype=np.float32))
-        num_tensors.append(nib.load(mrds_files[N][3]).get_fdata(dtype=np.float32))
-        evecs.append(nib.load(mrds_files[N][4]).get_fdata(dtype=np.float32))
+        sf_simg = StatefulImage.load(mrds_files[N][0])
+        sf_simg.reorient(mosemap_simg.axcodes)
+        signal_fraction.append(sf_simg.get_fdata(dtype=np.float32))
 
-    # MOdel SElector MAP
-    mosemap_img = nib.load(args.in_volume)
-    mosemap = get_data_as_labels(mosemap_img)
-    header = mosemap_img.header
+        evals_simg = StatefulImage.load(mrds_files[N][1])
+        evals_simg.reorient(mosemap_simg.axcodes)
+        evals.append(evals_simg.get_fdata(dtype=np.float32))
 
-    affine = mosemap_img.affine
-    X, Y, Z = mosemap.shape[0:3]
+        iso_simg = StatefulImage.load(mrds_files[N][2])
+        iso_simg.reorient(mosemap_simg.axcodes)
+        iso.append(iso_simg.get_fdata(dtype=np.float32))
+
+        num_tensors_simg = StatefulImage.load(mrds_files[N][3])
+        num_tensors_simg.reorient(mosemap_simg.axcodes)
+        num_tensors.append(num_tensors_simg.get_fdata(dtype=np.float32))
+
+        # evecs are stored in world space. A plain grid reslice does not change their values.
+        evecs_simg = StatefulImage.load(mrds_files[N][4])
+        evecs_simg.reorient(mosemap_simg.axcodes)
+        evecs.append(evecs_simg.get_fdata(dtype=np.float32))
 
     # load mask
     if args.mask:
-        mask = get_data_as_mask(nib.load(args.mask), dtype=bool)
+        mask_simg = StatefulImage.load(args.mask)
+        mask_simg.reorient(mosemap_simg.axcodes)
+        mask = get_data_as_mask(mask_simg, dtype=bool)
     else:
         mask = np.ones((X, Y, Z), dtype=np.uint8)
 
@@ -141,26 +155,22 @@ def main():
             evecs_out[X, Y, Z, :] = evecs[N][X, Y, Z, :]
 
     # write output files
-    nib.save(nib.Nifti1Image(signal_fraction_out,
-                             affine=affine,
-                             header=header,
-                             dtype=np.float32), output_files[0])
-    nib.save(nib.Nifti1Image(evals_out,
-                             affine=affine,
-                             header=header,
-                             dtype=np.float32), output_files[1])
-    nib.save(nib.Nifti1Image(iso_out,
-                             affine=affine,
-                             header=header,
-                             dtype=np.float32), output_files[2])
-    nib.save(nib.Nifti1Image(num_tensors_out,
-                             affine=affine,
-                             header=header,
-                             dtype=np.uint8), output_files[3])
-    nib.save(nib.Nifti1Image(evecs_out,
-                             affine=affine,
-                             header=header,
-                             dtype=np.float32), output_files[4])
+    # evecs are in world space. No direction rotation is required on save.
+    StatefulImage.create_from(
+        signal_fraction_out.astype(np.float32), mosemap_simg,
+        is_orientation=False).save(output_files[0])
+    StatefulImage.create_from(
+        evals_out.astype(np.float32), mosemap_simg,
+        is_orientation=False).save(output_files[1])
+    StatefulImage.create_from(
+        iso_out.astype(np.float32), mosemap_simg,
+        is_orientation=False).save(output_files[2])
+    StatefulImage.create_from(
+        num_tensors_out.astype(np.uint8), mosemap_simg,
+        is_orientation=False).save(output_files[3])
+    StatefulImage.create_from(
+        evecs_out.astype(np.float32), mosemap_simg,
+        is_orientation=False).save(output_files[4])
 
 
 if __name__ == '__main__':
