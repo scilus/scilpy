@@ -83,3 +83,36 @@ def test_execution_background_warning(script_runner, monkeypatch):
                             '--background_label', '1', '-f'])
     assert ret.success
     assert ret.stderr  # Check if there is a warning message
+
+
+def test_execution_watershed(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
+    in_mask = os.path.join(SCILPY_HOME, 'tractograms',
+                           'streamline_and_mask_operations',
+                           'bundle_4_head_tail_offset.nii.gz')
+    ret = script_runner.run(['scil_labels_from_mask',
+                             in_mask, 'labels_from_mask.nii.gz',
+                             '--watershed', '-f'])
+    assert ret.success
+
+
+def test_execution_watershed_min_distance(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
+    in_mask = os.path.join(SCILPY_HOME, 'tractograms',
+                           'streamline_and_mask_operations',
+                           'bundle_4_head_tail_offset.nii.gz')
+    ret = script_runner.run(['scil_labels_from_mask',
+                             in_mask, 'labels_from_mask.nii.gz',
+                             '--watershed', '3', '-f'])
+    assert ret.success
+
+
+def test_execution_min_volume(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
+    in_mask = os.path.join(SCILPY_HOME, 'tractograms',
+                           'streamline_and_mask_operations',
+                           'bundle_4_head_tail_offset.nii.gz')
+    ret = script_runner.run(['scil_labels_from_mask',
+                             in_mask, 'labels_from_mask.nii.gz',
+                             '--min_volume', '1000', '-f'])
+    assert ret.success
