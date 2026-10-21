@@ -45,9 +45,9 @@ import nibabel as nib
 import numpy as np
 
 from scilpy.dwi.utils import extract_dwi_shell
-from scilpy.image.utils import extract_affine
 from scilpy.io.btensor import generate_btensor_input
 from scilpy.io.image import get_data_as_mask
+from scilpy.io.stateful_image import StatefulImage
 from scilpy.io.utils import (add_overwrite_arg, add_precision_arg,
                              add_verbose_arg,
                              assert_inputs_exist, assert_outputs_exist,
@@ -194,7 +194,8 @@ def main():
               same. Please verify that all inputs were correctly inserted."""
         raise ValueError(msg)
 
-    affine = extract_affine(args.in_dwis)
+    ref_simg = StatefulImage.load(args.in_dwis[0])
+    ref_simg.to_ras()
 
     roi_radii = assert_roi_radii_format(parser)
 
@@ -215,7 +216,7 @@ def main():
             dti_ubvals = ubvals[ubdeltas == args.in_bdelta_custom]
         else:
             raise ValueError("No encoding available for DTI.")
-        vol = nib.Nifti1Image(data, affine)
+        vol = nib.Nifti1Image(data, ref_simg.affine)
         bvals_to_extract = dti_ubvals[dti_ubvals <= args.dti_bval_limit]
         indices_dti, data_dti, bvals_dti, bvecs_dti = \
             extract_dwi_shell(vol, gtab.bvals, gtab.bvecs,
@@ -229,14 +230,29 @@ def main():
         bvecs_dti = None
         btens_dti = None
 
-    mask = get_data_as_mask(nib.load(args.mask),
-                            dtype=bool) if args.mask else None
-    mask_wm = get_data_as_mask(nib.load(args.mask_wm),
-                               dtype=bool) if args.mask_wm else None
-    mask_gm = get_data_as_mask(nib.load(args.mask_gm),
-                               dtype=bool) if args.mask_gm else None
-    mask_csf = get_data_as_mask(nib.load(args.mask_csf),
-                                dtype=bool) if args.mask_csf else None
+    mask = None
+    if args.mask:
+        mask_simg = StatefulImage.load(args.mask)
+        mask_simg.reorient(ref_simg.axcodes)
+        mask = get_data_as_mask(mask_simg, dtype=bool)
+
+    mask_wm = None
+    if args.mask_wm:
+        mask_wm_simg = StatefulImage.load(args.mask_wm)
+        mask_wm_simg.reorient(ref_simg.axcodes)
+        mask_wm = get_data_as_mask(mask_wm_simg, dtype=bool)
+
+    mask_gm = None
+    if args.mask_gm:
+        mask_gm_simg = StatefulImage.load(args.mask_gm)
+        mask_gm_simg.reorient(ref_simg.axcodes)
+        mask_gm = get_data_as_mask(mask_gm_simg, dtype=bool)
+
+    mask_csf = None
+    if args.mask_csf:
+        mask_csf_simg = StatefulImage.load(args.mask_csf)
+        mask_csf_simg.reorient(ref_simg.axcodes)
+        mask_csf = get_data_as_mask(mask_csf_simg, dtype=bool)
 
     responses, frf_masks = compute_msmt_frf(data, gtab.bvals, gtab.bvecs,
                                             btens=gtab.btens,
@@ -257,10 +273,11 @@ def main():
                                             tol=0)
 
     masks_files = [args.wm_frf_mask, args.gm_frf_mask, args.csf_frf_mask]
-    for mask, mask_file in zip(frf_masks, masks_files):
+    for frf_mask, mask_file in zip(frf_masks, masks_files):
         if mask_file:
-            nib.save(nib.Nifti1Image(mask.astype(np.uint8), vol.affine),
-                     mask_file)
+            res_simg = StatefulImage.create_from(frf_mask.astype(np.uint8),
+                                                 ref_simg)
+            res_simg.save(mask_file)
 
     frf_out = [args.out_wm_frf, args.out_gm_frf, args.out_csf_frf]
 

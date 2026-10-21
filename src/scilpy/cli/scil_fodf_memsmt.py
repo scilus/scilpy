@@ -42,13 +42,12 @@ import logging
 
 from dipy.data import get_sphere
 from dipy.reconst.mcsd import MultiShellDeconvModel, multi_shell_fiber_response
-import nibabel as nib
 import numpy as np
 
-from scilpy.image.utils import extract_affine
 from scilpy.io.btensor import (generate_btensor_input,
                                convert_bdelta_to_bshape)
 from scilpy.io.image import get_data_as_mask
+from scilpy.io.stateful_image import StatefulImage
 from scilpy.io.utils import (add_overwrite_arg, add_processes_arg,
                              add_sh_basis_args, add_skip_b0_check_arg,
                              add_tolerance_arg, add_verbose_arg,
@@ -161,7 +160,8 @@ def main():
                      "correctly inserted.")
 
     # Loading data
-    affine = extract_affine(args.in_dwis)
+    ref_simg = StatefulImage.load(args.in_dwis[0])
+    ref_simg.to_ras()
 
     wm_frf = np.loadtxt(args.in_wm_frf)
     gm_frf = np.loadtxt(args.in_gm_frf)
@@ -176,8 +176,11 @@ def main():
         tol=args.tolerance, skip_b0_check=args.skip_b0_check)
 
     # Checking mask
-    mask = get_data_as_mask(nib.load(args.mask),
-                            dtype=bool) if args.mask else None
+    mask = None
+    if args.mask:
+        mask_simg = StatefulImage.load(args.mask)
+        mask_simg.reorient(ref_simg.axcodes)
+        mask = get_data_as_mask(mask_simg, dtype=bool)
 
     # Checking data and sh_order
     verify_data_vs_sh_order(data, args.sh_order, gtab=gtab)
@@ -226,8 +229,9 @@ def main():
                                     is_input_legacy=True,
                                     is_output_legacy=is_legacy,
                                     nbr_processes=args.nbr_processes)
-        nib.save(nib.Nifti1Image(wm_coeff.astype(np.float32),
-                                 affine), args.wm_out_fODF)
+        res_simg = StatefulImage.create_from(wm_coeff.astype(np.float32),
+                                             ref_simg)
+        res_simg.save(args.wm_out_fODF)
 
     if args.gm_out_fODF:
         gm_coeff = shm_coeff[..., 1]
@@ -238,8 +242,9 @@ def main():
                                     is_input_legacy=True,
                                     is_output_legacy=is_legacy,
                                     nbr_processes=args.nbr_processes)
-        nib.save(nib.Nifti1Image(gm_coeff.astype(np.float32),
-                                 affine), args.gm_out_fODF)
+        res_simg = StatefulImage.create_from(gm_coeff.astype(np.float32),
+                                             ref_simg)
+        res_simg.save(args.gm_out_fODF)
 
     if args.csf_out_fODF:
         csf_coeff = shm_coeff[..., 0]
@@ -250,17 +255,19 @@ def main():
                                      is_input_legacy=True,
                                      is_output_legacy=is_legacy,
                                      nbr_processes=args.nbr_processes)
-        nib.save(nib.Nifti1Image(csf_coeff.astype(np.float32),
-                                 affine), args.csf_out_fODF)
+        res_simg = StatefulImage.create_from(csf_coeff.astype(np.float32),
+                                             ref_simg)
+        res_simg.save(args.csf_out_fODF)
 
     if args.vf:
-        nib.save(nib.Nifti1Image(vf.astype(np.float32), affine), args.vf)
+        res_simg = StatefulImage.create_from(vf.astype(np.float32), ref_simg)
+        res_simg.save(args.vf)
 
     if args.vf_rgb:
         vf_rgb = vf / np.max(vf) * 255
         vf_rgb = np.clip(vf_rgb, 0, 255)
-        nib.save(nib.Nifti1Image(vf_rgb.astype(np.uint8),
-                                 affine), args.vf_rgb)
+        res_simg = StatefulImage.create_from(vf_rgb.astype(np.uint8), ref_simg)
+        res_simg.save(args.vf_rgb)
 
 
 if __name__ == "__main__":
