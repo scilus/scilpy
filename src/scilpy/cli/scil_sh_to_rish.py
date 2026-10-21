@@ -24,10 +24,10 @@ import argparse
 import logging
 
 from dipy.reconst.shm import order_from_ncoef, sph_harm_ind_list
-import nibabel as nib
 import numpy as np
 
 from scilpy.io.image import get_data_as_mask
+from scilpy.io.stateful_image import StatefulImage
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              assert_outputs_exist, add_verbose_arg,
                              assert_headers_compatible)
@@ -68,10 +68,13 @@ def main():
     assert_headers_compatible(parser, args.in_sh, optional=args.mask)
 
     # Load data
-    sh_img = nib.load(args.in_sh)
-    sh = sh_img.get_fdata(dtype=np.float32)
-    mask = get_data_as_mask(nib.load(args.mask),
-                            dtype=bool) if args.mask else None
+    sh_simg = StatefulImage.load(args.in_sh, is_orientation=True)
+    sh = sh_simg.get_fdata(dtype=np.float32)
+    mask = None
+    if args.mask:
+        mask_simg = StatefulImage.load(args.mask)
+        mask_simg.reorient(sh_simg.axcodes)
+        mask = get_data_as_mask(mask_simg, dtype=bool)
 
     # Precompute output filenames to check if they exist
     sh_order = order_from_ncoef(sh.shape[-1], full_basis=args.full_basis)
@@ -89,7 +92,9 @@ def main():
     # Save each RISH feature as a separate file
     for i, fname in enumerate(output_fnames):
         logging.info("Saving {}".format(fname))
-        nib.save(nib.Nifti1Image(rish[..., i], sh_img.affine), fname)
+        StatefulImage.create_from(
+            rish[..., i].astype(np.float32), sh_simg,
+            is_orientation=False).save(fname)
 
 
 if __name__ == '__main__':

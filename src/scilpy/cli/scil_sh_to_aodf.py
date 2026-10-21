@@ -28,8 +28,10 @@ References:
 import argparse
 import logging
 import time
-import nibabel as nib
+
 import numpy as np
+
+from scilpy.io.stateful_image import StatefulImage
 
 from dipy.data import SPHERE_FILES
 from dipy.reconst.shm import sph_harm_ind_list
@@ -137,11 +139,11 @@ def main():
     assert_inputs_exist(parser, args.in_sh)
 
     # Prepare data
-    sh_img = nib.load(args.in_sh)
-    data = sh_img.get_fdata(dtype=np.float32)
-
-    sh_order, full_basis = get_sh_order_and_fullness(data.shape[-1])
     sh_basis, is_legacy = parse_sh_basis_arg(args)
+    sh_simg = StatefulImage.load(args.in_sh, is_orientation=True,
+                                 sh_basis=sh_basis, is_legacy=is_legacy)
+    data = sh_simg.get_fdata(dtype=np.float32)
+    sh_order, full_basis = get_sh_order_and_fullness(data.shape[-1])
 
     t0 = time.perf_counter()
     logging.info('Filtering SH image.')
@@ -176,13 +178,17 @@ def main():
     logging.info('Elapsed time (s): {0}'.format(t1 - t0))
 
     logging.info('Saving filtered SH to file {0}.'.format(args.out_sh))
-    nib.save(nib.Nifti1Image(asym_sh, sh_img.affine), args.out_sh)
+    StatefulImage.create_from(
+        asym_sh.astype(np.float32), sh_simg,
+        is_orientation=True).save(args.out_sh)
 
     if args.out_sym:
         _, orders = sph_harm_ind_list(sh_order, full_basis=True)
         logging.info('Saving symmetric SH to file {0}.'.format(args.out_sym))
-        nib.save(nib.Nifti1Image(asym_sh[..., orders % 2 == 0], sh_img.affine),
-                 args.out_sym)
+        sym_sh = asym_sh[..., orders % 2 == 0].astype(np.float32)
+        StatefulImage.create_from(
+            sym_sh, sh_simg,
+            is_orientation=True).save(args.out_sym)
 
 
 if __name__ == '__main__':
