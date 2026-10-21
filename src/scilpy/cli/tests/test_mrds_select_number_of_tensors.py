@@ -106,11 +106,7 @@ def test_non_ras_mrds_select_number_of_tensors(script_runner, monkeypatch):
     sf_data = out_sf.get_fdata()
     assert np.any((sf_data > 0) & (sf_data < 1))
 
-    # Visual verification: render peaks screenshots for both reference
-    # and test runs. On this branch, PIR mask is reoriented correctly
-    # to match the LAS dataset, so the rendered peak glyphs on the mid-slice
-    # match the reference exactly.
-    # On dev_3.0.x, scil_mrds_select_number_of_tensors crashes with IndexError.
+    # Verify rendered peaks screenshots match reference
     ret_viz_ref = script_runner.run([
         'scil_viz_volume_screenshot', nufo_path, 'ref_peaks.png',
         '--peaks', 'out_ref_MRDS_evecs.nii.gz',
