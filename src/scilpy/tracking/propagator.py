@@ -256,67 +256,7 @@ class AbstractPropagator(object):
         """
         raise NotImplementedError
 
-
-class PropagatorOnSphere(AbstractPropagator):
-    def __init__(self, datavolume, step_size, rk_order, dipy_sphere,
-                 sub_sphere, space, origin):
-        """
-        Parameters
-        ----------
-        datavolume: scilpy.image.volume_space_management.DataVolume
-            Trackable DataVolume object.
-        step_size: float
-            The step size for tracking.
-        rk_order: int
-            Order for the Runge Kutta integration.
-        dipy_sphere: string, optional
-            If necessary, name of the DIPY sphere object to use to evaluate
-            directions.
-        space: dipy Space
-            Space of the streamlines during tracking.
-        origin: dipy Origin
-            Origin of the streamlines during tracking.
-        """
-        super().__init__(datavolume, step_size, rk_order, space, origin)
-
-        self.sphere = get_sphere(name=dipy_sphere).subdivide(n=sub_sphere)
-        self.dirs = np.zeros(len(self.sphere.vertices), dtype=np.ndarray)
-        for i in range(len(self.sphere.vertices)):
-            self.dirs[i] = TrackingDirection(self.sphere.vertices[i], i)
-
-    def prepare_backward(self, line, forward_dir):
-        """
-        Called at the beginning of backward tracking, in case we need to
-        reset some parameters
-
-        Parameters
-        ----------
-        line: List
-            Result from the forward tracking, reversed.
-        forward_dir: ndarray (3,)
-            v_in chosen at the forward step.
-
-        Returns
-        -------
-        v_in: ndarray (3,)
-            Last direction of the streamline, of if it contains only the
-            seeding point (forward tracking failed), simply inverse the
-            forward direction.
-        """
-        if len(line) > 1:
-            last_dir = line[-1] - line[-2]
-            ind = self.sphere.find_closest(last_dir)
-        else:
-            backward_dir = -np.asarray(forward_dir)
-            ind = self.sphere.find_closest(backward_dir)
-
-        # toDo. Is using a TrackingDirection necessary compared to a direction
-        #  x,y, z or rho, phi? self.sphere.vertices[ind] might not be
-        #  exactly equal to last_dir or to backward_dir.
-        return TrackingDirection(self.sphere.vertices[ind], ind)
-
-
-class ODFPropagator(PropagatorOnSphere):
+class ODFPropagator(AbstractPropagator):
     """
     Propagator on ODFs/fODFs. Algo can be det or prob.
     """
@@ -372,8 +312,12 @@ class ODFPropagator(PropagatorOnSphere):
         is_legacy : bool, optional
             Whether or not the SH basis is in its legacy form.
         """
-        super().__init__(datavolume, step_size, rk_order, dipy_sphere,
-                         sub_sphere, space, origin)
+        super().__init__(datavolume, step_size, rk_order, space, origin)
+
+        self.sphere = get_sphere(name=dipy_sphere).subdivide(n=sub_sphere)
+        self.dirs = np.zeros(len(self.sphere.vertices), dtype=np.ndarray)
+        for i in range(len(self.sphere.vertices)):
+            self.dirs[i] = TrackingDirection(self.sphere.vertices[i], i)
 
         if self.space == Space.RASMM:
             raise NotImplementedError(
@@ -477,6 +421,37 @@ class ODFPropagator(PropagatorOnSphere):
         # Else: sf at current position is smaller than acceptable threshold in
         # all directions.
         return PropagationStatus.ERROR
+
+    def prepare_backward(self, line, forward_dir):
+        """
+        Called at the beginning of backward tracking, in case we need to
+        reset some parameters
+
+        Parameters
+        ----------
+        line: List
+            Result from the forward tracking, reversed.
+        forward_dir: ndarray (3,)
+            v_in chosen at the forward step.
+
+        Returns
+        -------
+        v_in: ndarray (3,)
+            Last direction of the streamline, of if it contains only the
+            seeding point (forward tracking failed), simply inverse the
+            forward direction.
+        """
+        if len(line) > 1:
+            last_dir = line[-1] - line[-2]
+            ind = self.sphere.find_closest(last_dir)
+        else:
+            backward_dir = -np.asarray(forward_dir)
+            ind = self.sphere.find_closest(backward_dir)
+
+        # toDo. Is using a TrackingDirection necessary compared to a direction
+        #  x,y, z or rho, phi? self.sphere.vertices[ind] might not be
+        #  exactly equal to last_dir or to backward_dir.
+        return TrackingDirection(self.sphere.vertices[ind], ind)
 
     def _sample_next_direction(self, pos, v_in):
         """
