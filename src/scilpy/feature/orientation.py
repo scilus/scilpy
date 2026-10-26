@@ -210,20 +210,85 @@ def compute_scaled_hessian(img, sigma=1, trunc=4, padding_mode='reflect', paddin
     return hessian
 
 
-def compute_plate_like_score(ra, alpha):
-    return 1 - np.exp(np.divide(np.negative(np.square(ra)), 2 * np.square(alpha)))
+def compute_tube_like_probability(ra, alpha):
+    """
+    Compute the tube-like probability (in range 0-1) of the Frangi filter from
+    the plate-like coefficient ra.
+
+    Parameters
+    ----------
+    ra: np.ndarray
+        Plate-like coefficient.
+    alpha: float
+        The sensitivity parameter for the tube-like probability.
+
+    Returns
+    -------
+    tube: np.ndarray
+        The tube-like probability.
+    """
+    return 1 - np.exp(-ra**2 / (2 * alpha**2))
 
 
-def compute_blob_like_score(rb, beta):
-    return np.exp(np.divide(np.negative(np.square(rb)), 2 * np.square(beta)))
+def compute_blob_like_probability(rb, beta):
+    """
+    Compute blob-like probability (in range 0-1) from the blobness
+    coefficient rb.
+
+    Parameters
+    ----------
+    rb: np.ndarray
+        Blobness coefficient.
+    beta: float
+        The sensitivity parameter for the blob-like probability.
+
+    Returns
+    -------
+    blob: np.ndarray
+        The blob-like probability.
+    """
+    return np.exp(-rb**2 / (2 * beta**2))
 
 
-def compute_background_score(s, gamma):
-    return 1 - np.exp(np.divide(np.negative(np.square(s)), 2 * np.square(gamma)))
+def compute_background_probability(s, gamma):
+    """
+    Compute background probability (in range 0-1) from the structureness
+    coefficient s.
+
+    Parameters
+    ----------
+    s: np.ndarray
+        Structureness coefficient.
+    gamma: float
+        The sensitivity parameter for the background probability.
+
+    Returns
+    -------
+    background: np.ndarray
+        The background probability.
+    """
+    return 1 - np.exp(-s**2 / (2 * gamma**2))
 
 
 def compute_structureness(eigen1, eigen2, eigen3):
-    return np.sqrt(np.square(eigen1) + np.square(eigen2) + np.square(eigen3))
+    """
+    Compute structureness coefficient from the Hessian matrix eigenvalues.
+
+    Parameters
+    ----------
+    eigen1: np.ndarray
+        Lowest Hessian eigenvalue (i.e., the dominant eigenvalue).
+    eigen2: np.ndarray
+        Middle Hessian eigenvalue.
+    eigen3: np.ndarray
+        Highest Hessian eigenvalue.
+
+    Returns
+    -------
+    structureness: np.ndarray
+        The structureness coefficient.
+    """
+    return np.sqrt(eigen1**2 + eigen2**2 + eigen3**2)
 
 
 def compute_scaled_vesselness(eigen1, eigen2, eigen3, alpha, beta, gamma):
@@ -251,9 +316,9 @@ def compute_scaled_vesselness(eigen1, eigen2, eigen3, alpha, beta, gamma):
         Frangi's vesselness likelihood image
     """
     ra, rb, s, gamma = compute_frangi_features(eigen1, eigen2, eigen3, gamma)
-    plate = compute_plate_like_score(ra, alpha)
-    blob = compute_blob_like_score(rb, beta)
-    background = compute_background_score(s, gamma)
+    plate = compute_tube_like_probability(ra, alpha)
+    blob = compute_blob_like_probability(rb, beta)
+    background = compute_background_probability(s, gamma)
     vesselness = plate * blob * background
 
     return vesselness
@@ -363,10 +428,8 @@ def reject_vesselness_background(vesselness, eigen2, eigen3):
     ----------
     vesselness: numpy.ndarray (axis order=(Z,Y,X))
         Frangi's vesselness likelihood image
-
     eigen2: numpy.ndarray (axis order=(Z,Y,X), dtype=float)
         middle Hessian eigenvalue
-
     eigen3: numpy.ndarray (axis order=(Z,Y,X), dtype=float)
         highest Hessian eigenvalue
 
@@ -392,10 +455,8 @@ def sort_eigen(eigval, eigvec, axis=-1):
     ----------
     eigval: numpy.ndarray (axis order=(Z,Y,X,C), dtype=float)
         original eigenvalue array
-
     eigvec: numpy.ndarray (axis order=(Z,Y,X,C,C), dtype=float)
         original eigenvector array
-
     axis: int
         sorted axis
 
@@ -403,7 +464,6 @@ def sort_eigen(eigval, eigvec, axis=-1):
     -------
     srt_eigval: numpy.ndarray (axis order=(Z,Y,X,C), dtype=float)
         sorted eigenvalue array (ascending order)
-
     srt_eigvec: numpy.ndarray (axis order=(Z,Y,X,C,C), dtype=float)
         sorted eigenvector array
     """

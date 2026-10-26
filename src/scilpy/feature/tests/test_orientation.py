@@ -1,10 +1,10 @@
 import numpy as np
 
 from scilpy.feature.orientation import (
-    compute_background_score,
-    compute_blob_like_score,
+    compute_background_probability,
+    compute_blob_like_probability,
     compute_frangi_features,
-    compute_plate_like_score,
+    compute_tube_like_probability,
     compute_scaled_orientation,
     compute_structureness,
     divide_nonzero,
@@ -57,15 +57,15 @@ def test_scalar_frangi_score_helpers_match_formulas():
     s = np.array([0.0, 1.0, 2.0], dtype=np.float32)
 
     np.testing.assert_allclose(
-        compute_plate_like_score(ra, alpha=1.0),
+        compute_tube_like_probability(ra, alpha=1.0),
         1 - np.exp(-(ra ** 2) / 2.0),
     )
     np.testing.assert_allclose(
-        compute_blob_like_score(rb, beta=1.0),
+        compute_blob_like_probability(rb, beta=1.0),
         np.exp(-(rb ** 2) / 2.0),
     )
     np.testing.assert_allclose(
-        compute_background_score(s, gamma=1.0),
+        compute_background_probability(s, gamma=1.0),
         1 - np.exp(-(s ** 2) / 2.0),
     )
     np.testing.assert_allclose(
@@ -123,20 +123,10 @@ def test_compute_scaled_orientation_returns_finite_arrays():
 def test_frangi_filter_matches_single_scale_orientation_smoke():
     img = _make_test_volume()
 
-    frangi_img, eigvec, _ = compute_scaled_orientation(
-        1,
-        img,
-        alpha=0.001,
-        beta=1.0,
-        gamma=None,
-    )
-    filtered_frangi, filtered_vec = frangi_filter(
-        img,
-        scales_px=[1],
-        alpha=0.001,
-        beta=1.0,
-        gamma=None,
-    )
+    frangi_img, eigvec, _ = compute_scaled_orientation(1, img, alpha=0.001,
+                                                       beta=1.0, gamma=None)
+    filtered_frangi, filtered_vec = frangi_filter(img, scales_px=[1], alpha=0.001,
+                                                  beta=1.0, gamma=None)
 
     np.testing.assert_allclose(filtered_frangi, frangi_img)
     np.testing.assert_allclose(filtered_vec, eigvec)

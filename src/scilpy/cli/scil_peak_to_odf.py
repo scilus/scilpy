@@ -116,7 +116,7 @@ def main():
         max_dot[update] = dot[update]
         peaks1d_to_sph_ind[update] = vert_idx
 
-    # THIS LINE IS VERY MEMORY INTENSIVE: OOM ON LARGE IMAGES
+    # TODO: Split in batches to prevent OOM for large images.
     sh = sh_to_sf_mat.T[peaks1d_to_sph_ind]
     if apodize_kernel is not None:
         sh = sh * apodize_kernel
