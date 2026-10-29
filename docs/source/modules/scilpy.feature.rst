@@ -1,11 +1,11 @@
-scilpy.denoise package
+scilpy.feature package
 ===============================
 
 
-scilpy.denoise.asym\_filtering module
+scilpy.feature.asym\_filtering module
 ------------------------------------------------------
 
-.. automodule:: scilpy.denoise.asym_filtering
+.. automodule:: scilpy.feature.asym_filtering
    :members:
    :undoc-members:
    :show-inheritance:
