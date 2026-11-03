@@ -32,7 +32,8 @@ def _build_arg_parser():
 
     p.add_argument(
         '--out', metavar='OUT_FILE', dest='out_filename',
-        help='Name of the output file, which will be saved as a text file.')
+        help='Name of the output file, which will be saved as a text file.\n'
+             'If not set, will print to stdout.')
     p.add_argument(
         '--stats', action='store_true', dest='stats_format',
         help='If set, output the value using a stats format. Using this '
