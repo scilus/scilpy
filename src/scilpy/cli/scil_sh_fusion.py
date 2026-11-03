@@ -28,12 +28,12 @@ References:
 import argparse
 import logging
 
-import nibabel as nib
 import numpy as np
 
-from scilpy.io.image import assert_same_resolution
-from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
-                             assert_outputs_exist, add_verbose_arg)
+from scilpy.io.stateful_image import StatefulImage
+from scilpy.io.utils import (add_overwrite_arg, assert_headers_compatible,
+                             assert_inputs_exist, assert_outputs_exist,
+                             add_verbose_arg)
 from scilpy.version import version_string
 
 
@@ -60,20 +60,22 @@ def main():
 
     assert_inputs_exist(parser, args.in_shs)
     assert_outputs_exist(parser, args, args.out_sh)
-    assert_same_resolution(args.in_shs)
+    assert_headers_compatible(parser, args.in_shs)
 
-    first_im = nib.load(args.in_shs[0])
-    out_coeffs = first_im.get_fdata(dtype=np.float32)
+    first_simg = StatefulImage.load(args.in_shs[0], is_orientation=True)
+    out_coeffs = first_simg.get_fdata(dtype=np.float32)
 
     for sh_file in args.in_shs[1:]:
-        im_dat = nib.load(sh_file).get_fdata(dtype=np.float32)
+        curr_simg = StatefulImage.load(sh_file, is_orientation=True)
+        curr_simg.reorient(first_simg.axcodes)
+        im_dat = curr_simg.get_fdata(dtype=np.float32)
 
         out_coeffs = np.where(np.abs(im_dat) > np.abs(out_coeffs),
                               im_dat, out_coeffs)
 
-    nib.save(nib.Nifti1Image(out_coeffs, first_im.affine,
-                             header=first_im.header),
-             args.out_sh)
+    StatefulImage.create_from(
+        out_coeffs.astype(np.float32), first_simg,
+        is_orientation=True).save(args.out_sh)
 
 
 if __name__ == '__main__':

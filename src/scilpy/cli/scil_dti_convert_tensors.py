@@ -9,8 +9,9 @@ how the tensors were created.
 import argparse
 import logging
 
-import nibabel as nib
 import numpy as np
+
+from scilpy.io.stateful_image import StatefulImage
 
 from scilpy.io.utils import (add_overwrite_arg, add_verbose_arg,
                              assert_inputs_exist, assert_outputs_exist)
@@ -52,14 +53,14 @@ def main():
     assert_inputs_exist(parser, args.in_file)
     assert_outputs_exist(parser, args, args.out_file)
 
-    in_tensors_img = nib.load(args.in_file)
-    in_tensors = in_tensors_img.get_fdata(dtype=np.float32)
+    in_tensors_simg = StatefulImage.load(args.in_file)
+    in_tensors = in_tensors_simg.get_fdata(dtype=np.float32)
 
     out_tensors = convert_tensor_format(in_tensors, args.in_format,
                                         args.out_format)
-    out_tensors_img = nib.Nifti1Image(
-        out_tensors.astype(np.float32), in_tensors_img.affine)
-    nib.save(out_tensors_img, args.out_file)
+    StatefulImage.create_from(
+        out_tensors.astype(np.float32), in_tensors_simg,
+        is_orientation=False).save(args.out_file)
 
 
 if __name__ == "__main__":
