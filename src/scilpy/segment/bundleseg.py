@@ -53,17 +53,13 @@ class BundleSeg(object):
         clustering, Neuroimage, 2017.
     """
 
-    def __init__(self, memmap_filenames, transformation,
-                 clusters_indices, wb_centroids, rng=None):
+    def __init__(self, memmap_filenames, clusters_indices, wb_centroids,
+                 rng=None):
         """
         Parameters
         ----------
         memmap_filenames : tuple
             tuple of filenames for the data, offsets and lengths.
-        transformation : numpy.ndarray
-            Transformation matrix bringing the models into subject space.
-            Not used by BundleSeg itself: VotingScheme applies it to each
-            model before calling recognize().
         clusters_indices: ArraySequence
             ArraySequence containing the indices of the streamlines per
             cluster.
@@ -74,7 +70,6 @@ class BundleSeg(object):
             If None then RandomState is initialized internally.
         """
         self.memmap_filenames = memmap_filenames
-        self.transformation = transformation
         self.wb_clusters_indices = clusters_indices
         self.wb_centroids = wb_centroids
         self.rng = rng

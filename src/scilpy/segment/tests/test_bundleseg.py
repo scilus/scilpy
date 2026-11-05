@@ -50,8 +50,8 @@ def _init_shifted_target(shift):
     clusters_indices._data = clusters_indices._data.astype(np.uint32)
     tmp_dir, memmap_filenames = streamlines_to_memmap(tractogram, 'float16')
 
-    bsg = BundleSeg(memmap_filenames, np.eye(4), clusters_indices,
-                    centroids, rng=rng)
+    bsg = BundleSeg(memmap_filenames, clusters_indices, centroids,
+                    rng=rng)
     return bsg, model, tmp_dir
 
 
