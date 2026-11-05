@@ -316,8 +316,8 @@ class VotingScheme(object):
         gc.collect()
         # End of memory cleanup
 
-        bsg = BundleSeg(tmp_memmap_filenames, self.transformation,
-                        clusters_indices, centroids, rng=rng)
+        bsg = BundleSeg(tmp_memmap_filenames, clusters_indices, centroids,
+                        rng=rng)
 
         # Update all BundleSeg initialisation into a single dictionnary
         with Manager() as manager:
@@ -327,7 +327,7 @@ class VotingScheme(object):
                 single_recognize,
                 zip(repeat(bsg), model_bundles_dict.keys(),
                     model_bundles_dict.values(),
-                    repeat(bundle_names)))
+                    repeat(bundle_names), repeat(self.transformation)))
             pool.close()
             pool.join()
 
@@ -391,22 +391,21 @@ def single_recognize(args):
 
     Parameters
     ----------
-    bsg : Object
-        Initialize BundleSeg object with QBx ClusterMap as values
-    model_filepath : str
-        Path to the model bundle file
-    model_bundle: ArraySequence
-        Model bundle.
-    bundle_pruning_thr : float
-        Threshold for pruning the model bundle
-    bundle_names : list
-        List of string with bundle names for models (to get bundle_id)
-    seed : int
-        Value to initialize the RandomState of numpy
+    args : tuple
+        bsg : BundleSeg
+            BundleSeg object initialized with the tractogram clusters.
+        model_filepath : str
+            Path to the model bundle file
+        bundle_pruning_thr : float
+            Threshold for pruning the model bundle
+        bundle_names : list
+            List of string with bundle names for models (to get bundle_id)
+        transformation : numpy.ndarray
+            Transformation (4x4) bringing the model into subject space.
 
     Returns
     -------
-    transf_neighbor : tuple
+    results : tuple
         bundle_id : (int)
             Unique value to each bundle to identify them.
         recognized_indices : (numpy.ndarray)
@@ -418,10 +417,10 @@ def single_recognize(args):
     model_filepath = args[1]
     bundle_pruning_thr = args[2]
     bundle_names = args[3]
+    transformation = args[4]
 
     model_bundle = nib.streamlines.load(model_filepath).streamlines
-    model_bundle = transform_streamlines(model_bundle,
-                                         bsg.transformation)
+    model_bundle = transform_streamlines(model_bundle, transformation)
 
     # Use for logging and finding the bundle_id
     shorter_tag, ext = os.path.splitext(os.path.basename(model_filepath))
