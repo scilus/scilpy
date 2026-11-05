@@ -375,16 +375,6 @@ class VotingScheme(object):
                     f"{get_duration(save_timer)} sec.")
 
 
-def single_recognize_parallel(args):
-    """Wrapper function to multiprocess recobundles execution."""
-    rbx = args[0]
-    model_filepath = args[1]
-    bundle_pruning_thr, model_bundle = args[2]
-    bundle_names = args[3]
-    return single_recognize(rbx, model_filepath, model_bundle,
-                            bundle_pruning_thr, bundle_names)
-
-
 def single_recognize(args):
     """
     Recobundle for a single bundle.
