@@ -6,7 +6,8 @@ from tqdm import tqdm
 from scipy.ndimage import label
 
 from scilpy.ml.utils import get_device, to_numpy, IMPORT_ERROR_MSG
-from scilpy.ml.bundleparc.utils import (DEFAULT_BUNDLES, get_data)
+from scilpy.ml.bundleparc.bundles import DEFAULT_BUNDLES
+from scilpy.ml.bundleparc.utils import get_data
 
 from dipy.utils.optpkg import optional_package
 torch, have_torch, _ = optional_package('torch', trip_msg=IMPORT_ERROR_MSG)
