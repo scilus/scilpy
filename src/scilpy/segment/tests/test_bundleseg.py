@@ -4,6 +4,7 @@ from dipy.segment.clustering import qbx_and_merge
 from nibabel.streamlines.array_sequence import ArraySequence
 import numpy as np
 from numpy.testing import assert_allclose, assert_array_equal
+import pytest
 
 from scilpy.io.streamlines import streamlines_to_memmap
 from scilpy.segment.bundleseg import BundleSeg
@@ -97,15 +98,18 @@ def test_reduce_search_space():
     assert len(centroids_14) == 0
 
 
-def test_register_model_to_neighb():
+@pytest.mark.parametrize('slr_transform_type',
+                         ['translation', 'rigid', 'similarity', 'scaling'])
+def test_register_model_to_neighb(slr_transform_type):
     # The model is the target shifted by 15 mm in x: the local SLR must move
     # it back by about -15 mm in x, with almost no rotation or scaling.
     bsg, model, tmp_dir = _init_shifted_target(shift=15)
     model_centroids = bsg._cluster_model_bundle(model, 4)
     _, neighb_centroids = bsg._reduce_search_space(
         model_centroids, neighbors_reduction_thr=16)
-    matrix = bsg._register_model_to_neighb(model_centroids,
-                                           neighb_centroids)
+    matrix = bsg._register_model_to_neighb(
+        model_centroids, neighb_centroids,
+        slr_transform_type=slr_transform_type)
     tmp_dir.cleanup()
 
     assert matrix.shape == (4, 4)

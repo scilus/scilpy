@@ -292,27 +292,26 @@ class BundleSeg(object):
             slm = slr.optimize(static, moving)
 
         if slr_transform_type_id >= 2:
-            if slr_transform_type_id == 2:
-                init_transfo_dof = np.zeros(7)
-                init_transfo_dof[:6] = slm.xopt
-                init_transfo_dof[6] = 1.
+            init_transfo_dof = np.zeros(7)
+            init_transfo_dof[:6] = slm.xopt
+            init_transfo_dof[6] = 1.
 
-                slr = StreamlineLinearRegistration(metric=metric,
-                                                   x0=init_transfo_dof,
-                                                   bounds=bounds_dof[:7],
-                                                   num_threads=1)
-                slm = slr.optimize(static, moving)
+            slr = StreamlineLinearRegistration(metric=metric,
+                                               x0=init_transfo_dof,
+                                               bounds=bounds_dof[:7],
+                                               num_threads=1)
+            slm = slr.optimize(static, moving)
 
-            else:
-                init_transfo_dof = np.zeros(9)
-                init_transfo_dof[:6] = slm.xopt[:6]
-                init_transfo_dof[6:] = np.array((slm.xopt[6],) * 3)
+        if slr_transform_type_id >= 3:
+            init_transfo_dof = np.zeros(9)
+            init_transfo_dof[:6] = slm.xopt[:6]
+            init_transfo_dof[6:] = np.array((slm.xopt[6],) * 3)
 
-                slr = StreamlineLinearRegistration(metric=metric,
-                                                   x0=init_transfo_dof,
-                                                   bounds=bounds_dof[:9],
-                                                   num_threads=1)
-                slm = slr.optimize(static, moving)
+            slr = StreamlineLinearRegistration(metric=metric,
+                                               x0=init_transfo_dof,
+                                               bounds=bounds_dof[:9],
+                                               num_threads=1)
+            slm = slr.optimize(static, moving)
 
         # The SLR moves the neighborhood onto the model: invert it to move
         # the model onto the neighborhood.
