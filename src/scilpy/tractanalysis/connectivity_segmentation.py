@@ -212,7 +212,7 @@ def construct_hdf5_from_connectivity(
         pair_info = []
         if out_label in con_info[in_label]:
             pair_info.extend(con_info[in_label][out_label])
-        if in_label in con_info[out_label]:
+        if in_label != out_label and in_label in con_info[out_label]:
             pair_info.extend(con_info[out_label][in_label])
         if len(pair_info) == 0:
             logging.debug("No streamlines found for this connection: not "

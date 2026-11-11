@@ -6,6 +6,7 @@ import tempfile
 
 from scilpy import SCILPY_HOME
 from scilpy.io.fetcher import fetch_data, get_testing_files_dict
+from scilpy.io.streamlines import load_tractogram_with_reference
 
 # If they already exist, this only takes 5 seconds (check md5sum)
 fetch_data(get_testing_files_dict(), keys=['connectivity.zip'])
@@ -31,3 +32,8 @@ def test_execution_connectivity(script_runner, monkeypatch):
         '--save_final', '--out_dir',
         os.path.join(tmp_dir.name, 'out_bundles')])
     assert ret.success
+    # Ensure self-connections (i, i) are not duplicated (raw 314, not 628)
+    sft_9_9 = load_tractogram_with_reference(
+        None, None,
+        os.path.join(tmp_dir.name, 'out_bundles', 'final_connections', '9_9.trk'))
+    assert len(sft_9_9) == 314

@@ -45,7 +45,7 @@ sft.data_per_point['test2'] = [[[1, 2, 3]] * len(s) for s in sft.streamlines]
 def test_shuffle_streamlines():
     # Shuffling pretty straightforward, not testing.
     # Verifying that initial SFT is not modified.
-    sft2 = shuffle_streamlines(sft)
+    sft2 = shuffle_streamlines(sft, rng_seed=0)
     assert not sft2 == sft
 
 
