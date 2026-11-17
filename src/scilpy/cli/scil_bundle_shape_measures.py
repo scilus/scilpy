@@ -115,6 +115,10 @@ def compute_measures(args):
     length_min = float(np.min(length_list))
     length_max = float(np.max(length_list))
 
+    curvature_list = [mean_curvature(s) for s in streamline_cords
+                      if len(s) >= 2]
+    mean_curv = float(np.mean(curvature_list)) if len(curvature_list) else 0.0
+
     sft.to_vox()
     sft.to_corner()
     streamlines = sft.streamlines
@@ -138,29 +142,35 @@ def compute_measures(args):
         np.where(endpoints_map_head != 0, 1, endpoints_map_head)
     endpoints_map_tail_roi = \
         np.where(endpoints_map_tail != 0, 1, endpoints_map_tail)
-    end_sur_area_head = \
-        approximate_surface_node(endpoints_map_head_roi) * (voxel_size[0] ** 2)
-    end_sur_area_tail = \
-        approximate_surface_node(endpoints_map_tail_roi) * (voxel_size[0] ** 2)
+    end_sur_area_head = float(
+        np.count_nonzero(endpoints_map_head_roi) * (voxel_size[0] * voxel_size[1]))
+    end_sur_area_tail = float(
+        np.count_nonzero(endpoints_map_tail_roi) * (voxel_size[0] * voxel_size[1]))
 
-    endpoints_coords_head = np.array(np.where(endpoints_map_head_roi)).T
-    endpoints_coords_tail = np.array(np.where(endpoints_map_tail_roi)).T
-    radius_head = 1.5 * np.average(
-        np.sqrt(((endpoints_coords_head - np.average(
-            endpoints_coords_head, axis=0))
-            ** 2).sum(axis=1)))
-    radius_tail = 1.5 * np.average(
-        np.sqrt(((endpoints_coords_tail - np.average(
-            endpoints_coords_tail, axis=0))
-            ** 2).sum(axis=1)))
-    end_irreg_head = (np.pi * radius_head ** 2) / end_sur_area_head
-    end_irreg_tail = (np.pi * radius_tail ** 2) / end_sur_area_tail
+    endpoints_coords_head = np.argwhere(endpoints_map_head_roi) * voxel_size
+    endpoints_coords_tail = np.argwhere(endpoints_map_tail_roi) * voxel_size
+    if len(endpoints_coords_head):
+        radius_head = float(1.5 * np.average(
+            np.sqrt(((endpoints_coords_head - np.average(
+                endpoints_coords_head, axis=0))
+                ** 2).sum(axis=1))))
+    else:
+        radius_head = 0.0
+
+    if len(endpoints_coords_tail):
+        radius_tail = float(1.5 * np.average(
+            np.sqrt(((endpoints_coords_tail - np.average(
+                endpoints_coords_tail, axis=0))
+                ** 2).sum(axis=1))))
+    else:
+        radius_tail = 0.0
+
+    end_irreg_head = float((np.pi * radius_head ** 2) / end_sur_area_head) \
+        if end_sur_area_head > 0 else 0.0
+    end_irreg_tail = float((np.pi * radius_tail ** 2) / end_sur_area_tail) \
+        if end_sur_area_tail > 0 else 0.0
 
     fractal_dimension = compute_fractal_dimension(density)
-
-    curvature_list = np.zeros((nbr_streamlines,))
-    for i in range(nbr_streamlines):
-        curvature_list[i] = mean_curvature(sft.streamlines[i])
 
     return dict(zip(['volume', 'volume_endpoints', 'streamlines_count',
                      'avg_length', 'std_length', 'min_length', 'max_length',
@@ -176,7 +186,7 @@ def compute_measures(args):
                      span, curl, diameter, elon, surf_area, end_sur_area_head,
                      end_sur_area_tail, radius_head, radius_tail, irregularity,
                      end_irreg_head, end_irreg_tail,
-                     float(np.mean(curvature_list)), fractal_dimension]))
+                     mean_curv, fractal_dimension]))
 
 
 def compute_span(streamline_coords):
