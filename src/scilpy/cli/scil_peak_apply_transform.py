@@ -54,7 +54,7 @@ def build_parser():
 def map_fixed_to_moving(pts, affine, warp=None):
     """
     Fixed -> moving RAS point mapping: warp first, then affine. As per
-    ANts documentation, to move points from fixed to moving spaces, the
+    ANTs documentation, to move points from fixed to moving spaces, the
     forward transforms should be used.
 
     Parameters
@@ -89,9 +89,9 @@ def map_fixed_to_moving(pts, affine, warp=None):
 def get_rotation(affine):
     """
     Rotation (direction cosines) of a voxel to world affine. Because the Nifti
-    voxel-to-world affine has the form `M = Rot @ diag(zooms)`, the norm of each
-    row corresponds to `zooms`. So, we can extract the rotation component by
-    dividing by norm(M, axis=0).
+    voxel-to-world affine has the form `M = Rot @ diag(zooms)`, the norm of
+    each column corresponds to `zooms`. So, we can extract the rotation
+    component by dividing by norm(M, axis=0).
 
     Parameters
     ----------
@@ -122,8 +122,9 @@ def main():
     peaks_moving = peaks_nib.get_fdata()
 
     # Safety check to ensure the input is a peaks image
-    if peaks_nib.shape[3] % 3:
-        raise ValueError(f"Last dimension ({peaks_nib.shape[3]}) is not a multiple of 3.")
+    if peaks_nib.ndim != 4 or peaks_nib.shape[3] % 3:
+        raise ValueError(
+            f"Peaks image must be 4D with a last dimension divisible by 3; got shape {peaks_nib.shape}.")
     n_peaks = peaks_nib.shape[3] // 3
 
     affine = load_matrix_in_any_format(args.in_affine)
@@ -183,7 +184,7 @@ def main():
     # finally transform to fixed voxels
     v_out_vox = v_fixed_mm @ world_to_ref.T
 
-    # Normalize peaks to they keep the same length as before
+    # Normalize peaks so they keep the same length as before
     norms = np.linalg.norm(vecs, axis=-1, keepdims=True)
     new_norms = np.linalg.norm(v_out_vox, axis=-1, keepdims=True)
     with np.errstate(invalid="ignore", divide="ignore"):
