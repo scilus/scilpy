@@ -13,7 +13,7 @@ import xml.etree.ElementTree as ET
 import nibabel as nib
 import numpy as np
 from dipy.data import SPHERE_FILES
-from dipy.io.stateful_tractogram import Origin, Space 
+from dipy.io.stateful_tractogram import Origin, Space
 from dipy.io.utils import is_header_compatible
 from scipy.io import loadmat
 import six
@@ -1089,6 +1089,28 @@ def save_matrix_in_any_format(filepath, output_data):
         np.save('{}.npy'.format(filepath), output_data)
     else:
         raise ValueError('Extension {} is not supported'.format(ext))
+
+
+def load_ants_warp(path):
+    """
+    Read an ANTs displacement field and express it in RAS.
+
+    Parameters
+    ----------
+    path: str
+        Path to the ANTs warp image.
+
+    Returns
+    -------
+    tuple: A tuple containing the (X,Y,Z,3) RAS displacement array and the
+        voxel -> RAS affine matrix.
+    """
+    disp_img = nib.load(path)
+    displacement = np.asarray(disp_img.dataobj, dtype=np.float64).reshape(
+        disp_img.shape[:3] + (3,))
+    # ITK/ANTs vectors are in LPS, nibabel in RAS: flip the first two axes.
+    lps2ras_flip = np.array([-1.0, -1.0, 1.0])
+    return displacement * lps2ras_flip, disp_img.affine
 
 
 def assert_fsl_options_exist(parser, options_args, command, overwrite=False):
