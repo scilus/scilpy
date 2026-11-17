@@ -25,6 +25,7 @@ from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (
     add_overwrite_arg,
     add_verbose_arg,
+    assert_headers_compatible,
     assert_inputs_exist,
     assert_outputs_exist,
     load_ants_warp,
@@ -115,6 +116,7 @@ def main():
     assert_inputs_exist(parser, [args.in_peaks, args.in_reference, args.in_affine],
                         [args.warp, args.mask])
     assert_outputs_exist(parser, args, args.out_peaks)
+    assert_headers_compatible(parser, args.in_reference, [args.warp, args.mask])
 
     peaks_nib = nib.load(args.in_peaks)
     ref_nib = nib.load(args.in_reference)
