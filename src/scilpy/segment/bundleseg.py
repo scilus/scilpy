@@ -251,10 +251,15 @@ class BundleSeg(object):
                                                    num_threads=1)
                 slm = slr.optimize(static, moving)
 
-        # Apply the transformation to the model streamlines
+        # Apply the transformation to the model streamlines and centroids
         self.model_streamlines = transform_streamlines(self.model_streamlines,
                                                        np.linalg.inv(slm.matrix))
+        self.model_centroids = transform_streamlines(self.model_centroids,
+                                                     np.linalg.inv(slm.matrix))
+
         self.model_streamlines._data = self.model_streamlines._data.astype(
+            np.float16)
+        self.model_centroids._data = self.model_centroids._data.astype(
             np.float16)
 
     def prune_far_from_model(self, pruning_thr=10):
