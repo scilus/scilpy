@@ -98,7 +98,7 @@ def add_tracking_options(p):
                          help='Maximum angle between 2 steps. If the angle is '
                               'too big, streamline is \nstopped and the '
                               'following point is NOT included.\n'
-                              '["eudx"=60, "det"=45, "prob"=20, "ptt"=20]')
+                              '["eudx"=60, "det"=45, "prob"=20, "ptt"=10]')
     track_g.add_argument('--sfthres', dest='sf_threshold', metavar='sf_th',
                          type=float, default=0.1,
                          help='Spherical function relative threshold '
@@ -124,7 +124,7 @@ def add_tracking_options(p):
 def add_tracking_ptt_options(p):
     track_g = p.add_argument_group('PTT options')
     track_g.add_argument('--probe_length', dest='probe_length',
-                         type=float, default=1.0,
+                         type=float, default=1.5,
                          help='The length of the probes. Smaller value\n'
                               'yields more dispersed fibers. [%(default)s]')
     track_g.add_argument('--probe_radius', dest='probe_radius',
@@ -135,7 +135,7 @@ def add_tracking_ptt_options(p):
                               'connections, also the boundary of fiber\n'
                               'bundles might be eroded. [%(default)s]')
     track_g.add_argument('--probe_quality', dest='probe_quality',
-                         type=int, default=3,
+                         type=int, default=7,
                          help='The quality of the probe. This parameter sets\n'
                               'the number of segments to split the cylinder\n'
                               'along the length of the probe (minimum=2) '
@@ -146,7 +146,7 @@ def add_tracking_ptt_options(p):
                               'number of parallel lines used to model the\n'
                               'cylinder (minimum=1). [%(default)s]')
     track_g.add_argument('--support_exponent',
-                         type=float, default=3,
+                         type=float, default=1,
                          help='Data support exponent, used for rejection\n'
                               'sampling. [%(default)s]')
 
