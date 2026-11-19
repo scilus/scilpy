@@ -47,7 +47,7 @@ def _build_arg_parser():
     p.add_argument('out_sh',
                    help='Output spherical harmonics (micro-ODF) image.')
 
-    p.add_argument('--brain_mask',
+    p.add_argument('--mask',
                    help='Optional nifti image to mask the output micro-ODF.\n'
                         'Only non-zero voxels will be evaluated.')
     p.add_argument('--sh_order_max', type=int, default=8,
@@ -73,13 +73,13 @@ def main():
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
-    assert_inputs_exist(parser, args.in_peaks)
+    assert_inputs_exist(parser, args.in_peaks, optional=args.mask)
     assert_outputs_exist(parser, args, args.out_sh)
 
     basis_type, legacy = parse_sh_basis_arg(args)
     brain_mask = None
-    if args.brain_mask is not None:
-        mask_im = nib.load(args.brain_mask)
+    if args.mask is not None:
+        mask_im = nib.load(args.mask)
         brain_mask = mask_im.get_fdata().astype(bool)
 
     apodize_kernel = None

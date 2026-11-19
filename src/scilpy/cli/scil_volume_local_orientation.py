@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding:utf-8 -*-
 """
-Fiber orientations analysis using either Frangi filters or structure tensor analysis.
+From a grayscale image, the script estimates the voxel-wise main fiber orientation
+using either Frangi filters or structure tensor analysis.
 
 By default, the script uses Frangi filters as in [1]. Given an input grayscale image,
 the script estimates the local orientation and probability of tube-like structures. By
@@ -17,7 +18,7 @@ The script also provides the single-scale structure tensor method as an alternat
 structure tensor is based on 1st-order derivatives, it is generally less sensitive to noise than
 the Frangi filter, which uses 2nd-order derivatives. Also note that the definition for the
 probability map differs between both methods. For structure tensor analysis, it is a simple
-ratio of the 3 eigenvalues, while for Frangi filters, it is a more complex function of the 
+ratio of the 3 eigenvalues, while for Frangi filters, it is a more complex function of the
 eigenvalues relying on alpha, beta and gamma parameters [1].
 
 The memory requirement scales with the size of the input image. For example, a whole-mouse
@@ -55,7 +56,7 @@ from scilpy.version import version_string
 def _build_arg_parser():
     p = argparse.ArgumentParser(description=__doc__, epilog=version_string,
                                 formatter_class=argparse.RawTextHelpFormatter)
-    p.add_argument('in_image', help='Input nifti image.')
+    p.add_argument('in_image', help='Input grayscale image (nifti).')
     p.add_argument('out_direction', help='Output direction nifti image.')
     p.add_argument('out_probability', help='Output probability nifti image.')
     p.add_argument('--method', default='frangi', choices=['frangi', 'structure_tensor'],
@@ -104,13 +105,6 @@ def structure_tensor_wrapper(data, sigma, padding_mode='constant', padding_cval=
     return A
 
 
-def divide_nonzero(num, div):
-    res = np.zeros_like(num)
-    nonzero_mask = div != 0
-    res[nonzero_mask] = num[nonzero_mask] / div[nonzero_mask]
-    return res
-
-
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
@@ -148,8 +142,15 @@ def main():
         lambda_2 = evals[..., 1]
         lambda_3 = evals[..., 0]
 
-        prob = divide_nonzero(lambda_2 - lambda_3, lambda_1)
+        prob = np.zeros_like(lambda_1)
+        num = lambda_2 - lambda_3
+        nonzero_mask = lambda_1 != 0
+        prob[nonzero_mask] = num[nonzero_mask] / lambda_1[nonzero_mask]
+
         direction = evecs[..., 0]
+
+    else:  # this should not happen because choices are given explicitly in argparser
+        raise parser.error(f'Invalid method {args.method}.')
 
     # write outputs
     nib.save(nib.Nifti1Image(direction.astype(

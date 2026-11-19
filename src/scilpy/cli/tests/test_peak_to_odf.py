@@ -63,3 +63,28 @@ def test_execution_no_apodization(script_runner, monkeypatch):
     assert out_peaks.ndim == 4
     assert np.allclose(out_peaks.affine, in_peaks.affine)
     assert np.isfinite(out_peaks.get_fdata()).all()
+
+def test_execution_mask(script_runner, monkeypatch):
+    monkeypatch.chdir(os.path.expanduser(tmp_dir.name))
+
+    # generate temp files
+    single_dir_nib = nib.load(in_img).slicer[..., :3]
+    single_dir_img = os.path.join(tmp_dir.name, 'single_dir_peaks.nii.gz')
+    nib.save(single_dir_nib, single_dir_img)
+
+    # mask covering the first half of the volume along the x axis
+    mask = np.zeros(single_dir_nib.shape[:3], dtype=np.uint8)
+    mask[:mask.shape[0] // 2] = 1
+    mask_img = os.path.join(tmp_dir.name, 'mask.nii.gz')
+    nib.save(nib.Nifti1Image(mask, single_dir_nib.affine), mask_img)
+
+    out_sh = 'peaks_to_odf_mask.nii.gz'
+    ret = script_runner.run(['scil_peak_to_odf', single_dir_img, out_sh,
+                             '--mask', mask_img, '--sh_order_max', 6])
+
+    assert ret.success
+
+    out_data = nib.load(out_sh).get_fdata()
+    assert out_data.shape[:3] == mask.shape
+    assert np.isfinite(out_data).all()
+    assert np.all(out_data[mask == 0] == 0)
